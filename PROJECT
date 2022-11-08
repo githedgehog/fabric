@@ -1,0 +1,9 @@
+domain: githedgehog.com
+layout:
+- go.kubebuilder.io/v4-alpha
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: fabric
+repo: github.com/githedgehog/fabric
+version: "3"
