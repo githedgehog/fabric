@@ -18,13 +18,22 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	fabricv1alpha1 "github.com/githedgehog/fabric/api/v1alpha1"
+)
+
+// Definitions to manage status conditions
+const (
+	typeAvailableFabric = "Available"
 )
 
 // FabricReconciler reconciles a Fabric object
@@ -50,6 +59,39 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
+
+	log := log.FromContext(ctx)
+
+	// Fetch the Fabric instance
+	// The purpose is check if the Custom Resource for the Kind Fabric
+	// is applied on the cluster if not we return nil to stop the reconciliation
+	fabric := &fabricv1alpha1.Fabric{}
+	err := r.Get(ctx, req.NamespacedName, fabric)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// If the custom resource is not found then, it usually means that it was deleted or not created
+			// In this way, we will stop the reconciliation
+			log.Info("fabric resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get fabric")
+		return ctrl.Result{}, err
+	}
+
+	if fabric.Status.Conditions == nil || len(fabric.Status.Conditions) == 0 {
+		// The following implementation will update the status
+		meta.SetStatusCondition(&fabric.Status.Conditions, metav1.Condition{
+			Type:   typeAvailableFabric,
+			Status: metav1.ConditionTrue, Reason: "Reconciling",
+			Message: fmt.Sprintf("Fabric (%s) is Available", fabric.Name),
+		})
+
+		if err := r.Status().Update(ctx, fabric); err != nil {
+			log.Error(err, "Failed to update Fabric status")
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
