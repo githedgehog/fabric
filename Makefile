@@ -143,6 +143,26 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 	- docker buildx rm project-v3-builder
 	rm Dockerfile.cross
 
+##@ Documentation
+
+## Docs tools
+CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
+
+## Docs tools versions
+CRD_REF_DOCS_VERSION ?= master ## Use master for now, to be replaced with stable version 
+
+.PHONY: crd-ref-docs
+crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
+$(CRD_REF_DOCS): $(LOCALBIN)
+	test -s $(LOCALBIN)/crd-ref-docs || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
+
+.PHONY: docs-api
+docs-api: generate crd-ref-docs ## Build simple markdown documentation for all CRDs to be used as API docs
+	$(CRD_REF_DOCS) --source-path=./api/ --config=api/docs-config.yml --renderer=markdown --output-path=./docs/api.md
+
+.PHONY: docs
+docs: docs-api ## Build all documentation-related steps
+
 ##@ Deployment
 
 ifndef ignore-not-found
