@@ -1,0 +1,12 @@
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Fabric
+metadata:
+  labels:
+    app.kubernetes.io/name: fabric
+    app.kubernetes.io/instance: fabric-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: fabric-sample
+spec:
+  # TODO(user): Add fields here

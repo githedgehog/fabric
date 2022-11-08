@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- fabric_v1alpha1_fabric.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
