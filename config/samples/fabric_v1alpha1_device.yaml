@@ -1,0 +1,8 @@
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Device
+metadata:
+  labels:
+    fabric.githedgehog.com/name: fabric-sample
+  name: device-sample
+spec:
+  # TODO(user): Add fields here

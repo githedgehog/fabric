@@ -24,4 +24,20 @@ resources:
   kind: Agent
   path: github.com/githedgehog/fabric/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: fabric
+  kind: Device
+  path: github.com/githedgehog/fabric/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: fabric
+  kind: Link
+  path: github.com/githedgehog/fabric/api/v1alpha1
+  version: v1alpha1
 version: "3"

@@ -8,6 +8,58 @@ rules:
 - apiGroups:
   - fabric.githedgehog.com
   resources:
+  - agents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - agents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - agents/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - devices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - devices/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - devices/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
   - fabrics
   verbs:
   - create

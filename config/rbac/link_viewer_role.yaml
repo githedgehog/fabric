@@ -1,0 +1,27 @@
+# permissions for end users to view links.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: link-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: fabric
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+  name: link-viewer-role
+rules:
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - links
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - links/status
+  verbs:
+  - get
