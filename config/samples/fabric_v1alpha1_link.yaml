@@ -7,6 +7,28 @@ metadata:
     app.kubernetes.io/part-of: fabric
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: fabric
-  name: link-sample
+  name: link-sample-1
 spec:
-  # TODO(user): Add fields here
+  ports:
+    - device: device-sample-switch-1
+      port: Ethernet1
+    - device: device-sample-switch-2
+      port: Ethernet1
+
+---
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Link
+metadata:
+  labels:
+    app.kubernetes.io/name: link
+    app.kubernetes.io/instance: link-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: link-sample-2
+spec:
+  ports:
+    - device: device-sample-switch-1
+      port: Ethernet2
+    - device: device-sample-switch-2
+      port: Ethernet2

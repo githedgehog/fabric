@@ -112,6 +112,10 @@ docker-kind-load: ## Load docker image into kind cluster
 .PHONY: deploy-kind
 deploy-kind: docker-build docker-kind-load deploy ## Build image, load to kind and deploy
 
+.PHONY: apply-samples
+apply-samples: ## Kubectl apply samples folder
+	kubectl apply -k config/samples
+
 ##@ Build
 
 .PHONY: build

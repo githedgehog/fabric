@@ -9,6 +9,8 @@ metadata:
 spec:
   group: fabric.githedgehog.com
   names:
+    categories:
+    - hedgehog
     kind: Fabric
     listKind: FabricList
     plural: fabrics

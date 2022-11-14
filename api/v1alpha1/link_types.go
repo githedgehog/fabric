@@ -28,8 +28,14 @@ type LinkSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Link. Edit link_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +kubebuilder:validation:MinItems=2
+	// +kubebuilder:validation:MaxItems=2
+	Ports []LinkSpecPort `json:"ports"`
+}
+
+type LinkSpecPort struct {
+	Device string `json:"device,omitempty"`
+	Port   string `json:"port,omitempty"`
 }
 
 // LinkStatus defines the observed state of Link
@@ -40,6 +46,12 @@ type LinkStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog
+//+kubebuilder:printcolumn:name="Device0",type=string,JSONPath=`.spec.ports[0].device`
+//+kubebuilder:printcolumn:name="Port0",type=string,JSONPath=`.spec.ports[0].port`
+//+kubebuilder:printcolumn:name="Device1",type=string,JSONPath=`.spec.ports[1].device`
+//+kubebuilder:printcolumn:name="Port1",type=string,JSONPath=`.spec.ports[1].port`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Link is the Schema for the links API
 type Link struct {

@@ -9,13 +9,31 @@ metadata:
 spec:
   group: fabric.githedgehog.com
   names:
+    categories:
+    - hedgehog
     kind: Link
     listKind: LinkList
     plural: links
     singular: link
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.ports[0].device
+      name: Device0
+      type: string
+    - jsonPath: .spec.ports[0].port
+      name: Port0
+      type: string
+    - jsonPath: .spec.ports[1].device
+      name: Device1
+      type: string
+    - jsonPath: .spec.ports[1].port
+      name: Port1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Link is the Schema for the links API
@@ -35,10 +53,19 @@ spec:
           spec:
             description: LinkSpec defines the desired state of Link
             properties:
-              foo:
-                description: Foo is an example field of Link. Edit link_types.go to
-                  remove/update
-                type: string
+              ports:
+                items:
+                  properties:
+                    device:
+                      type: string
+                    port:
+                      type: string
+                  type: object
+                maxItems: 2
+                minItems: 2
+                type: array
+            required:
+            - ports
             type: object
           status:
             description: LinkStatus defines the observed state of Link

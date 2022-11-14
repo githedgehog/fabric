@@ -10,9 +10,7 @@ Package v1alpha1 contains API Schema definitions for the fabric v1alpha1 API gro
 
 ### Resource Types
 - [Agent](#agent)
-- [AgentList](#agentlist)
 - [Device](#device)
-- [DeviceList](#devicelist)
 - [Fabric](#fabric)
 - [Link](#link)
 
@@ -24,8 +22,7 @@ Package v1alpha1 contains API Schema definitions for the fabric v1alpha1 API gro
 
 Agent is the Schema for the agents API
 
-_Appears in:_
-- [AgentList](#agentlist)
+
 
 | Field | Description |
 | --- | --- |
@@ -34,22 +31,6 @@ _Appears in:_
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[AgentSpec](#agentspec)_ |  |
 | `status` _[AgentStatus](#agentstatus)_ |  |
-
-
-#### AgentList
-
-
-
-AgentList contains a list of Agent
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `fabric.githedgehog.com/v1alpha1`
-| `kind` _string_ | `AgentList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Agent](#agent) array_ |  |
 
 
 #### AgentSpec
@@ -63,7 +44,38 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of Agent. Edit agent_types.go to remove/update |
+| `device` _string_ | Foo is an example field of Agent. Edit agent_types.go to remove/update |
+| `request` _[AgentSpecRequest](#agentspecrequest) array_ |  |
+
+
+#### AgentSpecRequest
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `vlan` _[AgentSpecRequestVlan](#agentspecrequestvlan)_ |  |
+
+
+#### AgentSpecRequestVlan
+
+
+
+
+
+_Appears in:_
+- [AgentSpecRequest](#agentspecrequest)
+
+| Field | Description |
+| --- | --- |
+| `port` _string_ |  |
+| `id` _integer_ |  |
+| `untagged` _boolean_ |  |
 
 
 
@@ -74,8 +86,7 @@ _Appears in:_
 
 Device is the Schema for the devices API
 
-_Appears in:_
-- [DeviceList](#devicelist)
+
 
 | Field | Description |
 | --- | --- |
@@ -84,22 +95,6 @@ _Appears in:_
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[DeviceSpec](#devicespec)_ |  |
 | `status` _[DeviceStatus](#devicestatus)_ |  |
-
-
-#### DeviceList
-
-
-
-DeviceList contains a list of Device
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `fabric.githedgehog.com/v1alpha1`
-| `kind` _string_ | `DeviceList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Device](#device) array_ |  |
 
 
 #### DeviceSpec
@@ -113,8 +108,34 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of Device. Edit device_types.go to remove/update |
+| `type` _[DeviceType](#devicetype)_ | Foo is an example field of Device. Edit device_types.go to remove/update |
+| `ports` _[DeviceSpecPort](#devicespecport) array_ |  |
 
+
+#### DeviceSpecPort
+
+
+
+
+
+_Appears in:_
+- [DeviceSpec](#devicespec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+
+
+
+
+#### DeviceType
+
+_Underlying type:_ `string`
+
+
+
+_Appears in:_
+- [DeviceSpec](#devicespec)
 
 
 
@@ -191,7 +212,22 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of Link. Edit link_types.go to remove/update |
+| `ports` _[LinkSpecPort](#linkspecport) array_ |  |
+
+
+#### LinkSpecPort
+
+
+
+
+
+_Appears in:_
+- [LinkSpec](#linkspec)
+
+| Field | Description |
+| --- | --- |
+| `device` _string_ |  |
+| `port` _string_ |  |
 
 
 

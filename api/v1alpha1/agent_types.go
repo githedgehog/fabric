@@ -29,7 +29,19 @@ type AgentSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Agent. Edit agent_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +kubebuilder:validation:Required
+	Device   string             `json:"device,omitempty"`
+	Requests []AgentSpecRequest `json:"requests,omitempty"`
+}
+
+type AgentSpecRequest struct {
+	Vlan AgentSpecRequestVlan `json:"vlan,omitempty"`
+}
+
+type AgentSpecRequestVlan struct {
+	Port     string `json:"port,omitempty"`
+	Id       int    `json:"id,omitempty"`
+	Untagged bool   `json:"untagged,omitempty"`
 }
 
 // AgentStatus defines the observed state of Agent
@@ -40,6 +52,9 @@ type AgentStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog
+//+kubebuilder:printcolumn:name="Device",type=string,JSONPath=`.spec.device`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Agent is the Schema for the agents API
 type Agent struct {

@@ -9,13 +9,25 @@ metadata:
 spec:
   group: fabric.githedgehog.com
   names:
+    categories:
+    - hedgehog
     kind: Device
     listKind: DeviceList
     plural: devices
     singular: device
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.ports
+      name: Ports
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Device is the Schema for the devices API
@@ -35,9 +47,19 @@ spec:
           spec:
             description: DeviceSpec defines the desired state of Device
             properties:
-              foo:
+              ports:
+                items:
+                  properties:
+                    name:
+                      type: string
+                  type: object
+                type: array
+              type:
                 description: Foo is an example field of Device. Edit device_types.go
                   to remove/update
+                enum:
+                - switch
+                - compute
                 type: string
             type: object
           status:

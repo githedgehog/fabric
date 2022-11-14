@@ -7,6 +7,13 @@ metadata:
     app.kubernetes.io/part-of: fabric
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: fabric
+
+    fabric.githedgehog.com/name: fabric-sample
   name: agent-sample
 spec:
-  # TODO(user): Add fields here
+  device: device-sample-switch-1
+  requests:
+    - vlan:
+        port: Ethernet1
+        id: 100
+        untagged: true

@@ -48,6 +48,7 @@ type FabricStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog
 
 // Fabric is the Schema for the fabrics API
 type Fabric struct {

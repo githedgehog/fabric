@@ -9,13 +9,22 @@ metadata:
 spec:
   group: fabric.githedgehog.com
   names:
+    categories:
+    - hedgehog
     kind: Agent
     listKind: AgentList
     plural: agents
     singular: agent
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.device
+      name: Device
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Agent is the Schema for the agents API
@@ -35,10 +44,24 @@ spec:
           spec:
             description: AgentSpec defines the desired state of Agent
             properties:
-              foo:
+              device:
                 description: Foo is an example field of Agent. Edit agent_types.go
                   to remove/update
                 type: string
+              requests:
+                items:
+                  properties:
+                    vlan:
+                      properties:
+                        id:
+                          type: integer
+                        port:
+                          type: string
+                        untagged:
+                          type: boolean
+                      type: object
+                  type: object
+                type: array
             type: object
           status:
             description: AgentStatus defines the observed state of Agent

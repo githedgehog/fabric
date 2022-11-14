@@ -29,7 +29,21 @@ type DeviceSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Device. Edit device_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +kubebuilder:validation:Required
+	Type  DeviceType       `json:"type,omitempty"`
+	Ports []DeviceSpecPort `json:"ports,omitempty"`
+}
+
+// +kubebuilder:validation:Enum=switch;compute
+type DeviceType string
+
+const (
+	DeviceTypeSwitch  DeviceType = "switch"
+	DeviceTypeCompute DeviceType = "compute"
+)
+
+type DeviceSpecPort struct {
+	Name string `json:"name,omitempty"`
 }
 
 // DeviceStatus defines the observed state of Device
@@ -40,6 +54,10 @@ type DeviceStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog
+//+kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
+//+kubebuilder:printcolumn:name="Ports",type=string,JSONPath=`.spec.ports`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Device is the Schema for the devices API
 type Device struct {
