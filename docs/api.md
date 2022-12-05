@@ -11,7 +11,6 @@ Package v1alpha1 contains API Schema definitions for the fabric v1alpha1 API gro
 ### Resource Types
 - [Agent](#agent)
 - [Consumer](#consumer)
-- [ConsumerList](#consumerlist)
 - [Device](#device)
 - [Fabric](#fabric)
 - [Link](#link)
@@ -100,8 +99,7 @@ _Appears in:_
 
 Consumer is the Schema for the consumers API
 
-_Appears in:_
-- [ConsumerList](#consumerlist)
+
 
 | Field | Description |
 | --- | --- |
@@ -140,22 +138,6 @@ _Appears in:_
 | --- | --- |
 | `id` _integer_ |  |
 | `untagged` _boolean_ |  |
-
-
-#### ConsumerList
-
-
-
-ConsumerList contains a list of Consumer
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `fabric.githedgehog.com/v1alpha1`
-| `kind` _string_ | `ConsumerList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Consumer](#consumer) array_ |  |
 
 
 #### ConsumerSpec
