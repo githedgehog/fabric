@@ -10,6 +10,8 @@ Package v1alpha1 contains API Schema definitions for the fabric v1alpha1 API gro
 
 ### Resource Types
 - [Agent](#agent)
+- [Consumer](#consumer)
+- [ConsumerList](#consumerlist)
 - [Device](#device)
 - [Fabric](#fabric)
 - [Link](#link)
@@ -45,10 +47,10 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `device` _string_ | Foo is an example field of Agent. Edit agent_types.go to remove/update |
-| `request` _[AgentSpecRequest](#agentspecrequest) array_ |  |
+| `tasks` _[AgentSpecTask](#agentspectask) array_ |  |
 
 
-#### AgentSpecRequest
+#### AgentSpecTask
 
 
 
@@ -59,23 +61,115 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `vlan` _[AgentSpecRequestVlan](#agentspecrequestvlan)_ |  |
+| `vlan` _[AgentSpecTaskVlan](#agentspectaskvlan)_ |  |
 
 
-#### AgentSpecRequestVlan
+#### AgentSpecTaskVlan
 
 
 
 
 
 _Appears in:_
-- [AgentSpecRequest](#agentspecrequest)
+- [AgentSpecTask](#agentspectask)
 
 | Field | Description |
 | --- | --- |
 | `port` _string_ |  |
 | `id` _integer_ |  |
 | `untagged` _boolean_ |  |
+
+
+#### AgentStatus
+
+
+
+AgentStatus defines the observed state of Agent
+
+_Appears in:_
+- [Agent](#agent)
+
+| Field | Description |
+| --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta) array_ |  |
+
+
+#### Consumer
+
+
+
+Consumer is the Schema for the consumers API
+
+_Appears in:_
+- [ConsumerList](#consumerlist)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `fabric.githedgehog.com/v1alpha1`
+| `kind` _string_ | `Consumer`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ConsumerSpec](#consumerspec)_ |  |
+| `status` _[ConsumerStatus](#consumerstatus)_ |  |
+
+
+#### ConsumerKubeCluster
+
+
+
+
+
+_Appears in:_
+- [ConsumerSpec](#consumerspec)
+
+| Field | Description |
+| --- | --- |
+| `vlan` _[ConsumerKubeClusterVlanSpec](#consumerkubeclustervlanspec)_ |  |
+| `ports` _[PortSpec](#portspec) array_ |  |
+
+
+#### ConsumerKubeClusterVlanSpec
+
+
+
+
+
+_Appears in:_
+- [ConsumerKubeCluster](#consumerkubecluster)
+
+| Field | Description |
+| --- | --- |
+| `id` _integer_ |  |
+| `untagged` _boolean_ |  |
+
+
+#### ConsumerList
+
+
+
+ConsumerList contains a list of Consumer
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `fabric.githedgehog.com/v1alpha1`
+| `kind` _string_ | `ConsumerList`
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `items` _[Consumer](#consumer) array_ |  |
+
+
+#### ConsumerSpec
+
+
+
+ConsumerSpec defines the desired state of Consumer
+
+_Appears in:_
+- [Consumer](#consumer)
+
+| Field | Description |
+| --- | --- |
+| `kubeCluster` _[ConsumerKubeCluster](#consumerkubecluster)_ | Foo is an example field of Consumer. Edit consumer_types.go to remove/update |
 
 
 
@@ -167,7 +261,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of Fabric. Edit fabric_types.go to remove/update |
+| `enabled` _boolean_ | Foo is an example field of Fabric. Edit fabric_types.go to remove/update |
 
 
 #### FabricStatus
@@ -212,23 +306,24 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `ports` _[LinkSpecPort](#linkspecport) array_ |  |
+| `ports` _[PortSpec](#portspec) array_ |  |
 
 
-#### LinkSpecPort
+
+
+#### PortSpec
 
 
 
 
 
 _Appears in:_
+- [ConsumerKubeCluster](#consumerkubecluster)
 - [LinkSpec](#linkspec)
 
 | Field | Description |
 | --- | --- |
 | `device` _string_ |  |
 | `port` _string_ |  |
-
-
 
 
