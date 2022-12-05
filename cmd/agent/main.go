@@ -20,6 +20,7 @@ import (
 	_ "embed"
 	"flag"
 	"os"
+	"os/exec"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -39,8 +40,11 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
-	//go:embed sonic-set-vlan.sh
-	vlanScript string
+
+	//go:embed sonic-vlan-set.sh
+	vlanSetScript string
+	//go:embed sonic-vlan-reset.sh
+	vlanResetScript string
 )
 
 func init() {
@@ -49,20 +53,23 @@ func init() {
 	utilruntime.Must(fabricv1alpha1.AddToScheme(scheme))
 }
 
-func main() {
-	err := os.WriteFile("/tmp/sonic-set-vlan.sh", []byte(vlanScript), 0o755)
+func writeScript(script string, path string) {
+	err := os.WriteFile(path, []byte(script), 0o755)
 	if err != nil {
-		setupLog.Error(err, "unable to setup vlan script")
+		setupLog.Error(err, "unable to setup script", "path", path)
 		os.Exit(1)
 	}
+}
 
+func main() {
 	var hostname string
 	var namespace string
 	var metricsAddr string
+	var resetVlans bool
 	var enableLeaderElection bool
 	var probeAddr string
 
-	hostname, err = os.Hostname()
+	hostname, err := os.Hostname()
 	if err != nil {
 		setupLog.Error(err, "unable to get hostname")
 		os.Exit(1)
@@ -72,6 +79,7 @@ func main() {
 	flag.StringVar(&namespace, "namespace", "default", "Namespace that will be used to look for tasks using hostname")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":19080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":19081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&resetVlans, "reset-vlans", false, "Reset all VLANs before running agent")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -82,6 +90,23 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	writeScript(vlanSetScript, "/tmp/sonic-vlan-set.sh")
+	writeScript(vlanResetScript, "/tmp/sonic-vlan-reset.sh")
+	if resetVlans {
+		setupLog.Info("Resetting VLANs as requested")
+
+		cmd := exec.Command(
+			"/tmp/sonic-vlan-reset.sh",
+		)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stdout
+
+		// run command
+		if err := cmd.Run(); err != nil {
+			setupLog.Error(err, "Error while resetting VLANs")
+		}
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,

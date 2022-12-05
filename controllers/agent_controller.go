@@ -102,7 +102,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			log.Info("Executing vlan task", "id", task.Vlan.Id, "untagged", task.Vlan.Untagged, "port", task.Vlan.Port)
 
 			cmd := exec.Command(
-				"/tmp/sonic-set-vlan.sh",
+				"/tmp/sonic-vlan-set.sh",
 				task.Vlan.Port,
 				strconv.Itoa(task.Vlan.Id),
 				strconv.FormatBool(task.Vlan.Untagged),
