@@ -72,3 +72,26 @@ spec:
       port: Ethernet32
     - device: some-other-switch
       port: Ethernet42
+
+---
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Consumer
+metadata:
+  labels:
+    fabric.githedgehog.com/name: default
+  name: demo-infra
+spec:
+  kubeCluster:
+    vlan:
+      id: 100
+      untagged: true
+    ports:
+      #  sonic-1 <-> sonic-2
+      - device: sonic-1
+        port: Ethernet0
+      - device: sonic-2
+        port: Ethernet0
+
+      # Gateway
+      - device: sonic-1
+        port: Ethernet4
