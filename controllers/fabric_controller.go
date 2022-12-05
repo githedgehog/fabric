@@ -52,6 +52,15 @@ type FabricReconciler struct {
 //+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=devices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=devices/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=devices/finalizers,verbs=update
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=agents/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=agents/finalizers,verbs=update
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=links,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=links/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=links/finalizers,verbs=update
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=consumers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=consumers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=consumers/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

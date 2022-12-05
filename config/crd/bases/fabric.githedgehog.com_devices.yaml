@@ -23,6 +23,7 @@ spec:
       type: string
     - jsonPath: .spec.ports
       name: Ports
+      priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age

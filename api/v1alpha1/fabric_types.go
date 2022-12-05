@@ -29,6 +29,7 @@ type FabricSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Fabric. Edit fabric_types.go to remove/update
+	//+kubebuilder:printcolumn:name="Enabled",type=string,JSONPath=`.spec.enabled`
 	Enabled bool `json:"enabled,omitempty"`
 }
 

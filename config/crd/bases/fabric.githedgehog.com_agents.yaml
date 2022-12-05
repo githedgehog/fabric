@@ -21,6 +21,10 @@ spec:
     - jsonPath: .spec.device
       name: Device
       type: string
+    - jsonPath: .spec.tasks
+      name: Tasks
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

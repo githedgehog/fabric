@@ -55,7 +55,8 @@ type AgentStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:categories=hedgehog
-//+kubebuilder:printcolumn:name="Device",type=string,JSONPath=`.spec.device`
+//+kubebuilder:printcolumn:name="Device",type=string,JSONPath=".spec.device"
+//+kubebuilder:printcolumn:name="Tasks",type=string,JSONPath=".spec.tasks",priority=1
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Agent is the Schema for the agents API

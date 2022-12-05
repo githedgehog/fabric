@@ -34,6 +34,32 @@ rules:
 - apiGroups:
   - fabric.githedgehog.com
   resources:
+  - consumers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - consumers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - consumers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
   - devices
   verbs:
   - create
@@ -79,6 +105,32 @@ rules:
   - fabric.githedgehog.com
   resources:
   - fabrics/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - links
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - links/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - fabric.githedgehog.com
+  resources:
+  - links/status
   verbs:
   - get
   - patch
