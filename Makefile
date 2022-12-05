@@ -48,6 +48,7 @@ endif
 
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/githedgehog/fabric:dev
+IMG_AGENT ?= ghcr.io/githedgehog/agent:dev
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
 
@@ -151,6 +152,16 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 	- docker buildx create --name project-v3-builder
 	docker buildx use project-v3-builder
 	- docker buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+	- docker buildx rm project-v3-builder
+	rm Dockerfile.cross
+
+.PHONY: agent-docker-buildx
+agent-docker-buildx: test ## Build and push docker image for the agent for cross-platform support
+	# copy existing Dockerfile.agent and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile.agent > Dockerfile.cross
+	- docker buildx create --name project-v3-builder
+	docker buildx use project-v3-builder
+	- docker buildx build --push --platform=$(PLATFORMS) --tag ${IMG_AGENT} -f Dockerfile.cross .
 	- docker buildx rm project-v3-builder
 	rm Dockerfile.cross
 
