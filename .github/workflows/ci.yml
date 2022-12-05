@@ -91,7 +91,7 @@ jobs:
 
       - name: Install CRDs, controller-manager and do basic checks
         run: |
-          make deploy IMG=ghcr.io/githedgehog/fabric:${{ github.sha }}
+          make deploy IMG=ghcr.io/githedgehog/fabric:sha-${{ github.sha }}
           kubectl get crd | grep hedgehog
           kubectl apply -k config/samples
           kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=60s
