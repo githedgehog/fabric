@@ -101,6 +101,88 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
+	agents := &fabricv1alpha1.AgentList{}
+	err = r.List(ctx, agents)
+	if err != nil {
+		log.Error(err, "Failed to get agents")
+		return ctrl.Result{}, err
+	}
+
+	consumers := &fabricv1alpha1.ConsumerList{}
+	err = r.List(ctx, consumers)
+	if err != nil {
+		log.Error(err, "Failed to get consumers")
+		return ctrl.Result{}, err
+	}
+
+	// device -> []vlan
+	reqTasks := make(map[string][]*fabricv1alpha1.AgentSpecTaskVlan)
+	for _, consumer := range consumers.Items {
+		kube := consumer.Spec.KubeCluster
+		if kube == nil {
+			continue
+		}
+
+		for _, port := range kube.Ports {
+			reqTasks[port.Device] = append(reqTasks[port.Device], &fabricv1alpha1.AgentSpecTaskVlan{
+				Port:     port.Port,
+				Id:       kube.Vlan.Id,
+				Untagged: kube.Vlan.Untagged,
+			})
+		}
+	}
+
+	for device, reqDeviceTasks := range reqTasks {
+		log.Info("Processing device", "device", device, "reqDeviceTasks", reqDeviceTasks)
+
+		// TODO: Update only needed Agents
+
+		create := false
+		agent := &fabricv1alpha1.Agent{}
+		err := r.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: device}, agent)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				log.Info("Creating new agent", "device", device)
+				agent.Name = device
+				agent.Namespace = req.Namespace
+				agent.Spec.Device = device
+				create = true
+			} else {
+				// Error reading the object - requeue the request.
+				log.Error(err, "Failed to get agent")
+				return ctrl.Result{}, err
+			}
+		}
+
+		for _, reqDeviceTask := range reqDeviceTasks {
+			found := false
+			for _, task := range agent.Spec.Tasks {
+				if task.Vlan != nil &&
+					task.Vlan.Id == reqDeviceTask.Id &&
+					task.Vlan.Port == reqDeviceTask.Port &&
+					task.Vlan.Untagged == reqDeviceTask.Untagged {
+					found = true
+				}
+			}
+			if !found {
+				agent.Spec.Tasks = append(agent.Spec.Tasks, fabricv1alpha1.AgentSpecTask{
+					Vlan: reqDeviceTask,
+				})
+			}
+		}
+
+		log.Info("Agent prepared", "device", device, "spec", agent.Spec)
+		if create {
+			err = r.Create(ctx, agent)
+		} else {
+			err = r.Update(ctx, agent)
+		}
+		if err != nil {
+			log.Error(err, "Failed to create/update agent")
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -111,6 +193,7 @@ func (r *FabricReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// TODO: consider switching to owned by corresponding controllers converting labels into owned ref
 		Watches(&source.Kind{Type: &fabricv1alpha1.Device{}}, handler.EnqueueRequestsFromMapFunc(enqueueIfOwned)).
 		Watches(&source.Kind{Type: &fabricv1alpha1.Link{}}, handler.EnqueueRequestsFromMapFunc(enqueueIfOwned)).
+		Watches(&source.Kind{Type: &fabricv1alpha1.Consumer{}}, handler.EnqueueRequestsFromMapFunc(enqueueIfOwned)).
 		Complete(r)
 }
 
