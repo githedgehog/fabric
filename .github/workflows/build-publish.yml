@@ -87,6 +87,6 @@ jobs:
         run: |
           make deploy IMG=ghcr.io/githedgehog/fabric:latest
           kubectl get crd | grep hedgehog
-          kubectl apply -f config/samples/fabric_v1alpha1_fabric.yaml
-          kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=30s
-          kubectl wait fabric fabric-sample --for condition=Available=True --timeout=30s
+          kubectl apply -f config/samples
+          kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=60s
+          kubectl wait fabric fabric-sample --for condition=Available=True --timeout=90s
