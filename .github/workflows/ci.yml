@@ -8,11 +8,17 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  ORG: githedgehog
 
 jobs:
-  build-and-push-image:
+  build-and-push:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        binary:
+          - fabric
+          - agent
 
     permissions:
       contents: read
@@ -48,7 +54,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@57396166ad8aefe6098280995947635806a0e6ea
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.ORG }}/${{ matrix.binary }}
           tags: |
             type=ref,event=branch
             # set latest tag for default branch
@@ -66,7 +72,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    needs: build-and-push-image
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
@@ -91,3 +97,5 @@ jobs:
           kubectl apply -k config/samples
           kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=60s
           kubectl wait fabric fabric-sample --for condition=Available=True --timeout=90s
+          docker run -d --name agent -v ~/.kube/config:/config -e KUBECONFIG=/config ghcr.io/githedgehog/agent:latest --hostname agent-sample
+          kubectl wait agent/agent-sample --for condition=Ready --timeout=90s
