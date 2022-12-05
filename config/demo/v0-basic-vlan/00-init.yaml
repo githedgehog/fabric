@@ -1,8 +1,7 @@
 apiVersion: fabric.githedgehog.com/v1alpha1
 kind: Fabric
 metadata:
-  labels:
-  name: demo
+  name: default
 spec:
   enabled: true
 
@@ -11,7 +10,7 @@ apiVersion: fabric.githedgehog.com/v1alpha1
 kind: Device
 metadata:
   labels:
-    fabric.githedgehog.com/name: demo
+    fabric.githedgehog.com/name: default
   name: sonic-1
 spec:
   type: switch
@@ -31,7 +30,7 @@ apiVersion: fabric.githedgehog.com/v1alpha1
 kind: Device
 metadata:
   labels:
-    fabric.githedgehog.com/name: demo
+    fabric.githedgehog.com/name: default
   name: sonic-2
 spec:
   type: switch
@@ -50,6 +49,8 @@ spec:
 apiVersion: fabric.githedgehog.com/v1alpha1
 kind: Link
 metadata:
+  labels:
+    fabric.githedgehog.com/name: default
   name: link-1
 spec:
   ports:
@@ -62,6 +63,8 @@ spec:
 apiVersion: fabric.githedgehog.com/v1alpha1
 kind: Link
 metadata:
+  labels:
+    fabric.githedgehog.com/name: default
   name: link-2
 spec:
   ports:

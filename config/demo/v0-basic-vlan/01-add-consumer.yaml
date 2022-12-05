@@ -1,0 +1,27 @@
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Consumer
+metadata:
+  labels:
+    fabric.githedgehog.com/name: default
+  name: kube-consumer-1
+spec:
+  kubeCluster:
+    vlan:
+      id: 100
+      untagged: true
+    ports:
+      #  sonic-1
+      - device: sonic-1
+        port: Ethernet0
+      - device: sonic-1
+        port: Ethernet4
+      - device: sonic-1
+        port: Ethernet8
+      - device: sonic-1
+        port: Ethernet12
+
+      # sonic-2
+      - device: sonic-2
+        port: Ethernet0
+      - device: sonic-2
+        port: Ethernet4
