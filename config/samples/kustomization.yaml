@@ -4,4 +4,5 @@ resources:
 - fabric_v1alpha1_agent.yaml
 - fabric_v1alpha1_device.yaml
 - fabric_v1alpha1_link.yaml
+- fabric_v1alpha1_consumer.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

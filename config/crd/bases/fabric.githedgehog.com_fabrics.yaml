@@ -37,10 +37,10 @@ spec:
           spec:
             description: FabricSpec defines the desired state of Fabric
             properties:
-              foo:
+              enabled:
                 description: Foo is an example field of Fabric. Edit fabric_types.go
                   to remove/update
-                type: string
+                type: boolean
             type: object
           status:
             description: FabricStatus defines the observed state of Fabric

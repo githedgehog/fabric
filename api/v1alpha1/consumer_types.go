@@ -23,59 +23,53 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AgentSpec defines the desired state of Agent
-type AgentSpec struct {
+// ConsumerSpec defines the desired state of Consumer
+type ConsumerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Agent. Edit agent_types.go to remove/update
-	// +kubebuilder:validation:Required
-	Device string          `json:"device,omitempty"`
-	Tasks  []AgentSpecTask `json:"tasks,omitempty"`
+	// Foo is an example field of Consumer. Edit consumer_types.go to remove/update
+	KubeCluster *ConsumerKubeCluster `json:"kubeCluster,omitempty"`
 }
 
-type AgentSpecTask struct {
-	Vlan *AgentSpecTaskVlan `json:"vlan,omitempty"`
+type ConsumerKubeCluster struct {
+	Vlan  ConsumerKubeClusterVlanSpec `json:"vlan,omitempty"`
+	Ports []PortSpec                  `json:"ports,omitempty"`
 }
 
-type AgentSpecTaskVlan struct {
-	Port     string `json:"port,omitempty"`
-	Id       int    `json:"id,omitempty"`
-	Untagged bool   `json:"untagged,omitempty"`
+type ConsumerKubeClusterVlanSpec struct {
+	Id       int  `json:"id,omitempty"`
+	Untagged bool `json:"untagged,omitempty"`
 }
 
-// AgentStatus defines the observed state of Agent
-type AgentStatus struct {
+// ConsumerStatus defines the observed state of Consumer
+type ConsumerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:categories=hedgehog
-//+kubebuilder:printcolumn:name="Device",type=string,JSONPath=`.spec.device`
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// Agent is the Schema for the agents API
-type Agent struct {
+// Consumer is the Schema for the consumers API
+type Consumer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AgentSpec   `json:"spec,omitempty"`
-	Status AgentStatus `json:"status,omitempty"`
+	Spec   ConsumerSpec   `json:"spec,omitempty"`
+	Status ConsumerStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// AgentList contains a list of Agent
-type AgentList struct {
+// ConsumerList contains a list of Consumer
+type ConsumerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Agent `json:"items"`
+	Items           []Consumer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Agent{}, &AgentList{})
+	SchemeBuilder.Register(&Consumer{}, &ConsumerList{})
 }

@@ -9,4 +9,4 @@ metadata:
     app.kubernetes.io/created-by: fabric
   name: fabric-sample
 spec:
-  # TODO(user): Add fields here
+  enabled: true

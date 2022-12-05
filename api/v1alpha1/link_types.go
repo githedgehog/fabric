@@ -30,10 +30,10 @@ type LinkSpec struct {
 
 	// +kubebuilder:validation:MinItems=2
 	// +kubebuilder:validation:MaxItems=2
-	Ports []LinkSpecPort `json:"ports"`
+	Ports []PortSpec `json:"ports"`
 }
 
-type LinkSpecPort struct {
+type PortSpec struct {
 	Device string `json:"device,omitempty"`
 	Port   string `json:"port,omitempty"`
 }

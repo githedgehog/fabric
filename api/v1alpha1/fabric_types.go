@@ -29,7 +29,7 @@ type FabricSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Fabric. Edit fabric_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // FabricStatus defines the observed state of Fabric

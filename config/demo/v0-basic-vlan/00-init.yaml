@@ -1,0 +1,71 @@
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Fabric
+metadata:
+  labels:
+  name: demo
+spec:
+  enabled: true
+
+---
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Device
+metadata:
+  labels:
+    fabric.githedgehog.com/name: demo
+  name: sonic-1
+spec:
+  type: switch
+  ports:
+    - name: Ethernet0
+    - name: Ethernet4
+    - name: Ethernet8
+    - name: Ethernet12
+    - name: Ethernet16
+    - name: Ethernet20
+    - name: Ethernet24
+    - name: Ethernet28
+    - name: Ethernet32
+
+---
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Device
+metadata:
+  labels:
+    fabric.githedgehog.com/name: demo
+  name: sonic-2
+spec:
+  type: switch
+  ports:
+    - name: Ethernet0
+    - name: Ethernet4
+    - name: Ethernet8
+    - name: Ethernet12
+    - name: Ethernet16
+    - name: Ethernet20
+    - name: Ethernet24
+    - name: Ethernet28
+    - name: Ethernet32
+
+---
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Link
+metadata:
+  name: link-1
+spec:
+  ports:
+    - device: switch-1
+      port: Ethernet0
+    - device: switch-2
+      port: Ethernet0
+
+---
+apiVersion: fabric.githedgehog.com/v1alpha1
+kind: Link
+metadata:
+  name: link-2
+spec:
+  ports:
+    - device: switch-1
+      port: Ethernet32
+    - device: some-other-switch
+      port: Ethernet42

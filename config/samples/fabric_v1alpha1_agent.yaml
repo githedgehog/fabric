@@ -12,7 +12,7 @@ metadata:
   name: agent-sample
 spec:
   device: device-sample-switch-1
-  requests:
+  tasks:
     - vlan:
         port: Ethernet1
         id: 100
