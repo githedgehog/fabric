@@ -24,16 +24,20 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	fabricv1alpha1 "github.com/githedgehog/fabric/api/v1alpha1"
 )
 
 // Definitions to manage status conditions
 const (
-	typeAvailableFabric = "Available"
+	typeFabricAvailable = "Available"
 )
 
 // FabricReconciler reconciles a Fabric object
@@ -45,6 +49,9 @@ type FabricReconciler struct {
 //+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=fabrics,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=fabrics/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=fabrics/finalizers,verbs=update
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=devices,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=devices/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=fabric.githedgehog.com,resources=devices/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -61,6 +68,7 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// TODO(user): your logic here
 
 	log := log.FromContext(ctx)
+	log.Info("Reconciling", "name", req.Name, "namespace", req.Namespace)
 
 	// Fetch the Fabric instance
 	// The purpose is check if the Custom Resource for the Kind Fabric
@@ -82,7 +90,7 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if fabric.Status.Conditions == nil || len(fabric.Status.Conditions) == 0 {
 		// The following implementation will update the status
 		meta.SetStatusCondition(&fabric.Status.Conditions, metav1.Condition{
-			Type:   typeAvailableFabric,
+			Type:   typeFabricAvailable,
 			Status: metav1.ConditionTrue, Reason: "Reconciling",
 			Message: fmt.Sprintf("Fabric (%s) is Available", fabric.Name),
 		})
@@ -100,5 +108,24 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *FabricReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&fabricv1alpha1.Fabric{}).
+		// TODO: consider switching to owned by corresponding controllers converting labels into owned ref
+		Watches(&source.Kind{Type: &fabricv1alpha1.Device{}}, handler.EnqueueRequestsFromMapFunc(enqueueIfOwned)).
+		Watches(&source.Kind{Type: &fabricv1alpha1.Link{}}, handler.EnqueueRequestsFromMapFunc(enqueueIfOwned)).
 		Complete(r)
+}
+
+func enqueueIfOwned(obj client.Object) []reconcile.Request {
+	labels := obj.GetLabels()
+
+	// TODO: make a const in API for the label or move to spec / owned
+	fabricName := "default"
+	if val, ok := labels["fabric.githedgehog.com/name"]; ok {
+		fabricName = val
+	}
+	fabricNamespace := obj.GetNamespace()
+	if val, ok := labels["fabric.githedgehog.com/namespace"]; ok {
+		fabricNamespace = val
+	}
+
+	return []reconcile.Request{{NamespacedName: types.NamespacedName{Namespace: fabricNamespace, Name: fabricName}}}
 }
