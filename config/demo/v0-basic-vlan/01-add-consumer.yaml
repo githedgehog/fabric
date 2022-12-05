@@ -10,18 +10,24 @@ spec:
       id: 100
       untagged: true
     ports:
-      #  sonic-1
+      #  sonic-1 <-> sonic-2
       - device: sonic-1
         port: Ethernet0
+      - device: sonic-2
+        port: Ethernet0
+
+      # DHCP
       - device: sonic-1
         port: Ethernet4
+
+      # sonic-1/Ubuntu-1
       - device: sonic-1
         port: Ethernet8
+
+      # sonic-1/Ubuntu-2
       - device: sonic-1
         port: Ethernet12
 
-      # sonic-2
-      - device: sonic-2
-        port: Ethernet0
+      # sonic-2/Ubuntu-3
       - device: sonic-2
         port: Ethernet4
