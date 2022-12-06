@@ -110,7 +110,8 @@ jobs:
           kubectl apply -k config/samples
           kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=60s
           kubectl wait fabric fabric-sample --for condition=Available=True --timeout=90s
-          docker run -d --name agent --pull=always -v ~/.kube/config:/config -e KUBECONFIG=/config ghcr.io/githedgehog/agent:latest --hostname agent-sample
+          docker cp $(docker create --name tmp --pull=always ghcr.io/githedgehog/agent:dev):/agent ./agent ; docker rm -f tmp
+          ./agent --hostname agent-sample &
           kubectl wait agent/agent-sample --for condition=Ready --timeout=90s
 
       - name: Setup tmate session for debug
