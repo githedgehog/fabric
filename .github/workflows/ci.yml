@@ -71,6 +71,7 @@ jobs:
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
+          file: Dockerfile.${{ matrix.binary }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -81,7 +82,7 @@ jobs:
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         uses: mxschmitt/action-tmate@v3
-        # timeout-minutes: 15
+        timeout-minutes: 45
 
   deploy:
     needs: build-and-push
@@ -109,10 +110,10 @@ jobs:
           kubectl apply -k config/samples
           kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=60s
           kubectl wait fabric fabric-sample --for condition=Available=True --timeout=90s
-          docker run -d --name agent -v ~/.kube/config:/config -e KUBECONFIG=/config ghcr.io/githedgehog/agent:latest --hostname agent-sample
+          docker run -d --name agent --pull=always -v ~/.kube/config:/config -e KUBECONFIG=/config ghcr.io/githedgehog/agent:latest --hostname agent-sample
           kubectl wait agent/agent-sample --for condition=Ready --timeout=90s
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         uses: mxschmitt/action-tmate@v3
-        # timeout-minutes: 15
+        timeout-minutes: 45
