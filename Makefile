@@ -106,6 +106,11 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
+.PNONY: kube-lint
+kube-lint: manifests generate kustomize
+	$(KUSTOMIZE) build config/all | docker run --rm -i --pull=always kubevious/cli guard --stream
+	$(KUSTOMIZE) build config/demo/v0-basic-vlan | docker run --rm -i kubevious/cli guard --stream
+
 .PHONY: docker-kind-load
 docker-kind-load: ## Load docker image into kind cluster
 	kind load docker-image ${IMG}

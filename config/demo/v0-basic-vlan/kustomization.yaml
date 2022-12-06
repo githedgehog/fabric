@@ -1,0 +1,4 @@
+resources:
+  - ../../default
+  - 00-init.yaml
+  - 01-add-consumer.yaml
