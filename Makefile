@@ -122,6 +122,18 @@ deploy-kind: docker-build docker-kind-load deploy ## Build image, load to kind a
 apply-samples: ## Kubectl apply samples folder
 	kubectl apply -k config/samples
 
+ACTIONLINT ?= $(LOCALBIN)/actionlint
+ACTIONLINT_VERSION ?= latest
+
+.PHONY: actionlint
+actionlint: $(ACTIONLINT) ## Download actionlint locally if necessary.
+$(ACTIONLINT): $(LOCALBIN)
+	test -s $(LOCALBIN)/actionlint || GOBIN=$(LOCALBIN) go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
+
+.PHONY: ci-lint
+ci-lint: actionlint ## Run linter for Github Action workflows
+	$(ACTIONLINT)
+
 ##@ Build
 
 .PHONY: build

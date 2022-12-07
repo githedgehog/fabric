@@ -61,7 +61,8 @@ jobs:
           git diff --quiet
 
       - name: Run linters
-        run: make kube-lint
+        run: |
+          make ci-lint kube-lint
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -109,8 +110,8 @@ jobs:
   build-and-publish:
     needs:
       - test-envtest
-      - test-lint
-      - test-deploy
+      - test-lint-dirty
+      - test-deploy-kind
     runs-on: ubuntu-latest
 
     strategy:
