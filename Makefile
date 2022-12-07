@@ -137,19 +137,29 @@ ci-lint: actionlint ## Run linter for Github Action workflows
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager binary.
+build: generate fmt vet ## Build fabric controller binary.
 	go build -o bin/manager main.go
 
 .PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
+run: manifests generate fmt vet ## Run a fabric controller from your host.
 	go run ./main.go
+
+.PHONY: build-agent
+build-agent: generate fmt vet ## Build agent binary.
+	go build -o bin/agent cmd/agent/main.go
+
+AGENT_HOSTNAME = agent-sample # Default hostname used in CRD samples
+
+.PHONY: run-agent
+run-agent: manifests generate fmt vet ## Run an agent from your host.
+	go run cmd/agent/main.go --hostname $(AGENT_HOSTNAME)
 
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	docker build -t ${IMG} -f Dockerfile.fabric .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
