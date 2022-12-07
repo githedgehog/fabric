@@ -112,7 +112,7 @@ kube-lint: manifests generate kustomize
 	$(KUSTOMIZE) build config/demo/v0-basic-vlan | docker run --rm -i kubevious/cli guard --stream
 
 .PHONY: docker-kind-load
-docker-kind-load: ## Load docker image into kind cluster
+docker-kind-load: docker-build ## Load docker image into kind cluster
 	kind load docker-image ${IMG}
 
 .PHONY: deploy-kind
