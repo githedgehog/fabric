@@ -1,4 +1,8 @@
-name: CI
+name: CI/CD
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
