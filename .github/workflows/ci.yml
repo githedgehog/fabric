@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: ["master"]
+  pull_request:
   schedule:
     - cron: "0 10 * * *" # ~2am PST
   workflow_dispatch:
@@ -106,7 +107,7 @@ jobs:
         with:
           limit-access-to-actor: true
 
-  build-and-publish:
+  build-publish-dockers:
     needs:
       - test-envtest
       - test-lint-dirty
@@ -126,15 +127,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: "^1.19"
-          cache: true
-
-      - name: Run tests
-        run: make test
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -159,13 +151,13 @@ jobs:
             # set latest tag for default branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
+      - name: Build and push (on master only) Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
           file: Dockerfile.${{ matrix.binary }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
