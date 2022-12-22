@@ -1,4 +1,9 @@
 # fabric
+
+[![CI](https://github.com/githedgehog/fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/githedgehog/fabric/actions/workflows/ci.yml)
+<!-- [![Go Report Card](https://goreportcard.com/badge/github.com/githedgehog/fabric)](https://goreportcard.com/report/github.com/githedgehog/fabric) -->
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 // TODO(user): Add simple overview of use/purpose
 
 ## Description
