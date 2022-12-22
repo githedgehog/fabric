@@ -183,8 +183,8 @@ jobs:
           echo "from=$from" >> "$GITHUB_OUTPUT"
           echo "to=$to" >> "$GITHUB_OUTPUT"
 
-          echo "cache-from: $from" >> "$GITHUB_STEP_SUMMARY"
-          echo "cache-to: $to" >> "$GITHUB_STEP_SUMMARY"
+          echo "cache-from: $from"
+          echo "cache-to: $to"
 
       - name: Build and push (on master only) Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
