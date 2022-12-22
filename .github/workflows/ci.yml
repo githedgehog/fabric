@@ -19,7 +19,7 @@ env:
   ORG: githedgehog
 
 jobs:
-  test-envtest:
+  cache-tools:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,6 +31,37 @@ jobs:
         with:
           go-version: "^1.19"
           cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v3
+        with:
+          path: bin
+          key: bin-${{ hashFiles('tools.mk') }}
+
+      - name: Prepare all dev tools
+        run: |
+          make tools
+
+  test-envtest:
+    needs:
+      - cache-tools
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "^1.19"
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v3
+        with:
+          path: bin
+          key: bin-${{ hashFiles('tools.mk') }}
 
       - name: Run tests
         run: make test
@@ -43,6 +74,8 @@ jobs:
           limit-access-to-actor: true
 
   test-lint-dirty:
+    needs:
+      - cache-tools
     runs-on: ubuntu-latest
 
     steps:
@@ -54,6 +87,12 @@ jobs:
         with:
           go-version: "^1.19"
           cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v3
+        with:
+          path: bin
+          key: bin-${{ hashFiles('tools.mk') }}
 
       - name: Check dirty after generators
         run: |
@@ -73,6 +112,8 @@ jobs:
           limit-access-to-actor: true
 
   test-deploy-kind:
+    needs:
+      - cache-tools
     runs-on: ubuntu-latest
 
     steps:
@@ -85,11 +126,11 @@ jobs:
           go-version: "^1.19"
           cache: true
 
-      - name: Cache kustomize binary
+      - name: Cache dev tools
         uses: actions/cache@v3
         with:
-          path: bin/kustomize
-          key: bin-kustomize-build-${{ hashFiles('Makefile') }}
+          path: bin
+          key: bin-${{ hashFiles('tools.mk') }}
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.4.0
@@ -115,6 +156,7 @@ jobs:
 
   build-publish-dockers:
     needs:
+      - cache-tools
       - test-envtest
       - test-lint-dirty
       - test-deploy-kind

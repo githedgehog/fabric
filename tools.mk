@@ -10,7 +10,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-##@ Dev Tooling
+##@ Dev Tools
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
@@ -30,7 +30,7 @@ CRD_REF_DOCS_VERSION ?= master ## Use master for now, to be replaced with stable
 ENVTEST_K8S_VERSION = 1.25.0
 
 .PHONY: tools
-tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint ## Prepare all dev tooling
+tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint ## Prepare all dev tools
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
