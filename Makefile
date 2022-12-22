@@ -107,9 +107,9 @@ test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
 .PNONY: kube-lint
-kube-lint: manifests generate kustomize
-	$(KUSTOMIZE) build config/all | docker run --rm -i --pull=always kubevious/cli guard --stream
-	$(KUSTOMIZE) build config/demo/v0-basic-vlan | docker run --rm -i kubevious/cli guard --stream
+kube-lint: manifests generate kubevious
+	$(KUBEVIOUS) guard config/all
+	$(KUBEVIOUS) guard config/demo/v0-basic-vlan
 
 .PHONY: docker-kind-load
 docker-kind-load: docker-build ## Load docker image into kind cluster
@@ -246,6 +246,7 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+KUBEVIOUS ?= $(LOCALBIN)/kubevious
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.7
@@ -266,6 +267,12 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+KUBEVIOUS_INSTALL_SCRIPT ?= "https://get.kubevious.io/cli.sh"
+.PHONY: kubevious
+kubevious: $(KUBEVIOUS) ## Download kustomize locally if necessary.
+$(KUBEVIOUS): $(LOCALBIN)
+	test -s $(LOCALBIN)/kubevious || { curl -Ss $(KUBEVIOUS_INSTALL_SCRIPT) | bash -s -- $(LOCALBIN); }
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
