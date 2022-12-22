@@ -119,6 +119,10 @@ jobs:
         binary:
           - fabric
           - agent
+        platform:
+          - linux/amd64
+          - linux/arm64
+          - linux/arm/v7
 
     permissions:
       contents: read
@@ -156,7 +160,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.${{ matrix.binary }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: ${{ matrix.platform }}
           push: ${{ github.ref == 'refs/heads/master' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
