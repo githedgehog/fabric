@@ -1,3 +1,5 @@
+include tools.mk
+
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
@@ -49,8 +51,6 @@ endif
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/githedgehog/fabric:dev
 IMG_AGENT ?= ghcr.io/githedgehog/agent:dev
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.25.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -122,14 +122,6 @@ deploy-kind: docker-build docker-kind-load deploy ## Build image, load to kind a
 apply-samples: ## Kubectl apply samples folder
 	kubectl apply -k config/samples
 
-ACTIONLINT ?= $(LOCALBIN)/actionlint
-ACTIONLINT_VERSION ?= v1.6.22
-
-.PHONY: actionlint
-actionlint: $(ACTIONLINT) ## Download actionlint locally if necessary.
-$(ACTIONLINT): $(LOCALBIN)
-	test -s $(LOCALBIN)/actionlint || GOBIN=$(LOCALBIN) go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
-
 .PHONY: ci-lint
 ci-lint: actionlint ## Run linter for Github Action workflows
 	$(ACTIONLINT)
@@ -194,17 +186,6 @@ agent-docker-buildx: test ## Build and push docker image for the agent for cross
 
 ##@ Documentation
 
-## Docs tools
-CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
-
-## Docs tools versions
-CRD_REF_DOCS_VERSION ?= master ## Use master for now, to be replaced with stable version 
-
-.PHONY: crd-ref-docs
-crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
-$(CRD_REF_DOCS): $(LOCALBIN)
-	test -s $(LOCALBIN)/crd-ref-docs || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
-
 .PHONY: docs-api
 docs-api: generate crd-ref-docs ## Build simple markdown documentation for all CRDs to be used as API docs
 	$(CRD_REF_DOCS) --source-path=./api/ --config=api/docs-config.yml --renderer=markdown --output-path=./docs/api.md
@@ -236,43 +217,6 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 ##@ Build Dependencies
-
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-## Tool Binaries
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-KUBEVIOUS ?= $(LOCALBIN)/kubevious
-
-## Tool Versions
-KUSTOMIZE_VERSION ?= v4.5.7
-CONTROLLER_TOOLS_VERSION ?= v0.10.0
-
-KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-.PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
-$(KUSTOMIZE): $(LOCALBIN)
-	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
-
-.PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
-
-.PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-KUBEVIOUS_INSTALL_SCRIPT ?= "https://get.kubevious.io/cli.sh"
-.PHONY: kubevious
-kubevious: $(KUBEVIOUS) ## Download kustomize locally if necessary.
-$(KUBEVIOUS): $(LOCALBIN)
-	test -s $(LOCALBIN)/kubevious || { curl -Ss $(KUBEVIOUS_INSTALL_SCRIPT) | bash -s -- $(LOCALBIN); }
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
