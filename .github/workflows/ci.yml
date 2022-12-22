@@ -85,6 +85,12 @@ jobs:
           go-version: "^1.19"
           cache: true
 
+      - name: Cache kustomize binary
+        uses: actions/cache@v3
+        with:
+          path: bin/kustomize
+          key: bin-kustomize-build-${{ hashFiles('Makefile') }}
+
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.4.0
         with:
