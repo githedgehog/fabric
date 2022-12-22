@@ -123,7 +123,7 @@ apply-samples: ## Kubectl apply samples folder
 	kubectl apply -k config/samples
 
 ACTIONLINT ?= $(LOCALBIN)/actionlint
-ACTIONLINT_VERSION ?= latest
+ACTIONLINT_VERSION ?= v1.6.22
 
 .PHONY: actionlint
 actionlint: $(ACTIONLINT) ## Download actionlint locally if necessary.
