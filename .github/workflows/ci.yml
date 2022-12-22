@@ -204,3 +204,19 @@ jobs:
         timeout-minutes: 30
         with:
           limit-access-to-actor: true
+
+  build-publish-dockers-results:
+    name: Docker Build/Publish Results
+    needs:
+      - build-publish-dockers
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          result="${{ needs.build-publish-dockers.result }}"
+          if [[ $result == "success" || $result == "skipped" ]]; then
+            exit 0
+          else
+            exit 1
+          fi
