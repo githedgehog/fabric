@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: ["master"]
-  # pull_request:
+  pull_request:
   schedule:
     - cron: "0 10 * * *" # ~2am PST
   workflow_dispatch:
