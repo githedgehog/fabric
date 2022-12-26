@@ -22,7 +22,7 @@ CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.7
-CONTROLLER_TOOLS_VERSION ?= v0.10.1
+CONTROLLER_TOOLS_VERSION ?= v0.11.1
 ACTIONLINT_VERSION ?= v1.6.22
 CRD_REF_DOCS_VERSION ?= master ## Use master for now, to be replaced with stable version 
 
