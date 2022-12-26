@@ -1,7 +1,7 @@
 name: CI/CD
 
 concurrency:
-  group: cicd-${{ github.ref }}
+  group: cicd-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 on:
