@@ -101,6 +101,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 .PNONY: kube-lint
 kube-lint: manifests generate kubevious
+	$(KUBEVIOUS) --version
 	$(KUBEVIOUS) guard config/all
 	$(KUBEVIOUS) guard config/demo/v0-basic-vlan
 
