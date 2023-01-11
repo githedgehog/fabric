@@ -118,7 +118,7 @@ jobs:
   test-deploy-kind:
     needs:
       - cache-tools
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
 
     steps:
       - name: Checkout repository
