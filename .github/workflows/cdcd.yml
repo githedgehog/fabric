@@ -24,7 +24,13 @@ env:
 
 jobs:
   cache-tools:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - ubuntu-latest
+          - actuated
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -49,7 +55,14 @@ jobs:
   test-envtest:
     needs:
       - cache-tools
-    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        runner:
+          - ubuntu-latest
+          - actuated
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -80,7 +93,14 @@ jobs:
   test-lint-dirty:
     needs:
       - cache-tools
-    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        runner:
+          - ubuntu-latest
+          - actuated
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -118,7 +138,14 @@ jobs:
   test-deploy-kind:
     needs:
       - cache-tools
-    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        runner:
+          - ubuntu-latest
+          - actuated
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -164,7 +191,6 @@ jobs:
       - test-envtest
       - test-lint-dirty
       - test-deploy-kind
-    runs-on: ubuntu-latest
 
     strategy:
       matrix:
@@ -175,6 +201,11 @@ jobs:
           - linux/amd64
           - linux/arm64
           - linux/arm/v7
+        runner:
+          - ubuntu-latest
+          - actuated
+
+    runs-on: ${{ matrix.runner }}
 
     permissions:
       contents: read
@@ -256,6 +287,7 @@ jobs:
     needs:
       - build-publish-dockers
     if: ${{ always() }}
+    
     runs-on: ubuntu-latest
 
     steps:
