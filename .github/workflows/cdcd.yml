@@ -148,6 +148,7 @@ jobs:
           kubectl apply -k config/samples
           kubectl -n fabric-system wait deploy fabric-controller-manager --for condition=Available=True --timeout=60s
           kubectl wait fabric fabric-sample --for condition=Available=True --timeout=30s
+          kubectl wait --for condition=established --timeout=60s crd/agents.fabric.githedgehog.com
           make run-agent AGENT_HOSTNAME=agent-sample &
           kubectl wait agent/agent-sample --for condition=Ready --timeout=30s
 
