@@ -17,7 +17,7 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ACTIONLINT ?= $(LOCALBIN)/actionlint
-KUBEVIOUS ?= $(LOCALBIN)/kubevious
+KUBEVIOUS ?= PATH=./bin $(LOCALBIN)/kubevious
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 
 ## Tool Versions
