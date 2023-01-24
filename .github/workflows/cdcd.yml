@@ -127,6 +127,10 @@ jobs:
           git status --short
           git diff --quiet
 
+      - name: Setup kustomize if running on ARC runner
+        run: curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        if: ${{ matrix.runner == 'arc' }}
+
       - name: Run linters
         run: |
           make ci-lint kube-lint
