@@ -143,6 +143,7 @@ jobs:
 
       - name: Install CRDs, controller-manager and do basic checks
         run: |
+          export KUBECONFIG=$HOME/.kube/config
           make deploy-kind
           kubectl get crd | grep hedgehog
           kubectl apply -k config/samples
