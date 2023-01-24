@@ -282,7 +282,7 @@ jobs:
           context: .
           file: Dockerfile.${{ matrix.binary }}
           platforms: ${{ matrix.platform }}
-          push: ${{ github.ref == 'refs/heads/master' }}
+          push: ${{ github.ref == 'refs/heads/master' && matrix.runner == 'ubuntu-latest' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.from }}
