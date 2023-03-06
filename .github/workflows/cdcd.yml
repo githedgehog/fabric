@@ -28,7 +28,6 @@ jobs:
       matrix:
         runner:
           - ubuntu-latest
-          - actuated
           - arc
 
     runs-on: ${{ matrix.runner }}
