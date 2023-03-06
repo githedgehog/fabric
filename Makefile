@@ -120,6 +120,11 @@ apply-samples: ## Kubectl apply samples folder
 ci-lint: actionlint ## Run linter for Github Action workflows
 	$(ACTIONLINT)
 
+.PHONY: update
+update: ## Update go deps incl testing ones
+	go get -u ./...
+	go get -t -u ./...
+
 ##@ Build
 
 .PHONY: build
