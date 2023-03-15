@@ -24,13 +24,7 @@ env:
 
 jobs:
   cache-tools:
-    strategy:
-      matrix:
-        runner:
-          - ubuntu-latest
-          - arc
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: arc
 
     steps:
       - name: Checkout repository
@@ -56,14 +50,7 @@ jobs:
     needs:
       - cache-tools
 
-    strategy:
-      matrix:
-        runner:
-          - ubuntu-latest
-          - actuated
-          - arc
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: arc
 
     steps:
       - name: Checkout repository
@@ -95,14 +82,7 @@ jobs:
     needs:
       - cache-tools
 
-    strategy:
-      matrix:
-        runner:
-          - ubuntu-latest
-          - actuated
-          - arc
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: arc
 
     steps:
       - name: Checkout repository
@@ -126,9 +106,8 @@ jobs:
           git status --short
           git diff --quiet
 
-      - name: Setup kustomize if running on ARC runner
+      - name: Setup kustomize
         run: curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-        if: ${{ matrix.runner == 'arc' }}
 
       - name: Run linters
         run: |
@@ -145,14 +124,7 @@ jobs:
     needs:
       - cache-tools
 
-    strategy:
-      matrix:
-        runner:
-          - ubuntu-latest
-          - actuated
-          - arc
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: arc
 
     env:
       KUBECONFIG: kubeconfig
@@ -212,12 +184,8 @@ jobs:
           - linux/amd64
           - linux/arm64
           - linux/arm/v7
-        runner:
-          - ubuntu-latest
-          - actuated
-          - arc
 
-    runs-on: ${{ matrix.runner }}
+    runs-on: arc
 
     permissions:
       contents: read
@@ -288,7 +256,7 @@ jobs:
           context: .
           file: Dockerfile.${{ matrix.binary }}
           platforms: ${{ matrix.platform }}
-          push: ${{ github.ref == 'refs/heads/master' && matrix.runner == 'ubuntu-latest' }}
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.from }}
@@ -307,7 +275,7 @@ jobs:
       - build-publish-dockers
     if: ${{ always() }}
 
-    runs-on: ubuntu-latest
+    runs-on: arc
 
     steps:
       - run: |
