@@ -51,18 +51,21 @@ ACTIONLINT ?= $(LOCALBIN)/actionlint
 KUBEVIOUS ?= PATH=./bin $(LOCALBIN)/kubevious
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 HELM ?= $(LOCALBIN)/helm
+HELMIFY ?= $(LOCALBIN)/helmify
 ORAS ?= $(LOCALBIN)/oras
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.1
 CONTROLLER_TOOLS_VERSION ?= v0.12.0
 ENVTEST_K8S_VERSION = 1.27.1 # Version of kubebuilder assets to be downloaded by envtest binary
-ACTIONLINT_VERSION ?= v1.6.22
-CRD_REF_DOCS_VERSION ?= master # TODO: install specific version 
+ACTIONLINT_VERSION ?= v1.6.25
+CRD_REF_DOCS_VERSION ?= v0.0.9 
+HELM_VERSION ?= v3.12.3
+HELMIFY_VERSION ?= v0.4.5
 ORAS_VERSION ?= v1.0.1
 
 .PHONY: tools
-tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint helm oras ## Prepare all tools
+tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint helm helmify oras ## Prepare all tools
 
 # TODO: Enable back version check when it'll start returning version instead of (devel)
 .PHONY: kustomize
@@ -107,12 +110,16 @@ actionlint: $(ACTIONLINT) ## Download actionlint locally if necessary.
 $(ACTIONLINT): $(LOCALBIN)
 	test -s $(LOCALBIN)/actionlint || GOBIN=$(LOCALBIN) go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
 
-# TODO: Install specific version
 HELM_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
 .PHONY: helm
 helm: $(HELM) ## Download helm locally if necessary.
 $(HELM): $(LOCALBIN)
-	test -s $(LOCALBIN)/helm || { curl -fsSL $(HELM_INSTALL_SCRIPT) | HELM_INSTALL_DIR=$(LOCALBIN) USE_SUDO=false PATH=bin:$(PATH) bash -s - ; }
+	test -s $(LOCALBIN)/helm || { curl -fsSL $(HELM_INSTALL_SCRIPT) | HELM_INSTALL_DIR=$(LOCALBIN) USE_SUDO=false DESIRED_VERSION="$(HELM_VERSION)" PATH=bin:$(PATH) bash -s - ; }
+
+.PHONY: helmify
+helmify: $(HELMIFY) ## Download helmify locally if necessary.
+$(HELMIFY): $(LOCALBIN)
+	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@$(HELMIFY_VERSION)
 
 .PHONY: oras
 oras: $(ORAS) ## Download oras locally if necessary.
