@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // AgentSpec defines the desired state of Agent
@@ -28,14 +27,28 @@ type AgentSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Agent. Edit agent_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Ports []Port `json:"ports,omitempty"`
+}
+
+type Port struct {
+	Name       string      `json:"name,omitempty"`
+	Interfaces []Interface `json:"interfaces,omitempty"`
+}
+
+type Interface struct {
+	Name         string `json:"name,omitempty"`
+	VLAN         uint16 `json:"vlan,omitempty"`
+	VLANUntagged bool   `json:"vlanUntagged,omitempty"`
+	IPAddress    string `json:"ipAddress,omitempty"`
 }
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	Applied     bool        `json:"applied,omitempty"`
+	LastApplied metav1.Time `json:"lastApplied,omitempty"`
 }
 
 //+kubebuilder:object:root=true
