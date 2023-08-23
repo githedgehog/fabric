@@ -1,0 +1,8 @@
+Hedgehog Fabric API CRDs installed.
+API group is fabric.githedgehog.com.
+
+Run "kubectl get crd | grep hedgehog" to see the list of available CRDs.
+
+Updating this Helm release will update CRDs. It can lead to data loss if some of the field names are changed or fields are removed.
+
+Deleting this Helm release will delete CRDs. It will lead to deleting all instances of the CRs created using Wiring CRDs.

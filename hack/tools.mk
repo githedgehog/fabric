@@ -13,7 +13,9 @@
 
 .PHONY: help
 help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+VERSION ?= $(shell hack/version.sh)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -108,7 +110,7 @@ $(ACTIONLINT): $(LOCALBIN)
 # TODO: Install specific version
 HELM_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
 .PHONY: helm
-helm: $(HELM)
+helm: $(HELM) ## Download helm locally if necessary.
 $(HELM): $(LOCALBIN)
 	test -s $(LOCALBIN)/helm || { curl -fsSL $(HELM_INSTALL_SCRIPT) | HELM_INSTALL_DIR=$(LOCALBIN) USE_SUDO=false PATH=bin:$(PATH) bash -s - ; }
 
@@ -116,3 +118,10 @@ $(HELM): $(LOCALBIN)
 oras: $(ORAS) ## Download oras locally if necessary.
 $(ORAS): $(LOCALBIN)
 	test -s $(LOCALBIN)/oras || GOBIN=$(LOCALBIN) go install oras.land/oras/cmd/oras@$(ORAS_VERSION)
+
+HELM_REGISTRY ?= ghcr.io
+HELM_REPO_URL ?= oci://ghcr.io/githedgehog
+
+.PHONY: helm-registry-login
+helm-registry-login: helm ## Login to helm registry
+	$(HELM) registry login -u "$(USERNAME)" -p "$(PASSWORD)" $(HELM_REGISTRY)
