@@ -1,0 +1,27 @@
+# permissions for end users to view switches.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: switch-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: fabric
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+  name: switch-viewer-role
+rules:
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switches
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switches/status
+  verbs:
+  - get
