@@ -18,6 +18,9 @@ Dockerfile.cross
 
 !vendor/**/zz_generated.*
 
+# Generated helm charts
+config/helm/*.tgz
+
 # editor and IDE paraphernalia
 .idea
 .vscode
