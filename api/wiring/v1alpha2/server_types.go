@@ -20,16 +20,68 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// +kubebuilder:validation:Enum=control;service;management;compute
+type ServerRole string
+
+const (
+	ServerRoleControlNode    ServerRole = "control"
+	ServerRoleServiceNode    ServerRole = "service"
+	ServerRoleManagementNode ServerRole = "management"
+	// Compute Nodes only have IP addresses/VLAN info in the overlay network
+	// What we describe here is only the physical wiring for these.
+	// Config in this object is not applicable to compute nodes
+	ServerRoleComputeNode ServerRole = "compute"
+)
+
+type ServerConnectionType string
+
+// +kubebuilder:validation:Enum="";compute-connection;control-connection;management-connection;service-connection
+const (
+	InvalidConnectionType    = ""
+	ConnectionTypeCompute    = "compute-connection"
+	ConnectionTypeControl    = "control-connection"
+	ConnectionTypeManagement = "management-connection"
+	ConnectionTypeService    = "service-connection"
+)
+
+type BundleType string
+
+// +kubebuilder:validation:Enum=LAG;MCLAG;ESI
+const (
+	BundleTypeESI   = "ESI"
+	BundleTypeLAG   = "LAG"
+	BundleTypeMCLAG = "MCLAG"
+)
+
+type BundleConfig struct {
+	BundleType BundleType `json:"bundleType,omitempty"`
+}
+
+type CtrlMgmtInfo struct {
+	VlanInfo  VlanInfo `json:"vlanInfo,omitempty"`
+	IPAddress string   `json:"ipAddress,omitempty"`
+}
+
+type Nic struct {
+	Neighbor Neighbor `json:"neighbor,omitempty"`
+	NicName  string   `json:"nicName,omitempty"`
+	NicIndex uint16   `json:"nicIndex,omitempty"`
+}
+
+type ServerConnection struct {
+	IsBundled      bool                 `json:"isBundled,omitempty"`
+	ConnectionType ServerConnectionType `json:"connectionType,omitempty"`
+	Nics           []Nic                `json:"nics,omitempty"`
+	// Connection Config
+	BundleConfig BundleConfig `json:"bundleConfig,omitempty"`
+	CtrlMgmtInfo CtrlMgmtInfo `json:"ctrlMgmtInfo,omitempty"`
+}
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Server. Edit server_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	ServerConnections []ServerConnection `json:"serverConnections,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server

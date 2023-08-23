@@ -20,22 +20,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RackSpec defines the desired state of Rack
-type RackSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+// RackPosition defines the geopraphical position of the rack in a datacenter
+type RackPosition struct {
+	Location string `json:"location,omitempty"`
+	Aisle    string `json:"aisle,omitempty"`
+	Row      string `json:"row,omitempty"`
+}
 
-	// Foo is an example field of Rack. Edit rack_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+// RackSpec defines the properties of a rack which we are modelling
+type RackSpec struct {
+	NumServers       uint32       `json:"numServers,omitempty"`
+	HasControlNode   bool         `json:"hasControlNode,omitempty"`
+	HasConsoleServer bool         `json:"hasConsoleServer,omitempty"`
+	Position         RackPosition `json:"position,omitempty"`
 }
 
 // RackStatus defines the observed state of Rack
 type RackStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// TODO: add port status fields
 }
 
 //+kubebuilder:object:root=true
@@ -49,6 +53,8 @@ type Rack struct {
 	Spec   RackSpec   `json:"spec,omitempty"`
 	Status RackStatus `json:"status,omitempty"`
 }
+
+const KindRack = "Rack"
 
 //+kubebuilder:object:root=true
 

@@ -20,16 +20,31 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+type ServerPortInfo struct {
+	NicName  string   `json:"nicName,omitempty"`
+	NicIndex uint8    `json:"nicIndex,omitempty"`
+	Neighbor Neighbor `json:"neighbor,omitempty"`
+}
+
+type Bundled struct {
+	ID      string           `json:"id,omitempty"`
+	Type    BundleType       `json:"type,omitempty"`
+	Members []ServerPortInfo `json:"members,omitempty"`
+	Config  BundleConfig     `json:"config,omitempty"`
+}
+
+type CtrlMgmt struct {
+	VLAN      uint16 `json:"vlan,omitempty"`
+	IPAddress string `json:"ipAddress,omitempty"`
+}
 
 // ServerPortSpec defines the desired state of ServerPort
 type ServerPortSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of ServerPort. Edit serverport_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Bundled   *Bundled        `json:"bundled,omitempty"`
+	Unbundled *ServerPortInfo `json:"unbundled,omitempty"`
+	CtrlMgmt  *CtrlMgmt       `json:"ctrlMgmt,omitempty"`
 }
 
 // ServerPortStatus defines the observed state of ServerPort

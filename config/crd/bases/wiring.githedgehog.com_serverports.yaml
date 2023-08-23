@@ -1,0 +1,118 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: serverports.wiring.githedgehog.com
+spec:
+  group: wiring.githedgehog.com
+  names:
+    kind: ServerPort
+    listKind: ServerPortList
+    plural: serverports
+    singular: serverport
+  scope: Namespaced
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ServerPort is the Schema for the serverports API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ServerPortSpec defines the desired state of ServerPort
+            properties:
+              bundled:
+                properties:
+                  config:
+                    properties:
+                      bundleType:
+                        type: string
+                    type: object
+                  id:
+                    type: string
+                  members:
+                    items:
+                      properties:
+                        neighbor:
+                          description: Neighbor represents the neighbor of a particular
+                            port which could be either be a Switch or Server
+                          properties:
+                            server:
+                              properties:
+                                name:
+                                  type: string
+                                port:
+                                  type: string
+                              type: object
+                            switch:
+                              properties:
+                                name:
+                                  type: string
+                                port:
+                                  type: string
+                              type: object
+                          type: object
+                        nicIndex:
+                          type: integer
+                        nicName:
+                          type: string
+                      type: object
+                    type: array
+                  type:
+                    type: string
+                type: object
+              ctrlMgmt:
+                properties:
+                  ipAddress:
+                    type: string
+                  vlan:
+                    type: integer
+                type: object
+              unbundled:
+                properties:
+                  neighbor:
+                    description: Neighbor represents the neighbor of a particular
+                      port which could be either be a Switch or Server
+                    properties:
+                      server:
+                        properties:
+                          name:
+                            type: string
+                          port:
+                            type: string
+                        type: object
+                      switch:
+                        properties:
+                          name:
+                            type: string
+                          port:
+                            type: string
+                        type: object
+                    type: object
+                  nicIndex:
+                    type: integer
+                  nicName:
+                    type: string
+                type: object
+            type: object
+          status:
+            description: ServerPortStatus defines the observed state of ServerPort
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
