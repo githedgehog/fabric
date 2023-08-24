@@ -1,0 +1,173 @@
+name: CI/CD
+
+concurrency:
+  group: cicd-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+  schedule:
+    - cron: "0 10 * * *" # ~2am PST
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        required: false
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  ORG: githedgehog
+
+jobs:
+  cache-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v3
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Prepare all dev tools
+        run: |
+          make tools
+
+  lint-and-dump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        # with:
+        #   fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v3
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running make
+      - name: Make all (autogeneration) and fail on dirty
+        run: |
+          make manifests generate docs
+          git status --short
+          git diff --quiet
+
+    #   - name: Run linters
+    #     run: |
+    #       make lint lint-helm
+
+    #   - name: Dump samples (prettier)
+    #     run: |
+    #       make prettier
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  kind-test-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v3
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.8.0
+        with:
+          cluster_name: kind
+
+      - name: Install CRDs
+        run: |
+          make api-helm-install
+          kubectl wait --for condition=established --timeout=60s crd/switchports.fabric.githedgehog.com
+          kubectl get crd | grep hedgehog
+
+    #   - name: Deploy samples
+    #     run: |
+    #       make deploy-samples
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  publish-helm-crd:
+    runs-on: lab
+    needs:
+      - lint-and-dump
+      - kind-test-api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Helm registry login
+        run: |
+          make helm-registry-login USERNAME="${{ github.actor }}" PASSWORD="${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Publish Helm chart with CRDs on release
+        if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
+        run: |
+          make api-helm-push
+        #   make helm-crd-push VERSION="$(hack/version.sh latest)"
+
+    #   - name: Publish Helm chart with CRDs for master
+    #     if: (github.ref == 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags/')) && github.event_name == 'push'
+    #     run: |
+    #       make helm-crd-push VERSION="$(hack/version.sh master)"
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
