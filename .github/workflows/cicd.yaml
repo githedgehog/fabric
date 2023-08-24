@@ -27,7 +27,7 @@ env:
 
 jobs:
   cache-tools:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # It should be faster than running in hour DC
 
     steps:
       - name: Checkout repository
@@ -57,7 +57,7 @@ jobs:
           limit-access-to-actor: true
 
   lint-and-dump:
-    runs-on: ubuntu-latest
+    runs-on: ["lab", "simple", "X64"]
     needs:
       - cache-tools
 
@@ -102,7 +102,7 @@ jobs:
           limit-access-to-actor: true
 
   kind-test-api:
-    runs-on: ubuntu-latest
+    runs-on: ["lab", "simple", "X64"]
     needs:
       - cache-tools
 
@@ -147,7 +147,7 @@ jobs:
           limit-access-to-actor: true
 
   publish-helm-crd:
-    runs-on: ubuntu-latest
+    runs-on: ["lab", "simple", "X64"]
     needs:
       - cache-tools
       - lint-and-dump
