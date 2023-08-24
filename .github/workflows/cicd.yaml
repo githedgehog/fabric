@@ -81,7 +81,7 @@ jobs:
 
       - name: Prepare self-hosted runner
         run: |
-          test -s make || apt install -y make
+          test -s make || sudo apt install -y make
 
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running make
       - name: Make all (autogeneration) and fail on dirty
@@ -130,7 +130,7 @@ jobs:
 
       - name: Prepare self-hosted runner
         run: |
-          test -s make || apt install -y make
+          test -s make || sudo apt install -y make
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.8.0
@@ -181,7 +181,7 @@ jobs:
 
       - name: Prepare self-hosted runner
         run: |
-          test -s make || apt install -y make
+          test -s make || sudo apt install -y make
 
       - name: Helm registry login
         run: |
