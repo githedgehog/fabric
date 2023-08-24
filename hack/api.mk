@@ -2,7 +2,7 @@
 
 .PHONY: api-lint
 api-lint: kubevious ## Lint all APIs (K8s CRDs) and samples
-	$(KUBEVIOUS) guard config/crd config/samples/api
+	$(KUBEVIOUS) guard config/crd config/samples
 
 .PHONY: api-lint-crds
 api-lint-crds: kubevious ## Lint all APIs (K8s CRDs)

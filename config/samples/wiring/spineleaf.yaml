@@ -1,0 +1,306 @@
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: SwitchPort
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+    wiring.githedgehog.com/switch: leaf1
+  name: leaf1--port0
+spec:
+  role: leaf-fabric
+  isConnected: true
+  nosPortNum: 0
+  nosPortName: Ethernet0
+  portSpeed: 10G
+  connectorType: qsfp
+  cableType: optical
+  neighbor:
+    switch:
+      name: spine1
+      port: spine1--port0
+  onie:
+    portNum: 0
+    portName: eth0
+    bootstrapIP: 192.168.1.1/24
+    vlan: 300
+  interfaces:
+    - name: Ethernet0.100
+      vlans:
+        - 100
+      ipAddress: 169.254.1.1/31
+      bgpEnabled: true
+      bfdEnabled: true
+      vrf: default
+    - name: Ethernet0.200
+      vlans:
+        - 200
+      ipAddress: 169.254.1.1/31
+      bgpEnabled: true
+      bfdEnabled: true
+      vrf: VrfHHMgmt
+    - name: Ethernet0.300
+      vlans:
+        - 300
+      ipAddress: 169.254.1.1/31
+      bgpEnabled: true
+      bfdEnabled: true
+      vrf: VrfHHCtrl
+  adminState: up
+  vrf: default
+---
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: SwitchPort
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+    wiring.githedgehog.com/switch: spine1
+  name: spine1--port0
+spec:
+  role: spine-fabric
+  isConnected: true
+  nosPortNum: 0
+  nosPortName: Ethernet0
+  portSpeed: 10G
+  connectorType: qsfp
+  cableType: optical
+  neighbor:
+    switch:
+      name: leaf1
+      port: leaf1--port0
+  onie:
+    portNum: 0
+    portName: eth0
+    bootstrapIP: 192.168.1.1/24
+    vlan: 300
+  interfaces:
+    - name: Ethernet0.100
+      vlans:
+        - 100
+      ipAddress: 169.254.1.0/31
+      bgpEnabled: true
+      bfdEnabled: true
+      vrf: default
+    - name: Ethernet0.200
+      vlans:
+        - 200
+      ipAddress: 169.254.1.0/31
+      bgpEnabled: true
+      bfdEnabled: true
+      vrf: VrfHHMgmt
+    - name: Ethernet0.300
+      vlans:
+        - 300
+      ipAddress: 169.254.1.0/31
+      bgpEnabled: true
+      bfdEnabled: true
+      vrf: VrfHHCtrl
+  adminState: up
+  vrf: default
+---
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: SwitchPort
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+    wiring.githedgehog.com/switch: leaf2
+  name: leaf2--port0
+spec:
+  role: leaf-fabric
+  isConnected: true
+  nosPortNum: 0
+  nosPortName: Ethernet0
+  portSpeed: 10G
+  connectorType: qsfp
+  cableType: optical
+  neighbor:
+    switch:
+      name: leaf2
+      port: spine2--port0
+  onie:
+    portNum: 0
+    portName: eth0
+    bootstrapIP: 192.168.1.1/24
+    vlan: 300
+  interfaces: null
+  adminState: up
+  vrf: default
+---
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Switch
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+  name: leaf1
+spec:
+  secureBootCapable: true
+  remoteAttestationRequired: true
+  location:
+    location: DC1-Fl
+    aisle: "10"
+    row: "2"
+    slot: "24"
+    rack: "1"
+  locationUUID: uuid
+  locationSig:
+    sig: sig
+    uuidSig: uuidSig
+  connectedPorts: 8
+  maxPorts: 48
+  serverFacingPorts: 6
+  fabricFacingPorts: 2
+  role: leaf
+  bgpConfig:
+    - loopbackInterfaceNum: 0
+      loopbackAddress: 10.1.1.1/32 # This becomes the router-id in this vrf sans the the prefix length
+      bgpRouterConfig:
+        - asn: 65100
+          vrf: default
+          routerID: 10.1.1.1
+          addressFamily:
+            family: ipv4 #import and export targets are unused right now. Also i need to come up with a better syntax for route-map
+          neighborInfo:
+            - id: 169.254.1.0 # This could be interface name as well.
+              asn: 65200
+              filterInfo: undefined # This will be a struct
+  lldpConfig:
+    helloTimer: 5
+    managementIP: 10.1.1.1
+    systemName: leaf1
+    systemDescription: This is leaf1
+  vendorName: celestica
+  modelNumber: q2
+  sonicVersion: v0.0.1
+  vlan:
+    - vlanID: 4000
+      vlanInterfaceEnabled: true
+    - vlanID: 1000
+      vlanInterfaceEnabled: true
+  vrfs:
+    - VrfHHMgmt
+    - VrfHHCtrl
+---
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Rack
+metadata:
+  name: rack1
+spec: {}
+---
+# Routed Ctrl Server
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Server
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+  name: server-control-routed
+spec:
+  serverConnections:
+    - isBundled: false
+      connectionType: control-connection
+      nics:
+        - nicName: eth0
+          nicIndex: 1
+          neighbor:
+            switch:
+              name: leaf1
+              port: Ethernet5
+      ctrlMgmtInfo:
+        ipAddress: 192.168.1.2/30
+---
+#Ctrl Routed switchPort
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: SwitchPort
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+    wiring.githedgehog.com/switch: leaf1
+  name: leaf1-Ethernet5
+spec:
+  role: leaf-server-l3
+  isConnected: true
+  nosPortNum: 0
+  nosPortName: Ethernet5
+  portSpeed: 10G
+  connectorType: qsfp
+  cableType: optical
+  neighbor:
+    server:
+      name: server-control-routed
+  onie:
+    portNum: 0
+    portName: eth0
+    bootstrapIP: 192.168.127.1/24
+    vlan: 300
+  interfaces:
+    - name: Ethernet5
+      ipAddress: 192.168.1.1/30
+      bgpEnabled: false
+      bfdEnabled: false
+      vrf: default
+      mode: routed
+  adminState: up
+  vrf: vrfHHCtrl
+---
+#Mgmt Server
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Server
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+  name: server-mgmt-l2
+spec:
+  serverConnections:
+    - isBundled: false
+      connectionType: control-connection
+      nics:
+        - nicName: eth0
+          nicIndex: 1
+          neighbor:
+            switch:
+              name: leaf1
+              port: Ethernet6
+      ctrlMgmtInfo:
+        ipAddress: 192.168.1.2/30
+        vlanInfo:
+          taggedVlan: true
+          vlanID: 2000
+---
+#Mgmt Interface
+# for l2 interface vrf is applied to the Vlan interface not the port itself
+# tagged l2 interfaces with Vlan on them don't create subinterfaces.
+# add the port as a member of a Vlan
+# Create a vlan if it does not exist and add this port as a tagged member
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: SwitchPort
+metadata:
+  labels:
+    wiring.githedgehog.com/rack: rack1
+    wiring.githedgehog.com/switch: leaf1
+  # TODO: check with Amit - why inconsistent name?
+  name: leaf1-Ethernet6
+spec:
+  role: leaf-server-l2-tagged
+  isConnected: true
+  nosPortNum: 0
+  nosPortName: Ethernet6
+  portSpeed: 10G
+  connectorType: qsfp
+  cableType: optical
+  neighbor:
+    # TODO: check with Amit - why both server and switch?
+    server:
+      name: server-mgmt-l2
+  onie:
+    portNum: 0
+    portName: eth0
+    bootstrapIP: 192.168.1.1/24
+    vlan: 300
+  interfaces:
+    - name: Ethernet3
+      vlans:
+        # This Vlan only exists on this switch. we will use Vrf's to switch on to the management fabric
+        - 2000 # This is not the global Management Vlan defined on the fabric.
+      bgpEnabled: false
+      bfdEnabled: false
+  adminState: up
+  vrf: VrfHHMgmt
+---
+

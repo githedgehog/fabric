@@ -1,0 +1,7 @@
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Rack
+metadata:
+  labels:
+  name: some-rack-1
+spec:
+  # TODO(user): Add fields here

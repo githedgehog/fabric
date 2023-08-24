@@ -132,7 +132,7 @@ type SwitchPortStatus struct {
 
 // SwitchPort is the Schema for the ports API
 //
-// All ports should always have 2 labels defined: fabric.githedgehog.com/rack and fabric.githedgehog.com/switch. It
+// All ports should always have 2 labels defined: wiring.githedgehog.com/rack and wiring.githedgehog.com/switch. It
 // represents names of the rack and switch it belongs to.
 type SwitchPort struct {
 	metav1.TypeMeta   `json:",inline"`

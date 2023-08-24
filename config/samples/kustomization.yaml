@@ -1,9 +1,0 @@
-## Append samples of your project ##
-resources:
-- agent_v1alpha2_agent.yaml
-- wiring_v1alpha2_rack.yaml
-- wiring_v1alpha2_switch.yaml
-- wiring_v1alpha2_switchport.yaml
-- wiring_v1alpha2_server.yaml
-- wiring_v1alpha2_serverport.yaml
-#+kubebuilder:scaffold:manifestskustomizesamples

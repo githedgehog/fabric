@@ -133,7 +133,7 @@ type SwitchStatus struct {
 
 // Switch is the Schema for the switches API
 //
-// All switches should always have 1 labels defined: fabric.githedgehog.com/rack. It represents names of the rack it
+// All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents names of the rack it
 // belongs to.
 type Switch struct {
 	metav1.TypeMeta   `json:",inline"`

@@ -1,5 +1,5 @@
 Hedgehog Fabric API CRDs installed.
-API group is fabric.githedgehog.com.
+API groups are (wiring|agent|fabric).githedgehog.com.
 
 Run "kubectl get crd | grep hedgehog" to see the list of available CRDs.
 
