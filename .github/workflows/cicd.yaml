@@ -6,7 +6,10 @@ concurrency:
 
 on:
   push:
-    branches: ["master"]
+    branches: 
+      - master
+    tags:
+      - "*"
   pull_request:
   schedule:
     - cron: "0 10 * * *" # ~2am PST
@@ -45,6 +48,13 @@ jobs:
       - name: Prepare all dev tools
         run: |
           make tools
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
 
   lint-and-dump:
     runs-on: ubuntu-latest
