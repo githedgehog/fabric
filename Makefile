@@ -95,3 +95,10 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+
+
+##@ CI/CD
+
+.PHONY: actions-lint
+actions-lint: actionlint ## Lint GitHub Actions linter.
+	$(ACTIONLINT) -verbose
