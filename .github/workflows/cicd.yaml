@@ -57,7 +57,7 @@ jobs:
           limit-access-to-actor: true
 
   lint-and-dump:
-    runs-on: ["lab", "simple", "X64"]
+    runs-on: ["jammy"]
     needs:
       - cache-tools
 
@@ -102,7 +102,7 @@ jobs:
           limit-access-to-actor: true
 
   kind-test-api:
-    runs-on: ["lab", "simple", "X64"]
+    runs-on: ["jammy"]
     needs:
       - cache-tools
 
@@ -147,7 +147,7 @@ jobs:
           limit-access-to-actor: true
 
   publish-helm-crd:
-    runs-on: ["lab", "simple", "X64"]
+    runs-on: ["jammy"]
     needs:
       - cache-tools
       - lint-and-dump
