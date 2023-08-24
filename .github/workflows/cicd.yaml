@@ -79,6 +79,10 @@ jobs:
           path: bin
           key: bin-${{ hashFiles('hack/tools.mk') }}
 
+      - name: Prepare self-hosted runner
+        run: |
+          test -s make || apt install -y make
+
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running make
       - name: Make all (autogeneration) and fail on dirty
         run: |
@@ -123,6 +127,10 @@ jobs:
         with:
           path: bin
           key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Prepare self-hosted runner
+        run: |
+          test -s make || apt install -y make
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.8.0
@@ -170,6 +178,10 @@ jobs:
         with:
           path: bin
           key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Prepare self-hosted runner
+        run: |
+          test -s make || apt install -y make
 
       - name: Helm registry login
         run: |
