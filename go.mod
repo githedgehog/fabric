@@ -1,6 +1,6 @@
 module go.githedgehog.com/fabric
 
-go 1.20
+go 1.21
 
 require (
 	github.com/google/uuid v1.3.0
