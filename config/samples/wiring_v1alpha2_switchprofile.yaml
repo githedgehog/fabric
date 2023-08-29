@@ -1,0 +1,12 @@
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: SwitchProfile
+metadata:
+  labels:
+    app.kubernetes.io/name: switchprofile
+    app.kubernetes.io/instance: switchprofile-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: switchprofile-sample
+spec:
+  # TODO(user): Add fields here

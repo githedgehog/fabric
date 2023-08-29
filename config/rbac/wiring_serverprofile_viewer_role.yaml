@@ -1,0 +1,27 @@
+# permissions for end users to view serverprofiles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: serverprofile-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: fabric
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+  name: serverprofile-viewer-role
+rules:
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - serverprofiles
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - serverprofiles/status
+  verbs:
+  - get

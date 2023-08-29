@@ -57,4 +57,28 @@ resources:
   kind: ServerPort
   path: go.githedgehog.com/fabric/api/wiring/v1alpha2
   version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: Connection
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: SwitchProfile
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: ServerProfile
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
 version: "3"
