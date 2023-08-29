@@ -107,6 +107,53 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 
 
 
+#### ConnLink
+
+
+
+
+
+_Appears in:_
+- [MCLAGConn](#mclagconn)
+- [MCLAGDomainConn](#mclagdomainconn)
+
+| Field | Description |
+| --- | --- |
+| `switchPort` _[ConnLinkPort](#connlinkport)_ |  |
+| `serverPort` _[ConnLinkPort](#connlinkport)_ |  |
+
+
+#### ConnLinkPart
+
+
+
+
+
+_Appears in:_
+- [UnbundledConn](#unbundledconn)
+
+| Field | Description |
+| --- | --- |
+| `switchPort` _[ConnLinkPort](#connlinkport)_ |  |
+| `serverPort` _[ConnLinkPort](#connlinkport)_ |  |
+
+
+#### ConnLinkPort
+
+
+
+
+
+_Appears in:_
+- [ConnLinkPart](#connlinkpart)
+- [ManagementConnLinkPart](#managementconnlinkpart)
+- [ManagementConnSwitchPort](#managementconnswitchport)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+
+
 #### Connection
 
 
@@ -135,7 +182,10 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of Connection. Edit connection_types.go to remove/update |
+| `unbundled` _[UnbundledConn](#unbundledconn)_ |  |
+| `management` _[ManagementConn](#managementconn)_ |  |
+| `mclag` _[MCLAGConn](#mclagconn)_ |  |
+| `mclagDomain` _[MCLAGDomainConn](#mclagdomainconn)_ |  |
 
 
 
@@ -189,6 +239,80 @@ _Appears in:_
 | --- | --- |
 | `sig` _string_ |  |
 | `uuidSig` _string_ |  |
+
+
+#### MCLAGConn
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `links` _[ConnLink](#connlink) array_ |  |
+
+
+#### MCLAGDomainConn
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `links` _[ConnLink](#connlink) array_ |  |
+
+
+#### ManagementConn
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ManagementConnLinkPart](#managementconnlinkpart) array_ |  |
+
+
+
+
+#### ManagementConnLinkPart
+
+
+
+
+
+_Appears in:_
+- [ManagementConn](#managementconn)
+
+| Field | Description |
+| --- | --- |
+| `switchPort` _[ManagementConnSwitchPort](#managementconnswitchport)_ |  |
+| `serverPort` _[ConnLinkPort](#connlinkport)_ |  |
+
+
+#### ManagementConnSwitchPort
+
+
+
+
+
+_Appears in:_
+- [ManagementConnLinkPart](#managementconnlinkpart)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `ip` _string_ |  |
 
 
 #### Rack
@@ -277,6 +401,35 @@ ServerProfile is the Schema for the serverprofiles API
 | `status` _[ServerProfileStatus](#serverprofilestatus)_ |  |
 
 
+#### ServerProfileNIC
+
+
+
+
+
+_Appears in:_
+- [ServerProfileSpec](#serverprofilespec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `ports` _[ServerProfileNICPort](#serverprofilenicport) array_ |  |
+
+
+#### ServerProfileNICPort
+
+
+
+
+
+_Appears in:_
+- [ServerProfileNIC](#serverprofilenic)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+
+
 #### ServerProfileSpec
 
 
@@ -288,7 +441,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of ServerProfile. Edit serverprofile_types.go to remove/update |
+| `nics` _[ServerProfileNIC](#serverprofilenic) array_ |  |
 
 
 
@@ -304,6 +457,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `type` _ServerType_ |  |
 | `profile` _string_ |  |
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
@@ -346,6 +500,37 @@ SwitchProfile is the Schema for the switchprofiles API
 | `status` _[SwitchProfileStatus](#switchprofilestatus)_ |  |
 
 
+#### SwitchProfileLimits
+
+
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description |
+| --- | --- |
+| `vpc` _integer_ |  |
+| `policy` _integer_ |  |
+
+
+#### SwitchProfilePort
+
+
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description |
+| --- | --- |
+| `id` _integer_ |  |
+| `name` _string_ |  |
+| `management` _boolean_ |  |
+
+
 #### SwitchProfileSpec
 
 
@@ -357,7 +542,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `foo` _string_ | Foo is an example field of SwitchProfile. Edit switchprofile_types.go to remove/update |
+| `limits` _[SwitchProfileLimits](#switchprofilelimits)_ |  |
+| `ports` _[SwitchProfilePort](#switchprofileport) array_ |  |
 
 
 
@@ -379,5 +565,19 @@ _Appears in:_
 | `lldp` _[LLDPConfig](#lldpconfig)_ |  |
 
 
+
+
+#### UnbundledConn
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ConnLinkPart](#connlinkpart) array_ |  |
 
 
