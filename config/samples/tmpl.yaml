@@ -1,0 +1,36 @@
+# aka WiringTemplate
+
+collapsedcore:
+  racks:
+    rack-1:
+      default: true
+  controls:
+    control-1:
+      # first port is connection to outside worlds
+      connect:
+        - nobundle: { nic-0/port-1: switch-1/Management0 }
+        - nobundle: { nic-0/port-2: switch-2/Management0 }
+  switches:
+    switch-1:
+      connect:
+        - mclagPeer: { Ethernet56: switch-2/Ethernet56 }
+    switch-2: {}
+  computes:
+    compute-1:
+      connect:
+        - mclag:
+            nic-0/port-0: switch-1/Ethernet0
+            nic-1/port-0: switch-2/Ethernet0
+    compute-2:
+      connect:
+        - mclag:
+            nic-0/port-0: switch-1/Ethernet1
+            nic-1/port-0: switch-2/Ethernet1
+    compute-3:
+      connect:
+        - nobundle: { nic-0/port-0: switch-1/Ethernet2 }
+    compute-4:
+      connect:
+        - nobundle: { nic-0/port-0: switch-2/Ethernet2 }
+# TBD:
+# * We need to put a management port config into wiring diagram too
