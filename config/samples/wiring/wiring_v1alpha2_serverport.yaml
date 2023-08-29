@@ -1,9 +1,0 @@
-apiVersion: wiring.githedgehog.com/v1alpha2
-kind: ServerPort
-metadata:
-  labels:
-    wiring.githedgehog.com/rack: rack1
-    wiring.githedgehog.com/server: server1
-  name: serverport-sample
-spec:
-  # TODO(user): Add fields here

@@ -41,6 +41,7 @@ type ServerProfileStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog;wiring
 
 // ServerProfile is the Schema for the serverprofiles API
 type ServerProfile struct {
@@ -50,6 +51,8 @@ type ServerProfile struct {
 	Spec   ServerProfileSpec   `json:"spec,omitempty"`
 	Status ServerProfileStatus `json:"status,omitempty"`
 }
+
+const KindServerProfile = "ServerProfile"
 
 //+kubebuilder:object:root=true
 

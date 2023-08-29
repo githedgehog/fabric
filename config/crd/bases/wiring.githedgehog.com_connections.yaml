@@ -8,6 +8,9 @@ metadata:
 spec:
   group: wiring.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - wiring
     kind: Connection
     listKind: ConnectionList
     plural: connections
@@ -49,16 +52,8 @@ spec:
                             ip:
                               pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
                               type: string
-                            serverPort:
-                              properties:
-                                name:
-                                  type: string
-                              type: object
-                            switchPort:
-                              properties:
-                                name:
-                                  type: string
-                              type: object
+                            name:
+                              type: string
                           type: object
                       type: object
                     maxItems: 2

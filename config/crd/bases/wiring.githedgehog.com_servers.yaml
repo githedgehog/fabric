@@ -8,6 +8,9 @@ metadata:
 spec:
   group: wiring.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - wiring
     kind: Server
     listKind: ServerList
     plural: servers

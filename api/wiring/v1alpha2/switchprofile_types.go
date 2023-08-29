@@ -44,6 +44,7 @@ type SwitchProfileStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog;wiring
 
 // SwitchProfile is the Schema for the switchprofiles API
 type SwitchProfile struct {
@@ -53,6 +54,8 @@ type SwitchProfile struct {
 	Spec   SwitchProfileSpec   `json:"spec,omitempty"`
 	Status SwitchProfileStatus `json:"status,omitempty"`
 }
+
+const KindSwitchProfile = "SwitchProfile"
 
 //+kubebuilder:object:root=true
 

@@ -44,6 +44,7 @@ type RackStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog;wiring
 
 // Rack is the Schema for the racks API
 type Rack struct {

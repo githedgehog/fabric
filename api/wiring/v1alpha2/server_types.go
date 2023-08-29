@@ -43,6 +43,7 @@ type ServerStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog;wiring
 
 // Server is the Schema for the servers API
 type Server struct {
@@ -52,6 +53,8 @@ type Server struct {
 	Spec   ServerSpec   `json:"spec,omitempty"`
 	Status ServerStatus `json:"status,omitempty"`
 }
+
+const KindServer = "Server"
 
 //+kubebuilder:object:root=true
 

@@ -1,12 +1,14 @@
 package wiring
 
 import (
+	"io"
 	"sort"
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 type Data struct {
@@ -116,4 +118,59 @@ func SortByName[T metav1.Object](objs []T) {
 	sort.Slice(objs, func(i, j int) bool {
 		return objs[i].GetName() < objs[j].GetName()
 	})
+}
+
+func (d *Data) Write(w io.Writer) error {
+	for idx, sw := range d.Switch.All() {
+		err := marshal(sw, idx > 0, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, server := range d.Server.All() {
+		if !server.IsControl() {
+			continue
+		}
+		err := marshal(server, true, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, server := range d.Server.All() {
+		if server.IsControl() {
+			continue
+		}
+		err := marshal(server, true, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, conn := range d.Connection.All() {
+		err := marshal(conn, true, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func marshal(obj any, separator bool, w io.Writer) error {
+	if separator {
+		_, err := w.Write([]byte("---\n"))
+		if err != nil {
+			return errors.Wrap(err, "error writing separator")
+		}
+	}
+
+	buf, err := yaml.Marshal(obj)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling into yaml")
+	}
+	_, err = w.Write(buf)
+
+	return errors.Wrap(err, "error writing yaml")
 }

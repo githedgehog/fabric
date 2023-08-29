@@ -45,6 +45,7 @@ type SwitchStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog;wiring
 
 // Switch is the Schema for the switches API
 //

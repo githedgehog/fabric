@@ -1,6 +1,4 @@
 ## Append samples of your project ##
 resources:
-- wiring_v1alpha2_connection.yaml
-- wiring_v1alpha2_switchprofile.yaml
-- wiring_v1alpha2_serverprofile.yaml
+  - collapsedcore.gen.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

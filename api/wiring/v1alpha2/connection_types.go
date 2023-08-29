@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"fmt"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,8 +30,8 @@ type ConnLinkPort struct {
 }
 
 type ConnLinkPart struct {
-	SwitchPort ConnLinkPort `json:"switchPort,omitempty"`
-	ServerPort ConnLinkPort `json:"serverPort,omitempty"`
+	SwitchPort *ConnLinkPort `json:"switchPort,omitempty"`
+	ServerPort *ConnLinkPort `json:"serverPort,omitempty"`
 }
 
 // +kubebuilder:validation:MaxItems=2
@@ -40,14 +43,14 @@ type UnbundledConn struct {
 }
 
 type ManagementConnSwitchPort struct {
-	ConnLinkPart `json:",inline"`
+	ConnLinkPort `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
 	IP string `json:"ip,omitempty"`
 }
 
 type ManagementConnLinkPart struct {
-	SwitchPort ManagementConnSwitchPort `json:"switchPort,omitempty"`
-	ServerPort ConnLinkPort             `json:"serverPort,omitempty"`
+	SwitchPort *ManagementConnSwitchPort `json:"switchPort,omitempty"`
+	ServerPort *ConnLinkPort             `json:"serverPort,omitempty"`
 }
 
 // +kubebuilder:validation:MaxItems=2
@@ -58,20 +61,20 @@ type ManagementConn struct {
 	Link ManagementConnLink `json:"link,omitempty"`
 }
 
-type MCLAGConnection struct {
+type MCLAGConn struct {
 	Links []ConnLink `json:"links,omitempty"`
 }
 
-type MCLAGDomainConnection struct {
+type MCLAGDomainConn struct {
 	Links []ConnLink `json:"links,omitempty"`
 }
 
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
-	Unbundled   UnbundledConn         `json:"unbundled,omitempty"`
-	Management  ManagementConn        `json:"management,omitempty"`
-	MCLAG       MCLAGConnection       `json:"mclag,omitempty"`
-	MCLAGDomain MCLAGDomainConnection `json:"mclagDomain,omitempty"`
+	Unbundled   *UnbundledConn   `json:"unbundled,omitempty"`
+	Management  *ManagementConn  `json:"management,omitempty"`
+	MCLAG       *MCLAGConn       `json:"mclag,omitempty"`
+	MCLAGDomain *MCLAGDomainConn `json:"mclagDomain,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -79,6 +82,7 @@ type ConnectionStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:categories=hedgehog;wiring
 
 // Connection is the Schema for the connections API
 type Connection struct {
@@ -88,6 +92,8 @@ type Connection struct {
 	Spec   ConnectionSpec   `json:"spec,omitempty"`
 	Status ConnectionStatus `json:"status,omitempty"`
 }
+
+const KindConnection = "Connection"
 
 //+kubebuilder:object:root=true
 
@@ -100,4 +106,57 @@ type ConnectionList struct {
 
 func init() {
 	SchemeBuilder.Register(&Connection{}, &ConnectionList{})
+}
+
+func (c *ConnectionSpec) GenerateName() string {
+	if c != nil {
+		if c.Unbundled != nil {
+			left := c.Unbundled.Link[0].DeviceName() // TODO make sure server is listed first
+			right := c.Unbundled.Link[1].DeviceName()
+
+			return fmt.Sprintf("%s--unbundled--%s", left, right)
+		}
+		if c.Management != nil {
+			control := c.Management.Link[0].ServerPort.DeviceName() // TODO make sure control is listed first
+			sw := c.Management.Link[1].SwitchPort.DeviceName()
+
+			return fmt.Sprintf("%s--mgmt--%s", control, sw)
+		}
+		if c.MCLAGDomain != nil {
+			switch1 := c.MCLAGDomain.Links[0][0].DeviceName()
+			switch2 := c.MCLAGDomain.Links[0][1].DeviceName()
+
+			return fmt.Sprintf("%s--mclag-domain--%s", switch1, switch2)
+		}
+		if c.MCLAG != nil {
+			server := c.MCLAG.Links[0][0].DeviceName() // TODO make sure server is listed first
+			switch1 := c.MCLAG.Links[0][1].DeviceName()
+			switch2 := c.MCLAG.Links[1][1].DeviceName() // TODO iterate over all links
+
+			return fmt.Sprintf("%s--mclag--%s--%s", server, switch1, switch2)
+		}
+	}
+
+	return "<invalid>" // TODO replace with error?
+}
+
+func (l *ConnLinkPort) DeviceName() string {
+	if l != nil {
+		return strings.SplitN(l.Name, "/", 2)[0] // TODO check result, extract sepatator to const
+	}
+
+	return "<invalid>" // TODO replace with error?
+}
+
+func (l *ConnLinkPart) DeviceName() string {
+	if l != nil {
+		if l.SwitchPort != nil {
+			return l.SwitchPort.DeviceName()
+		}
+		if l.ServerPort != nil {
+			return l.ServerPort.DeviceName()
+		}
+	}
+
+	return "<invalid>" // TODO replace with error?
 }
