@@ -37,8 +37,6 @@ spec:
               management:
                 properties:
                   link:
-                    description: 'TODO: add management connection fields like bootstrap
-                      IP and vlan here or in a custom link part'
                     items:
                       properties:
                         serverPort:
@@ -48,8 +46,19 @@ spec:
                           type: object
                         switchPort:
                           properties:
-                            name:
+                            ip:
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
                               type: string
+                            serverPort:
+                              properties:
+                                name:
+                                  type: string
+                              type: object
+                            switchPort:
+                              properties:
+                                name:
+                                  type: string
+                              type: object
                           type: object
                       type: object
                     maxItems: 2

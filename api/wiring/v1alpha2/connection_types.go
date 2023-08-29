@@ -22,40 +22,54 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type LinkPort struct {
+type ConnLinkPort struct {
 	Name string `json:"name,omitempty"`
 }
 
-type LinkPart struct {
-	SwitchPort LinkPort `json:"switchPort,omitempty"`
-	ServerPort LinkPort `json:"serverPort,omitempty"`
+type ConnLinkPart struct {
+	SwitchPort ConnLinkPort `json:"switchPort,omitempty"`
+	ServerPort ConnLinkPort `json:"serverPort,omitempty"`
 }
 
 // +kubebuilder:validation:MaxItems=2
 // +kubebuilder:validation:MinItems=2
-type Link []LinkPart
+type ConnLink []ConnLinkPart
 
-type UnbundledConnection struct {
-	Link Link `json:"link,omitempty"`
+type UnbundledConn struct {
+	Link ConnLink `json:"link,omitempty"`
 }
 
-type ManagementConnection struct {
-	// TODO: add management connection fields like bootstrap IP and vlan here or in a custom link part
-	Link Link `json:"link,omitempty"`
+type ManagementConnSwitchPort struct {
+	ConnLinkPart `json:",inline"`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
+	IP string `json:"ip,omitempty"`
+}
+
+type ManagementConnLinkPart struct {
+	SwitchPort ManagementConnSwitchPort `json:"switchPort,omitempty"`
+	ServerPort ConnLinkPort             `json:"serverPort,omitempty"`
+}
+
+// +kubebuilder:validation:MaxItems=2
+// +kubebuilder:validation:MinItems=2
+type ManagementConnLink []ManagementConnLinkPart
+
+type ManagementConn struct {
+	Link ManagementConnLink `json:"link,omitempty"`
 }
 
 type MCLAGConnection struct {
-	Links []Link `json:"links,omitempty"`
+	Links []ConnLink `json:"links,omitempty"`
 }
 
 type MCLAGDomainConnection struct {
-	Links []Link `json:"links,omitempty"`
+	Links []ConnLink `json:"links,omitempty"`
 }
 
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
-	Unbundled   UnbundledConnection   `json:"unbundled,omitempty"`
-	Management  ManagementConnection  `json:"management,omitempty"`
+	Unbundled   UnbundledConn         `json:"unbundled,omitempty"`
+	Management  ManagementConn        `json:"management,omitempty"`
 	MCLAG       MCLAGConnection       `json:"mclag,omitempty"`
 	MCLAGDomain MCLAGDomainConnection `json:"mclagDomain,omitempty"`
 }

@@ -27,7 +27,7 @@ type ServerProfileNICPort struct {
 }
 
 type ServerProfileNIC struct {
-	Name  string       `json:"name,omitempty"`
+	Name  string                 `json:"name,omitempty"`
 	Ports []ServerProfileNICPort `json:"ports,omitempty"`
 }
 
