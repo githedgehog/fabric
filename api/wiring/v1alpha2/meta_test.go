@@ -18,7 +18,7 @@ package v1alpha2
 
 import "testing"
 
-func TestSwitchLocation_GenerateUUID(t *testing.T) {
+func TestLocation_GenerateUUID(t *testing.T) {
 	type fields struct {
 		Location string
 		Aisle    string
@@ -80,7 +80,7 @@ func TestSwitchLocation_GenerateUUID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l := &SwitchLocation{
+			l := &Location{
 				Location: tt.fields.Location,
 				Aisle:    tt.fields.Aisle,
 				Row:      tt.fields.Row,

@@ -19,7 +19,7 @@ spec:
       openAPIV3Schema:
         description: "Switch is the Schema for the switches API \n All switches should
           always have 1 labels defined: wiring.githedgehog.com/rack. It represents
-          names of the rack it belongs to."
+          name of the rack it belongs to."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,91 +36,22 @@ spec:
           spec:
             description: SwitchSpec defines the desired state of Switch
             properties:
-              bgpConfig:
-                items:
-                  properties:
-                    bgpRouterConfig:
-                      items:
-                        properties:
-                          addressFamily:
-                            properties:
-                              exportTarget:
-                                items:
-                                  type: string
-                                type: array
-                              family:
-                                type: string
-                              importTarget:
-                                items:
-                                  type: string
-                                type: array
-                            type: object
-                          asn:
-                            type: integer
-                          neighborInfo:
-                            items:
-                              properties:
-                                asn:
-                                  type: integer
-                                filterInfo:
-                                  description: 'TODO : This is where we should define
-                                    our route filter criteria for outgoing and incoming
-                                    prefixes. We should plan to support a small subset
-                                    of filtering criteria we want to use support in
-                                    the fabric. At small route scales these features
-                                    are not critical but might become important later'
-                                  type: string
-                                id:
-                                  type: string
-                              type: object
-                            type: array
-                          routerID:
-                            type: string
-                          vrf:
-                            type: string
-                        type: object
-                      type: array
-                    borderConfig:
-                      properties:
-                        defaultRoute:
-                          type: string
-                        exportSummarized:
-                          type: string
-                        vrf:
-                          type: string
-                      type: object
-                    loopbackAddress:
-                      type: string
-                    loopbackInterfaceNum:
-                      format: int32
-                      type: integer
-                  required:
-                  - loopbackInterfaceNum
-                  type: object
-                type: array
-              connectedPorts:
-                format: int32
-                type: integer
-              fabricFacingPorts:
-                type: integer
-              lldpConfig:
+              lldp:
                 properties:
+                  description:
+                    type: string
                   helloTimer:
                     description: A Duration represents the elapsed time between two
                       instants as an int64 nanosecond count. The representation limits
                       the largest representable duration to approximately 290 years.
                     format: int64
                     type: integer
-                  managementIP:
-                    type: string
-                  systemDescription:
-                    type: string
-                  systemName:
+                  name:
                     type: string
                 type: object
               location:
-                description: SwitchLocation defines the geopraphical position of the
-                  switch in a datacenter
+                description: Location defines the geopraphical position of the device
+                  in a datacenter
                 properties:
                   aisle:
                     type: string
@@ -134,53 +65,16 @@ spec:
                     type: string
                 type: object
               locationSig:
-                description: SwitchLocationSig contains signatures for the location
-                  UUID as well as the Switch location itself
+                description: LocationSig contains signatures for the location UUID
+                  as well as the device location itself
                 properties:
                   sig:
                     type: string
                   uuidSig:
                     type: string
                 type: object
-              locationUUID:
+              profile:
                 type: string
-              maxPorts:
-                format: int32
-                type: integer
-              modelNumber:
-                type: string
-              remoteAttestationRequired:
-                type: boolean
-              role:
-                enum:
-                - leaf
-                - service-leaf
-                - border-leaf
-                - spine
-                type: string
-              secureBootCapable:
-                type: boolean
-              serverFacingPorts:
-                type: integer
-              sonicVersion:
-                type: string
-              vendorName:
-                type: string
-              vlan:
-                items:
-                  properties:
-                    taggedVlan:
-                      type: boolean
-                    vlanID:
-                      type: integer
-                    vlanInterfaceEnabled:
-                      type: boolean
-                  type: object
-                type: array
-              vrfs:
-                items:
-                  type: string
-                type: array
             type: object
           status:
             description: SwitchStatus defines the observed state of Switch

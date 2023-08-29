@@ -98,178 +98,46 @@ _Appears in:_
 Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API group
 
 ### Resource Types
+- [Connection](#connection)
 - [Rack](#rack)
 - [Server](#server)
-- [ServerPort](#serverport)
+- [ServerProfile](#serverprofile)
 - [Switch](#switch)
-- [SwitchPort](#switchport)
+- [SwitchProfile](#switchprofile)
 
 
 
-#### AddressFamily
+#### Connection
 
 
 
+Connection is the Schema for the connections API
 
 
-_Appears in:_
-- [BGPRouterConfig](#bgprouterconfig)
 
 | Field | Description |
 | --- | --- |
-| `family` _string_ |  |
-| `importTarget` _string array_ |  |
-| `exportTarget` _string array_ |  |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2`
+| `kind` _string_ | `Connection`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ConnectionSpec](#connectionspec)_ |  |
+| `status` _[ConnectionStatus](#connectionstatus)_ |  |
 
 
-#### BGPConfig
+#### ConnectionSpec
 
 
 
-
+ConnectionSpec defines the desired state of Connection
 
 _Appears in:_
-- [SwitchSpec](#switchspec)
+- [Connection](#connection)
 
 | Field | Description |
 | --- | --- |
-| `loopbackInterfaceNum` _integer_ |  |
-| `loopbackAddress` _string_ |  |
-| `bgpRouterConfig` _[BGPRouterConfig](#bgprouterconfig) array_ |  |
-| `borderConfig` _[BorderConfig](#borderconfig)_ |  |
+| `foo` _string_ | Foo is an example field of Connection. Edit connection_types.go to remove/update |
 
 
-#### BGPNeighborInfo
-
-
-
-
-
-_Appears in:_
-- [BGPRouterConfig](#bgprouterconfig)
-
-| Field | Description |
-| --- | --- |
-| `id` _string_ |  |
-| `asn` _integer_ |  |
-| `filterInfo` _FilterInfo_ |  |
-
-
-#### BGPRouterConfig
-
-
-
-
-
-_Appears in:_
-- [BGPConfig](#bgpconfig)
-
-| Field | Description |
-| --- | --- |
-| `asn` _integer_ |  |
-| `vrf` _string_ |  |
-| `routerID` _string_ |  |
-| `neighborInfo` _[BGPNeighborInfo](#bgpneighborinfo) array_ |  |
-| `addressFamily` _[AddressFamily](#addressfamily)_ |  |
-
-
-#### BorderConfig
-
-
-
-
-
-_Appears in:_
-- [BGPConfig](#bgpconfig)
-
-| Field | Description |
-| --- | --- |
-| `vrf` _string_ |  |
-| `defaultRoute` _string_ |  |
-| `exportSummarized` _string_ |  |
-
-
-#### BundleConfig
-
-
-
-
-
-_Appears in:_
-- [Bundled](#bundled)
-- [ServerConnection](#serverconnection)
-
-| Field | Description |
-| --- | --- |
-| `bundleType` _BundleType_ |  |
-
-
-#### Bundled
-
-
-
-
-
-_Appears in:_
-- [ServerPortSpec](#serverportspec)
-
-| Field | Description |
-| --- | --- |
-| `id` _string_ |  |
-| `type` _BundleType_ |  |
-| `members` _[ServerPortInfo](#serverportinfo) array_ |  |
-| `config` _[BundleConfig](#bundleconfig)_ |  |
-
-
-#### CtrlMgmt
-
-
-
-
-
-_Appears in:_
-- [ServerPortSpec](#serverportspec)
-
-| Field | Description |
-| --- | --- |
-| `vlan` _integer_ |  |
-| `ipAddress` _string_ |  |
-
-
-#### CtrlMgmtInfo
-
-
-
-
-
-_Appears in:_
-- [ServerConnection](#serverconnection)
-
-| Field | Description |
-| --- | --- |
-| `vlanInfo` _[VlanInfo](#vlaninfo)_ |  |
-| `ipAddress` _string_ |  |
-
-
-#### Interface
-
-
-
-Interfaces are pseudo ports ( vlan interfaces,subinterfaces). They always have a parent Port.
-
-_Appears in:_
-- [SwitchPortSpec](#switchportspec)
-
-| Field | Description |
-| --- | --- |
-| `name` _string_ |  |
-| `vlans` _integer array_ |  |
-| `ipAddress` _string_ |  |
-| `bgpEnabled` _boolean_ |  |
-| `bfdEnabled` _boolean_ |  |
-| `vrf` _string_ |  |
-| `mode` _InterfaceMode_ |  |
-| `bundle` _string_ |  |
 
 
 #### LLDPConfig
@@ -284,90 +152,43 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `helloTimer` _Duration_ |  |
-| `managementIP` _string_ |  |
-| `systemDescription` _string_ |  |
-| `systemName` _string_ |  |
-
-
-#### Neighbor
-
-
-
-Neighbor represents the neighbor of a particular port which could be either be a Switch or Server
-
-_Appears in:_
-- [Nic](#nic)
-- [ServerPortInfo](#serverportinfo)
-- [SwitchPortSpec](#switchportspec)
-
-| Field | Description |
-| --- | --- |
-| `switch` _[NeighborInfo](#neighborinfo)_ |  |
-| `server` _[NeighborInfo](#neighborinfo)_ |  |
-
-
-#### NeighborInfo
-
-
-
-
-
-_Appears in:_
-- [Neighbor](#neighbor)
-
-| Field | Description |
-| --- | --- |
 | `name` _string_ |  |
-| `port` _string_ |  |
+| `description` _string_ |  |
 
 
-#### Nic
+#### Location
 
 
 
-
+Location defines the geopraphical position of the device in a datacenter
 
 _Appears in:_
-- [ServerConnection](#serverconnection)
+- [ServerSpec](#serverspec)
+- [SwitchSpec](#switchspec)
 
 | Field | Description |
 | --- | --- |
-| `neighbor` _[Neighbor](#neighbor)_ |  |
-| `nicName` _string_ |  |
-| `nicIndex` _integer_ |  |
+| `location` _string_ |  |
+| `aisle` _string_ |  |
+| `row` _string_ |  |
+| `rack` _string_ |  |
+| `slot` _string_ |  |
 
 
-#### ONIEConfig
+#### LocationSig
 
 
 
-ONIEConfig holds all the port configuration at installation/ONIE time. They are being consumed by the seeder (DAS BOOT).
+LocationSig contains signatures for the location UUID as well as the device location itself
 
 _Appears in:_
-- [SwitchPortSpec](#switchportspec)
+- [ServerSpec](#serverspec)
+- [SwitchSpec](#switchspec)
 
 | Field | Description |
 | --- | --- |
-| `portNum` _integer_ |  |
-| `portName` _string_ |  |
-| `bootstrapIP` _string_ |  |
-| `vlan` _integer_ |  |
-| `routes` _[ONIERoutes](#onieroutes) array_ |  |
-
-
-#### ONIERoutes
-
-
-
-ONIERoutes holds additional routing information to be applied in ONIE at installation/ONIE time. They are being consumed by the seeder (DAS BOOT).
-
-_Appears in:_
-- [ONIEConfig](#onieconfig)
-
-| Field | Description |
-| --- | --- |
-| `destinations` _string array_ |  |
-| `gateway` _string_ |  |
+| `sig` _string_ |  |
+| `uuidSig` _string_ |  |
 
 
 #### Rack
@@ -439,72 +260,35 @@ Server is the Schema for the servers API
 | `status` _[ServerStatus](#serverstatus)_ |  |
 
 
-#### ServerConnection
+#### ServerProfile
 
 
 
-
-
-_Appears in:_
-- [ServerSpec](#serverspec)
-
-| Field | Description |
-| --- | --- |
-| `isBundled` _boolean_ |  |
-| `connectionType` _ServerConnectionType_ |  |
-| `nics` _[Nic](#nic) array_ |  |
-| `bundleConfig` _[BundleConfig](#bundleconfig)_ | Connection Config |
-| `ctrlMgmtInfo` _[CtrlMgmtInfo](#ctrlmgmtinfo)_ |  |
-
-
-#### ServerPort
-
-
-
-ServerPort is the Schema for the serverports API
+ServerProfile is the Schema for the serverprofiles API
 
 
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2`
-| `kind` _string_ | `ServerPort`
+| `kind` _string_ | `ServerProfile`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[ServerPortSpec](#serverportspec)_ |  |
-| `status` _[ServerPortStatus](#serverportstatus)_ |  |
+| `spec` _[ServerProfileSpec](#serverprofilespec)_ |  |
+| `status` _[ServerProfileStatus](#serverprofilestatus)_ |  |
 
 
-#### ServerPortInfo
+#### ServerProfileSpec
 
 
 
-
+ServerProfileSpec defines the desired state of ServerProfile
 
 _Appears in:_
-- [Bundled](#bundled)
-- [ServerPortSpec](#serverportspec)
+- [ServerProfile](#serverprofile)
 
 | Field | Description |
 | --- | --- |
-| `nicName` _string_ |  |
-| `nicIndex` _integer_ |  |
-| `neighbor` _[Neighbor](#neighbor)_ |  |
-
-
-#### ServerPortSpec
-
-
-
-ServerPortSpec defines the desired state of ServerPort
-
-_Appears in:_
-- [ServerPort](#serverport)
-
-| Field | Description |
-| --- | --- |
-| `bundled` _[Bundled](#bundled)_ |  |
-| `unbundled` _[ServerPortInfo](#serverportinfo)_ |  |
-| `ctrlMgmt` _[CtrlMgmt](#ctrlmgmt)_ |  |
+| `foo` _string_ | Foo is an example field of ServerProfile. Edit serverprofile_types.go to remove/update |
 
 
 
@@ -520,7 +304,9 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `serverConnections` _[ServerConnection](#serverconnection) array_ |  |
+| `profile` _string_ |  |
+| `location` _[Location](#location)_ |  |
+| `locationSig` _[LocationSig](#locationsig)_ |  |
 
 
 
@@ -530,7 +316,7 @@ _Appears in:_
 
 
 Switch is the Schema for the switches API 
- All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents names of the rack it belongs to.
+ All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents name of the rack it belongs to.
 
 
 
@@ -543,80 +329,35 @@ Switch is the Schema for the switches API
 | `status` _[SwitchStatus](#switchstatus)_ |  |
 
 
-#### SwitchLocation
+#### SwitchProfile
 
 
 
-SwitchLocation defines the geopraphical position of the switch in a datacenter
-
-_Appears in:_
-- [SwitchSpec](#switchspec)
-
-| Field | Description |
-| --- | --- |
-| `location` _string_ |  |
-| `aisle` _string_ |  |
-| `row` _string_ |  |
-| `rack` _string_ |  |
-| `slot` _string_ |  |
-
-
-#### SwitchLocationSig
-
-
-
-SwitchLocationSig contains signatures for the location UUID as well as the Switch location itself
-
-_Appears in:_
-- [SwitchSpec](#switchspec)
-
-| Field | Description |
-| --- | --- |
-| `sig` _string_ |  |
-| `uuidSig` _string_ |  |
-
-
-#### SwitchPort
-
-
-
-SwitchPort is the Schema for the ports API 
- All ports should always have 2 labels defined: wiring.githedgehog.com/rack and wiring.githedgehog.com/switch. It represents names of the rack and switch it belongs to.
+SwitchProfile is the Schema for the switchprofiles API
 
 
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2`
-| `kind` _string_ | `SwitchPort`
+| `kind` _string_ | `SwitchProfile`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[SwitchPortSpec](#switchportspec)_ |  |
-| `status` _[SwitchPortStatus](#switchportstatus)_ |  |
+| `spec` _[SwitchProfileSpec](#switchprofilespec)_ |  |
+| `status` _[SwitchProfileStatus](#switchprofilestatus)_ |  |
 
 
-#### SwitchPortSpec
+#### SwitchProfileSpec
 
 
 
-SwitchPortSpec is the model used to represent a switch port
+SwitchProfileSpec defines the desired state of SwitchProfile
 
 _Appears in:_
-- [SwitchPort](#switchport)
+- [SwitchProfile](#switchprofile)
 
 | Field | Description |
 | --- | --- |
-| `role` _SwitchPortRole_ |  |
-| `isConnected` _boolean_ |  |
-| `nosPortNum` _integer_ |  |
-| `nosPortName` _string_ |  |
-| `portSpeed` _string_ |  |
-| `connectorType` _string_ |  |
-| `cableType` _CableType_ |  |
-| `neighbor` _[Neighbor](#neighbor)_ |  |
-| `onie` _[ONIEConfig](#onieconfig)_ |  |
-| `interfaces` _[Interface](#interface) array_ |  |
-| `adminState` _string_ |  |
-| `vrf` _string_ |  |
+| `foo` _string_ | Foo is an example field of SwitchProfile. Edit switchprofile_types.go to remove/update |
 
 
 
@@ -632,41 +373,11 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `secureBootCapable` _boolean_ |  |
-| `remoteAttestationRequired` _boolean_ |  |
-| `location` _[SwitchLocation](#switchlocation)_ |  |
-| `locationUUID` _string_ |  |
-| `locationSig` _[SwitchLocationSig](#switchlocationsig)_ |  |
-| `connectedPorts` _integer_ |  |
-| `maxPorts` _integer_ |  |
-| `serverFacingPorts` _integer_ |  |
-| `fabricFacingPorts` _integer_ |  |
-| `role` _SwitchRole_ |  |
-| `bgpConfig` _[BGPConfig](#bgpconfig) array_ |  |
-| `lldpConfig` _[LLDPConfig](#lldpconfig)_ |  |
-| `vendorName` _string_ |  |
-| `modelNumber` _string_ |  |
-| `sonicVersion` _string_ |  |
-| `vlan` _[VlanInfo](#vlaninfo) array_ |  |
-| `vrfs` _string array_ |  |
+| `profile` _string_ |  |
+| `location` _[Location](#location)_ |  |
+| `locationSig` _[LocationSig](#locationsig)_ |  |
+| `lldp` _[LLDPConfig](#lldpconfig)_ |  |
 
 
-
-
-#### VlanInfo
-
-
-
-
-
-_Appears in:_
-- [CtrlMgmtInfo](#ctrlmgmtinfo)
-- [SwitchSpec](#switchspec)
-
-| Field | Description |
-| --- | --- |
-| `vlanID` _integer_ |  |
-| `vlanInterfaceEnabled` _boolean_ |  |
-| `taggedVlan` _boolean_ |  |
 
 

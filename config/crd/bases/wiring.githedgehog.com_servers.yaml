@@ -34,63 +34,32 @@ spec:
           spec:
             description: ServerSpec defines the desired state of Server
             properties:
-              serverConnections:
-                items:
-                  properties:
-                    bundleConfig:
-                      description: Connection Config
-                      properties:
-                        bundleType:
-                          type: string
-                      type: object
-                    connectionType:
-                      type: string
-                    ctrlMgmtInfo:
-                      properties:
-                        ipAddress:
-                          type: string
-                        vlanInfo:
-                          properties:
-                            taggedVlan:
-                              type: boolean
-                            vlanID:
-                              type: integer
-                            vlanInterfaceEnabled:
-                              type: boolean
-                          type: object
-                      type: object
-                    isBundled:
-                      type: boolean
-                    nics:
-                      items:
-                        properties:
-                          neighbor:
-                            description: Neighbor represents the neighbor of a particular
-                              port which could be either be a Switch or Server
-                            properties:
-                              server:
-                                properties:
-                                  name:
-                                    type: string
-                                  port:
-                                    type: string
-                                type: object
-                              switch:
-                                properties:
-                                  name:
-                                    type: string
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          nicIndex:
-                            type: integer
-                          nicName:
-                            type: string
-                        type: object
-                      type: array
-                  type: object
-                type: array
+              location:
+                description: Location defines the geopraphical position of the device
+                  in a datacenter
+                properties:
+                  aisle:
+                    type: string
+                  location:
+                    type: string
+                  rack:
+                    type: string
+                  row:
+                    type: string
+                  slot:
+                    type: string
+                type: object
+              locationSig:
+                description: LocationSig contains signatures for the location UUID
+                  as well as the device location itself
+                properties:
+                  sig:
+                    type: string
+                  uuidSig:
+                    type: string
+                type: object
+              profile:
+                type: string
             type: object
           status:
             description: ServerStatus defines the observed state of Server

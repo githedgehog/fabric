@@ -134,7 +134,7 @@ jobs:
       - name: Install CRDs
         run: |
           make api-helm-install
-          kubectl wait --for condition=established --timeout=60s crd/switchports.wiring.githedgehog.com
+          kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
           kubectl get crd | grep hedgehog
 
     #   - name: Deploy samples

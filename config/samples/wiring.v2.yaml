@@ -19,8 +19,8 @@ spec:
     sig: sig
     uuidSig: uuidSig
   #bgpConfig: {} #* In future for spine leaf
-  lldpConfig: #* Mgmt IP is taken from the management connection
-    helloTimer: 5 #* Optional, default is 5
+  lldp: #* Mgmt IP is taken from the management connection
+    helloTimer: 5s #* Optional, default is 5
     #systemDescription: This is switch-1 #* Generated from switch name
     #systemName: switch-1 #* Switch name
 status:
