@@ -53,6 +53,7 @@ CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 HELM ?= $(LOCALBIN)/helm
 HELMIFY ?= $(LOCALBIN)/helmify
 ORAS ?= $(LOCALBIN)/oras
+GCOV2LCOV ?= $(LOCALBIN)/gcov2lcov
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.1
@@ -63,6 +64,7 @@ CRD_REF_DOCS_VERSION ?= v0.0.9
 HELM_VERSION ?= v3.12.3
 HELMIFY_VERSION ?= v0.4.5
 ORAS_VERSION ?= v1.0.1
+GCOV2LCOV_VERSION ?= v1.0.6
 
 .PHONY: tools
 tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint helm helmify oras ## Prepare all tools
@@ -132,3 +134,8 @@ HELM_REPO_URL ?= oci://ghcr.io/githedgehog
 .PHONY: helm-registry-login
 helm-registry-login: helm ## Login to helm registry
 	$(HELM) registry login -u "$(USERNAME)" -p "$(PASSWORD)" $(HELM_REGISTRY)
+
+.PHONY: gcov2lcov
+gcov2lcov: $(GCOV2LCOV) ## Download gcov2lcov locally if necessary.
+$(GCOV2LCOV): $(LOCALBIN)
+	test -s $(LOCALBIN)/gcov2lcov || GOBIN=$(LOCALBIN) go install github.com/jandelgado/gcov2lcov@$(GCOV2LCOV_VERSION)
