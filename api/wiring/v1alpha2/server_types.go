@@ -22,31 +22,24 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:validation:Enum=control;service;management;compute
-type ServerRole string
+// +kubebuilder:validation:Enum=control;
+type ServerType string
 
 const (
-	ServerRoleControlNode    ServerRole = "control"
-	ServerRoleServiceNode    ServerRole = "service"
-	ServerRoleManagementNode ServerRole = "management"
-	// Compute Nodes only have IP addresses/VLAN info in the overlay network
-	// What we describe here is only the physical wiring for these.
-	// Config in this object is not applicable to compute nodes
-	ServerRoleComputeNode ServerRole = "compute"
+	ServerTypeControl ServerType = "control"
+	ServerTypeDefault ServerType = "" // or nil - just a server
 )
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
+	Type        ServerType  `json:"type,omitempty"`
 	Profile     string      `json:"profile,omitempty"`
 	Location    Location    `json:"location,omitempty"`
 	LocationSig LocationSig `json:"locationSig,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server
-type ServerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type ServerStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -71,4 +64,8 @@ type ServerList struct {
 
 func init() {
 	SchemeBuilder.Register(&Server{}, &ServerList{})
+}
+
+func (s *Server) IsControl() bool {
+	return s.Spec.Type == ServerTypeControl
 }

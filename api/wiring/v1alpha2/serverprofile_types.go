@@ -20,23 +20,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+type ServerProfileNICPort struct {
+	Name string `json:"name,omitempty"`
+}
+
+type ServerProfileNIC struct {
+	Name  string       `json:"name,omitempty"`
+	Ports []ServerProfileNICPort `json:"ports,omitempty"`
+}
 
 // ServerProfileSpec defines the desired state of ServerProfile
 type ServerProfileSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of ServerProfile. Edit serverprofile_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	NICs []ServerProfileNIC `json:"nics,omitempty"`
 }
 
 // ServerProfileStatus defines the observed state of ServerProfile
-type ServerProfileStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type ServerProfileStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

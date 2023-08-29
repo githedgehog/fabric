@@ -34,10 +34,24 @@ spec:
           spec:
             description: SwitchProfileSpec defines the desired state of SwitchProfile
             properties:
-              foo:
-                description: Foo is an example field of SwitchProfile. Edit switchprofile_types.go
-                  to remove/update
-                type: string
+              limits:
+                properties:
+                  policy:
+                    type: integer
+                  vpc:
+                    type: integer
+                type: object
+              ports:
+                items:
+                  properties:
+                    id:
+                      type: integer
+                    management:
+                      type: boolean
+                    name:
+                      type: string
+                  type: object
+                type: array
             type: object
           status:
             description: SwitchProfileStatus defines the observed state of SwitchProfile

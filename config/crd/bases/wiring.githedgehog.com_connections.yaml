@@ -34,10 +34,92 @@ spec:
           spec:
             description: ConnectionSpec defines the desired state of Connection
             properties:
-              foo:
-                description: Foo is an example field of Connection. Edit connection_types.go
-                  to remove/update
-                type: string
+              management:
+                properties:
+                  link:
+                    description: 'TODO: add management connection fields like bootstrap
+                      IP and vlan here or in a custom link part'
+                    items:
+                      properties:
+                        serverPort:
+                          properties:
+                            name:
+                              type: string
+                          type: object
+                        switchPort:
+                          properties:
+                            name:
+                              type: string
+                          type: object
+                      type: object
+                    maxItems: 2
+                    minItems: 2
+                    type: array
+                type: object
+              mclag:
+                properties:
+                  links:
+                    items:
+                      items:
+                        properties:
+                          serverPort:
+                            properties:
+                              name:
+                                type: string
+                            type: object
+                          switchPort:
+                            properties:
+                              name:
+                                type: string
+                            type: object
+                        type: object
+                      maxItems: 2
+                      minItems: 2
+                      type: array
+                    type: array
+                type: object
+              mclagDomain:
+                properties:
+                  links:
+                    items:
+                      items:
+                        properties:
+                          serverPort:
+                            properties:
+                              name:
+                                type: string
+                            type: object
+                          switchPort:
+                            properties:
+                              name:
+                                type: string
+                            type: object
+                        type: object
+                      maxItems: 2
+                      minItems: 2
+                      type: array
+                    type: array
+                type: object
+              unbundled:
+                properties:
+                  link:
+                    items:
+                      properties:
+                        serverPort:
+                          properties:
+                            name:
+                              type: string
+                          type: object
+                        switchPort:
+                          properties:
+                            name:
+                              type: string
+                          type: object
+                      type: object
+                    maxItems: 2
+                    minItems: 2
+                    type: array
+                type: object
             type: object
           status:
             description: ConnectionStatus defines the observed state of Connection

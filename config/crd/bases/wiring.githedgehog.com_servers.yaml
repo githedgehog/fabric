@@ -60,6 +60,10 @@ spec:
                 type: object
               profile:
                 type: string
+              type:
+                enum:
+                - control
+                type: string
             type: object
           status:
             description: ServerStatus defines the observed state of Server

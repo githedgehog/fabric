@@ -20,23 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+type SwitchProfileLimits struct {
+	VPC    int `json:"vpc,omitempty"`
+	Policy int `json:"policy,omitempty"`
+}
+
+type SwitchProfilePort struct {
+	ID         int    `json:"id,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Management bool   `json:"management,omitempty"`
+}
 
 // SwitchProfileSpec defines the desired state of SwitchProfile
 type SwitchProfileSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of SwitchProfile. Edit switchprofile_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Limits SwitchProfileLimits `json:"limits,omitempty"`
+	Ports  []SwitchProfilePort `json:"ports,omitempty"`
 }
 
 // SwitchProfileStatus defines the observed state of SwitchProfile
-type SwitchProfileStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type SwitchProfileStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

@@ -34,10 +34,20 @@ spec:
           spec:
             description: ServerProfileSpec defines the desired state of ServerProfile
             properties:
-              foo:
-                description: Foo is an example field of ServerProfile. Edit serverprofile_types.go
-                  to remove/update
-                type: string
+              nics:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    ports:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      type: array
+                  type: object
+                type: array
             type: object
           status:
             description: ServerProfileStatus defines the observed state of ServerProfile
