@@ -10,16 +10,22 @@ import (
 )
 
 type Data struct {
-	Rack   *Store[*wiringapi.Rack]
-	Switch *Store[*wiringapi.Switch]
-	Port   *Store[*wiringapi.SwitchPort]
+	Rack          *Store[*wiringapi.Rack]
+	Switch        *Store[*wiringapi.Switch]
+	Server        *Store[*wiringapi.Server]
+	Connection    *Store[*wiringapi.Connection]
+	SwitchProfile *Store[*wiringapi.SwitchProfile]
+	ServerProfile *Store[*wiringapi.ServerProfile]
 }
 
 func New(objs ...metav1.Object) (*Data, error) {
 	data := &Data{
-		Rack:   NewStore[*wiringapi.Rack](),
-		Switch: NewStore[*wiringapi.Switch](),
-		Port:   NewStore[*wiringapi.SwitchPort](),
+		Rack:          NewStore[*wiringapi.Rack](),
+		Switch:        NewStore[*wiringapi.Switch](),
+		Server:        NewStore[*wiringapi.Server](),
+		Connection:    NewStore[*wiringapi.Connection](),
+		SwitchProfile: NewStore[*wiringapi.SwitchProfile](),
+		ServerProfile: NewStore[*wiringapi.ServerProfile](),
 	}
 
 	return data, data.Add(objs...)
@@ -32,8 +38,14 @@ func (d *Data) Add(objs ...metav1.Object) error {
 			d.Rack.Add(typed)
 		case *wiringapi.Switch:
 			d.Switch.Add(typed)
-		case *wiringapi.SwitchPort:
-			d.Port.Add(typed)
+		case *wiringapi.Server:
+			d.Server.Add(typed)
+		case *wiringapi.Connection:
+			d.Connection.Add(typed)
+		case *wiringapi.SwitchProfile:
+			d.SwitchProfile.Add(typed)
+		case *wiringapi.ServerProfile:
+			d.ServerProfile.Add(typed)
 		default:
 			return errors.Errorf("unrecognized obj type")
 		}

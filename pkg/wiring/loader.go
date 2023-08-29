@@ -63,7 +63,7 @@ func LoadDir(f fs.FS, root string, data *Data) error {
 			return nil
 		}
 
-		if strings.Contains(path, "kustom") || filepath.Ext(path) != ".yaml" {
+		if filepath.Ext(path) != ".yaml" || strings.Contains(path, "kustom") || strings.Contains(path, ".skip.") {
 			log.Println("Skipping file", path)
 
 			return nil
@@ -113,7 +113,19 @@ func LoadFile(f fs.FS, path string, data *Data) error {
 			if err := data.Add(typed); err != nil {
 				return err
 			}
-		case *wiringapi.SwitchPort:
+		case *wiringapi.Server:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
+		case *wiringapi.Connection:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
+		case *wiringapi.SwitchProfile:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
+		case *wiringapi.ServerProfile:
 			if err := data.Add(typed); err != nil {
 				return err
 			}
