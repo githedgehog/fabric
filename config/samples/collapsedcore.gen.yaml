@@ -97,9 +97,27 @@ spec:
     - - serverPort:
           name: compute-1/nic0/port0
       - switchPort:
-          name: switch-1/Ethernet2
+          name: switch-1/Ethernet1
     - - serverPort:
           name: compute-1/nic0/port1
+      - switchPort:
+          name: switch-2/Ethernet1
+status: {}
+---
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Connection
+metadata:
+  creationTimestamp: null
+  name: compute-2--mclag--switch-1--switch-2
+spec:
+  mclag:
+    links:
+    - - serverPort:
+          name: compute-2/nic0/port0
+      - switchPort:
+          name: switch-1/Ethernet2
+    - - serverPort:
+          name: compute-2/nic0/port1
       - switchPort:
           name: switch-2/Ethernet2
 status: {}

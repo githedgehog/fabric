@@ -128,11 +128,11 @@ func CollapsedCore() (*wiring.Data, error) {
 		MCLAG: &wiringapi.MCLAGConn{
 			Links: []wiringapi.ConnLink{
 				{
-					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-1/nic0/port0"}},
+					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-2/nic0/port0"}},
 					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-1/Ethernet2"}},
 				},
 				{
-					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-1/nic0/port1"}},
+					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-2/nic0/port1"}},
 					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-2/Ethernet2"}},
 				},
 			},
