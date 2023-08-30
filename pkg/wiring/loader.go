@@ -88,7 +88,11 @@ func LoadFile(f fs.FS, path string, data *Data) error {
 		return errors.Wrapf(err, "error reading file %s", path)
 	}
 
-	multidocReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yamlFile)))
+	return errors.Wrapf(Load(bytes.NewReader(yamlFile), data), "error loading file %s", path)
+}
+
+func Load(r io.Reader, data *Data) error {
+	multidocReader := utilyaml.NewYAMLReader(bufio.NewReader(r))
 
 	for {
 		buf, err := multidocReader.Read()
@@ -96,12 +100,12 @@ func LoadFile(f fs.FS, path string, data *Data) error {
 			if err == io.EOF {
 				break
 			}
-			return errors.Wrapf(err, "error multidoc-parsing file %s", path)
+			return errors.Wrap(err, "error multidoc-parsing")
 		}
 
 		obj, _, err := decoder.Decode(buf, nil, nil)
 		if err != nil {
-			return errors.Wrapf(err, "error decoding object from file %s", path)
+			return errors.Wrap(err, "error decoding object")
 		}
 
 		switch typed := obj.(type) {
