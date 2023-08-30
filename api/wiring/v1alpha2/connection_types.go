@@ -25,56 +25,59 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type ConnLinkPort struct {
-	Name string `json:"name,omitempty"`
+const (
+	PORT_NAME_SEPARATOR = "/"
+)
+
+type BasePortName struct {
+	Port string `json:"port,omitempty"`
 }
 
-type ConnLinkPart struct {
-	SwitchPort *ConnLinkPort `json:"switchPort,omitempty"`
-	ServerPort *ConnLinkPort `json:"serverPort,omitempty"`
+type ServerToSwitchLink struct {
+	Server BasePortName `json:"server,omitempty"`
+	Switch BasePortName `json:"switch,omitempty"`
 }
 
-// +kubebuilder:validation:MaxItems=2
-// +kubebuilder:validation:MinItems=2
-type ConnLink []ConnLinkPart
-
-type UnbundledConn struct {
-	Link ConnLink `json:"link,omitempty"`
+type ConnUnbundled struct {
+	Link ServerToSwitchLink `json:"link,omitempty"`
 }
 
-type ManagementConnSwitchPort struct {
-	ConnLinkPort `json:",inline"`
+type ConnMgmtLinkSwitch struct {
+	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
 	IP string `json:"ip,omitempty"`
 }
 
-type ManagementConnLinkPart struct {
-	SwitchPort *ManagementConnSwitchPort `json:"switchPort,omitempty"`
-	ServerPort *ConnLinkPort             `json:"serverPort,omitempty"`
+type ConnMgmtLink struct {
+	Server BasePortName       `json:"server,omitempty"`
+	Switch ConnMgmtLinkSwitch `json:"switch,omitempty"`
 }
 
-// +kubebuilder:validation:MaxItems=2
-// +kubebuilder:validation:MinItems=2
-type ManagementConnLink []ManagementConnLinkPart
-
-type ManagementConn struct {
-	Link ManagementConnLink `json:"link,omitempty"`
+type ConnMgmt struct {
+	Link ConnMgmtLink `json:"link,omitempty"`
 }
 
-type MCLAGConn struct {
-	Links []ConnLink `json:"links,omitempty"`
+type ConnMCLAG struct {
+	//+kubebuilder:validation:MinItems=2
+	Links []ServerToSwitchLink `json:"links,omitempty"`
 }
 
-type MCLAGDomainConn struct {
-	Links []ConnLink `json:"links,omitempty"`
+type SwitchToSwitchLink struct {
+	Switch1 BasePortName `json:"switch1,omitempty"`
+	Switch2 BasePortName `json:"switch2,omitempty"`
+}
+
+type ConnMCLAGDomain struct {
+	//+kubebuilder:validation:MinItems=1
+	Links []SwitchToSwitchLink `json:"links,omitempty"`
 }
 
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
-	Unbundled   *UnbundledConn   `json:"unbundled,omitempty"`
-	Management  *ManagementConn  `json:"management,omitempty"`
-	MCLAG       *MCLAGConn       `json:"mclag,omitempty"`
-	MCLAGDomain *MCLAGDomainConn `json:"mclagDomain,omitempty"`
+	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
+	Management  *ConnMgmt        `json:"management,omitempty"`
+	MCLAG       *ConnMCLAG       `json:"mclag,omitempty"`
+	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -108,109 +111,80 @@ func init() {
 	SchemeBuilder.Register(&Connection{}, &ConnectionList{})
 }
 
+func NewBasePortName(name string) BasePortName {
+	return BasePortName{
+		Port: name,
+	}
+}
+
+// +kubebuilder:object:generate=false
+type IPort interface {
+	PortName() string
+	LocalPortName() string
+	DeviceName() string
+}
+
+var (
+	_ IPort = &BasePortName{}
+	_ IPort = &ConnMgmtLinkSwitch{}
+)
+
+func (pn *BasePortName) PortName() string {
+	return pn.Port
+}
+
+func (pn *BasePortName) LocalPortName() string {
+	return strings.SplitN(pn.Port, PORT_NAME_SEPARATOR, 2)[1] // TODO ensure objects are validated first
+}
+
+func (pn *BasePortName) DeviceName() string {
+	return strings.SplitN(pn.Port, PORT_NAME_SEPARATOR, 2)[0] // TODO ensure objects are validated first
+}
+
 func (c *ConnectionSpec) GenerateName() string {
 	if c != nil {
+		role := ""
+		left := ""
+		right := []string{}
+
 		if c.Unbundled != nil {
-			left := c.Unbundled.Link[0].DeviceName() // TODO make sure server is listed first
-			right := c.Unbundled.Link[1].DeviceName()
-
-			return fmt.Sprintf("%s--unbundled--%s", left, right)
-		}
-		if c.Management != nil {
-			control := c.Management.Link[0].ServerPort.DeviceName() // TODO make sure control is listed first
-			sw := c.Management.Link[1].SwitchPort.DeviceName()
-
-			return fmt.Sprintf("%s--mgmt--%s", control, sw)
-		}
-		if c.MCLAGDomain != nil {
-			switch1 := c.MCLAGDomain.Links[0][0].DeviceName()
-			switch2 := c.MCLAGDomain.Links[0][1].DeviceName()
-
-			return fmt.Sprintf("%s--mclag-domain--%s", switch1, switch2)
+			role = "unbundled"
+			left = c.Unbundled.Link.Server.DeviceName()
+			right = []string{c.Unbundled.Link.Switch.DeviceName()}
+		} else if c.Management != nil {
+			role = "mgmt"
+			left = c.Management.Link.Server.DeviceName()
+			right = []string{c.Management.Link.Switch.DeviceName()}
+		} else if c.MCLAGDomain != nil {
+			role = "mclag-domain"
+			left = c.MCLAGDomain.Links[0].Switch1.DeviceName()
+			right = []string{c.MCLAGDomain.Links[0].Switch2.DeviceName()}
+			for _, link := range c.MCLAGDomain.Links {
+				// check that we have the same switches on both ends in each link // TODO add validation
+				if link.Switch1.DeviceName() != left {
+					return "<invalid>" // TODO replace with error?
+				}
+				if link.Switch2.DeviceName() != right[0] {
+					return "<invalid>" // TODO replace with error?
+				}
+			}
 		}
 		if c.MCLAG != nil {
-			server := c.MCLAG.Links[0][0].DeviceName() // TODO make sure server is listed first
-			switch1 := c.MCLAG.Links[0][1].DeviceName()
-			switch2 := c.MCLAG.Links[1][1].DeviceName() // TODO iterate over all links
+			role = "mclag"
+			left = c.MCLAG.Links[0].Server.DeviceName()
+			for _, link := range c.MCLAG.Links {
+				// check we have the same server in each link // TODO add validation
+				if link.Server.DeviceName() != left {
+					return "<invalid>" // TODO replace with error?
+				}
+				right = append(right, link.Switch.DeviceName())
+			}
+		}
 
-			return fmt.Sprintf("%s--mclag--%s--%s", server, switch1, switch2)
+		if left != "" && role != "" && len(right) > 0 {
+			return fmt.Sprintf("%s--%s--%s", left, role, strings.Join(right, "--"))
 		}
 	}
 
 	return "<invalid>" // TODO replace with error?
-}
-
-func (l *ConnLinkPort) DeviceName() string {
-	if l != nil {
-		return strings.SplitN(l.Name, "/", 2)[0] // TODO check result, extract sepatator to const
-	}
-
-	return "<invalid>" // TODO replace with error?
-}
-
-func (l *ConnLinkPart) DeviceName() string {
-	if l != nil {
-		if l.SwitchPort != nil {
-			return l.SwitchPort.DeviceName()
-		}
-		if l.ServerPort != nil {
-			return l.ServerPort.DeviceName()
-		}
-	}
-
-	return "<invalid>" // TODO replace with error?
-}
-
-func (l *ConnLinkPort) PortName() string {
-	if l != nil {
-		return l.Name
-	}
-
-	return "<invalid>" // TODO replace with error?
-}
-
-func (l *ConnLinkPart) PortName() string {
-	if l != nil {
-		if l.SwitchPort != nil {
-			return l.SwitchPort.PortName()
-		}
-		if l.ServerPort != nil {
-			return l.ServerPort.PortName()
-		}
-	}
-
-	return "<invalid>" // TODO replace with error?
-}
-
-func (c *ConnectionSpec) PortNames() [][2]string {
-	if c != nil {
-		if c.Unbundled != nil {
-			left := c.Unbundled.Link[0].PortName() // TODO make sure server is listed first
-			right := c.Unbundled.Link[1].PortName()
-
-			return [][2]string{{left, right}}
-		}
-		if c.Management != nil {
-			control := c.Management.Link[0].ServerPort.PortName() // TODO make sure control is listed first
-			sw := c.Management.Link[1].SwitchPort.PortName()
-
-			return [][2]string{{control, sw}}
-		}
-		if c.MCLAGDomain != nil {
-			switch1 := c.MCLAGDomain.Links[0][0].PortName()
-			switch2 := c.MCLAGDomain.Links[0][1].PortName()
-
-			return [][2]string{{switch1, switch2}}
-		}
-		if c.MCLAG != nil {
-			server1 := c.MCLAG.Links[0][0].PortName() // TODO make sure server is listed first
-			server2 := c.MCLAG.Links[1][0].PortName()
-			switch1 := c.MCLAG.Links[0][1].PortName()
-			switch2 := c.MCLAG.Links[1][1].PortName() // TODO iterate over all links
-
-			return [][2]string{{server1, switch1}, {server2, switch2}}
-		}
-	}
-
-	return [][2]string{} // TODO replace with error?
 }

@@ -55,15 +55,13 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// control-1 <> switch-1
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Management: &wiringapi.ManagementConn{
-			Link: wiringapi.ManagementConnLink{
-				{ServerPort: &wiringapi.ConnLinkPort{Name: "control-1/nic0/port1"}},
-				{SwitchPort: &wiringapi.ManagementConnSwitchPort{
-					ConnLinkPort: wiringapi.ConnLinkPort{
-						Name: "switch-1/Management0",
-					},
-					IP: "192.168.88.121", // TODO
-				}},
+		Management: &wiringapi.ConnMgmt{
+			Link: wiringapi.ConnMgmtLink{
+				Server: wiringapi.NewBasePortName("control-1/nic0/port1"),
+				Switch: wiringapi.ConnMgmtLinkSwitch{
+					BasePortName: wiringapi.NewBasePortName("switch-1/Management0"),
+					IP:           "192.168.88.121", // TODO
+				},
 			},
 		},
 	})
@@ -73,15 +71,13 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// control-1 <> switch-2
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Management: &wiringapi.ManagementConn{
-			Link: wiringapi.ManagementConnLink{
-				{ServerPort: &wiringapi.ConnLinkPort{Name: "control-1/nic0/port2"}},
-				{SwitchPort: &wiringapi.ManagementConnSwitchPort{
-					ConnLinkPort: wiringapi.ConnLinkPort{
-						Name: "switch-2/Management0",
-					},
-					IP: "192.168.88.122", // TODO
-				}},
+		Management: &wiringapi.ConnMgmt{
+			Link: wiringapi.ConnMgmtLink{
+				Server: wiringapi.NewBasePortName("control-1/nic0/port2"),
+				Switch: wiringapi.ConnMgmtLinkSwitch{
+					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
+					IP:           "192.168.88.122", // TODO
+				},
 			},
 		},
 	})
@@ -91,11 +87,15 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// MCLAG Domain peer link
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		MCLAGDomain: &wiringapi.MCLAGDomainConn{
-			Links: []wiringapi.ConnLink{
+		MCLAGDomain: &wiringapi.ConnMCLAGDomain{
+			Links: []wiringapi.SwitchToSwitchLink{
 				{
-					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-1/Ethernet0"}},
-					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-2/Ethernet0"}},
+					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet0"),
+					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet0"),
+				},
+				{
+					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet1"),
+					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet1"),
 				},
 			},
 		},
@@ -106,15 +106,15 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// compute-1 <MCLAG> (switch-1, switch-2)
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		MCLAG: &wiringapi.MCLAGConn{
-			Links: []wiringapi.ConnLink{
+		MCLAG: &wiringapi.ConnMCLAG{
+			Links: []wiringapi.ServerToSwitchLink{
 				{
-					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-1/nic0/port0"}},
-					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-1/Ethernet1"}},
+					Server: wiringapi.NewBasePortName("compute-1/nic0/port0"),
+					Switch: wiringapi.NewBasePortName("switch-1/Ethernet2"),
 				},
 				{
-					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-1/nic0/port1"}},
-					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-2/Ethernet1"}},
+					Server: wiringapi.NewBasePortName("compute-1/nic0/port1"),
+					Switch: wiringapi.NewBasePortName("switch-2/Ethernet2"),
 				},
 			},
 		},
@@ -125,15 +125,15 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// compute-2 <MCLAG> (switch-1, switch-2)
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		MCLAG: &wiringapi.MCLAGConn{
-			Links: []wiringapi.ConnLink{
+		MCLAG: &wiringapi.ConnMCLAG{
+			Links: []wiringapi.ServerToSwitchLink{
 				{
-					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-2/nic0/port0"}},
-					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-1/Ethernet2"}},
+					Server: wiringapi.NewBasePortName("compute-2/nic0/port0"),
+					Switch: wiringapi.NewBasePortName("switch-1/Ethernet3"),
 				},
 				{
-					{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-2/nic0/port1"}},
-					{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-2/Ethernet2"}},
+					Server: wiringapi.NewBasePortName("compute-2/nic0/port1"),
+					Switch: wiringapi.NewBasePortName("switch-2/Ethernet3"),
 				},
 			},
 		},
@@ -144,10 +144,10 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// compute-3 <> switch-1
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Unbundled: &wiringapi.UnbundledConn{
-			Link: wiringapi.ConnLink{
-				{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-3/nic0/port0"}},
-				{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-1/Ethernet3"}},
+		Unbundled: &wiringapi.ConnUnbundled{
+			Link: wiringapi.ServerToSwitchLink{
+				Server: wiringapi.NewBasePortName("compute-3/nic0/port0"),
+				Switch: wiringapi.NewBasePortName("switch-1/Ethernet4"),
 			},
 		},
 	})
@@ -157,10 +157,10 @@ func CollapsedCore() (*wiring.Data, error) {
 
 	// compute-4 <> switch-2
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Unbundled: &wiringapi.UnbundledConn{
-			Link: wiringapi.ConnLink{
-				{ServerPort: &wiringapi.ConnLinkPort{Name: "compute-4/nic0/port0"}},
-				{SwitchPort: &wiringapi.ConnLinkPort{Name: "switch-2/Ethernet3"}},
+		Unbundled: &wiringapi.ConnUnbundled{
+			Link: wiringapi.ServerToSwitchLink{
+				Server: wiringapi.NewBasePortName("compute-4/nic0/port0"),
+				Switch: wiringapi.NewBasePortName("switch-2/Ethernet4"),
 			},
 		},
 	})

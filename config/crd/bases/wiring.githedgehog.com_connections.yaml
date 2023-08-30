@@ -40,89 +40,75 @@ spec:
               management:
                 properties:
                   link:
-                    items:
-                      properties:
-                        serverPort:
-                          properties:
-                            name:
-                              type: string
-                          type: object
-                        switchPort:
-                          properties:
-                            ip:
-                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
-                              type: string
-                            name:
-                              type: string
-                          type: object
-                      type: object
-                    maxItems: 2
-                    minItems: 2
-                    type: array
+                    properties:
+                      server:
+                        properties:
+                          port:
+                            type: string
+                        type: object
+                      switch:
+                        properties:
+                          ip:
+                            pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
+                            type: string
+                          port:
+                            type: string
+                        type: object
+                    type: object
                 type: object
               mclag:
                 properties:
                   links:
                     items:
-                      items:
-                        properties:
-                          serverPort:
-                            properties:
-                              name:
-                                type: string
-                            type: object
-                          switchPort:
-                            properties:
-                              name:
-                                type: string
-                            type: object
-                        type: object
-                      maxItems: 2
-                      minItems: 2
-                      type: array
+                      properties:
+                        server:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                        switch:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 2
                     type: array
                 type: object
               mclagDomain:
                 properties:
                   links:
                     items:
-                      items:
-                        properties:
-                          serverPort:
-                            properties:
-                              name:
-                                type: string
-                            type: object
-                          switchPort:
-                            properties:
-                              name:
-                                type: string
-                            type: object
-                        type: object
-                      maxItems: 2
-                      minItems: 2
-                      type: array
+                      properties:
+                        switch1:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                        switch2:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
                     type: array
                 type: object
               unbundled:
                 properties:
                   link:
-                    items:
-                      properties:
-                        serverPort:
-                          properties:
-                            name:
-                              type: string
-                          type: object
-                        switchPort:
-                          properties:
-                            name:
-                              type: string
-                          type: object
-                      type: object
-                    maxItems: 2
-                    minItems: 2
-                    type: array
+                    properties:
+                      server:
+                        properties:
+                          port:
+                            type: string
+                        type: object
+                      switch:
+                        properties:
+                          port:
+                            type: string
+                        type: object
+                    type: object
                 type: object
             type: object
           status:
