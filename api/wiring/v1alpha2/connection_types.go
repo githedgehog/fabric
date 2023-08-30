@@ -203,11 +203,12 @@ func (c *ConnectionSpec) PortNames() [][2]string {
 			return [][2]string{{switch1, switch2}}
 		}
 		if c.MCLAG != nil {
-			server := c.MCLAG.Links[0][0].PortName() // TODO make sure server is listed first
+			server1 := c.MCLAG.Links[0][0].PortName() // TODO make sure server is listed first
+			server2 := c.MCLAG.Links[1][0].PortName()
 			switch1 := c.MCLAG.Links[0][1].PortName()
 			switch2 := c.MCLAG.Links[1][1].PortName() // TODO iterate over all links
 
-			return [][2]string{{server, switch1}, {server, switch2}}
+			return [][2]string{{server1, switch1}, {server2, switch2}}
 		}
 	}
 
