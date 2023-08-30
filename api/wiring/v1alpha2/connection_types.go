@@ -160,3 +160,56 @@ func (l *ConnLinkPart) DeviceName() string {
 
 	return "<invalid>" // TODO replace with error?
 }
+
+func (l *ConnLinkPort) PortName() string {
+	if l != nil {
+		return l.Name
+	}
+
+	return "<invalid>" // TODO replace with error?
+}
+
+func (l *ConnLinkPart) PortName() string {
+	if l != nil {
+		if l.SwitchPort != nil {
+			return l.SwitchPort.PortName()
+		}
+		if l.ServerPort != nil {
+			return l.ServerPort.PortName()
+		}
+	}
+
+	return "<invalid>" // TODO replace with error?
+}
+
+func (c *ConnectionSpec) PortNames() [][2]string {
+	if c != nil {
+		if c.Unbundled != nil {
+			left := c.Unbundled.Link[0].PortName() // TODO make sure server is listed first
+			right := c.Unbundled.Link[1].PortName()
+
+			return [][2]string{{left, right}}
+		}
+		if c.Management != nil {
+			control := c.Management.Link[0].ServerPort.PortName() // TODO make sure control is listed first
+			sw := c.Management.Link[1].SwitchPort.PortName()
+
+			return [][2]string{{control, sw}}
+		}
+		if c.MCLAGDomain != nil {
+			switch1 := c.MCLAGDomain.Links[0][0].PortName()
+			switch2 := c.MCLAGDomain.Links[0][1].PortName()
+
+			return [][2]string{{switch1, switch2}}
+		}
+		if c.MCLAG != nil {
+			server := c.MCLAG.Links[0][0].PortName() // TODO make sure server is listed first
+			switch1 := c.MCLAG.Links[0][1].PortName()
+			switch2 := c.MCLAG.Links[1][1].PortName() // TODO iterate over all links
+
+			return [][2]string{{server, switch1}, {server, switch2}}
+		}
+	}
+
+	return [][2]string{} // TODO replace with error?
+}
