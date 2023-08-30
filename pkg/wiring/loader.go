@@ -29,12 +29,16 @@ func init() {
 var decoder runtime.Decoder
 
 func LoadDataFrom(from string) (*Data, error) {
-	fromFile := "."
-
 	data, err := New()
 	if err != nil {
 		return nil, err
 	}
+
+	if from == "-" {
+		return data, errors.Wrap(Load(os.Stdin, data), "error loading from stdin")
+	}
+
+	fromFile := "."
 
 	if info, err := os.Stat(from); err == nil && !info.IsDir() {
 		fromFile = filepath.Base(from)
