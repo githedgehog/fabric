@@ -1,4 +1,6 @@
 ## Append samples of your project ##
 resources:
   - collapsedcore.gen.yaml
+  - vpc_v1alpha2_vpc.yaml
+  - vpc_v1alpha2_vpcmember.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

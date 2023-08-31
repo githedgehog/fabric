@@ -4,65 +4,81 @@
 # More info: https://book.kubebuilder.io/reference/project-config.html
 domain: githedgehog.com
 layout:
-  - go.kubebuilder.io/v4
+- go.kubebuilder.io/v4
 multigroup: true
 projectName: fabric
 repo: go.githedgehog.com/fabric
 resources:
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: agent
-    kind: Agent
-    path: go.githedgehog.com/fabric/api/agent/v1alpha2
-    version: v1alpha2
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: wiring
-    kind: Rack
-    path: go.githedgehog.com/fabric/api/wiring/v1alpha2
-    version: v1alpha2
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: wiring
-    kind: Switch
-    path: go.githedgehog.com/fabric/api/wiring/v1alpha2
-    version: v1alpha2
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: wiring
-    kind: Server
-    path: go.githedgehog.com/fabric/api/wiring/v1alpha2
-    version: v1alpha2
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: wiring
-    kind: Connection
-    path: go.githedgehog.com/fabric/api/wiring/v1alpha2
-    version: v1alpha2
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: wiring
-    kind: SwitchProfile
-    path: go.githedgehog.com/fabric/api/wiring/v1alpha2
-    version: v1alpha2
-  - api:
-      crdVersion: v1
-      namespaced: true
-    domain: githedgehog.com
-    group: wiring
-    kind: ServerProfile
-    path: go.githedgehog.com/fabric/api/wiring/v1alpha2
-    version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: agent
+  kind: Agent
+  path: go.githedgehog.com/fabric/api/agent/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: Rack
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: Switch
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: Server
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: Connection
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: SwitchProfile
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: ServerProfile
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: vpc
+  kind: VPC
+  path: go.githedgehog.com/fabric/api/vpc/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: vpc
+  kind: VPCMember
+  path: go.githedgehog.com/fabric/api/vpc/v1alpha2
+  version: v1alpha2
 version: "3"

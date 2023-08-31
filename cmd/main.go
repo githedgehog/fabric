@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	agentv1alpha2 "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	//+kubebuilder:scaffold:imports
 )
@@ -48,6 +49,7 @@ func init() {
 
 	utilruntime.Must(agentv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(wiringv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(vpcv1alpha2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

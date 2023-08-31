@@ -1,0 +1,12 @@
+apiVersion: vpc.githedgehog.com/v1alpha2
+kind: VPC
+metadata:
+  labels:
+    app.kubernetes.io/name: vpc
+    app.kubernetes.io/instance: vpc-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: vpc-sample
+spec:
+  subnet: 192.168.0.1/24

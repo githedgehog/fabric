@@ -1,0 +1,13 @@
+apiVersion: vpc.githedgehog.com/v1alpha2
+kind: VPCMember
+metadata:
+  labels:
+    app.kubernetes.io/name: vpcmember
+    app.kubernetes.io/instance: vpcmember-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: vpcmember-sample
+spec:
+  vpc: vpc-sample
+  connection: conn-sample
