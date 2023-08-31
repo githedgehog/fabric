@@ -2,6 +2,7 @@
 
 ## Packages
 - [agent.githedgehog.com/v1alpha2](#agentgithedgehogcomv1alpha2)
+- [vpc.githedgehog.com/v1alpha2](#vpcgithedgehogcomv1alpha2)
 - [wiring.githedgehog.com/v1alpha2](#wiringgithedgehogcomv1alpha2)
 
 
@@ -93,6 +94,84 @@ _Appears in:_
 
 
 
+## vpc.githedgehog.com/v1alpha2
+
+Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
+
+### Resource Types
+- [VPC](#vpc)
+- [VPCMember](#vpcmember)
+
+
+
+#### VPC
+
+
+
+VPC is the Schema for the vpcs API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `VPC`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[VPCSpec](#vpcspec)_ |  |
+| `status` _[VPCStatus](#vpcstatus)_ |  |
+
+
+#### VPCMember
+
+
+
+VPCMember is the Schema for the vpcmembers API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `VPCMember`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[VPCMemberSpec](#vpcmemberspec)_ |  |
+| `status` _[VPCMemberStatus](#vpcmemberstatus)_ |  |
+
+
+#### VPCMemberSpec
+
+
+
+VPCMemberSpec defines the desired state of VPCMember
+
+_Appears in:_
+- [VPCMember](#vpcmember)
+
+| Field | Description |
+| --- | --- |
+| `vpc` _string_ |  |
+| `connection` _string_ |  |
+
+
+
+
+#### VPCSpec
+
+
+
+VPCSpec defines the desired state of VPC
+
+_Appears in:_
+- [VPC](#vpc)
+
+| Field | Description |
+| --- | --- |
+| `subnet` _string_ |  |
+
+
+
+
+
 ## wiring.githedgehog.com/v1alpha2
 
 Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API group
@@ -107,51 +186,107 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 
 
 
-#### ConnLink
+#### BasePortName
 
 
 
 
 
 _Appears in:_
-- [MCLAGConn](#mclagconn)
-- [MCLAGDomainConn](#mclagdomainconn)
+- [ConnMgmtLink](#connmgmtlink)
+- [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
+- [ServerToSwitchLink](#servertoswitchlink)
+- [SwitchToSwitchLink](#switchtoswitchlink)
 
 | Field | Description |
 | --- | --- |
-| `switchPort` _[ConnLinkPort](#connlinkport)_ |  |
-| `serverPort` _[ConnLinkPort](#connlinkport)_ |  |
+| `port` _string_ |  |
 
 
-#### ConnLinkPart
+#### ConnMCLAG
 
 
 
 
 
 _Appears in:_
-- [UnbundledConn](#unbundledconn)
+- [ConnectionSpec](#connectionspec)
 
 | Field | Description |
 | --- | --- |
-| `switchPort` _[ConnLinkPort](#connlinkport)_ |  |
-| `serverPort` _[ConnLinkPort](#connlinkport)_ |  |
+| `links` _[ServerToSwitchLink](#servertoswitchlink) array_ |  |
 
 
-#### ConnLinkPort
+#### ConnMCLAGDomain
 
 
 
 
 
 _Appears in:_
-- [ConnLinkPart](#connlinkpart)
-- [ManagementConnLinkPart](#managementconnlinkpart)
-- [ManagementConnSwitchPort](#managementconnswitchport)
+- [ConnectionSpec](#connectionspec)
 
 | Field | Description |
 | --- | --- |
-| `name` _string_ |  |
+| `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+
+
+#### ConnMgmt
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ConnMgmtLink](#connmgmtlink)_ |  |
+
+
+#### ConnMgmtLink
+
+
+
+
+
+_Appears in:_
+- [ConnMgmt](#connmgmt)
+
+| Field | Description |
+| --- | --- |
+| `server` _[BasePortName](#baseportname)_ |  |
+| `switch` _[ConnMgmtLinkSwitch](#connmgmtlinkswitch)_ |  |
+
+
+#### ConnMgmtLinkSwitch
+
+
+
+
+
+_Appears in:_
+- [ConnMgmtLink](#connmgmtlink)
+
+| Field | Description |
+| --- | --- |
+| `port` _string_ |  |
+| `ip` _string_ |  |
+
+
+#### ConnUnbundled
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ServerToSwitchLink](#servertoswitchlink)_ |  |
 
 
 #### Connection
@@ -182,10 +317,12 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `unbundled` _[UnbundledConn](#unbundledconn)_ |  |
-| `management` _[ManagementConn](#managementconn)_ |  |
-| `mclag` _[MCLAGConn](#mclagconn)_ |  |
-| `mclagDomain` _[MCLAGDomainConn](#mclagdomainconn)_ |  |
+| `unbundled` _[ConnUnbundled](#connunbundled)_ |  |
+| `management` _[ConnMgmt](#connmgmt)_ |  |
+| `mclag` _[ConnMCLAG](#connmclag)_ |  |
+| `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ |  |
+
+
 
 
 
@@ -239,80 +376,6 @@ _Appears in:_
 | --- | --- |
 | `sig` _string_ |  |
 | `uuidSig` _string_ |  |
-
-
-#### MCLAGConn
-
-
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description |
-| --- | --- |
-| `links` _[ConnLink](#connlink) array_ |  |
-
-
-#### MCLAGDomainConn
-
-
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description |
-| --- | --- |
-| `links` _[ConnLink](#connlink) array_ |  |
-
-
-#### ManagementConn
-
-
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description |
-| --- | --- |
-| `link` _[ManagementConnLinkPart](#managementconnlinkpart) array_ |  |
-
-
-
-
-#### ManagementConnLinkPart
-
-
-
-
-
-_Appears in:_
-- [ManagementConn](#managementconn)
-
-| Field | Description |
-| --- | --- |
-| `switchPort` _[ManagementConnSwitchPort](#managementconnswitchport)_ |  |
-| `serverPort` _[ConnLinkPort](#connlinkport)_ |  |
-
-
-#### ManagementConnSwitchPort
-
-
-
-
-
-_Appears in:_
-- [ManagementConnLinkPart](#managementconnlinkpart)
-
-| Field | Description |
-| --- | --- |
-| `name` _string_ |  |
-| `ip` _string_ |  |
 
 
 #### Rack
@@ -465,6 +528,22 @@ _Appears in:_
 
 
 
+#### ServerToSwitchLink
+
+
+
+
+
+_Appears in:_
+- [ConnMCLAG](#connmclag)
+- [ConnUnbundled](#connunbundled)
+
+| Field | Description |
+| --- | --- |
+| `server` _[BasePortName](#baseportname)_ |  |
+| `switch` _[BasePortName](#baseportname)_ |  |
+
+
 #### Switch
 
 
@@ -567,17 +646,18 @@ _Appears in:_
 
 
 
-#### UnbundledConn
+#### SwitchToSwitchLink
 
 
 
 
 
 _Appears in:_
-- [ConnectionSpec](#connectionspec)
+- [ConnMCLAGDomain](#connmclagdomain)
 
 | Field | Description |
 | --- | --- |
-| `link` _[ConnLinkPart](#connlinkpart) array_ |  |
+| `switch1` _[BasePortName](#baseportname)_ |  |
+| `switch2` _[BasePortName](#baseportname)_ |  |
 
 
