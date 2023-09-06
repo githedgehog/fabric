@@ -192,3 +192,27 @@ func (c *ConnectionSpec) GenerateName() string {
 
 	return "<invalid>" // TODO replace with error?
 }
+
+func (c *ConnectionSpec) ConnectionLabels() map[string]string {
+	res := map[string]string{}
+
+	if c.Unbundled != nil {
+		res[ConnectionLabel(ConnectionLabelTypeServer, c.Unbundled.Link.Server.DeviceName())] = ConnectionLabelValue
+		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.Unbundled.Link.Switch.DeviceName())] = ConnectionLabelValue
+	} else if c.Management != nil {
+		res[ConnectionLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ConnectionLabelValue
+		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ConnectionLabelValue
+	} else if c.MCLAGDomain != nil {
+		// TODO add some checks? or just rely on validation
+		res[ConnectionLabel(ConnectionLabelTypeServer, c.MCLAGDomain.Links[0].Switch1.DeviceName())] = ConnectionLabelValue
+		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.MCLAGDomain.Links[0].Switch2.DeviceName())] = ConnectionLabelValue
+	}
+	if c.MCLAG != nil {
+		for _, link := range c.MCLAG.Links {
+			res[ConnectionLabel(ConnectionLabelTypeServer, link.Server.DeviceName())] = ConnectionLabelValue
+			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch.DeviceName())] = ConnectionLabelValue
+		}
+	}
+
+	return res
+}

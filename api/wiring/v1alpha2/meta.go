@@ -1,6 +1,7 @@
 package v1alpha2
 
 import (
+	"fmt"
 	"net/url"
 
 	"github.com/google/uuid"
@@ -8,15 +9,22 @@ import (
 
 var (
 	// TODO should it be same as group name? or just standard prefix for all APIs?
-	LabelPrefix   = "fabric.githedgehog.com/"
-	LabelRack     = LabelName("rack")
-	LabelSwitch   = LabelName("switch")
-	LabelServer   = LabelName("server")
-	LabelLocation = LabelName("location")
+	LabelPrefix               = "fabric.githedgehog.com/"
+	LabelRack                 = LabelName("rack")
+	LabelSwitch               = LabelName("switch")
+	LabelServer               = LabelName("server")
+	LabelLocation             = LabelName("location")
+	ConnectionLabelValue      = "true"
+	ConnectionLabelTypeServer = "server"
+	ConnectionLabelTypeSwitch = "switch"
 )
 
 func LabelName(name string) string {
 	return LabelPrefix + name
+}
+
+func ConnectionLabel(deviceType, deviceName string) string {
+	return fmt.Sprintf("%s.connection.%s%s", deviceType, LabelPrefix, deviceName)
 }
 
 // Location defines the geopraphical position of the device in a datacenter

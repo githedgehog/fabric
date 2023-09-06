@@ -274,6 +274,7 @@ func createConnection(data *wiring.Data, spec wiringapi.ConnectionSpec) (*wiring
 		},
 		Spec: spec,
 	}
+	conn.Labels = spec.ConnectionLabels()
 
 	return conn, errors.Wrapf(data.Add(conn), "error creating connection %s", name)
 }
