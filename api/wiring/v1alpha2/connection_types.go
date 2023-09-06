@@ -44,8 +44,12 @@ type ConnUnbundled struct {
 
 type ConnMgmtLinkSwitch struct {
 	BasePortName `json:",inline"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
 	IP string `json:"ip,omitempty"`
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:validation:Maximum=4094
+	VLAN         uint16 `json:"vlan,omitempty"`
+	ONIEPortName string `json:"oniePortName,omitempty"`
 }
 
 type ConnMgmtLink struct {

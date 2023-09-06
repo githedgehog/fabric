@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	LabelPrefix   = GroupVersion.Group + "/"
+	// TODO should it be same as group name? or just standard prefix for all APIs?
+	LabelPrefix   = "fabric.githedgehog.com/"
 	LabelRack     = LabelName("rack")
 	LabelSwitch   = LabelName("switch")
 	LabelServer   = LabelName("server")

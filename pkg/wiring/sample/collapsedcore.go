@@ -20,35 +20,48 @@ func CollapsedCore() (*wiring.Data, error) {
 		return nil, err
 	}
 
-	_, err = createSwitch(data, "switch-1", "rack-1", wiringapi.SwitchSpec{})
+	_, err = createSwitch(data, "switch-1", "rack-1", wiringapi.SwitchSpec{
+		Location: location("1"),
+	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createSwitch(data, "switch-2", "rack-1", wiringapi.SwitchSpec{})
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = createServer(data, "control-1", "rack-1", wiringapi.ServerSpec{
-		Type: wiringapi.ServerTypeControl,
+	_, err = createSwitch(data, "switch-2", "rack-1", wiringapi.SwitchSpec{
+		Location: location("2"),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = createServer(data, "compute-1", "rack-1", wiringapi.ServerSpec{})
+	_, err = createServer(data, "control-1", "rack-1", wiringapi.ServerSpec{
+		Type:     wiringapi.ServerTypeControl,
+		Location: location("3"),
+	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-2", "rack-1", wiringapi.ServerSpec{})
+
+	_, err = createServer(data, "compute-1", "rack-1", wiringapi.ServerSpec{
+		Location: location("4"),
+	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-3", "rack-1", wiringapi.ServerSpec{})
+	_, err = createServer(data, "compute-2", "rack-1", wiringapi.ServerSpec{
+		Location: location("5"),
+	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-4", "rack-1", wiringapi.ServerSpec{})
+	_, err = createServer(data, "compute-3", "rack-1", wiringapi.ServerSpec{
+		Location: location("6"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, err = createServer(data, "compute-4", "rack-1", wiringapi.ServerSpec{
+		Location: location("7"),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +73,9 @@ func CollapsedCore() (*wiring.Data, error) {
 				Server: wiringapi.NewBasePortName("control-1/nic0/port1"),
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-1/Management0"),
-					IP:           "192.168.88.121", // TODO
+					IP:           "192.168.88.121/24", // TODO do we need it configurable?
+					VLAN:         0,                   // we aren't using VLANs in collapsed core
+					ONIEPortName: "eth0",
 				},
 			},
 		},
@@ -76,7 +91,9 @@ func CollapsedCore() (*wiring.Data, error) {
 				Server: wiringapi.NewBasePortName("control-1/nic0/port2"),
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
-					IP:           "192.168.88.122", // TODO
+					IP:           "192.168.88.122/24", // TODO do we need it configurable?
+					VLAN:         0,                   // we aren't using VLANs in collapsed core
+					ONIEPortName: "eth0",
 				},
 			},
 		},
@@ -171,6 +188,16 @@ func CollapsedCore() (*wiring.Data, error) {
 	return data, nil
 }
 
+func location(slot string) wiringapi.Location {
+	return wiringapi.Location{
+		Location: "LOC",
+		Aisle:    "1",
+		Row:      "1",
+		Rack:     "1",
+		Slot:     slot,
+	}
+}
+
 func createRack(data *wiring.Data, name string, spec wiringapi.RackSpec) (*wiringapi.Rack, error) {
 	log.Println("Creating rack", name)
 
@@ -205,6 +232,8 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 		},
 		Spec: spec,
 	}
+	locUUID, _ := sw.Spec.Location.GenerateUUID()
+	sw.Labels[wiringapi.LabelSwitch] = locUUID
 
 	return sw, errors.Wrapf(data.Add(sw), "error creating switch %s", name)
 }

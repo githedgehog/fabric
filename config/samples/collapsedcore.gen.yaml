@@ -4,11 +4,17 @@ kind: Switch
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/switch: b7e0848d-15f9-5f46-ac21-1710a7b792f0
   name: switch-1
 spec:
   lldp: {}
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "1"
   locationSig: {}
 status: {}
 ---
@@ -17,11 +23,17 @@ kind: Switch
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/switch: 81c9671f-0b80-5a45-b946-686de0b9aaa9
   name: switch-2
 spec:
   lldp: {}
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "2"
   locationSig: {}
 status: {}
 ---
@@ -30,10 +42,15 @@ kind: Server
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
   name: control-1
 spec:
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "3"
   locationSig: {}
   type: control
 status: {}
@@ -43,10 +60,15 @@ kind: Server
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
   name: compute-1
 spec:
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "4"
   locationSig: {}
 status: {}
 ---
@@ -55,10 +77,15 @@ kind: Server
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
   name: compute-2
 spec:
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "5"
   locationSig: {}
 status: {}
 ---
@@ -67,10 +94,15 @@ kind: Server
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
   name: compute-3
 spec:
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "6"
   locationSig: {}
 status: {}
 ---
@@ -79,10 +111,15 @@ kind: Server
 metadata:
   creationTimestamp: null
   labels:
-    wiring.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/rack: rack-1
   name: compute-4
 spec:
-  location: {}
+  location:
+    aisle: "1"
+    location: LOC
+    rack: "1"
+    row: "1"
+    slot: "7"
   locationSig: {}
 status: {}
 ---
@@ -161,7 +198,8 @@ spec:
       server:
         port: control-1/nic0/port1
       switch:
-        ip: 192.168.88.121
+        ip: 192.168.88.121/24
+        oniePortName: eth0
         port: switch-1/Management0
 status: {}
 ---
@@ -176,7 +214,8 @@ spec:
       server:
         port: control-1/nic0/port2
       switch:
-        ip: 192.168.88.122
+        ip: 192.168.88.122/24
+        oniePortName: eth0
         port: switch-2/Management0
 status: {}
 ---
