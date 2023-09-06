@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -25,6 +26,18 @@ func LabelName(name string) string {
 
 func ConnectionLabel(deviceType, deviceName string) string {
 	return fmt.Sprintf("%s.connection.%s%s", deviceType, LabelPrefix, deviceName)
+}
+
+func MatchingLabelsForServerConnections(serverName string) client.MatchingLabels {
+	return client.MatchingLabels{
+		ConnectionLabel(ConnectionLabelTypeServer, serverName): ConnectionLabelValue,
+	}
+}
+
+func MatchingLabelsForSwitchConnections(switchName string) client.MatchingLabels {
+	return client.MatchingLabels{
+		ConnectionLabel(ConnectionLabelTypeSwitch, switchName): ConnectionLabelValue,
+	}
 }
 
 // Location defines the geopraphical position of the device in a datacenter
