@@ -1,6 +1,8 @@
 package wiring
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"sort"
@@ -8,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -121,7 +124,9 @@ func SortByName[T metav1.Object](objs []T) {
 	})
 }
 
-func (d *Data) Write(w io.Writer) error {
+func (d *Data) Write(ret io.Writer) error {
+	w := new(bytes.Buffer)
+
 	for idx, rack := range d.Rack.All() {
 		err := marshal(rack, idx > 0, w)
 		if err != nil {
@@ -160,6 +165,21 @@ func (d *Data) Write(w io.Writer) error {
 		err := marshal(conn, true, w)
 		if err != nil {
 			return err
+		}
+	}
+
+	// ugly output cleanup
+	scan := bufio.NewScanner(w)
+	for scan.Scan() {
+		line := scan.Text()
+
+		if slices.Contains([]string{"status: {}", "  creationTimestamp: null", "  position: {}"}, line) {
+			continue
+		}
+
+		_, err := ret.Write([]byte(line + "\n"))
+		if err != nil {
+			return errors.Wrap(err, "error writing line")
 		}
 	}
 
