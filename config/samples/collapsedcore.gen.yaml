@@ -4,8 +4,8 @@ kind: Switch
 metadata:
   creationTimestamp: null
   labels:
+    fabric.githedgehog.com/location: b7e0848d-15f9-5f46-ac21-1710a7b792f0
     fabric.githedgehog.com/rack: rack-1
-    fabric.githedgehog.com/switch: b7e0848d-15f9-5f46-ac21-1710a7b792f0
   name: switch-1
 spec:
   lldp: {}
@@ -23,8 +23,8 @@ kind: Switch
 metadata:
   creationTimestamp: null
   labels:
+    fabric.githedgehog.com/location: 81c9671f-0b80-5a45-b946-686de0b9aaa9
     fabric.githedgehog.com/rack: rack-1
-    fabric.githedgehog.com/switch: 81c9671f-0b80-5a45-b946-686de0b9aaa9
   name: switch-2
 spec:
   lldp: {}
@@ -213,7 +213,7 @@ spec:
   management:
     link:
       server:
-        port: control-1/nic0/port1
+        port: control-1/switch1
       switch:
         ip: 192.168.88.121/24
         oniePortName: eth0
@@ -232,7 +232,7 @@ spec:
   management:
     link:
       server:
-        port: control-1/nic0/port2
+        port: control-1/switch2
       switch:
         ip: 192.168.88.122/24
         oniePortName: eth0

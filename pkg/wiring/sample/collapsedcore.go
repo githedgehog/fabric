@@ -70,7 +70,7 @@ func CollapsedCore() (*wiring.Data, error) {
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		Management: &wiringapi.ConnMgmt{
 			Link: wiringapi.ConnMgmtLink{
-				Server: wiringapi.NewBasePortName("control-1/nic0/port1"),
+				Server: wiringapi.NewBasePortName("control-1/switch1"),
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-1/Management0"),
 					IP:           "192.168.88.121/24", // TODO do we need it configurable?
@@ -88,7 +88,7 @@ func CollapsedCore() (*wiring.Data, error) {
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		Management: &wiringapi.ConnMgmt{
 			Link: wiringapi.ConnMgmtLink{
-				Server: wiringapi.NewBasePortName("control-1/nic0/port2"),
+				Server: wiringapi.NewBasePortName("control-1/switch2"),
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
 					IP:           "192.168.88.122/24", // TODO do we need it configurable?
@@ -233,7 +233,7 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 		Spec: spec,
 	}
 	locUUID, _ := sw.Spec.Location.GenerateUUID()
-	sw.Labels[wiringapi.LabelSwitch] = locUUID
+	sw.Labels[wiringapi.LabelLocation] = locUUID
 
 	return sw, errors.Wrapf(data.Add(sw), "error creating switch %s", name)
 }
