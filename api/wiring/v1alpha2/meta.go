@@ -18,6 +18,7 @@ var (
 	ConnectionLabelValue      = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
+	ConnectionLabelTypeRack   = "rack"
 )
 
 func LabelName(name string) string {

@@ -128,6 +128,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/compute-1: "true"
     switch.connection.fabric.githedgehog.com/switch-1: "true"
     switch.connection.fabric.githedgehog.com/switch-2: "true"
@@ -150,6 +151,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/compute-2: "true"
     switch.connection.fabric.githedgehog.com/switch-1: "true"
     switch.connection.fabric.githedgehog.com/switch-2: "true"
@@ -172,6 +174,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/compute-3: "true"
     switch.connection.fabric.githedgehog.com/switch-1: "true"
   name: compute-3--unbundled--switch-1
@@ -189,6 +192,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/compute-4: "true"
     switch.connection.fabric.githedgehog.com/switch-2: "true"
   name: compute-4--unbundled--switch-2
@@ -206,6 +210,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/control-1: "true"
     switch.connection.fabric.githedgehog.com/switch-1: "true"
   name: control-1--mgmt--switch-1
@@ -225,6 +230,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/control-1: "true"
     switch.connection.fabric.githedgehog.com/switch-2: "true"
   name: control-1--mgmt--switch-2
@@ -244,6 +250,7 @@ kind: Connection
 metadata:
   creationTimestamp: null
   labels:
+    rack.connection.fabric.githedgehog.com/rack-1: "true"
     server.connection.fabric.githedgehog.com/switch-1: "true"
     switch.connection.fabric.githedgehog.com/switch-2: "true"
   name: switch-1--mclag-domain--switch-2

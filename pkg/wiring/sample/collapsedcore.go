@@ -275,6 +275,8 @@ func createConnection(data *wiring.Data, spec wiringapi.ConnectionSpec) (*wiring
 		Spec: spec,
 	}
 	conn.Labels = spec.ConnectionLabels()
+	// TODO replace it with an actuall racks, not hardcoded one
+	conn.Labels[wiringapi.ConnectionLabel(wiringapi.ConnectionLabelTypeRack, "rack-1")] = wiringapi.ConnectionLabelValue
 
 	return conn, errors.Wrapf(data.Add(conn), "error creating connection %s", name)
 }
