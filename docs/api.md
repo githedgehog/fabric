@@ -273,6 +273,8 @@ _Appears in:_
 | --- | --- |
 | `port` _string_ |  |
 | `ip` _string_ |  |
+| `vlan` _integer_ |  |
+| `oniePortName` _string_ |  |
 
 
 #### ConnUnbundled

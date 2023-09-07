@@ -73,9 +73,9 @@ func CollapsedCore() (*wiring.Data, error) {
 				Server: wiringapi.NewBasePortName("control-1/switch1"),
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-1/Management0"),
-					IP:           "192.168.88.121/24", // TODO do we need it configurable?
-					VLAN:         0,                   // we aren't using VLANs in collapsed core
-					ONIEPortName: "eth0",
+					IP:           "192.168.42.11/24", // TODO do we need it configurable?
+					VLAN:         42,                 // we aren't using VLANs in collapsed core
+					ONIEPortName: "eth1",
 				},
 			},
 		},
@@ -91,9 +91,9 @@ func CollapsedCore() (*wiring.Data, error) {
 				Server: wiringapi.NewBasePortName("control-1/switch2"),
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
-					IP:           "192.168.88.122/24", // TODO do we need it configurable?
-					VLAN:         0,                   // we aren't using VLANs in collapsed core
-					ONIEPortName: "eth0",
+					IP:           "192.168.42.12/24", // TODO do we need it configurable?
+					VLAN:         42,                 // we aren't using VLANs in collapsed core
+					ONIEPortName: "eth1",
 				},
 			},
 		},
@@ -219,6 +219,10 @@ func createRack(data *wiring.Data, name string, spec wiringapi.RackSpec) (*wirin
 func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.SwitchSpec) (*wiringapi.Switch, error) {
 	log.Println("Creating switch", name)
 
+	spec.LocationSig = wiringapi.LocationSig{
+		Sig:     "long-signature",
+		UUIDSig: "also-long-signature",
+	}
 	sw := &wiringapi.Switch{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindSwitch,
@@ -241,6 +245,10 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 func createServer(data *wiring.Data, name string, rack string, spec wiringapi.ServerSpec) (*wiringapi.Server, error) {
 	log.Println("Creating server", name)
 
+	spec.LocationSig = wiringapi.LocationSig{
+		Sig:     "long-signature",
+		UUIDSig: "also-long-signature",
+	}
 	server := &wiringapi.Server{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindServer,
@@ -254,6 +262,8 @@ func createServer(data *wiring.Data, name string, rack string, spec wiringapi.Se
 		},
 		Spec: spec,
 	}
+	locUUID, _ := server.Spec.Location.GenerateUUID()
+	server.Labels[wiringapi.LabelLocation] = locUUID
 
 	return server, errors.Wrapf(data.Add(server), "error creating server %s", name)
 }

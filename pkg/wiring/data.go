@@ -1,6 +1,7 @@
 package wiring
 
 import (
+	"fmt"
 	"io"
 	"sort"
 
@@ -121,8 +122,15 @@ func SortByName[T metav1.Object](objs []T) {
 }
 
 func (d *Data) Write(w io.Writer) error {
-	for idx, sw := range d.Switch.All() {
-		err := marshal(sw, idx > 0, w)
+	for idx, rack := range d.Rack.All() {
+		err := marshal(rack, idx > 0, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, sw := range d.Switch.All() {
+		err := marshal(sw, true, w)
 		if err != nil {
 			return err
 		}
@@ -158,12 +166,17 @@ func (d *Data) Write(w io.Writer) error {
 	return nil
 }
 
-func marshal(obj any, separator bool, w io.Writer) error {
+func marshal(obj metav1.Object, separator bool, w io.Writer) error {
 	if separator {
 		_, err := w.Write([]byte("---\n"))
 		if err != nil {
 			return errors.Wrap(err, "error writing separator")
 		}
+	}
+
+	_, err := w.Write([]byte(fmt.Sprintf("###\n### %s\n###\n", obj.GetName())))
+	if err != nil {
+		return errors.Wrap(err, "error writing title")
 	}
 
 	buf, err := yaml.Marshal(obj)
