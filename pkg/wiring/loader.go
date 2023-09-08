@@ -142,3 +142,13 @@ func Load(r io.Reader, data *Data) error {
 
 	return nil
 }
+
+func (d *Data) SaveTo(path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "error creating file %s", path)
+	}
+	defer f.Close()
+
+	return errors.Wrapf(d.Write(f), "error saving to file %s", path)
+}
