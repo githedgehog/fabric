@@ -258,10 +258,10 @@ spec:
   management:
     link:
       server:
-        port: control-1/switch1
+        port: control-1/eth1
       switch:
         ip: 192.168.42.11/24
-        oniePortName: eth1
+        oniePortName: eth0
         port: switch-1/Management0
         vlan: 42
 ---
@@ -280,10 +280,10 @@ spec:
   management:
     link:
       server:
-        port: control-1/switch2
+        port: control-1/eth2
       switch:
         ip: 192.168.42.12/24
-        oniePortName: eth1
+        oniePortName: eth0
         port: switch-2/Management0
         vlan: 42
 ---

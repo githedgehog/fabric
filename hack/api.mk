@@ -5,7 +5,10 @@ api: generate manifests api-samples api-lint api-helm-build ## Build and lint al
 
 .PHONY: api-samples
 api-samples: ## Generate all API (K8s CRDs) samples
-	go run ./cmd/hhf wiring sample --type=collapsedcore > config/samples/collapsedcore.gen.yaml
+	go run ./cmd/hhf wiring sample --type=collapsedcore --preset vlab > config/samples/collapsedcore.vlab.gen.yaml
+	go run ./cmd/hhf wiring sample --type=collapsedcore --preset vlab-vlan > config/samples/collapsedcore.vlab-vlan.gen.yaml
+	go run ./cmd/hhf wiring sample --type=collapsedcore --preset lab > config/samples/collapsedcore.lab.gen.yaml
+
 
 .PHONY: api-lint
 api-lint: kubevious ## Lint all APIs (K8s CRDs) and samples

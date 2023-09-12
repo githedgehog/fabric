@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/wiring/sample"
+	"golang.org/x/exp/slices"
 )
 
 func GetWiringCommand() *cli.Command {
@@ -36,6 +37,22 @@ func GetWiringCommand() *cli.Command {
 		},
 	}
 
+	preset := ""
+	presetFlag := &cli.StringFlag{
+		Name:        "preset",
+		Aliases:     []string{"p"},
+		Usage:       "preset `TYPE`",
+		Value:       string(sample.SAMPLE_CC_VLAB_MGMT),
+		Destination: &preset,
+		Action: func(ctx *cli.Context, v string) error {
+			if !slices.Contains(sample.PresetsAll, sample.Preset(preset)) {
+				return fmt.Errorf("preset '%s' isn't supported", v)
+			}
+
+			return nil
+		},
+	}
+
 	return &cli.Command{
 		Name:    "wiring",
 		Aliases: []string{"w"},
@@ -47,10 +64,11 @@ func GetWiringCommand() *cli.Command {
 				Usage:   "wiring diagram sample for specified topology",
 				Flags: []cli.Flag{
 					topologyTypeFlag,
+					presetFlag,
 				},
 				Action: func(cCtx *cli.Context) error {
-					log.Println("Generating sample for", topologyType)
-					data, err := sample.CollapsedCore()
+					log.Println("Generating sample type", topologyType, "preset", preset)
+					data, err := sample.CollapsedCore(sample.Preset(preset))
 					if err != nil {
 						return err
 					}
