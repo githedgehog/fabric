@@ -34,7 +34,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			return fmt.Sprintf("eth%d", portID)
 		}
 		if preset == SAMPLE_CC_LAB_MGMT {
-			return fmt.Sprintf("enp%d", portID+1)
+			return fmt.Sprintf("eno%d", portID+1)
 		}
 
 		return "<invalid>"

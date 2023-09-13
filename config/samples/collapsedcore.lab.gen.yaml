@@ -258,7 +258,7 @@ spec:
   management:
     link:
       server:
-        port: control-1/enp2
+        port: control-1/eno2
       switch:
         ip: 192.168.42.11/24
         oniePortName: eth0
@@ -279,7 +279,7 @@ spec:
   management:
     link:
       server:
-        port: control-1/enp3
+        port: control-1/eno3
       switch:
         ip: 192.168.42.12/24
         oniePortName: eth0
