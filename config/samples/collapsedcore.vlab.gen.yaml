@@ -258,12 +258,12 @@ spec:
   management:
     link:
       server:
+        ip: 192.68.101.1/31
         port: control-1/eth1
       switch:
-        ip: 192.168.42.11/24
+        ip: 192.68.101.0/31
         oniePortName: eth0
         port: switch-1/Management0
-        vlan: 42
 ---
 ###
 ### control-1--mgmt--switch-2
@@ -280,12 +280,12 @@ spec:
   management:
     link:
       server:
+        ip: 192.68.102.1/31
         port: control-1/eth2
       switch:
-        ip: 192.168.42.12/24
+        ip: 192.68.102.0/31
         oniePortName: eth0
         port: switch-2/Management0
-        vlan: 42
 ---
 ###
 ### switch-1--mclag-domain--switch-2

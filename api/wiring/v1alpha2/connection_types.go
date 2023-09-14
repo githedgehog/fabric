@@ -42,18 +42,21 @@ type ConnUnbundled struct {
 	Link ServerToSwitchLink `json:"link,omitempty"`
 }
 
-type ConnMgmtLinkSwitch struct {
+type ConnMgmtLinkServer struct {
 	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
 	IP string `json:"ip,omitempty"`
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:validation:Maximum=4094
-	VLAN         uint16 `json:"vlan,omitempty"`
+}
+
+type ConnMgmtLinkSwitch struct {
+	BasePortName `json:",inline"`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	IP           string `json:"ip,omitempty"`
 	ONIEPortName string `json:"oniePortName,omitempty"`
 }
 
 type ConnMgmtLink struct {
-	Server BasePortName       `json:"server,omitempty"`
+	Server ConnMgmtLinkServer `json:"server,omitempty"`
 	Switch ConnMgmtLinkSwitch `json:"switch,omitempty"`
 }
 

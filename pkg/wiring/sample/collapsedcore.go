@@ -39,7 +39,6 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	oniePort := "eth0" // we're using mgmt port for now
-	mgmtVLAN := 42
 
 	data, err := wiring.New()
 	if err != nil {
@@ -101,11 +100,14 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		Management: &wiringapi.ConnMgmt{
 			Link: wiringapi.ConnMgmtLink{
-				Server: wiringapi.NewBasePortName("control-1/" + ctrlSwitchPort(1)),
+				Server: wiringapi.ConnMgmtLinkServer{
+					BasePortName: wiringapi.NewBasePortName("control-1/" + ctrlSwitchPort(1)),
+					IP:           "192.68.101.1/31",
+				},
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-1/Management0"),
-					IP:           "192.168.42.11/24", // TODO do we need it configurable?
-					VLAN:         uint16(mgmtVLAN),   // we aren't using VLANs in collapsed core
+					IP:           "192.68.101.0/31",
+					// VLAN:         uint16(mgmtVLAN),
 					ONIEPortName: oniePort,
 				},
 			},
@@ -119,11 +121,14 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		Management: &wiringapi.ConnMgmt{
 			Link: wiringapi.ConnMgmtLink{
-				Server: wiringapi.NewBasePortName("control-1/" + ctrlSwitchPort(2)),
+				Server: wiringapi.ConnMgmtLinkServer{
+					BasePortName: wiringapi.NewBasePortName("control-1/" + ctrlSwitchPort(2)),
+					IP:           "192.68.102.1/31",
+				},
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
-					IP:           "192.168.42.12/24", // TODO do we need it configurable?
-					VLAN:         uint16(mgmtVLAN),   // we aren't using VLANs in collapsed core
+					IP:           "192.68.102.0/31",
+					// VLAN:         uint16(mgmtVLAN),
 					ONIEPortName: oniePort,
 				},
 			},

@@ -193,7 +193,7 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 
 
 _Appears in:_
-- [ConnMgmtLink](#connmgmtlink)
+- [ConnMgmtLinkServer](#connmgmtlinkserver)
 - [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
@@ -256,8 +256,23 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `server` _[BasePortName](#baseportname)_ |  |
+| `server` _[ConnMgmtLinkServer](#connmgmtlinkserver)_ |  |
 | `switch` _[ConnMgmtLinkSwitch](#connmgmtlinkswitch)_ |  |
+
+
+#### ConnMgmtLinkServer
+
+
+
+
+
+_Appears in:_
+- [ConnMgmtLink](#connmgmtlink)
+
+| Field | Description |
+| --- | --- |
+| `port` _string_ |  |
+| `ip` _string_ |  |
 
 
 #### ConnMgmtLinkSwitch
@@ -273,7 +288,6 @@ _Appears in:_
 | --- | --- |
 | `port` _string_ |  |
 | `ip` _string_ |  |
-| `vlan` _integer_ |  |
 | `oniePortName` _string_ |  |
 
 
