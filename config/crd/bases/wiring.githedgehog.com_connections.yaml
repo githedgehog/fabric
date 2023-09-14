@@ -43,6 +43,9 @@ spec:
                     properties:
                       server:
                         properties:
+                          ip:
+                            pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                            type: string
                           port:
                             type: string
                         type: object
@@ -55,10 +58,6 @@ spec:
                             type: string
                           port:
                             type: string
-                          vlan:
-                            maximum: 4094
-                            minimum: 0
-                            type: integer
                         type: object
                     type: object
                 type: object
