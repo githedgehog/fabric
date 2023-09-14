@@ -13,27 +13,25 @@ import (
 type Preset string
 
 const (
-	SAMPLE_CC_VLAB_MGMT      Preset = "vlab"
-	SAMPLE_CC_VLAB_MGMT_VLAN Preset = "vlab-vlan"
-	SAMPLE_CC_LAB_MGMT       Preset = "lab"
+	SAMPLE_CC_VLAB Preset = "vlab"
+	SAMPLE_CC_LAB  Preset = "lab"
 )
 
 var PresetsAll = []Preset{
-	SAMPLE_CC_VLAB_MGMT,
-	SAMPLE_CC_VLAB_MGMT_VLAN,
-	SAMPLE_CC_LAB_MGMT,
+	SAMPLE_CC_VLAB,
+	SAMPLE_CC_LAB,
 }
 
 func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	if preset == "" {
-		preset = SAMPLE_CC_VLAB_MGMT
+		preset = SAMPLE_CC_VLAB
 	}
 
 	ctrlSwitchPort := func(portID int) string {
-		if preset == SAMPLE_CC_VLAB_MGMT || preset == SAMPLE_CC_VLAB_MGMT_VLAN {
+		if preset == SAMPLE_CC_VLAB {
 			return fmt.Sprintf("eth%d", portID)
 		}
-		if preset == SAMPLE_CC_LAB_MGMT {
+		if preset == SAMPLE_CC_LAB {
 			return fmt.Sprintf("eno%d", portID+1)
 		}
 
@@ -41,10 +39,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	oniePort := "eth0" // we're using mgmt port for now
-	mgmtVLAN := 0
-	if preset == SAMPLE_CC_VLAB_MGMT_VLAN {
-		mgmtVLAN = 42
-	}
+	mgmtVLAN := 42
 
 	data, err := wiring.New()
 	if err != nil {

@@ -42,7 +42,7 @@ func GetWiringCommand() *cli.Command {
 		Name:        "preset",
 		Aliases:     []string{"p"},
 		Usage:       "preset `TYPE`",
-		Value:       string(sample.SAMPLE_CC_VLAB_MGMT),
+		Value:       string(sample.SAMPLE_CC_VLAB),
 		Destination: &preset,
 		Action: func(ctx *cli.Context, v string) error {
 			if !slices.Contains(sample.PresetsAll, sample.Preset(preset)) {
