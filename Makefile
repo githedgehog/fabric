@@ -1,5 +1,6 @@
 include hack/tools.mk
 include hack/api.mk
+include hack/fabric.mk
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest

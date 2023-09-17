@@ -17,6 +17,14 @@ help: ## Display this help.
 
 VERSION ?= $(shell hack/version.sh)
 
+DEV ?= false
+
+ifeq ($(DEV),true)
+	VERSION := $(VERSION)-dev-$(shell date +%s)
+endif
+
+OCI_REPO ?= registry.local:31000/githedgehog/fabric
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -63,7 +71,7 @@ KUSTOMIZE_VERSION ?= v5.0.1
 CONTROLLER_TOOLS_VERSION ?= v0.12.0
 ENVTEST_K8S_VERSION = 1.27.1 # Version of kubebuilder assets to be downloaded by envtest binary
 ACTIONLINT_VERSION ?= v1.6.25
-CRD_REF_DOCS_VERSION ?= v0.0.9 
+CRD_REF_DOCS_VERSION ?= v0.0.9
 HELM_VERSION ?= v3.12.3
 HELMIFY_VERSION ?= v0.4.5
 ORAS_VERSION ?= v1.0.1
@@ -130,13 +138,6 @@ $(HELMIFY): $(LOCALBIN)
 oras: $(ORAS) ## Download oras locally if necessary.
 $(ORAS): $(LOCALBIN)
 	test -s $(LOCALBIN)/oras || GOBIN=$(LOCALBIN) go install oras.land/oras/cmd/oras@$(ORAS_VERSION)
-
-HELM_REGISTRY ?= ghcr.io
-HELM_REPO_URL ?= oci://ghcr.io/githedgehog
-
-.PHONY: helm-registry-login
-helm-registry-login: helm ## Login to helm registry
-	$(HELM) registry login -u "$(USERNAME)" -p "$(PASSWORD)" $(HELM_REGISTRY)
 
 .PHONY: gcov2lcov
 gcov2lcov: $(GCOV2LCOV) ## Download gcov2lcov locally if necessary.

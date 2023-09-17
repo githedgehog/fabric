@@ -36,6 +36,7 @@ import (
 	agentv1alpha2 "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -54,14 +55,6 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -73,14 +66,14 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
-			BindAddress: metricsAddr,
+			BindAddress: ":8080",
 		},
 		WebhookServer: webhook.NewServer(webhook.Options{
 			Port: 9443,
 		}),
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "a78d6f21.githedgehog.com",
+		HealthProbeBindAddress: ":8081",
+		LeaderElection:         true,
+		LeaderElectionID:       "fabric.githedgehog.com",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -98,6 +91,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	cfgBasedir := "/etc/hedgehog/fabric" // TODO config?
+
+	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Agent")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

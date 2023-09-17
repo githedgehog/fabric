@@ -34,35 +34,139 @@ spec:
           spec:
             description: AgentSpec defines the desired state of Agent
             properties:
-              ports:
-                items:
+              connections:
+                additionalProperties:
+                  description: ConnectionSpec defines the desired state of Connection
                   properties:
-                    interfaces:
-                      items:
-                        properties:
-                          ipAddress:
-                            type: string
-                          name:
-                            type: string
-                          vlan:
-                            type: integer
-                          vlanUntagged:
-                            type: boolean
-                        type: object
-                      type: array
-                    name:
-                      type: string
+                    management:
+                      properties:
+                        link:
+                          properties:
+                            server:
+                              properties:
+                                ip:
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                  type: string
+                                port:
+                                  type: string
+                              type: object
+                            switch:
+                              properties:
+                                ip:
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                  type: string
+                                oniePortName:
+                                  type: string
+                                port:
+                                  type: string
+                              type: object
+                          type: object
+                      type: object
+                    mclag:
+                      properties:
+                        links:
+                          items:
+                            properties:
+                              server:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 2
+                          type: array
+                      type: object
+                    mclagDomain:
+                      properties:
+                        links:
+                          items:
+                            properties:
+                              switch1:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch2:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
+                    unbundled:
+                      properties:
+                        link:
+                          properties:
+                            server:
+                              properties:
+                                port:
+                                  type: string
+                              type: object
+                            switch:
+                              properties:
+                                port:
+                                  type: string
+                              type: object
+                          type: object
+                      type: object
                   type: object
-                type: array
+                type: object
+              controlVIP:
+                type: string
+              switch:
+                description: SwitchSpec defines the desired state of Switch
+                properties:
+                  lldp:
+                    properties:
+                      description:
+                        type: string
+                      helloTimer:
+                        description: A Duration represents the elapsed time between
+                          two instants as an int64 nanosecond count. The representation
+                          limits the largest representable duration to approximately
+                          290 years.
+                        format: int64
+                        type: integer
+                      name:
+                        type: string
+                    type: object
+                  location:
+                    description: Location defines the geopraphical position of the
+                      device in a datacenter
+                    properties:
+                      aisle:
+                        type: string
+                      location:
+                        type: string
+                      rack:
+                        type: string
+                      row:
+                        type: string
+                      slot:
+                        type: string
+                    type: object
+                  locationSig:
+                    description: LocationSig contains signatures for the location
+                      UUID as well as the device location itself
+                    properties:
+                      sig:
+                        type: string
+                      uuidSig:
+                        type: string
+                    type: object
+                  profile:
+                    type: string
+                type: object
             type: object
           status:
             description: AgentStatus defines the observed state of Agent
-            properties:
-              applied:
-                type: boolean
-              lastApplied:
-                format: date-time
-                type: string
             type: object
         type: object
     served: true

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,31 +25,16 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	Ports []Port `json:"ports,omitempty"`
-}
-
-type Port struct {
-	Name       string      `json:"name,omitempty"`
-	Interfaces []Interface `json:"interfaces,omitempty"`
-}
-
-type Interface struct {
-	Name         string `json:"name,omitempty"`
-	VLAN         uint16 `json:"vlan,omitempty"`
-	VLANUntagged bool   `json:"vlanUntagged,omitempty"`
-	IPAddress    string `json:"ipAddress,omitempty"`
+	ControlVIP  string                              `json:"controlVIP,omitempty"`
+	Switch      wiringapi.SwitchSpec                `json:"switch,omitempty"`
+	Connections map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
 }
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	Applied     bool        `json:"applied,omitempty"`
-	LastApplied metav1.Time `json:"lastApplied,omitempty"`
+	// TODO
+	// Applied     bool        `json:"applied,omitempty"`
+	// LastApplied metav1.Time `json:"lastApplied,omitempty"`
 }
 
 //+kubebuilder:object:root=true

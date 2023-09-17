@@ -1,7 +1,6 @@
 package v1alpha2
 
 import (
-	"fmt"
 	"net/url"
 
 	"github.com/google/uuid"
@@ -25,8 +24,12 @@ func LabelName(name string) string {
 	return LabelPrefix + name
 }
 
+func ConnectionLabelPrefix(deviceType string) string {
+	return deviceType + ".connection." + LabelPrefix
+}
+
 func ConnectionLabel(deviceType, deviceName string) string {
-	return fmt.Sprintf("%s.connection.%s%s", deviceType, LabelPrefix, deviceName)
+	return ConnectionLabelPrefix(deviceType) + deviceName
 }
 
 func MatchingLabelsForServerConnections(serverName string) client.MatchingLabels {

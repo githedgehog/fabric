@@ -43,54 +43,11 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `ports` _[Port](#port) array_ |  |
+| `controlVIP` _string_ |  |
+| `switch` _[SwitchSpec](#switchspec)_ |  |
+| `connections` _object (keys:string, values:[ConnectionSpec](#connectionspec))_ |  |
 
 
-#### AgentStatus
-
-
-
-AgentStatus defines the observed state of Agent
-
-_Appears in:_
-- [Agent](#agent)
-
-| Field | Description |
-| --- | --- |
-| `applied` _boolean_ |  |
-| `lastApplied` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
-
-
-#### Interface
-
-
-
-
-
-_Appears in:_
-- [Port](#port)
-
-| Field | Description |
-| --- | --- |
-| `name` _string_ |  |
-| `vlan` _integer_ |  |
-| `vlanUntagged` _boolean_ |  |
-| `ipAddress` _string_ |  |
-
-
-#### Port
-
-
-
-
-
-_Appears in:_
-- [AgentSpec](#agentspec)
-
-| Field | Description |
-| --- | --- |
-| `name` _string_ |  |
-| `interfaces` _[Interface](#interface) array_ |  |
 
 
 
@@ -329,6 +286,7 @@ Connection is the Schema for the connections API
 ConnectionSpec defines the desired state of Connection
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [Connection](#connection)
 
 | Field | Description |
@@ -650,6 +608,7 @@ _Appears in:_
 SwitchSpec defines the desired state of Switch
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [Switch](#switch)
 
 | Field | Description |
