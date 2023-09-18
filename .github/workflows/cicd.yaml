@@ -6,7 +6,7 @@ concurrency:
 
 on:
   push:
-    branches: 
+    branches:
       - master
     tags:
       - "*"
@@ -133,7 +133,7 @@ jobs:
 
       - name: Install CRDs
         run: |
-          make api-helm-install
+          make api-install-install
           kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
           kubectl get crd | grep hedgehog
 
@@ -174,20 +174,17 @@ jobs:
           path: bin
           key: bin-${{ hashFiles('hack/tools.mk') }}
 
-      - name: Helm registry login
-        run: |
-          make helm-registry-login USERNAME="${{ github.actor }}" PASSWORD="${{ secrets.GITHUB_TOKEN }}"
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish Helm chart with CRDs on release
+      - name: Publish Images, Helm charts and Bins on release
         if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
         run: |
-          make api-helm-push
-        #   make helm-crd-push VERSION="$(hack/version.sh latest)"
-
-    #   - name: Publish Helm chart with CRDs for master
-    #     if: (github.ref == 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags/')) && github.event_name == 'push'
-    #     run: |
-    #       make helm-crd-push VERSION="$(hack/version.sh master)"
+          OCI_REPO=ghcr.io/githedgehog/fabric make api-chart-push fabric-chart-push fabric-image-push agent-push
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
