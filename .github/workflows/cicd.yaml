@@ -133,7 +133,7 @@ jobs:
 
       - name: Install CRDs
         run: |
-          make api-install-install
+          make api-chart-install
           kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
           kubectl get crd | grep hedgehog
 

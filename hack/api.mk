@@ -32,6 +32,10 @@ api-chart-build: manifests kustomize helm ## Build Fabric API (CRDs) Helm chart
 api-chart-push: api-chart-build helm ## Push Fabric API (CRDs) Helm chart
 	$(HELM) push $(API_HELM_PACKAGE) oci://$(OCI_REPO)/charts
 
+.PHONY: api-chart-install
+api-chart-install: api-chart-build helm ## Install Fabric API (CRDs) Helm chart
+	$(HELM) upgrade --install fabric-api $(API_HELM_PACKAGE)
+
 # .PHONY: api-helm-install
 # api-helm-install: api-helm-build helm ## Install Fabric API (CRDs) Helm chart
 # 	$(HELM) upgrade --install fabric-api $(API_HELM_PACKAGE)
