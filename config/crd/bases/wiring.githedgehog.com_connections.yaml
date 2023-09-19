@@ -98,6 +98,19 @@ spec:
                       type: object
                     minItems: 1
                     type: array
+                  sessionLink:
+                    properties:
+                      switch1:
+                        properties:
+                          port:
+                            type: string
+                        type: object
+                      switch2:
+                        properties:
+                          port:
+                            type: string
+                        type: object
+                    type: object
                 type: object
               unbundled:
                 properties:

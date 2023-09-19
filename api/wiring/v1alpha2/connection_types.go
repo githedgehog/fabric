@@ -76,7 +76,8 @@ type SwitchToSwitchLink struct {
 
 type ConnMCLAGDomain struct {
 	//+kubebuilder:validation:MinItems=1
-	Links []SwitchToSwitchLink `json:"links,omitempty"`
+	Links       []SwitchToSwitchLink `json:"links,omitempty"`       // TODO rename to PeerLinks or DataLinks?
+	SessionLink SwitchToSwitchLink   `json:"sessionLink,omitempty"` // TODO is it a good name? could it be multiple links too?
 }
 
 // ConnectionSpec defines the desired state of Connection

@@ -48,6 +48,47 @@ _Appears in:_
 | `connections` _object (keys:string, values:[ConnectionSpec](#connectionspec))_ |  |
 
 
+#### AgentStatus
+
+
+
+AgentStatus defines the observed state of Agent
+
+_Appears in:_
+- [Agent](#agent)
+
+| Field | Description |
+| --- | --- |
+| `nosInfo` _[NOSInfo](#nosinfo)_ |  |
+
+
+#### NOSInfo
+
+
+
+
+
+_Appears in:_
+- [AgentStatus](#agentstatus)
+
+| Field | Description |
+| --- | --- |
+| `asicVersion` _string_ |  |
+| `buildCommit` _string_ |  |
+| `buildDate` _string_ |  |
+| `builtBy` _string_ |  |
+| `configDbVersion` _string_ |  |
+| `distributionVersion` _string_ |  |
+| `hardwareVersion` _string_ |  |
+| `hwskuVersion` _string_ |  |
+| `kernelVersion` _string_ |  |
+| `mfgName` _string_ |  |
+| `platformName` _string_ |  |
+| `productDescription` _string_ |  |
+| `productVersion` _string_ |  |
+| `serialNumber` _string_ |  |
+| `softwareVersion` _string_ |  |
+| `upTime` _string_ |  |
 
 
 
@@ -186,6 +227,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+| `sessionLink` _[SwitchToSwitchLink](#switchtoswitchlink)_ |  |
 
 
 #### ConnMgmt

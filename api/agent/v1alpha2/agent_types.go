@@ -35,6 +35,27 @@ type AgentStatus struct {
 	// TODO
 	// Applied     bool        `json:"applied,omitempty"`
 	// LastApplied metav1.Time `json:"lastApplied,omitempty"`
+
+	NOSInfo NOSInfo `json:"nosInfo,omitempty"`
+}
+
+type NOSInfo struct {
+	AsicVersion         string `json:"asicVersion,omitempty"`
+	BuildCommit         string `json:"buildCommit,omitempty"`
+	BuildDate           string `json:"buildDate,omitempty"`
+	BuiltBy             string `json:"builtBy,omitempty"`
+	ConfigDbVersion     string `json:"configDbVersion,omitempty"`
+	DistributionVersion string `json:"distributionVersion,omitempty"`
+	HardwareVersion     string `json:"hardwareVersion,omitempty"`
+	HwskuVersion        string `json:"hwskuVersion,omitempty"`
+	KernelVersion       string `json:"kernelVersion,omitempty"`
+	MfgName             string `json:"mfgName,omitempty"`
+	PlatformName        string `json:"platformName,omitempty"`
+	ProductDescription  string `json:"productDescription,omitempty"`
+	ProductVersion      string `json:"productVersion,omitempty"`
+	SerialNumber        string `json:"serialNumber,omitempty"`
+	SoftwareVersion     string `json:"softwareVersion,omitempty"`
+	UpTime              string `json:"upTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true

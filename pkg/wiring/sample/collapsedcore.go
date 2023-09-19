@@ -151,6 +151,10 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet1"),
 				},
 			},
+			SessionLink: wiringapi.SwitchToSwitchLink{
+				Switch1: wiringapi.NewBasePortName("switch-1/Ethernet2"),
+				Switch2: wiringapi.NewBasePortName("switch-2/Ethernet2"),
+			},
 		},
 	})
 	if err != nil {
@@ -163,11 +167,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			Links: []wiringapi.ServerToSwitchLink{
 				{
 					Server: wiringapi.NewBasePortName("compute-1/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet2"),
+					Switch: wiringapi.NewBasePortName("switch-1/Ethernet3"),
 				},
 				{
 					Server: wiringapi.NewBasePortName("compute-1/nic0/port1"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet2"),
+					Switch: wiringapi.NewBasePortName("switch-2/Ethernet3"),
 				},
 			},
 		},
@@ -182,11 +186,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			Links: []wiringapi.ServerToSwitchLink{
 				{
 					Server: wiringapi.NewBasePortName("compute-2/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet3"),
+					Switch: wiringapi.NewBasePortName("switch-1/Ethernet4"),
 				},
 				{
 					Server: wiringapi.NewBasePortName("compute-2/nic0/port1"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet3"),
+					Switch: wiringapi.NewBasePortName("switch-2/Ethernet4"),
 				},
 			},
 		},
@@ -200,7 +204,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		Unbundled: &wiringapi.ConnUnbundled{
 			Link: wiringapi.ServerToSwitchLink{
 				Server: wiringapi.NewBasePortName("compute-3/nic0/port0"),
-				Switch: wiringapi.NewBasePortName("switch-1/Ethernet4"),
+				Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
 			},
 		},
 	})
@@ -213,7 +217,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		Unbundled: &wiringapi.ConnUnbundled{
 			Link: wiringapi.ServerToSwitchLink{
 				Server: wiringapi.NewBasePortName("compute-4/nic0/port0"),
-				Switch: wiringapi.NewBasePortName("switch-2/Ethernet4"),
+				Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
 			},
 		},
 	})
