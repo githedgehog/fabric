@@ -295,7 +295,7 @@ kind: Connection
 metadata:
   labels:
     rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/switch-1: "true"
+    switch.connection.fabric.githedgehog.com/switch-1: "true"
     switch.connection.fabric.githedgehog.com/switch-2: "true"
   name: switch-1--mclag-domain--switch-2
 spec:

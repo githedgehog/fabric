@@ -207,9 +207,12 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		res[ConnectionLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ConnectionLabelValue
 		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ConnectionLabelValue
 	} else if c.MCLAGDomain != nil {
-		// TODO add some checks? or just rely on validation
-		res[ConnectionLabel(ConnectionLabelTypeServer, c.MCLAGDomain.Links[0].Switch1.DeviceName())] = ConnectionLabelValue
-		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.MCLAGDomain.Links[0].Switch2.DeviceName())] = ConnectionLabelValue
+		for _, link := range c.MCLAGDomain.Links {
+			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ConnectionLabelValue
+			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ConnectionLabelValue
+		}
+		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.MCLAGDomain.SessionLink.Switch1.DeviceName())] = ConnectionLabelValue
+		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.MCLAGDomain.SessionLink.Switch2.DeviceName())] = ConnectionLabelValue
 	}
 	if c.MCLAG != nil {
 		for _, link := range c.MCLAG.Links {
