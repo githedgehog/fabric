@@ -34,11 +34,19 @@ spec:
           spec:
             description: VPCSpec defines the desired state of VPC
             properties:
+              dhcp:
+                properties:
+                  enable:
+                    type: boolean
+                type: object
               subnet:
                 type: string
             type: object
           status:
             description: VPCStatus defines the observed state of VPC
+            properties:
+              vlan:
+                type: integer
             type: object
         type: object
     served: true

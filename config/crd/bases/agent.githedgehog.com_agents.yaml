@@ -83,7 +83,7 @@ spec:
                       type: object
                     mclagDomain:
                       properties:
-                        links:
+                        peerLinks:
                           items:
                             properties:
                               switch1:
@@ -99,19 +99,21 @@ spec:
                             type: object
                           minItems: 1
                           type: array
-                        sessionLink:
-                          properties:
-                            switch1:
-                              properties:
-                                port:
-                                  type: string
-                              type: object
-                            switch2:
-                              properties:
-                                port:
-                                  type: string
-                              type: object
-                          type: object
+                        sessionLinks:
+                          items:
+                            properties:
+                              switch1:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch2:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          type: array
                       type: object
                     unbundled:
                       properties:
@@ -176,6 +178,42 @@ spec:
                     type: object
                   profile:
                     type: string
+                type: object
+              users:
+                items:
+                  properties:
+                    password:
+                      type: string
+                    role:
+                      type: string
+                    username:
+                      type: string
+                  type: object
+                type: array
+              vpcAttachments:
+                additionalProperties:
+                  description: VPCAttachmentSpec defines the desired state of VPCAttachment
+                  properties:
+                    connection:
+                      type: string
+                    vpc:
+                      type: string
+                  type: object
+                type: object
+              vpcVLANRange:
+                type: string
+              vpcs:
+                additionalProperties:
+                  description: VPCSpec defines the desired state of VPC
+                  properties:
+                    dhcp:
+                      properties:
+                        enable:
+                          type: boolean
+                      type: object
+                    subnet:
+                      type: string
+                  type: object
                 type: object
             type: object
           status:

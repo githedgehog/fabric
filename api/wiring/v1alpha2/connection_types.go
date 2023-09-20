@@ -76,8 +76,8 @@ type SwitchToSwitchLink struct {
 
 type ConnMCLAGDomain struct {
 	//+kubebuilder:validation:MinItems=1
-	Links       []SwitchToSwitchLink `json:"links,omitempty"`       // TODO rename to PeerLinks or DataLinks?
-	SessionLink SwitchToSwitchLink   `json:"sessionLink,omitempty"` // TODO is it a good name? could it be multiple links too?
+	PeerLinks    []SwitchToSwitchLink `json:"peerLinks,omitempty"`
+	SessionLinks []SwitchToSwitchLink `json:"sessionLinks,omitempty"`
 }
 
 // ConnectionSpec defines the desired state of Connection
@@ -165,9 +165,9 @@ func (c *ConnectionSpec) GenerateName() string {
 			right = []string{c.Management.Link.Switch.DeviceName()}
 		} else if c.MCLAGDomain != nil {
 			role = "mclag-domain"
-			left = c.MCLAGDomain.Links[0].Switch1.DeviceName()
-			right = []string{c.MCLAGDomain.Links[0].Switch2.DeviceName()}
-			for _, link := range c.MCLAGDomain.Links {
+			left = c.MCLAGDomain.PeerLinks[0].Switch1.DeviceName() // TODO check session links?
+			right = []string{c.MCLAGDomain.PeerLinks[0].Switch2.DeviceName()}
+			for _, link := range c.MCLAGDomain.PeerLinks {
 				// check that we have the same switches on both ends in each link // TODO add validation
 				if link.Switch1.DeviceName() != left {
 					return "<invalid>" // TODO replace with error?
@@ -207,12 +207,14 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		res[ConnectionLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ConnectionLabelValue
 		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ConnectionLabelValue
 	} else if c.MCLAGDomain != nil {
-		for _, link := range c.MCLAGDomain.Links {
+		for _, link := range c.MCLAGDomain.PeerLinks {
 			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ConnectionLabelValue
 			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ConnectionLabelValue
 		}
-		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.MCLAGDomain.SessionLink.Switch1.DeviceName())] = ConnectionLabelValue
-		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.MCLAGDomain.SessionLink.Switch2.DeviceName())] = ConnectionLabelValue
+		for _, link := range c.MCLAGDomain.SessionLinks {
+			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ConnectionLabelValue
+			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ConnectionLabelValue
+		}
 	}
 	if c.MCLAG != nil {
 		for _, link := range c.MCLAG.Links {

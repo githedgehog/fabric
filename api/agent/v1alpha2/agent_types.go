@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,9 +26,19 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ControlVIP  string                              `json:"controlVIP,omitempty"`
-	Switch      wiringapi.SwitchSpec                `json:"switch,omitempty"`
-	Connections map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	ControlVIP     string                              `json:"controlVIP,omitempty"`
+	Users          []UserCreds                         `json:"users,omitempty"`
+	Switch         wiringapi.SwitchSpec                `json:"switch,omitempty"`
+	Connections    map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	VPCs           map[string]vpcapi.VPCSpec           `json:"vpcs,omitempty"`
+	VPCAttachments map[string]vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
+	VPCVLANRange   string                              `json:"vpcVLANRange,omitempty"`
+}
+
+type UserCreds struct {
+	Name     string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Role     string `json:"role,omitempty"`
 }
 
 // AgentStatus defines the observed state of Agent

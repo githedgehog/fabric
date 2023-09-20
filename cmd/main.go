@@ -17,7 +17,9 @@ limitations under the License.
 package main
 
 import (
+	_ "embed"
 	"flag"
+	"log"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -54,7 +56,15 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+//go:embed motd.txt
+var motd []byte
+
 func main() {
+	_, err := os.Stdout.Write(motd)
+	if err != nil {
+		log.Fatal("failed to write motd:", err)
+	}
+
 	opts := zap.Options{
 		Development: true,
 	}

@@ -82,7 +82,7 @@ spec:
                 type: object
               mclagDomain:
                 properties:
-                  links:
+                  peerLinks:
                     items:
                       properties:
                         switch1:
@@ -98,19 +98,21 @@ spec:
                       type: object
                     minItems: 1
                     type: array
-                  sessionLink:
-                    properties:
-                      switch1:
-                        properties:
-                          port:
-                            type: string
-                        type: object
-                      switch2:
-                        properties:
-                          port:
-                            type: string
-                        type: object
-                    type: object
+                  sessionLinks:
+                    items:
+                      properties:
+                        switch1:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                        switch2:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                      type: object
+                    type: array
                 type: object
               unbundled:
                 properties:
