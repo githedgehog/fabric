@@ -141,7 +141,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	// MCLAG Domain peer link
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAGDomain: &wiringapi.ConnMCLAGDomain{
-			Links: []wiringapi.SwitchToSwitchLink{
+			PeerLinks: []wiringapi.SwitchToSwitchLink{
 				{
 					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet0"),
 					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet0"),
@@ -151,9 +151,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet1"),
 				},
 			},
-			SessionLink: wiringapi.SwitchToSwitchLink{
-				Switch1: wiringapi.NewBasePortName("switch-1/Ethernet2"),
-				Switch2: wiringapi.NewBasePortName("switch-2/Ethernet2"),
+			SessionLinks: []wiringapi.SwitchToSwitchLink{
+				{
+					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet2"),
+					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet2"),
+				},
 			},
 		},
 	})
