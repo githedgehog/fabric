@@ -2,5 +2,5 @@
 resources:
   - collapsedcore.vlab.gen.yaml
   - vpc_v1alpha2_vpc.yaml
-  - vpc_v1alpha2_vpcmember.yaml
+  - vpc_v1alpha2_vpcattachment.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

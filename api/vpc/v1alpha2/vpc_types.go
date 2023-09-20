@@ -24,11 +24,18 @@ import (
 
 // VPCSpec defines the desired state of VPC
 type VPCSpec struct {
-	Subnet string `json:"subnet,omitempty"` // TODO should it be list of subnets?
+	Subnet string  `json:"subnet,omitempty"`
+	DHCP   VPCDHCP `json:"dhcp,omitempty"`
+}
+
+type VPCDHCP struct {
+	Enable bool `json:"enable,omitempty"`
 }
 
 // VPCStatus defines the observed state of VPC
-type VPCStatus struct{}
+type VPCStatus struct {
+	VLAN uint16 `json:"vlan,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

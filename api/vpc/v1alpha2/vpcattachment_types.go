@@ -22,36 +22,38 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// VPCMemberSpec defines the desired state of VPCMember
-type VPCMemberSpec struct {
+// VPCAttachmentSpec defines the desired state of VPCAttachment
+type VPCAttachmentSpec struct {
 	VPC        string `json:"vpc,omitempty"`
 	Connection string `json:"connection,omitempty"`
 }
 
-// VPCMemberStatus defines the observed state of VPCMember
-type VPCMemberStatus struct{}
+// VPCAttachmentStatus defines the observed state of VPCAttachment
+type VPCAttachmentStatus struct {
+	// Ready bool `json:"ready,omitempty"` // TODO
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// VPCMember is the Schema for the vpcmembers API
-type VPCMember struct {
+// VPCAttachment is the Schema for the vpcattachments API
+type VPCAttachment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VPCMemberSpec   `json:"spec,omitempty"`
-	Status VPCMemberStatus `json:"status,omitempty"`
+	Spec   VPCAttachmentSpec   `json:"spec,omitempty"`
+	Status VPCAttachmentStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// VPCMemberList contains a list of VPCMember
-type VPCMemberList struct {
+// VPCAttachmentList contains a list of VPCAttachment
+type VPCAttachmentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VPCMember `json:"items"`
+	Items           []VPCAttachment `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&VPCMember{}, &VPCMemberList{})
+	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
 }

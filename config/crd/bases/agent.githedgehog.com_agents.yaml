@@ -83,7 +83,7 @@ spec:
                       type: object
                     mclagDomain:
                       properties:
-                        links:
+                        peerLinks:
                           items:
                             properties:
                               switch1:
@@ -98,6 +98,21 @@ spec:
                                 type: object
                             type: object
                           minItems: 1
+                          type: array
+                        sessionLinks:
+                          items:
+                            properties:
+                              switch1:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch2:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
                           type: array
                       type: object
                     unbundled:
@@ -164,9 +179,81 @@ spec:
                   profile:
                     type: string
                 type: object
+              users:
+                items:
+                  properties:
+                    password:
+                      type: string
+                    role:
+                      type: string
+                    username:
+                      type: string
+                  type: object
+                type: array
+              vpcAttachments:
+                additionalProperties:
+                  description: VPCAttachmentSpec defines the desired state of VPCAttachment
+                  properties:
+                    connection:
+                      type: string
+                    vpc:
+                      type: string
+                  type: object
+                type: object
+              vpcVLANRange:
+                type: string
+              vpcs:
+                additionalProperties:
+                  description: VPCSpec defines the desired state of VPC
+                  properties:
+                    dhcp:
+                      properties:
+                        enable:
+                          type: boolean
+                      type: object
+                    subnet:
+                      type: string
+                  type: object
+                type: object
             type: object
           status:
             description: AgentStatus defines the observed state of Agent
+            properties:
+              nosInfo:
+                properties:
+                  asicVersion:
+                    type: string
+                  buildCommit:
+                    type: string
+                  buildDate:
+                    type: string
+                  builtBy:
+                    type: string
+                  configDbVersion:
+                    type: string
+                  distributionVersion:
+                    type: string
+                  hardwareVersion:
+                    type: string
+                  hwskuVersion:
+                    type: string
+                  kernelVersion:
+                    type: string
+                  mfgName:
+                    type: string
+                  platformName:
+                    type: string
+                  productDescription:
+                    type: string
+                  productVersion:
+                    type: string
+                  serialNumber:
+                    type: string
+                  softwareVersion:
+                    type: string
+                  upTime:
+                    type: string
+                type: object
             type: object
         type: object
     served: true

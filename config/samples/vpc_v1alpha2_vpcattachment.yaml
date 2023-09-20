@@ -1,13 +1,12 @@
 apiVersion: vpc.githedgehog.com/v1alpha2
-kind: VPCMember
+kind: VPCAttachment
 metadata:
   labels:
-    app.kubernetes.io/name: vpcmember
-    app.kubernetes.io/instance: vpcmember-sample
+    app.kubernetes.io/name: vpcattachment
+    app.kubernetes.io/instance: vpcattachment-sample
     app.kubernetes.io/part-of: fabric
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: fabric
-  name: vpcmember-sample
+  name: vpcattachment-sample
 spec:
-  vpc: vpc-sample
-  connection: conn-sample
+  # TODO(user): Add fields here

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,9 +26,19 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ControlVIP  string                              `json:"controlVIP,omitempty"`
-	Switch      wiringapi.SwitchSpec                `json:"switch,omitempty"`
-	Connections map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	ControlVIP     string                              `json:"controlVIP,omitempty"`
+	Users          []UserCreds                         `json:"users,omitempty"`
+	Switch         wiringapi.SwitchSpec                `json:"switch,omitempty"`
+	Connections    map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	VPCs           map[string]vpcapi.VPCSpec           `json:"vpcs,omitempty"`
+	VPCAttachments map[string]vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
+	VPCVLANRange   string                              `json:"vpcVLANRange,omitempty"`
+}
+
+type UserCreds struct {
+	Name     string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Role     string `json:"role,omitempty"`
 }
 
 // AgentStatus defines the observed state of Agent
@@ -35,6 +46,27 @@ type AgentStatus struct {
 	// TODO
 	// Applied     bool        `json:"applied,omitempty"`
 	// LastApplied metav1.Time `json:"lastApplied,omitempty"`
+
+	NOSInfo NOSInfo `json:"nosInfo,omitempty"`
+}
+
+type NOSInfo struct {
+	AsicVersion         string `json:"asicVersion,omitempty"`
+	BuildCommit         string `json:"buildCommit,omitempty"`
+	BuildDate           string `json:"buildDate,omitempty"`
+	BuiltBy             string `json:"builtBy,omitempty"`
+	ConfigDbVersion     string `json:"configDbVersion,omitempty"`
+	DistributionVersion string `json:"distributionVersion,omitempty"`
+	HardwareVersion     string `json:"hardwareVersion,omitempty"`
+	HwskuVersion        string `json:"hwskuVersion,omitempty"`
+	KernelVersion       string `json:"kernelVersion,omitempty"`
+	MfgName             string `json:"mfgName,omitempty"`
+	PlatformName        string `json:"platformName,omitempty"`
+	ProductDescription  string `json:"productDescription,omitempty"`
+	ProductVersion      string `json:"productVersion,omitempty"`
+	SerialNumber        string `json:"serialNumber,omitempty"`
+	SoftwareVersion     string `json:"softwareVersion,omitempty"`
+	UpTime              string `json:"upTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true

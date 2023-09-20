@@ -1,4 +1,4 @@
-templates
+templates/*.yaml
 charts
 .helmignore
 values.yaml

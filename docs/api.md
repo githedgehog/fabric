@@ -44,10 +44,71 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `controlVIP` _string_ |  |
+| `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
 | `connections` _object (keys:string, values:[ConnectionSpec](#connectionspec))_ |  |
+| `vpcs` _object (keys:string, values:[VPCSpec](#vpcspec))_ |  |
+| `vpcAttachments` _object (keys:string, values:[VPCAttachmentSpec](#vpcattachmentspec))_ |  |
+| `vpcVLANRange` _string_ |  |
 
 
+#### AgentStatus
+
+
+
+AgentStatus defines the observed state of Agent
+
+_Appears in:_
+- [Agent](#agent)
+
+| Field | Description |
+| --- | --- |
+| `nosInfo` _[NOSInfo](#nosinfo)_ |  |
+
+
+#### NOSInfo
+
+
+
+
+
+_Appears in:_
+- [AgentStatus](#agentstatus)
+
+| Field | Description |
+| --- | --- |
+| `asicVersion` _string_ |  |
+| `buildCommit` _string_ |  |
+| `buildDate` _string_ |  |
+| `builtBy` _string_ |  |
+| `configDbVersion` _string_ |  |
+| `distributionVersion` _string_ |  |
+| `hardwareVersion` _string_ |  |
+| `hwskuVersion` _string_ |  |
+| `kernelVersion` _string_ |  |
+| `mfgName` _string_ |  |
+| `platformName` _string_ |  |
+| `productDescription` _string_ |  |
+| `productVersion` _string_ |  |
+| `serialNumber` _string_ |  |
+| `softwareVersion` _string_ |  |
+| `upTime` _string_ |  |
+
+
+#### UserCreds
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `username` _string_ |  |
+| `password` _string_ |  |
+| `role` _string_ |  |
 
 
 
@@ -57,7 +118,7 @@ Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 
 ### Resource Types
 - [VPC](#vpc)
-- [VPCMember](#vpcmember)
+- [VPCAttachment](#vpcattachment)
 
 
 
@@ -78,31 +139,32 @@ VPC is the Schema for the vpcs API
 | `status` _[VPCStatus](#vpcstatus)_ |  |
 
 
-#### VPCMember
+#### VPCAttachment
 
 
 
-VPCMember is the Schema for the vpcmembers API
+VPCAttachment is the Schema for the vpcattachments API
 
 
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
-| `kind` _string_ | `VPCMember`
+| `kind` _string_ | `VPCAttachment`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[VPCMemberSpec](#vpcmemberspec)_ |  |
-| `status` _[VPCMemberStatus](#vpcmemberstatus)_ |  |
+| `spec` _[VPCAttachmentSpec](#vpcattachmentspec)_ |  |
+| `status` _[VPCAttachmentStatus](#vpcattachmentstatus)_ |  |
 
 
-#### VPCMemberSpec
+#### VPCAttachmentSpec
 
 
 
-VPCMemberSpec defines the desired state of VPCMember
+VPCAttachmentSpec defines the desired state of VPCAttachment
 
 _Appears in:_
-- [VPCMember](#vpcmember)
+- [AgentSpec](#agentspec)
+- [VPCAttachment](#vpcattachment)
 
 | Field | Description |
 | --- | --- |
@@ -112,6 +174,20 @@ _Appears in:_
 
 
 
+#### VPCDHCP
+
+
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description |
+| --- | --- |
+| `enable` _boolean_ |  |
+
+
 #### VPCSpec
 
 
@@ -119,13 +195,27 @@ _Appears in:_
 VPCSpec defines the desired state of VPC
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [VPC](#vpc)
 
 | Field | Description |
 | --- | --- |
 | `subnet` _string_ |  |
+| `dhcp` _[VPCDHCP](#vpcdhcp)_ |  |
 
 
+#### VPCStatus
+
+
+
+VPCStatus defines the observed state of VPC
+
+_Appears in:_
+- [VPC](#vpc)
+
+| Field | Description |
+| --- | --- |
+| `vlan` _integer_ |  |
 
 
 
@@ -185,7 +275,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+| `peerLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+| `sessionLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
 
 
 #### ConnMgmt

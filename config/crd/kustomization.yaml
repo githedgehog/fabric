@@ -10,7 +10,7 @@ resources:
   - bases/wiring.githedgehog.com_switchprofiles.yaml
   - bases/wiring.githedgehog.com_serverprofiles.yaml
   - bases/vpc.githedgehog.com_vpcs.yaml
-  - bases/vpc.githedgehog.com_vpcmembers.yaml
+  - bases/vpc.githedgehog.com_vpcattachments.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -24,7 +24,7 @@ patches:
 #- path: patches/webhook_in_switchprofiles.yaml
 #- path: patches/webhook_in_serverprofiles.yaml
 #- path: patches/webhook_in_vpcs.yaml
-#- path: patches/webhook_in_vpcmembers.yaml
+#- path: patches/webhook_in_vpc_vpcattachments.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
@@ -37,7 +37,7 @@ patches:
 #- path: patches/cainjection_in_switchprofiles.yaml
 #- path: patches/cainjection_in_serverprofiles.yaml
 #- path: patches/cainjection_in_vpcs.yaml
-#- path: patches/cainjection_in_vpcmembers.yaml
+#- path: patches/cainjection_in_vpc_vpcattachments.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

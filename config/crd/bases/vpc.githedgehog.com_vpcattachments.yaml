@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
-  name: vpcmembers.vpc.githedgehog.com
+  name: vpcattachments.vpc.githedgehog.com
 spec:
   group: vpc.githedgehog.com
   names:
-    kind: VPCMember
-    listKind: VPCMemberList
-    plural: vpcmembers
-    singular: vpcmember
+    kind: VPCAttachment
+    listKind: VPCAttachmentList
+    plural: vpcattachments
+    singular: vpcattachment
   scope: Namespaced
   versions:
   - name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: VPCMember is the Schema for the vpcmembers API
+        description: VPCAttachment is the Schema for the vpcattachments API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -32,7 +32,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: VPCMemberSpec defines the desired state of VPCMember
+            description: VPCAttachmentSpec defines the desired state of VPCAttachment
             properties:
               connection:
                 type: string
@@ -40,7 +40,7 @@ spec:
                 type: string
             type: object
           status:
-            description: VPCMemberStatus defines the observed state of VPCMember
+            description: VPCAttachmentStatus defines the observed state of VPCAttachment
             type: object
         type: object
     served: true

@@ -46,7 +46,8 @@ import (
 )
 
 type AgentControllerConfig struct {
-	APIServer string `json:"apiServer,omitempty"`
+	ControlVIP string `json:"controlVIP,omitempty"`
+	APIServer  string `json:"apiServer,omitempty"`
 }
 
 // AgentReconciler reconciles a Agent object
@@ -156,6 +157,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if agent.Labels == nil {
 			agent.Labels = map[string]string{}
 		}
+
+		agent.Spec.ControlVIP = r.Cfg.ControlVIP
 
 		agent.Labels[wiringapi.LabelRack] = sw.Labels[wiringapi.LabelRack]
 		agent.Labels[wiringapi.LabelSwitch] = sw.Name
