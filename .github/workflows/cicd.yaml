@@ -151,6 +151,7 @@ jobs:
   publish-helm-crd:
     # runs-on: ["lab", "simple", "jammy"]
     runs-on: ubuntu-latest
+    if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
     needs:
       - cache-tools
       - lint-and-dump
@@ -182,7 +183,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Images, Helm charts and Bins on release
-        if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
         run: |
           OCI_REPO=ghcr.io/githedgehog/fabric make api-chart-push fabric-chart-push fabric-image-push agent-push
 
