@@ -21,9 +21,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -31,7 +30,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,12 +43,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/yaml"
+)
+
+const (
+	AGENT_CTRL_CONFIG = "agent-ctrl-config.yaml"
 )
 
 type AgentControllerConfig struct {
-	ControlVIP string `json:"controlVIP,omitempty"`
-	APIServer  string `json:"apiServer,omitempty"`
+	ControlVIP   string               `json:"controlVIP,omitempty"`
+	APIServer    string               `json:"apiServer,omitempty"`
+	VPCVLANRange common.VLANRange     `json:"vpcVLANRange,omitempty"`
+	Users        []agentapi.UserCreds `json:"users,omitempty"`
 }
 
 // AgentReconciler reconciles a Agent object
@@ -59,20 +65,21 @@ type AgentReconciler struct {
 
 func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 	cfg := &AgentControllerConfig{}
-
-	data, err := os.ReadFile(filepath.Join(cfgBasedir, "agent-ctrl-config.yaml"))
+	err := common.LoadCtrlConfig(cfgBasedir, AGENT_CTRL_CONFIG, cfg)
 	if err != nil {
-		return errors.Wrapf(err, "error reading config")
+		return err
 	}
 
-	err = yaml.Unmarshal(data, cfg)
-	if err != nil {
-		return errors.Wrapf(err, "error unmarshalling config")
+	if cfg.ControlVIP == "" {
+		return errors.Errorf("config: controlVIP is required")
 	}
-
 	if cfg.APIServer == "" {
-		cfg.APIServer = "127.0.0.1:6443"
+		return errors.Errorf("config: apiServer is required")
 	}
+	if err := cfg.VPCVLANRange.Validate(); err != nil {
+		return errors.Wrapf(err, "config: vpcVLANRange is invalid")
+	}
+	// TODO reserve some VLANs?
 
 	r := &AgentReconciler{
 		Client: mgr.GetClient(),
@@ -82,20 +89,22 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&wiringapi.Switch{}).
-		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForConnectionByLabel)).
+		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
+		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
+		// TODO enque for rack changes?
 		Complete(r)
 }
 
-func (r *AgentReconciler) enqueueForConnectionByLabel(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
 
 	// extract to var
-	switchConnPrefix := wiringapi.ConnectionLabelPrefix(wiringapi.ConnectionLabelTypeSwitch)
+	switchConnPrefix := wiringapi.ListLabelPrefix(wiringapi.ConnectionLabelTypeSwitch)
 
 	for label, val := range labels {
-		if val != wiringapi.ConnectionLabelValue {
+		if val != wiringapi.ListLabelValue {
 			continue
 		}
 
@@ -111,6 +120,34 @@ func (r *AgentReconciler) enqueueForConnectionByLabel(ctx context.Context, obj c
 	return res
 }
 
+// func (r *AgentReconciler) enqueueSwitchForRack(obj client.Object) []reconcile.Request {
+// 	switches := &wiringapi.SwitchList{}
+// 	selector, err := labels.ValidatedSelectorFromSet(map[string]string{
+// 		wiringapi.LabelRack: obj.GetName(),
+// 	})
+// 	if err != nil {
+// 		// return ctrl.Result{}, errors.Wrapf(err, "error creating switch selector")
+// 		panic("error creating switch selector") // TODO replace with log error
+// 	}
+// 	err = r.List(context.TODO(), switches, client.InNamespace(obj.GetNamespace()), client.MatchingLabelsSelector{
+// 		Selector: selector,
+// 	})
+// 	if err != nil {
+// 		// return ctrl.Result{}, errors.Wrapf(err, "error getting switches")
+// 		panic("error getting switches") // TODO replace with log error
+// 	}
+
+// 	requests := []reconcile.Request{}
+// 	for _, sw := range switches.Items {
+// 		requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{
+// 			Namespace: obj.GetNamespace(),
+// 			Name:      sw.Name,
+// 		}})
+// 	}
+
+// 	return requests
+// }
+
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/status,verbs=get;get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/finalizers,verbs=update
@@ -121,13 +158,18 @@ func (r *AgentReconciler) enqueueForConnectionByLabel(ctx context.Context, obj c
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get
+
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	l := log.FromContext(ctx)
 
 	// TODO make some queueing for switch updates as we're calling reconsile for every switch and its ports changes
 	// seems like it's doing a good job compacting reconcilation queue, so, not high priority
@@ -146,14 +188,89 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
 
-	conns := &wiringapi.ConnectionList{}
-	err = r.List(ctx, conns, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForSwitchConnections(sw.Name))
+	connList := &wiringapi.ConnectionList{}
+	err = r.List(ctx, connList, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
+	conns := []agentapi.ConnectionInfo{}
+	for _, conn := range connList.Items {
+		conns = append(conns, agentapi.ConnectionInfo{
+			Name: conn.Name,
+			Spec: conn.Spec,
+		})
+	}
+	sort.Slice(conns, func(i, j int) bool {
+		return conns[i].Name < conns[j].Name
+	})
+
+	vpcAtts := &vpcapi.VPCAttachmentList{}
+	err = r.List(ctx, vpcAtts, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting switch vpc attachments")
+	}
+
+	vpcOk := map[string]bool{}
+	vpcs := []agentapi.VPCInfo{}
+	for _, att := range vpcAtts.Items {
+		vpcName := att.Spec.VPC
+
+		if vpcOk[vpcName] {
+			continue
+		}
+
+		conn := &wiringapi.Connection{}
+		err := r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: att.Spec.Connection}, conn)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting connection %s for attach %s", att.Spec.Connection, att.Name)
+		}
+
+		ok := false
+		if conn.Spec.Unbundled != nil {
+			if conn.Spec.Unbundled.Link.Server.DeviceName() == sw.Name {
+				ok = true
+			}
+		} else if conn.Spec.MCLAG != nil {
+			for _, link := range conn.Spec.MCLAG.Links {
+				if link.Switch.DeviceName() == sw.Name {
+					ok = true
+					break
+				}
+			}
+		}
+		if !ok {
+			continue
+		}
+
+		vpc := &vpcapi.VPC{}
+		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: vpcName}, vpc)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s for attach %s", vpcName, att.Name)
+		}
+
+		if vpc.Status.VLAN == 0 {
+			l.Info("vpc doesn't have vlan assigned, skipping", "vpc", vpcName)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil // errors.Errorf("vpc %s doesn't have vlan assigned", vpcName)
+		}
+		if vpc.Status.VLAN < r.Cfg.VPCVLANRange.Min || vpc.Status.VLAN > r.Cfg.VPCVLANRange.Max {
+			return ctrl.Result{}, errors.Errorf("vpc %s vlan %d is out of range %d..%d", vpcName, vpc.Status.VLAN, r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
+		}
+
+		vpcs = append(vpcs, agentapi.VPCInfo{
+			Name: vpcName,
+			VLAN: vpc.Status.VLAN,
+			Spec: vpc.Spec,
+		})
+
+		vpcOk[vpcName] = true
+	}
+	sort.Slice(vpcs, func(i, j int) bool {
+		return vpcs[i].Name < vpcs[j].Name
+	})
+
 	agent := &agentapi.Agent{}
-	err = Enforce(log, r, ctx, agentKey(req.NamespacedName), agent, func(agent *agentapi.Agent) {
+	err = Enforce(l, r, ctx, agentKey(req.NamespacedName), agent, func(agent *agentapi.Agent) {
 		if agent.Labels == nil {
 			agent.Labels = map[string]string{}
 		}
@@ -163,35 +280,34 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Labels[wiringapi.LabelRack] = sw.Labels[wiringapi.LabelRack]
 		agent.Labels[wiringapi.LabelSwitch] = sw.Name
 
-		// TODO would it change all the time b/c of the map order?
 		agent.Spec.Switch = sw.Spec
-		agent.Spec.Connections = map[string]wiringapi.ConnectionSpec{}
-		for _, conn := range conns.Items {
-			agent.Spec.Connections[conn.Name] = conn.Spec
-		}
+		agent.Spec.Connections = conns
+		agent.Spec.VPCs = vpcs
+		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
+		agent.Spec.Users = r.Cfg.Users
 	})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	sa := &corev1.ServiceAccount{}
-	err = Enforce(log, r, ctx, saKey(req.NamespacedName), sa, func(sa *corev1.ServiceAccount) {})
+	err = Enforce(l, r, ctx, saKey(req.NamespacedName), sa, func(sa *corev1.ServiceAccount) {})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	role := &rbacv1.Role{}
-	err = Enforce(log, r, ctx, roleKey(req.NamespacedName), role, func(role *rbacv1.Role) {
+	err = Enforce(l, r, ctx, roleKey(req.NamespacedName), role, func(role *rbacv1.Role) {
 		role.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups:     []string{agentapi.GroupVersion.Group},
-				Resources:     []string{"agents"}, // TODO extract to agent repo
+				Resources:     []string{"agents"},
 				ResourceNames: []string{agent.Name},
 				Verbs:         []string{"get", "watch"},
 			},
 			{
 				APIGroups:     []string{agentapi.GroupVersion.Group},
-				Resources:     []string{"agents/status"}, // TODO extract to agent repo
+				Resources:     []string{"agents/status"},
 				ResourceNames: []string{agent.Name},
 				Verbs:         []string{"get", "list", "watch", "create", "update", "patch", "delete"},
 			},
@@ -202,7 +318,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	roleBinding := &rbacv1.RoleBinding{}
-	err = Enforce(log, r, ctx, roleBindingKey(req.NamespacedName), roleBinding, func(roleBinding *rbacv1.RoleBinding) {
+	err = Enforce(l, r, ctx, roleBindingKey(req.NamespacedName), roleBinding, func(roleBinding *rbacv1.RoleBinding) {
 		roleBinding.Subjects = []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
@@ -221,7 +337,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	kubeconfig := &corev1.Secret{}
-	err = Enforce(log, r, ctx, kubeconfigKey(req.NamespacedName), kubeconfig, func(secret *corev1.Secret) {
+	err = Enforce(l, r, ctx, kubeconfigKey(req.NamespacedName), kubeconfig, func(secret *corev1.Secret) {
 		if secret.Annotations == nil {
 			secret.Annotations = map[string]string{}
 		}
@@ -261,34 +377,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	return ctrl.Result{}, nil
 }
-
-// func (r *AgentReconciler) enqueueSwitchForRack(obj client.Object) []reconcile.Request {
-// 	switches := &wiringapi.SwitchList{}
-// 	selector, err := labels.ValidatedSelectorFromSet(map[string]string{
-// 		wiringapi.LabelRack: obj.GetName(),
-// 	})
-// 	if err != nil {
-// 		// return ctrl.Result{}, errors.Wrapf(err, "error creating switch selector")
-// 		panic("error creating switch selector") // TODO replace with log error
-// 	}
-// 	err = r.List(context.TODO(), switches, client.InNamespace(obj.GetNamespace()), client.MatchingLabelsSelector{
-// 		Selector: selector,
-// 	})
-// 	if err != nil {
-// 		// return ctrl.Result{}, errors.Wrapf(err, "error getting switches")
-// 		panic("error getting switches") // TODO replace with log error
-// 	}
-
-// 	requests := []reconcile.Request{}
-// 	for _, sw := range switches.Items {
-// 		requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{
-// 			Namespace: obj.GetNamespace(),
-// 			Name:      sw.Name,
-// 		}})
-// 	}
-
-// 	return requests
-// }
 
 func Enforce[T client.Object](log logr.Logger, r *AgentReconciler, ctx context.Context, key client.ObjectKey, obj T, set func(T)) error {
 	create := false

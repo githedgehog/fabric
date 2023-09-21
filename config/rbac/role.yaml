@@ -83,6 +83,46 @@ rules:
   - update
   - watch
 - apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcattachments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcattachments/status
+  verbs:
+  - get
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - wiring.githedgehog.com
   resources:
   - connections

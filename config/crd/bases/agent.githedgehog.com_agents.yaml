@@ -35,104 +35,109 @@ spec:
             description: AgentSpec defines the desired state of Agent
             properties:
               connections:
-                additionalProperties:
-                  description: ConnectionSpec defines the desired state of Connection
+                items:
                   properties:
-                    management:
+                    name:
+                      type: string
+                    spec:
+                      description: ConnectionSpec defines the desired state of Connection
                       properties:
-                        link:
+                        management:
                           properties:
-                            server:
+                            link:
                               properties:
-                                ip:
-                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                  type: string
-                                port:
-                                  type: string
-                              type: object
-                            switch:
-                              properties:
-                                ip:
-                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                  type: string
-                                oniePortName:
-                                  type: string
-                                port:
-                                  type: string
+                                server:
+                                  properties:
+                                    ip:
+                                      pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                      type: string
+                                    port:
+                                      type: string
+                                  type: object
+                                switch:
+                                  properties:
+                                    ip:
+                                      pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                      type: string
+                                    oniePortName:
+                                      type: string
+                                    port:
+                                      type: string
+                                  type: object
                               type: object
                           type: object
-                      type: object
-                    mclag:
-                      properties:
-                        links:
-                          items:
-                            properties:
-                              server:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                              switch:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          minItems: 2
-                          type: array
-                      type: object
-                    mclagDomain:
-                      properties:
-                        peerLinks:
-                          items:
-                            properties:
-                              switch1:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                              switch2:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          minItems: 1
-                          type: array
-                        sessionLinks:
-                          items:
-                            properties:
-                              switch1:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                              switch2:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          type: array
-                      type: object
-                    unbundled:
-                      properties:
-                        link:
+                        mclag:
                           properties:
-                            server:
+                            links:
+                              items:
+                                properties:
+                                  server:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              minItems: 2
+                              type: array
+                          type: object
+                        mclagDomain:
+                          properties:
+                            peerLinks:
+                              items:
+                                properties:
+                                  switch1:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch2:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              minItems: 1
+                              type: array
+                            sessionLinks:
+                              items:
+                                properties:
+                                  switch1:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch2:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              type: array
+                          type: object
+                        unbundled:
+                          properties:
+                            link:
                               properties:
-                                port:
-                                  type: string
-                              type: object
-                            switch:
-                              properties:
-                                port:
-                                  type: string
+                                server:
+                                  properties:
+                                    port:
+                                      type: string
+                                  type: object
+                                switch:
+                                  properties:
+                                    port:
+                                      type: string
+                                  type: object
                               type: object
                           type: object
                       type: object
                   type: object
-                type: object
+                type: array
               controlVIP:
                 type: string
               switch:
@@ -190,31 +195,28 @@ spec:
                       type: string
                   type: object
                 type: array
-              vpcAttachments:
-                additionalProperties:
-                  description: VPCAttachmentSpec defines the desired state of VPCAttachment
-                  properties:
-                    connection:
-                      type: string
-                    vpc:
-                      type: string
-                  type: object
-                type: object
               vpcVLANRange:
                 type: string
               vpcs:
-                additionalProperties:
-                  description: VPCSpec defines the desired state of VPC
+                items:
                   properties:
-                    dhcp:
-                      properties:
-                        enable:
-                          type: boolean
-                      type: object
-                    subnet:
+                    name:
                       type: string
+                    spec:
+                      description: VPCSpec defines the desired state of VPC
+                      properties:
+                        dhcp:
+                          properties:
+                            enable:
+                              type: boolean
+                          type: object
+                        subnet:
+                          type: string
+                      type: object
+                    vlan:
+                      type: integer
                   type: object
-                type: object
+                type: array
             type: object
           status:
             description: AgentStatus defines the observed state of Agent

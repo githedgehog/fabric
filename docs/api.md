@@ -46,9 +46,8 @@ _Appears in:_
 | `controlVIP` _string_ |  |
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
-| `connections` _object (keys:string, values:[ConnectionSpec](#connectionspec))_ |  |
-| `vpcs` _object (keys:string, values:[VPCSpec](#vpcspec))_ |  |
-| `vpcAttachments` _object (keys:string, values:[VPCAttachmentSpec](#vpcattachmentspec))_ |  |
+| `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
+| `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
 | `vpcVLANRange` _string_ |  |
 
 
@@ -64,6 +63,21 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `nosInfo` _[NOSInfo](#nosinfo)_ |  |
+
+
+#### ConnectionInfo
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `spec` _[ConnectionSpec](#connectionspec)_ |  |
 
 
 #### NOSInfo
@@ -109,6 +123,22 @@ _Appears in:_
 | `username` _string_ |  |
 | `password` _string_ |  |
 | `role` _string_ |  |
+
+
+#### VPCInfo
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `vlan` _integer_ |  |
+| `spec` _[VPCSpec](#vpcspec)_ |  |
 
 
 
@@ -163,7 +193,6 @@ VPCAttachment is the Schema for the vpcattachments API
 VPCAttachmentSpec defines the desired state of VPCAttachment
 
 _Appears in:_
-- [AgentSpec](#agentspec)
 - [VPCAttachment](#vpcattachment)
 
 | Field | Description |
@@ -195,8 +224,8 @@ _Appears in:_
 VPCSpec defines the desired state of VPC
 
 _Appears in:_
-- [AgentSpec](#agentspec)
 - [VPC](#vpc)
+- [VPCInfo](#vpcinfo)
 
 | Field | Description |
 | --- | --- |
@@ -377,8 +406,8 @@ Connection is the Schema for the connections API
 ConnectionSpec defines the desired state of Connection
 
 _Appears in:_
-- [AgentSpec](#agentspec)
 - [Connection](#connection)
+- [ConnectionInfo](#connectioninfo)
 
 | Field | Description |
 | --- | --- |

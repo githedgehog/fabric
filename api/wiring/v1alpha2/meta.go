@@ -7,6 +7,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	PORT_NAME_SEPARATOR = "/"
+)
+
 var (
 	// TODO should it be same as group name? or just standard prefix for all APIs?
 	LabelPrefix               = "fabric.githedgehog.com/"
@@ -14,7 +18,7 @@ var (
 	LabelSwitch               = LabelName("switch")
 	LabelServer               = LabelName("server")
 	LabelLocation             = LabelName("location")
-	ConnectionLabelValue      = "true"
+	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
 	ConnectionLabelTypeRack   = "rack"
@@ -24,23 +28,35 @@ func LabelName(name string) string {
 	return LabelPrefix + name
 }
 
-func ConnectionLabelPrefix(deviceType string) string {
-	return deviceType + ".connection." + LabelPrefix
+func ListLabelPrefix(listType string) string {
+	return listType + "." + LabelPrefix
 }
 
-func ConnectionLabel(deviceType, deviceName string) string {
-	return ConnectionLabelPrefix(deviceType) + deviceName
+func ListLabel(listType, val string) string {
+	return ListLabelPrefix(listType) + val
 }
 
-func MatchingLabelsForServerConnections(serverName string) client.MatchingLabels {
+func ListLabelServer(serverName string) string {
+	return ListLabel(ConnectionLabelTypeServer, serverName)
+}
+
+func ListLabelSwitch(switchName string) string {
+	return ListLabel(ConnectionLabelTypeSwitch, switchName)
+}
+
+func ListLabelRack(rackName string) string {
+	return ListLabel(ConnectionLabelTypeRack, rackName)
+}
+
+func MatchingLabelsForListLabelServer(serverName string) client.MatchingLabels {
 	return client.MatchingLabels{
-		ConnectionLabel(ConnectionLabelTypeServer, serverName): ConnectionLabelValue,
+		ListLabel(ConnectionLabelTypeServer, serverName): ListLabelValue,
 	}
 }
 
-func MatchingLabelsForSwitchConnections(switchName string) client.MatchingLabels {
+func MatchingLabelsForListLabelSwitch(switchName string) client.MatchingLabels {
 	return client.MatchingLabels{
-		ConnectionLabel(ConnectionLabelTypeSwitch, switchName): ConnectionLabelValue,
+		ListLabel(ConnectionLabelTypeSwitch, switchName): ListLabelValue,
 	}
 }
 

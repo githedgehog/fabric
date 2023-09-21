@@ -164,10 +164,10 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/compute-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-2: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/compute-1: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
   name: compute-1--mclag--switch-1--switch-2
 spec:
   mclag:
@@ -188,10 +188,10 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/compute-2: "true"
-    switch.connection.fabric.githedgehog.com/switch-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-2: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/compute-2: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
   name: compute-2--mclag--switch-1--switch-2
 spec:
   mclag:
@@ -212,9 +212,9 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/compute-3: "true"
-    switch.connection.fabric.githedgehog.com/switch-1: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/compute-3: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
   name: compute-3--unbundled--switch-1
 spec:
   unbundled:
@@ -231,9 +231,9 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/compute-4: "true"
-    switch.connection.fabric.githedgehog.com/switch-2: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/compute-4: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
   name: compute-4--unbundled--switch-2
 spec:
   unbundled:
@@ -250,9 +250,9 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/control-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-1: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/control-1: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
   name: control-1--mgmt--switch-1
 spec:
   management:
@@ -272,9 +272,9 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    server.connection.fabric.githedgehog.com/control-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-2: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/control-1: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
   name: control-1--mgmt--switch-2
 spec:
   management:
@@ -294,9 +294,9 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    rack.connection.fabric.githedgehog.com/rack-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-1: "true"
-    switch.connection.fabric.githedgehog.com/switch-2: "true"
+    rack.fabric.githedgehog.com/rack-1: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
   name: switch-1--mclag-domain--switch-2
 spec:
   mclagDomain:

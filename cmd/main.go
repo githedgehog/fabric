@@ -39,6 +39,7 @@ import (
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
+	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -105,6 +106,10 @@ func main() {
 
 	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
+		os.Exit(1)
+	}
+	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VPC")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

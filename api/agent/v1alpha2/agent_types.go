@@ -26,19 +26,29 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ControlVIP     string                              `json:"controlVIP,omitempty"`
-	Users          []UserCreds                         `json:"users,omitempty"`
-	Switch         wiringapi.SwitchSpec                `json:"switch,omitempty"`
-	Connections    map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
-	VPCs           map[string]vpcapi.VPCSpec           `json:"vpcs,omitempty"`
-	VPCAttachments map[string]vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
-	VPCVLANRange   string                              `json:"vpcVLANRange,omitempty"`
+	ControlVIP   string               `json:"controlVIP,omitempty"`
+	Users        []UserCreds          `json:"users,omitempty"`
+	Switch       wiringapi.SwitchSpec `json:"switch,omitempty"`
+	Connections  []ConnectionInfo     `json:"connections,omitempty"`
+	VPCs         []VPCInfo            `json:"vpcs,omitempty"`
+	VPCVLANRange string               `json:"vpcVLANRange,omitempty"`
 }
 
 type UserCreds struct {
 	Name     string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	Role     string `json:"role,omitempty"`
+}
+
+type ConnectionInfo struct {
+	Name string                   `json:"name,omitempty"`
+	Spec wiringapi.ConnectionSpec `json:"spec,omitempty"`
+}
+
+type VPCInfo struct {
+	Name string         `json:"name,omitempty"`
+	VLAN uint16         `json:"vlan,omitempty"`
+	Spec vpcapi.VPCSpec `json:"spec,omitempty"`
 }
 
 // AgentStatus defines the observed state of Agent

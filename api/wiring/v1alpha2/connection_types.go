@@ -25,10 +25,6 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-const (
-	PORT_NAME_SEPARATOR = "/"
-)
-
 type BasePortName struct {
 	Port string `json:"port,omitempty"`
 }
@@ -201,25 +197,25 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	res := map[string]string{}
 
 	if c.Unbundled != nil {
-		res[ConnectionLabel(ConnectionLabelTypeServer, c.Unbundled.Link.Server.DeviceName())] = ConnectionLabelValue
-		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.Unbundled.Link.Switch.DeviceName())] = ConnectionLabelValue
+		res[ListLabel(ConnectionLabelTypeServer, c.Unbundled.Link.Server.DeviceName())] = ListLabelValue
+		res[ListLabel(ConnectionLabelTypeSwitch, c.Unbundled.Link.Switch.DeviceName())] = ListLabelValue
 	} else if c.Management != nil {
-		res[ConnectionLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ConnectionLabelValue
-		res[ConnectionLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ConnectionLabelValue
+		res[ListLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ListLabelValue
+		res[ListLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ListLabelValue
 	} else if c.MCLAGDomain != nil {
 		for _, link := range c.MCLAGDomain.PeerLinks {
-			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ConnectionLabelValue
-			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ConnectionLabelValue
+			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ListLabelValue
+			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ListLabelValue
 		}
 		for _, link := range c.MCLAGDomain.SessionLinks {
-			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ConnectionLabelValue
-			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ConnectionLabelValue
+			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ListLabelValue
+			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ListLabelValue
 		}
 	}
 	if c.MCLAG != nil {
 		for _, link := range c.MCLAG.Links {
-			res[ConnectionLabel(ConnectionLabelTypeServer, link.Server.DeviceName())] = ConnectionLabelValue
-			res[ConnectionLabel(ConnectionLabelTypeSwitch, link.Switch.DeviceName())] = ConnectionLabelValue
+			res[ListLabel(ConnectionLabelTypeServer, link.Server.DeviceName())] = ListLabelValue
+			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch.DeviceName())] = ListLabelValue
 		}
 	}
 

@@ -17,24 +17,161 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	_ "embed"
 	"fmt"
+	"log"
+	"log/slog"
 	"os"
+	"time"
 
+	"github.com/lmittmann/tint"
+	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/agent"
+	"go.githedgehog.com/fabric/pkg/agent/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
-	"go.uber.org/zap"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+const (
+	DEFAULT_BASEDIR            = "/etc/sonic/hedgehog/"
+	DEFAULT_BIN_PATH           = "/opt/hedgehog/bin/agent"
+	DEFAULT_AGENT_SERVICE_USER = "root"
+)
+
+//go:embed motd.txt
+var motd []byte
+
+var version = "(devel)"
+
+func setupLogger(verbose bool) error {
+	logLevel := slog.LevelInfo
+	if verbose {
+		logLevel = slog.LevelDebug
+	}
+
+	logW := os.Stdout
+	logger := slog.New(
+		tint.NewHandler(logW, &tint.Options{
+			Level:      logLevel,
+			TimeFormat: time.DateTime,
+			NoColor:    !isatty.IsTerminal(logW.Fd()),
+		}),
+	)
+	slog.SetDefault(logger)
+
+	return nil
+}
+
 func main() {
+	_, err := os.Stdout.Write(motd)
+	if err != nil {
+		log.Fatal("failed to write motd:", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var verbose bool
+	verboseFlag := &cli.BoolFlag{
+		Name:        "verbose",
+		Aliases:     []string{"v"},
+		Usage:       "verbose output (includes debug)",
+		Value:       true, // TODO disable debug by default
+		Destination: &verbose,
+	}
+
+	var basedir string
+	basedirFlag := &cli.StringFlag{
+		Name:        "basedir",
+		Usage:       "base directory for the agent files",
+		Destination: &basedir,
+		Value:       DEFAULT_BASEDIR,
+	}
+
+	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
 	app := &cli.App{
-		Name:    "agent",
-		Version: "0.0.0", // TODO load proper version using ld flags
-		Action: func(ctx *cli.Context) error {
-			return (&agent.Service{}).Run()
-		},
+		Name:                   "agent",
+		Usage:                  "hedgehog fabric agent",
+		Version:                version,
+		Suggest:                true,
+		UseShortOptionHandling: true,
+		EnableBashCompletion:   true,
 		Commands: []*cli.Command{
+			{
+				Name:  "start",
+				Usage: "start agent to watch for config changes and apply them",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+				},
+				Before: func(cCtx *cli.Context) error {
+					return setupLogger(verbose)
+				},
+				Action: func(cCtx *cli.Context) error {
+					return (&agent.Service{
+						Basedir: basedir,
+					}).Run(ctx, func() (*gnmi.Client, error) {
+						return gnmi.NewInSONiC(ctx, basedir)
+					})
+				},
+			},
+			{
+				Name:  "apply",
+				Usage: "apply config once from file without starting agent",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+					&cli.BoolFlag{
+						Name:  "dry-run",
+						Value: true,
+					},
+					&cli.BoolFlag{
+						Name:  "skip-contol-link",
+						Value: true,
+					},
+					&cli.BoolFlag{
+						Name:  "gnmi-direct",
+						Value: false,
+					},
+					&cli.StringFlag{
+						Name:  "gnmi-server",
+						Value: "127.0.0.1:8080",
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-username",
+						Aliases: []string{"u"},
+						Value:   "admin",
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-password",
+						Aliases: []string{"p"},
+						Value:   "YourPaSsWoRd",
+					},
+				},
+				Before: func(cCtx *cli.Context) error {
+					return setupLogger(verbose)
+				},
+				Action: func(cCtx *cli.Context) error {
+					getGNMIClient := func() (*gnmi.Client, error) {
+						if cCtx.Bool("gnmi-direct") {
+							return gnmi.New(ctx,
+								cCtx.String("gnmi-server"),
+								cCtx.String("gnmi-username"),
+								cCtx.String("gnmi-password"))
+						}
+
+						return gnmi.NewInSONiC(ctx, basedir)
+					}
+
+					return (&agent.Service{
+						Basedir:         basedir,
+						DryRun:          cCtx.Bool("dry-run"),
+						SkipControlLink: cCtx.Bool("skip-contol-link"),
+						ApplyOnce:       true,
+					}).Run(ctx, getGNMIClient)
+				},
+			},
 			{
 				Name:    "generate",
 				Aliases: []string{"gen"},
@@ -49,7 +186,7 @@ func main() {
 								Aliases: []string{
 									"agent-path",
 								},
-								Value: "/etc/sonic/hedgehog/agent",
+								Value: DEFAULT_BIN_PATH,
 								Usage: "path to the agent binary",
 							},
 							&cli.StringFlag{
@@ -57,7 +194,7 @@ func main() {
 								Aliases: []string{
 									"agent-user",
 								},
-								Value: "githedgehog",
+								Value: DEFAULT_AGENT_SERVICE_USER,
 								Usage: "user to run agent",
 							},
 						},
@@ -77,19 +214,10 @@ func main() {
 					},
 				},
 			},
-			{
-				Name:    "check",
-				Aliases: []string{"c"},
-				Usage:   "check",
-				Action: func(ctx *cli.Context) error {
-					// TODO
-					return nil
-				},
-			},
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		zap.S().Panic("unrecoverable error: ", err)
+		log.Fatal("unrecoverable error:", err)
 	}
 }
