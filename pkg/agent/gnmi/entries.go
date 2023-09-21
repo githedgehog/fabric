@@ -16,7 +16,7 @@ type Entry struct {
 
 func EntHostname(hostname string) *Entry {
 	return &Entry{
-		Summary: hostname,
+		Summary: fmt.Sprintf("Hostname %s", hostname),
 		Path:    "/openconfig-system:system/config",
 		Value: &oc.OpenconfigSystem_System{
 			Config: &oc.OpenconfigSystem_System_Config{
@@ -28,7 +28,7 @@ func EntHostname(hostname string) *Entry {
 
 func EntDisableZtp() *Entry {
 	return &Entry{
-		Summary: "disable ZTP",
+		Summary: "No ZTP",
 		Path:    "/ztp/config",
 		Value: &oc.OpenconfigZtp_Ztp{
 			Config: &oc.OpenconfigZtp_Ztp_Config{
@@ -47,7 +47,7 @@ func EntUser(username, passwdOrHash, role string) *Entry {
 	}
 
 	return &Entry{
-		Summary: fmt.Sprintf("user %s (%s)", username, role),
+		Summary: fmt.Sprintf("User %s (%s)", username, role),
 		Path:    fmt.Sprintf("/openconfig-system:system/aaa/authentication/users/user[username=%s]", username),
 		Value: &oc.OpenconfigSystem_System_Aaa_Authentication_Users{
 			User: map[string]*oc.OpenconfigSystem_System_Aaa_Authentication_Users_User{
@@ -68,7 +68,7 @@ func EntUser(username, passwdOrHash, role string) *Entry {
 
 func EntPortChannel(name, description, trunkVLANRange string) *Entry {
 	return &Entry{
-		Summary: name,
+		Summary: fmt.Sprintf("PortChannel %s (%s, %s)", name, description, trunkVLANRange),
 		Path:    "/interfaces/interface",
 		Value: &oc.OpenconfigInterfaces_Interfaces{
 			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
@@ -96,7 +96,7 @@ func EntPortChannel(name, description, trunkVLANRange string) *Entry {
 
 func EntL3PortChannel(name, description string) *Entry {
 	return &Entry{
-		Summary: name,
+		Summary: fmt.Sprintf("L3 PortChannel %s (%s)", name, description),
 		Path:    "/interfaces/interface",
 		Value: &oc.OpenconfigInterfaces_Interfaces{
 			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{

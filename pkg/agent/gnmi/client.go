@@ -146,7 +146,7 @@ func (c *Client) SetEntry(ctx context.Context, summary, path string, value ygot.
 
 func (c *Client) Set(ctx context.Context, entries ...*Entry) error {
 	for _, entry := range entries {
-		slog.Debug("Running gNMI set", "summary", entry.Summary, "path", entry.Path)
+		slog.Debug("Running gNMI set", "summary", entry.Summary)
 
 		json, err := Marshal(entry.Value)
 		if err != nil {
