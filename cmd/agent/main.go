@@ -40,7 +40,7 @@ const (
 )
 
 //go:embed motd.txt
-var motd []byte
+var motd string
 
 var version = "(devel)"
 
@@ -64,10 +64,8 @@ func setupLogger(verbose bool) error {
 }
 
 func main() {
-	_, err := os.Stdout.Write(motd)
-	if err != nil {
-		log.Fatal("failed to write motd:", err)
-	}
+	fmt.Println(motd)
+	fmt.Println("Version", version)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
