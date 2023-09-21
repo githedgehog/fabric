@@ -25,6 +25,22 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 
 	plan.Hostname = agent.Name
 
+	controlIface := ""
+	controlIP := ""
+	for _, conn := range agent.Spec.Connections {
+		if conn.Spec.Management != nil {
+			controlIface = conn.Spec.Management.Link.Switch.LocalPortName()
+			controlIP = conn.Spec.Management.Link.Switch.IP
+			break
+		}
+	}
+	if controlIface == "" {
+		return nil, errors.Errorf("no control interface found for %s", agent.Name)
+	}
+
+	plan.ManagementIface = controlIface // TODO we only support switches connected to control node using management interface for now
+	plan.ManagementIP = controlIP
+
 	// mclag peer link interfaces
 	mclagPeerLinks := []string{}
 	mclagSessionLinks := []string{}
@@ -117,7 +133,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 
 					pChan := gnmi.PortChannel{
 						ID:             uint16(id) + 1,
-						Description:    fmt.Sprintf("MCLAG PC for %s, conn %s", portName, conn.Name),
+						Description:    fmt.Sprintf("MCLAG for %s, conn %s", portName, conn.Name),
 						TrunkVLANRange: ygot.String(agent.Spec.VPCVLANRange),
 						Members:        []string{portName},
 					}
@@ -138,6 +154,21 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 			Password: user.Password,
 			Role:     user.Role,
 		})
+	}
+
+	for _, vpcInfo := range agent.Spec.VPCs {
+		vpc := gnmi.VPC{
+			Name:   vpcInfo.Name,
+			VLAN:   vpcInfo.VLAN,
+			Subnet: vpcInfo.Spec.Subnet,
+		}
+		if vpcInfo.Spec.DHCP.Enable {
+			vpc.DHCP = true
+			vpc.DHCPRelay = agent.Spec.ControlVIP
+			vpc.DHCPSource = controlIface // TODO what should be used here?
+		}
+
+		plan.VPCs = append(plan.VPCs, vpc)
 	}
 
 	return plan, nil

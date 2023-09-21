@@ -9,12 +9,14 @@ import (
 )
 
 type Plan struct {
-	Hostname     string
-	MCLAGDomain  MCLAGDomain
-	PortChannels []PortChannel
-	InterfaceIPs []InterfaceIP
-	Users        []User
-	VPCs         []VPC
+	Hostname        string
+	ManagementIface string
+	ManagementIP    string
+	MCLAGDomain     MCLAGDomain
+	PortChannels    []PortChannel
+	InterfaceIPs    []InterfaceIP
+	Users           []User
+	VPCs            []VPC
 }
 
 type PortChannel struct {
@@ -53,10 +55,12 @@ type User struct {
 }
 
 type VPC struct {
-	Name   string
-	Subnet string
-	VLAN   uint16
-	DHCP   bool
+	Name       string
+	Subnet     string
+	VLAN       uint16
+	DHCP       bool
+	DHCPRelay  string
+	DHCPSource string
 }
 
 func (plan *Plan) Entries() ([]*Entry, error) {
@@ -64,6 +68,14 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 
 	res = append(res, EntDisableZtp())
 	res = append(res, EntHostname(plan.Hostname))
+
+	ip, ipNet, err := net.ParseCIDR(plan.ManagementIP)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse management ip %s", plan.ManagementIP)
+	}
+	prefixLen, _ := ipNet.Mask.Size()
+
+	res = append(res, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
 
 	for _, user := range plan.Users {
 		res = append(res, EntUser(user.Name, user.Password, user.Role))
@@ -84,7 +96,7 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 	for _, ifIP := range plan.InterfaceIPs {
 		ip, ipNet, err := net.ParseCIDR(ifIP.IP)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse CIDR %s for %s", ip, ifIP.Name)
+			return nil, errors.Wrapf(err, "failed to parse CIDR %s for %s", ifIP.IP, ifIP.Name)
 		}
 		prefixLen, _ := ipNet.Mask.Size()
 
@@ -97,9 +109,27 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 		res = append(res, EntMCLAGMember(plan.MCLAGDomain.ID, member))
 	}
 
-	// for _, vpc := range plan.VPCs {
+	for _, vpc := range plan.VPCs {
+		res = append(res, EntVrf(vpc.Name))
 
-	// }
+		ip, ipNet, err := net.ParseCIDR(vpc.Subnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.Subnet, vpc.Name)
+		}
+		prefixLen, _ := ipNet.Mask.Size()
+
+		res = append(res, EntVLANInterface(vpc.VLAN, vpc.Name))
+		res = append(res, EntVrfMember(vpc.Name, vpc.VLAN))
+		res = append(res, EntVLANInterfaceConf(vpc.VLAN, ip.String(), uint8(prefixLen)))
+
+		if vpc.DHCP {
+			ip, _, err := net.ParseCIDR(vpc.DHCPRelay)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", vpc.DHCPRelay, vpc.Name)
+			}
+			res = append(res, EntDHCPRelay(vpc.VLAN, ip.String(), vpc.DHCPSource))
+		}
+	}
 
 	return res, nil
 }

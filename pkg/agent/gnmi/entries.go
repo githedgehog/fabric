@@ -198,10 +198,117 @@ func EntMCLAGMember(domainID uint32, member string) *Entry {
 	}
 }
 
-func EntVrf(name string) *Entry {
+func EntVrf(vpc string) *Entry {
+	vrf := fmt.Sprintf("Vrf%s", vpc)
 	return &Entry{
-		Summary: fmt.Sprintf("VRF %s", name),
-		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", name),
-		Value:   nil,
+		Summary: fmt.Sprintf("VRF %s", vrf),
+		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", vrf),
+		Value: &oc.OpenconfigNetworkInstance_NetworkInstances{
+			NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
+				vrf: {
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Config{
+						Name:    ygot.String(vrf),
+						Enabled: ygot.Bool(true),
+					},
+					Name: ygot.String(vrf),
+				},
+			},
+		},
+	}
+}
+
+func EntVLANInterface(vlanID uint16, vpc string) *Entry {
+	vlan := fmt.Sprintf("Vlan%d", vlanID)
+	return &Entry{
+		Summary: fmt.Sprintf("%s (%s)", vlan, vpc),
+		Path:    "/interfaces/interface",
+		Value: &oc.OpenconfigInterfaces_Interfaces{
+			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
+				vlan: {
+					Name: ygot.String(vlan),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
+						Name: ygot.String(vlan),
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntVrfMember(vpc string, vlanID uint16) *Entry {
+	vrf := fmt.Sprintf("Vrf%s", vpc)
+	vlan := fmt.Sprintf("Vlan%d", vlanID)
+	return &Entry{
+		Summary: fmt.Sprintf("%s member %s", vrf, vlan),
+		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/interfaces/interface[id=%s]", vrf, vlan),
+		Value: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces{
+			Interface: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface{
+				vlan: {
+					Id: ygot.String(vlan),
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface_Config{
+						Id: ygot.String(vlan),
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntVLANInterfaceConf(vlanID uint16, ip string, prefixLen uint8) *Entry {
+	vlan := fmt.Sprintf("Vlan%d", vlanID)
+	return &Entry{
+		Summary: fmt.Sprintf("%s conf %s/%d", vlan, ip, prefixLen),
+		Path:    fmt.Sprintf("/interfaces/interface[name=%s]", vlan),
+		Value: &oc.OpenconfigInterfaces_Interfaces{
+			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
+				vlan: {
+					Name: ygot.String(vlan),
+					RoutedVlan: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan{
+						Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4{
+							Addresses: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses{
+								Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address{
+									ip: {
+										Ip: ygot.String(ip),
+										Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address_Config{
+											Ip:           ygot.String(ip),
+											PrefixLength: ygot.Uint8(prefixLen),
+										},
+									},
+								},
+							},
+							// TODO is it needed?
+							Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{
+								Enabled: ygot.Bool(true),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntDHCPRelay(vlanID uint16, relayAddr, source string) *Entry {
+	vlan := fmt.Sprintf("Vlan%d", vlanID)
+	return &Entry{
+		Summary: fmt.Sprintf("DHCP relay %s %s %s", vlan, relayAddr, source),
+		Path:    fmt.Sprintf("/relay-agent/dhcp/interfaces/interface[id=%s]", vlan),
+		Value: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces{
+			Interface: map[string]*oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface{
+				vlan: {
+					Id: ygot.String(vlan),
+					AgentInformationOption: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_AgentInformationOption{
+						Config: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_AgentInformationOption_Config{
+							LinkSelect: oc.OpenconfigRelayAgentExt_Mode_ENABLE,
+							VrfSelect:  oc.OpenconfigRelayAgentExt_Mode_ENABLE,
+						},
+					},
+					Config: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_Config{
+						HelperAddress: []string{relayAddr},
+						SrcIntf:       ygot.String(source),
+					},
+				},
+			},
+		},
 	}
 }
