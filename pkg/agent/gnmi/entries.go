@@ -68,7 +68,7 @@ func EntUser(username, passwdOrHash, role string) *Entry {
 
 func EntPortChannel(name, description, trunkVLANRange string) *Entry {
 	return &Entry{
-		Summary: fmt.Sprintf("PortChannel %s (%s, %s)", name, description, trunkVLANRange),
+		Summary: fmt.Sprintf("%s (%s, %s)", name, description, trunkVLANRange),
 		Path:    "/interfaces/interface",
 		Value: &oc.OpenconfigInterfaces_Interfaces{
 			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
@@ -96,7 +96,7 @@ func EntPortChannel(name, description, trunkVLANRange string) *Entry {
 
 func EntL3PortChannel(name, description string) *Entry {
 	return &Entry{
-		Summary: fmt.Sprintf("L3 PortChannel %s (%s)", name, description),
+		Summary: fmt.Sprintf("%s L3 (%s)", name, description),
 		Path:    "/interfaces/interface",
 		Value: &oc.OpenconfigInterfaces_Interfaces{
 			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
@@ -195,5 +195,13 @@ func EntMCLAGMember(domainID uint32, member string) *Entry {
 				},
 			},
 		},
+	}
+}
+
+func EntVrf(name string) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("VRF %s", name),
+		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", name),
+		Value:   nil,
 	}
 }
