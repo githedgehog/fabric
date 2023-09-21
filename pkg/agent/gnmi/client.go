@@ -93,18 +93,21 @@ func (c *Client) Close() error {
 func newAgentUser(ctx context.Context) ([]byte, error) {
 	agentPassword := "topsecretultrahedgehog" // TODO generate random password and use hash
 
+	var lastError error
 	for _, user := range DEFAULT_USERS {
 		for _, password := range DEFAULT_PASSWORDS {
 			defC, err := New(ctx, DEFAULT_ADDRESS, user, password)
 			if err != nil {
-				log.Printf("cannot use %s: %#v", user, err)
+				lastError = errors.Wrapf(err, "cannot init client with %s", user)
+				log.Printf("cannot init client with %s: %#v", user, err)
 				continue
 			}
 			defer defC.Close()
 
 			err = defC.Set(ctx, EntUser(AGENT_USER, agentPassword, "admin")) // TODO extract role to constant
 			if err != nil {
-				log.Printf("cannot use %s: %#v", user, err)
+				lastError = errors.Wrapf(err, "cannot set user %s with gnmi", user)
+				log.Printf("cannot set user %s with gnmi: %#v", user, err)
 				continue
 			}
 
@@ -112,7 +115,7 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, errors.Wrapf(lastError, "cannot create new agent user")
 }
 
 func createGNMIClient(ctx context.Context, address, username, password string) (*target.Target, error) {

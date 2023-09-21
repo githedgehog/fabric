@@ -93,7 +93,6 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 	}
 	plan.PortChannels = append(plan.PortChannels, mclagSessionLink)
 
-	// TODO check if it's ok to use the same IP pair for all MCLAG Domains
 	// using the same IP pair with switch with name < peer switch name getting first IP
 	sourceIP := MCLAG_SESSION_IP_1
 	peerIP := MCLAG_SESSION_IP_2
@@ -112,7 +111,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 	// ip for mclag session link port channel
 	plan.InterfaceIPs = append(plan.InterfaceIPs, gnmi.InterfaceIP{
 		Name: mclagSessionLink.Name(),
-		IP:   plan.MCLAGDomain.PeerIP,
+		IP:   plan.MCLAGDomain.SourceIP,
 	})
 
 	// PortChannel for mclag servers
@@ -132,7 +131,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 					}
 
 					pChan := gnmi.PortChannel{
-						ID:             uint16(id) + 1,
+						ID:             uint16(id) + 1, // TODO POrtChannel should be the same on both switches
 						Description:    fmt.Sprintf("MCLAG for %s, conn %s", portName, conn.Name),
 						TrunkVLANRange: ygot.String(agent.Spec.VPCVLANRange),
 						Members:        []string{portName},

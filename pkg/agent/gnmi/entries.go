@@ -20,7 +20,7 @@ func EntHostname(hostname string) *Entry {
 		Path:    "/openconfig-system:system/config",
 		Value: &oc.OpenconfigSystem_System{
 			Config: &oc.OpenconfigSystem_System_Config{
-				Hostname: ygot.String("switch-1"),
+				Hostname: ygot.String(hostname),
 			},
 		},
 	}
@@ -77,6 +77,7 @@ func EntPortChannel(name, description, trunkVLANRange string) *Entry {
 					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
 						Name:        ygot.String(name),
 						Description: ygot.String(description),
+						Enabled:     ygot.Bool(true),
 					},
 					Aggregation: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation{
 						Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_Config{},
@@ -105,6 +106,7 @@ func EntL3PortChannel(name, description string) *Entry {
 					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
 						Name:        ygot.String(name),
 						Description: ygot.String(description),
+						Enabled:     ygot.Bool(true),
 					},
 					Aggregation: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation{
 						Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_Config{},
@@ -227,7 +229,8 @@ func EntVLANInterface(vlanID uint16, vpc string) *Entry {
 				vlan: {
 					Name: ygot.String(vlan),
 					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
-						Name: ygot.String(vlan),
+						Name:    ygot.String(vlan),
+						Enabled: ygot.Bool(true),
 					},
 				},
 			},
@@ -276,7 +279,6 @@ func EntVLANInterfaceConf(vlanID uint16, ip string, prefixLen uint8) *Entry {
 									},
 								},
 							},
-							// TODO is it needed?
 							Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{
 								Enabled: ygot.Bool(true),
 							},
@@ -306,6 +308,25 @@ func EntDHCPRelay(vlanID uint16, relayAddr, source string) *Entry {
 					Config: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_Config{
 						HelperAddress: []string{relayAddr},
 						SrcIntf:       ygot.String(source),
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntInterfaceUP(iface string) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("%s up", iface),
+		Path:    fmt.Sprintf("/interfaces/interface[name=%s]", iface),
+		Value: &oc.OpenconfigInterfaces_Interfaces{
+			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
+				iface: {
+					Name: ygot.String(iface),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
+						Name:    ygot.String(iface),
+						Enabled: ygot.Bool(true),
+						// TODO add description
 					},
 				},
 			},

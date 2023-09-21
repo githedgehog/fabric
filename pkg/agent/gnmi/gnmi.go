@@ -90,6 +90,7 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 
 		for _, member := range pChan.Members {
 			res = append(res, EntPortChannelMember(pChan.Name(), member))
+			res = append(res, EntInterfaceUP(member))
 		}
 	}
 
