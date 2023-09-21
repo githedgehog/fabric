@@ -71,30 +71,31 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	_, err = createServer(data, "compute-1", "rack-1", wiringapi.ServerSpec{
+	_, err = createServer(data, "server-1", "rack-1", wiringapi.ServerSpec{
 		Location: location("4"),
 	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-2", "rack-1", wiringapi.ServerSpec{
+	_, err = createServer(data, "server-2", "rack-1", wiringapi.ServerSpec{
 		Location: location("5"),
 	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-3", "rack-1", wiringapi.ServerSpec{
-		Location: location("6"),
-	})
-	if err != nil {
-		return nil, err
-	}
-	_, err = createServer(data, "compute-4", "rack-1", wiringapi.ServerSpec{
-		Location: location("7"),
-	})
-	if err != nil {
-		return nil, err
-	}
+
+	// _, err = createServer(data, "server-3", "rack-1", wiringapi.ServerSpec{
+	// 	Location: location("6"),
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// _, err = createServer(data, "server-4", "rack-1", wiringapi.ServerSpec{
+	// 	Location: location("7"),
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// control-1 <> switch-1
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
@@ -138,23 +139,38 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
+	mclagPeerPort1 := "Ethernet0"
+	mclagPeerPort2 := "Ethernet1"
+	mclagSessionPort1 := "Ethernet2"
+	mclagSessionPort2 := "Ethernet3"
+	if preset == SAMPLE_CC_LAB {
+		mclagPeerPort1 = "Ethernet48"
+		mclagPeerPort2 = "Ethernet56"
+		mclagSessionPort1 = "Ethernet64"
+		mclagSessionPort2 = "Ethernet68"
+	}
+
 	// MCLAG Domain peer link
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAGDomain: &wiringapi.ConnMCLAGDomain{
 			PeerLinks: []wiringapi.SwitchToSwitchLink{
 				{
-					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet0"),
-					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet0"),
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagPeerPort1),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagPeerPort1),
 				},
 				{
-					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet1"),
-					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet1"),
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagPeerPort2),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagPeerPort2),
 				},
 			},
 			SessionLinks: []wiringapi.SwitchToSwitchLink{
 				{
-					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet2"),
-					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet2"),
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagSessionPort1),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagSessionPort1),
+				},
+				{
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagSessionPort2),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagSessionPort2),
 				},
 			},
 		},
@@ -163,17 +179,26 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// compute-1 <MCLAG> (switch-1, switch-2)
+	server1Port1 := "eth1"
+	server1Port2 := "eth2"
+	server1SwitchPort := "Ethernet4"
+	if preset == SAMPLE_CC_LAB {
+		server1Port1 = "enp7s0"
+		server1Port2 = "enp8s0"
+		server1SwitchPort = "Ethernet46" // TODO confirm which one is which
+	}
+
+	// server-1 <MCLAG> (switch-1, switch-2)
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAG: &wiringapi.ConnMCLAG{
 			Links: []wiringapi.ServerToSwitchLink{
 				{
-					Server: wiringapi.NewBasePortName("compute-1/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet3"),
+					Server: wiringapi.NewBasePortName("server-1/" + server1Port1),
+					Switch: wiringapi.NewBasePortName("switch-1/" + server1SwitchPort),
 				},
 				{
-					Server: wiringapi.NewBasePortName("compute-1/nic0/port1"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet3"),
+					Server: wiringapi.NewBasePortName("server-1/" + server1Port2),
+					Switch: wiringapi.NewBasePortName("switch-2/" + server1SwitchPort),
 				},
 			},
 		},
@@ -182,17 +207,26 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// compute-2 <MCLAG> (switch-1, switch-2)
+	server2Port1 := "eth1"
+	server2Port2 := "eth2"
+	server2SwitchPort := "Ethernet5"
+	if preset == SAMPLE_CC_LAB {
+		server2Port1 = "enp7s0"
+		server2Port2 = "enp8s0"
+		server2SwitchPort = "Ethernet47" // TODO confirm which one is which
+	}
+
+	// server-2 <MCLAG> (switch-1, switch-2)
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAG: &wiringapi.ConnMCLAG{
 			Links: []wiringapi.ServerToSwitchLink{
 				{
-					Server: wiringapi.NewBasePortName("compute-2/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet4"),
+					Server: wiringapi.NewBasePortName("server-2/" + server2Port1),
+					Switch: wiringapi.NewBasePortName("switch-1/" + server2SwitchPort),
 				},
 				{
-					Server: wiringapi.NewBasePortName("compute-2/nic0/port1"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet4"),
+					Server: wiringapi.NewBasePortName("server-2/" + server2Port2),
+					Switch: wiringapi.NewBasePortName("switch-2/" + server2SwitchPort),
 				},
 			},
 		},
@@ -201,31 +235,31 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// compute-3 <> switch-1
-	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Unbundled: &wiringapi.ConnUnbundled{
-			Link: wiringapi.ServerToSwitchLink{
-				Server: wiringapi.NewBasePortName("compute-3/nic0/port0"),
-				Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
+	// // server-3 <> switch-1
+	// _, err = createConnection(data, wiringapi.ConnectionSpec{
+	// 	Unbundled: &wiringapi.ConnUnbundled{
+	// 		Link: wiringapi.ServerToSwitchLink{
+	// 			Server: wiringapi.NewBasePortName("server-3/nic0/port0"),
+	// 			Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+	// 		},
+	// 	},
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// compute-4 <> switch-2
-	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Unbundled: &wiringapi.ConnUnbundled{
-			Link: wiringapi.ServerToSwitchLink{
-				Server: wiringapi.NewBasePortName("compute-4/nic0/port0"),
-				Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
+	// // server-4 <> switch-2
+	// _, err = createConnection(data, wiringapi.ConnectionSpec{
+	// 	Unbundled: &wiringapi.ConnUnbundled{
+	// 		Link: wiringapi.ServerToSwitchLink{
+	// 			Server: wiringapi.NewBasePortName("server-4/nic0/port0"),
+	// 			Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+	// 		},
+	// 	},
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return data, nil
 }
