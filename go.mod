@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-logr/logr v1.2.4
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/lmittmann/tint v1.0.2
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/mapstructure v1.5.0
