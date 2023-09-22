@@ -63,6 +63,10 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAttemptGen` _integer_ |  |
+| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAppliedGen` _integer_ |  |
 | `nosInfo` _[NOSInfo](#nosinfo)_ |  |
 
 

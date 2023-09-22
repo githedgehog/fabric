@@ -225,6 +225,18 @@ spec:
           status:
             description: AgentStatus defines the observed state of Agent
             properties:
+              lastAppliedGen:
+                format: int64
+                type: integer
+              lastAppliedTime:
+                format: date-time
+                type: string
+              lastAttemptGen:
+                format: int64
+                type: integer
+              lastAttemptTime:
+                format: date-time
+                type: string
               nosInfo:
                 properties:
                   asicVersion:
