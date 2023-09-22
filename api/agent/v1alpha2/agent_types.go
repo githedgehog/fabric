@@ -54,11 +54,11 @@ type VPCInfo struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	// TODO
-	// Applied     bool        `json:"applied,omitempty"`
-	// LastApplied metav1.Time `json:"lastApplied,omitempty"`
-
-	NOSInfo NOSInfo `json:"nosInfo,omitempty"`
+	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
+	LastAttemptGen  int64       `json:"lastAttemptGen,omitempty"`
+	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
+	LastAppliedGen  int64       `json:"lastAppliedGen,omitempty"`
+	NOSInfo         NOSInfo     `json:"nosInfo,omitempty"`
 }
 
 type NOSInfo struct {

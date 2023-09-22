@@ -11,11 +11,16 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
 const (
-	CONF_FILE = "agent-config.yaml"
+	CONF_FILE       = "agent-config.yaml"
+	KUBECONFIG_FILE = "agent-kubeconfig"
 )
 
 type Service struct {
@@ -25,6 +30,7 @@ type Service struct {
 	ApplyOnce       bool
 
 	client *gnmi.Client
+	name   string
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
@@ -81,10 +87,70 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	slog.Info("Config applied from file")
 
 	if !svc.ApplyOnce {
-		// TODO watch for changes in K8s and apply new configs in the loop
-		// TODO report status & heartbeat periodically
-		slog.Warn("Watching for changes is not implemented yet, just sleeping")
-		time.Sleep(100500 * time.Hour)
+		slog.Info("Starting watch for config changes in K8s")
+
+		kubeconfigPath := filepath.Join(svc.Basedir, KUBECONFIG_FILE)
+		cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+			nil,
+		).ClientConfig()
+		if err != nil {
+			return err
+		}
+
+		scheme := runtime.NewScheme()
+		err = agentapi.AddToScheme(scheme)
+		if err != nil {
+			return err
+		}
+
+		kubeClient, err := client.NewWithWatch(cfg, client.Options{
+			Scheme: scheme,
+		})
+		if err != nil {
+			return err
+		}
+
+		watcher, err := kubeClient.Watch(context.TODO(), &agentapi.AgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
+			"metadata.name": svc.name,
+		})
+		if err != nil {
+			return err
+		}
+
+		currentGen := int64(-1)
+		for event := range watcher.ResultChan() {
+			agent, ok := event.Object.(*agentapi.Agent)
+			if !ok {
+				return errors.New("can't cast to agent")
+			}
+
+			if agent.Generation == currentGen {
+				slog.Debug("Skipping agent with same generation", "name", agent.Name, "generation", agent.Generation)
+				continue
+			}
+
+			slog.Info("Agent config changed", "event", event.Type)
+			spew.Dump(agent)
+
+			nosInfo, err := svc.client.GetNOSInfo(ctx)
+			if err != nil {
+				return err
+			}
+			agent.Status.NOSInfo = *nosInfo
+			agent.Status.LastAttemptGen = agent.Generation
+			agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
+
+			err = kubeClient.Status().Update(context.TODO(), agent)
+			if err != nil {
+				return err
+			}
+
+			// TODO add lastApplied (time), lastAppliedGeneration
+			// TODO apply and save config
+
+			currentGen = agent.Generation
+		}
 	}
 
 	return nil
@@ -105,6 +171,7 @@ func (s *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", s.configFilePath())
 	}
+	s.name = config.Name
 
 	return config, nil
 }
