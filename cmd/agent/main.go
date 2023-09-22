@@ -64,9 +64,6 @@ func setupLogger(verbose bool) error {
 }
 
 func main() {
-	fmt.Println(motd)
-	fmt.Println("Version", version)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -107,6 +104,9 @@ func main() {
 					return setupLogger(verbose)
 				},
 				Action: func(cCtx *cli.Context) error {
+					slog.Info(motd)
+					slog.Info("Starting", "version", version)
+
 					return (&agent.Service{
 						Basedir: basedir,
 					}).Run(ctx, func() (*gnmi.Client, error) {
@@ -151,6 +151,9 @@ func main() {
 					return setupLogger(verbose)
 				},
 				Action: func(cCtx *cli.Context) error {
+					slog.Info(motd)
+					slog.Info("Applying", "version", version)
+
 					getGNMIClient := func() (*gnmi.Client, error) {
 						if cCtx.Bool("gnmi-direct") {
 							return gnmi.New(ctx,
