@@ -551,7 +551,7 @@ contexts:
 clusters:
 - cluster:
     certificate-authority-data: {{ .CA }}
-    server: {{ .Server }}
+    server: https://{{ .Server }}
   name: default
 users:
 - name: default
