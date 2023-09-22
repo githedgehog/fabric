@@ -49,6 +49,7 @@ _Appears in:_
 | `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
 | `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
 | `vpcVLANRange` _string_ |  |
+| `portChannels` _object (keys:string, values:integer)_ |  |
 
 
 #### AgentStatus

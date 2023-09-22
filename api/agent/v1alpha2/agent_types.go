@@ -32,6 +32,7 @@ type AgentSpec struct {
 	Connections  []ConnectionInfo     `json:"connections,omitempty"`
 	VPCs         []VPCInfo            `json:"vpcs,omitempty"`
 	VPCVLANRange string               `json:"vpcVLANRange,omitempty"`
+	PortChannels map[string]uint16    `json:"portChannels,omitempty"`
 }
 
 type UserCreds struct {

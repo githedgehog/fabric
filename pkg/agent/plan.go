@@ -2,8 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -122,16 +120,14 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 			for _, link := range conn.Spec.MCLAG.Links {
 				if link.Switch.DeviceName() == agent.Name {
 					portName := link.Switch.LocalPortName()
-					if !strings.HasPrefix(portName, "Ethernet") {
-						return nil, errors.Errorf("invalid port name %s (only EthernetX supported) in connection %s", portName, conn.Name)
-					}
-					id, err := strconv.ParseUint(strings.TrimPrefix(portName, "Ethernet"), 10, 16)
-					if err != nil {
-						return nil, errors.Wrapf(err, "can't parse port name %s (only EthernetX supported) in connection %s", portName, conn.Name)
+					portChan := agent.Spec.PortChannels[conn.Name]
+
+					if portChan == 0 {
+						return nil, errors.Errorf("no port channel found for conn %s", conn.Name) // TODO or skip?
 					}
 
 					pChan := gnmi.PortChannel{
-						ID:             uint16(id) + 1, // TODO POrtChannel should be the same on both switches
+						ID:             portChan,
 						Description:    fmt.Sprintf("MCLAG for %s, conn %s", portName, conn.Name),
 						TrunkVLANRange: ygot.String(agent.Spec.VPCVLANRange),
 						Members:        []string{portName},

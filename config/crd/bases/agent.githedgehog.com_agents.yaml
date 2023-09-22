@@ -140,6 +140,10 @@ spec:
                 type: array
               controlVIP:
                 type: string
+              portChannels:
+                additionalProperties:
+                  type: integer
+                type: object
               switch:
                 description: SwitchSpec defines the desired state of Switch
                 properties:

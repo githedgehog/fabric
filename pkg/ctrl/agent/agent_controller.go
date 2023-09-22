@@ -47,6 +47,8 @@ import (
 
 const (
 	AGENT_CTRL_CONFIG = "agent-ctrl-config.yaml"
+	PORT_CHAN_MIN     = 100
+	PORT_CHAN_MAX     = 199
 )
 
 type AgentControllerConfig struct {
@@ -194,12 +196,23 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
+	peerName := ""
 	conns := []agentapi.ConnectionInfo{}
 	for _, conn := range connList.Items {
 		conns = append(conns, agentapi.ConnectionInfo{
 			Name: conn.Name,
 			Spec: conn.Spec,
 		})
+		if conn.Spec.MCLAGDomain != nil {
+			// TODO add some helpers
+			for _, link := range conn.Spec.MCLAGDomain.PeerLinks {
+				if link.Switch1.DeviceName() == sw.Name {
+					peerName = link.Switch2.DeviceName()
+				} else if link.Switch2.DeviceName() == sw.Name {
+					peerName = link.Switch1.DeviceName()
+				}
+			}
+		}
 	}
 	sort.Slice(conns, func(i, j int) bool {
 		return conns[i].Name < conns[j].Name
@@ -269,7 +282,69 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return vpcs[i].Name < vpcs[j].Name
 	})
 
+	// We only support MCLAG switch pairs for now
+	// It means that 2 switches would have the same MCLAG connections and same set of PortChannels
+
 	agent := &agentapi.Agent{}
+	err = r.Get(ctx, agentKey(req.NamespacedName), agent)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting agent")
+	}
+
+	peer := &agentapi.Agent{}
+	err = r.Get(ctx, agentKey(types.NamespacedName{Namespace: sw.Namespace, Name: peerName}), peer)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
+	}
+
+	// conn name -> port channel name
+	portChannels := map[string]uint16{}
+	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
+	for _, conn := range conns {
+		if conn.Spec.MCLAG != nil {
+			pc1 := agent.Spec.PortChannels[conn.Name]
+			pc2 := peer.Spec.PortChannels[conn.Name]
+
+			if pc1 != 0 {
+				portChannels[conn.Name] = pc1
+			}
+			if pc2 != 0 {
+				portChannels[conn.Name] = pc2
+			}
+			if pc1 != 0 && pc2 != 0 && pc1 != pc2 {
+				return ctrl.Result{}, errors.Errorf("port channel mismatch for conn %s on %s, %s", conn.Name, sw.Name, peerName)
+			}
+			if portChannels[conn.Name] == 0 {
+				continue
+			}
+			if portChannels[conn.Name] < PORT_CHAN_MIN || portChannels[conn.Name] > PORT_CHAN_MAX {
+				return ctrl.Result{}, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[conn.Name], conn.Name, sw.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
+			}
+
+			taken[portChannels[conn.Name]-PORT_CHAN_MIN] = true
+		}
+	}
+
+	for _, conn := range conns {
+		if conn.Spec.MCLAG != nil {
+			if portChannels[conn.Name] != 0 {
+				continue
+			}
+
+			for i := PORT_CHAN_MIN; i <= PORT_CHAN_MAX; i++ {
+				if !taken[i-PORT_CHAN_MIN] {
+					portChannels[conn.Name] = uint16(i)
+					taken[i-PORT_CHAN_MIN] = true
+					break
+				}
+			}
+		}
+	}
+
+	// We'll only save it for the current agent, as our peer can always take it from us
+	// TODO is it good?
+
+	agent = &agentapi.Agent{}
 	err = Enforce(l, r, ctx, agentKey(req.NamespacedName), agent, func(agent *agentapi.Agent) {
 		if agent.Labels == nil {
 			agent.Labels = map[string]string{}
@@ -285,6 +360,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
 		agent.Spec.Users = r.Cfg.Users
+		agent.Spec.PortChannels = portChannels
 	})
 	if err != nil {
 		return ctrl.Result{}, err
