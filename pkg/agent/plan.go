@@ -22,6 +22,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 	plan := &gnmi.Plan{}
 
 	plan.Hostname = agent.Name
+	plan.PortGroupSpeeds = agent.Spec.PortGroupSpeeds
 
 	controlIface := ""
 	controlIP := ""

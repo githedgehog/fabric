@@ -76,6 +76,10 @@ spec:
                   uuidSig:
                     type: string
                 type: object
+              portGroupSpeeds:
+                additionalProperties:
+                  type: string
+                type: object
               profile:
                 type: string
             type: object

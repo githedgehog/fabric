@@ -3,9 +3,11 @@ package gnmi
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/pkg/agent/gnmi/bcom/oc"
 )
 
 type Plan struct {
@@ -17,6 +19,7 @@ type Plan struct {
 	InterfaceIPs    []InterfaceIP
 	Users           []User
 	VPCs            []VPC
+	PortGroupSpeeds map[string]string
 }
 
 type PortChannel struct {
@@ -76,6 +79,24 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 	prefixLen, _ := ipNet.Mask.Size()
 
 	res = append(res, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
+
+	for group, speedStr := range plan.PortGroupSpeeds {
+		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
+
+		for id, enum := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
+			if enum.Name == speedStr {
+				speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(id)
+				break
+			}
+		}
+
+		if speed == oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET || speed == oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
+			slog.Warn("Skipping unset or unknown speed", "portgroup", group, "speed", speedStr, "speedID", speed)
+			continue
+		}
+
+		res = append(res, EntPortGroupSpeed(group, speedStr, speed))
+	}
 
 	for _, user := range plan.Users {
 		res = append(res, EntUser(user.Name, user.Password, user.Role))

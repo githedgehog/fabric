@@ -50,6 +50,7 @@ _Appears in:_
 | `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
 | `vpcVLANRange` _string_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
+| `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 
 
 #### AgentStatus
@@ -742,6 +743,7 @@ _Appears in:_
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
 | `lldp` _[LLDPConfig](#lldpconfig)_ |  |
+| `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 
 
 

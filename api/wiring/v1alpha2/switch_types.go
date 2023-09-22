@@ -32,10 +32,11 @@ type LLDPConfig struct {
 
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
-	Profile     string      `json:"profile,omitempty"`
-	Location    Location    `json:"location,omitempty"`
-	LocationSig LocationSig `json:"locationSig,omitempty"`
-	LLDPConfig  LLDPConfig  `json:"lldp,omitempty"`
+	Profile         string            `json:"profile,omitempty"`
+	Location        Location          `json:"location,omitempty"`
+	LocationSig     LocationSig       `json:"locationSig,omitempty"`
+	LLDPConfig      LLDPConfig        `json:"lldp,omitempty"`
+	PortGroupSpeeds map[string]string `json:"portGroupSpeeds,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch

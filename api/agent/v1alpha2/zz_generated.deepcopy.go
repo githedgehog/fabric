@@ -92,7 +92,7 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		*out = make([]UserCreds, len(*in))
 		copy(*out, *in)
 	}
-	out.Switch = in.Switch
+	in.Switch.DeepCopyInto(&out.Switch)
 	if in.Connections != nil {
 		in, out := &in.Connections, &out.Connections
 		*out = make([]ConnectionInfo, len(*in))
@@ -108,6 +108,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 	if in.PortChannels != nil {
 		in, out := &in.PortChannels, &out.PortChannels
 		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.PortGroupSpeeds != nil {
+		in, out := &in.PortGroupSpeeds, &out.PortGroupSpeeds
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

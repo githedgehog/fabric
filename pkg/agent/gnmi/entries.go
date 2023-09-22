@@ -333,3 +333,21 @@ func EntInterfaceUP(iface string) *Entry {
 		},
 	}
 }
+
+func EntPortGroupSpeed(group string, description string, speed oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("Port group %s speed %s (%d)", group, description, speed),
+		Path:    "/openconfig-port-group:port-groups/port-group",
+		Value: &oc.OpenconfigPortGroup_PortGroups{
+			PortGroup: map[string]*oc.OpenconfigPortGroup_PortGroups_PortGroup{
+				group: {
+					Id: ygot.String(group),
+					Config: &oc.OpenconfigPortGroup_PortGroups_PortGroup_Config{
+						Id:    ygot.String(group),
+						Speed: speed,
+					},
+				},
+			},
+		},
+	}
+}
