@@ -50,15 +50,28 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	_, err = createSwitch(data, "switch-1", "rack-1", wiringapi.SwitchSpec{
+	switch1 := wiringapi.SwitchSpec{
 		Location: location("1"),
-	})
+	}
+	if preset == SAMPLE_CC_LAB {
+		switch1.PortGroupSpeeds = map[string]string{
+			"12": "SPEED_10GB",
+		}
+	}
+	_, err = createSwitch(data, "switch-1", "rack-1", switch1)
 	if err != nil {
 		return nil, err
 	}
-	_, err = createSwitch(data, "switch-2", "rack-1", wiringapi.SwitchSpec{
+
+	switch2 := wiringapi.SwitchSpec{
 		Location: location("2"),
-	})
+	}
+	if preset == SAMPLE_CC_LAB {
+		switch2.PortGroupSpeeds = map[string]string{
+			"12": "SPEED_10GB",
+		}
+	}
+	_, err = createSwitch(data, "switch-2", "rack-1", switch2)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +142,6 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
 					IP:           "192.168.102.0/31",
-					// VLAN:         uint16(mgmtVLAN),
 					ONIEPortName: oniePort,
 				},
 			},
@@ -181,11 +193,13 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 
 	server1Port1 := "eth1"
 	server1Port2 := "eth2"
-	server1SwitchPort := "Ethernet4"
+	server1Switch1Port := "Ethernet4"
+	server1Switch2Port := "Ethernet4"
 	if preset == SAMPLE_CC_LAB {
 		server1Port1 = "enp7s0"
 		server1Port2 = "enp8s0"
-		server1SwitchPort = "Ethernet46" // TODO confirm which one is which
+		server1Switch1Port = "Ethernet47"
+		server1Switch2Port = "Ethernet46"
 	}
 
 	// server-1 <MCLAG> (switch-1, switch-2)
@@ -194,11 +208,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			Links: []wiringapi.ServerToSwitchLink{
 				{
 					Server: wiringapi.NewBasePortName("server-1/" + server1Port1),
-					Switch: wiringapi.NewBasePortName("switch-1/" + server1SwitchPort),
+					Switch: wiringapi.NewBasePortName("switch-1/" + server1Switch1Port),
 				},
 				{
 					Server: wiringapi.NewBasePortName("server-1/" + server1Port2),
-					Switch: wiringapi.NewBasePortName("switch-2/" + server1SwitchPort),
+					Switch: wiringapi.NewBasePortName("switch-2/" + server1Switch2Port),
 				},
 			},
 		},
@@ -209,11 +223,13 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 
 	server2Port1 := "eth1"
 	server2Port2 := "eth2"
-	server2SwitchPort := "Ethernet5"
+	server2Switch1Port := "Ethernet5"
+	server2Switch2Port := "Ethernet5"
 	if preset == SAMPLE_CC_LAB {
 		server2Port1 = "enp7s0"
 		server2Port2 = "enp8s0"
-		server2SwitchPort = "Ethernet47" // TODO confirm which one is which
+		server2Switch1Port = "Ethernet46"
+		server2Switch2Port = "Ethernet47"
 	}
 
 	// server-2 <MCLAG> (switch-1, switch-2)
@@ -222,11 +238,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			Links: []wiringapi.ServerToSwitchLink{
 				{
 					Server: wiringapi.NewBasePortName("server-2/" + server2Port1),
-					Switch: wiringapi.NewBasePortName("switch-1/" + server2SwitchPort),
+					Switch: wiringapi.NewBasePortName("switch-1/" + server2Switch1Port),
 				},
 				{
 					Server: wiringapi.NewBasePortName("server-2/" + server2Port2),
-					Switch: wiringapi.NewBasePortName("switch-2/" + server2SwitchPort),
+					Switch: wiringapi.NewBasePortName("switch-2/" + server2Switch2Port),
 				},
 			},
 		},

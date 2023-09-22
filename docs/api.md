@@ -50,7 +50,6 @@ _Appears in:_
 | `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
 | `vpcVLANRange` _string_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
-| `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 
 
 #### AgentStatus

@@ -95,6 +95,8 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 			continue
 		}
 
+		// TODO add some good validation and probably different formats like w/o SPEED_ prefix and show options in error
+
 		res = append(res, EntPortGroupSpeed(group, speedStr, speed))
 	}
 

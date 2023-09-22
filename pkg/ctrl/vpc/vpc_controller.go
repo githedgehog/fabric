@@ -107,6 +107,9 @@ func (r *VPCReconciler) setNextFreeVLAN(ctx context.Context, vpc *vpcapi.VPC) er
 
 	used := make([]bool, r.Cfg.VPCVLANRange.Max-r.Cfg.VPCVLANRange.Min+1)
 	for _, v := range vpcs.Items {
+		if v.Status.VLAN == 0 {
+			continue
+		}
 		if v.Status.VLAN > 0 && (v.Status.VLAN < r.Cfg.VPCVLANRange.Min || v.Status.VLAN > r.Cfg.VPCVLANRange.Max) {
 			l.Info("vpc vlan out of range, ignoring", "vpc", v.Name, "vlan", v.Status.VLAN)
 			continue

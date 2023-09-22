@@ -28,6 +28,8 @@ spec:
   locationSig:
     sig: long-signature
     uuidSig: also-long-signature
+  portGroupSpeeds:
+    "12": SPEED_10GB
 ---
 ###
 ### switch-2
@@ -50,6 +52,8 @@ spec:
   locationSig:
     sig: long-signature
     uuidSig: also-long-signature
+  portGroupSpeeds:
+    "12": SPEED_10GB
 ---
 ###
 ### control-1
@@ -177,7 +181,7 @@ spec:
     - server:
         port: server-1/enp7s0
       switch:
-        port: switch-1/Ethernet46
+        port: switch-1/Ethernet47
     - server:
         port: server-1/enp8s0
       switch:
@@ -201,7 +205,7 @@ spec:
     - server:
         port: server-2/enp7s0
       switch:
-        port: switch-1/Ethernet47
+        port: switch-1/Ethernet46
     - server:
         port: server-2/enp8s0
       switch:

@@ -360,7 +360,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
 		agent.Spec.Users = r.Cfg.Users
-		agent.Spec.PortChannels = portChannels
 	})
 	if err != nil {
 		return ctrl.Result{}, err

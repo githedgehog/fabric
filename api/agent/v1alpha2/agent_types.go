@@ -26,14 +26,13 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ControlVIP      string               `json:"controlVIP,omitempty"`
-	Users           []UserCreds          `json:"users,omitempty"`
-	Switch          wiringapi.SwitchSpec `json:"switch,omitempty"`
-	Connections     []ConnectionInfo     `json:"connections,omitempty"`
-	VPCs            []VPCInfo            `json:"vpcs,omitempty"`
-	VPCVLANRange    string               `json:"vpcVLANRange,omitempty"`
-	PortChannels    map[string]uint16    `json:"portChannels,omitempty"`
-	PortGroupSpeeds map[string]string     `json:"portGroupSpeeds,omitempty"`
+	ControlVIP   string               `json:"controlVIP,omitempty"`
+	Users        []UserCreds          `json:"users,omitempty"`
+	Switch       wiringapi.SwitchSpec `json:"switch,omitempty"`
+	Connections  []ConnectionInfo     `json:"connections,omitempty"`
+	VPCs         []VPCInfo            `json:"vpcs,omitempty"`
+	VPCVLANRange string               `json:"vpcVLANRange,omitempty"`
+	PortChannels map[string]uint16    `json:"portChannels,omitempty"`
 }
 
 type UserCreds struct {

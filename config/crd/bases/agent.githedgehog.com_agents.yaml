@@ -144,10 +144,6 @@ spec:
                 additionalProperties:
                   type: integer
                 type: object
-              portGroupSpeeds:
-                additionalProperties:
-                  type: string
-                type: object
               switch:
                 description: SwitchSpec defines the desired state of Switch
                 properties:
