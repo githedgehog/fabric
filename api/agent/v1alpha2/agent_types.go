@@ -36,7 +36,7 @@ type AgentSpec struct {
 }
 
 type UserCreds struct {
-	Name     string `json:"username,omitempty"`
+	Name     string `json:"name,omitempty"`
 	Password string `json:"password,omitempty"`
 	Role     string `json:"role,omitempty"`
 }

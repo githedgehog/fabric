@@ -121,7 +121,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `username` _string_ |  |
+| `name` _string_ |  |
 | `password` _string_ |  |
 | `role` _string_ |  |
 
