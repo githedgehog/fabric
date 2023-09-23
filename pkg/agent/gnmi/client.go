@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -38,10 +37,16 @@ type Client struct {
 	tg *target.Target
 }
 
-func NewInSONiC(ctx context.Context, basedir string) (*Client, error) {
+func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool) (*Client, error) {
 	_, err := os.Stat(filepath.Join(basedir, PASSWORD_FILE))
 	if err != nil {
 		if os.IsNotExist(err) {
+			if skipAgentUserCreation {
+				return nil, errors.Wrap(err, "password file does not exist")
+			}
+
+			slog.Info("Password file does not exist, creating new agent user")
+
 			password, err := newAgentUser(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create new agent user")
@@ -50,6 +55,8 @@ func NewInSONiC(ctx context.Context, basedir string) (*Client, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot write password file")
 			}
+
+			slog.Info("New agent user password generated and saved to password file")
 		} else {
 			return nil, errors.Wrap(err, "cannot stat password file")
 		}
@@ -91,7 +98,10 @@ func (c *Client) Close() error {
 }
 
 func newAgentUser(ctx context.Context) ([]byte, error) {
-	agentPassword := "topsecretultrahedgehog" // TODO generate random password and use hash
+	agentPassword, err := RandomPassword()
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot generate new agent user password")
+	}
 
 	var lastError error
 	for _, user := range DEFAULT_USERS {
@@ -99,15 +109,15 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 			defC, err := New(ctx, DEFAULT_ADDRESS, user, password)
 			if err != nil {
 				lastError = errors.Wrapf(err, "cannot init client with %s", user)
-				log.Printf("cannot init client with %s: %#v", user, err)
+				slog.Debug("cannot init client", "user", user, "err", err)
 				continue
 			}
 			defer defC.Close()
 
-			err = defC.Set(ctx, EntUser(AGENT_USER, agentPassword, "admin")) // TODO extract role to constant
+			err = defC.Set(ctx, EntUser(AGENT_USER, agentPassword, "admin"))
 			if err != nil {
 				lastError = errors.Wrapf(err, "cannot set user %s with gnmi", user)
-				log.Printf("cannot set user %s with gnmi: %#v", user, err)
+				slog.Debug("cannot set user with gnmi", "user", user, "err", err)
 				continue
 			}
 

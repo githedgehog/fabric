@@ -110,7 +110,7 @@ func main() {
 					return (&agent.Service{
 						Basedir: basedir,
 					}).Run(ctx, func() (*gnmi.Client, error) {
-						return gnmi.NewInSONiC(ctx, basedir)
+						return gnmi.NewInSONiC(ctx, basedir, false)
 					})
 				},
 			},
@@ -126,6 +126,10 @@ func main() {
 					},
 					&cli.BoolFlag{
 						Name:  "skip-contol-link",
+						Value: true,
+					},
+					&cli.BoolFlag{
+						Name:  "apply-once",
 						Value: true,
 					},
 					&cli.BoolFlag{
@@ -162,14 +166,14 @@ func main() {
 								cCtx.String("gnmi-password"))
 						}
 
-						return gnmi.NewInSONiC(ctx, basedir)
+						return gnmi.NewInSONiC(ctx, basedir, true)
 					}
 
 					return (&agent.Service{
 						Basedir:         basedir,
 						DryRun:          cCtx.Bool("dry-run"),
 						SkipControlLink: cCtx.Bool("skip-contol-link"),
-						ApplyOnce:       true,
+						ApplyOnce:       cCtx.Bool("apply-once"),
 					}).Run(ctx, getGNMIClient)
 				},
 			},
