@@ -360,6 +360,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
 		agent.Spec.Users = r.Cfg.Users
+		agent.Spec.PortChannels = portChannels
 	})
 	if err != nil {
 		return ctrl.Result{}, err
@@ -424,6 +425,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	// TODO
 	for attempt := 0; attempt < 5 && len(kubeconfig.Data) < 3; attempt++ {
 		time.Sleep(1 * time.Second)
 
