@@ -18,15 +18,22 @@ package vpc
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/ctrl/common"
+	"golang.org/x/exp/maps"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -76,12 +83,35 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vpcapi.VPC{}).
+		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForAttach)).
 		Complete(r)
+}
+
+func (r *VPCReconciler) enqueueForAttach(ctx context.Context, obj client.Object) []reconcile.Request {
+	attach, ok := obj.(*vpcapi.VPCAttachment)
+	if !ok {
+		panic(fmt.Sprintf("enqueueVPCByAttachName got not a VPCAttachment: %#v", obj))
+	}
+
+	return []reconcile.Request{{
+		NamespacedName: client.ObjectKey{
+			Name:      attach.Spec.VPC,
+			Namespace: attach.Namespace,
+		},
+	}}
 }
 
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/finalizers,verbs=update
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries/finalizers,verbs=update
 
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
@@ -102,11 +132,49 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		l.Info("vpc vlan assigned", "vpc", vpc.Name, "vlan", vpc.Status.VLAN)
 	}
 
+	attaches := &vpcapi.VPCAttachmentList{}
+	err = r.List(ctx, attaches, client.InNamespace(req.Namespace), client.MatchingLabels{
+		vpcapi.LabelVPC: vpc.Name,
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments for vpc %s", vpc.Name)
+	}
+
+	connNames := []string{}
+	for _, attach := range attaches.Items {
+		connNames = append(connNames, attach.Spec.Connection)
+	}
+
+	summaryLabels := map[string]string{}
+	for _, connName := range connNames {
+		conn := &wiringapi.Connection{}
+		err := r.Get(ctx, client.ObjectKey{Name: connName, Namespace: vpc.Namespace}, conn) // TODO ns
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting connection %s", connName)
+		}
+
+		maps.Copy(summaryLabels, conn.Spec.ConnectionLabels())
+	}
+
+	summary := &vpcapi.VPCSummary{ObjectMeta: metav1.ObjectMeta{Name: vpc.Name, Namespace: vpc.Namespace}}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, summary, func() error {
+		summary.Spec.VPC = vpc.Spec
+		summary.Spec.VLAN = vpc.Status.VLAN
+		summary.Spec.Connections = connNames
+		summary.Labels = summaryLabels
+
+		return nil
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error creating summary for vpc %s", vpc.Name)
+	}
+
 	err = r.updateDHCPConfig(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp config")
 	}
-	l.Info("dhcp config updated")
+
+	l.Info("vpc reconciled")
 
 	return ctrl.Result{}, nil
 }
@@ -146,8 +214,6 @@ func (r *VPCReconciler) setNextFreeVLAN(ctx context.Context, vpc *vpcapi.VPC) er
 			break
 		}
 	}
-
-	l.Info("vpc vlan assigned", "vpc", vpc.Name, "vlab", vpc.Status.VLAN)
 
 	err = r.Status().Update(ctx, vpc)
 	if err != nil {

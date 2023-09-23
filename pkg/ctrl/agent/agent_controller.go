@@ -21,13 +21,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"text/template"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
@@ -36,10 +34,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -92,7 +92,7 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
-		// Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)). // TODO introduct VPCSummary CRD
+		Watches(&vpcapi.VPCSummary{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
 		// TODO enque for rack changes?
 		Complete(r)
 }
@@ -102,7 +102,7 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 
 	labels := obj.GetLabels()
 
-	// extract to var
+	// TODO extract to lib
 	switchConnPrefix := wiringapi.ListLabelPrefix(wiringapi.ConnectionLabelTypeSwitch)
 
 	for label, val := range labels {
@@ -160,11 +160,6 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get
-
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
@@ -173,21 +168,19 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
-	// TODO make some queueing for switch updates as we're calling reconsile for every switch and its ports changes
-	// seems like it's doing a good job compacting reconcilation queue, so, not high priority
-
-	// TODO handle Updates more carefully (e.g. if got updated in parallel)
-	// if apierrors.IsConflict(err) {
-	//     return ctrl.Result{Requeue: true}, nil
-	// }
-	// if apierrors.IsNotFound(err) {
-	//     return ctrl.Result{Requeue: true}, nil
-	// }
-
 	sw := &wiringapi.Switch{}
 	err := r.Get(ctx, req.NamespacedName, sw)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch")
+	}
+
+	switchNsName := metav1.ObjectMeta{Name: sw.Name, Namespace: sw.Namespace}
+	res, err := r.prepareAgentInfra(ctx, switchNsName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if res != nil {
+		return *res, nil
 	}
 
 	connList := &wiringapi.ConnectionList{}
@@ -196,7 +189,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
-	peerName := ""
+	mclagPeerName := ""
 	conns := []agentapi.ConnectionInfo{}
 	for _, conn := range connList.Items {
 		conns = append(conns, agentapi.ConnectionInfo{
@@ -207,9 +200,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			// TODO add some helpers
 			for _, link := range conn.Spec.MCLAGDomain.PeerLinks {
 				if link.Switch1.DeviceName() == sw.Name {
-					peerName = link.Switch2.DeviceName()
+					mclagPeerName = link.Switch2.DeviceName()
 				} else if link.Switch2.DeviceName() == sw.Name {
-					peerName = link.Switch1.DeviceName()
+					mclagPeerName = link.Switch1.DeviceName()
 				}
 			}
 		}
@@ -218,87 +211,161 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return conns[i].Name < conns[j].Name
 	})
 
-	vpcAtts := &vpcapi.VPCAttachmentList{}
-	err = r.List(ctx, vpcAtts, client.InNamespace(sw.Namespace))
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting switch vpc attachments")
-	}
-
-	vpcOk := map[string]bool{}
 	vpcs := []agentapi.VPCInfo{}
-	for _, att := range vpcAtts.Items {
-		vpcName := att.Spec.VPC
-
-		if vpcOk[vpcName] {
-			continue
-		}
-
-		conn := &wiringapi.Connection{}
-		err := r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: att.Spec.Connection}, conn)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting connection %s for attach %s", att.Spec.Connection, att.Name)
-		}
-
-		ok := false
-		if conn.Spec.Unbundled != nil {
-			if conn.Spec.Unbundled.Link.Server.DeviceName() == sw.Name {
-				ok = true
-			}
-		} else if conn.Spec.MCLAG != nil {
-			for _, link := range conn.Spec.MCLAG.Links {
-				if link.Switch.DeviceName() == sw.Name {
-					ok = true
-					break
-				}
-			}
-		}
-		if !ok {
-			continue
-		}
-
-		vpc := &vpcapi.VPC{}
-		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: vpcName}, vpc)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s for attach %s", vpcName, att.Name)
-		}
-
-		if vpc.Status.VLAN == 0 {
-			l.Info("vpc doesn't have vlan assigned, skipping", "vpc", vpcName)
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil // errors.Errorf("vpc %s doesn't have vlan assigned", vpcName)
-		}
-		if vpc.Status.VLAN < r.Cfg.VPCVLANRange.Min || vpc.Status.VLAN > r.Cfg.VPCVLANRange.Max {
-			return ctrl.Result{}, errors.Errorf("vpc %s vlan %d is out of range %d..%d", vpcName, vpc.Status.VLAN, r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
-		}
-
+	vpcSummaries := &vpcapi.VPCSummaryList{}
+	err = r.List(ctx, vpcSummaries, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting switch vpc summaries")
+	}
+	for _, vpcSummary := range vpcSummaries.Items {
 		vpcs = append(vpcs, agentapi.VPCInfo{
-			Name: vpcName,
-			VLAN: vpc.Status.VLAN,
-			Spec: vpc.Spec,
+			Name: vpcSummary.Name,
+			VLAN: vpcSummary.Spec.VLAN,
+			Spec: vpcSummary.Spec.VPC,
 		})
-
-		vpcOk[vpcName] = true
 	}
 	sort.Slice(vpcs, func(i, j int) bool {
 		return vpcs[i].Name < vpcs[j].Name
 	})
 
+	// handle MCLAG things if we see a peer switch
 	// We only support MCLAG switch pairs for now
 	// It means that 2 switches would have the same MCLAG connections and same set of PortChannels
-
-	agent := &agentapi.Agent{}
-	err = r.Get(ctx, agentKey(req.NamespacedName), agent)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting agent")
+	var mclagPeer *agentapi.Agent
+	if mclagPeerName != "" {
+		mclagPeer = &agentapi.Agent{}
+		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: mclagPeerName}, mclagPeer)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
+		}
 	}
 
-	peer := &agentapi.Agent{}
-	err = r.Get(ctx, agentKey(types.NamespacedName{Namespace: sw.Namespace, Name: peerName}), peer)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
+	agent := &agentapi.Agent{ObjectMeta: switchNsName}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
+		agent.Labels = sw.Labels
+		agent.Spec.ControlVIP = r.Cfg.ControlVIP
+		agent.Spec.Switch = sw.Spec
+		agent.Spec.Connections = conns
+		agent.Spec.VPCs = vpcs
+		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
+		agent.Spec.Users = r.Cfg.Users
+
+		if mclagPeer != nil {
+			agent.Spec.PortChannels, err = r.calculateMCLAGPortChannels(ctx, agent, mclagPeer, conns)
+			if err != nil {
+				return errors.Wrapf(err, "error calculating port channels")
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error creating agent")
 	}
 
-	// conn name -> port channel name
+	l.Info("agent reconciled")
+
+	return ctrl.Result{}, nil
+}
+
+func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.ObjectMeta) (*ctrl.Result, error) {
+	l := log.FromContext(ctx)
+
+	sa := &corev1.ServiceAccount{ObjectMeta: agentMeta}
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil })
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating service account")
+	}
+
+	role := &rbacv1.Role{ObjectMeta: agentMeta}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
+		role.Rules = []rbacv1.PolicyRule{
+			{
+				APIGroups:     []string{agentapi.GroupVersion.Group},
+				Resources:     []string{"agents"},
+				ResourceNames: []string{agentMeta.Name},
+				Verbs:         []string{"get", "watch"},
+			},
+			{
+				APIGroups:     []string{agentapi.GroupVersion.Group},
+				Resources:     []string{"agents/status"},
+				ResourceNames: []string{agentMeta.Name},
+				Verbs:         []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			},
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating role")
+	}
+
+	roleBinding := &rbacv1.RoleBinding{ObjectMeta: agentMeta}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
+		roleBinding.Subjects = []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      sa.Name,
+				Namespace: sa.Namespace,
+			},
+		}
+		roleBinding.RoleRef = rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "Role",
+			Name:     role.Name,
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating role binding")
+	}
+
+	tokenSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: agentMeta.Namespace, Name: agentMeta.Name + "-satoken"}}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, tokenSecret, func() error {
+		if tokenSecret.Annotations == nil {
+			tokenSecret.Annotations = map[string]string{}
+		}
+
+		tokenSecret.Annotations[corev1.ServiceAccountNameKey] = agentMeta.Name
+		tokenSecret.Type = corev1.SecretTypeServiceAccountToken
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating token secret")
+	}
+
+	// we don't yet have service account token for the agent
+	if len(tokenSecret.Data) < 3 {
+		// TODO is it the best we can do? or should we do few in-place retries?
+		l.Info("requeue to wait for service account token")
+		return &ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	kubeconfig, err := r.genKubeconfig(tokenSecret)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error generating kubeconfig")
+	}
+
+	kubeconfigSecret := &corev1.Secret{ObjectMeta: agentMeta}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, kubeconfigSecret, func() error {
+		kubeconfigSecret.StringData = map[string]string{
+			KubeconfigKey: kubeconfig,
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating kubeconfig secret")
+	}
+
+	return nil, nil
+}
+
+func (r *AgentReconciler) calculateMCLAGPortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns []agentapi.ConnectionInfo) (map[string]uint16, error) {
 	portChannels := map[string]uint16{}
+
 	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
 	for _, conn := range conns {
 		if conn.Spec.MCLAG != nil {
@@ -312,13 +379,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				portChannels[conn.Name] = pc2
 			}
 			if pc1 != 0 && pc2 != 0 && pc1 != pc2 {
-				return ctrl.Result{}, errors.Errorf("port channel mismatch for conn %s on %s, %s", conn.Name, sw.Name, peerName)
+				return nil, errors.Errorf("port channel mismatch for conn %s on %s, %s", conn.Name, agent.Name, peer.Name)
 			}
 			if portChannels[conn.Name] == 0 {
 				continue
 			}
 			if portChannels[conn.Name] < PORT_CHAN_MIN || portChannels[conn.Name] > PORT_CHAN_MAX {
-				return ctrl.Result{}, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[conn.Name], conn.Name, sw.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
+				return nil, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[conn.Name], conn.Name, agent.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
 			}
 
 			taken[portChannels[conn.Name]-PORT_CHAN_MIN] = true
@@ -341,190 +408,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	// We'll only save it for the current agent, as our peer can always take it from us
-	// TODO is it good?
-
-	agent = &agentapi.Agent{}
-	err = Enforce(l, r, ctx, agentKey(req.NamespacedName), agent, func(agent *agentapi.Agent) {
-		if agent.Labels == nil {
-			agent.Labels = map[string]string{}
-		}
-
-		agent.Spec.ControlVIP = r.Cfg.ControlVIP
-
-		agent.Labels[wiringapi.LabelRack] = sw.Labels[wiringapi.LabelRack]
-		agent.Labels[wiringapi.LabelSwitch] = sw.Name
-
-		agent.Spec.Switch = sw.Spec
-		agent.Spec.Connections = conns
-		agent.Spec.VPCs = vpcs
-		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
-		agent.Spec.Users = r.Cfg.Users
-		agent.Spec.PortChannels = portChannels
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	sa := &corev1.ServiceAccount{}
-	err = Enforce(l, r, ctx, saKey(req.NamespacedName), sa, func(sa *corev1.ServiceAccount) {})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	role := &rbacv1.Role{}
-	err = Enforce(l, r, ctx, roleKey(req.NamespacedName), role, func(role *rbacv1.Role) {
-		role.Rules = []rbacv1.PolicyRule{
-			{
-				APIGroups:     []string{agentapi.GroupVersion.Group},
-				Resources:     []string{"agents"},
-				ResourceNames: []string{agent.Name},
-				Verbs:         []string{"get", "watch"},
-			},
-			{
-				APIGroups:     []string{agentapi.GroupVersion.Group},
-				Resources:     []string{"agents/status"},
-				ResourceNames: []string{agent.Name},
-				Verbs:         []string{"get", "list", "watch", "create", "update", "patch", "delete"},
-			},
-		}
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	roleBinding := &rbacv1.RoleBinding{}
-	err = Enforce(l, r, ctx, roleBindingKey(req.NamespacedName), roleBinding, func(roleBinding *rbacv1.RoleBinding) {
-		roleBinding.Subjects = []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      sa.Name,
-				Namespace: sa.Namespace,
-			},
-		}
-		roleBinding.RoleRef = rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "Role",
-			Name:     role.Name,
-		}
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	kubeconfig := &corev1.Secret{}
-	err = Enforce(l, r, ctx, kubeconfigKey(req.NamespacedName), kubeconfig, func(secret *corev1.Secret) {
-		if secret.Annotations == nil {
-			secret.Annotations = map[string]string{}
-		}
-
-		secret.Annotations[corev1.ServiceAccountNameKey] = req.Name
-		secret.Type = corev1.SecretTypeServiceAccountToken
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// TODO
-	for attempt := 0; attempt < 5 && len(kubeconfig.Data) < 3; attempt++ {
-		time.Sleep(1 * time.Second)
-
-		err = r.Get(ctx, kubeconfigKey(req.NamespacedName), kubeconfig)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-	if len(kubeconfig.Data) < 3 {
-		return ctrl.Result{}, errors.New("error getting token for sa")
-	}
-
-	genKubeconfig, err := r.genKubeconfig(kubeconfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	kubeconfig.StringData = map[string]string{
-		KubeconfigKey: genKubeconfig,
-	}
-	// TODO avoid re-generating kubeconfig if it's not required
-	err = r.Update(ctx, kubeconfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func Enforce[T client.Object](log logr.Logger, r *AgentReconciler, ctx context.Context, key client.ObjectKey, obj T, set func(T)) error {
-	create := false
-	err := r.Get(ctx, key, obj)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			create = true
-		} else {
-			return errors.Wrapf(err, "error getting %T", obj)
-		}
-	}
-
-	original := obj.DeepCopyObject()
-
-	obj.SetName(key.Name)
-	obj.SetNamespace(key.Namespace)
-
-	// TODO add some labels automatically for tracking?
-
-	set(obj)
-
-	// TODO think about replacing reflect with something else, maybe generate Equal?
-	if !create && reflect.DeepEqual(original, obj) {
-		// log.Info("Skipping object update", "type", fmt.Sprintf("%T", obj))
-		return nil
-	}
-
-	if create {
-		log.Info("Creating object", "type", fmt.Sprintf("%T", obj))
-		err = r.Create(ctx, obj)
-	} else {
-		log.Info("Updating object", "type", fmt.Sprintf("%T", obj))
-		err = r.Update(ctx, obj)
-	}
-
-	return errors.Wrapf(err, "error creating/updating %T", obj)
-}
-
-func agentKey(switchKey client.ObjectKey) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: switchKey.Namespace,
-		Name:      switchKey.Name,
-	}
-}
-
-func saKey(switchKey client.ObjectKey) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: switchKey.Namespace,
-		Name:      switchKey.Name,
-	}
-}
-
-func roleKey(switchKey client.ObjectKey) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: switchKey.Namespace,
-		Name:      switchKey.Name,
-	}
-}
-
-func roleBindingKey(switchKey client.ObjectKey) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: switchKey.Namespace,
-		Name:      switchKey.Name,
-	}
-}
-
-func kubeconfigKey(switchKey client.ObjectKey) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: switchKey.Namespace,
-		Name:      switchKey.Name,
-	}
+	return portChannels, nil
 }
 
 const (

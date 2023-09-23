@@ -154,6 +154,7 @@ Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 ### Resource Types
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
+- [VPCSummary](#vpcsummary)
 
 
 
@@ -247,6 +248,7 @@ VPCSpec defines the desired state of VPC
 _Appears in:_
 - [VPC](#vpc)
 - [VPCInfo](#vpcinfo)
+- [VPCSummarySpec](#vpcsummaryspec)
 
 | Field | Description |
 | --- | --- |
@@ -266,6 +268,41 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `vlan` _integer_ |  |
+
+
+#### VPCSummary
+
+
+
+VPCSummary is the Schema for the vpcsummaries API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `VPCSummary`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[VPCSummarySpec](#vpcsummaryspec)_ |  |
+| `status` _[VPCSummaryStatus](#vpcsummarystatus)_ |  |
+
+
+#### VPCSummarySpec
+
+
+
+VPCSummarySpec defines the desired state of VPCSummary
+
+_Appears in:_
+- [VPCSummary](#vpcsummary)
+
+| Field | Description |
+| --- | --- |
+| `vpc` _[VPCSpec](#vpcspec)_ |  |
+| `vlan` _integer_ |  |
+| `connections` _string array_ |  |
+
+
 
 
 
