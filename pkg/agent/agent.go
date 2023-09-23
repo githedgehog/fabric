@@ -39,6 +39,96 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		return errors.Wrap(err, "failed to load config")
 	}
 
+	svc.client, err = getClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to create gNMI client")
+	}
+	defer svc.client.Close()
+
+	err = svc.processAgent(ctx, agent)
+	if err != nil {
+		return errors.Wrap(err, "failed to process agent config")
+	}
+
+	if !svc.ApplyOnce {
+		slog.Info("Starting watch for config changes in K8s")
+
+		kube, err := svc.kubeClient()
+		if err != nil {
+			return err
+		}
+
+		watcher, err := kube.Watch(context.TODO(), &agentapi.AgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
+			"metadata.name": svc.name,
+		})
+		if err != nil {
+			return err
+		}
+
+		// TODO send regular heartbeats to K8s
+
+		currentGen := int64(-1)
+		for event := range watcher.ResultChan() {
+			agent, ok := event.Object.(*agentapi.Agent)
+			if !ok {
+				return errors.New("can't cast to agent")
+			}
+
+			if agent.Generation == currentGen {
+				slog.Debug("Skipping agent with same generation", "name", agent.Name, "generation", agent.Generation)
+				continue
+			}
+
+			slog.Info("Agent config changed", "event", event.Type)
+			spew.Dump(agent)
+
+			nosInfo, err := svc.client.GetNOSInfo(ctx)
+			if err != nil {
+				return err
+			}
+			agent.Status.NOSInfo = *nosInfo
+
+			// demonstrating that we're going to try to apply config
+			agent.Status.LastAttemptGen = agent.Generation
+			agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
+
+			err = kube.Status().Update(context.TODO(), agent)
+			if err != nil {
+				return err
+			}
+
+			// TODO add lastApplied (time), lastAppliedGeneration
+			// TODO apply and save config
+
+			err = svc.processAgent(ctx, agent)
+			if err != nil {
+				return errors.Wrap(err, "failed to process agent config loaded from k8s")
+			}
+
+			err = svc.saveConfigToFile(agent)
+			if err != nil {
+				return errors.Wrap(err, "failed to save agent config to file")
+			}
+
+			// report that we've been able to apply config
+			agent.Status.LastAppliedGen = agent.Generation
+			agent.Status.LastAppliedTime = metav1.Time{Time: time.Now()}
+
+			err = kube.Status().Update(context.TODO(), agent)
+			if err != nil {
+				return err
+			}
+
+			currentGen = agent.Generation
+		}
+	}
+
+	return nil
+}
+
+func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent) error {
+	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
 	plan, err := PreparePlan(agent)
 	if err != nil {
 		return errors.Wrap(err, "failed to process config to prepare plan")
@@ -69,91 +159,45 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	slog.Info("Plan entries generated")
 
+	// TODO
 	// if slog.Default().Enabled(ctx, slog.LevelDebug) {
 	// 	slog.Debug("Plan entries:")
 	// 	spew.Dump(entries)
 	// }
 
-	svc.client, err = getClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to create gNMI client")
-	}
-	defer svc.client.Close()
-
 	err = plan.ApplyWith(ctx, svc.client)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply config")
 	}
-	slog.Info("Config applied from file")
-
-	if !svc.ApplyOnce {
-		slog.Info("Starting watch for config changes in K8s")
-
-		kubeconfigPath := filepath.Join(svc.Basedir, KUBECONFIG_FILE)
-		cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
-			nil,
-		).ClientConfig()
-		if err != nil {
-			return err
-		}
-
-		scheme := runtime.NewScheme()
-		err = agentapi.AddToScheme(scheme)
-		if err != nil {
-			return err
-		}
-
-		kubeClient, err := client.NewWithWatch(cfg, client.Options{
-			Scheme: scheme,
-		})
-		if err != nil {
-			return err
-		}
-
-		watcher, err := kubeClient.Watch(context.TODO(), &agentapi.AgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
-			"metadata.name": svc.name,
-		})
-		if err != nil {
-			return err
-		}
-
-		currentGen := int64(-1)
-		for event := range watcher.ResultChan() {
-			agent, ok := event.Object.(*agentapi.Agent)
-			if !ok {
-				return errors.New("can't cast to agent")
-			}
-
-			if agent.Generation == currentGen {
-				slog.Debug("Skipping agent with same generation", "name", agent.Name, "generation", agent.Generation)
-				continue
-			}
-
-			slog.Info("Agent config changed", "event", event.Type)
-			spew.Dump(agent)
-
-			nosInfo, err := svc.client.GetNOSInfo(ctx)
-			if err != nil {
-				return err
-			}
-			agent.Status.NOSInfo = *nosInfo
-			agent.Status.LastAttemptGen = agent.Generation
-			agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
-
-			err = kubeClient.Status().Update(context.TODO(), agent)
-			if err != nil {
-				return err
-			}
-
-			// TODO add lastApplied (time), lastAppliedGeneration
-			// TODO apply and save config
-
-			currentGen = agent.Generation
-		}
-	}
+	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
 	return nil
+}
+
+func (svc *Service) kubeClient() (client.WithWatch, error) {
+	kubeconfigPath := filepath.Join(svc.Basedir, KUBECONFIG_FILE)
+	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+		nil,
+	).ClientConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to load kubeconfig from %s", kubeconfigPath)
+	}
+
+	scheme := runtime.NewScheme()
+	err = agentapi.AddToScheme(scheme)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to add agent scheme")
+	}
+
+	kubeClient, err := client.NewWithWatch(cfg, client.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create kube client")
+	}
+
+	return kubeClient, nil
 }
 
 func (s *Service) configFilePath() string {

@@ -81,7 +81,7 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 	}
 
 	conns := &wiringapi.ConnectionList{}
-	err = r.List(ctx, conns)
+	err = r.List(ctx, conns) // TODO get only management links, by type?
 	if err != nil {
 		return errors.Wrapf(err, "error listing connections")
 	}

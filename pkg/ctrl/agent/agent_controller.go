@@ -92,7 +92,7 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
-		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
+		// Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)). // TODO introduct VPCSummary CRD
 		// TODO enque for rack changes?
 		Complete(r)
 }
