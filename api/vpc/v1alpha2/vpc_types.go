@@ -29,7 +29,13 @@ type VPCSpec struct {
 }
 
 type VPCDHCP struct {
-	Enable bool `json:"enable,omitempty"`
+	Enable bool          `json:"enable,omitempty"`
+	Range  *VPCDHCPRange `json:"range,omitempty"`
+}
+
+type VPCDHCPRange struct {
+	Start *string `json:"start,omitempty"`
+	End   *string `json:"end,omitempty"`
 }
 
 // VPCStatus defines the observed state of VPC

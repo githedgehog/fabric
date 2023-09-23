@@ -1,10 +1,11 @@
 package common
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
@@ -16,14 +17,12 @@ func LoadCtrlConfig(basedir, name string, cfg any) error {
 		return errors.Wrapf(err, "error reading config %s", path)
 	}
 
-	// TODO log
-	fmt.Println(name)
-	fmt.Println(string(data))
-
 	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		return errors.Wrapf(err, "error unmarshalling config %s", path)
 	}
+
+	slog.Debug("Loaded controller config", "name", name, "data", spew.Sdump(cfg))
 
 	return nil
 }

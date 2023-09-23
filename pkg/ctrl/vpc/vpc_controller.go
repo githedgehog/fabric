@@ -34,7 +34,10 @@ const (
 )
 
 type VPCControllerConfig struct {
-	VPCVLANRange common.VLANRange `json:"vpcVLANRange,omitempty"`
+	ControlVIP     string           `json:"controlVIP,omitempty"`
+	VPCVLANRange   common.VLANRange `json:"vpcVLANRange,omitempty"`
+	DHCPDConfigMap string           `json:"dhcpdConfigMap,omitempty"`
+	DHCPDConfigKey string           `json:"dhcpdConfigKey,omitempty"`
 }
 
 // VPCReconciler reconciles a VPC object
@@ -52,8 +55,17 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 		return err
 	}
 
+	if cfg.ControlVIP == "" {
+		return errors.Errorf("config: controlVIP is required")
+	}
 	if err := cfg.VPCVLANRange.Validate(); err != nil {
 		return errors.Wrapf(err, "config: vpcVLANRange is invalid")
+	}
+	if cfg.DHCPDConfigMap == "" {
+		return errors.Errorf("config: dhcpdConfigMap is required")
+	}
+	if cfg.DHCPDConfigKey == "" {
+		return errors.Errorf("config: dhcpdConfigKey is required")
 	}
 
 	r := &VPCReconciler{
@@ -71,7 +83,11 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
 
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+
 func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	l := log.FromContext(ctx)
+
 	vpc := &vpcapi.VPC{}
 	err := r.Get(ctx, req.NamespacedName, vpc)
 	if err != nil {
@@ -83,7 +99,14 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "error assigning vlan to vpc %s", vpc.Name)
 		}
+		l.Info("vpc vlan assigned", "vpc", vpc.Name, "vlan", vpc.Status.VLAN)
 	}
+
+	err = r.updateDHCPConfig(ctx)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp config")
+	}
+	l.Info("dhcp config updated")
 
 	return ctrl.Result{}, nil
 }

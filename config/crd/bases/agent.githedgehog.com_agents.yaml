@@ -217,6 +217,13 @@ spec:
                           properties:
                             enable:
                               type: boolean
+                            range:
+                              properties:
+                                end:
+                                  type: string
+                                start:
+                                  type: string
+                              type: object
                           type: object
                         subnet:
                           type: string

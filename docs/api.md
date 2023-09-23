@@ -220,6 +220,22 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `enable` _boolean_ |  |
+| `range` _[VPCDHCPRange](#vpcdhcprange)_ |  |
+
+
+#### VPCDHCPRange
+
+
+
+
+
+_Appears in:_
+- [VPCDHCP](#vpcdhcp)
+
+| Field | Description |
+| --- | --- |
+| `start` _string_ |  |
+| `end` _string_ |  |
 
 
 #### VPCSpec
