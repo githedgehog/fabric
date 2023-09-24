@@ -40,6 +40,7 @@ import (
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
+	"go.githedgehog.com/fabric/pkg/webhook/connection"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -110,6 +111,14 @@ func main() {
 	}
 	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VPC")
+		os.Exit(1)
+	}
+	// if err = (&wiringv1alpha2.Connection{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
+	// 	os.Exit(1)
+	// }
+	if err = connection.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

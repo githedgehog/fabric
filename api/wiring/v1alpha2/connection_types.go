@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -220,4 +221,15 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	}
 
 	return res
+}
+
+func (c *Connection) GenerateLabels() {
+	if c.Labels == nil {
+		c.Labels = map[string]string{}
+	}
+
+	maps.Copy(c.Labels, c.Spec.ConnectionLabels())
+}
+
+func (c *Connection) Validate() {
 }
