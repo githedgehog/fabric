@@ -34,10 +34,8 @@ const (
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
-	Type        ServerType  `json:"type,omitempty"`
-	Profile     string      `json:"profile,omitempty"`
-	Location    Location    `json:"location,omitempty"`
-	LocationSig LocationSig `json:"locationSig,omitempty"`
+	Type    ServerType `json:"type,omitempty"`
+	Profile string     `json:"profile,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server
@@ -76,9 +74,8 @@ func (s *Server) IsControl() bool {
 }
 
 func (s *ServerSpec) Labels() map[string]string {
-	uuid, _ := s.Location.GenerateUUID()
 	return map[string]string{
-		LabelLocation: uuid,
+		LabelServerType: string(s.Type),
 	}
 }
 
@@ -91,7 +88,5 @@ func (server *Server) Default() {
 }
 
 func (server *Server) Validate() (warnings admission.Warnings, err error) {
-	// TODO
-
 	return nil, nil
 }

@@ -502,7 +502,6 @@ _Appears in:_
 Location defines the geopraphical position of the device in a datacenter
 
 _Appears in:_
-- [ServerSpec](#serverspec)
 - [SwitchSpec](#switchspec)
 
 | Field | Description |
@@ -521,7 +520,6 @@ _Appears in:_
 LocationSig contains signatures for the location UUID as well as the device location itself
 
 _Appears in:_
-- [ServerSpec](#serverspec)
 - [SwitchSpec](#switchspec)
 
 | Field | Description |
@@ -674,8 +672,6 @@ _Appears in:_
 | --- | --- |
 | `type` _ServerType_ |  |
 | `profile` _string_ |  |
-| `location` _[Location](#location)_ |  |
-| `locationSig` _[LocationSig](#locationsig)_ |  |
 
 
 

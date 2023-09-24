@@ -25,6 +25,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+const (
+	CONNECTION_TYPE_UNBUNDLED   = "unbundled"
+	CONNECTION_TYPE_MANAGEMENT  = "management"
+	CONNECTION_TYPE_MCLAG       = "mclag"
+	CONNECTION_TYPE_MCLAGDOMAIN = "mclag-domain"
+)
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type BasePortName struct {
@@ -199,12 +206,15 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	res := map[string]string{}
 
 	if c.Unbundled != nil {
+		res[LabelConnectionType] = CONNECTION_TYPE_UNBUNDLED
 		res[ListLabel(ConnectionLabelTypeServer, c.Unbundled.Link.Server.DeviceName())] = ListLabelValue
 		res[ListLabel(ConnectionLabelTypeSwitch, c.Unbundled.Link.Switch.DeviceName())] = ListLabelValue
 	} else if c.Management != nil {
+		res[LabelConnectionType] = CONNECTION_TYPE_MANAGEMENT
 		res[ListLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ListLabelValue
 		res[ListLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ListLabelValue
 	} else if c.MCLAGDomain != nil {
+		res[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
 		for _, link := range c.MCLAGDomain.PeerLinks {
 			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ListLabelValue
 			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ListLabelValue
@@ -213,8 +223,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ListLabelValue
 			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ListLabelValue
 		}
-	}
-	if c.MCLAG != nil {
+	} else if c.MCLAG != nil {
+		res[LabelConnectionType] = CONNECTION_TYPE_MCLAG
 		for _, link := range c.MCLAG.Links {
 			res[ListLabel(ConnectionLabelTypeServer, link.Server.DeviceName())] = ListLabelValue
 			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch.DeviceName())] = ListLabelValue
@@ -234,8 +244,9 @@ func (conn *Connection) Default() {
 
 func (conn *Connection) Validate() (warnings admission.Warnings, err error) {
 	// TODO validate it points to existing devices of correct types
-	// TODO validate there are no duplicates
-	// TODO validate all ref structure
+	// TODO validate there are no duplicates of endpoits usage (device/port could only be used once, right?)
+	// TODO validate all ref structure (like mclag and mclag domain connections are between same servers & switches)
+	// TODO validate only a single type used
 
 	return nil, nil
 }

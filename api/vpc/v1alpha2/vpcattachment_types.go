@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -59,9 +61,23 @@ func init() {
 	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
 }
 
-func (*VPCAttachment) Default() {
+func (s *VPCAttachmentSpec) Labels() map[string]string {
+	return map[string]string{
+		LabelVPC:                  s.VPC,
+		wiringapi.LabelConnection: s.Connection,
+	}
+}
+
+func (attach *VPCAttachment) Default() {
+	if attach.Labels == nil {
+		attach.Labels = map[string]string{}
+	}
+
+	maps.Copy(attach.Labels, attach.Spec.Labels())
 }
 
 func (attach *VPCAttachment) Validate() (warnings admission.Warnings, err error) {
+	// TODO check vpc and connection exist
+
 	return nil, nil
 }

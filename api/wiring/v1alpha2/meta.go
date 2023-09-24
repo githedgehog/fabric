@@ -17,7 +17,10 @@ var (
 	LabelRack                 = LabelName("rack")
 	LabelSwitch               = LabelName("switch")
 	LabelServer               = LabelName("server")
+	LabelServerType           = LabelName("server") + "/type"
 	LabelLocation             = LabelName("location")
+	LabelConnection           = LabelName("connection")
+	LabelConnectionType       = LabelName("connection") + "/type"
 	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
@@ -123,4 +126,8 @@ func (l *Location) GenerateUUID() (string, string) {
 	// and return a version 5 UUID based on the URL namespace with it
 	us := u.String()
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(us)).String(), us
+}
+
+func (l *Location) IsEmpty() bool {
+	return l.Location == "" && l.Aisle == "" && l.Row == "" && l.Rack == "" && l.Slot == ""
 }

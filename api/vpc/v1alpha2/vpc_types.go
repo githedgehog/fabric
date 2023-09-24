@@ -70,10 +70,11 @@ func init() {
 }
 
 func (*VPC) Default() {
+	// TODO cast subnet to the proper net address or set to invalid
 }
 
 func (vpc *VPC) Validate() (warnings admission.Warnings, err error) {
 	// TODO check subnet is correct, dhcp range is correct
-	// TODO should we check subnet here?
+	// TODO check subnet is unique
 	return nil, nil
 }

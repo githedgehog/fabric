@@ -77,22 +77,17 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	_, err = createServer(data, "control-1", "rack-1", wiringapi.ServerSpec{
-		Type:     wiringapi.ServerTypeControl,
-		Location: location("3"),
+		Type: wiringapi.ServerTypeControl,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = createServer(data, "server-1", "rack-1", wiringapi.ServerSpec{
-		Location: location("4"),
-	})
+	_, err = createServer(data, "server-1", "rack-1", wiringapi.ServerSpec{})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "server-2", "rack-1", wiringapi.ServerSpec{
-		Location: location("5"),
-	})
+	_, err = createServer(data, "server-2", "rack-1", wiringapi.ServerSpec{})
 	if err != nil {
 		return nil, err
 	}
@@ -337,10 +332,6 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 func createServer(data *wiring.Data, name string, rack string, spec wiringapi.ServerSpec) (*wiringapi.Server, error) {
 	log.Println("Creating server", name)
 
-	spec.LocationSig = wiringapi.LocationSig{
-		Sig:     "long-signature",
-		UUIDSig: "also-long-signature",
-	}
 	server := &wiringapi.Server{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindServer,
@@ -354,8 +345,6 @@ func createServer(data *wiring.Data, name string, rack string, spec wiringapi.Se
 		},
 		Spec: spec,
 	}
-	locUUID, _ := server.Spec.Location.GenerateUUID()
-	server.Labels[wiringapi.LabelLocation] = locUUID
 
 	return server, errors.Wrapf(data.Add(server), "error creating server %s", name)
 }

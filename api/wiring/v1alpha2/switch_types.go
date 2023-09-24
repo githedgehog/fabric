@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"fmt"
 	"time"
 
-	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -77,21 +77,27 @@ func init() {
 	SchemeBuilder.Register(&Switch{}, &SwitchList{})
 }
 
-func (s *SwitchSpec) Labels() map[string]string {
-	uuid, _ := s.Location.GenerateUUID()
-	return map[string]string{
-		LabelLocation: uuid,
-	}
-}
-
 func (sw *Switch) Default() {
 	if sw.Labels == nil {
 		sw.Labels = map[string]string{}
 	}
 
-	maps.Copy(sw.Labels, sw.Spec.Labels())
+	if sw.Spec.Location.IsEmpty() {
+		sw.Spec.Location = Location{Location: fmt.Sprintf("gen--%s--%s", sw.Namespace, sw.Name)}
+	}
+	if sw.Spec.LocationSig.Sig == "" {
+		sw.Spec.LocationSig.Sig = "<undefined>"
+	}
+	if sw.Spec.LocationSig.UUIDSig == "" {
+		sw.Spec.LocationSig.UUIDSig = "<undefined>"
+	}
+
+	uuid, _ := sw.Spec.Location.GenerateUUID()
+	sw.Labels[LabelLocation] = uuid
 }
 
 func (sw *Switch) Validate() (warnings admission.Warnings, err error) {
+	// TODO validate that location is unique
+
 	return nil, nil
 }
