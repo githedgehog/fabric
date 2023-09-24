@@ -34,6 +34,10 @@ resources:
   kind: Switch
   path: go.githedgehog.com/fabric/api/wiring/v1alpha2
   version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -42,6 +46,10 @@ resources:
   kind: Server
   path: go.githedgehog.com/fabric/api/wiring/v1alpha2
   version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -79,6 +87,10 @@ resources:
   kind: VPC
   path: go.githedgehog.com/fabric/api/vpc/v1alpha2
   version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -87,6 +99,10 @@ resources:
   kind: VPCAttachment
   path: go.githedgehog.com/fabric/api/vpc/v1alpha2
   version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true

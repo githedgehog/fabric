@@ -40,7 +40,11 @@ import (
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
-	"go.githedgehog.com/fabric/pkg/webhook/connection"
+	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
+	serverWebhook "go.githedgehog.com/fabric/pkg/webhook/server"
+	switchWebhook "go.githedgehog.com/fabric/pkg/webhook/switchh"
+	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
+	vpcAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -113,14 +117,28 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VPC")
 		os.Exit(1)
 	}
-	// if err = (&wiringv1alpha2.Connection{}).SetupWebhookWithManager(mgr); err != nil {
-	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
-	// 	os.Exit(1)
-	// }
-	if err = connection.SetupWithManager(cfgBasedir, mgr); err != nil {
+
+	if err = connectionWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
 		os.Exit(1)
 	}
+	if err = serverWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Server")
+		os.Exit(1)
+	}
+	if err = switchWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Switch")
+		os.Exit(1)
+	}
+	if err = vpcWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VPC")
+		os.Exit(1)
+	}
+	if err = vpcAttachmentWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VPCAttachment")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

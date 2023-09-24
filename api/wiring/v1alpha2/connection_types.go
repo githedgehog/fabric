@@ -22,6 +22,7 @@ import (
 
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -223,13 +224,18 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	return res
 }
 
-func (c *Connection) GenerateLabels() {
-	if c.Labels == nil {
-		c.Labels = map[string]string{}
+func (conn *Connection) Default() {
+	if conn.Labels == nil {
+		conn.Labels = map[string]string{}
 	}
 
-	maps.Copy(c.Labels, c.Spec.ConnectionLabels())
+	maps.Copy(conn.Labels, conn.Spec.ConnectionLabels())
 }
 
-func (c *Connection) Validate() {
+func (conn *Connection) Validate() (warnings admission.Warnings, err error) {
+	// TODO validate it points to existing devices of correct types
+	// TODO validate there are no duplicates
+	// TODO validate all ref structure
+
+	return nil, nil
 }

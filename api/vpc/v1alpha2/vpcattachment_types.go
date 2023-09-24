@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -56,4 +57,11 @@ type VPCAttachmentList struct {
 
 func init() {
 	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
+}
+
+func (*VPCAttachment) Default() {
+}
+
+func (attach *VPCAttachment) Validate() (warnings admission.Warnings, err error) {
+	return nil, nil
 }

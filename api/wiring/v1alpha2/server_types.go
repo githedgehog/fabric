@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -71,4 +73,25 @@ func init() {
 
 func (s *Server) IsControl() bool {
 	return s.Spec.Type == ServerTypeControl
+}
+
+func (s *ServerSpec) Labels() map[string]string {
+	uuid, _ := s.Location.GenerateUUID()
+	return map[string]string{
+		LabelLocation: uuid,
+	}
+}
+
+func (server *Server) Default() {
+	if server.Labels == nil {
+		server.Labels = map[string]string{}
+	}
+
+	maps.Copy(server.Labels, server.Spec.Labels())
+}
+
+func (server *Server) Validate() (warnings admission.Warnings, err error) {
+	// TODO
+
+	return nil, nil
 }

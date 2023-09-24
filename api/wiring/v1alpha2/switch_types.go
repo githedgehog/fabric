@@ -19,7 +19,9 @@ package v1alpha2
 import (
 	"time"
 
+	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -73,4 +75,23 @@ type SwitchList struct {
 
 func init() {
 	SchemeBuilder.Register(&Switch{}, &SwitchList{})
+}
+
+func (s *SwitchSpec) Labels() map[string]string {
+	uuid, _ := s.Location.GenerateUUID()
+	return map[string]string{
+		LabelLocation: uuid,
+	}
+}
+
+func (sw *Switch) Default() {
+	if sw.Labels == nil {
+		sw.Labels = map[string]string{}
+	}
+
+	maps.Copy(sw.Labels, sw.Spec.Labels())
+}
+
+func (sw *Switch) Validate() (warnings admission.Warnings, err error) {
+	return nil, nil
 }

@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -66,4 +67,13 @@ type VPCList struct {
 
 func init() {
 	SchemeBuilder.Register(&VPC{}, &VPCList{})
+}
+
+func (*VPC) Default() {
+}
+
+func (vpc *VPC) Validate() (warnings admission.Warnings, err error) {
+	// TODO check subnet is correct, dhcp range is correct
+	// TODO should we check subnet here?
+	return nil, nil
 }

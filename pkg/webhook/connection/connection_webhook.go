@@ -35,22 +35,28 @@ var (
 	_ admission.CustomValidator = (*ConnectionWebhook)(nil)
 )
 
+//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1alpha2,name=mconnection.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1alpha2,name=vconnection.kb.io,admissionReviewVersions=v1
+
 // var log = ctrl.Log.WithName("connection-webhook")
 
 func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	conn := obj.(*wiringapi.Connection)
 
-	conn.GenerateLabels()
+	conn.Default()
 
 	return nil
 }
 
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
-	// TODO validate it points to existing devices of correct types
-	// TODO validate there are no duplicates
-	// TODO validate all ref structure
+	conn := obj.(*wiringapi.Connection)
 
-	return nil, nil
+	warns, err := conn.Validate()
+	if err != nil {
+		return warns, err
+	}
+
+	return warns, nil
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
@@ -67,7 +73,6 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 
 func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	// TODO prevent deleting connections that are in use
-	// TODO prevent deleting control node connections
 
 	conn := obj.(*wiringapi.Connection)
 

@@ -32,6 +32,11 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	//+kubebuilder:scaffold:imports
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/webhook/connection"
+	"go.githedgehog.com/fabric/pkg/webhook/server"
+	"go.githedgehog.com/fabric/pkg/webhook/switchh"
+	"go.githedgehog.com/fabric/pkg/webhook/vpc"
+	"go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
 	apimachineryruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -116,7 +121,19 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = SetupWithManager("", mgr) // TODO cfgBasedir
+	err = connection.SetupWithManager("", mgr) // TODO cfgBasedir
+	Expect(err).NotTo(HaveOccurred())
+
+	err = server.SetupWithManager("", mgr) // TODO cfgBasedir
+	Expect(err).NotTo(HaveOccurred())
+
+	err = switchh.SetupWithManager("", mgr) // TODO cfgBasedir
+	Expect(err).NotTo(HaveOccurred())
+
+	err = vpc.SetupWithManager("", mgr) // TODO cfgBasedir
+	Expect(err).NotTo(HaveOccurred())
+
+	err = vpcattachment.SetupWithManager("", mgr) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:webhook
