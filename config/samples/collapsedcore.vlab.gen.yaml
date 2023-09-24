@@ -26,8 +26,8 @@ spec:
     row: "1"
     slot: "1"
   locationSig:
-    sig: long-signature
-    uuidSig: also-long-signature
+    sig: <undefined>
+    uuidSig: <undefined>
 ---
 ###
 ### switch-2
@@ -48,8 +48,8 @@ spec:
     row: "1"
     slot: "2"
   locationSig:
-    sig: long-signature
-    uuidSig: also-long-signature
+    sig: <undefined>
+    uuidSig: <undefined>
 ---
 ###
 ### control-1
@@ -59,6 +59,7 @@ kind: Server
 metadata:
   labels:
     fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/server-type: control
   name: control-1
 spec:
   type: control
@@ -71,6 +72,7 @@ kind: Server
 metadata:
   labels:
     fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/server-type: ""
   name: server-1
 spec: {}
 ---
@@ -82,6 +84,7 @@ kind: Server
 metadata:
   labels:
     fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/server-type: ""
   name: server-2
 spec: {}
 ---
@@ -92,7 +95,7 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    fabric.githedgehog.com/connection/type: management
+    fabric.githedgehog.com/connection-type: management
     rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/control-1: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
@@ -115,7 +118,7 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    fabric.githedgehog.com/connection/type: management
+    fabric.githedgehog.com/connection-type: management
     rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/control-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"
@@ -138,7 +141,7 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    fabric.githedgehog.com/connection/type: mclag
+    fabric.githedgehog.com/connection-type: mclag
     rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/server-1: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
@@ -163,7 +166,7 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    fabric.githedgehog.com/connection/type: mclag
+    fabric.githedgehog.com/connection-type: mclag
     rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/server-2: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
@@ -188,7 +191,7 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
   labels:
-    fabric.githedgehog.com/connection/type: mclag-domain
+    fabric.githedgehog.com/connection-type: mclag-domain
     rack.fabric.githedgehog.com/rack-1: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"

@@ -17,9 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/pkg/manager/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -96,8 +99,22 @@ func (sw *Switch) Default() {
 	sw.Labels[LabelLocation] = uuid
 }
 
-func (sw *Switch) Validate() (warnings admission.Warnings, err error) {
-	// TODO validate that location is unique
+func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+	// TODO validate port group speeds against switch profile
+
+	if client != nil {
+		switches := &SwitchList{}
+		err := client.List(ctx, switches, map[string]string{
+			LabelLocation: sw.Labels[LabelLocation],
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get switches") // TODO replace with some internal error to not expose to the user
+		}
+
+		if len(switches.Items) > 0 {
+			return nil, errors.Errorf("switch with location %q already exists", sw.Labels[LabelLocation])
+		}
+	}
 
 	return nil, nil
 }

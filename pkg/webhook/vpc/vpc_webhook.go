@@ -4,6 +4,7 @@ import (
 	"context"
 
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -12,13 +13,15 @@ import (
 
 type VPCWebhook struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme     *runtime.Scheme
+	Validation validation.Client
 }
 
 func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 	w := &VPCWebhook{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Validation: validation.InController(mgr.GetClient()),
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -49,7 +52,7 @@ func (w *VPCWebhook) Default(ctx context.Context, obj runtime.Object) error {
 func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	vpc := obj.(*vpcapi.VPC)
 
-	warns, err := vpc.Validate()
+	warns, err := vpc.Validate(ctx, w.Validation)
 	if err != nil {
 		return warns, err
 	}
@@ -60,7 +63,7 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (wa
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	newVPC := newObj.(*vpcapi.VPC)
 
-	warns, err := newVPC.Validate()
+	warns, err := newVPC.Validate(ctx, w.Validation)
 	if err != nil {
 		return warns, err
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,13 +15,15 @@ import (
 
 type ConnectionWebhook struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme     *runtime.Scheme
+	Validation validation.Client
 }
 
 func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 	w := &ConnectionWebhook{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Validation: validation.InController(mgr.GetClient()),
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -51,7 +54,7 @@ func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) err
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	conn := obj.(*wiringapi.Connection)
 
-	warns, err := conn.Validate()
+	warns, err := conn.Validate(ctx, w.Validation)
 	if err != nil {
 		return warns, err
 	}
@@ -65,7 +68,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 
 	// TODO some connections could be mutable probably
 	if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
-		return nil, errors.New("connection spec is immutable")
+		return nil, errors.Errorf("connection spec is immutable")
 	}
 
 	return nil, nil

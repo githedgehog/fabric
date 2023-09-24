@@ -17,9 +17,11 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"net"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -88,7 +90,11 @@ func (vpc *VPC) Default() {
 	vpc.Labels[LabelSubnet] = EncodeSubnet(vpc.Spec.Subnet)
 }
 
-func (vpc *VPC) Validate() (admission.Warnings, error) {
+func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+	if len(vpc.Name) > 11 { // TODO should be probably configurable
+		return nil, errors.Errorf("name %q is too long, must be <= 11 characters", vpc.Name)
+	}
+
 	if vpc.Spec.Subnet == "" {
 		return nil, errors.Errorf("subnet is required")
 	}
@@ -96,6 +102,12 @@ func (vpc *VPC) Validate() (admission.Warnings, error) {
 	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid subnet %q", vpc.Spec.Subnet)
+	}
+
+	// TODO to remove this limitation we need to check all VPC subnets for overlaps
+	prefixLength, _ := cidr.Subnet.Mask.Size()
+	if prefixLength != 24 {
+		return nil, errors.Errorf("only /24 subnets currently supported")
 	}
 
 	if vpc.Spec.DHCP.Enable {
@@ -135,7 +147,21 @@ func (vpc *VPC) Validate() (admission.Warnings, error) {
 		}
 	}
 
-	// TODO check subnet is unique using subnet label on VPC
+	if client != nil {
+		vpcs := &VPCList{}
+		err := client.List(ctx, vpcs, map[string]string{
+			LabelSubnet: EncodeSubnet(vpc.Spec.Subnet),
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
+		}
+
+		for _, other := range vpcs.Items {
+			if vpc.Spec.Subnet == other.Spec.Subnet {
+				return nil, errors.Errorf("subnet %q is already used by other VPC", vpc.Spec.Subnet)
+			}
+		}
+	}
 
 	return nil, nil
 }

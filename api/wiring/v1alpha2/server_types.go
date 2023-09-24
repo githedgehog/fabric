@@ -87,6 +87,6 @@ func (server *Server) Default() {
 	maps.Copy(server.Labels, server.Spec.Labels())
 }
 
-func (server *Server) Validate() (warnings admission.Warnings, err error) {
+func (server *Server) Validate() (admission.Warnings, error) {
 	return nil, nil
 }

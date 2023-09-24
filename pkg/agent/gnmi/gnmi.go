@@ -67,6 +67,10 @@ type VPC struct {
 	DHCPSource string
 }
 
+const (
+	VPC_VRF_PREFIX = "V"
+)
+
 func (plan *Plan) Entries() ([]*Entry, error) {
 	res := []*Entry{}
 
@@ -137,7 +141,7 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 	}
 
 	for _, vpc := range plan.VPCs {
-		res = append(res, EntVrf(vpc.Name))
+		res = append(res, EntVrf(VPC_VRF_PREFIX+vpc.Name))
 
 		cidr, err := iputil.ParseCIDR(vpc.Subnet)
 		if err != nil {

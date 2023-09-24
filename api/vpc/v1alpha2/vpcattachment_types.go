@@ -17,9 +17,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
+	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"golang.org/x/exp/maps"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -76,8 +82,31 @@ func (attach *VPCAttachment) Default() {
 	maps.Copy(attach.Labels, attach.Spec.Labels())
 }
 
-func (attach *VPCAttachment) Validate() (warnings admission.Warnings, err error) {
-	// TODO check vpc and connection exist
+func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+	if attach.Spec.VPC == "" {
+		return nil, errors.Errorf("vpc is required")
+	}
+	if attach.Spec.Connection == "" {
+		return nil, errors.Errorf("connection is required")
+	}
+
+	if client != nil {
+		err := client.Get(ctx, types.NamespacedName{Name: attach.Spec.VPC, Namespace: attach.Namespace}, &VPC{})
+		if apierrors.IsNotFound(err) {
+			return nil, errors.Errorf("vpc %q not found", attach.Spec.VPC)
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get vpc %q", attach.Spec.VPC) // TODO replace with some internal error to not expose to the user
+		}
+
+		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, &wiringapi.Connection{}) // TODO namespace could be different?
+		if apierrors.IsNotFound(err) {
+			return nil, errors.Errorf("connection %q not found", attach.Spec.Connection)
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get connection %q", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+	}
 
 	return nil, nil
 }
