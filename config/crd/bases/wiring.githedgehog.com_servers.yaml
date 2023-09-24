@@ -11,13 +11,21 @@ spec:
     categories:
     - hedgehog
     - wiring
+    - fabric
     kind: Server
     listKind: ServerList
     plural: servers
     singular: server
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Server is the Schema for the servers API

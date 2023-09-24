@@ -41,10 +41,11 @@ type ServerSpec struct {
 // ServerStatus defines the observed state of Server
 type ServerStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Server is the Schema for the servers API
 type Server struct {
 	metav1.TypeMeta   `json:",inline"`

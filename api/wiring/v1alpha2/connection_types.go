@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -101,10 +102,11 @@ type ConnectionSpec struct {
 // ConnectionStatus defines the observed state of Connection
 type ConnectionStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/connection-type`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Connection is the Schema for the connections API
 type Connection struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -212,35 +214,35 @@ func (c *ConnectionSpec) GenerateName() string {
 }
 
 func (c *ConnectionSpec) ConnectionLabels() map[string]string {
-	res := map[string]string{}
+	labels := map[string]string{}
 
-	if c.Unbundled != nil {
-		res[LabelConnectionType] = CONNECTION_TYPE_UNBUNDLED
-		res[ListLabel(ConnectionLabelTypeServer, c.Unbundled.Link.Server.DeviceName())] = ListLabelValue
-		res[ListLabel(ConnectionLabelTypeSwitch, c.Unbundled.Link.Switch.DeviceName())] = ListLabelValue
-	} else if c.Management != nil {
-		res[LabelConnectionType] = CONNECTION_TYPE_MANAGEMENT
-		res[ListLabel(ConnectionLabelTypeServer, c.Management.Link.Server.DeviceName())] = ListLabelValue
-		res[ListLabel(ConnectionLabelTypeSwitch, c.Management.Link.Switch.DeviceName())] = ListLabelValue
-	} else if c.MCLAGDomain != nil {
-		res[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
-		for _, link := range c.MCLAGDomain.PeerLinks {
-			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ListLabelValue
-			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ListLabelValue
-		}
-		for _, link := range c.MCLAGDomain.SessionLinks {
-			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch1.DeviceName())] = ListLabelValue
-			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch2.DeviceName())] = ListLabelValue
-		}
-	} else if c.MCLAG != nil {
-		res[LabelConnectionType] = CONNECTION_TYPE_MCLAG
-		for _, link := range c.MCLAG.Links {
-			res[ListLabel(ConnectionLabelTypeServer, link.Server.DeviceName())] = ListLabelValue
-			res[ListLabel(ConnectionLabelTypeSwitch, link.Switch.DeviceName())] = ListLabelValue
-		}
+	switches, servers, _, err := c.Endpoints()
+	// if error, we don't need to set labels
+	if err != nil {
+		return labels
 	}
 
-	return res
+	sort.Strings(switches)
+	sort.Strings(servers)
+
+	for _, switchName := range switches {
+		labels[ListLabelSwitch(switchName)] = ListLabelValue
+	}
+	for _, serverName := range servers {
+		labels[ListLabelServer(serverName)] = ListLabelValue
+	}
+
+	if c.Unbundled != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_UNBUNDLED
+	} else if c.Management != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_MANAGEMENT
+	} else if c.MCLAGDomain != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
+	} else if c.MCLAG != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
+	}
+
+	return labels
 }
 
 func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {

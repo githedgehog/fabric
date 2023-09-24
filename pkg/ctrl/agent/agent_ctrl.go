@@ -157,6 +157,9 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers/status,verbs=get;update;patch
+
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 

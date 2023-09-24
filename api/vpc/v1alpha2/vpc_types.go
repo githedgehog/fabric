@@ -50,9 +50,15 @@ type VPCStatus struct {
 	VLAN uint16 `json:"vlan,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric
+// +kubebuilder:printcolumn:name="Subnet",type=string,JSONPath=`.spec.subnet`,priority=0
+// +kubebuilder:printcolumn:name="VLAN",type=string,JSONPath=`.spec.vlan`,priority=0
+// +kubebuilder:printcolumn:name="DHCP",type=boolean,JSONPath=`.spec.DHCP.Enable`,priority=0
+// +kubebuilder:printcolumn:name="Start",type=string,JSONPath=`.spec.DHCP.Range.Start`,priority=1
+// +kubebuilder:printcolumn:name="End",type=string,JSONPath=`.spec.DHCP.Range.End`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=10
 // VPC is the Schema for the vpcs API
 type VPC struct {
 	metav1.TypeMeta   `json:",inline"`

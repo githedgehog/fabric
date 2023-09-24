@@ -21,6 +21,8 @@ var (
 	LabelLocation             = LabelName("location")
 	LabelConnection           = LabelName("connection")
 	LabelConnectionType       = LabelName("connection-type")
+	LabelSwitches             = LabelName("switches")
+	LabelServers              = LabelName("servers")
 	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"

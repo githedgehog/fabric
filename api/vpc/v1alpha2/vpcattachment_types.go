@@ -42,9 +42,12 @@ type VPCAttachmentStatus struct {
 	// Ready bool `json:"ready,omitempty"` // TODO
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric
+// +kubebuilder:printcolumn:name="VPC",type=string,JSONPath=`.spec.vpc`,priority=0
+// +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // VPCAttachment is the Schema for the vpcattachments API
 type VPCAttachment struct {
 	metav1.TypeMeta   `json:",inline"`

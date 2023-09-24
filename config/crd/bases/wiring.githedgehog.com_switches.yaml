@@ -11,13 +11,25 @@ spec:
     categories:
     - hedgehog
     - wiring
+    - fabric
     kind: Switch
     listKind: SwitchList
     plural: switches
     singular: switch
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.location
+      name: Location
+      type: string
+    - jsonPath: .spec.portGroupSpeeds
+      name: PortGroupSpeeds
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: "Switch is the Schema for the switches API \n All switches should

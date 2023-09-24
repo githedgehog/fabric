@@ -54,6 +54,7 @@ type VPCInfo struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
+	LastHeartbeat   metav1.Time `json:"lastHeartbeat,omitempty"`
 	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
 	LastAttemptGen  int64       `json:"lastAttemptGen,omitempty"`
 	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
@@ -80,9 +81,19 @@ type NOSInfo struct {
 	UpTime              string `json:"upTime,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric
+// +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.nosInfo.hwskuVersion`,priority=0
+// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.nosInfo.asicVersion`,priority=0
+// +kubebuilder:printcolumn:name="Heartbeat",type=string,JSONPath=`.status.lastHeartbeat`,priority=0
+// +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
+// +kubebuilder:printcolumn:name="Applied",type=string,JSONPath=`.status.lastAppliedGen`,priority=0
+// +kubebuilder:printcolumn:name="Current",type=string,JSONPath=`.metadata.generation`,priority=0
+// +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.nosInfo.softwareVersion`,priority=0
+// +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
+// +kubebuilder:printcolumn:name="Attempt",type=string,JSONPath=`.status.lastAttemptGen`,priority=2
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Agent is the Schema for the agents API
 type Agent struct {
 	metav1.TypeMeta   `json:",inline"`

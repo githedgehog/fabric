@@ -49,10 +49,12 @@ type SwitchStatus struct {
 	// TODO: add port status fields
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:printcolumn:name="Location",type=string,JSONPath=`.spec.location`,priority=0
+// +kubebuilder:printcolumn:name="PortGroupSpeeds",type=string,JSONPath=`.spec.portGroupSpeeds`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Switch is the Schema for the switches API
 //
 // All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents name of the rack it

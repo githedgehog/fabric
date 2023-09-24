@@ -8,13 +8,50 @@ metadata:
 spec:
   group: agent.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
     kind: Agent
     listKind: AgentList
     plural: agents
     singular: agent
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .status.nosInfo.hwskuVersion
+      name: HWSKU
+      type: string
+    - jsonPath: .status.nosInfo.asicVersion
+      name: ASIC
+      type: string
+    - jsonPath: .status.lastHeartbeat
+      name: Heartbeat
+      type: string
+    - jsonPath: .status.lastAppliedTime
+      name: Applied
+      type: date
+    - jsonPath: .status.lastAppliedGen
+      name: Applied
+      type: string
+    - jsonPath: .metadata.generation
+      name: Current
+      type: string
+    - jsonPath: .status.nosInfo.softwareVersion
+      name: Software
+      type: string
+    - jsonPath: .status.lastAttemptTime
+      name: Attempt
+      priority: 2
+      type: date
+    - jsonPath: .status.lastAttemptGen
+      name: Attempt
+      priority: 2
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Agent is the Schema for the agents API
@@ -246,6 +283,9 @@ spec:
                 format: int64
                 type: integer
               lastAttemptTime:
+                format: date-time
+                type: string
+              lastHeartbeat:
                 format: date-time
                 type: string
               nosInfo:

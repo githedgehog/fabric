@@ -42,10 +42,9 @@ type RackStatus struct {
 	// TODO: add port status fields
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric
 // Rack is the Schema for the racks API
 type Rack struct {
 	metav1.TypeMeta   `json:",inline"`

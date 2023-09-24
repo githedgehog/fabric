@@ -8,13 +8,38 @@ metadata:
 spec:
   group: vpc.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
     kind: VPC
     listKind: VPCList
     plural: vpcs
     singular: vpc
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.subnet
+      name: Subnet
+      type: string
+    - jsonPath: .spec.vlan
+      name: VLAN
+      type: string
+    - jsonPath: .spec.DHCP.Enable
+      name: DHCP
+      type: boolean
+    - jsonPath: .spec.DHCP.Range.Start
+      name: Start
+      priority: 1
+      type: string
+    - jsonPath: .spec.DHCP.Range.End
+      name: End
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: string
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: VPC is the Schema for the vpcs API

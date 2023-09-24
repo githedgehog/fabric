@@ -8,13 +8,27 @@ metadata:
 spec:
   group: vpc.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
     kind: VPCSummary
     listKind: VPCSummaryList
     plural: vpcsummaries
     singular: vpcsummary
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vpc
+      name: VPC
+      type: string
+    - jsonPath: .spec.vlan
+      name: VLAN
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: VPCSummary is the Schema for the vpcsummaries API
