@@ -306,10 +306,6 @@ func createRack(data *wiring.Data, name string, spec wiringapi.RackSpec) (*wirin
 func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.SwitchSpec) (*wiringapi.Switch, error) {
 	log.Println("Creating switch", name)
 
-	spec.LocationSig = wiringapi.LocationSig{
-		Sig:     "long-signature",
-		UUIDSig: "also-long-signature",
-	}
 	sw := &wiringapi.Switch{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindSwitch,
@@ -323,8 +319,8 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 		},
 		Spec: spec,
 	}
-	locUUID, _ := sw.Spec.Location.GenerateUUID()
-	sw.Labels[wiringapi.LabelLocation] = locUUID
+
+	sw.Default()
 
 	return sw, errors.Wrapf(data.Add(sw), "error creating switch %s", name)
 }
@@ -346,6 +342,8 @@ func createServer(data *wiring.Data, name string, rack string, spec wiringapi.Se
 		Spec: spec,
 	}
 
+	server.Default()
+
 	return server, errors.Wrapf(data.Add(server), "error creating server %s", name)
 }
 
@@ -365,9 +363,9 @@ func createConnection(data *wiring.Data, spec wiringapi.ConnectionSpec) (*wiring
 		},
 		Spec: spec,
 	}
-	conn.Labels = spec.ConnectionLabels()
-	// TODO replace it with an actuall racks, not hardcoded one
 	conn.Labels[wiringapi.ListLabelRack("rack-1")] = wiringapi.ListLabelValue
+
+	conn.Default()
 
 	return conn, errors.Wrapf(data.Add(conn), "error creating connection %s", name)
 }
