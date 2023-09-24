@@ -327,7 +327,7 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		if len(servers) != 1 {
 			return nil, nil, nil, errors.Errorf("one server must be used for mclag connection")
 		}
-		if len(ports) != 2*len(s.MCLAG.Links)+1 {
+		if len(ports) != 2*len(s.MCLAG.Links) {
 			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
 	}
