@@ -53,7 +53,9 @@ type SwitchStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric
 // +kubebuilder:printcolumn:name="Location",type=string,JSONPath=`.spec.location`,priority=0
+// +kubebuilder:printcolumn:name="LocationUUID",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/location`,priority=0
 // +kubebuilder:printcolumn:name="PortGroupSpeeds",type=string,JSONPath=`.spec.portGroupSpeeds`,priority=1
+// +kubebuilder:printcolumn:name="Rack",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/rack`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Switch is the Schema for the switches API
 //

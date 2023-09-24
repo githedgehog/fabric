@@ -22,8 +22,15 @@ spec:
     - jsonPath: .spec.location
       name: Location
       type: string
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/location
+      name: LocationUUID
+      type: string
     - jsonPath: .spec.portGroupSpeeds
       name: PortGroupSpeeds
+      priority: 1
+      type: string
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/rack
+      name: Rack
       priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp

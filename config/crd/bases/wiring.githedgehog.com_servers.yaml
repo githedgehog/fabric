@@ -22,6 +22,10 @@ spec:
     - jsonPath: .spec.type
       name: Type
       type: string
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/rack
+      name: Rack
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
