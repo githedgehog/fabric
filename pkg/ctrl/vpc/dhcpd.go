@@ -11,6 +11,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -145,9 +146,11 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 		return errors.Wrapf(err, "error executing dhcp server config template")
 	}
 
-	dhcpdConfigMap := &corev1.ConfigMap{}
+	dhcpdConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: r.Cfg.DHCPDConfigMap, Namespace: "default"}} // TODO namespace
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcpdConfigMap, func() error {
-		dhcpdConfigMap.Data[r.Cfg.DHCPDConfigKey] = buf.String()
+		dhcpdConfigMap.Data = map[string]string{
+			r.Cfg.DHCPDConfigKey: buf.String(),
+		}
 
 		return nil
 	})
