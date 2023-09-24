@@ -96,18 +96,34 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 	if client != nil {
 		err := client.Get(ctx, types.NamespacedName{Name: attach.Spec.VPC, Namespace: attach.Namespace}, &VPC{})
 		if apierrors.IsNotFound(err) {
-			return nil, errors.Errorf("vpc %q not found", attach.Spec.VPC)
+			return nil, errors.Errorf("vpc %s not found", attach.Spec.VPC)
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get vpc %q", attach.Spec.VPC) // TODO replace with some internal error to not expose to the user
+			return nil, errors.Wrapf(err, "failed to get vpc %s", attach.Spec.VPC) // TODO replace with some internal error to not expose to the user
 		}
 
 		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, &wiringapi.Connection{}) // TODO namespace could be different?
 		if apierrors.IsNotFound(err) {
-			return nil, errors.Errorf("connection %q not found", attach.Spec.Connection)
+			return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get connection %q", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+			return nil, errors.Wrapf(err, "failed to get connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+
+		attaches := &VPCAttachmentList{}
+		err = client.List(ctx, attaches, map[string]string{
+			wiringapi.LabelConnection: attach.Spec.Connection,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to list vpc attachments for connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+
+		for _, other := range attaches.Items {
+			if other.Name == attach.Name {
+				return nil, errors.Errorf("connection %s already attached to vpc %s", attach.Spec.Connection, other.Spec.VPC)
+			} else {
+				return nil, errors.Errorf("connection %s already attached to other vpc", attach.Spec.Connection)
+			}
 		}
 	}
 

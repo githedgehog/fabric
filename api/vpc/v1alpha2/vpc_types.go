@@ -41,8 +41,8 @@ type VPCDHCP struct {
 }
 
 type VPCDHCPRange struct {
-	Start *string `json:"start,omitempty"`
-	End   *string `json:"end,omitempty"`
+	Start string `json:"start,omitempty"`
+	End   string `json:"end,omitempty"`
 }
 
 // VPCStatus defines the observed state of VPC
@@ -98,7 +98,7 @@ func (vpc *VPC) Default() {
 
 func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
 	if len(vpc.Name) > 11 { // TODO should be probably configurable
-		return nil, errors.Errorf("name %q is too long, must be <= 11 characters", vpc.Name)
+		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
 
 	if vpc.Spec.Subnet == "" {
@@ -107,7 +107,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admissi
 
 	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid subnet %q", vpc.Spec.Subnet)
+		return nil, errors.Wrapf(err, "invalid subnet %s", vpc.Spec.Subnet)
 	}
 
 	// TODO to remove this limitation we need to check all VPC subnets for overlaps
@@ -118,34 +118,34 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admissi
 
 	if vpc.Spec.DHCP.Enable {
 		if vpc.Spec.DHCP.Range != nil {
-			if vpc.Spec.DHCP.Range.Start != nil {
-				ip := net.ParseIP(*vpc.Spec.DHCP.Range.Start)
+			if vpc.Spec.DHCP.Range.Start != "" {
+				ip := net.ParseIP(vpc.Spec.DHCP.Range.Start)
 				if ip == nil {
-					return nil, errors.Errorf("invalid dhcp range start %q", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("invalid dhcp range start %s", vpc.Spec.DHCP.Range.Start)
 				}
 				if ip.Equal(cidr.Gateway) {
-					return nil, errors.Errorf("dhcp range start %q is equal to gateway", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range start %s is equal to gateway", vpc.Spec.DHCP.Range.Start)
 				}
 				if ip.Equal(cidr.Subnet.IP) {
-					return nil, errors.Errorf("dhcp range start %q is equal to subnet", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range start %s is equal to subnet", vpc.Spec.DHCP.Range.Start)
 				}
 				if !cidr.Subnet.Contains(ip) {
-					return nil, errors.Errorf("dhcp range start %q is not in the subnet", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range start %s is not in the subnet", vpc.Spec.DHCP.Range.Start)
 				}
 			}
-			if vpc.Spec.DHCP.Range.End != nil {
-				ip := net.ParseIP(*vpc.Spec.DHCP.Range.End)
+			if vpc.Spec.DHCP.Range.End != "" {
+				ip := net.ParseIP(vpc.Spec.DHCP.Range.End)
 				if ip == nil {
-					return nil, errors.Errorf("invalid dhcp range end %q", *vpc.Spec.DHCP.Range.End)
+					return nil, errors.Errorf("invalid dhcp range end %s", vpc.Spec.DHCP.Range.End)
 				}
 				if ip.Equal(cidr.Gateway) {
-					return nil, errors.Errorf("dhcp range end %q is equal to gateway", *vpc.Spec.DHCP.Range.End)
+					return nil, errors.Errorf("dhcp range end %s is equal to gateway", vpc.Spec.DHCP.Range.End)
 				}
 				if ip.Equal(cidr.Subnet.IP) {
-					return nil, errors.Errorf("dhcp range end %q is equal to subnet", *vpc.Spec.DHCP.Range.End)
+					return nil, errors.Errorf("dhcp range end %s is equal to subnet", vpc.Spec.DHCP.Range.End)
 				}
 				if !cidr.Subnet.Contains(ip) {
-					return nil, errors.Errorf("dhcp range end %q is not in the subnet", *vpc.Spec.DHCP.Range.End)
+					return nil, errors.Errorf("dhcp range end %s is not in the subnet", vpc.Spec.DHCP.Range.End)
 				}
 			}
 
@@ -164,7 +164,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admissi
 
 		for _, other := range vpcs.Items {
 			if vpc.Spec.Subnet == other.Spec.Subnet {
-				return nil, errors.Errorf("subnet %q is already used by other VPC", vpc.Spec.Subnet)
+				return nil, errors.Errorf("subnet %s is already used by other VPC", vpc.Spec.Subnet)
 			}
 		}
 	}

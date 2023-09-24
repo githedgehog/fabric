@@ -42,6 +42,7 @@ agent-push: agent-build ## Push agent to the control node
 .PHONY: agent-push-dev
 agent-push-dev: agent-build ## Push agent to the control node # TODO
 	cd bin && oras push --insecure registry.local:31000/githedgehog/agent/x86_64:latest agent
+	cd bin && oras push --insecure $(OCI_REPO)/agent:$(VERSION) agent
 
 .PHONY: dev-push
 dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev

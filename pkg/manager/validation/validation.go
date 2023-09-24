@@ -25,6 +25,6 @@ func (c *inController) List(ctx context.Context, list client.ObjectList, labels 
 	return c.Client.List(ctx, list, labels)
 }
 
-func InController(client client.Client) Client {
+func WithCtrlRuntime(client client.Client) Client {
 	return &inController{client}
 }

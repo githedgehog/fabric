@@ -21,7 +21,7 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
 	w := &VPCWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.InController(mgr.GetClient()),
+		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).

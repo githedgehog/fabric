@@ -122,11 +122,11 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 		end := ""
 
 		if vpc.Spec.DHCP.Range != nil {
-			if vpc.Spec.DHCP.Range.Start != nil {
-				start = *vpc.Spec.DHCP.Range.Start
+			if vpc.Spec.DHCP.Range.Start != "" {
+				start = vpc.Spec.DHCP.Range.Start
 			}
-			if vpc.Spec.DHCP.Range.End != nil {
-				end = *vpc.Spec.DHCP.Range.End
+			if vpc.Spec.DHCP.Range.End != "" {
+				end = vpc.Spec.DHCP.Range.End
 			}
 		}
 

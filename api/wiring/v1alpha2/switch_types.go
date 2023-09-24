@@ -116,7 +116,7 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admis
 		}
 
 		if len(switches.Items) > 0 {
-			return nil, errors.Errorf("switch with location %q already exists", sw.Labels[LabelLocation])
+			return nil, errors.Errorf("switch with location %s already exists", sw.Labels[LabelLocation])
 		}
 	}
 

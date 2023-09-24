@@ -343,11 +343,11 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 
 		// TODO evaluate not allowing more than one separator in port name
 		// if len(parts) != 2 {
-		// 	return nil, nil, nil, errors.Errorf("invalid port name %q", port)
+		// 	return nil, nil, nil, errors.Errorf("invalid port name %s", port)
 		// }
 
 		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
-			return nil, nil, nil, errors.Errorf("invalid port name %q, should be \"<device>/<port>\" format", port)
+			return nil, nil, nil, errors.Errorf("invalid port name %s, should be \"<device>/<port>\" format", port)
 		}
 	}
 
@@ -375,19 +375,19 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client) 
 		for _, switchName := range switches {
 			err := client.Get(ctx, types.NamespacedName{Name: switchName, Namespace: conn.Namespace}, &Switch{}) // TODO namespace could be different?
 			if apierrors.IsNotFound(err) {
-				return nil, errors.Errorf("switch %q not found", switchName)
+				return nil, errors.Errorf("switch %s not found", switchName)
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get switch %q", switchName) // TODO replace with some internal error to not expose to the user
+				return nil, errors.Wrapf(err, "failed to get switch %s", switchName) // TODO replace with some internal error to not expose to the user
 			}
 		}
 		for _, serverName := range servers {
 			err := client.Get(ctx, types.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
 			if apierrors.IsNotFound(err) {
-				return nil, errors.Errorf("server %q not found", serverName)
+				return nil, errors.Errorf("server %s not found", serverName)
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get server %q", serverName) // TODO replace with some internal error to not expose to the user
+				return nil, errors.Wrapf(err, "failed to get server %s", serverName) // TODO replace with some internal error to not expose to the user
 			}
 		}
 	}
