@@ -22,7 +22,7 @@ API_HELM ?= config/helm/fabric-api
 API_HELM_PACKAGE ?= $(API_HELM)-$(VERSION).tgz
 
 .PHONY: api-chart-build
-api-chart-build: manifests kustomize helm ## Build Fabric API (CRDs) Helm chart
+api-chart-build: generate manifests kustomize helm ## Build Fabric API (CRDs) Helm chart
 	rm $(API_HELM)-*.tgz || true
 	$(KUSTOMIZE) build config/crd > $(API_HELM)/templates/crds.yaml
 	$(HELM) package $(API_HELM) --destination config/helm --version $(VERSION)

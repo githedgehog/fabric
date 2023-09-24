@@ -68,8 +68,6 @@ func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool)
 		return nil, errors.Wrap(err, "cannot read password file")
 	}
 
-	slog.Info("New agent user password generated and saved to password file")
-
 	return New(ctx, DEFAULT_ADDRESS, AGENT_USER, string(password))
 }
 

@@ -24,8 +24,11 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// TODO do we need to create user inputable AgentAction CRD with version override, reinstall and reboot requests?
+
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
+	Version      AgentVersion         `json:"version,omitempty"`
 	ControlVIP   string               `json:"controlVIP,omitempty"`
 	Users        []UserCreds          `json:"users,omitempty"`
 	Switch       wiringapi.SwitchSpec `json:"switch,omitempty"`
@@ -33,6 +36,15 @@ type AgentSpec struct {
 	VPCs         []VPCInfo            `json:"vpcs,omitempty"`
 	VPCVLANRange string               `json:"vpcVLANRange,omitempty"`
 	PortChannels map[string]uint16    `json:"portChannels,omitempty"`
+	Reinstall    string               `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot       string               `json:"reboot,omitempty"`    // set to RunID to reboot
+}
+
+type AgentVersion struct {
+	Default  string `json:"default,omitempty"`
+	Override string `json:"override,omitempty"`
+	Repo     string `json:"repo,omitempty"`
+	CA       string `json:"ca,omitempty"`
 }
 
 type UserCreds struct {
@@ -54,6 +66,9 @@ type VPCInfo struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
+	Version         string      `json:"version,omitempty"`
+	InstallID       string      `json:"installID,omitempty"`
+	RunID           string      `json:"runID,omitempty"`
 	LastHeartbeat   metav1.Time `json:"lastHeartbeat,omitempty"`
 	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
 	LastAttemptGen  int64       `json:"lastAttemptGen,omitempty"`
@@ -85,12 +100,13 @@ type NOSInfo struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;fabric
 // +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.nosInfo.hwskuVersion`,priority=0
-// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.nosInfo.asicVersion`,priority=0
-// +kubebuilder:printcolumn:name="Heartbeat",type=string,JSONPath=`.status.lastHeartbeat`,priority=0
+// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.nosInfo.asicVersion`,priority=1
+// +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=1
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
 // +kubebuilder:printcolumn:name="Applied",type=string,JSONPath=`.status.lastAppliedGen`,priority=0
 // +kubebuilder:printcolumn:name="Current",type=string,JSONPath=`.metadata.generation`,priority=0
-// +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.nosInfo.softwareVersion`,priority=0
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
+// +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.nosInfo.softwareVersion`,priority=1
 // +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
 // +kubebuilder:printcolumn:name="Attempt",type=string,JSONPath=`.status.lastAttemptGen`,priority=2
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10

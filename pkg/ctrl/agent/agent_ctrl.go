@@ -61,8 +61,9 @@ type AgentControllerConfig struct {
 // AgentReconciler reconciles a Agent object
 type AgentReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Cfg    *AgentControllerConfig
+	Scheme  *runtime.Scheme
+	Cfg     *AgentControllerConfig
+	Version string
 }
 
 func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {

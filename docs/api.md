@@ -43,6 +43,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `version` _[AgentVersion](#agentversion)_ |  |
 | `controlVIP` _string_ |  |
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
@@ -50,6 +51,8 @@ _Appears in:_
 | `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
 | `vpcVLANRange` _string_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
+| `reinstall` _string_ |  |
+| `reboot` _string_ |  |
 
 
 #### AgentStatus
@@ -63,12 +66,32 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `version` _string_ |  |
+| `installID` _string_ |  |
+| `runID` _string_ |  |
 | `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
 | `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
 | `lastAttemptGen` _integer_ |  |
 | `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
 | `lastAppliedGen` _integer_ |  |
 | `nosInfo` _[NOSInfo](#nosinfo)_ |  |
+
+
+#### AgentVersion
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `default` _string_ |  |
+| `override` _string_ |  |
+| `repo` _string_ |  |
+| `ca` _string_ |  |
 
 
 #### ConnectionInfo

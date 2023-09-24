@@ -3,6 +3,7 @@ module go.githedgehog.com/fabric
 go 1.21
 
 require (
+	github.com/0x5a17ed/uefi v0.6.1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/google/uuid v1.3.1
 	github.com/lmittmann/tint v1.0.2
@@ -30,6 +31,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v0.13.0 // indirect
 	cloud.google.com/go/storage v1.29.0 // indirect
+	github.com/0x5a17ed/itkit v0.6.0 // indirect
 	github.com/AlekSi/pointer v1.2.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect

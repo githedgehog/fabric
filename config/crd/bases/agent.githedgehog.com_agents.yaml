@@ -23,10 +23,12 @@ spec:
       type: string
     - jsonPath: .status.nosInfo.asicVersion
       name: ASIC
+      priority: 1
       type: string
     - jsonPath: .status.lastHeartbeat
       name: Heartbeat
-      type: string
+      priority: 1
+      type: date
     - jsonPath: .status.lastAppliedTime
       name: Applied
       type: date
@@ -36,8 +38,12 @@ spec:
     - jsonPath: .metadata.generation
       name: Current
       type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
     - jsonPath: .status.nosInfo.softwareVersion
       name: Software
+      priority: 1
       type: string
     - jsonPath: .status.lastAttemptTime
       name: Attempt
@@ -181,6 +187,10 @@ spec:
                 additionalProperties:
                   type: integer
                 type: object
+              reboot:
+                type: string
+              reinstall:
+                type: string
               switch:
                 description: SwitchSpec defines the desired state of Switch
                 properties:
@@ -240,6 +250,17 @@ spec:
                       type: string
                   type: object
                 type: array
+              version:
+                properties:
+                  ca:
+                    type: string
+                  default:
+                    type: string
+                  override:
+                    type: string
+                  repo:
+                    type: string
+                type: object
               vpcVLANRange:
                 type: string
               vpcs:
@@ -273,6 +294,8 @@ spec:
           status:
             description: AgentStatus defines the observed state of Agent
             properties:
+              installID:
+                type: string
               lastAppliedGen:
                 format: int64
                 type: integer
@@ -323,6 +346,10 @@ spec:
                   upTime:
                     type: string
                 type: object
+              runID:
+                type: string
+              version:
+                type: string
             type: object
         type: object
     served: true

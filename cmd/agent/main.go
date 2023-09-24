@@ -109,6 +109,7 @@ func main() {
 
 					return (&agent.Service{
 						Basedir: basedir,
+						Version: version,
 					}).Run(ctx, func() (*gnmi.Client, error) {
 						return gnmi.NewInSONiC(ctx, basedir, false)
 					})
@@ -171,9 +172,11 @@ func main() {
 
 					return (&agent.Service{
 						Basedir:         basedir,
+						Version:         version,
 						DryRun:          cCtx.Bool("dry-run"),
 						SkipControlLink: cCtx.Bool("skip-contol-link"),
 						ApplyOnce:       cCtx.Bool("apply-once"),
+						SkipActions:     true,
 					}).Run(ctx, getGNMIClient)
 				},
 			},
