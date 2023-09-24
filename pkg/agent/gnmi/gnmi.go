@@ -150,7 +150,7 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 		prefixLen, _ := cidr.Subnet.Mask.Size()
 
 		res = append(res, EntVLANInterface(vpc.VLAN, vpc.Name))
-		res = append(res, EntVrfMember(vpc.Name, vpc.VLAN))
+		res = append(res, EntVrfMember(VPC_VRF_PREFIX+vpc.Name, vpc.VLAN))
 		res = append(res, EntVLANInterfaceConf(vpc.VLAN, cidr.Gateway.String(), uint8(prefixLen)))
 
 		if vpc.DHCP {
