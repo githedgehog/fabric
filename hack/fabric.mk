@@ -18,6 +18,7 @@ fabric-image-push-dev: fabric-image-build ## Push fabric image
 
 .PHONY: fabric-chart-build
 fabric-chart-build: ## Build fabric chart
+	rm config/helm/fabric-*.tgz || true
 	rm -rf config/helm/fabric/templates/*.yaml config/helm/fabric/values.yaml
 	$(KUSTOMIZE) build config/default | $(HELMIFY) config/helm/fabric
 	$(HELM) package config/helm/fabric --destination config/helm --version $(VERSION)
