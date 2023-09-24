@@ -85,10 +85,14 @@ func (vpc *VPC) Default() {
 		vpc.Labels = map[string]string{}
 	}
 
-	vpc.Labels[LabelVPCSubnet] = vpc.Spec.Subnet
+	vpc.Labels[LabelSubnet] = EncodeSubnet(vpc.Spec.Subnet)
 }
 
 func (vpc *VPC) Validate() (admission.Warnings, error) {
+	if vpc.Spec.Subnet == "" {
+		return nil, errors.Errorf("subnet is required")
+	}
+
 	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid subnet %q", vpc.Spec.Subnet)
@@ -99,25 +103,31 @@ func (vpc *VPC) Validate() (admission.Warnings, error) {
 			if vpc.Spec.DHCP.Range.Start != nil {
 				ip := net.ParseIP(*vpc.Spec.DHCP.Range.Start)
 				if ip == nil {
-					return nil, errors.Wrapf(err, "invalid dhcp range start %q", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("invalid dhcp range start %q", *vpc.Spec.DHCP.Range.Start)
 				}
 				if ip.Equal(cidr.Gateway) {
-					return nil, errors.Wrapf(err, "dhcp range start %q is equal to gateway", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range start %q is equal to gateway", *vpc.Spec.DHCP.Range.Start)
+				}
+				if ip.Equal(cidr.Subnet.IP) {
+					return nil, errors.Errorf("dhcp range start %q is equal to subnet", *vpc.Spec.DHCP.Range.Start)
 				}
 				if !cidr.Subnet.Contains(ip) {
-					return nil, errors.Wrapf(err, "dhcp range start %q is not in the subnet", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range start %q is not in the subnet", *vpc.Spec.DHCP.Range.Start)
 				}
 			}
 			if vpc.Spec.DHCP.Range.End != nil {
 				ip := net.ParseIP(*vpc.Spec.DHCP.Range.End)
 				if ip == nil {
-					return nil, errors.Wrapf(err, "invalid dhcp range end %q", *vpc.Spec.DHCP.Range.End)
+					return nil, errors.Errorf("invalid dhcp range end %q", *vpc.Spec.DHCP.Range.End)
 				}
 				if ip.Equal(cidr.Gateway) {
-					return nil, errors.Wrapf(err, "dhcp range end %q is equal to gateway", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range end %q is equal to gateway", *vpc.Spec.DHCP.Range.End)
+				}
+				if ip.Equal(cidr.Subnet.IP) {
+					return nil, errors.Errorf("dhcp range end %q is equal to subnet", *vpc.Spec.DHCP.Range.End)
 				}
 				if !cidr.Subnet.Contains(ip) {
-					return nil, errors.Wrapf(err, "dhcp range end %q is not in the subnet", *vpc.Spec.DHCP.Range.Start)
+					return nil, errors.Errorf("dhcp range end %q is not in the subnet", *vpc.Spec.DHCP.Range.End)
 				}
 			}
 

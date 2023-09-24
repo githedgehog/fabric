@@ -191,7 +191,7 @@ func (r *VPCReconciler) setNextFreeVLAN(ctx context.Context, vpc *vpcapi.VPC) er
 	defer r.vlanAssign.Unlock()
 
 	vpcs := &vpcapi.VPCList{}
-	err := r.List(ctx, vpcs)
+	err := r.List(ctx, vpcs) // we have to query all vpcs to find next free vlan
 	if err != nil {
 		return errors.Wrapf(err, "error listing vpcs")
 	}

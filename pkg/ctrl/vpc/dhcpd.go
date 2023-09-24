@@ -81,7 +81,7 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 	}
 
 	conns := &wiringapi.ConnectionList{}
-	err = r.List(ctx, conns) // TODO get only management links, by type?
+	err = r.List(ctx, conns, client.MatchingLabels{wiringapi.LabelConnectionType: wiringapi.CONNECTION_TYPE_MANAGEMENT})
 	if err != nil {
 		return errors.Wrapf(err, "error listing connections")
 	}
@@ -128,8 +128,6 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 				end = *vpc.Spec.DHCP.Range.End
 			}
 		}
-
-		// TODO validate in validation webhook
 
 		cfg.Subnets = append(cfg.Subnets, dhcpdSubnet{
 			Subnet:     cidr.Subnet.IP.String(),

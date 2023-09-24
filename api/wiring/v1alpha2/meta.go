@@ -17,10 +17,10 @@ var (
 	LabelRack                 = LabelName("rack")
 	LabelSwitch               = LabelName("switch")
 	LabelServer               = LabelName("server")
-	LabelServerType           = LabelName("server") + "/type"
+	LabelServerType           = LabelName("server-type")
 	LabelLocation             = LabelName("location")
 	LabelConnection           = LabelName("connection")
-	LabelConnectionType       = LabelName("connection") + "/type"
+	LabelConnectionType       = LabelName("connection-type")
 	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
