@@ -112,12 +112,12 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 			continue
 		}
 
-		subnet, err := iputil.ParseCIDR(vpc.Spec.Subnet)
+		cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing vpc subnet %s", vpc.Spec.Subnet)
 		}
 
-		start := subnet.RangeStart.String()
+		start := cidr.RangeStart.String()
 		end := ""
 
 		if vpc.Spec.DHCP.Range != nil {
@@ -132,10 +132,10 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 		// TODO validate in validation webhook
 
 		cfg.Subnets = append(cfg.Subnets, dhcpdSubnet{
-			Subnet:     subnet.Subnet.String(),
-			Mask:       net.IP(subnet.Mask).String(),
+			Subnet:     cidr.Subnet.IP.String(),
+			Mask:       net.IP(cidr.Subnet.Mask).String(),
 			VLAN:       vpc.Status.VLAN,
-			Router:     subnet.Gateway.String(),
+			Router:     cidr.Gateway.String(),
 			RangeStart: start,
 			RangeEnd:   end,
 		})

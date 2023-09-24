@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi/bcom/oc"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 )
 
 type Plan struct {
@@ -72,13 +73,15 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 	res = append(res, EntDisableZtp())
 	res = append(res, EntHostname(plan.Hostname))
 
-	ip, ipNet, err := net.ParseCIDR(plan.ManagementIP)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse management ip %s", plan.ManagementIP)
-	}
-	prefixLen, _ := ipNet.Mask.Size()
+	{
+		ip, ipNet, err := net.ParseCIDR(plan.ManagementIP)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse management ip %s", plan.ManagementIP)
+		}
+		prefixLen, _ := ipNet.Mask.Size()
 
-	res = append(res, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
+		res = append(res, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
+	}
 
 	for group, speedStr := range plan.PortGroupSpeeds {
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
@@ -136,15 +139,15 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 	for _, vpc := range plan.VPCs {
 		res = append(res, EntVrf(vpc.Name))
 
-		ip, ipNet, err := net.ParseCIDR(vpc.Subnet)
+		cidr, err := iputil.ParseCIDR(vpc.Subnet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.Subnet, vpc.Name)
 		}
-		prefixLen, _ := ipNet.Mask.Size()
+		prefixLen, _ := cidr.Subnet.Mask.Size()
 
 		res = append(res, EntVLANInterface(vpc.VLAN, vpc.Name))
 		res = append(res, EntVrfMember(vpc.Name, vpc.VLAN))
-		res = append(res, EntVLANInterfaceConf(vpc.VLAN, ip.String(), uint8(prefixLen)))
+		res = append(res, EntVLANInterfaceConf(vpc.VLAN, cidr.Gateway.String(), uint8(prefixLen)))
 
 		if vpc.DHCP {
 			ip, _, err := net.ParseCIDR(vpc.DHCPRelay)

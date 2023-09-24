@@ -4,8 +4,7 @@ import "net"
 
 type ParsedCIDR struct {
 	IP         net.IP
-	Subnet     net.IP
-	Mask       net.IPMask
+	Subnet     net.IPNet
 	Gateway    net.IP
 	RangeStart net.IP
 }
@@ -18,8 +17,7 @@ func ParseCIDR(cidr string) (*ParsedCIDR, error) {
 
 	return &ParsedCIDR{
 		IP:         ip,
-		Subnet:     ipNet.IP,
-		Mask:       ipNet.Mask,
+		Subnet:     *ipNet,
 		Gateway:    inc(ipNet.IP),
 		RangeStart: inc(inc(ipNet.IP)),
 	}, nil

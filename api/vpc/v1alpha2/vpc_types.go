@@ -17,6 +17,10 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"net"
+
+	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -69,12 +73,59 @@ func init() {
 	SchemeBuilder.Register(&VPC{}, &VPCList{})
 }
 
-func (*VPC) Default() {
-	// TODO cast subnet to the proper net address or set to invalid
+func (vpc *VPC) Default() {
+	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
+	if err != nil {
+		return // it'll be handled in validation stage
+	}
+
+	vpc.Spec.Subnet = cidr.Subnet.String()
+
+	if vpc.Labels == nil {
+		vpc.Labels = map[string]string{}
+	}
+
+	vpc.Labels[LabelVPCSubnet] = vpc.Spec.Subnet
 }
 
-func (vpc *VPC) Validate() (warnings admission.Warnings, err error) {
-	// TODO check subnet is correct, dhcp range is correct
-	// TODO check subnet is unique
+func (vpc *VPC) Validate() (admission.Warnings, error) {
+	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid subnet %q", vpc.Spec.Subnet)
+	}
+
+	if vpc.Spec.DHCP.Enable {
+		if vpc.Spec.DHCP.Range != nil {
+			if vpc.Spec.DHCP.Range.Start != nil {
+				ip := net.ParseIP(*vpc.Spec.DHCP.Range.Start)
+				if ip == nil {
+					return nil, errors.Wrapf(err, "invalid dhcp range start %q", *vpc.Spec.DHCP.Range.Start)
+				}
+				if ip.Equal(cidr.Gateway) {
+					return nil, errors.Wrapf(err, "dhcp range start %q is equal to gateway", *vpc.Spec.DHCP.Range.Start)
+				}
+				if !cidr.Subnet.Contains(ip) {
+					return nil, errors.Wrapf(err, "dhcp range start %q is not in the subnet", *vpc.Spec.DHCP.Range.Start)
+				}
+			}
+			if vpc.Spec.DHCP.Range.End != nil {
+				ip := net.ParseIP(*vpc.Spec.DHCP.Range.End)
+				if ip == nil {
+					return nil, errors.Wrapf(err, "invalid dhcp range end %q", *vpc.Spec.DHCP.Range.End)
+				}
+				if ip.Equal(cidr.Gateway) {
+					return nil, errors.Wrapf(err, "dhcp range end %q is equal to gateway", *vpc.Spec.DHCP.Range.Start)
+				}
+				if !cidr.Subnet.Contains(ip) {
+					return nil, errors.Wrapf(err, "dhcp range end %q is not in the subnet", *vpc.Spec.DHCP.Range.Start)
+				}
+			}
+
+			// TODO check start < end
+		}
+	}
+
+	// TODO check subnet is unique using subnet label on VPC
+
 	return nil, nil
 }
