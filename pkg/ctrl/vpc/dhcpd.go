@@ -11,8 +11,8 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -145,29 +145,14 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 		return errors.Wrapf(err, "error executing dhcp server config template")
 	}
 
-	create := false
-	cm := corev1.ConfigMap{}
-	err = r.Get(ctx, client.ObjectKey{Name: r.Cfg.DHCPDConfigMap, Namespace: "default"}, &cm) // TODO namespace
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			create = true
-			cm.Name = r.Cfg.DHCPDConfigMap
-			cm.Namespace = "default" // TODO namespace
-		}
-		return errors.Wrapf(err, "error getting dhcp server config map")
-	}
+	dhcpdConfigMap := &corev1.ConfigMap{}
+	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcpdConfigMap, func() error {
+		dhcpdConfigMap.Data[r.Cfg.DHCPDConfigKey] = buf.String()
 
-	dhcpdConfig := buf.String()
-	if cm.Data[r.Cfg.DHCPDConfigKey] != dhcpdConfig {
-		cm.Data[r.Cfg.DHCPDConfigKey] = dhcpdConfig
-		if create {
-			err = r.Create(ctx, &cm)
-		} else {
-			err = r.Update(ctx, &cm)
-		}
-		if err != nil {
-			return errors.Wrapf(err, "error updating dhcp server config map")
-		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "error creating dhcp server config map")
 	}
 
 	return nil
