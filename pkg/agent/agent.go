@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	_ "embed"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -26,6 +27,9 @@ const (
 	CONF_FILE       = "agent-config.yaml"
 	KUBECONFIG_FILE = "agent-kubeconfig"
 )
+
+//go:embed motd.txt
+var motd []byte
 
 type Service struct {
 	Basedir string
@@ -68,6 +72,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	err = svc.processAgent(ctx, agent)
 	if err != nil {
 		return errors.Wrap(err, "failed to process agent config from file")
+	}
+
+	err = os.WriteFile("/etc/motd", motd, 0o644)
+	if err != nil {
+		slog.Warn("Failed to write motd", "err", err)
 	}
 
 	err = svc.processActions(ctx, agent)
