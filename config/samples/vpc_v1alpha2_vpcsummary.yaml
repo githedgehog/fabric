@@ -1,0 +1,12 @@
+apiVersion: vpc.githedgehog.com/v1alpha2
+kind: VPCSummary
+metadata:
+  labels:
+    app.kubernetes.io/name: vpcsummary
+    app.kubernetes.io/instance: vpcsummary-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: vpcsummary-sample
+spec:
+  # TODO(user): Add fields here

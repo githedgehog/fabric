@@ -1,0 +1,212 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-wiring-githedgehog-com-v1alpha2-connection
+  failurePolicy: Fail
+  name: mconnection.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - connections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-wiring-githedgehog-com-v1alpha2-server
+  failurePolicy: Fail
+  name: mserver.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - servers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-wiring-githedgehog-com-v1alpha2-switch
+  failurePolicy: Fail
+  name: mswitch.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-vpc-githedgehog-com-v1alpha2-vpc
+  failurePolicy: Fail
+  name: mvpc.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-vpc-githedgehog-com-v1alpha2-vpcattachment
+  failurePolicy: Fail
+  name: mvpcattachment.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcattachments
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1alpha2-connection
+  failurePolicy: Fail
+  name: vconnection.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - connections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1alpha2-server
+  failurePolicy: Fail
+  name: vserver.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - servers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1alpha2-switch
+  failurePolicy: Fail
+  name: vswitch.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1alpha2-vpc
+  failurePolicy: Fail
+  name: vvpc.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1alpha2-vpcattachment
+  failurePolicy: Fail
+  name: vvpcattachment.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcattachments
+  sideEffects: None

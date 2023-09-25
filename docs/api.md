@@ -43,13 +43,16 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `version` _[AgentVersion](#agentversion)_ |  |
 | `controlVIP` _string_ |  |
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
-| `connections` _object (keys:string, values:[ConnectionSpec](#connectionspec))_ |  |
-| `vpcs` _object (keys:string, values:[VPCSpec](#vpcspec))_ |  |
-| `vpcAttachments` _object (keys:string, values:[VPCAttachmentSpec](#vpcattachmentspec))_ |  |
+| `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
+| `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
 | `vpcVLANRange` _string_ |  |
+| `portChannels` _object (keys:string, values:integer)_ |  |
+| `reinstall` _string_ |  |
+| `reboot` _string_ |  |
 
 
 #### AgentStatus
@@ -63,7 +66,47 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `version` _string_ |  |
+| `installID` _string_ |  |
+| `runID` _string_ |  |
+| `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAttemptGen` _integer_ |  |
+| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAppliedGen` _integer_ |  |
 | `nosInfo` _[NOSInfo](#nosinfo)_ |  |
+
+
+#### AgentVersion
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `default` _string_ |  |
+| `override` _string_ |  |
+| `repo` _string_ |  |
+| `ca` _string_ |  |
+
+
+#### ConnectionInfo
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `spec` _[ConnectionSpec](#connectionspec)_ |  |
 
 
 #### NOSInfo
@@ -106,9 +149,25 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `username` _string_ |  |
+| `name` _string_ |  |
 | `password` _string_ |  |
 | `role` _string_ |  |
+
+
+#### VPCInfo
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `vlan` _integer_ |  |
+| `spec` _[VPCSpec](#vpcspec)_ |  |
 
 
 
@@ -119,6 +178,7 @@ Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 ### Resource Types
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
+- [VPCSummary](#vpcsummary)
 
 
 
@@ -163,7 +223,6 @@ VPCAttachment is the Schema for the vpcattachments API
 VPCAttachmentSpec defines the desired state of VPCAttachment
 
 _Appears in:_
-- [AgentSpec](#agentspec)
 - [VPCAttachment](#vpcattachment)
 
 | Field | Description |
@@ -186,6 +245,22 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `enable` _boolean_ |  |
+| `range` _[VPCDHCPRange](#vpcdhcprange)_ |  |
+
+
+#### VPCDHCPRange
+
+
+
+
+
+_Appears in:_
+- [VPCDHCP](#vpcdhcp)
+
+| Field | Description |
+| --- | --- |
+| `start` _string_ |  |
+| `end` _string_ |  |
 
 
 #### VPCSpec
@@ -195,8 +270,9 @@ _Appears in:_
 VPCSpec defines the desired state of VPC
 
 _Appears in:_
-- [AgentSpec](#agentspec)
 - [VPC](#vpc)
+- [VPCInfo](#vpcinfo)
+- [VPCSummarySpec](#vpcsummaryspec)
 
 | Field | Description |
 | --- | --- |
@@ -216,6 +292,41 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `vlan` _integer_ |  |
+
+
+#### VPCSummary
+
+
+
+VPCSummary is the Schema for the vpcsummaries API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `VPCSummary`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[VPCSummarySpec](#vpcsummaryspec)_ |  |
+| `status` _[VPCSummaryStatus](#vpcsummarystatus)_ |  |
+
+
+#### VPCSummarySpec
+
+
+
+VPCSummarySpec defines the desired state of VPCSummary
+
+_Appears in:_
+- [VPCSummary](#vpcsummary)
+
+| Field | Description |
+| --- | --- |
+| `vpc` _[VPCSpec](#vpcspec)_ |  |
+| `vlan` _integer_ |  |
+| `connections` _string array_ |  |
+
+
 
 
 
@@ -377,8 +488,8 @@ Connection is the Schema for the connections API
 ConnectionSpec defines the desired state of Connection
 
 _Appears in:_
-- [AgentSpec](#agentspec)
 - [Connection](#connection)
+- [ConnectionInfo](#connectioninfo)
 
 | Field | Description |
 | --- | --- |
@@ -415,7 +526,6 @@ _Appears in:_
 Location defines the geopraphical position of the device in a datacenter
 
 _Appears in:_
-- [ServerSpec](#serverspec)
 - [SwitchSpec](#switchspec)
 
 | Field | Description |
@@ -434,7 +544,6 @@ _Appears in:_
 LocationSig contains signatures for the location UUID as well as the device location itself
 
 _Appears in:_
-- [ServerSpec](#serverspec)
 - [SwitchSpec](#switchspec)
 
 | Field | Description |
@@ -587,8 +696,6 @@ _Appears in:_
 | --- | --- |
 | `type` _ServerType_ |  |
 | `profile` _string_ |  |
-| `location` _[Location](#location)_ |  |
-| `locationSig` _[LocationSig](#locationsig)_ |  |
 
 
 
@@ -708,6 +815,7 @@ _Appears in:_
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
 | `lldp` _[LLDPConfig](#lldpconfig)_ |  |
+| `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 
 
 

@@ -24,30 +24,57 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// TODO do we need to create user inputable AgentAction CRD with version override, reinstall and reboot requests?
+
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ControlVIP     string                              `json:"controlVIP,omitempty"`
-	Users          []UserCreds                         `json:"users,omitempty"`
-	Switch         wiringapi.SwitchSpec                `json:"switch,omitempty"`
-	Connections    map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
-	VPCs           map[string]vpcapi.VPCSpec           `json:"vpcs,omitempty"`
-	VPCAttachments map[string]vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
-	VPCVLANRange   string                              `json:"vpcVLANRange,omitempty"`
+	Version      AgentVersion         `json:"version,omitempty"`
+	ControlVIP   string               `json:"controlVIP,omitempty"`
+	Users        []UserCreds          `json:"users,omitempty"`
+	Switch       wiringapi.SwitchSpec `json:"switch,omitempty"`
+	Connections  []ConnectionInfo     `json:"connections,omitempty"`
+	VPCs         []VPCInfo            `json:"vpcs,omitempty"`
+	VPCVLANRange string               `json:"vpcVLANRange,omitempty"`
+	PortChannels map[string]uint16    `json:"portChannels,omitempty"`
+	Reinstall    string               `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot       string               `json:"reboot,omitempty"`    // set to RunID to reboot
+}
+
+type AgentVersion struct {
+	Default  string `json:"default,omitempty"`
+	Override string `json:"override,omitempty"`
+	Repo     string `json:"repo,omitempty"`
+	CA       string `json:"ca,omitempty"`
 }
 
 type UserCreds struct {
-	Name     string `json:"username,omitempty"`
+	Name     string `json:"name,omitempty"`
 	Password string `json:"password,omitempty"`
 	Role     string `json:"role,omitempty"`
 }
 
+type ConnectionInfo struct {
+	Name string                   `json:"name,omitempty"`
+	Spec wiringapi.ConnectionSpec `json:"spec,omitempty"`
+}
+
+type VPCInfo struct {
+	Name string         `json:"name,omitempty"`
+	VLAN uint16         `json:"vlan,omitempty"`
+	Spec vpcapi.VPCSpec `json:"spec,omitempty"`
+}
+
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	// TODO
-	// Applied     bool        `json:"applied,omitempty"`
-	// LastApplied metav1.Time `json:"lastApplied,omitempty"`
-
-	NOSInfo NOSInfo `json:"nosInfo,omitempty"`
+	Version         string      `json:"version,omitempty"`
+	InstallID       string      `json:"installID,omitempty"`
+	RunID           string      `json:"runID,omitempty"`
+	LastHeartbeat   metav1.Time `json:"lastHeartbeat,omitempty"`
+	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
+	LastAttemptGen  int64       `json:"lastAttemptGen,omitempty"`
+	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
+	LastAppliedGen  int64       `json:"lastAppliedGen,omitempty"`
+	NOSInfo         NOSInfo     `json:"nosInfo,omitempty"`
 }
 
 type NOSInfo struct {
@@ -69,9 +96,20 @@ type NOSInfo struct {
 	UpTime              string `json:"upTime,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric
+// +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.nosInfo.hwskuVersion`,priority=0
+// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.nosInfo.asicVersion`,priority=1
+// +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=1
+// +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
+// +kubebuilder:printcolumn:name="Applied",type=string,JSONPath=`.status.lastAppliedGen`,priority=0
+// +kubebuilder:printcolumn:name="Current",type=string,JSONPath=`.metadata.generation`,priority=0
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
+// +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.nosInfo.softwareVersion`,priority=1
+// +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
+// +kubebuilder:printcolumn:name="Attempt",type=string,JSONPath=`.status.lastAttemptGen`,priority=2
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Agent is the Schema for the agents API
 type Agent struct {
 	metav1.TypeMeta   `json:",inline"`

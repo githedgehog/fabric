@@ -11,13 +11,21 @@ spec:
     categories:
     - hedgehog
     - wiring
+    - fabric
     kind: Connection
     listKind: ConnectionList
     plural: connections
     singular: connection
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/connection-type
+      name: Type
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Connection is the Schema for the connections API

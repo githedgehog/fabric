@@ -50,51 +50,60 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	_, err = createSwitch(data, "switch-1", "rack-1", wiringapi.SwitchSpec{
+	switch1 := wiringapi.SwitchSpec{
 		Location: location("1"),
-	})
+	}
+	if preset == SAMPLE_CC_LAB {
+		switch1.PortGroupSpeeds = map[string]string{
+			"12": "SPEED_10GB",
+		}
+	}
+	_, err = createSwitch(data, "switch-1", "rack-1", switch1)
 	if err != nil {
 		return nil, err
 	}
-	_, err = createSwitch(data, "switch-2", "rack-1", wiringapi.SwitchSpec{
+
+	switch2 := wiringapi.SwitchSpec{
 		Location: location("2"),
-	})
+	}
+	if preset == SAMPLE_CC_LAB {
+		switch2.PortGroupSpeeds = map[string]string{
+			"12": "SPEED_10GB",
+		}
+	}
+	_, err = createSwitch(data, "switch-2", "rack-1", switch2)
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = createServer(data, "control-1", "rack-1", wiringapi.ServerSpec{
-		Type:     wiringapi.ServerTypeControl,
-		Location: location("3"),
+		Type: wiringapi.ServerTypeControl,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = createServer(data, "compute-1", "rack-1", wiringapi.ServerSpec{
-		Location: location("4"),
-	})
+	_, err = createServer(data, "server-1", "rack-1", wiringapi.ServerSpec{})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-2", "rack-1", wiringapi.ServerSpec{
-		Location: location("5"),
-	})
+	_, err = createServer(data, "server-2", "rack-1", wiringapi.ServerSpec{})
 	if err != nil {
 		return nil, err
 	}
-	_, err = createServer(data, "compute-3", "rack-1", wiringapi.ServerSpec{
-		Location: location("6"),
-	})
-	if err != nil {
-		return nil, err
-	}
-	_, err = createServer(data, "compute-4", "rack-1", wiringapi.ServerSpec{
-		Location: location("7"),
-	})
-	if err != nil {
-		return nil, err
-	}
+
+	// _, err = createServer(data, "server-3", "rack-1", wiringapi.ServerSpec{
+	// 	Location: location("6"),
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// _, err = createServer(data, "server-4", "rack-1", wiringapi.ServerSpec{
+	// 	Location: location("7"),
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// control-1 <> switch-1
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
@@ -128,7 +137,6 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/Management0"),
 					IP:           "192.168.102.0/31",
-					// VLAN:         uint16(mgmtVLAN),
 					ONIEPortName: oniePort,
 				},
 			},
@@ -138,22 +146,39 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
+	mclagPeerPort1 := "Ethernet0"
+	mclagPeerPort2 := "Ethernet1"
+	mclagSessionPort1 := "Ethernet2"
+	mclagSessionPort2 := "Ethernet3"
+	if preset == SAMPLE_CC_LAB {
+		mclagPeerPort1 = "Ethernet48"
+		mclagPeerPort2 = "Ethernet56"
+		mclagSessionPort1 = "Ethernet64"
+		mclagSessionPort2 = "Ethernet68"
+	}
+
 	// MCLAG Domain peer link
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAGDomain: &wiringapi.ConnMCLAGDomain{
-			Links: []wiringapi.SwitchToSwitchLink{
+			PeerLinks: []wiringapi.SwitchToSwitchLink{
 				{
-					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet0"),
-					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet0"),
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagPeerPort1),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagPeerPort1),
 				},
 				{
-					Switch1: wiringapi.NewBasePortName("switch-1/Ethernet1"),
-					Switch2: wiringapi.NewBasePortName("switch-2/Ethernet1"),
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagPeerPort2),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagPeerPort2),
 				},
 			},
-			SessionLink: wiringapi.SwitchToSwitchLink{
-				Switch1: wiringapi.NewBasePortName("switch-1/Ethernet2"),
-				Switch2: wiringapi.NewBasePortName("switch-2/Ethernet2"),
+			SessionLinks: []wiringapi.SwitchToSwitchLink{
+				{
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagSessionPort1),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagSessionPort1),
+				},
+				{
+					Switch1: wiringapi.NewBasePortName("switch-1/" + mclagSessionPort2),
+					Switch2: wiringapi.NewBasePortName("switch-2/" + mclagSessionPort2),
+				},
 			},
 		},
 	})
@@ -161,17 +186,28 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// compute-1 <MCLAG> (switch-1, switch-2)
+	server1Port1 := "eth1"
+	server1Port2 := "eth2"
+	server1Switch1Port := "Ethernet4"
+	server1Switch2Port := "Ethernet4"
+	if preset == SAMPLE_CC_LAB {
+		server1Port1 = "enp7s0"
+		server1Port2 = "enp8s0"
+		server1Switch1Port = "Ethernet47"
+		server1Switch2Port = "Ethernet46"
+	}
+
+	// server-1 <MCLAG> (switch-1, switch-2)
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAG: &wiringapi.ConnMCLAG{
 			Links: []wiringapi.ServerToSwitchLink{
 				{
-					Server: wiringapi.NewBasePortName("compute-1/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet3"),
+					Server: wiringapi.NewBasePortName("server-1/" + server1Port1),
+					Switch: wiringapi.NewBasePortName("switch-1/" + server1Switch1Port),
 				},
 				{
-					Server: wiringapi.NewBasePortName("compute-1/nic0/port1"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet3"),
+					Server: wiringapi.NewBasePortName("server-1/" + server1Port2),
+					Switch: wiringapi.NewBasePortName("switch-2/" + server1Switch2Port),
 				},
 			},
 		},
@@ -180,17 +216,28 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// compute-2 <MCLAG> (switch-1, switch-2)
+	server2Port1 := "eth1"
+	server2Port2 := "eth2"
+	server2Switch1Port := "Ethernet5"
+	server2Switch2Port := "Ethernet5"
+	if preset == SAMPLE_CC_LAB {
+		server2Port1 = "enp7s0"
+		server2Port2 = "enp8s0"
+		server2Switch1Port = "Ethernet46"
+		server2Switch2Port = "Ethernet47"
+	}
+
+	// server-2 <MCLAG> (switch-1, switch-2)
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
 		MCLAG: &wiringapi.ConnMCLAG{
 			Links: []wiringapi.ServerToSwitchLink{
 				{
-					Server: wiringapi.NewBasePortName("compute-2/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet4"),
+					Server: wiringapi.NewBasePortName("server-2/" + server2Port1),
+					Switch: wiringapi.NewBasePortName("switch-1/" + server2Switch1Port),
 				},
 				{
-					Server: wiringapi.NewBasePortName("compute-2/nic0/port1"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet4"),
+					Server: wiringapi.NewBasePortName("server-2/" + server2Port2),
+					Switch: wiringapi.NewBasePortName("switch-2/" + server2Switch2Port),
 				},
 			},
 		},
@@ -199,31 +246,31 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// compute-3 <> switch-1
-	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Unbundled: &wiringapi.ConnUnbundled{
-			Link: wiringapi.ServerToSwitchLink{
-				Server: wiringapi.NewBasePortName("compute-3/nic0/port0"),
-				Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
+	// // server-3 <> switch-1
+	// _, err = createConnection(data, wiringapi.ConnectionSpec{
+	// 	Unbundled: &wiringapi.ConnUnbundled{
+	// 		Link: wiringapi.ServerToSwitchLink{
+	// 			Server: wiringapi.NewBasePortName("server-3/nic0/port0"),
+	// 			Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+	// 		},
+	// 	},
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// compute-4 <> switch-2
-	_, err = createConnection(data, wiringapi.ConnectionSpec{
-		Unbundled: &wiringapi.ConnUnbundled{
-			Link: wiringapi.ServerToSwitchLink{
-				Server: wiringapi.NewBasePortName("compute-4/nic0/port0"),
-				Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
+	// // server-4 <> switch-2
+	// _, err = createConnection(data, wiringapi.ConnectionSpec{
+	// 	Unbundled: &wiringapi.ConnUnbundled{
+	// 		Link: wiringapi.ServerToSwitchLink{
+	// 			Server: wiringapi.NewBasePortName("server-4/nic0/port0"),
+	// 			Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+	// 		},
+	// 	},
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return data, nil
 }
@@ -259,10 +306,6 @@ func createRack(data *wiring.Data, name string, spec wiringapi.RackSpec) (*wirin
 func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.SwitchSpec) (*wiringapi.Switch, error) {
 	log.Println("Creating switch", name)
 
-	spec.LocationSig = wiringapi.LocationSig{
-		Sig:     "long-signature",
-		UUIDSig: "also-long-signature",
-	}
 	sw := &wiringapi.Switch{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindSwitch,
@@ -276,8 +319,8 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 		},
 		Spec: spec,
 	}
-	locUUID, _ := sw.Spec.Location.GenerateUUID()
-	sw.Labels[wiringapi.LabelLocation] = locUUID
+
+	sw.Default()
 
 	return sw, errors.Wrapf(data.Add(sw), "error creating switch %s", name)
 }
@@ -285,10 +328,6 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 func createServer(data *wiring.Data, name string, rack string, spec wiringapi.ServerSpec) (*wiringapi.Server, error) {
 	log.Println("Creating server", name)
 
-	spec.LocationSig = wiringapi.LocationSig{
-		Sig:     "long-signature",
-		UUIDSig: "also-long-signature",
-	}
 	server := &wiringapi.Server{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindServer,
@@ -302,8 +341,8 @@ func createServer(data *wiring.Data, name string, rack string, spec wiringapi.Se
 		},
 		Spec: spec,
 	}
-	locUUID, _ := server.Spec.Location.GenerateUUID()
-	server.Labels[wiringapi.LabelLocation] = locUUID
+
+	server.Default()
 
 	return server, errors.Wrapf(data.Add(server), "error creating server %s", name)
 }
@@ -324,9 +363,9 @@ func createConnection(data *wiring.Data, spec wiringapi.ConnectionSpec) (*wiring
 		},
 		Spec: spec,
 	}
-	conn.Labels = spec.ConnectionLabels()
-	// TODO replace it with an actuall racks, not hardcoded one
-	conn.Labels[wiringapi.ConnectionLabel(wiringapi.ConnectionLabelTypeRack, "rack-1")] = wiringapi.ConnectionLabelValue
+	conn.Labels[wiringapi.ListLabelRack("rack-1")] = wiringapi.ListLabelValue
+
+	conn.Default()
 
 	return conn, errors.Wrapf(data.Add(conn), "error creating connection %s", name)
 }

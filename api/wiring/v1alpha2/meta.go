@@ -7,14 +7,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	PORT_NAME_SEPARATOR = "/"
+)
+
 var (
 	// TODO should it be same as group name? or just standard prefix for all APIs?
 	LabelPrefix               = "fabric.githedgehog.com/"
 	LabelRack                 = LabelName("rack")
 	LabelSwitch               = LabelName("switch")
 	LabelServer               = LabelName("server")
+	LabelServerType           = LabelName("server-type")
 	LabelLocation             = LabelName("location")
-	ConnectionLabelValue      = "true"
+	LabelConnection           = LabelName("connection")
+	LabelConnectionType       = LabelName("connection-type")
+	LabelSwitches             = LabelName("switches")
+	LabelServers              = LabelName("servers")
+	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
 	ConnectionLabelTypeRack   = "rack"
@@ -24,23 +33,35 @@ func LabelName(name string) string {
 	return LabelPrefix + name
 }
 
-func ConnectionLabelPrefix(deviceType string) string {
-	return deviceType + ".connection." + LabelPrefix
+func ListLabelPrefix(listType string) string {
+	return listType + "." + LabelPrefix
 }
 
-func ConnectionLabel(deviceType, deviceName string) string {
-	return ConnectionLabelPrefix(deviceType) + deviceName
+func ListLabel(listType, val string) string {
+	return ListLabelPrefix(listType) + val
 }
 
-func MatchingLabelsForServerConnections(serverName string) client.MatchingLabels {
+func ListLabelServer(serverName string) string {
+	return ListLabel(ConnectionLabelTypeServer, serverName)
+}
+
+func ListLabelSwitch(switchName string) string {
+	return ListLabel(ConnectionLabelTypeSwitch, switchName)
+}
+
+func ListLabelRack(rackName string) string {
+	return ListLabel(ConnectionLabelTypeRack, rackName)
+}
+
+func MatchingLabelsForListLabelServer(serverName string) client.MatchingLabels {
 	return client.MatchingLabels{
-		ConnectionLabel(ConnectionLabelTypeServer, serverName): ConnectionLabelValue,
+		ListLabel(ConnectionLabelTypeServer, serverName): ListLabelValue,
 	}
 }
 
-func MatchingLabelsForSwitchConnections(switchName string) client.MatchingLabels {
+func MatchingLabelsForListLabelSwitch(switchName string) client.MatchingLabels {
 	return client.MatchingLabels{
-		ConnectionLabel(ConnectionLabelTypeSwitch, switchName): ConnectionLabelValue,
+		ListLabel(ConnectionLabelTypeSwitch, switchName): ListLabelValue,
 	}
 }
 
@@ -107,4 +128,8 @@ func (l *Location) GenerateUUID() (string, string) {
 	// and return a version 5 UUID based on the URL namespace with it
 	us := u.String()
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(us)).String(), us
+}
+
+func (l *Location) IsEmpty() bool {
+	return l.Location == "" && l.Aisle == "" && l.Row == "" && l.Rack == "" && l.Slot == ""
 }

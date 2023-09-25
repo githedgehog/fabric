@@ -8,13 +8,56 @@ metadata:
 spec:
   group: agent.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
     kind: Agent
     listKind: AgentList
     plural: agents
     singular: agent
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .status.nosInfo.hwskuVersion
+      name: HWSKU
+      type: string
+    - jsonPath: .status.nosInfo.asicVersion
+      name: ASIC
+      priority: 1
+      type: string
+    - jsonPath: .status.lastHeartbeat
+      name: Heartbeat
+      priority: 1
+      type: date
+    - jsonPath: .status.lastAppliedTime
+      name: Applied
+      type: date
+    - jsonPath: .status.lastAppliedGen
+      name: Applied
+      type: string
+    - jsonPath: .metadata.generation
+      name: Current
+      type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .status.nosInfo.softwareVersion
+      name: Software
+      priority: 1
+      type: string
+    - jsonPath: .status.lastAttemptTime
+      name: Attempt
+      priority: 2
+      type: date
+    - jsonPath: .status.lastAttemptGen
+      name: Attempt
+      priority: 2
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Agent is the Schema for the agents API
@@ -35,105 +78,118 @@ spec:
             description: AgentSpec defines the desired state of Agent
             properties:
               connections:
-                additionalProperties:
-                  description: ConnectionSpec defines the desired state of Connection
+                items:
                   properties:
-                    management:
+                    name:
+                      type: string
+                    spec:
+                      description: ConnectionSpec defines the desired state of Connection
                       properties:
-                        link:
+                        management:
                           properties:
-                            server:
+                            link:
                               properties:
-                                ip:
-                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                  type: string
-                                port:
-                                  type: string
-                              type: object
-                            switch:
-                              properties:
-                                ip:
-                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                  type: string
-                                oniePortName:
-                                  type: string
-                                port:
-                                  type: string
+                                server:
+                                  properties:
+                                    ip:
+                                      pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                      type: string
+                                    port:
+                                      type: string
+                                  type: object
+                                switch:
+                                  properties:
+                                    ip:
+                                      pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                      type: string
+                                    oniePortName:
+                                      type: string
+                                    port:
+                                      type: string
+                                  type: object
                               type: object
                           type: object
-                      type: object
-                    mclag:
-                      properties:
-                        links:
-                          items:
-                            properties:
-                              server:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                              switch:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          minItems: 2
-                          type: array
-                      type: object
-                    mclagDomain:
-                      properties:
-                        peerLinks:
-                          items:
-                            properties:
-                              switch1:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                              switch2:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          minItems: 1
-                          type: array
-                        sessionLinks:
-                          items:
-                            properties:
-                              switch1:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                              switch2:
-                                properties:
-                                  port:
-                                    type: string
-                                type: object
-                            type: object
-                          type: array
-                      type: object
-                    unbundled:
-                      properties:
-                        link:
+                        mclag:
                           properties:
-                            server:
+                            links:
+                              items:
+                                properties:
+                                  server:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              minItems: 2
+                              type: array
+                          type: object
+                        mclagDomain:
+                          properties:
+                            peerLinks:
+                              items:
+                                properties:
+                                  switch1:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch2:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              minItems: 1
+                              type: array
+                            sessionLinks:
+                              items:
+                                properties:
+                                  switch1:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch2:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              type: array
+                          type: object
+                        unbundled:
+                          properties:
+                            link:
                               properties:
-                                port:
-                                  type: string
-                              type: object
-                            switch:
-                              properties:
-                                port:
-                                  type: string
+                                server:
+                                  properties:
+                                    port:
+                                      type: string
+                                  type: object
+                                switch:
+                                  properties:
+                                    port:
+                                      type: string
+                                  type: object
                               type: object
                           type: object
                       type: object
                   type: object
-                type: object
+                type: array
               controlVIP:
+                type: string
+              portChannels:
+                additionalProperties:
+                  type: integer
+                type: object
+              reboot:
+                type: string
+              reinstall:
                 type: string
               switch:
                 description: SwitchSpec defines the desired state of Switch
@@ -176,49 +232,85 @@ spec:
                       uuidSig:
                         type: string
                     type: object
+                  portGroupSpeeds:
+                    additionalProperties:
+                      type: string
+                    type: object
                   profile:
                     type: string
                 type: object
               users:
                 items:
                   properties:
+                    name:
+                      type: string
                     password:
                       type: string
                     role:
                       type: string
-                    username:
-                      type: string
                   type: object
                 type: array
-              vpcAttachments:
-                additionalProperties:
-                  description: VPCAttachmentSpec defines the desired state of VPCAttachment
-                  properties:
-                    connection:
-                      type: string
-                    vpc:
-                      type: string
-                  type: object
+              version:
+                properties:
+                  ca:
+                    type: string
+                  default:
+                    type: string
+                  override:
+                    type: string
+                  repo:
+                    type: string
                 type: object
               vpcVLANRange:
                 type: string
               vpcs:
-                additionalProperties:
-                  description: VPCSpec defines the desired state of VPC
+                items:
                   properties:
-                    dhcp:
-                      properties:
-                        enable:
-                          type: boolean
-                      type: object
-                    subnet:
+                    name:
                       type: string
+                    spec:
+                      description: VPCSpec defines the desired state of VPC
+                      properties:
+                        dhcp:
+                          properties:
+                            enable:
+                              type: boolean
+                            range:
+                              properties:
+                                end:
+                                  type: string
+                                start:
+                                  type: string
+                              type: object
+                          type: object
+                        subnet:
+                          type: string
+                      type: object
+                    vlan:
+                      type: integer
                   type: object
-                type: object
+                type: array
             type: object
           status:
             description: AgentStatus defines the observed state of Agent
             properties:
+              installID:
+                type: string
+              lastAppliedGen:
+                format: int64
+                type: integer
+              lastAppliedTime:
+                format: date-time
+                type: string
+              lastAttemptGen:
+                format: int64
+                type: integer
+              lastAttemptTime:
+                format: date-time
+                type: string
+              lastHeartbeat:
+                format: date-time
+                type: string
               nosInfo:
                 properties:
                   asicVersion:
@@ -254,6 +346,10 @@ spec:
                   upTime:
                     type: string
                 type: object
+              runID:
+                type: string
+              version:
+                type: string
             type: object
         type: object
     served: true

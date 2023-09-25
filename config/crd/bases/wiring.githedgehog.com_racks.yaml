@@ -11,6 +11,7 @@ spec:
     categories:
     - hedgehog
     - wiring
+    - fabric
     kind: Rack
     listKind: RackList
     plural: racks

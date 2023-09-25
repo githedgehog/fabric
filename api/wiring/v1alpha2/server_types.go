@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -32,19 +34,19 @@ const (
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
-	Type        ServerType  `json:"type,omitempty"`
-	Profile     string      `json:"profile,omitempty"`
-	Location    Location    `json:"location,omitempty"`
-	LocationSig LocationSig `json:"locationSig,omitempty"`
+	Type    ServerType `json:"type,omitempty"`
+	Profile string     `json:"profile,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server
 type ServerStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`,priority=0
+// +kubebuilder:printcolumn:name="Rack",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/rack`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Server is the Schema for the servers API
 type Server struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -71,4 +73,22 @@ func init() {
 
 func (s *Server) IsControl() bool {
 	return s.Spec.Type == ServerTypeControl
+}
+
+func (s *ServerSpec) Labels() map[string]string {
+	return map[string]string{
+		LabelServerType: string(s.Type),
+	}
+}
+
+func (server *Server) Default() {
+	if server.Labels == nil {
+		server.Labels = map[string]string{}
+	}
+
+	maps.Copy(server.Labels, server.Spec.Labels())
+}
+
+func (server *Server) Validate() (admission.Warnings, error) {
+	return nil, nil
 }

@@ -19,6 +19,7 @@ package main
 import (
 	_ "embed"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -39,6 +40,13 @@ import (
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
+	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
+	"go.githedgehog.com/fabric/pkg/manager/config"
+	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
+	serverWebhook "go.githedgehog.com/fabric/pkg/webhook/server"
+	switchWebhook "go.githedgehog.com/fabric/pkg/webhook/switchh"
+	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
+	vpcAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -56,6 +64,8 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+var version = "(devel)"
+
 //go:embed motd.txt
 var motd []byte
 
@@ -64,6 +74,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to write motd:", err)
 	}
+	fmt.Println("Version:", version)
 
 	opts := zap.Options{
 		Development: true,
@@ -72,6 +83,13 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	cfgBasedir := "/etc/hedgehog/fabric" // TODO config?
+	cfg, err := config.Load(cfgBasedir)
+	if err != nil {
+		setupLog.Error(err, "unable to load config")
+		os.Exit(1)
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -101,12 +119,36 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfgBasedir := "/etc/hedgehog/fabric" // TODO config?
-
-	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr, cfg, version); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
 	}
+	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VPC")
+		os.Exit(1)
+	}
+
+	if err = connectionWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
+		os.Exit(1)
+	}
+	if err = serverWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Server")
+		os.Exit(1)
+	}
+	if err = switchWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Switch")
+		os.Exit(1)
+	}
+	if err = vpcWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VPC")
+		os.Exit(1)
+	}
+	if err = vpcAttachmentWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VPCAttachment")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

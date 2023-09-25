@@ -12,7 +12,7 @@ Description=Hedgehog Agent
 
 [Service]
 User={{ .User }}
-ExecStart={{ .BinPath }}
+ExecStart={{ .BinPath }} start
 Environment=KUBECONFIG=/etc/sonic/hedgehog/agent-kubeconfig
 
 Restart=always
