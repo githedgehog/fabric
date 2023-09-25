@@ -148,7 +148,7 @@ jobs:
         with:
           limit-access-to-actor: true
 
-  publish-helm-crd:
+  publish:
     # runs-on: ["lab", "simple", "jammy"]
     runs-on: ubuntu-latest
     if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
@@ -184,7 +184,7 @@ jobs:
 
       - name: Publish Images, Helm charts and Bins on release
         run: |
-          OCI_REPO=ghcr.io/githedgehog/fabric make api-chart-push fabric-chart-push fabric-image-push agent-push
+          OCI_REPO=ghcr.io/githedgehog/fabric make push
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
