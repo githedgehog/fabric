@@ -191,6 +191,7 @@ jobs:
       - cache-tools
       - lint-and-dump
       - kind-test-api
+      - build
 
     steps:
       - name: Checkout repository
