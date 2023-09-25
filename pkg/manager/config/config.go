@@ -73,7 +73,7 @@ func Load(basedir string) (*Fabric, error) {
 
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))
 
-	return nil, nil
+	return cfg, nil
 }
 
 type VLANRange struct {
