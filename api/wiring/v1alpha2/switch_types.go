@@ -51,7 +51,7 @@ type SwitchStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sw
 // +kubebuilder:printcolumn:name="Location",type=string,JSONPath=`.spec.location`,priority=0
 // +kubebuilder:printcolumn:name="LocationUUID",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/location`,priority=0
 // +kubebuilder:printcolumn:name="PortGroupSpeeds",type=string,JSONPath=`.spec.portGroupSpeeds`,priority=1

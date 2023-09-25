@@ -14,6 +14,9 @@ spec:
     kind: VPCSummary
     listKind: VPCSummaryList
     plural: vpcsummaries
+    shortNames:
+    - vpcsum
+    - vs
     singular: vpcsummary
   scope: Namespaced
   versions:

@@ -32,9 +32,9 @@ type VPCSummarySpec struct {
 // VPCSummaryStatus defines the observed state of VPCSummary
 type VPCSummaryStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcsum;vs
 // +kubebuilder:printcolumn:name="VPC",type=string,JSONPath=`.spec.vpc`,priority=0
 // +kubebuilder:printcolumn:name="VLAN",type=string,JSONPath=`.spec.vlan`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
