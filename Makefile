@@ -33,9 +33,9 @@ test: manifests generate fmt vet envtest gcov2lcov ## Run tests.
 
 ##@ Build
 
-.PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+# .PHONY: build
+# build: manifests generate fmt vet ## Build manager binary.
+# 	go build -o bin/manager cmd/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.

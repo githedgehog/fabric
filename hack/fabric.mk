@@ -44,23 +44,26 @@ agent-push-dev: agent-build ## Push agent
 	cd bin && oras push --insecure registry.local:31000/githedgehog/agent/x86_64:latest agent
 	cd bin && oras push --insecure $(OCI_REPO)/agent:$(VERSION) agent
 
-.PHONY: hhf-build
-hhf-build: ## Build hhf
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/hhf -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhf/main.go
+.PHONY: hhfctl-build
+hhfctl-build: ## Build hhfctl
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 
-.PHONY: hhf-push
-hhf-push: hhf-build ## Push hhf
-	cd bin && oras push $(OCI_REPO)/hhf:$(VERSION) hhf
+.PHONY: hhfctl-push
+hhfctl-push: hhfctl-build ## Push hhfctl
+	cd bin && oras push $(OCI_REPO)/hhfctl:$(VERSION) hhfctl
 
-.PHONY: hhf-push-dev
-agent-push-dev: hhf-build ## Push hhf
-	cd bin && oras push --insecure $(OCI_REPO)/hhf:$(VERSION) hhf
+.PHONY: hhfctl-push-dev
+hhfctl-push-dev: hhfctl-build ## Push hhfctl
+	cd bin && oras push --insecure $(OCI_REPO)/hhfctl:$(VERSION) hhfctl
 
 .PHONY: dev-push
-dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhf-push-dev
+dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev
+
+.PHONY: build
+build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build
 
 .PHONY: push
-push: api-chart-push fabric-image-push fabric-chart-push agent-push hhf-push
+push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push
 
 .PHONY: dev-patch
 dev-patch:
