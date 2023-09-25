@@ -30,7 +30,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/ctrl/common"
+	"go.githedgehog.com/fabric/pkg/manager/config"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,48 +46,24 @@ import (
 )
 
 const (
-	AGENT_CTRL_CONFIG = "agent-ctrl-config.yaml"
-	PORT_CHAN_MIN     = 100
-	PORT_CHAN_MAX     = 199
+	PORT_CHAN_MIN = 100
+	PORT_CHAN_MAX = 199
 )
-
-type AgentControllerConfig struct {
-	ControlVIP   string               `json:"controlVIP,omitempty"`
-	APIServer    string               `json:"apiServer,omitempty"`
-	VPCVLANRange common.VLANRange     `json:"vpcVLANRange,omitempty"`
-	Users        []agentapi.UserCreds `json:"users,omitempty"`
-}
 
 // AgentReconciler reconciles a Agent object
 type AgentReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
-	Cfg     *AgentControllerConfig
+	Cfg     *config.Fabric
 	Version string
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
-	cfg := &AgentControllerConfig{}
-	err := common.LoadCtrlConfig(cfgBasedir, AGENT_CTRL_CONFIG, cfg)
-	if err != nil {
-		return err
-	}
-
-	if cfg.ControlVIP == "" {
-		return errors.Errorf("config: controlVIP is required")
-	}
-	if cfg.APIServer == "" {
-		return errors.Errorf("config: apiServer is required")
-	}
-	if err := cfg.VPCVLANRange.Validate(); err != nil {
-		return errors.Wrapf(err, "config: vpcVLANRange is invalid")
-	}
-	// TODO reserve some VLANs?
-
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, version string) error {
 	r := &AgentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Cfg:    cfg,
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Cfg:     cfg,
+		Version: version,
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -253,6 +229,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
 		agent.Spec.Users = r.Cfg.Users
+		agent.Spec.Version.Default = r.Version
+		agent.Spec.Version.Repo = r.Cfg.AgentRepo
+		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
 
 		if mclagPeer != nil {
 			agent.Spec.PortChannels, err = r.calculateMCLAGPortChannels(ctx, agent, mclagPeer, conns)

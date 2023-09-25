@@ -322,11 +322,17 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	}
 
 	if reboot {
-		cmd := exec.CommandContext(ctx, "reboot")
+		cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
+		err := cmd.Run()
+		if err != nil {
+			slog.Warn("Failed to send wall message", "err", err)
+		}
+
+		cmd = exec.CommandContext(ctx, "reboot")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		err := cmd.Run()
+		err = cmd.Run()
 		if err != nil {
 			return errors.Wrap(err, "failed to reboot")
 		}

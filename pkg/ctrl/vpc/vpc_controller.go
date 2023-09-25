@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/ctrl/common"
+	"go.githedgehog.com/fabric/pkg/manager/config"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,45 +36,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	VPC_CTRL_CONFIG = "vpc-ctrl-config.yaml"
-)
-
-type VPCControllerConfig struct {
-	ControlVIP     string           `json:"controlVIP,omitempty"`
-	VPCVLANRange   common.VLANRange `json:"vpcVLANRange,omitempty"`
-	DHCPDConfigMap string           `json:"dhcpdConfigMap,omitempty"`
-	DHCPDConfigKey string           `json:"dhcpdConfigKey,omitempty"`
-}
-
 // VPCReconciler reconciles a VPC object
 type VPCReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Cfg        *VPCControllerConfig
+	Cfg        *config.Fabric
 	vlanAssign sync.Mutex
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
-	cfg := &VPCControllerConfig{}
-	err := common.LoadCtrlConfig(cfgBasedir, VPC_CTRL_CONFIG, cfg)
-	if err != nil {
-		return err
-	}
-
-	if cfg.ControlVIP == "" {
-		return errors.Errorf("config: controlVIP is required")
-	}
-	if err := cfg.VPCVLANRange.Validate(); err != nil {
-		return errors.Wrapf(err, "config: vpcVLANRange is invalid")
-	}
-	if cfg.DHCPDConfigMap == "" {
-		return errors.Errorf("config: dhcpdConfigMap is required")
-	}
-	if cfg.DHCPDConfigKey == "" {
-		return errors.Errorf("config: dhcpdConfigKey is required")
-	}
-
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
 	r := &VPCReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
