@@ -28,6 +28,7 @@ func init() {
 
 var decoder runtime.Decoder
 
+// TODO report list of files/sources
 func LoadDataFrom(from string) (*Data, error) {
 	data, err := New()
 	if err != nil {
@@ -45,7 +46,7 @@ func LoadDataFrom(from string) (*Data, error) {
 		from = filepath.Dir(from)
 	}
 
-	log.Println("Loading data from directory (recursively)", from)
+	// log.Println("Loading data from directory (recursively)", from)
 	f := os.DirFS(from)
 	err = LoadDir(f, fromFile, data)
 	if err != nil {
@@ -62,18 +63,18 @@ func LoadDir(f fs.FS, root string, data *Data) error {
 		}
 
 		if d.IsDir() {
-			log.Println("Walking into", path)
+			// log.Println("Walking into", path)
 
 			return nil
 		}
 
 		if filepath.Ext(path) != ".yaml" || strings.Contains(path, "kustom") || strings.Contains(path, ".skip.") {
-			log.Println("Skipping file", path)
+			// log.Println("Skipping file", path)
 
 			return nil
 		}
 
-		log.Println("Loading data from", path)
+		// log.Println("Loading data from", path)
 
 		err = LoadFile(f, path, data)
 		if err != nil {

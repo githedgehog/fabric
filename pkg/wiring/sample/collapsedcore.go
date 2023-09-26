@@ -2,7 +2,6 @@ package sample
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
@@ -286,8 +285,6 @@ func location(slot string) wiringapi.Location {
 }
 
 func createRack(data *wiring.Data, name string, spec wiringapi.RackSpec) (*wiringapi.Rack, error) {
-	log.Println("Creating rack", name)
-
 	sw := &wiringapi.Rack{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindRack,
@@ -304,8 +301,6 @@ func createRack(data *wiring.Data, name string, spec wiringapi.RackSpec) (*wirin
 }
 
 func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.SwitchSpec) (*wiringapi.Switch, error) {
-	log.Println("Creating switch", name)
-
 	sw := &wiringapi.Switch{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindSwitch,
@@ -326,8 +321,6 @@ func createSwitch(data *wiring.Data, name string, rack string, spec wiringapi.Sw
 }
 
 func createServer(data *wiring.Data, name string, rack string, spec wiringapi.ServerSpec) (*wiringapi.Server, error) {
-	log.Println("Creating server", name)
-
 	server := &wiringapi.Server{
 		TypeMeta: meta.TypeMeta{
 			Kind:       wiringapi.KindServer,
@@ -349,8 +342,6 @@ func createServer(data *wiring.Data, name string, rack string, spec wiringapi.Se
 
 func createConnection(data *wiring.Data, spec wiringapi.ConnectionSpec) (*wiringapi.Connection, error) {
 	name := spec.GenerateName()
-
-	log.Println("Creating connection", name)
 
 	conn := &wiringapi.Connection{
 		TypeMeta: meta.TypeMeta{
