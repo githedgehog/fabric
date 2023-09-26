@@ -54,11 +54,11 @@ type VPCStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;fabric
 // +kubebuilder:printcolumn:name="Subnet",type=string,JSONPath=`.spec.subnet`,priority=0
-// +kubebuilder:printcolumn:name="VLAN",type=string,JSONPath=`.spec.vlan`,priority=0
-// +kubebuilder:printcolumn:name="DHCP",type=boolean,JSONPath=`.spec.DHCP.Enable`,priority=0
-// +kubebuilder:printcolumn:name="Start",type=string,JSONPath=`.spec.DHCP.Range.Start`,priority=1
-// +kubebuilder:printcolumn:name="End",type=string,JSONPath=`.spec.DHCP.Range.End`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=10
+// +kubebuilder:printcolumn:name="VLAN",type=string,JSONPath=`.status.vlan`,priority=0
+// +kubebuilder:printcolumn:name="DHCP",type=boolean,JSONPath=`.spec.dhcp.enable`,priority=0
+// +kubebuilder:printcolumn:name="Start",type=string,JSONPath=`.spec.dhcp.range.start`,priority=0
+// +kubebuilder:printcolumn:name="End",type=string,JSONPath=`.spec.dhcp.range.end`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPC is the Schema for the vpcs API
 type VPC struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -163,7 +163,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admissi
 		}
 
 		for _, other := range vpcs.Items {
-			if vpc.Spec.Subnet == other.Spec.Subnet {
+			if vpc.Spec.Subnet == other.Spec.Subnet && vpc.Name != other.Name { // TODO ns?
 				return nil, errors.Errorf("subnet %s is already used by other VPC", vpc.Spec.Subnet)
 			}
 		}

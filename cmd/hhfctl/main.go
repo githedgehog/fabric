@@ -26,7 +26,7 @@ func setupLogger(verbose bool) error {
 	logger := slog.New(
 		tint.NewHandler(logW, &tint.Options{
 			Level:      logLevel,
-			TimeFormat: time.DateTime,
+			TimeFormat: time.TimeOnly,
 			NoColor:    !isatty.IsTerminal(logW.Fd()),
 		}),
 	)
@@ -69,6 +69,14 @@ func main() {
 		}
 
 		return nil
+	}
+
+	var printYaml bool
+	printYamlFlag := &cli.BoolFlag{
+		Name:        "print",
+		Aliases:     []string{"p"},
+		Usage:       "print object yaml",
+		Destination: &printYaml,
 	}
 
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
@@ -117,12 +125,13 @@ func main() {
 								Aliases: []string{"dhcp-end", "end"},
 								Usage:   "dhcp range end",
 							},
+							printYamlFlag,
 						},
 						Before: func(cCtx *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCCreate(ctx, &hhfctl.VPCCreateOptions{
+							return hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
 								DHCP: vpcapi.VPCDHCP{
@@ -152,12 +161,13 @@ func main() {
 								Usage:    "connection",
 								Required: true,
 							},
+							printYamlFlag,
 						},
 						Before: func(cCtx *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCAttach(ctx, &hhfctl.VPCAttachOptions{
+							return hhfctl.VPCAttach(ctx, printYaml, &hhfctl.VPCAttachOptions{
 								Name:       name,
 								VPC:        cCtx.String("vpc"),
 								Connection: cCtx.String("connection"),
@@ -239,7 +249,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		slog.Warn("Failed", "error", err)
+		slog.Error("Failed", "err", err)
 		os.Exit(1)
 	}
 }

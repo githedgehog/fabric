@@ -37,7 +37,7 @@ type VPCSummaryStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcsum;vs
 // +kubebuilder:printcolumn:name="VPC",type=string,JSONPath=`.spec.vpc`,priority=0
 // +kubebuilder:printcolumn:name="VLAN",type=string,JSONPath=`.spec.vlan`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCSummary is the Schema for the vpcsummaries API
 type VPCSummary struct {
 	metav1.TypeMeta   `json:",inline"`

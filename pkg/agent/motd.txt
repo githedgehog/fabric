@@ -1,4 +1,4 @@
-You are on SONIC managed by
+You are on SONiC managed by
  _   _          _            _
 | | | |        | |          | |
 | |_| | ___  __| | __ _  ___| |__   ___   __ _

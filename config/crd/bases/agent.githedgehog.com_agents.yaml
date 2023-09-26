@@ -25,7 +25,6 @@ spec:
       type: string
     - jsonPath: .status.nosInfo.asicVersion
       name: ASIC
-      priority: 1
       type: string
     - jsonPath: .status.lastHeartbeat
       name: Heartbeat

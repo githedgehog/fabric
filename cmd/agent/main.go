@@ -20,7 +20,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"time"
@@ -226,6 +225,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal("unrecoverable error:", err)
+		slog.Error("Failed", "err", err)
+		os.Exit(1)
 	}
 }

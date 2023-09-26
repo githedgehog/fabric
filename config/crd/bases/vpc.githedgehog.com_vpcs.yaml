@@ -21,23 +21,20 @@ spec:
     - jsonPath: .spec.subnet
       name: Subnet
       type: string
-    - jsonPath: .spec.vlan
+    - jsonPath: .status.vlan
       name: VLAN
       type: string
-    - jsonPath: .spec.DHCP.Enable
+    - jsonPath: .spec.dhcp.enable
       name: DHCP
       type: boolean
-    - jsonPath: .spec.DHCP.Range.Start
+    - jsonPath: .spec.dhcp.range.start
       name: Start
-      priority: 1
       type: string
-    - jsonPath: .spec.DHCP.Range.End
+    - jsonPath: .spec.dhcp.range.end
       name: End
-      priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
-      priority: 10
       type: string
     name: v1alpha2
     schema:

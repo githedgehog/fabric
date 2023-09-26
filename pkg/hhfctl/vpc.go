@@ -18,7 +18,7 @@ type VPCCreateOptions struct {
 	DHCP   vpcapi.VPCDHCP
 }
 
-func VPCCreate(ctx context.Context, options *VPCCreateOptions) error {
+func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
 	vpc := &vpcapi.VPC{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      options.Name,
@@ -52,16 +52,18 @@ func VPCCreate(ctx context.Context, options *VPCCreateOptions) error {
 
 	slog.Info("VPC created", "name", vpc.Name)
 
-	vpc.ObjectMeta.ManagedFields = nil
-	vpc.ObjectMeta.Generation = 0
-	vpc.ObjectMeta.ResourceVersion = ""
+	if printYaml {
+		vpc.ObjectMeta.ManagedFields = nil
+		vpc.ObjectMeta.Generation = 0
+		vpc.ObjectMeta.ResourceVersion = ""
 
-	out, err := yaml.Marshal(vpc)
-	if err != nil {
-		return errors.Wrap(err, "cannot marshal vpc")
+		out, err := yaml.Marshal(vpc)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc")
+		}
+
+		fmt.Println(string(out))
 	}
-
-	fmt.Println(string(out))
 
 	return nil
 }
@@ -72,7 +74,7 @@ type VPCAttachOptions struct {
 	Connection string
 }
 
-func VPCAttach(ctx context.Context, options *VPCAttachOptions) error {
+func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) error {
 	name := options.Name
 	if name == "" {
 		name = fmt.Sprintf("%s--%s", options.VPC, options.Connection)
@@ -111,16 +113,18 @@ func VPCAttach(ctx context.Context, options *VPCAttachOptions) error {
 
 	slog.Info("VPCAttachment created", "name", attach.Name)
 
-	attach.ObjectMeta.ManagedFields = nil
-	attach.ObjectMeta.Generation = 0
-	attach.ObjectMeta.ResourceVersion = ""
+	if printYaml {
+		attach.ObjectMeta.ManagedFields = nil
+		attach.ObjectMeta.Generation = 0
+		attach.ObjectMeta.ResourceVersion = ""
 
-	out, err := yaml.Marshal(attach)
-	if err != nil {
-		return errors.Wrap(err, "cannot marshal vpc attachment")
+		out, err := yaml.Marshal(attach)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc attachment")
+		}
+
+		fmt.Println(string(out))
 	}
-
-	fmt.Println(string(out))
 
 	return nil
 }
