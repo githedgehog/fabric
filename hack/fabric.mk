@@ -51,6 +51,7 @@ hhfctl-build: ## Build hhfctl
 .PHONY: hhfctl-push
 hhfctl-push: hhfctl-build ## Push hhfctl
 	cd bin && oras push $(OCI_REPO)/hhfctl:$(VERSION) hhfctl
+	cd bin && oras push $(OCI_REPO)/hhfctl:latest hhfctl
 
 .PHONY: hhfctl-push-dev
 hhfctl-push-dev: hhfctl-build ## Push hhfctl
