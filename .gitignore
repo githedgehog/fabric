@@ -1,4 +1,5 @@
 .DS_Store
+kubeconfig
 
 # Binaries for programs and plugins
 *.exe
