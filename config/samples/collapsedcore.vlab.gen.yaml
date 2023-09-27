@@ -89,6 +89,30 @@ metadata:
 spec: {}
 ---
 ###
+### server-3
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Server
+metadata:
+  labels:
+    fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/server-type: ""
+  name: server-3
+spec: {}
+---
+###
+### server-4
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Server
+metadata:
+  labels:
+    fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/server-type: ""
+  name: server-4
+spec: {}
+---
+###
 ### control-1--mgmt--switch-1
 ###
 apiVersion: wiring.githedgehog.com/v1alpha2
@@ -105,7 +129,7 @@ spec:
     link:
       server:
         ip: 192.168.101.1/31
-        port: control-1/eth1
+        port: control-1/enp0s3
       switch:
         ip: 192.168.101.0/31
         oniePortName: eth0
@@ -128,7 +152,7 @@ spec:
     link:
       server:
         ip: 192.168.102.1/31
-        port: control-1/eth2
+        port: control-1/enp0s4
       switch:
         ip: 192.168.102.0/31
         oniePortName: eth0
@@ -151,11 +175,11 @@ spec:
   mclag:
     links:
     - server:
-        port: server-1/eth1
+        port: server-1/enp0s2
       switch:
         port: switch-1/Ethernet4
     - server:
-        port: server-1/eth2
+        port: server-1/enp0s3
       switch:
         port: switch-2/Ethernet4
 ---
@@ -176,13 +200,53 @@ spec:
   mclag:
     links:
     - server:
-        port: server-2/eth1
+        port: server-2/enp0s2
       switch:
         port: switch-1/Ethernet5
     - server:
-        port: server-2/eth2
+        port: server-2/enp0s3
       switch:
         port: switch-2/Ethernet5
+---
+###
+### server-3--unbundled--switch-1
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Connection
+metadata:
+  labels:
+    fabric.githedgehog.com/connection-type: unbundled
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/server-3: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
+  name: server-3--unbundled--switch-1
+spec:
+  unbundled:
+    link:
+      server:
+        port: server-3/nic0/port0
+      switch:
+        port: switch-1/Ethernet6
+---
+###
+### server-4--unbundled--switch-2
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Connection
+metadata:
+  labels:
+    fabric.githedgehog.com/connection-type: unbundled
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/server-4: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
+  name: server-4--unbundled--switch-2
+spec:
+  unbundled:
+    link:
+      server:
+        port: server-4/nic0/port0
+      switch:
+        port: switch-2/Ethernet6
 ---
 ###
 ### switch-1--mclag-domain--switch-2

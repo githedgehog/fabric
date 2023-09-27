@@ -260,7 +260,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			Unbundled: &wiringapi.ConnUnbundled{
 				Link: wiringapi.ServerToSwitchLink{
 					Server: wiringapi.NewBasePortName("server-3/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+					Switch: wiringapi.NewBasePortName("switch-1/Ethernet6"),
 				},
 			},
 		})
@@ -273,7 +273,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			Unbundled: &wiringapi.ConnUnbundled{
 				Link: wiringapi.ServerToSwitchLink{
 					Server: wiringapi.NewBasePortName("server-4/nic0/port0"),
-					Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+					Switch: wiringapi.NewBasePortName("switch-2/Ethernet6"),
 				},
 			},
 		})
@@ -287,11 +287,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Links: []wiringapi.ServerToSwitchLink{
 					{
 						Server: wiringapi.NewBasePortName("server-3/ens3f0"),
-						Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+						Switch: wiringapi.NewBasePortName("switch-1/Ethernet6"),
 					},
 					{
 						Server: wiringapi.NewBasePortName("server-3/ens3f1"),
-						Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+						Switch: wiringapi.NewBasePortName("switch-2/Ethernet6"),
 					},
 				},
 			},

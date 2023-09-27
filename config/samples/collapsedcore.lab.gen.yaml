@@ -29,6 +29,7 @@ spec:
     sig: <undefined>
     uuidSig: <undefined>
   portGroupSpeeds:
+    "1": SPEED_10GB
     "12": SPEED_10GB
 ---
 ###
@@ -53,6 +54,7 @@ spec:
     sig: <undefined>
     uuidSig: <undefined>
   portGroupSpeeds:
+    "1": SPEED_10GB
     "12": SPEED_10GB
 ---
 ###
@@ -90,6 +92,18 @@ metadata:
     fabric.githedgehog.com/rack: rack-1
     fabric.githedgehog.com/server-type: ""
   name: server-2
+spec: {}
+---
+###
+### server-3
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Server
+metadata:
+  labels:
+    fabric.githedgehog.com/rack: rack-1
+    fabric.githedgehog.com/server-type: ""
+  name: server-3
 spec: {}
 ---
 ###
@@ -187,6 +201,31 @@ spec:
         port: server-2/enp8s0
       switch:
         port: switch-2/Ethernet47
+---
+###
+### server-3--mclag--switch-1--switch-2
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Connection
+metadata:
+  labels:
+    fabric.githedgehog.com/connection-type: mclag
+    rack.fabric.githedgehog.com/rack-1: "true"
+    server.fabric.githedgehog.com/server-3: "true"
+    switch.fabric.githedgehog.com/switch-1: "true"
+    switch.fabric.githedgehog.com/switch-2: "true"
+  name: server-3--mclag--switch-1--switch-2
+spec:
+  mclag:
+    links:
+    - server:
+        port: server-3/ens3f0
+      switch:
+        port: switch-1/Ethernet6
+    - server:
+        port: server-3/ens3f1
+      switch:
+        port: switch-2/Ethernet6
 ---
 ###
 ### switch-1--mclag-domain--switch-2
