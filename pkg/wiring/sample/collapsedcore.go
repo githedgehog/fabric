@@ -28,7 +28,8 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 
 	ctrlSwitchPort := func(portID int) string {
 		if preset == SAMPLE_CC_VLAB {
-			return fmt.Sprintf("eth%d", portID)
+			// return fmt.Sprintf("eth%d", portID)
+			return fmt.Sprintf("enp0s%d", portID+2)
 		}
 		if preset == SAMPLE_CC_LAB {
 			return fmt.Sprintf("eno%d", portID+1)
@@ -54,6 +55,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 	if preset == SAMPLE_CC_LAB {
 		switch1.PortGroupSpeeds = map[string]string{
+			"1":  "SPEED_10GB",
 			"12": "SPEED_10GB",
 		}
 	}
@@ -67,6 +69,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 	if preset == SAMPLE_CC_LAB {
 		switch2.PortGroupSpeeds = map[string]string{
+			"1":  "SPEED_10GB",
 			"12": "SPEED_10GB",
 		}
 	}
@@ -91,18 +94,21 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// _, err = createServer(data, "server-3", "rack-1", wiringapi.ServerSpec{
-	// 	Location: location("6"),
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// _, err = createServer(data, "server-4", "rack-1", wiringapi.ServerSpec{
-	// 	Location: location("7"),
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
+	if preset == SAMPLE_CC_VLAB {
+		_, err = createServer(data, "server-3", "rack-1", wiringapi.ServerSpec{})
+		if err != nil {
+			return nil, err
+		}
+		_, err = createServer(data, "server-4", "rack-1", wiringapi.ServerSpec{})
+		if err != nil {
+			return nil, err
+		}
+	} else if preset == SAMPLE_CC_LAB {
+		_, err = createServer(data, "server-3", "rack-1", wiringapi.ServerSpec{})
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// control-1 <> switch-1
 	_, err = createConnection(data, wiringapi.ConnectionSpec{
@@ -115,7 +121,6 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Switch: wiringapi.ConnMgmtLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-1/Management0"),
 					IP:           "192.168.101.0/31",
-					// VLAN:         uint16(mgmtVLAN),
 					ONIEPortName: oniePort,
 				},
 			},
@@ -185,8 +190,10 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	server1Port1 := "eth1"
-	server1Port2 := "eth2"
+	// server1Port1 := "eth1"
+	// server1Port2 := "eth2"
+	server1Port1 := "enp0s2"
+	server1Port2 := "enp0s3"
 	server1Switch1Port := "Ethernet4"
 	server1Switch2Port := "Ethernet4"
 	if preset == SAMPLE_CC_LAB {
@@ -215,8 +222,10 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	server2Port1 := "eth1"
-	server2Port2 := "eth2"
+	// server2Port1 := "eth1"
+	// server2Port2 := "eth2"
+	server2Port1 := "enp0s2"
+	server2Port2 := "enp0s3"
 	server2Switch1Port := "Ethernet5"
 	server2Switch2Port := "Ethernet5"
 	if preset == SAMPLE_CC_LAB {
@@ -245,31 +254,52 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		return nil, err
 	}
 
-	// // server-3 <> switch-1
-	// _, err = createConnection(data, wiringapi.ConnectionSpec{
-	// 	Unbundled: &wiringapi.ConnUnbundled{
-	// 		Link: wiringapi.ServerToSwitchLink{
-	// 			Server: wiringapi.NewBasePortName("server-3/nic0/port0"),
-	// 			Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
-	// 		},
-	// 	},
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
+	if preset == SAMPLE_CC_VLAB {
+		// server-3 <> switch-1
+		_, err = createConnection(data, wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{
+				Link: wiringapi.ServerToSwitchLink{
+					Server: wiringapi.NewBasePortName("server-3/nic0/port0"),
+					Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+				},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	// // server-4 <> switch-2
-	// _, err = createConnection(data, wiringapi.ConnectionSpec{
-	// 	Unbundled: &wiringapi.ConnUnbundled{
-	// 		Link: wiringapi.ServerToSwitchLink{
-	// 			Server: wiringapi.NewBasePortName("server-4/nic0/port0"),
-	// 			Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
-	// 		},
-	// 	},
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
+		// server-4 <> switch-2
+		_, err = createConnection(data, wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{
+				Link: wiringapi.ServerToSwitchLink{
+					Server: wiringapi.NewBasePortName("server-4/nic0/port0"),
+					Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+				},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else if preset == SAMPLE_CC_LAB {
+		// server-3 <MCLAG> (switch-1, switch-2)
+		_, err = createConnection(data, wiringapi.ConnectionSpec{
+			MCLAG: &wiringapi.ConnMCLAG{
+				Links: []wiringapi.ServerToSwitchLink{
+					{
+						Server: wiringapi.NewBasePortName("server-3/ens3f0"),
+						Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+					},
+					{
+						Server: wiringapi.NewBasePortName("server-3/ens3f1"),
+						Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+					},
+				},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return data, nil
 }
