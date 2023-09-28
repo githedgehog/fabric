@@ -81,6 +81,21 @@ spec:
             type: object
           status:
             description: VPCSummaryStatus defines the observed state of VPCSummary
+            properties:
+              applied:
+                properties:
+                  detailed:
+                    additionalProperties:
+                      format: int64
+                      type: integer
+                    type: object
+                  gen:
+                    format: int64
+                    type: integer
+                  time:
+                    format: date-time
+                    type: string
+                type: object
             type: object
         type: object
     served: true

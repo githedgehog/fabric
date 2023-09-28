@@ -100,7 +100,9 @@ type ConnectionSpec struct {
 }
 
 // ConnectionStatus defines the observed state of Connection
-type ConnectionStatus struct{}
+type ConnectionStatus struct {
+	Applied ApplyStatus `json:"applied,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

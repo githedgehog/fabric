@@ -192,6 +192,22 @@ spec:
                 type: string
               reinstall:
                 type: string
+              statusUpdates:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    generation:
+                      format: int64
+                      type: integer
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
               switch:
                 description: SwitchSpec defines the desired state of Switch
                 properties:

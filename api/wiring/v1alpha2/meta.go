@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -78,6 +79,12 @@ type Location struct {
 type LocationSig struct {
 	Sig     string `json:"sig,omitempty"`
 	UUIDSig string `json:"uuidSig,omitempty"`
+}
+
+type ApplyStatus struct {
+	Generation int64            `json:"gen,omitempty"`
+	Time       metav1.Time      `json:"time,omitempty"`
+	Detailed   map[string]int64 `json:"detailed,omitempty"`
 }
 
 // GenerateUUID generates the location UUID which is a version 5 UUID over the fields of `Location`.

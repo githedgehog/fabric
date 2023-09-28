@@ -154,6 +154,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
 
+	statusUpdates := appendUpdate(nil, sw)
+
 	switchNsName := metav1.ObjectMeta{Name: sw.Name, Namespace: sw.Namespace}
 	res, err := r.prepareAgentInfra(ctx, switchNsName)
 	if err != nil {
@@ -176,6 +178,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Name: conn.Name,
 			Spec: conn.Spec,
 		})
+
+		statusUpdates = appendUpdate(statusUpdates, &conn)
+
 		if conn.Spec.MCLAGDomain != nil {
 			// TODO add some helpers
 			for _, link := range conn.Spec.MCLAGDomain.PeerLinks {
@@ -202,6 +207,19 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Name: vpcSummary.Name,
 			VLAN: vpcSummary.Spec.VLAN,
 			Spec: vpcSummary.Spec.VPC,
+		})
+
+		// TODO do we need to update VPCSummary status?
+		statusUpdates = appendUpdate(statusUpdates, &vpcSummary)
+		statusUpdates = appendUpdate(statusUpdates, &vpcapi.VPC{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: vpcapi.GroupVersion.String(),
+				Kind:       "VPC",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vpcSummary.Name,
+				Namespace: vpcSummary.Namespace,
+			},
 		})
 	}
 	sort.Slice(vpcs, func(i, j int) bool {
@@ -232,6 +250,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Version.Default = r.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
+		agent.Spec.StatusUpdates = statusUpdates
 
 		if mclagPeer != nil {
 			agent.Spec.PortChannels, err = r.calculateMCLAGPortChannels(ctx, agent, mclagPeer, conns)
@@ -445,4 +464,14 @@ func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func appendUpdate(statusUpdates []agentapi.ApplyStatusUpdate, obj client.Object) []agentapi.ApplyStatusUpdate {
+	return append(statusUpdates, agentapi.ApplyStatusUpdate{
+		APIVersion: obj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+		Kind:       obj.GetObjectKind().GroupVersionKind().Kind,
+		Name:       obj.GetName(),
+		Namespace:  obj.GetNamespace(),
+		Generation: obj.GetGeneration(),
+	})
 }

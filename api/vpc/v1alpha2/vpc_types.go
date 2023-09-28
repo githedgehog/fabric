@@ -21,6 +21,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +48,8 @@ type VPCDHCPRange struct {
 
 // VPCStatus defines the observed state of VPC
 type VPCStatus struct {
-	VLAN uint16 `json:"vlan,omitempty"`
+	VLAN    uint16                `json:"vlan,omitempty"`
+	Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
 }
 
 // +kubebuilder:object:root=true

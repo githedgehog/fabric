@@ -74,6 +74,20 @@ spec:
           status:
             description: VPCStatus defines the observed state of VPC
             properties:
+              applied:
+                properties:
+                  detailed:
+                    additionalProperties:
+                      format: int64
+                      type: integer
+                    type: object
+                  gen:
+                    format: int64
+                    type: integer
+                  time:
+                    format: date-time
+                    type: string
+                type: object
               vlan:
                 type: integer
             type: object

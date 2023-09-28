@@ -28,16 +28,17 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	Version      AgentVersion         `json:"version,omitempty"`
-	ControlVIP   string               `json:"controlVIP,omitempty"`
-	Users        []UserCreds          `json:"users,omitempty"`
-	Switch       wiringapi.SwitchSpec `json:"switch,omitempty"`
-	Connections  []ConnectionInfo     `json:"connections,omitempty"`
-	VPCs         []VPCInfo            `json:"vpcs,omitempty"`
-	VPCVLANRange string               `json:"vpcVLANRange,omitempty"`
-	PortChannels map[string]uint16    `json:"portChannels,omitempty"`
-	Reinstall    string               `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
-	Reboot       string               `json:"reboot,omitempty"`    // set to RunID to reboot
+	Version       AgentVersion         `json:"version,omitempty"`
+	ControlVIP    string               `json:"controlVIP,omitempty"`
+	Users         []UserCreds          `json:"users,omitempty"`
+	Switch        wiringapi.SwitchSpec `json:"switch,omitempty"`
+	Connections   []ConnectionInfo     `json:"connections,omitempty"`
+	VPCs          []VPCInfo            `json:"vpcs,omitempty"`
+	VPCVLANRange  string               `json:"vpcVLANRange,omitempty"`
+	PortChannels  map[string]uint16    `json:"portChannels,omitempty"`
+	Reinstall     string               `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot        string               `json:"reboot,omitempty"`    // set to RunID to reboot
+	StatusUpdates []ApplyStatusUpdate  `json:"statusUpdates,omitempty"`
 }
 
 type AgentVersion struct {
@@ -63,6 +64,16 @@ type VPCInfo struct {
 	VLAN uint16         `json:"vlan,omitempty"`
 	Spec vpcapi.VPCSpec `json:"spec,omitempty"`
 }
+
+type ApplyStatusUpdate struct {
+	APIVersion string `json:"apiVersion,omitempty"`
+	Kind       string `json:"kind,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	Generation int64  `json:"generation,omitempty"`
+}
+
+// TODO replace flat attempl/apply in agent status with ApplyStatus
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {

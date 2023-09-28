@@ -46,6 +46,7 @@ type SwitchSpec struct {
 
 // SwitchStatus defines the observed state of Switch
 type SwitchStatus struct {
+	Applied ApplyStatus `json:"applied,omitempty"`
 	// TODO: add port status fields
 }
 

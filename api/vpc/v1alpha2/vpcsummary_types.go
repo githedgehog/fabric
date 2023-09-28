@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,10 +28,13 @@ type VPCSummarySpec struct {
 	VPC         VPCSpec  `json:"vpc"`
 	VLAN        uint16   `json:"vlan"`
 	Connections []string `json:"connections"`
+	// TODO Connection NS
 }
 
 // VPCSummaryStatus defines the observed state of VPCSummary
-type VPCSummaryStatus struct{}
+type VPCSummaryStatus struct {
+	Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
