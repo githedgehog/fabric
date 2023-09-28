@@ -109,6 +109,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.InstallID = svc.installID
 		agent.Status.RunID = svc.runID
 		agent.Status.Version = svc.Version
+		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
 
 		nosInfo, err := svc.client.GetNOSInfo(ctx)
 		if err != nil {

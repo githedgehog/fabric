@@ -77,15 +77,16 @@ type ApplyStatusUpdate struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	Version         string      `json:"version,omitempty"`
-	InstallID       string      `json:"installID,omitempty"`
-	RunID           string      `json:"runID,omitempty"`
-	LastHeartbeat   metav1.Time `json:"lastHeartbeat,omitempty"`
-	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
-	LastAttemptGen  int64       `json:"lastAttemptGen,omitempty"`
-	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
-	LastAppliedGen  int64       `json:"lastAppliedGen,omitempty"`
-	NOSInfo         NOSInfo     `json:"nosInfo,omitempty"`
+	Version         string              `json:"version,omitempty"`
+	InstallID       string              `json:"installID,omitempty"`
+	RunID           string              `json:"runID,omitempty"`
+	LastHeartbeat   metav1.Time         `json:"lastHeartbeat,omitempty"`
+	LastAttemptTime metav1.Time         `json:"lastAttemptTime,omitempty"`
+	LastAttemptGen  int64               `json:"lastAttemptGen,omitempty"`
+	LastAppliedTime metav1.Time         `json:"lastAppliedTime,omitempty"`
+	LastAppliedGen  int64               `json:"lastAppliedGen,omitempty"`
+	NOSInfo         NOSInfo             `json:"nosInfo,omitempty"`
+	StatusUpdates   []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
 }
 
 type NOSInfo struct {
