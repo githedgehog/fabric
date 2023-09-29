@@ -123,6 +123,32 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
+  - vpcpeerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcpeerings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcpeerings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
   - vpcs
   verbs:
   - create

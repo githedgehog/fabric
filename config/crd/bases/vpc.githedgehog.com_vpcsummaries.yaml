@@ -54,6 +54,12 @@ spec:
                 items:
                   type: string
                 type: array
+              name:
+                type: string
+              peers:
+                items:
+                  type: string
+                type: array
               vlan:
                 type: integer
               vpc:
@@ -76,6 +82,7 @@ spec:
                 type: object
             required:
             - connections
+            - name
             - vlan
             - vpc
             type: object

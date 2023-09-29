@@ -28,17 +28,17 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	Version       AgentVersion         `json:"version,omitempty"`
-	ControlVIP    string               `json:"controlVIP,omitempty"`
-	Users         []UserCreds          `json:"users,omitempty"`
-	Switch        wiringapi.SwitchSpec `json:"switch,omitempty"`
-	Connections   []ConnectionInfo     `json:"connections,omitempty"`
-	VPCs          []VPCInfo            `json:"vpcs,omitempty"`
-	VPCVLANRange  string               `json:"vpcVLANRange,omitempty"`
-	PortChannels  map[string]uint16    `json:"portChannels,omitempty"`
-	Reinstall     string               `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
-	Reboot        string               `json:"reboot,omitempty"`    // set to RunID to reboot
-	StatusUpdates []ApplyStatusUpdate  `json:"statusUpdates,omitempty"`
+	Version       AgentVersion            `json:"version,omitempty"`
+	ControlVIP    string                  `json:"controlVIP,omitempty"`
+	Users         []UserCreds             `json:"users,omitempty"`
+	Switch        wiringapi.SwitchSpec    `json:"switch,omitempty"`
+	Connections   []ConnectionInfo        `json:"connections,omitempty"`
+	VPCs          []vpcapi.VPCSummarySpec `json:"vpcs,omitempty"`
+	VPCVLANRange  string                  `json:"vpcVLANRange,omitempty"`
+	PortChannels  map[string]uint16       `json:"portChannels,omitempty"`
+	Reinstall     string                  `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot        string                  `json:"reboot,omitempty"`    // set to RunID to reboot
+	StatusUpdates []ApplyStatusUpdate     `json:"statusUpdates,omitempty"`
 }
 
 type AgentVersion struct {
@@ -57,12 +57,6 @@ type UserCreds struct {
 type ConnectionInfo struct {
 	Name string                   `json:"name,omitempty"`
 	Spec wiringapi.ConnectionSpec `json:"spec,omitempty"`
-}
-
-type VPCInfo struct {
-	Name string         `json:"name,omitempty"`
-	VLAN uint16         `json:"vlan,omitempty"`
-	Spec vpcapi.VPCSpec `json:"spec,omitempty"`
 }
 
 type ApplyStatusUpdate struct {

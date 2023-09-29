@@ -48,11 +48,12 @@ _Appears in:_
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
 | `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
-| `vpcs` _[VPCInfo](#vpcinfo) array_ |  |
+| `vpcs` _[VPCSummarySpec](#vpcsummaryspec) array_ |  |
 | `vpcVLANRange` _string_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
+| `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ |  |
 
 
 #### AgentStatus
@@ -75,6 +76,7 @@ _Appears in:_
 | `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
 | `lastAppliedGen` _integer_ |  |
 | `nosInfo` _[NOSInfo](#nosinfo)_ |  |
+| `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ |  |
 
 
 #### AgentVersion
@@ -92,6 +94,25 @@ _Appears in:_
 | `override` _string_ |  |
 | `repo` _string_ |  |
 | `ca` _string_ |  |
+
+
+#### ApplyStatusUpdate
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+- [AgentStatus](#agentstatus)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ |  |
+| `kind` _string_ |  |
+| `name` _string_ |  |
+| `namespace` _string_ |  |
+| `generation` _integer_ |  |
 
 
 #### ConnectionInfo
@@ -154,22 +175,6 @@ _Appears in:_
 | `role` _string_ |  |
 
 
-#### VPCInfo
-
-
-
-
-
-_Appears in:_
-- [AgentSpec](#agentspec)
-
-| Field | Description |
-| --- | --- |
-| `name` _string_ |  |
-| `vlan` _integer_ |  |
-| `spec` _[VPCSpec](#vpcspec)_ |  |
-
-
 
 ## vpc.githedgehog.com/v1alpha2
 
@@ -178,6 +183,7 @@ Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 ### Resource Types
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
+- [VPCPeering](#vpcpeering)
 - [VPCSummary](#vpcsummary)
 
 
@@ -231,6 +237,18 @@ _Appears in:_
 | `connection` _string_ |  |
 
 
+#### VPCAttachmentStatus
+
+
+
+VPCAttachmentStatus defines the observed state of VPCAttachment
+
+_Appears in:_
+- [VPCAttachment](#vpcattachment)
+
+| Field | Description |
+| --- | --- |
+| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 #### VPCDHCP
@@ -263,6 +281,39 @@ _Appears in:_
 | `end` _string_ |  |
 
 
+#### VPCPeering
+
+
+
+VPCPeering is the Schema for the vpcpeerings API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `VPCPeering`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[VPCPeeringSpec](#vpcpeeringspec)_ |  |
+| `status` _[VPCPeeringStatus](#vpcpeeringstatus)_ |  |
+
+
+#### VPCPeeringSpec
+
+
+
+VPCPeeringSpec defines the desired state of VPCPeering
+
+_Appears in:_
+- [VPCPeering](#vpcpeering)
+
+| Field | Description |
+| --- | --- |
+| `vpcs` _string array_ |  |
+
+
+
+
 #### VPCSpec
 
 
@@ -271,7 +322,6 @@ VPCSpec defines the desired state of VPC
 
 _Appears in:_
 - [VPC](#vpc)
-- [VPCInfo](#vpcinfo)
 - [VPCSummarySpec](#vpcsummaryspec)
 
 | Field | Description |
@@ -292,6 +342,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `vlan` _integer_ |  |
+| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 #### VPCSummary
@@ -318,15 +369,30 @@ VPCSummary is the Schema for the vpcsummaries API
 VPCSummarySpec defines the desired state of VPCSummary
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [VPCSummary](#vpcsummary)
 
 | Field | Description |
 | --- | --- |
+| `name` _string_ |  |
 | `vpc` _[VPCSpec](#vpcspec)_ |  |
 | `vlan` _integer_ |  |
+| `peers` _string array_ |  |
 | `connections` _string array_ |  |
 
 
+#### VPCSummaryStatus
+
+
+
+VPCSummaryStatus defines the observed state of VPCSummary
+
+_Appears in:_
+- [VPCSummary](#vpcsummary)
+
+| Field | Description |
+| --- | --- |
+| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 
@@ -342,6 +408,26 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 - [Switch](#switch)
 - [SwitchProfile](#switchprofile)
 
+
+
+#### ApplyStatus
+
+
+
+
+
+_Appears in:_
+- [ConnectionStatus](#connectionstatus)
+- [SwitchStatus](#switchstatus)
+- [VPCAttachmentStatus](#vpcattachmentstatus)
+- [VPCStatus](#vpcstatus)
+- [VPCSummaryStatus](#vpcsummarystatus)
+
+| Field | Description |
+| --- | --- |
+| `gen` _integer_ |  |
+| `time` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `detailed` _object (keys:string, values:integer)_ |  |
 
 
 #### BasePortName
@@ -499,6 +585,18 @@ _Appears in:_
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ |  |
 
 
+#### ConnectionStatus
+
+
+
+ConnectionStatus defines the observed state of Connection
+
+_Appears in:_
+- [Connection](#connection)
+
+| Field | Description |
+| --- | --- |
+| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 
@@ -818,6 +916,18 @@ _Appears in:_
 | `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 
 
+#### SwitchStatus
+
+
+
+SwitchStatus defines the observed state of Switch
+
+_Appears in:_
+- [Switch](#switch)
+
+| Field | Description |
+| --- | --- |
+| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 #### SwitchToSwitchLink

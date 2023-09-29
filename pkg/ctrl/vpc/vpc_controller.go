@@ -19,6 +19,7 @@ package vpc
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -26,6 +27,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"golang.org/x/exp/maps"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,13 +56,14 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) e
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vpcapi.VPC{}).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForAttach)).
+		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForPeering)).
 		Complete(r)
 }
 
 func (r *VPCReconciler) enqueueForAttach(ctx context.Context, obj client.Object) []reconcile.Request {
 	attach, ok := obj.(*vpcapi.VPCAttachment)
 	if !ok {
-		panic(fmt.Sprintf("enqueueVPCByAttachName got not a VPCAttachment: %#v", obj))
+		panic(fmt.Sprintf("enqueueForAttach got not a VPCAttachment: %#v", obj))
 	}
 
 	return []reconcile.Request{{
@@ -71,6 +74,30 @@ func (r *VPCReconciler) enqueueForAttach(ctx context.Context, obj client.Object)
 	}}
 }
 
+func (r *VPCReconciler) enqueueForPeering(ctx context.Context, obj client.Object) []reconcile.Request {
+	peering, ok := obj.(*vpcapi.VPCPeering)
+	if !ok {
+		panic(fmt.Sprintf("enqueueForPeering got not a VPCPeering: %#v", obj))
+	}
+
+	res := []reconcile.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Name:      peering.Spec.VPCs[0],
+				Namespace: peering.Namespace, // TODO ns
+			},
+		},
+		{
+			NamespacedName: client.ObjectKey{
+				Name:      peering.Spec.VPCs[1],
+				Namespace: peering.Namespace, // TODO ns
+			},
+		},
+	}
+
+	return res
+}
+
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
@@ -78,6 +105,10 @@ func (r *VPCReconciler) enqueueForAttach(ctx context.Context, obj client.Object)
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/finalizers,verbs=update
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/finalizers,verbs=update
 
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries/status,verbs=get;update;patch
@@ -114,6 +145,9 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	for _, attach := range attaches.Items {
 		connNames = append(connNames, attach.Spec.Connection)
 	}
+	sort.Slice(connNames, func(i, j int) bool {
+		return connNames[i] < connNames[j]
+	})
 
 	summaryLabels := map[string]string{}
 	for _, connName := range connNames {
@@ -126,11 +160,45 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		maps.Copy(summaryLabels, conn.Spec.ConnectionLabels())
 	}
 
+	peerings := &vpcapi.VPCPeeringList{}
+	err = r.List(ctx, peerings, client.InNamespace(req.Namespace), client.MatchingLabels{
+		vpcapi.ListLabelVPC(vpc.Name): vpcapi.ListLabelValue,
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc peerings for vpc %s", vpc.Name)
+	}
+
+	peers := []string{}
+	for _, peering := range peerings.Items {
+		for _, peer := range peering.Spec.VPCs {
+			if peer == vpc.Name {
+				continue
+			}
+			vpc := &vpcapi.VPC{}
+			err := r.Get(ctx, client.ObjectKey{Name: peer, Namespace: peering.Namespace}, vpc) // TODO ns
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					l.Info("vpc peering to non-existing vpc, ignoring", "vpc", peer)
+					continue
+				}
+
+				return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s to check peering", peer)
+			}
+
+			peers = append(peers, vpc.Name) // TODO ns
+		}
+	}
+	sort.Slice(peers, func(i, j int) bool {
+		return peers[i] < peers[j]
+	})
+
 	summary := &vpcapi.VPCSummary{ObjectMeta: metav1.ObjectMeta{Name: vpc.Name, Namespace: vpc.Namespace}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, summary, func() error {
+		summary.Spec.Name = vpc.Name
 		summary.Spec.VPC = vpc.Spec
 		summary.Spec.VLAN = vpc.Status.VLAN
 		summary.Spec.Connections = connNames
+		summary.Spec.Peers = peers
 		summary.Labels = summaryLabels
 
 		return nil

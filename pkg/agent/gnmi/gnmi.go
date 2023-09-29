@@ -1,7 +1,6 @@
 package gnmi
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"net"
@@ -65,27 +64,37 @@ type VPC struct {
 	DHCP       bool
 	DHCPRelay  string
 	DHCPSource string
+	Peers      []string
 }
 
 const (
-	VPC_VRF_PREFIX = "V"
+	VPC_VRF_PREFIX        = "V"
+	ASN            uint32 = 65101
 )
 
-func (plan *Plan) Entries() ([]*Entry, error) {
-	res := []*Entry{}
+func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
+	earlyApply := []*Entry{}
 
-	res = append(res, EntDisableZtp())
-	res = append(res, EntHostname(plan.Hostname))
+	earlyApply = append(earlyApply, EntDisableZtp())
+	earlyApply = append(earlyApply, EntHostname(plan.Hostname))
 
+	for _, user := range plan.Users {
+		earlyApply = append(earlyApply, EntUser(user.Name, user.Password, user.Role))
+	}
+
+	readyApply := []*Entry{}
 	{
 		ip, ipNet, err := net.ParseCIDR(plan.ManagementIP)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse management ip %s", plan.ManagementIP)
+			return nil, nil, errors.Wrapf(err, "failed to parse management ip %s", plan.ManagementIP)
 		}
 		prefixLen, _ := ipNet.Mask.Size()
 
-		res = append(res, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
+		readyApply = append(readyApply, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
 	}
+
+	readyApply = append(readyApply, EntVrfBGP("default", ASN))
+	readyApply = append(readyApply, EntBGPRouteDistribution("default", ""))
 
 	for group, speedStr := range plan.PortGroupSpeeds {
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
@@ -104,77 +113,83 @@ func (plan *Plan) Entries() ([]*Entry, error) {
 
 		// TODO add some good validation and probably different formats like w/o SPEED_ prefix and show options in error
 
-		res = append(res, EntPortGroupSpeed(group, speedStr, speed))
-	}
-
-	for _, user := range plan.Users {
-		res = append(res, EntUser(user.Name, user.Password, user.Role))
+		readyApply = append(readyApply, EntPortGroupSpeed(group, speedStr, speed))
 	}
 
 	for _, pChan := range plan.PortChannels {
 		if pChan.TrunkVLANRange != nil {
-			res = append(res, EntPortChannel(pChan.Name(), pChan.Description, *pChan.TrunkVLANRange))
+			readyApply = append(readyApply, EntPortChannel(pChan.Name(), pChan.Description, *pChan.TrunkVLANRange))
 		} else {
-			res = append(res, EntL3PortChannel(pChan.Name(), pChan.Description))
+			readyApply = append(readyApply, EntL3PortChannel(pChan.Name(), pChan.Description))
 		}
 
 		for _, member := range pChan.Members {
-			res = append(res, EntPortChannelMember(pChan.Name(), member))
-			res = append(res, EntInterfaceUP(member))
+			readyApply = append(readyApply, EntPortChannelMember(pChan.Name(), member))
+			readyApply = append(readyApply, EntInterfaceUP(member))
 		}
 	}
 
 	for _, ifIP := range plan.InterfaceIPs {
 		ip, ipNet, err := net.ParseCIDR(ifIP.IP)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse CIDR %s for %s", ifIP.IP, ifIP.Name)
+			return nil, nil, errors.Wrapf(err, "failed to parse CIDR %s for %s", ifIP.IP, ifIP.Name)
 		}
 		prefixLen, _ := ipNet.Mask.Size()
 
-		res = append(res, EntInterfaceIP(ifIP.Name, ip.String(), uint8(prefixLen)))
+		readyApply = append(readyApply, EntInterfaceIP(ifIP.Name, ip.String(), uint8(prefixLen)))
 	}
 
-	res = append(res, EntMCLAGDomain(plan.MCLAGDomain.ID, plan.MCLAGDomain.SourceIP, plan.MCLAGDomain.PeerIP, plan.MCLAGDomain.PeerLink))
+	readyApply = append(readyApply, EntMCLAGDomain(plan.MCLAGDomain.ID, plan.MCLAGDomain.SourceIP, plan.MCLAGDomain.PeerIP, plan.MCLAGDomain.PeerLink))
 
 	for _, member := range plan.MCLAGDomain.Members {
-		res = append(res, EntMCLAGMember(plan.MCLAGDomain.ID, member))
+		readyApply = append(readyApply, EntMCLAGMember(plan.MCLAGDomain.ID, member))
 	}
 
+	// TOD per Vrf policy
+	policyName := "vpc-no-advertise"
+	readyApply = append(readyApply, EntBGPRoutingPolicy(policyName,
+		[]oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config_Communities_Union{
+			oc.OpenconfigBgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE,
+		},
+	))
 	for _, vpc := range plan.VPCs {
-		res = append(res, EntVrf(VPC_VRF_PREFIX+vpc.Name))
+		vrfName := "Vrf" + VPC_VRF_PREFIX + vpc.Name
+		// policyName := vrfName + "_route_map"
+
+		readyApply = append(readyApply, EntVrf(vrfName))
+		readyApply = append(readyApply, EntVrfBGP(vrfName, ASN))
+
+		readyApply = append(readyApply, EntBGPRouteDistribution(vrfName, policyName))
 
 		cidr, err := iputil.ParseCIDR(vpc.Subnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.Subnet, vpc.Name)
+			return nil, nil, errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.Subnet, vpc.Name)
 		}
 		prefixLen, _ := cidr.Subnet.Mask.Size()
 
-		res = append(res, EntVLANInterface(vpc.VLAN, vpc.Name))
-		res = append(res, EntVrfMember(VPC_VRF_PREFIX+vpc.Name, vpc.VLAN))
-		res = append(res, EntVLANInterfaceConf(vpc.VLAN, cidr.Gateway.String(), uint8(prefixLen)))
+		readyApply = append(readyApply, EntVLANInterface(vpc.VLAN, vpc.Name))
+		readyApply = append(readyApply, EntVrfMember(vrfName, vpc.VLAN))
+		readyApply = append(readyApply, EntVLANInterfaceConf(vpc.VLAN, cidr.Gateway.String(), uint8(prefixLen)))
 
 		if vpc.DHCP {
 			ip, _, err := net.ParseCIDR(vpc.DHCPRelay)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", vpc.DHCPRelay, vpc.Name)
+				return nil, nil, errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", vpc.DHCPRelay, vpc.Name)
 			}
-			res = append(res, EntDHCPRelay(vpc.VLAN, ip.String(), vpc.DHCPSource))
+			readyApply = append(readyApply, EntDHCPRelay(vpc.VLAN, ip.String(), vpc.DHCPSource))
 		}
 	}
 
-	return res, nil
-}
-
-func (plan *Plan) ApplyWith(ctx context.Context, client *Client) error {
-	entries, err := plan.Entries()
-	if err != nil {
-		return errors.Wrap(err, "failed to generate plan entries")
+	for _, vpc := range plan.VPCs {
+		vrfName := "Vrf" + VPC_VRF_PREFIX + vpc.Name
+		peers := []string{}
+		for _, peer := range vpc.Peers {
+			peers = append(peers, "Vrf"+VPC_VRF_PREFIX+peer)
+		}
+		if len(peers) > 0 { // TODO what about case when we removing all peers?
+			readyApply = append(readyApply, EntVrfImportRoutes(vrfName, peers))
+		}
 	}
 
-	err = client.Set(context.Background(), entries...)
-	if err != nil {
-		return errors.Wrap(err, "failed to apply config")
-	}
-
-	return nil
+	return earlyApply, readyApply, nil
 }

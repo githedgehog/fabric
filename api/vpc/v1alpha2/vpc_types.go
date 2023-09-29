@@ -32,8 +32,8 @@ import (
 
 // VPCSpec defines the desired state of VPC
 type VPCSpec struct {
-	Subnet string  `json:"subnet,omitempty"`
-	DHCP   VPCDHCP `json:"dhcp,omitempty"`
+	Subnet string   `json:"subnet,omitempty"`
+	DHCP   VPCDHCP  `json:"dhcp,omitempty"`
 }
 
 type VPCDHCP struct {

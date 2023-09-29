@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
@@ -121,6 +122,65 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 		out, err := yaml.Marshal(attach)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc attachment")
+		}
+
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
+type VPCPeerOptions struct {
+	Name string
+	VPCs []string
+}
+
+func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error {
+	name := options.Name
+	if name == "" {
+		name = strings.Join(options.VPCs, "--")
+	}
+
+	peering := &vpcapi.VPCPeering{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default", // TODO ns
+		},
+		Spec: vpcapi.VPCPeeringSpec{
+			VPCs: options.VPCs,
+		},
+	}
+
+	kube, err := kubeClient()
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	peering.Default()
+	warnings, err := peering.Validate(ctx, validation.WithCtrlRuntime(kube))
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+		return errors.Errorf("validation failed")
+	}
+	if warnings != nil {
+		slog.Warn("Validation", "warnings", warnings)
+	}
+
+	err = kube.Create(ctx, peering)
+	if err != nil {
+		return errors.Wrap(err, "cannot create vpc peering")
+	}
+
+	slog.Info("VPCPeering created", "name", peering.Name)
+
+	if printYaml {
+		peering.ObjectMeta.ManagedFields = nil
+		peering.ObjectMeta.Generation = 0
+		peering.ObjectMeta.ResourceVersion = ""
+
+		out, err := yaml.Marshal(peering)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc peering")
 		}
 
 		fmt.Println(string(out))

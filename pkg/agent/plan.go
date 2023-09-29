@@ -156,13 +156,14 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 		vpc := gnmi.VPC{
 			Name:   vpcInfo.Name,
 			VLAN:   vpcInfo.VLAN,
-			Subnet: vpcInfo.Spec.Subnet,
+			Subnet: vpcInfo.VPC.Subnet,
 		}
-		if vpcInfo.Spec.DHCP.Enable {
+		if vpcInfo.VPC.DHCP.Enable {
 			vpc.DHCP = true
 			vpc.DHCPRelay = agent.Spec.ControlVIP
 			vpc.DHCPSource = controlIface
 		}
+		vpc.Peers = vpcInfo.Peers
 
 		plan.VPCs = append(plan.VPCs, vpc)
 	}

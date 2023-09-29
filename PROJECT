@@ -111,4 +111,16 @@ resources:
   kind: VPCSummary
   path: go.githedgehog.com/fabric/api/vpc/v1alpha2
   version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: vpc
+  kind: VPCPeering
+  path: go.githedgehog.com/fabric/api/vpc/v1alpha2
+  version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"

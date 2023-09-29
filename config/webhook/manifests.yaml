@@ -104,6 +104,26 @@ webhooks:
     resources:
     - vpcattachments
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-vpc-githedgehog-com-v1alpha2-vpcpeering
+  failurePolicy: Fail
+  name: mvpcpeering.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcpeerings
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -209,4 +229,24 @@ webhooks:
     - UPDATE
     resources:
     - vpcattachments
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1alpha2-vpcpeering
+  failurePolicy: Fail
+  name: vvpcpeering.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcpeerings
   sideEffects: None

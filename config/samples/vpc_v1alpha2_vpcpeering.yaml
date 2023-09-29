@@ -1,0 +1,12 @@
+apiVersion: vpc.githedgehog.com/v1alpha2
+kind: VPCPeering
+metadata:
+  labels:
+    app.kubernetes.io/name: vpcpeering
+    app.kubernetes.io/instance: vpcpeering-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: vpcpeering-sample
+spec:
+  # TODO(user): Add fields here

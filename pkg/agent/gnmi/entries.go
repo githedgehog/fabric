@@ -200,10 +200,9 @@ func EntMCLAGMember(domainID uint32, member string) *Entry {
 	}
 }
 
-func EntVrf(vpc string) *Entry {
-	vrf := fmt.Sprintf("Vrf%s", vpc)
+func EntVrf(vrf string) *Entry {
 	return &Entry{
-		Summary: fmt.Sprintf("VRF %s", vrf),
+		Summary: vrf,
 		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", vrf),
 		Value: &oc.OpenconfigNetworkInstance_NetworkInstances{
 			NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
@@ -213,6 +212,52 @@ func EntVrf(vpc string) *Entry {
 						Enabled: ygot.Bool(true),
 					},
 					Name: ygot.String(vrf),
+				},
+			},
+		},
+	}
+}
+
+func EntVrfBGP(vrf string, bgpASN uint32) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("%s BGP %d", vrf, bgpASN),
+		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", vrf),
+		Value: &oc.OpenconfigNetworkInstance_NetworkInstances{
+			NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
+				vrf: {
+					// Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Config{
+					// 	Name:    ygot.String(vrf),
+					// 	Enabled: ygot.Bool(true),
+					// },
+					Name: ygot.String(vrf),
+					Protocols: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols{
+						Protocol: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+							{
+								Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+								Name:       "bgp",
+							}: {
+								Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+								Name:       ygot.String("bgp"),
+								Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
+									Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
+										Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
+											As: ygot.Uint32(bgpASN),
+										},
+										AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
+											AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
+												oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
+													AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+													Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
+														AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -238,8 +283,7 @@ func EntVLANInterface(vlanID uint16, vpc string) *Entry {
 	}
 }
 
-func EntVrfMember(vpc string, vlanID uint16) *Entry {
-	vrf := fmt.Sprintf("Vrf%s", vpc)
+func EntVrfMember(vrf string, vlanID uint16) *Entry {
 	vlan := fmt.Sprintf("Vlan%d", vlanID)
 	return &Entry{
 		Summary: fmt.Sprintf("%s member %s", vrf, vlan),
@@ -345,6 +389,153 @@ func EntPortGroupSpeed(group string, description string, speed oc.E_OpenconfigIf
 					Config: &oc.OpenconfigPortGroup_PortGroups_PortGroup_Config{
 						Id:    ygot.String(group),
 						Speed: speed,
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntBGPRoutingPolicy(name string, communities []oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config_Communities_Union) *Entry {
+	statement := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{}
+	statement.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
+		Name: ygot.String("10"),
+		Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Config{
+			Name: ygot.String("10"),
+		},
+		Actions: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions{
+			Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_Config{
+				PolicyResult: oc.OpenconfigRoutingPolicy_PolicyResultType_ACCEPT_ROUTE,
+			},
+			BgpActions: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{
+				SetCommunity: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity{
+					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config{
+						Method:  oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config_Method_INLINE,
+						Options: oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD,
+					},
+					Inline: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline{
+						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config{
+							Communities: communities,
+						},
+					},
+				},
+			},
+		},
+	})
+
+	return &Entry{
+		Summary: fmt.Sprintf("Routing policy %s", name),
+		Path:    "/routing-policy/policy-definitions",
+		Value: &oc.OpenconfigRoutingPolicy_RoutingPolicy{
+			PolicyDefinitions: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions{
+				PolicyDefinition: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition{
+					name: {
+						Name: ygot.String(name),
+						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Config{
+							Name: ygot.String(name),
+						},
+						Statements: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements{
+							Statement: statement,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntBGPRouteDistribution(vrf string, routingPolicy string) *Entry {
+	val := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections{
+		TableConnection: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection{
+			{
+				SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED,
+				DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+			}: {
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED,
+				DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Config{
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED,
+				},
+			},
+			{
+				SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+				DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+			}: {
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+				DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Config{
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+				},
+			},
+		},
+	}
+	if routingPolicy != "" {
+		val.TableConnection[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Key{
+			SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED,
+			DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+			AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+		}].Config.ImportPolicy = []string{routingPolicy}
+		val.TableConnection[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Key{
+			SrcProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+			DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+			AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+		}].Config.ImportPolicy = []string{routingPolicy}
+	}
+
+	return &Entry{
+		Summary: fmt.Sprintf("%s route distribution %s", vrf, routingPolicy),
+		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/table-connections/table-connection/", vrf),
+		Value:   val,
+	}
+}
+
+func EntVrfImportRoutes(vrf string, importVrfs []string) *Entry {
+	// /openconfig-network-instance:network-instances/network-instance[name=VrfVvpc-1]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/openconfig-bgp-ext:import-network-instance/config/name
+
+	return &Entry{
+		Summary: fmt.Sprintf("%s import routes %s", vrf, importVrfs),
+		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/", vrf),
+		Value: &oc.OpenconfigNetworkInstance_NetworkInstances{
+			NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
+				vrf: {
+					Name: ygot.String(vrf),
+					Protocols: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols{
+						Protocol: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+							{
+								Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+								Name:       "bgp",
+							}: {
+								Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+								Name:       ygot.String("bgp"),
+								Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
+									Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
+										AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
+											AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
+												oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
+													AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+													ImportNetworkInstance: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance{
+														Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
+															Name: importVrfs,
+														},
+													},
+													Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
+														AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},

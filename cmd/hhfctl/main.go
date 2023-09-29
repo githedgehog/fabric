@@ -174,6 +174,29 @@ func main() {
 							})
 						},
 					},
+					{
+						Name:  "peer",
+						Usage: "Peering connection between vpcs",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							&cli.StringSliceFlag{
+								Name:     "vpc",
+								Usage:    "vpc",
+								Required: true,
+							},
+							printYamlFlag,
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
+								Name: name,
+								VPCs: cCtx.StringSlice("vpc"),
+							})
+						},
+					},
 				},
 			},
 			{

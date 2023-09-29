@@ -47,6 +47,7 @@ import (
 	switchWebhook "go.githedgehog.com/fabric/pkg/webhook/switchh"
 	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
 	vpcAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
+	vpcPeeringWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcpeering"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -148,7 +149,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCAttachment")
 		os.Exit(1)
 	}
-
+	if err = vpcPeeringWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VPCPeering")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

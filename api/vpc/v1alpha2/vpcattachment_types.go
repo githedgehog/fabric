@@ -121,8 +121,6 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 		for _, other := range attaches.Items {
 			if other.Name == attach.Name {
 				return nil, errors.Errorf("connection %s already attached to vpc %s", attach.Spec.Connection, other.Spec.VPC)
-			} else {
-				return nil, errors.Errorf("connection %s already attached to other vpc", attach.Spec.Connection)
 			}
 		}
 	}

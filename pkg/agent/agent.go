@@ -1,9 +1,11 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	_ "embed"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -70,7 +72,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	defer svc.client.Close()
 
-	err = svc.processAgent(ctx, agent)
+	err = svc.processAgent(ctx, agent, true)
 	if err != nil {
 		return errors.Wrap(err, "failed to process agent config from file")
 	}
@@ -205,7 +207,7 @@ func (svc *Service) setInstallAndRunIDs() error {
 	return nil
 }
 
-func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent) error {
+func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
 	plan, err := PreparePlan(agent)
@@ -213,7 +215,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent) err
 		return errors.Wrap(err, "failed to process config to prepare plan")
 	}
 
-	_, err = plan.Entries()
+	earlyApply, readyApply, err := plan.Entries()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate plan entries")
 	}
@@ -232,11 +234,54 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent) err
 		slog.Info("Control link configuration is skipped")
 	}
 
-	err = plan.ApplyWith(ctx, svc.client)
+	svc.client.Set(ctx, earlyApply...)
 	if err != nil {
-		return errors.Wrap(err, "failed to apply config")
+		return errors.Wrap(err, "failed to early apply config")
 	}
+	slog.Debug("Early apply done", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	if readyCheck {
+		err = svc.waitForSystemStatusReady(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to wait for system status ready")
+		}
+	}
+
+	svc.client.Set(ctx, readyApply...)
+	if err != nil {
+		return errors.Wrap(err, "failed to ready apply config")
+	}
+	slog.Debug("Ready apply done", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	return nil
+}
+
+func (svc *Service) waitForSystemStatusReady(ctx context.Context) error {
+	// TODO think about better timeout handling
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	for {
+		slog.Debug("Checking if system is ready")
+
+		buf := &bytes.Buffer{}
+		// TODO figure out how to call gNMI actions(rpcs?) from agent
+		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", "admin")
+		cmd.Stdout = io.MultiWriter(buf, os.Stdout)
+		cmd.Stderr = os.Stdout
+		err := cmd.Run()
+		if err != nil {
+			return errors.Wrap(err, "failed to run sonic-cli: show system status brief")
+		}
+
+		if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
+			break
+		}
+
+		time.Sleep(3 * time.Second)
+	}
 
 	return nil
 }
@@ -254,10 +299,15 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 
 	err := kube.Status().Update(ctx, agent)
 	if err != nil {
-		return err // TODO gracefully handle case if resourceVersion changed
+		return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
 	}
 
-	err = svc.processAgent(ctx, agent)
+	err = svc.processActions(ctx, agent)
+	if err != nil {
+		return errors.Wrap(err, "failed to process agent actions from k8s")
+	}
+
+	err = svc.processAgent(ctx, agent, false)
 	if err != nil {
 		return errors.Wrap(err, "failed to process agent config loaded from k8s")
 	}
@@ -274,11 +324,6 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	err = kube.Status().Update(ctx, agent)
 	if err != nil {
 		return err // TODO gracefully handle case if resourceVersion changed
-	}
-
-	err = svc.processActions(ctx, agent)
-	if err != nil {
-		return errors.Wrap(err, "failed to process agent actions from k8s")
 	}
 
 	*currentGen = agent.Generation

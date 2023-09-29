@@ -196,18 +196,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return conns[i].Name < conns[j].Name
 	})
 
-	vpcs := []agentapi.VPCInfo{}
+	vpcs := []vpcapi.VPCSummarySpec{}
 	vpcSummaries := &vpcapi.VPCSummaryList{}
 	err = r.List(ctx, vpcSummaries, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch vpc summaries")
 	}
 	for _, vpcSummary := range vpcSummaries.Items {
-		vpcs = append(vpcs, agentapi.VPCInfo{
-			Name: vpcSummary.Name,
-			VLAN: vpcSummary.Spec.VLAN,
-			Spec: vpcSummary.Spec.VPC,
-		})
+		vpcs = append(vpcs, vpcSummary.Spec)
 
 		// TODO do we need to update VPCSummary status?
 		statusUpdates = appendUpdate(statusUpdates, &vpcSummary)

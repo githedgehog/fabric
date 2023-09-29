@@ -282,10 +282,21 @@ spec:
                 type: string
               vpcs:
                 items:
+                  description: VPCSummarySpec defines the desired state of VPCSummary
                   properties:
+                    connections:
+                      items:
+                        type: string
+                      type: array
                     name:
                       type: string
-                    spec:
+                    peers:
+                      items:
+                        type: string
+                      type: array
+                    vlan:
+                      type: integer
+                    vpc:
                       description: VPCSpec defines the desired state of VPC
                       properties:
                         dhcp:
@@ -303,8 +314,11 @@ spec:
                         subnet:
                           type: string
                       type: object
-                    vlan:
-                      type: integer
+                  required:
+                  - connections
+                  - name
+                  - vlan
+                  - vpc
                   type: object
                 type: array
             type: object

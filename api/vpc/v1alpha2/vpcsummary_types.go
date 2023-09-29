@@ -25,8 +25,10 @@ import (
 
 // VPCSummarySpec defines the desired state of VPCSummary
 type VPCSummarySpec struct {
+	Name        string   `json:"name"`
 	VPC         VPCSpec  `json:"vpc"`
 	VLAN        uint16   `json:"vlan"`
+	Peers       []string `json:"peers,omitempty"`
 	Connections []string `json:"connections"`
 	// TODO Connection NS
 }
