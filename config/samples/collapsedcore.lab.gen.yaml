@@ -15,7 +15,6 @@ kind: Switch
 metadata:
   labels:
     fabric.githedgehog.com/location: b7e0848d-15f9-5f46-ac21-1710a7b792f0
-    fabric.githedgehog.com/rack: rack-1
   name: switch-1
 spec:
   lldp: {}
@@ -31,6 +30,9 @@ spec:
   portGroupSpeeds:
     "1": SPEED_10GB
     "12": SPEED_10GB
+status:
+  applied:
+    time: null
 ---
 ###
 ### switch-2
@@ -40,7 +42,6 @@ kind: Switch
 metadata:
   labels:
     fabric.githedgehog.com/location: 81c9671f-0b80-5a45-b946-686de0b9aaa9
-    fabric.githedgehog.com/rack: rack-1
   name: switch-2
 spec:
   lldp: {}
@@ -56,6 +57,9 @@ spec:
   portGroupSpeeds:
     "1": SPEED_10GB
     "12": SPEED_10GB
+status:
+  applied:
+    time: null
 ---
 ###
 ### control-1
@@ -64,7 +68,6 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Server
 metadata:
   labels:
-    fabric.githedgehog.com/rack: rack-1
     fabric.githedgehog.com/server-type: control
   name: control-1
 spec:
@@ -77,7 +80,6 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Server
 metadata:
   labels:
-    fabric.githedgehog.com/rack: rack-1
     fabric.githedgehog.com/server-type: ""
   name: server-1
 spec: {}
@@ -89,7 +91,6 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Server
 metadata:
   labels:
-    fabric.githedgehog.com/rack: rack-1
     fabric.githedgehog.com/server-type: ""
   name: server-2
 spec: {}
@@ -101,7 +102,6 @@ apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Server
 metadata:
   labels:
-    fabric.githedgehog.com/rack: rack-1
     fabric.githedgehog.com/server-type: ""
   name: server-3
 spec: {}
@@ -114,7 +114,6 @@ kind: Connection
 metadata:
   labels:
     fabric.githedgehog.com/connection-type: management
-    rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/control-1: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
   name: control-1--mgmt--switch-1
@@ -128,6 +127,9 @@ spec:
         ip: 192.168.101.0/31
         oniePortName: eth0
         port: switch-1/Management0
+status:
+  applied:
+    time: null
 ---
 ###
 ### control-1--mgmt--switch-2
@@ -137,7 +139,6 @@ kind: Connection
 metadata:
   labels:
     fabric.githedgehog.com/connection-type: management
-    rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/control-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"
   name: control-1--mgmt--switch-2
@@ -151,6 +152,9 @@ spec:
         ip: 192.168.102.0/31
         oniePortName: eth0
         port: switch-2/Management0
+status:
+  applied:
+    time: null
 ---
 ###
 ### server-1--mclag--switch-1--switch-2
@@ -160,7 +164,6 @@ kind: Connection
 metadata:
   labels:
     fabric.githedgehog.com/connection-type: mclag
-    rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/server-1: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"
@@ -176,6 +179,9 @@ spec:
         port: server-1/enp8s0
       switch:
         port: switch-2/Ethernet46
+status:
+  applied:
+    time: null
 ---
 ###
 ### server-2--mclag--switch-1--switch-2
@@ -185,7 +191,6 @@ kind: Connection
 metadata:
   labels:
     fabric.githedgehog.com/connection-type: mclag
-    rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/server-2: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"
@@ -201,6 +206,9 @@ spec:
         port: server-2/enp8s0
       switch:
         port: switch-2/Ethernet47
+status:
+  applied:
+    time: null
 ---
 ###
 ### server-3--mclag--switch-1--switch-2
@@ -210,7 +218,6 @@ kind: Connection
 metadata:
   labels:
     fabric.githedgehog.com/connection-type: mclag
-    rack.fabric.githedgehog.com/rack-1: "true"
     server.fabric.githedgehog.com/server-3: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"
@@ -226,6 +233,9 @@ spec:
         port: server-3/ens3f1
       switch:
         port: switch-2/Ethernet6
+status:
+  applied:
+    time: null
 ---
 ###
 ### switch-1--mclag-domain--switch-2
@@ -235,7 +245,6 @@ kind: Connection
 metadata:
   labels:
     fabric.githedgehog.com/connection-type: mclag-domain
-    rack.fabric.githedgehog.com/rack-1: "true"
     switch.fabric.githedgehog.com/switch-1: "true"
     switch.fabric.githedgehog.com/switch-2: "true"
   name: switch-1--mclag-domain--switch-2
@@ -259,3 +268,6 @@ spec:
         port: switch-1/Ethernet68
       switch2:
         port: switch-2/Ethernet68
+status:
+  applied:
+    time: null

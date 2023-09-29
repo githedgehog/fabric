@@ -83,13 +83,13 @@ fabric-dhcp-server-chart-push-dev: fabric-dhcp-server-chart-build
 	$(HELM) push --insecure-skip-tls-verify config/helm/fabric-dhcp-server-$(VERSION).tgz oci://$(OCI_REPO)/charts
 
 .PHONY: dev-push
-dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev
+dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev api-samples
 
 .PHONY: build
-build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build
+build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build api-samples
 
 .PHONY: push
-push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push
+push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push api-samples
 
 # TODO set dhcp-server image version too (helm set)
 .PHONY: dev-patch
