@@ -34,10 +34,10 @@ spec:
       name: Applied
       type: date
     - jsonPath: .status.lastAppliedGen
-      name: Applied
+      name: AppliedG
       type: string
     - jsonPath: .metadata.generation
-      name: Current
+      name: CurrentG
       type: string
     - jsonPath: .status.version
       name: Version
@@ -51,7 +51,7 @@ spec:
       priority: 2
       type: date
     - jsonPath: .status.lastAttemptGen
-      name: Attempt
+      name: AttemptG
       priority: 2
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -365,6 +365,22 @@ spec:
                 type: object
               runID:
                 type: string
+              statusUpdates:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    generation:
+                      format: int64
+                      type: integer
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
               version:
                 type: string
             type: object

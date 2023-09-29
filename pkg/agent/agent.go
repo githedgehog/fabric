@@ -2,14 +2,15 @@ package agent
 
 import (
 	"context"
+	"crypto/tls"
 	_ "embed"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
@@ -19,6 +20,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/clientcmd"
+	"oras.land/oras-go/v2"
+	"oras.land/oras-go/v2/content/file"
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -53,10 +58,6 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	if svc.Version == "" {
 		return errors.New("version is required")
 	}
-	err := svc.setInstallAndRunIDs()
-	if err != nil {
-		return errors.Wrap(err, "failed to set install and run IDs")
-	}
 
 	agent, err := svc.loadConfigFromFile()
 	if err != nil {
@@ -74,17 +75,22 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		return errors.Wrap(err, "failed to process agent config from file")
 	}
 
+	if svc.DryRun {
+		slog.Warn("Dry run, exiting")
+		return nil
+	}
+
 	err = os.WriteFile("/etc/motd", motd, 0o644)
 	if err != nil {
 		slog.Warn("Failed to write motd", "err", err)
 	}
 
-	err = svc.processActions(ctx, agent)
-	if err != nil {
-		return errors.Wrap(err, "failed to process agent actions from file")
-	}
-
 	if !svc.ApplyOnce {
+		err := svc.setInstallAndRunIDs()
+		if err != nil {
+			return errors.Wrap(err, "failed to set install and run IDs")
+		}
+
 		slog.Info("Starting watch for config changes in K8s")
 
 		kube, err := svc.kubeClient()
@@ -135,11 +141,6 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen)
 			if err != nil {
 				return errors.Wrap(err, "failed to process agent config from k8s")
-			}
-
-			err = svc.processActions(ctx, agent)
-			if err != nil {
-				return errors.Wrap(err, "failed to process agent actions from k8s")
 			}
 
 			select {
@@ -212,13 +213,13 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent) err
 		return errors.Wrap(err, "failed to process config to prepare plan")
 	}
 
-	if slog.Default().Enabled(ctx, slog.LevelDebug) {
-		slog.Debug("Plan:")
-		spew.Dump(plan)
+	_, err = plan.Entries()
+	if err != nil {
+		return errors.Wrap(err, "failed to generate plan entries")
 	}
+	slog.Debug("Plan entries generated")
 
 	if svc.DryRun {
-		slog.Warn("Dry run, exiting")
 		return nil
 	}
 
@@ -230,18 +231,6 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent) err
 	} else {
 		slog.Info("Control link configuration is skipped")
 	}
-
-	_, err = plan.Entries()
-	if err != nil {
-		return errors.Wrap(err, "failed to generate plan entries")
-	}
-	slog.Info("Plan entries generated")
-
-	// TODO
-	// if slog.Default().Enabled(ctx, slog.LevelDebug) {
-	// 	slog.Debug("Plan entries:")
-	// 	spew.Dump(entries)
-	// }
 
 	err = plan.ApplyWith(ctx, svc.client)
 	if err != nil {
@@ -287,28 +276,17 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 		return err // TODO gracefully handle case if resourceVersion changed
 	}
 
+	err = svc.processActions(ctx, agent)
+	if err != nil {
+		return errors.Wrap(err, "failed to process agent actions from k8s")
+	}
+
 	*currentGen = agent.Generation
 
 	return nil
 }
 
-// TODO it's currently designed to run after the config is applied, need to evaludate more flexibility in future
 func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) error {
-	desiredVersion := ""
-	if agent.Spec.Version.Default != "" {
-		desiredVersion = agent.Spec.Version.Default
-	}
-	if agent.Spec.Version.Override != "" {
-		desiredVersion = agent.Spec.Version.Override
-	}
-	if desiredVersion != "" && svc.Version != desiredVersion {
-		slog.Info("Desired version is different from current", "desired", desiredVersion, "current", svc.Version)
-		if !svc.SkipActions {
-			// TODO attempt to upgrade agent
-			slog.Warn("Agent upgrades are not supported yet")
-		}
-	}
-
 	reboot := false
 	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
 		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)
@@ -346,6 +324,92 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		if err != nil {
 			return errors.Wrap(err, "failed to reboot")
 		}
+	}
+
+	desiredVersion := ""
+	if agent.Spec.Version.Default != "" {
+		desiredVersion = agent.Spec.Version.Default
+	}
+	if agent.Spec.Version.Override != "" {
+		desiredVersion = agent.Spec.Version.Override
+	}
+	if desiredVersion != "" && svc.Version != desiredVersion {
+		slog.Info("Desired version is different from current", "desired", desiredVersion, "current", svc.Version)
+		if !svc.SkipActions {
+			slog.Info("Attempting to upgrade Agent")
+
+			err := svc.agentUpgrade(ctx, agent, desiredVersion)
+			if err != nil {
+				slog.Warn("Failed to upgrade Agent", "err", err)
+			} else {
+				slog.Info("Agent upgraded")
+				os.Exit(0) // TODO graceful agent restart
+			}
+		}
+	}
+
+	return nil
+}
+
+func (svc *Service) agentUpgrade(ctx context.Context, agent *agentapi.Agent, desiredVersion string) error {
+	path, err := os.MkdirTemp("/tmp", "agent-upgrade-*")
+	if err != nil {
+		return errors.Wrap(err, "failed to create temp dir")
+	}
+	defer os.RemoveAll(path)
+
+	fs, err := file.New(path)
+	if err != nil {
+		return errors.Wrapf(err, "error creating oras file store in %s", path)
+	}
+	defer fs.Close()
+
+	repo, err := remote.NewRepository(agent.Spec.Version.Repo)
+	if err != nil {
+		return errors.Wrapf(err, "error creating oras remote repo %s", agent.Spec.Version.Repo)
+	}
+
+	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
+	baseTransport.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	// TODO load CA
+	// config.RootCAs, err = crypto.LoadCertPool(opts.CACertFilePath)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	repo.Client = &auth.Client{
+		Client: &http.Client{
+			Transport: baseTransport,
+		},
+	}
+
+	_, err = oras.Copy(context.Background(), repo, desiredVersion, fs, desiredVersion, oras.CopyOptions{
+		CopyGraphOptions: oras.CopyGraphOptions{
+			Concurrency: 2,
+		},
+	})
+	if err != nil {
+		return errors.Wrapf(err, "error downloading new agent %s from %s", desiredVersion, agent.Spec.Version.Repo)
+	}
+
+	agentPath := filepath.Join(path, "agent")
+
+	err = os.Chmod(agentPath, 0o755)
+	if err != nil {
+		return errors.Wrapf(err, "failed to chmod new agent binary in %s", path)
+	}
+
+	cmd := exec.CommandContext(ctx, agentPath, "apply", "--dry-run=true")
+	err = cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "failed to run new agent binary in %s", path)
+	}
+
+	err = os.Rename(agentPath, "/opt/hedgehog/bin/agent")
+	if err != nil {
+		return errors.Wrapf(err, "failed to move new agent binary from %s to /opt/hedgehog/bin/agent", path)
 	}
 
 	return nil

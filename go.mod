@@ -15,12 +15,15 @@ require (
 	github.com/openconfig/goyang v1.4.1
 	github.com/openconfig/ygot v0.29.10
 	github.com/pkg/errors v0.9.1
+	github.com/samber/slog-multi v1.0.1
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0
 	k8s.io/client-go v0.28.0
+	oras.land/oras-go/v2 v2.3.0
 	sigs.k8s.io/controller-runtime v0.16.0
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -149,6 +152,8 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/openconfig/gnmi v0.10.0 // indirect
 	github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/sftp v1.13.5 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
@@ -158,6 +163,7 @@ require (
 	github.com/rs/zerolog v1.29.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
+	github.com/samber/lo v1.38.1 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

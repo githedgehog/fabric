@@ -124,7 +124,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 					portChan := agent.Spec.PortChannels[conn.Name]
 
 					if portChan == 0 {
-						return nil, errors.Errorf("no port channel found for conn %s", conn.Name) // TODO or skip?
+						return nil, errors.Errorf("no port channel found for conn %s", conn.Name)
 					}
 
 					pChan := gnmi.PortChannel{
@@ -161,7 +161,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 		if vpcInfo.Spec.DHCP.Enable {
 			vpc.DHCP = true
 			vpc.DHCPRelay = agent.Spec.ControlVIP
-			vpc.DHCPSource = controlIface // TODO what should be used here?
+			vpc.DHCPSource = controlIface
 		}
 
 		plan.VPCs = append(plan.VPCs, vpc)

@@ -26,10 +26,12 @@ import (
 
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/agent"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
@@ -39,25 +41,49 @@ const (
 )
 
 //go:embed motd.txt
-var motd string
+var motd []byte
 
 var version = "(devel)"
 
-func setupLogger(verbose bool) error {
+func setupLogger(verbose bool, logToFile bool) error {
 	logLevel := slog.LevelInfo
 	if verbose {
 		logLevel = slog.LevelDebug
 	}
 
-	logW := os.Stdout
-	logger := slog.New(
-		tint.NewHandler(logW, &tint.Options{
+	logConsole := os.Stdout
+
+	handlers := []slog.Handler{
+		tint.NewHandler(logConsole, &tint.Options{
 			Level:      logLevel,
 			TimeFormat: time.DateTime,
-			NoColor:    !isatty.IsTerminal(logW.Fd()),
+			NoColor:    !isatty.IsTerminal(logConsole.Fd()),
 		}),
-	)
+	}
+
+	if logToFile {
+		logFile := &lumberjack.Logger{
+			Filename:   "/var/log/agent.log",
+			MaxSize:    5, // MB
+			MaxBackups: 4,
+			MaxAge:     30, // days
+			Compress:   true,
+		}
+		// TODO do we need to close logFile?
+
+		handlers = append(handlers, slog.NewTextHandler(logFile, &slog.HandlerOptions{
+			Level: logLevel,
+		}))
+	}
+
+	logger := slog.New(slogmulti.Fanout(handlers...))
+
 	slog.SetDefault(logger)
+
+	_, err := logConsole.Write([]byte(motd))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -100,10 +126,9 @@ func main() {
 					basedirFlag,
 				},
 				Before: func(cCtx *cli.Context) error {
-					return setupLogger(verbose)
+					return setupLogger(verbose, true)
 				},
 				Action: func(cCtx *cli.Context) error {
-					slog.Info(motd)
 					slog.Info("Starting", "version", version)
 
 					return (&agent.Service{
@@ -152,10 +177,9 @@ func main() {
 					},
 				},
 				Before: func(cCtx *cli.Context) error {
-					return setupLogger(verbose)
+					return setupLogger(verbose, false)
 				},
 				Action: func(cCtx *cli.Context) error {
-					slog.Info(motd)
 					slog.Info("Applying", "version", version)
 
 					getGNMIClient := func() (*gnmi.Client, error) {
