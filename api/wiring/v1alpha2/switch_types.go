@@ -90,6 +90,8 @@ func (sw *Switch) Default() {
 		sw.Labels = map[string]string{}
 	}
 
+	CleanupFabricLabels(sw.Labels)
+
 	if sw.Spec.Location.IsEmpty() {
 		sw.Spec.Location = Location{Location: fmt.Sprintf("gen--%s--%s", sw.Namespace, sw.Name)}
 	}

@@ -21,6 +21,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,6 +76,8 @@ func (peering *VPCPeering) Default() {
 	if peering.Labels == nil {
 		peering.Labels = map[string]string{}
 	}
+
+	wiringapi.CleanupFabricLabels(peering.Labels)
 
 	for _, vpc := range peering.Spec.VPCs {
 		peering.Labels[ListLabelVPC(vpc)] = ListLabelValue

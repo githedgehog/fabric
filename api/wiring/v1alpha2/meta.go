@@ -2,6 +2,7 @@ package v1alpha2
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -139,4 +140,12 @@ func (l *Location) GenerateUUID() (string, string) {
 
 func (l *Location) IsEmpty() bool {
 	return l.Location == "" && l.Aisle == "" && l.Row == "" && l.Rack == "" && l.Slot == ""
+}
+
+func CleanupFabricLabels(labels map[string]string) {
+	for key := range labels {
+		if strings.Contains(key, LabelPrefix) {
+			delete(labels, key)
+		}
+	}
 }

@@ -361,6 +361,8 @@ func (conn *Connection) Default() {
 		conn.Labels = map[string]string{}
 	}
 
+	CleanupFabricLabels(conn.Labels)
+
 	maps.Copy(conn.Labels, conn.Spec.ConnectionLabels())
 }
 

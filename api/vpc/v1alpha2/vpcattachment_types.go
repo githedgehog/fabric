@@ -82,6 +82,8 @@ func (attach *VPCAttachment) Default() {
 		attach.Labels = map[string]string{}
 	}
 
+	wiringapi.CleanupFabricLabels(attach.Labels)
+
 	maps.Copy(attach.Labels, attach.Spec.Labels())
 }
 

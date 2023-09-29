@@ -95,6 +95,8 @@ func (vpc *VPC) Default() {
 		vpc.Labels = map[string]string{}
 	}
 
+	wiringapi.CleanupFabricLabels(vpc.Labels)
+
 	vpc.Labels[LabelSubnet] = EncodeSubnet(vpc.Spec.Subnet)
 }
 

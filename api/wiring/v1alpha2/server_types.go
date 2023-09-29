@@ -86,6 +86,8 @@ func (server *Server) Default() {
 		server.Labels = map[string]string{}
 	}
 
+	CleanupFabricLabels(server.Labels)
+
 	maps.Copy(server.Labels, server.Spec.Labels())
 }
 

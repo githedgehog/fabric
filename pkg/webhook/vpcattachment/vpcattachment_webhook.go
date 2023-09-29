@@ -3,8 +3,10 @@ package vpcattachment
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,6 +64,11 @@ func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, obj runtime.O
 
 func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	newAttach := newObj.(*vpcapi.VPCAttachment)
+	oldAttach := oldObj.(*vpcapi.VPCAttachment)
+
+	if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
+		return nil, errors.Errorf("vpc attachment is immutable")
+	}
 
 	warns, err := newAttach.Validate(ctx, w.Validation)
 	if err != nil {
