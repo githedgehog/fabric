@@ -68,6 +68,12 @@ spec:
                         type: string
                     type: object
                 type: object
+              dnatRequests:
+                additionalProperties:
+                  type: string
+                type: object
+              snat:
+                type: boolean
               subnet:
                 type: string
             type: object
@@ -87,6 +93,10 @@ spec:
                   time:
                     format: date-time
                     type: string
+                type: object
+              dnat:
+                additionalProperties:
+                  type: string
                 type: object
               vlan:
                 type: integer

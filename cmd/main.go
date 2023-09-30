@@ -43,6 +43,7 @@ import (
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
+	natWebhook "go.githedgehog.com/fabric/pkg/webhook/nat"
 	serverWebhook "go.githedgehog.com/fabric/pkg/webhook/server"
 	switchWebhook "go.githedgehog.com/fabric/pkg/webhook/switchh"
 	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
@@ -151,6 +152,10 @@ func main() {
 	}
 	if err = vpcPeeringWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCPeering")
+		os.Exit(1)
+	}
+	if err = natWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "NAT")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

@@ -183,10 +183,59 @@ _Appears in:_
 Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 
 ### Resource Types
+- [NAT](#nat)
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
 - [VPCPeering](#vpcpeering)
 - [VPCSummary](#vpcsummary)
+
+
+
+#### DNAT
+
+
+
+
+
+_Appears in:_
+- [NATSpec](#natspec)
+
+| Field | Description |
+| --- | --- |
+| `pool` _string array_ |  |
+
+
+#### NAT
+
+
+
+NAT is the Schema for the nats API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `NAT`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[NATSpec](#natspec)_ |  |
+| `status` _[NATStatus](#natstatus)_ |  |
+
+
+#### NATSpec
+
+
+
+NATSpec defines the desired state of NAT
+
+_Appears in:_
+- [NAT](#nat)
+
+| Field | Description |
+| --- | --- |
+| `subnet` _string_ |  |
+| `dnat` _[DNAT](#dnat)_ |  |
+
 
 
 
@@ -330,6 +379,8 @@ _Appears in:_
 | --- | --- |
 | `subnet` _string_ |  |
 | `dhcp` _[VPCDHCP](#vpcdhcp)_ |  |
+| `snat` _boolean_ |  |
+| `dnatRequests` _object (keys:string, values:string)_ |  |
 
 
 #### VPCStatus
@@ -344,6 +395,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `vlan` _integer_ |  |
+| `dnat` _object (keys:string, values:string)_ |  |
 | `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
@@ -441,6 +493,8 @@ _Appears in:_
 _Appears in:_
 - [ConnMgmtLinkServer](#connmgmtlinkserver)
 - [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
+- [ConnNATLink](#connnatlink)
+- [ConnNATLinkSwitch](#connnatlinkswitch)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
 
@@ -538,6 +592,52 @@ _Appears in:_
 | `oniePortName` _string_ |  |
 
 
+#### ConnNAT
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ConnNATLink](#connnatlink)_ |  |
+
+
+#### ConnNATLink
+
+
+
+
+
+_Appears in:_
+- [ConnNAT](#connnat)
+
+| Field | Description |
+| --- | --- |
+| `switch` _[ConnNATLinkSwitch](#connnatlinkswitch)_ |  |
+| `nat` _[BasePortName](#baseportname)_ |  |
+
+
+#### ConnNATLinkSwitch
+
+
+
+
+
+_Appears in:_
+- [ConnNATLink](#connnatlink)
+
+| Field | Description |
+| --- | --- |
+| `port` _string_ |  |
+| `ip` _string_ |  |
+| `anchorIP` _string_ |  |
+| `snat` _[SNAT](#snat)_ |  |
+
+
 #### ConnUnbundled
 
 
@@ -585,6 +685,7 @@ _Appears in:_
 | `management` _[ConnMgmt](#connmgmt)_ |  |
 | `mclag` _[ConnMCLAG](#connmclag)_ |  |
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ |  |
+| `nat` _[ConnNAT](#connnat)_ |  |
 
 
 #### ConnectionStatus
@@ -702,6 +803,20 @@ _Appears in:_
 | `position` _[RackPosition](#rackposition)_ |  |
 
 
+
+
+#### SNAT
+
+
+
+
+
+_Appears in:_
+- [ConnNATLinkSwitch](#connnatlinkswitch)
+
+| Field | Description |
+| --- | --- |
+| `pool` _string array_ |  |
 
 
 #### Server

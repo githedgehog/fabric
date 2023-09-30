@@ -30,6 +30,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-nat-githedgehog-com-v1alpha2-nat
+  failurePolicy: Fail
+  name: mnat.kb.io
+  rules:
+  - apiGroups:
+    - nat.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - nats
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-wiring-githedgehog-com-v1alpha2-server
   failurePolicy: Fail
   name: mserver.kb.io
@@ -149,6 +169,26 @@ webhooks:
     - UPDATE
     resources:
     - connections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-nat-githedgehog-com-v1alpha2-nat
+  failurePolicy: Fail
+  name: vnat.kb.io
+  rules:
+  - apiGroups:
+    - nat.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - nats
   sideEffects: None
 - admissionReviewVersions:
   - v1

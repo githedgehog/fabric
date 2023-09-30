@@ -3,6 +3,7 @@ resources:
   - collapsedcore.vlab.gen.yaml
   - vpc_v1alpha2_vpc.yaml
   - vpc_v1alpha2_vpcattachment.yaml
-- vpc_v1alpha2_vpcsummary.yaml
-- vpc_v1alpha2_vpcpeering.yaml
+  - vpc_v1alpha2_vpcsummary.yaml
+  - vpc_v1alpha2_vpcpeering.yaml
+  - vpc_v1alpha2_nat.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

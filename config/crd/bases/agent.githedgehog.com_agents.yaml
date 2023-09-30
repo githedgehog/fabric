@@ -163,6 +163,35 @@ spec:
                                 type: object
                               type: array
                           type: object
+                        nat:
+                          properties:
+                            link:
+                              properties:
+                                nat:
+                                  properties:
+                                    port:
+                                      type: string
+                                  type: object
+                                switch:
+                                  properties:
+                                    anchorIP:
+                                      type: string
+                                    ip:
+                                      type: string
+                                    port:
+                                      type: string
+                                    snat:
+                                      properties:
+                                        pool:
+                                          items:
+                                            type: string
+                                          type: array
+                                      required:
+                                      - pool
+                                      type: object
+                                  type: object
+                              type: object
+                          type: object
                         unbundled:
                           properties:
                             link:
@@ -315,6 +344,12 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        dnatRequests:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        snat:
+                          type: boolean
                         subnet:
                           type: string
                       type: object

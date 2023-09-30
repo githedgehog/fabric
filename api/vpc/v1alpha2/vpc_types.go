@@ -32,8 +32,10 @@ import (
 
 // VPCSpec defines the desired state of VPC
 type VPCSpec struct {
-	Subnet string  `json:"subnet,omitempty"`
-	DHCP   VPCDHCP `json:"dhcp,omitempty"`
+	Subnet       string            `json:"subnet,omitempty"`
+	DHCP         VPCDHCP           `json:"dhcp,omitempty"`
+	SNAT         bool              `json:"snat,omitempty"`
+	DNATRequests map[string]string `json:"dnatRequests,omitempty"`
 }
 
 type VPCDHCP struct {
@@ -49,6 +51,7 @@ type VPCDHCPRange struct {
 // VPCStatus defines the observed state of VPC
 type VPCStatus struct {
 	VLAN    uint16                `json:"vlan,omitempty"`
+	DNAT    map[string]string     `json:"dnat,omitempty"`
 	Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
 }
 

@@ -36,6 +36,7 @@ const (
 	CONNECTION_TYPE_MANAGEMENT  = "management"
 	CONNECTION_TYPE_MCLAG       = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN = "mclag-domain"
+	CONNECTION_TYPE_NAT         = "nat"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -91,12 +92,33 @@ type ConnMCLAGDomain struct {
 	SessionLinks []SwitchToSwitchLink `json:"sessionLinks,omitempty"`
 }
 
+type ConnNATLinkSwitch struct {
+	BasePortName `json:",inline"`
+	IP           string `json:"ip,omitempty"`
+	AnchorIP     string `json:"anchorIP,omitempty"`
+	SNAT         SNAT   `json:"snat,omitempty"`
+}
+
+type SNAT struct {
+	Pool []string `json:"pool"`
+}
+
+type ConnNATLink struct {
+	Switch ConnNATLinkSwitch `json:"switch,omitempty"`
+	NAT    BasePortName      `json:"nat,omitempty"`
+}
+
+type ConnNAT struct {
+	Link ConnNATLink `json:"link,omitempty"`
+}
+
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
 	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
 	Management  *ConnMgmt        `json:"management,omitempty"`
 	MCLAG       *ConnMCLAG       `json:"mclag,omitempty"`
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
+	NAT         *ConnNAT         `json:"nat,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -343,10 +365,9 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 	for port := range ports {
 		parts := SplitPortName(port)
 
-		// TODO evaluate not allowing more than one separator in port name
-		// if len(parts) != 2 {
-		// 	return nil, nil, nil, errors.Errorf("invalid port name %s", port)
-		// }
+		if len(parts) != 2 {
+			return nil, nil, nil, errors.Errorf("invalid port name %s", port)
+		}
 
 		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
 			return nil, nil, nil, errors.Errorf("invalid port name %s, should be \"<device>/<port>\" format", port)
