@@ -1,3 +1,5 @@
+//go:build linux
+
 package uefiutil
 
 import (
@@ -16,7 +18,7 @@ import (
 
 var efiCtx = efivario.NewDefaultContext()
 
-var ErrEmptyBootOrder = errors.New("uefi: boot order is empty")
+var errEmptyBootOrder = errors.New("uefi: boot order is empty")
 
 // MakeONIEDefaultBootEntryAndCleanup will ensure that ONIE is the first boot
 // entry in the EFI BootOrder variable.
@@ -33,7 +35,7 @@ func MakeONIEDefaultBootEntryAndCleanup() error {
 		return errors.Wrapf(err, "error getting BootOrder")
 	}
 	if len(bootOrder) <= 0 {
-		return ErrEmptyBootOrder
+		return errEmptyBootOrder
 	}
 
 	// see if this needs adjustment

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"log/slog"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -154,9 +153,10 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 		if len(user.SSHKeys) > 0 {
 			planUser.SSHKey = user.SSHKeys[0]
 		}
-		if len(user.SSHKeys) > 1 {
-			slog.Info("More than one ssh keys specified for user %s, only the first one will be used", user.Name)
-		}
+		// We're directly configuring authorized_keys
+		// if len(user.SSHKeys) > 1 {
+		// 	slog.Info("More than one ssh keys specified for user, only the first one will be used", "user", user.Name)
+		// }
 
 		plan.Users = append(plan.Users, planUser)
 	}
