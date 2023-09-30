@@ -9,7 +9,7 @@ require (
 	github.com/lmittmann/tint v1.0.2
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/onsi/ginkgo/v2 v2.11.0
+	github.com/onsi/ginkgo/v2 v2.12.1
 	github.com/onsi/gomega v1.27.10
 	github.com/openconfig/gnmic v0.32.0
 	github.com/openconfig/goyang v1.4.1
