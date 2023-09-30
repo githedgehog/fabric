@@ -112,7 +112,7 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 			}
 			defer defC.Close()
 
-			err = defC.Set(ctx, EntUser(AGENT_USER, agentPassword, "admin"))
+			err = defC.Set(ctx, EntUser(AGENT_USER, agentPassword, "admin", ""))
 			if err != nil {
 				lastError = errors.Wrapf(err, "cannot set user %s with gnmi", user)
 				slog.Debug("cannot set user with gnmi", "user", user, "err", err)

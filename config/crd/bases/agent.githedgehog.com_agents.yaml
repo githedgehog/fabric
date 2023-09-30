@@ -265,6 +265,10 @@ spec:
                       type: string
                     role:
                       type: string
+                    sshKeys:
+                      items:
+                        type: string
+                      type: array
                   type: object
                 type: array
               version:

@@ -49,9 +49,10 @@ type AgentVersion struct {
 }
 
 type UserCreds struct {
-	Name     string `json:"name,omitempty"`
-	Password string `json:"password,omitempty"`
-	Role     string `json:"role,omitempty"`
+	Name     string   `json:"name,omitempty"`
+	Password string   `json:"password,omitempty"`
+	Role     string   `json:"role,omitempty"`
+	SSHKeys  []string `json:"sshKeys,omitempty"`
 }
 
 type ConnectionInfo struct {

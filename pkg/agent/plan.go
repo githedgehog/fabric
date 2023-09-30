@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -145,11 +146,19 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 			// never configure agent user other than through agent setup
 			continue
 		}
-		plan.Users = append(plan.Users, gnmi.User{
+		planUser := gnmi.User{
 			Name:     user.Name,
 			Password: user.Password,
 			Role:     user.Role,
-		})
+		}
+		if len(user.SSHKeys) > 0 {
+			planUser.SSHKey = user.SSHKeys[0]
+		}
+		if len(user.SSHKeys) > 1 {
+			slog.Info("More than one ssh keys specified for user %s, only the first one will be used", user.Name)
+		}
+
+		plan.Users = append(plan.Users, planUser)
 	}
 
 	for _, vpcInfo := range agent.Spec.VPCs {

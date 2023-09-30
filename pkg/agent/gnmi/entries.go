@@ -38,12 +38,17 @@ func EntDisableZtp() *Entry {
 	}
 }
 
-func EntUser(username, passwdOrHash, role string) *Entry {
+func EntUser(username, passwdOrHash, role string, sshKey string) *Entry {
 	var passwd, passwdHash *string                                         // TODO drop password support after agent generates and encodes it
 	if len(passwdOrHash) == 63 && strings.HasPrefix(passwdOrHash, "$5$") { // TODO better check for hash
 		passwdHash = ygot.String(passwdOrHash)
 	} else {
 		passwd = ygot.String(passwdOrHash)
+	}
+
+	var sshKeyVal *string
+	if sshKey != "" {
+		sshKeyVal = ygot.String(sshKey)
 	}
 
 	return &Entry{
@@ -58,7 +63,7 @@ func EntUser(username, passwdOrHash, role string) *Entry {
 						Password:       passwd,
 						PasswordHashed: passwdHash,
 						Role:           oc.UnionString(role),
-						// SshKey: // TODO
+						SshKey:         sshKeyVal,
 					},
 				},
 			},

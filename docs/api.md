@@ -173,6 +173,7 @@ _Appears in:_
 | `name` _string_ |  |
 | `password` _string_ |  |
 | `role` _string_ |  |
+| `sshKeys` _string array_ |  |
 
 
 

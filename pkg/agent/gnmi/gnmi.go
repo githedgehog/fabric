@@ -55,6 +55,7 @@ type User struct {
 	Name     string
 	Password string
 	Role     string
+	SSHKey   string
 }
 
 type VPC struct {
@@ -79,7 +80,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 	earlyApply = append(earlyApply, EntHostname(plan.Hostname))
 
 	for _, user := range plan.Users {
-		earlyApply = append(earlyApply, EntUser(user.Name, user.Password, user.Role))
+		earlyApply = append(earlyApply, EntUser(user.Name, user.Password, user.Role, user.SSHKey))
 	}
 
 	readyApply := []*Entry{}
