@@ -10,7 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	osuser "os/user"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -239,6 +242,48 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		return errors.Wrap(err, "failed to early apply config")
 	}
 	slog.Debug("Early apply done", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	for _, user := range agent.Spec.Users {
+		slog.Debug("Setting authorized_keys", "user", user.Name)
+		osUser, err := osuser.Lookup(user.Name)
+		if err != nil {
+			return errors.Wrapf(err, "failed to lookup user %s", user.Name)
+		}
+
+		uid, err := strconv.Atoi(osUser.Uid)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse uid %s", osUser.Uid)
+		}
+		gid, err := strconv.Atoi(osUser.Gid)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse gid %s", osUser.Gid)
+		}
+
+		sshDir := filepath.Join("/home", user.Name, ".ssh")
+		err = os.MkdirAll(sshDir, 0o700)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create ssh dir %s", sshDir)
+		}
+
+		err = os.Chown(sshDir, uid, gid)
+		if err != nil {
+			return errors.Wrapf(err, "failed to chown ssh dir %s", sshDir)
+		}
+
+		err = os.WriteFile(filepath.Join(sshDir, "authorized_keys"), []byte(
+			strings.Join(append([]string{
+				"# Hedgehog Agent managed keys, do not edit manually",
+			}, user.SSHKeys...), "\n")+"\n",
+		), 0o644)
+		if err != nil {
+			return errors.Wrapf(err, "failed to write authorized_keys for user %s", user.Name)
+		}
+
+		err = os.Chown(filepath.Join(sshDir, "authorized_keys"), uid, gid)
+		if err != nil {
+			return errors.Wrapf(err, "failed to chown authorized_keys for user %s", user.Name)
+		}
+	}
 
 	if readyCheck {
 		err = svc.waitForSystemStatusReady(ctx)
