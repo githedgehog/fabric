@@ -1,0 +1,952 @@
+- - summary: No ZTP
+    path: /ztp/config
+    value:
+      config:
+        adminmode: false
+      sectionstate: null
+      state: null
+  - summary: Hostname test
+    path: /openconfig-system:system/config
+    value:
+      aaa: null
+      alarmstats: null
+      alarms: null
+      checkpoints: null
+      clock: null
+      config:
+        hostname: test
+        intfnamingmode: 0
+        suppressfibpending: 0
+      cpus: null
+      crm: null
+      dns: null
+      eventstats: null
+      events: null
+      grpcserver: null
+      infra: null
+      kdump: null
+      logging: null
+      memory: null
+      messages: null
+      ntp: null
+      openflow: null
+      portlocators: null
+      processes: null
+      restserver: null
+      sshserver: null
+      state: null
+      swresource: null
+      systemdcoredump: null
+      techsupportexport: null
+      telemetryserver: null
+      telnetserver: null
+  - summary: User test (admin)
+    path: /openconfig-system:system/aaa/authentication/users/user[username=test]
+    value:
+      user:
+        test:
+          config:
+            password: test
+            passwordhashed: null
+            role: admin
+            sshkey: null
+            username: test
+          state: null
+          username: test
+- - summary: eth0 IP 192.168.42.1
+    path: /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/openconfig-if-ip:ipv4
+    value:
+      config: null
+      index: null
+      ipv4:
+        addresses:
+          address:
+            192.168.42.1:
+              config:
+                gwaddr: null
+                ip: 192.168.42.1
+                prefixlength: 32
+                secondary: false
+              ip: 192.168.42.1
+              state: null
+              vrrp: null
+        igmp: null
+        neighbors: null
+        ospfv2: null
+        sagipv4: null
+        state: null
+        unnumbered: null
+      ipv6: null
+      state: null
+      vlan: null
+  - summary: default BGP 65101
+    path: /openconfig-network-instance:network-instances/network-instance[name=default]
+    value:
+      networkinstance:
+        default:
+          afts: null
+          config: null
+          evpn: null
+          fdb: null
+          globalsag: null
+          interfaces: null
+          macdampening: null
+          name: default
+          neighboursuppress: null
+          nexthoptracking: null
+          protocols:
+            protocol:
+              ? identifier: 1
+                name: bgp
+              : bgp:
+                  global:
+                    afisafis:
+                      afisafi:
+                        3:
+                          afisafiname: 3
+                          aggregateaddressconfig: null
+                          config:
+                            afisafiname: 3
+                            tablemapname: null
+                          defaultroutedistance: null
+                          importnetworkinstance: null
+                          l2vpnevpn: null
+                          networkconfig: null
+                          routeflapdamping: null
+                          state: null
+                          usemultiplepaths: null
+                    confederation: null
+                    config:
+                      as: 65101
+                      clnttoclntreflection: null
+                      coalescetime: null
+                      deterministicmed: null
+                      disableebgpconnectedroutecheck: null
+                      ebgprequirespolicy: null
+                      fastexternalfailover: null
+                      gracefulshutdown: null
+                      holdtime: null
+                      keepaliveinterval: null
+                      maxdynamicneighbors: null
+                      networkimportcheck: null
+                      readquanta: null
+                      routemapprocessdelay: null
+                      routerid: null
+                      writequanta: null
+                    dynamicneighborprefixes: null
+                    globaldefaults: null
+                    gracefulrestart: null
+                    loggingoptions: null
+                    maxmed: null
+                    routereflector: null
+                    routeselectionoptions: null
+                    state: null
+                    updatedelay: null
+                    usemultiplepaths: null
+                  neighbors: null
+                  peergroups: null
+                  rib: null
+                config: null
+                identifier: 1
+                igmp: null
+                igmpsnooping: null
+                mld: null
+                name: bgp
+                ospfv2: null
+                pim: null
+                pimv6: null
+                state: null
+                staticroutes: null
+          rifcounters: null
+          state: null
+          tableconnections: null
+          tables: null
+          vlans: null
+          vxlanvniinstances: null
+  - summary: 'default route distribution '
+    path: /network-instances/network-instance[name=default]/table-connections/table-connection/
+    value:
+      tableconnection:
+        ? srcprotocol: 3
+          dstprotocol: 1
+          addressfamily: 1
+        : addressfamily: 1
+          config:
+            addressfamily: 1
+            defaultimportpolicy: 0
+            dstprotocol: 1
+            importpolicy: []
+            metric: null
+            srcprotocol: 3
+          dstprotocol: 1
+          srcprotocol: 3
+          state: null
+        ? srcprotocol: 15
+          dstprotocol: 1
+          addressfamily: 1
+        : addressfamily: 1
+          config:
+            addressfamily: 1
+            defaultimportpolicy: 0
+            dstprotocol: 1
+            importpolicy: []
+            metric: null
+            srcprotocol: 15
+          dstprotocol: 1
+          srcprotocol: 15
+          state: null
+  - summary: Port group 1 speed SPEED_10GB (3)
+    path: /openconfig-port-group:port-groups/port-group
+    value:
+      portgroup:
+        "1":
+          config:
+            id: "1"
+            speed: 3
+          id: "1"
+          state: null
+  - summary: PortChannel100 L3 (test)
+    path: /interfaces/interface
+    value:
+      interface:
+        PortChannel100:
+          aggregation:
+            config:
+              fallback: null
+              fastrate: null
+              gracefulshutdownmode: 0
+              lagtype: 0
+              minlinks: null
+              systemmac: null
+            reasonevents: null
+            state: null
+            switchedvlan: null
+          config:
+            description: test
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: PortChannel100
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: PortChannel100
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: PortChannel100 member Ethernet1
+    path: /interfaces/interface[name=Ethernet1]/
+    value:
+      interface:
+        Ethernet1:
+          aggregation: null
+          config: null
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet:
+            config:
+              advertisedspeed: null
+              aggregateid: PortChannel100
+              autonegotiate: null
+              diagmode: 0
+              duplexmode: 0
+              enableflowcontrol: null
+              fecmode: 0
+              highwattageopticsenable: null
+              macaddress: null
+              portfec: 0
+              portspeed: 0
+              standalonelinktraining: null
+              unreliablelos: 0
+            debugcounterdrops: null
+            phymoncounters: null
+            phymonstatus: null
+            poe: null
+            reasonevents: null
+            state: null
+            stormcontrol: null
+            switchedvlan: null
+          mappedvlans: null
+          name: Ethernet1
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: Ethernet1 up
+    path: /interfaces/interface[name=Ethernet1]
+    value:
+      interface:
+        Ethernet1:
+          aggregation: null
+          config:
+            description: null
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: Ethernet1
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: Ethernet1
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: PortChannel100 member Ethernet2
+    path: /interfaces/interface[name=Ethernet2]/
+    value:
+      interface:
+        Ethernet2:
+          aggregation: null
+          config: null
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet:
+            config:
+              advertisedspeed: null
+              aggregateid: PortChannel100
+              autonegotiate: null
+              diagmode: 0
+              duplexmode: 0
+              enableflowcontrol: null
+              fecmode: 0
+              highwattageopticsenable: null
+              macaddress: null
+              portfec: 0
+              portspeed: 0
+              standalonelinktraining: null
+              unreliablelos: 0
+            debugcounterdrops: null
+            phymoncounters: null
+            phymonstatus: null
+            poe: null
+            reasonevents: null
+            state: null
+            stormcontrol: null
+            switchedvlan: null
+          mappedvlans: null
+          name: Ethernet2
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: Ethernet2 up
+    path: /interfaces/interface[name=Ethernet2]
+    value:
+      interface:
+        Ethernet2:
+          aggregation: null
+          config:
+            description: null
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: Ethernet2
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: Ethernet2
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: PortChannel101 (test, 2..4094)
+    path: /interfaces/interface
+    value:
+      interface:
+        PortChannel101:
+          aggregation:
+            config:
+              fallback: null
+              fastrate: null
+              gracefulshutdownmode: 0
+              lagtype: 0
+              minlinks: null
+              systemmac: null
+            reasonevents: null
+            state: null
+            switchedvlan:
+              config:
+                accessvlan: null
+                interfacemode: 0
+                nativevlan: null
+                trunkvlans:
+                - 2..4094
+              state: null
+          config:
+            description: test
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: PortChannel101
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: PortChannel101
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: PortChannel101 member Ethernet3
+    path: /interfaces/interface[name=Ethernet3]/
+    value:
+      interface:
+        Ethernet3:
+          aggregation: null
+          config: null
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet:
+            config:
+              advertisedspeed: null
+              aggregateid: PortChannel101
+              autonegotiate: null
+              diagmode: 0
+              duplexmode: 0
+              enableflowcontrol: null
+              fecmode: 0
+              highwattageopticsenable: null
+              macaddress: null
+              portfec: 0
+              portspeed: 0
+              standalonelinktraining: null
+              unreliablelos: 0
+            debugcounterdrops: null
+            phymoncounters: null
+            phymonstatus: null
+            poe: null
+            reasonevents: null
+            state: null
+            stormcontrol: null
+            switchedvlan: null
+          mappedvlans: null
+          name: Ethernet3
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: Ethernet3 up
+    path: /interfaces/interface[name=Ethernet3]
+    value:
+      interface:
+        Ethernet3:
+          aggregation: null
+          config:
+            description: null
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: Ethernet3
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: Ethernet3
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: PortChannel101 member Ethernet4
+    path: /interfaces/interface[name=Ethernet4]/
+    value:
+      interface:
+        Ethernet4:
+          aggregation: null
+          config: null
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet:
+            config:
+              advertisedspeed: null
+              aggregateid: PortChannel101
+              autonegotiate: null
+              diagmode: 0
+              duplexmode: 0
+              enableflowcontrol: null
+              fecmode: 0
+              highwattageopticsenable: null
+              macaddress: null
+              portfec: 0
+              portspeed: 0
+              standalonelinktraining: null
+              unreliablelos: 0
+            debugcounterdrops: null
+            phymoncounters: null
+            phymonstatus: null
+            poe: null
+            reasonevents: null
+            state: null
+            stormcontrol: null
+            switchedvlan: null
+          mappedvlans: null
+          name: Ethernet4
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: Ethernet4 up
+    path: /interfaces/interface[name=Ethernet4]
+    value:
+      interface:
+        Ethernet4:
+          aggregation: null
+          config:
+            description: null
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: Ethernet4
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: Ethernet4
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: Ethernet1 IP 192.168.1.1
+    path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]/openconfig-if-ip:ipv4
+    value:
+      config: null
+      index: null
+      ipv4:
+        addresses:
+          address:
+            192.168.1.1:
+              config:
+                gwaddr: null
+                ip: 192.168.1.1
+                prefixlength: 24
+                secondary: false
+              ip: 192.168.1.1
+              state: null
+              vrrp: null
+        igmp: null
+        neighbors: null
+        ospfv2: null
+        sagipv4: null
+        state: null
+        unnumbered: null
+      ipv6: null
+      state: null
+      vlan: null
+  - summary: MCLAG domain 100
+    path: /mclag/mclag-domains/
+    value:
+      config: null
+      interfaces: null
+      mclagdomains:
+        mclagdomain:
+          100:
+            config:
+              delayrestore: null
+              domainid: 100
+              keepaliveinterval: null
+              mclagsystemmac: null
+              peeraddress: 172.0.0.1
+              peerlink: PortChannel250
+              sessiontimeout: null
+              sourceaddress: 172.0.0.0
+            domainid: 100
+            state: null
+      mclaggatewaymacs: null
+      state: null
+      vlanifs: null
+      vlaninterfaces: null
+  - summary: MCLAG 100 member PortChannel100
+    path: /mclag/interfaces
+    value:
+      config: null
+      interfaces:
+        interface:
+          PortChannel100:
+            config:
+              mclagdomainid: 100
+              mclagid: null
+              name: null
+            name: PortChannel100
+            state: null
+      mclagdomains: null
+      mclaggatewaymacs: null
+      state: null
+      vlanifs: null
+      vlaninterfaces: null
+  - summary: MCLAG 100 member PortChannel101
+    path: /mclag/interfaces
+    value:
+      config: null
+      interfaces:
+        interface:
+          PortChannel101:
+            config:
+              mclagdomainid: 100
+              mclagid: null
+              name: null
+            name: PortChannel101
+            state: null
+      mclagdomains: null
+      mclaggatewaymacs: null
+      state: null
+      vlanifs: null
+      vlaninterfaces: null
+  - summary: Routing policy vpc-no-advertise
+    path: /routing-policy/policy-definitions
+    value:
+      definedsets: null
+      policydefinitions:
+        policydefinition:
+          vpc-no-advertise:
+            config:
+              name: vpc-no-advertise
+            name: vpc-no-advertise
+            state: null
+            statements:
+              statement: {}
+  - summary: VrfVtest1
+    path: /openconfig-network-instance:network-instances/network-instance[name=VrfVtest1]
+    value:
+      networkinstance:
+        VrfVtest1:
+          afts: null
+          config:
+            description: null
+            enabled: true
+            enabledaddressfamilies: []
+            mtu: null
+            name: VrfVtest1
+            routedistinguisher: null
+            routerid: null
+            type: 0
+          evpn: null
+          fdb: null
+          globalsag: null
+          interfaces: null
+          macdampening: null
+          name: VrfVtest1
+          neighboursuppress: null
+          nexthoptracking: null
+          protocols: null
+          rifcounters: null
+          state: null
+          tableconnections: null
+          tables: null
+          vlans: null
+          vxlanvniinstances: null
+  - summary: VrfVtest1 BGP 65101
+    path: /openconfig-network-instance:network-instances/network-instance[name=VrfVtest1]
+    value:
+      networkinstance:
+        VrfVtest1:
+          afts: null
+          config: null
+          evpn: null
+          fdb: null
+          globalsag: null
+          interfaces: null
+          macdampening: null
+          name: VrfVtest1
+          neighboursuppress: null
+          nexthoptracking: null
+          protocols:
+            protocol:
+              ? identifier: 1
+                name: bgp
+              : bgp:
+                  global:
+                    afisafis:
+                      afisafi:
+                        3:
+                          afisafiname: 3
+                          aggregateaddressconfig: null
+                          config:
+                            afisafiname: 3
+                            tablemapname: null
+                          defaultroutedistance: null
+                          importnetworkinstance: null
+                          l2vpnevpn: null
+                          networkconfig: null
+                          routeflapdamping: null
+                          state: null
+                          usemultiplepaths: null
+                    confederation: null
+                    config:
+                      as: 65101
+                      clnttoclntreflection: null
+                      coalescetime: null
+                      deterministicmed: null
+                      disableebgpconnectedroutecheck: null
+                      ebgprequirespolicy: null
+                      fastexternalfailover: null
+                      gracefulshutdown: null
+                      holdtime: null
+                      keepaliveinterval: null
+                      maxdynamicneighbors: null
+                      networkimportcheck: null
+                      readquanta: null
+                      routemapprocessdelay: null
+                      routerid: null
+                      writequanta: null
+                    dynamicneighborprefixes: null
+                    globaldefaults: null
+                    gracefulrestart: null
+                    loggingoptions: null
+                    maxmed: null
+                    routereflector: null
+                    routeselectionoptions: null
+                    state: null
+                    updatedelay: null
+                    usemultiplepaths: null
+                  neighbors: null
+                  peergroups: null
+                  rib: null
+                config: null
+                identifier: 1
+                igmp: null
+                igmpsnooping: null
+                mld: null
+                name: bgp
+                ospfv2: null
+                pim: null
+                pimv6: null
+                state: null
+                staticroutes: null
+          rifcounters: null
+          state: null
+          tableconnections: null
+          tables: null
+          vlans: null
+          vxlanvniinstances: null
+  - summary: VrfVtest1 route distribution vpc-no-advertise
+    path: /network-instances/network-instance[name=VrfVtest1]/table-connections/table-connection/
+    value:
+      tableconnection:
+        ? srcprotocol: 3
+          dstprotocol: 1
+          addressfamily: 1
+        : addressfamily: 1
+          config:
+            addressfamily: 1
+            defaultimportpolicy: 0
+            dstprotocol: 1
+            importpolicy:
+            - vpc-no-advertise
+            metric: null
+            srcprotocol: 3
+          dstprotocol: 1
+          srcprotocol: 3
+          state: null
+        ? srcprotocol: 15
+          dstprotocol: 1
+          addressfamily: 1
+        : addressfamily: 1
+          config:
+            addressfamily: 1
+            defaultimportpolicy: 0
+            dstprotocol: 1
+            importpolicy:
+            - vpc-no-advertise
+            metric: null
+            srcprotocol: 15
+          dstprotocol: 1
+          srcprotocol: 15
+          state: null
+  - summary: Vlan100 (test1)
+    path: /interfaces/interface
+    value:
+      interface:
+        Vlan100:
+          aggregation: null
+          config:
+            description: null
+            enabled: true
+            loopbackmode: null
+            mtu: null
+            name: Vlan100
+            tpid: 0
+            type: 0
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: Vlan100
+          natzone: null
+          routedvlan: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: VrfVtest1 member Vlan100
+    path: /network-instances/network-instance[name=VrfVtest1]/interfaces/interface[id=Vlan100]
+    value:
+      interface:
+        Vlan100:
+          config:
+            associatedaddressfamilies: []
+            id: Vlan100
+            interface: null
+            subinterface: null
+          id: Vlan100
+          state: null
+  - summary: Vlan100 conf 192.168.2.1/24
+    path: /interfaces/interface[name=Vlan100]
+    value:
+      interface:
+        Vlan100:
+          aggregation: null
+          config: null
+          dhcpv4snoopingtrust: null
+          dhcpv6snoopingtrust: null
+          ethernet: null
+          mappedvlans: null
+          name: Vlan100
+          natzone: null
+          routedvlan:
+            config: null
+            ipv4:
+              addresses:
+                address:
+                  192.168.2.1:
+                    config:
+                      ip: 192.168.2.1
+                      prefixlength: 24
+                      secondary: null
+                    ip: 192.168.2.1
+                    state: null
+                    vrrp: null
+              config:
+                dhcpclient: null
+                enabled: true
+                mtu: null
+              neighbors: null
+              ospfv2: null
+              proxyarp: null
+              sagipv4: null
+              state: null
+              unnumbered: null
+            ipv6: null
+            state: null
+          state: null
+          subinterfaces: null
+          vxlanif: null
+  - summary: 'DHCP relay Vlan100 192.168.3.1 '
+    path: /relay-agent/dhcp/interfaces/interface[id=Vlan100]
+    value:
+      interface:
+        Vlan100:
+          agentinformationoption:
+            config:
+              circuitid: null
+              linkselect: 1
+              vrfselect: 1
+            state: null
+          config:
+            helperaddress:
+            - 192.168.3.1
+            id: null
+            maxhopcount: null
+            policyaction: 0
+            srcintf: ""
+            vrf: null
+          id: Vlan100
+          interfaceref: null
+          state: null
+  - summary: VrfVtest1 import routes [VrfVtest2]
+    path: /network-instances/network-instance[name=VrfVtest1]/
+    value:
+      networkinstance:
+        VrfVtest1:
+          afts: null
+          config: null
+          evpn: null
+          fdb: null
+          globalsag: null
+          interfaces: null
+          macdampening: null
+          name: VrfVtest1
+          neighboursuppress: null
+          nexthoptracking: null
+          protocols:
+            protocol:
+              ? identifier: 1
+                name: bgp
+              : bgp:
+                  global:
+                    afisafis:
+                      afisafi:
+                        3:
+                          afisafiname: 3
+                          aggregateaddressconfig: null
+                          config:
+                            afisafiname: 3
+                            tablemapname: null
+                          defaultroutedistance: null
+                          importnetworkinstance:
+                            config:
+                              name:
+                              - VrfVtest2
+                              policyname: null
+                            state: null
+                          l2vpnevpn: null
+                          networkconfig: null
+                          routeflapdamping: null
+                          state: null
+                          usemultiplepaths: null
+                    confederation: null
+                    config: null
+                    dynamicneighborprefixes: null
+                    globaldefaults: null
+                    gracefulrestart: null
+                    loggingoptions: null
+                    maxmed: null
+                    routereflector: null
+                    routeselectionoptions: null
+                    state: null
+                    updatedelay: null
+                    usemultiplepaths: null
+                  neighbors: null
+                  peergroups: null
+                  rib: null
+                config: null
+                identifier: 1
+                igmp: null
+                igmpsnooping: null
+                mld: null
+                name: bgp
+                ospfv2: null
+                pim: null
+                pimv6: null
+                state: null
+                staticroutes: null
+          rifcounters: null
+          state: null
+          tableconnections: null
+          tables: null
+          vlans: null
+          vxlanvniinstances: null

@@ -2,7 +2,6 @@ package gnmi
 
 import (
 	"fmt"
-	"log/slog"
 	"net"
 
 	"github.com/pkg/errors"
@@ -107,9 +106,9 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 			}
 		}
 
+		// TODO add speed validation to the API
 		if speed == oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET || speed == oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
-			slog.Warn("Skipping unset or unknown speed", "portgroup", group, "speed", speedStr, "speedID", speed)
-			continue
+			return nil, nil, errors.Errorf("unset or unknown speed %s for portgroup %s", speedStr, group)
 		}
 
 		// TODO add some good validation and probably different formats like w/o SPEED_ prefix and show options in error
