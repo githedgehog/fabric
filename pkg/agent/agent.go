@@ -130,7 +130,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			Status:             metav1.ConditionFalse,
 			Reason:             "ApplyPending",
 			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Message:            fmt.Sprintf("Config applied, gen=%d", agent.Generation),
+			Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
 		})
 
 		nosInfo, err := svc.client.GetNOSInfo(ctx)
