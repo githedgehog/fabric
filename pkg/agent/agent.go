@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	_ "embed"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -122,6 +124,15 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.Version = svc.Version
 		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
 
+		// TODO
+		apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+			Type:               "Applied",
+			Status:             metav1.ConditionFalse,
+			Reason:             "ApplyPending",
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Message:            fmt.Sprintf("Config applied, gen=%s", agent.Generation),
+		})
+
 		nosInfo, err := svc.client.GetNOSInfo(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed to get initial NOS info")
@@ -200,6 +211,7 @@ func (svc *Service) setInstallAndRunIDs() error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to write install ID file %q", installIDFile)
 		}
+		svc.installID = newInstallID
 	} else if err != nil {
 		return errors.Wrapf(err, "failed to read install ID file %q", installIDFile)
 	} else {
@@ -365,6 +377,15 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	// report that we've been able to apply config
 	agent.Status.LastAppliedGen = agent.Generation
 	agent.Status.LastAppliedTime = metav1.Time{Time: time.Now()}
+
+	// TODO not the best way to use conditions, but it's the easiest way to then wait for agents
+	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+		Type:               "Applied",
+		Status:             metav1.ConditionTrue,
+		Reason:             "ApplySucceeded",
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Message:            fmt.Sprintf("Config applied, gen=%s", agent.Generation),
+	})
 
 	err = kube.Status().Update(ctx, agent)
 	if err != nil {

@@ -82,6 +82,7 @@ type AgentStatus struct {
 	LastAppliedGen  int64               `json:"lastAppliedGen,omitempty"`
 	NOSInfo         NOSInfo             `json:"nosInfo,omitempty"`
 	StatusUpdates   []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
+	Conditions      []metav1.Condition  `json:"conditions"`
 }
 
 type NOSInfo struct {

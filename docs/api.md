@@ -77,6 +77,7 @@ _Appears in:_
 | `lastAppliedGen` _integer_ |  |
 | `nosInfo` _[NOSInfo](#nosinfo)_ |  |
 | `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#condition-v1-meta) array_ |  |
 
 
 #### AgentVersion

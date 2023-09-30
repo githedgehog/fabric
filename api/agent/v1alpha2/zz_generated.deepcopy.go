@@ -23,6 +23,7 @@ package v1alpha2
 
 import (
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -146,6 +147,13 @@ func (in *AgentStatus) DeepCopyInto(out *AgentStatus) {
 		in, out := &in.StatusUpdates, &out.StatusUpdates
 		*out = make([]ApplyStatusUpdate, len(*in))
 		copy(*out, *in)
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 }
 
