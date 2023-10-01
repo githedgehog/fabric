@@ -269,6 +269,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
 	} else if c.MCLAG != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
+	} else if c.NAT != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_NAT
 	}
 
 	return labels
@@ -361,6 +363,10 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		if len(ports) != 2*len(s.MCLAG.Links) {
 			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
+	} else if s.NAT != nil {
+		nonNills++
+
+		switches[s.NAT.Link.Switch.DeviceName()] = struct{}{}
 	}
 
 	if nonNills != 1 {
