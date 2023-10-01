@@ -117,13 +117,17 @@ func main() {
 							},
 							&cli.StringFlag{
 								Name:    "dhcp-range-start",
-								Aliases: []string{"dhcp-start", "start"},
+								Aliases: []string{"dhcp-start"},
 								Usage:   "dhcp range start",
 							},
 							&cli.StringFlag{
 								Name:    "dhcp-range-end",
-								Aliases: []string{"dhcp-end", "end"},
+								Aliases: []string{"dhcp-end"},
 								Usage:   "dhcp range end",
+							},
+							&cli.BoolFlag{
+								Name:  "snat",
+								Usage: "enable snat (outbound access)",
 							},
 							printYamlFlag,
 						},
@@ -134,6 +138,7 @@ func main() {
 							return hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
+								SNAT:   cCtx.Bool("snat"),
 								DHCP: vpcapi.VPCDHCP{
 									Enable: cCtx.Bool("dhcp"),
 									Range: &vpcapi.VPCDHCPRange{
@@ -175,8 +180,9 @@ func main() {
 						},
 					},
 					{
-						Name:  "peer",
-						Usage: "Peering connection between vpcs",
+						Name:    "peer",
+						Aliases: []string{"peering"},
+						Usage:   "Peering connection between vpcs",
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,
@@ -194,6 +200,35 @@ func main() {
 							return hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
 								Name: name,
 								VPCs: cCtx.StringSlice("vpc"),
+							})
+						},
+					},
+					{
+						Name:    "dnat-request",
+						Aliases: []string{"dnat"},
+						Usage:   "Request DNAT for the private IPs in VPC (inbound)",
+						Flags: []cli.Flag{
+							verboseFlag,
+							&cli.StringFlag{
+								Name:     "vpc",
+								Usage:    "vpc",
+								Required: true,
+							},
+							&cli.StringSliceFlag{
+								Name:     "request",
+								Aliases:  []string{"r", "req"},
+								Usage:    "request privateIP=externalIP or privateIP (auto assign externalIP)",
+								Required: true,
+							},
+							printYamlFlag,
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return hhfctl.VPCDNATRequest(ctx, printYaml, &hhfctl.VPCDNATOptions{
+								VPC:      cCtx.String("vpc"),
+								Requests: cCtx.StringSlice("request"),
 							})
 						},
 					},

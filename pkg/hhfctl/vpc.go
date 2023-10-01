@@ -10,6 +10,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -17,6 +18,7 @@ type VPCCreateOptions struct {
 	Name   string
 	Subnet string
 	DHCP   vpcapi.VPCDHCP
+	SNAT   bool
 }
 
 func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
@@ -28,6 +30,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 		Spec: vpcapi.VPCSpec{
 			Subnet: options.Subnet,
 			DHCP:   options.DHCP,
+			SNAT:   options.SNAT,
 		},
 	}
 
@@ -181,6 +184,69 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		out, err := yaml.Marshal(peering)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc peering")
+		}
+
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
+type VPCDNATOptions struct {
+	VPC      string
+	Requests []string
+}
+
+func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions) error {
+	if options.VPC == "" {
+		return errors.Errorf("vpc is required")
+	}
+	if len(options.Requests) == 0 {
+		return errors.Errorf("at least one request is required")
+	}
+
+	kube, err := kubeClient()
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	vpc := &vpcapi.VPC{}
+	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: "default"}, vpc) // TODO ns
+	if err != nil {
+		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
+	}
+
+	if vpc.Spec.DNATRequests == nil {
+		vpc.Spec.DNATRequests = map[string]string{}
+	}
+
+	for _, req := range options.Requests {
+		parts := strings.Split(req, "=")
+		if len(parts) == 1 {
+			vpc.Spec.DNATRequests[parts[0]] = ""
+		} else if len(parts) == 2 {
+			vpc.Spec.DNATRequests[parts[0]] = parts[1]
+		} else {
+			return errors.Errorf("request should be privateIP=externalIP or privateIP, found: %s", req)
+		}
+	}
+
+	err = kube.Update(ctx, vpc)
+	if err != nil {
+		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
+	}
+
+	slog.Info("VPC DNAT requests", "vpc", vpc.Name, "requests", strings.Join(options.Requests, ", "))
+
+	if printYaml {
+		vpc.ObjectMeta.ManagedFields = nil
+		vpc.ObjectMeta.Generation = 0
+		vpc.ObjectMeta.ResourceVersion = ""
+		vpc.Status = vpcapi.VPCStatus{}
+
+		out, err := yaml.Marshal(vpc)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc")
 		}
 
 		fmt.Println(string(out))
