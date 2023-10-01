@@ -122,7 +122,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Switch: wiringapi.ConnNATLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-1/" + natPort),
 					IP:           "192.168.91.0/31",
-					NeighborIP:   "192.168.91.1/31",
+					NeighborIP:   "192.168.91.1",
 					RemoteAS:     65102,
 					AnchorIP:     "192.168.91.129/27",
 					SNAT: wiringapi.SNAT{
@@ -146,7 +146,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Switch: wiringapi.ConnNATLinkSwitch{
 					BasePortName: wiringapi.NewBasePortName("switch-2/" + natPort),
 					IP:           "192.168.91.65/31",
-					NeighborIP:   "192.168.91.64/31",
+					NeighborIP:   "192.168.91.64",
 					RemoteAS:     65102,
 					AnchorIP:     "192.168.91.97/27",
 					SNAT: wiringapi.SNAT{

@@ -291,7 +291,7 @@ spec:
       switch:
         anchorIP: 192.168.91.129/27
         ip: 192.168.91.0/31
-        neighborIP: 192.168.91.1/31
+        neighborIP: 192.168.91.1
         port: switch-1/Ethernet0
         remoteAS: 65102
         snat:
@@ -317,7 +317,7 @@ spec:
       switch:
         anchorIP: 192.168.91.97/27
         ip: 192.168.91.65/31
-        neighborIP: 192.168.91.64/31
+        neighborIP: 192.168.91.64
         port: switch-2/Ethernet0
         remoteAS: 65102
         snat:
