@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -21,6 +22,9 @@ func init() {
 	scheme := runtime.NewScheme()
 	if err := wiringapi.AddToScheme(scheme); err != nil {
 		log.Fatalf("error adding fabricv1alpha1 to the scheme: %#v", err)
+	}
+	if err := vpcapi.AddToScheme(scheme); err != nil {
+		log.Fatalf("error adding vpcv1alpha1 to the scheme: %#v", err)
 	}
 
 	decoder = serializer.NewCodecFactory(scheme).UniversalDeserializer()
