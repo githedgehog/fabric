@@ -249,7 +249,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		slog.Info("Control link configuration is skipped")
 	}
 
-	svc.client.Set(ctx, earlyApply...)
+	err = svc.client.Set(ctx, earlyApply...)
 	if err != nil {
 		return errors.Wrap(err, "failed to early apply config")
 	}
@@ -304,7 +304,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		}
 	}
 
-	svc.client.Set(ctx, readyApply...)
+	err = svc.client.Set(ctx, readyApply...)
 	if err != nil {
 		return errors.Wrap(err, "failed to ready apply config")
 	}
