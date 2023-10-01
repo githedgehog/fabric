@@ -1,6 +1,11 @@
 package iputil
 
-import "net"
+import (
+	"net"
+
+	cidrlib "github.com/apparentlymart/go-cidr/cidr"
+	"github.com/pkg/errors"
+)
 
 type ParsedCIDR struct {
 	IP         net.IP
@@ -18,30 +23,18 @@ func ParseCIDR(cidr string) (*ParsedCIDR, error) {
 	return &ParsedCIDR{
 		IP:         ip,
 		Subnet:     *ipNet,
-		Gateway:    inc(ipNet.IP),
-		RangeStart: inc(inc(ipNet.IP)),
+		Gateway:    cidrlib.Inc(ipNet.IP),
+		RangeStart: cidrlib.Inc(cidrlib.Inc(ipNet.IP)),
 	}, nil
 }
 
-// Taken from https://github.com/apparentlymart/go-cidr/blob/master/cidr/cidr.go (MIT license)
-func inc(IP net.IP) net.IP {
-	IP = checkIPv4(IP)
-	incIP := make([]byte, len(IP))
-	copy(incIP, IP)
-	for j := len(incIP) - 1; j >= 0; j-- {
-		incIP[j]++
-		if incIP[j] > 0 {
-			break
-		}
+func Range(cidr string) (string, string, error) {
+	_, subnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to parse cidr %s", cidr)
 	}
-	return incIP
-}
 
-// Taken from https://github.com/apparentlymart/go-cidr/blob/master/cidr/cidr.go (MIT license)
-func checkIPv4(ip net.IP) net.IP {
-	// Go for some reason allocs IPv6len for IPv4 so we have to correct it
-	if v4 := ip.To4(); v4 != nil {
-		return v4
-	}
-	return ip
+	first, last := cidrlib.AddressRange(subnet)
+
+	return first.String(), last.String(), nil
 }

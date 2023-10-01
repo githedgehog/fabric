@@ -6,7 +6,10 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -175,6 +178,42 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 		vpc.Peers = vpcInfo.Peers
 
 		plan.VPCs = append(plan.VPCs, vpc)
+	}
+
+	var natConn *wiringapi.ConnectionSpec
+	for _, conn := range agent.Spec.Connections {
+		if conn.Spec.NAT != nil && conn.Spec.NAT.Link.Switch.DeviceName() == agent.Name {
+			natConn = &conn.Spec
+			break
+		}
+	}
+
+	if natConn != nil {
+		info := natConn.NAT.Link.Switch
+
+		pool := []string{}
+		for _, cidr := range info.SNAT.Pool {
+			first, last, err := iputil.Range(cidr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse cidr %s", cidr)
+			}
+			pool = append(pool, fmt.Sprintf("%s-%s", first, last))
+		}
+
+		plan.NAT = gnmi.NAT{
+			PublicIface: info.LocalPortName(),
+			PublicIP:    info.IP,
+			AnchorIP:    info.AnchorIP,
+			Ranges:      pool,
+			Neighbor:    info.NeighborIP,
+			RemoteAS:    info.RemoteAS,
+			Advertise:   info.SNAT.Pool,
+		}
+	}
+
+	plan.StaticNAT = map[string]string{}
+	for _, vpcInfo := range agent.Spec.VPCs {
+		maps.Copy(plan.StaticNAT, vpcInfo.DNAT)
 	}
 
 	return plan, nil

@@ -19,6 +19,8 @@ type Plan struct {
 	Users           []User
 	VPCs            []VPC
 	PortGroupSpeeds map[string]string
+	NAT             NAT
+	StaticNAT       map[string]string
 }
 
 type PortChannel struct {
@@ -65,11 +67,30 @@ type VPC struct {
 	DHCPRelay  string
 	DHCPSource string
 	Peers      []string
+	SNAT       bool
+}
+
+type NAT struct {
+	PublicIface string
+	PublicIP    string
+	AnchorIP    string
+	Ranges      []string
+	Neighbor    string
+	RemoteAS    uint32
+	Advertise   []string
 }
 
 const (
-	VPC_VRF_PREFIX        = "V"
-	ASN            uint32 = 65101
+	VRF_PREFIX     = "Vrf"
+	VRF_PREFIX_VPC = "V"
+	VRF_NAT        = "NATdefault"
+
+	ASN                 uint32 = 65101
+	ANCHOR_VLAN         uint16 = 500
+	NAT_ZONE_PUBLIC            = 1
+	NAT_ZONE_OTHER             = 0
+	NAT_INSTANCE_ID            = 0
+	NAT_ACL_POOL_PREFIX        = "public"
 )
 
 func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
@@ -145,7 +166,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		readyApply = append(readyApply, EntMCLAGMember(plan.MCLAGDomain.ID, member))
 	}
 
-	// TOD per Vrf policy
+	// TODO per Vrf policy
 	policyName := "vpc-no-advertise"
 	readyApply = append(readyApply, EntBGPRoutingPolicy(policyName,
 		[]oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config_Communities_Union{
@@ -153,7 +174,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		},
 	))
 	for _, vpc := range plan.VPCs {
-		vrfName := "Vrf" + VPC_VRF_PREFIX + vpc.Name
+		vrfName := VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name
 		// policyName := vrfName + "_route_map"
 
 		readyApply = append(readyApply, EntVrf(vrfName))
@@ -168,7 +189,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		prefixLen, _ := cidr.Subnet.Mask.Size()
 
 		readyApply = append(readyApply, EntVLANInterface(vpc.VLAN, vpc.Name))
-		readyApply = append(readyApply, EntVrfMember(vrfName, vpc.VLAN))
+		readyApply = append(readyApply, EntVLANVrfMember(vrfName, vpc.VLAN))
 		readyApply = append(readyApply, EntVLANInterfaceConf(vpc.VLAN, cidr.Gateway.String(), uint8(prefixLen)))
 
 		if vpc.DHCP {
@@ -181,14 +202,56 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 	}
 
 	for _, vpc := range plan.VPCs {
-		vrfName := "Vrf" + VPC_VRF_PREFIX + vpc.Name
+		vrfName := VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name
 		peers := []string{}
 		for _, peer := range vpc.Peers {
-			peers = append(peers, "Vrf"+VPC_VRF_PREFIX+peer)
+			peers = append(peers, VRF_PREFIX+VRF_PREFIX_VPC+peer)
 		}
 		if len(peers) > 0 { // TODO what about case when we removing all peers?
 			readyApply = append(readyApply, EntVrfImportRoutes(vrfName, peers))
 		}
+	}
+
+	if plan.NAT.PublicIface != "" {
+		readyApply = append(readyApply, EntVrf(VRF_NAT))
+
+		publicIP, err := iputil.ParseCIDR(plan.NAT.PublicIP)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to parse nat public ip %s", plan.NAT.PublicIP)
+		}
+		publicPrefixLen, _ := publicIP.Subnet.Mask.Size()
+
+		readyApply = append(readyApply, EntVrfMember(VRF_NAT, plan.NAT.PublicIface))
+		readyApply = append(readyApply, EntInterfaceNATZone(plan.NAT.PublicIface, NAT_ZONE_PUBLIC))
+		readyApply = append(readyApply, EntInterfaceIP(plan.NAT.PublicIface, publicIP.IP.String(), uint8(publicPrefixLen)))
+
+		anchorIP, err := iputil.ParseCIDR(plan.NAT.AnchorIP)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to parse nat anchor ip %s", plan.NAT.AnchorIP)
+		}
+		anchorPrefixLen, _ := anchorIP.Subnet.Mask.Size()
+
+		anchorIface := fmt.Sprintf("Vlan%d", ANCHOR_VLAN)
+		readyApply = append(readyApply, EntVLANInterface(ANCHOR_VLAN, "NAT Anchor Interface"))
+		readyApply = append(readyApply, EntVrfMember(VRF_NAT, anchorIface))
+		readyApply = append(readyApply, EntInterfaceNATZone(anchorIface, NAT_ZONE_PUBLIC))
+		readyApply = append(readyApply, EntInterfaceIP(anchorIface, anchorIP.IP.String(), uint8(anchorPrefixLen)))
+
+		readyApply = append(readyApply, EntNATInstance(NAT_INSTANCE_ID, NAT_ZONE_PUBLIC, NAT_ACL_POOL_PREFIX, plan.NAT.Ranges))
+
+		for _, vpc := range plan.VPCs {
+			if vpc.SNAT {
+				vrfName := VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name
+				readyApply = append(readyApply, EntInterfaceNATZone(vrfName, NAT_ZONE_OTHER))
+			}
+		}
+
+		// TODO neighbor?
+		readyApply = append(readyApply, EntBGPNeighbor("default", plan.NAT.Neighbor, plan.NAT.RemoteAS))
+	}
+
+	for privateIP, externalIP := range plan.StaticNAT {
+		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, privateIP, externalIP))
 	}
 
 	return earlyApply, readyApply, nil

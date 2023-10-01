@@ -39,11 +39,25 @@ type DNAT struct {
 }
 
 // NATStatus defines the observed state of NAT
-type NATStatus struct{}
+type NATStatus struct {
+	DNAT DNATStatus `json:"dnat"`
+}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+type DNATStatus struct {
+	Available    int      `json:"available"`
+	Assigned     int      `json:"assigned"`
+	AssignedList []string `json:"assignedList"`
+}
 
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric;wiring
+// +kubebuilder:printcolumn:name="Subnet",type=string,JSONPath=`.spec.subnet`,priority=0
+// +kubebuilder:printcolumn:name="DNAT",type=string,JSONPath=`.spec.dnat`,priority=0
+// +kubebuilder:printcolumn:name="DNAT_AVAILABLE",type=boolean,JSONPath=`.status.dnat.available`,priority=0
+// +kubebuilder:printcolumn:name="DNAT_ASSIGNED",type=boolean,JSONPath=`.status.dnat.assigned`,priority=0
+// +kubebuilder:printcolumn:name="DNAT_ASSIGNED_L",type=boolean,JSONPath=`.status.dnat.assignedList`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
 // NAT is the Schema for the nats API
 type NAT struct {
 	metav1.TypeMeta   `json:",inline"`

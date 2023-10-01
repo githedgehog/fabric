@@ -54,6 +54,10 @@ spec:
                 items:
                   type: string
                 type: array
+              dnat:
+                additionalProperties:
+                  type: string
+                type: object
               name:
                 type: string
               peers:

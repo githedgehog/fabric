@@ -8,13 +8,37 @@ metadata:
 spec:
   group: vpc.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
+    - wiring
     kind: NAT
     listKind: NATList
     plural: nats
     singular: nat
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.subnet
+      name: Subnet
+      type: string
+    - jsonPath: .spec.dnat
+      name: DNAT
+      type: string
+    - jsonPath: .status.dnat.available
+      name: DNAT_AVAILABLE
+      type: boolean
+    - jsonPath: .status.dnat.assigned
+      name: DNAT_ASSIGNED
+      type: boolean
+    - jsonPath: .status.dnat.assignedList
+      name: DNAT_ASSIGNED_L
+      priority: 1
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: string
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: NAT is the Schema for the nats API
@@ -51,6 +75,24 @@ spec:
             type: object
           status:
             description: NATStatus defines the observed state of NAT
+            properties:
+              dnat:
+                properties:
+                  assigned:
+                    type: integer
+                  assignedList:
+                    items:
+                      type: string
+                    type: array
+                  available:
+                    type: integer
+                required:
+                - assigned
+                - assignedList
+                - available
+                type: object
+            required:
+            - dnat
             type: object
         type: object
     served: true

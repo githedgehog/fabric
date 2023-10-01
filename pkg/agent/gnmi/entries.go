@@ -269,10 +269,10 @@ func EntVrfBGP(vrf string, bgpASN uint32) *Entry {
 	}
 }
 
-func EntVLANInterface(vlanID uint16, vpc string) *Entry {
+func EntVLANInterface(vlanID uint16, description string) *Entry {
 	vlan := fmt.Sprintf("Vlan%d", vlanID)
 	return &Entry{
-		Summary: fmt.Sprintf("%s (%s)", vlan, vpc),
+		Summary: fmt.Sprintf("%s (%s)", vlan, description),
 		Path:    "/interfaces/interface",
 		Value: &oc.OpenconfigInterfaces_Interfaces{
 			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
@@ -288,17 +288,21 @@ func EntVLANInterface(vlanID uint16, vpc string) *Entry {
 	}
 }
 
-func EntVrfMember(vrf string, vlanID uint16) *Entry {
+func EntVLANVrfMember(vrf string, vlanID uint16) *Entry {
 	vlan := fmt.Sprintf("Vlan%d", vlanID)
+	return EntVrfMember(vrf, vlan)
+}
+
+func EntVrfMember(vrf string, member string) *Entry {
 	return &Entry{
-		Summary: fmt.Sprintf("%s member %s", vrf, vlan),
-		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/interfaces/interface[id=%s]", vrf, vlan),
+		Summary: fmt.Sprintf("%s member %s", vrf, member),
+		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/interfaces/interface[id=%s]", vrf, member),
 		Value: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces{
 			Interface: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface{
-				vlan: {
-					Id: ygot.String(vlan),
+				member: {
+					Id: ygot.String(member),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface_Config{
-						Id: ygot.String(vlan),
+						Id: ygot.String(member),
 					},
 				},
 			},
@@ -540,6 +544,115 @@ func EntVrfImportRoutes(vrf string, importVrfs []string) *Entry {
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntInterfaceNATZone(iface string, zone uint8) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("%s NAT zone %d", iface, zone),
+		Path:    fmt.Sprintf("/openconfig-interfaces:interfaces/interface[name=%s]", iface),
+		Value: &oc.OpenconfigInterfaces_Interfaces{
+			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
+				iface: {
+					NatZone: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone{
+						Config: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone_Config{
+							NatZone: ygot.Uint8(zone),
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntNATInstance(id uint32, zone uint8, namePrefix string, natRanges []string) *Entry {
+	natPools := map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatPool_NatPoolEntry{}
+	aclBindings := map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry{}
+
+	for idx, natRange := range natRanges {
+		natPoolName := fmt.Sprintf("%s-%d", namePrefix, idx)
+		natPools[natPoolName] = &oc.OpenconfigNat_Nat_Instances_Instance_NatPool_NatPoolEntry{
+			PoolName: ygot.String(natPoolName),
+			Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatPool_NatPoolEntry_Config{
+				NatIp:    ygot.String(natRange),
+				PoolName: ygot.String(natPoolName),
+			},
+		}
+
+		aclBindingName := fmt.Sprintf("%s-%d", namePrefix, idx)
+		aclBindings[aclBindingName] = &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry{
+			Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry_Config{
+				Name:    ygot.String(aclBindingName),
+				NatPool: ygot.String(natPoolName),
+			},
+		}
+	}
+
+	return &Entry{
+		Summary: fmt.Sprintf("NAT instance %d", id),
+		Path:    fmt.Sprintf("/openconfig-nat/nat/instances/instance[id=%d]", id),
+		Value: &oc.OpenconfigNat_Nat_Instances{
+			Instance: map[uint32]*oc.OpenconfigNat_Nat_Instances_Instance{
+				id: {
+					Id: ygot.Uint32(id),
+					Config: &oc.OpenconfigNat_Nat_Instances_Instance_Config{
+						Id:     ygot.Uint32(id),
+						Enable: ygot.Bool(true),
+					},
+					NatPool: &oc.OpenconfigNat_Nat_Instances_Instance_NatPool{
+						NatPoolEntry: natPools,
+					},
+					NatAclPoolBinding: &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding{
+						NatAclPoolBindingEntry: aclBindings,
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntStaticNAT(id uint32, privateIP, externalIP string) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("Static NAT %d %s <- %s", id, privateIP, externalIP),
+		Path:    fmt.Sprintf("/openconfig-nat/nat/instances/instance[id=%d]", id),
+		Value: &oc.OpenconfigNat_Nat_Instances{
+			Instance: map[uint32]*oc.OpenconfigNat_Nat_Instances_Instance{
+				id: {
+					NatMappingTable: &oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable{
+						NatMappingEntry: map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable_NatMappingEntry{
+							externalIP: {
+								ExternalAddress: ygot.String(externalIP),
+								Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable_NatMappingEntry_Config{
+									ExternalAddress: ygot.String(externalIP),
+									InternalAddress: ygot.String(privateIP),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntBGPNeighbor(vrf, neighbor string, remoteAS uint32) *Entry {
+	return &Entry{
+		Summary: fmt.Sprintf("BGP neighbor %s %s %d", vrf, neighbor, remoteAS),
+		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors", vrf),
+		Value: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
+			Neighbors: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
+				Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
+					neighbor: {
+						NeighborAddress: &neighbor,
+						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
+							NeighborAddress: ygot.String(neighbor),
+							PeerAs:          ygot.Uint32(remoteAS),
+							Enabled:         ygot.Bool(true),
 						},
 					},
 				},

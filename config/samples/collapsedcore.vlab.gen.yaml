@@ -19,6 +19,11 @@ spec:
     pool:
     - 192.168.91.192/26
   subnet: 192.168.91.0/24
+status:
+  dnat:
+    assigned: 0
+    assignedList: null
+    available: 0
 ---
 ###
 ### switch-1
@@ -40,6 +45,7 @@ spec:
   locationSig:
     sig: <undefined>
     uuidSig: <undefined>
+status:
 ---
 ###
 ### switch-2
@@ -61,6 +67,7 @@ spec:
   locationSig:
     sig: <undefined>
     uuidSig: <undefined>
+status:
 ---
 ###
 ### control-1
@@ -139,6 +146,7 @@ spec:
         ip: 192.168.101.0/31
         oniePortName: eth0
         port: switch-1/Management0
+status:
 ---
 ###
 ### control-1--mgmt--switch-2
@@ -161,6 +169,7 @@ spec:
         ip: 192.168.102.0/31
         oniePortName: eth0
         port: switch-2/Management0
+status:
 ---
 ###
 ### server-1--mclag--switch-1--switch-2
@@ -185,6 +194,7 @@ spec:
         port: server-1/enp0s3
       switch:
         port: switch-2/Ethernet5
+status:
 ---
 ###
 ### server-2--mclag--switch-1--switch-2
@@ -209,6 +219,7 @@ spec:
         port: server-2/enp0s3
       switch:
         port: switch-2/Ethernet6
+status:
 ---
 ###
 ### server-3--unbundled--switch-1
@@ -228,6 +239,7 @@ spec:
         port: server-3/nic0/port0
       switch:
         port: switch-1/Ethernet7
+status:
 ---
 ###
 ### server-4--unbundled--switch-2
@@ -247,6 +259,7 @@ spec:
         port: server-4/nic0/port0
       switch:
         port: switch-2/Ethernet7
+status:
 ---
 ###
 ### switch-1--mclag-domain--switch-2
@@ -279,6 +292,7 @@ spec:
         port: switch-1/Ethernet4
       switch2:
         port: switch-2/Ethernet4
+status:
 ---
 ###
 ### switch-1--nat--default
@@ -304,6 +318,7 @@ spec:
         snat:
           pool:
           - 192.168.91.128/27
+status:
 ---
 ###
 ### switch-2--nat--default
@@ -329,3 +344,4 @@ spec:
         snat:
           pool:
           - 192.168.91.96/27
+status:

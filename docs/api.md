@@ -206,6 +206,22 @@ _Appears in:_
 | `pool` _string array_ |  |
 
 
+#### DNATStatus
+
+
+
+
+
+_Appears in:_
+- [NATStatus](#natstatus)
+
+| Field | Description |
+| --- | --- |
+| `available` _integer_ |  |
+| `assigned` _integer_ |  |
+| `assignedList` _string array_ |  |
+
+
 #### NAT
 
 
@@ -239,6 +255,18 @@ _Appears in:_
 | `dnat` _[DNAT](#dnat)_ |  |
 
 
+#### NATStatus
+
+
+
+NATStatus defines the observed state of NAT
+
+_Appears in:_
+- [NAT](#nat)
+
+| Field | Description |
+| --- | --- |
+| `dnat` _[DNATStatus](#dnatstatus)_ |  |
 
 
 #### VPC
@@ -434,6 +462,7 @@ _Appears in:_
 | `vpc` _[VPCSpec](#vpcspec)_ |  |
 | `vlan` _integer_ |  |
 | `peers` _string array_ |  |
+| `dnat` _object (keys:string, values:string)_ |  |
 | `connections` _string array_ |  |
 
 

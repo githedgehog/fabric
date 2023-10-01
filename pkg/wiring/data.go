@@ -185,7 +185,7 @@ func (d *Data) Write(ret io.Writer) error {
 	for scan.Scan() {
 		line := scan.Text()
 
-		if slices.Contains([]string{"status: {}", "  creationTimestamp: null", "  position: {}", "status:", "    time: null", "  applied:"}, line) {
+		if slices.Contains([]string{"status: {}", "  creationTimestamp: null", "  position: {}", "    time: null", "  applied:", ""}, line) {
 			continue
 		}
 
