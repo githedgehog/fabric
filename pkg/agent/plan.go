@@ -175,6 +175,7 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 			vpc.DHCPSource = controlIface
 		}
 		vpc.Peers = vpcInfo.Peers
+		vpc.SNAT = vpcInfo.VPC.SNAT
 
 		plan.VPCs = append(plan.VPCs, vpc)
 	}

@@ -658,10 +658,11 @@ func EntNATInstance(id uint32, zone uint8, namePrefix string, natRanges []string
 func EntStaticNAT(id uint32, privateIP, externalIP string) *Entry {
 	return &Entry{
 		Summary: fmt.Sprintf("Static NAT %d %s <- %s", id, privateIP, externalIP),
-		Path:    fmt.Sprintf("/openconfig-nat/nat/instances/instance[id=%d]", id),
+		Path:    fmt.Sprintf("/openconfig-nat:nat/instances/instance[id=%d]", id),
 		Value: &oc.OpenconfigNat_Nat_Instances{
 			Instance: map[uint32]*oc.OpenconfigNat_Nat_Instances_Instance{
 				id: {
+					Id: ygot.Uint32(id),
 					NatMappingTable: &oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable{
 						NatMappingEntry: map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable_NatMappingEntry{
 							externalIP: {

@@ -246,13 +246,10 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 		for _, vpc := range plan.VPCs {
 			if vpc.SNAT {
-				// TODO is it correct to assign to VLAN interface?
 				readyApply = append(readyApply, EntInterfaceNATZone(fmt.Sprintf("Vlan%d", vpc.VLAN), NAT_ZONE_OTHER))
 			}
 		}
 
-		// TODO is it ok we have default VRF BGP that late?
-		// TODO add back plan.NAT.Pool
 		readyApply = append(readyApply, EntVrfBGP("default", ASN, plan.NAT.Pool, plan.NAT.Neighbor, plan.NAT.RemoteAS))
 	} else {
 		readyApply = append(readyApply, EntVrfBGP("default", ASN, []string{}, "", 0))
