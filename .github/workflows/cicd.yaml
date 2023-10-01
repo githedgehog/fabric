@@ -154,6 +154,17 @@ jobs:
     needs:
       - cache-tools
 
+    strategy:
+      matrix:
+        component:
+          - api-chart
+          - fabric-image
+          - fabric-chart
+          - agent
+          - hhfctl
+          - fabric-dhcp-server
+          - fabric-dhcp-server-chart
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -174,7 +185,7 @@ jobs:
 
       - name: Build all
         run: |
-          make build
+          make ${{ matrix.component }}-build
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -192,6 +203,17 @@ jobs:
       - lint-and-dump
       - kind-test-api
       - build
+
+    strategy:
+      matrix:
+        component:
+          - api-chart
+          - fabric-image
+          - fabric-chart
+          - agent
+          - hhfctl
+          - fabric-dhcp-server
+          - fabric-dhcp-server-chart
 
     steps:
       - name: Checkout repository
@@ -220,7 +242,7 @@ jobs:
 
       - name: Publish Images, Helm charts and Bins on release
         run: |
-          OCI_REPO=ghcr.io/githedgehog/fabric make push
+          OCI_REPO=ghcr.io/githedgehog/fabric make ${{ matrix.component }}-push
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
