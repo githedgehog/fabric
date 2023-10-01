@@ -142,6 +142,10 @@ func Load(r io.Reader, data *Data) error {
 			if err := data.Add(typed); err != nil {
 				return err
 			}
+		case *vpcapi.NAT:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
 		}
 	}
 
