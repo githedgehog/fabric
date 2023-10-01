@@ -192,6 +192,20 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return peers[i] < peers[j]
 	})
 
+	nat := &vpcapi.NAT{}
+	err = r.Get(ctx, client.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, nat) // TODO ns
+	if err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting nat for vpc %s", vpc.Name)
+	}
+
+	dnat := map[string]string{}
+	for privateIP, externalIP := range vpc.Spec.DNATRequests {
+		// TODO check that privateIP is from vpc subnet
+		// TODO check that externalIP is from nat subnet and not taken
+
+		dnat[privateIP] = externalIP
+	}
+
 	summary := &vpcapi.VPCSummary{ObjectMeta: metav1.ObjectMeta{Name: vpc.Name, Namespace: vpc.Namespace}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, summary, func() error {
 		summary.Spec.Name = vpc.Name
@@ -200,6 +214,7 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		summary.Spec.Connections = connNames
 		summary.Spec.Peers = peers
 		summary.Labels = summaryLabels
+		summary.Spec.DNAT = dnat
 
 		return nil
 	})
