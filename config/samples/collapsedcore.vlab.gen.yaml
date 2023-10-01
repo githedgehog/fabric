@@ -286,6 +286,9 @@ spec:
 apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
+  labels:
+    fabric.githedgehog.com/connection-type: nat
+    switch.fabric.githedgehog.com/switch-1: "true"
   name: switch-1--nat--default
 spec:
   nat:
@@ -308,6 +311,9 @@ spec:
 apiVersion: wiring.githedgehog.com/v1alpha2
 kind: Connection
 metadata:
+  labels:
+    fabric.githedgehog.com/connection-type: nat
+    switch.fabric.githedgehog.com/switch-2: "true"
   name: switch-2--nat--default
 spec:
   nat:

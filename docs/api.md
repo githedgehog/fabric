@@ -50,6 +50,7 @@ _Appears in:_
 | `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
 | `vpcs` _[VPCSummarySpec](#vpcsummaryspec) array_ |  |
 | `vpcVLANRange` _string_ |  |
+| `nat` _[NATSpec](#natspec)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
@@ -229,6 +230,7 @@ NAT is the Schema for the nats API
 NATSpec defines the desired state of NAT
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [NAT](#nat)
 
 | Field | Description |

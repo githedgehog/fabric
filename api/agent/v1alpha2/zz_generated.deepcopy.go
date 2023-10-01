@@ -112,6 +112,7 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.NAT.DeepCopyInto(&out.NAT)
 	if in.PortChannels != nil {
 		in, out := &in.PortChannels, &out.PortChannels
 		*out = make(map[string]uint16, len(*in))
