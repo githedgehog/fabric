@@ -3,10 +3,8 @@ package nat
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,11 +62,6 @@ func (w *NATWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (wa
 
 func (w *NATWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	newNAT := newObj.(*vpcapi.NAT)
-	oldNAT := oldObj.(*vpcapi.NAT)
-
-	if !equality.Semantic.DeepEqual(oldNAT.Spec.Subnet, newNAT.Spec.Subnet) {
-		return nil, errors.Errorf("nat subnet is immutable")
-	}
 
 	warns, err := newNAT.Validate(ctx, w.Validation)
 	if err != nil {

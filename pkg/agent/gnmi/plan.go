@@ -74,10 +74,9 @@ type NAT struct {
 	PublicIface string
 	PublicIP    string
 	AnchorIP    string
-	Ranges      []string
+	Pool        []string
 	Neighbor    string
 	RemoteAS    uint32
-	Advertise   []string
 }
 
 const (
@@ -113,9 +112,6 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 		readyApply = append(readyApply, EntInterfaceIP(plan.ManagementIface, ip.String(), uint8(prefixLen)))
 	}
-
-	readyApply = append(readyApply, EntVrfBGP("default", ASN))
-	readyApply = append(readyApply, EntBGPRouteDistribution("default", ""))
 
 	for group, speedStr := range plan.PortGroupSpeeds {
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
@@ -178,7 +174,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		// policyName := vrfName + "_route_map"
 
 		readyApply = append(readyApply, EntVrf(vrfName))
-		readyApply = append(readyApply, EntVrfBGP(vrfName, ASN))
+		readyApply = append(readyApply, EntVrfBGP(vrfName, ASN, []string{}, "", 0))
 
 		readyApply = append(readyApply, EntBGPRouteDistribution(vrfName, policyName))
 
@@ -237,7 +233,16 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		readyApply = append(readyApply, EntInterfaceNATZone(anchorIface, NAT_ZONE_PUBLIC))
 		readyApply = append(readyApply, EntInterfaceIP(anchorIface, anchorIP.IP.String(), uint8(anchorPrefixLen)))
 
-		readyApply = append(readyApply, EntNATInstance(NAT_INSTANCE_ID, NAT_ZONE_PUBLIC, NAT_ACL_POOL_PREFIX, plan.NAT.Ranges))
+		pool := []string{}
+		for idx, cidr := range plan.NAT.Pool {
+			first, last, err := iputil.Range(cidr)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "failed to parse nat pool cidr #%d %s", idx, cidr)
+			}
+			pool = append(pool, fmt.Sprintf("%s-%s", first, last))
+		}
+
+		readyApply = append(readyApply, EntNATInstance(NAT_INSTANCE_ID, NAT_ZONE_PUBLIC, NAT_ACL_POOL_PREFIX, pool))
 
 		for _, vpc := range plan.VPCs {
 			if vpc.SNAT {
@@ -246,9 +251,12 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 			}
 		}
 
-		// TODO neighbor?
-		readyApply = append(readyApply, EntBGPNeighbor("default", plan.NAT.Neighbor, plan.NAT.RemoteAS))
+		// TODO is it ok we have default VRF BGP that late?
+		readyApply = append(readyApply, EntVrfBGP("default", ASN, plan.NAT.Pool, plan.NAT.Neighbor, plan.NAT.RemoteAS))
+	} else {
+		readyApply = append(readyApply, EntVrfBGP("default", ASN, []string{}, "", 0))
 	}
+	readyApply = append(readyApply, EntBGPRouteDistribution("default", ""))
 
 	for privateIP, externalIP := range plan.StaticNAT {
 		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, privateIP, externalIP))

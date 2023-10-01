@@ -251,7 +251,6 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `subnet` _string_ |  |
 | `dnat` _[DNAT](#dnat)_ |  |
 
 

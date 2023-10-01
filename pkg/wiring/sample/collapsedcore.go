@@ -40,7 +40,6 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	_, err = createNAT(data, "default", vpcapi.NATSpec{
-		Subnet: "192.168.91.0/24",
 		DNAT: vpcapi.DNAT{
 			Pool: []string{
 				"192.168.91.192/26", // 192.168.91.193 - 192.168.91.254

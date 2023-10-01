@@ -223,7 +223,42 @@ func EntVrf(vrf string) *Entry {
 	}
 }
 
-func EntVrfBGP(vrf string, bgpASN uint32) *Entry {
+func EntVrfBGP(vrf string, bgpASN uint32, networks []string, neighbor string, remoteAS uint32) *Entry {
+	summary := fmt.Sprintf("%s BGP %d", vrf, bgpASN)
+
+	var neighborsConf *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors
+	if neighbor != "" {
+		summary += fmt.Sprintf(" neighbor %s", neighbor)
+		neighborsConf = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
+			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
+				neighbor: {
+					NeighborAddress: &neighbor,
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
+						NeighborAddress: ygot.String(neighbor),
+						PeerAs:          ygot.Uint32(remoteAS),
+						Enabled:         ygot.Bool(true),
+					},
+				},
+			},
+		}
+	}
+
+	var netConf *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig
+	if len(networks) > 0 {
+		summary += fmt.Sprintf(" networks %s", strings.Join(networks, ","))
+		netConf = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig{
+			Network: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network{},
+		}
+		for _, network := range networks {
+			netConf.Network[network] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network{
+				Prefix: ygot.String(network),
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network_Config{
+					Prefix: ygot.String(network),
+				},
+			}
+		}
+	}
+
 	return &Entry{
 		Summary: fmt.Sprintf("%s BGP %d", vrf, bgpASN),
 		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", vrf),
@@ -255,10 +290,12 @@ func EntVrfBGP(vrf string, bgpASN uint32) *Entry {
 													Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
 														AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 													},
+													NetworkConfig: netConf,
 												},
 											},
 										},
 									},
+									Neighbors: neighborsConf,
 								},
 							},
 						},
@@ -632,27 +669,6 @@ func EntStaticNAT(id uint32, privateIP, externalIP string) *Entry {
 									InternalAddress: ygot.String(privateIP),
 								},
 							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func EntBGPNeighbor(vrf, neighbor string, remoteAS uint32) *Entry {
-	return &Entry{
-		Summary: fmt.Sprintf("BGP neighbor %s %s %d", vrf, neighbor, remoteAS),
-		Path:    fmt.Sprintf("/network-instances/network-instance[name=%s]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors", vrf),
-		Value: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
-			Neighbors: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
-				Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
-					neighbor: {
-						NeighborAddress: &neighbor,
-						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
-							NeighborAddress: ygot.String(neighbor),
-							PeerAs:          ygot.Uint32(remoteAS),
-							Enabled:         ygot.Bool(true),
 						},
 					},
 				},

@@ -230,11 +230,8 @@ spec:
                     required:
                     - pool
                     type: object
-                  subnet:
-                    type: string
                 required:
                 - dnat
-                - subnet
                 type: object
               portChannels:
                 additionalProperties:

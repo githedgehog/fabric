@@ -21,7 +21,6 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
-	"go.githedgehog.com/fabric/pkg/util/iputil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -30,8 +29,7 @@ import (
 
 // NATSpec defines the desired state of NAT
 type NATSpec struct {
-	Subnet string `json:"subnet"`
-	DNAT   DNAT   `json:"dnat"`
+	DNAT DNAT `json:"dnat"`
 }
 
 type DNAT struct {
@@ -86,11 +84,6 @@ func (nat *NAT) Default() {
 func (nat *NAT) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
 	if nat.Name != "default" {
 		return nil, errors.Errorf("NAT name must be default") // TODO support more than one NAT
-	}
-
-	_, err := iputil.ParseCIDR(nat.Spec.Subnet)
-	if err != nil {
-		return nil, errors.Wrapf(err, "NAT subnet is invalid")
 	}
 
 	return nil, nil

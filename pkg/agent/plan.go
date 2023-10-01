@@ -8,7 +8,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi"
-	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"golang.org/x/exp/maps"
 )
 
@@ -191,23 +190,13 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 	if natConn != nil {
 		info := natConn.NAT.Link.Switch
 
-		pool := []string{}
-		for _, cidr := range info.SNAT.Pool {
-			first, last, err := iputil.Range(cidr)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse cidr %s", cidr)
-			}
-			pool = append(pool, fmt.Sprintf("%s-%s", first, last))
-		}
-
 		plan.NAT = gnmi.NAT{
 			PublicIface: info.LocalPortName(),
 			PublicIP:    info.IP,
-			AnchorIP:    info.AnchorIP,
-			Ranges:      pool,
+			AnchorIP:    info.AnchorIP, // TODO just use first address from the pool
+			Pool:        info.SNAT.Pool,
 			Neighbor:    info.NeighborIP,
 			RemoteAS:    info.RemoteAS,
-			Advertise:   info.SNAT.Pool,
 		}
 	}
 
