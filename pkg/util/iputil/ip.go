@@ -8,10 +8,11 @@ import (
 )
 
 type ParsedCIDR struct {
-	IP         net.IP
-	Subnet     net.IPNet
-	Gateway    net.IP
-	RangeStart net.IP
+	IP             net.IP
+	Subnet         net.IPNet
+	Gateway        net.IP
+	DHCPRangeStart net.IP
+	DHCPRangeEnd   net.IP
 }
 
 func ParseCIDR(cidr string) (*ParsedCIDR, error) {
@@ -20,11 +21,17 @@ func ParseCIDR(cidr string) (*ParsedCIDR, error) {
 		return nil, err
 	}
 
+	_, last, err := Range(cidr)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ParsedCIDR{
-		IP:         ip,
-		Subnet:     *ipNet,
-		Gateway:    cidrlib.Inc(ipNet.IP),
-		RangeStart: cidrlib.Inc(cidrlib.Inc(ipNet.IP)),
+		IP:             ip,
+		Subnet:         *ipNet,
+		Gateway:        cidrlib.Inc(ipNet.IP),
+		DHCPRangeStart: cidrlib.Inc(cidrlib.Inc(ipNet.IP)),
+		DHCPRangeEnd:   net.ParseIP(last),
 	}, nil
 }
 

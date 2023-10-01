@@ -118,8 +118,8 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 			return errors.Wrapf(err, "error parsing vpc subnet %s", vpc.Spec.Subnet)
 		}
 
-		start := cidr.RangeStart.String()
-		end := ""
+		start := cidr.DHCPRangeStart.String()
+		end := cidr.DHCPRangeEnd.String()
 
 		if vpc.Spec.DHCP.Range != nil {
 			if vpc.Spec.DHCP.Range.Start != "" {
@@ -129,6 +129,8 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 				end = vpc.Spec.DHCP.Range.End
 			}
 		}
+
+		// TODO add extra range validation
 
 		cfg.Subnets = append(cfg.Subnets, dhcpdSubnet{
 			Subnet:     cidr.Subnet.IP.String(),

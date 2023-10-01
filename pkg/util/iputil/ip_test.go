@@ -17,8 +17,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.0/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:    net.ParseIP("192.168.1.1"),
-				RangeStart: net.ParseIP("192.168.1.2"),
+				Gateway:        net.ParseIP("192.168.1.1"),
+				DHCPRangeStart: net.ParseIP("192.168.1.2"),
+				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
 			},
 		},
 		{
@@ -26,8 +27,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.1/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:    net.ParseIP("192.168.1.1"),
-				RangeStart: net.ParseIP("192.168.1.2"),
+				Gateway:        net.ParseIP("192.168.1.1"),
+				DHCPRangeStart: net.ParseIP("192.168.1.2"),
+				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
 			},
 		},
 		{
@@ -35,8 +37,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.2/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:    net.ParseIP("192.168.1.1"),
-				RangeStart: net.ParseIP("192.168.1.2"),
+				Gateway:        net.ParseIP("192.168.1.1"),
+				DHCPRangeStart: net.ParseIP("192.168.1.2"),
+				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
 			},
 		},
 		{
@@ -44,8 +47,19 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.3/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:    net.ParseIP("192.168.1.1"),
-				RangeStart: net.ParseIP("192.168.1.2"),
+				Gateway:        net.ParseIP("192.168.1.1"),
+				DHCPRangeStart: net.ParseIP("192.168.1.2"),
+				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
+			},
+		},
+		{
+			name: "small-mask",
+			arg:  "192.168.1.100/27",
+			err:  false,
+			want: &ParsedCIDR{
+				Gateway:        net.ParseIP("192.168.1.97"),
+				DHCPRangeStart: net.ParseIP("192.168.1.98"),
+				DHCPRangeEnd:   net.ParseIP("192.168.1.127"),
 			},
 		},
 		{
@@ -101,8 +115,11 @@ func TestParseCIDR(t *testing.T) {
 				if cidr.Gateway.String() != tt.want.Gateway.String() {
 					t.Errorf("ParseCIDR(%s) returned gateway %q, expected %q", tt.arg, cidr.Gateway.String(), tt.want.Gateway.String())
 				}
-				if cidr.RangeStart.String() != tt.want.RangeStart.String() {
-					t.Errorf("ParseCIDR(%s) returned range start %q, expected %q", tt.arg, cidr.RangeStart.String(), tt.want.RangeStart.String())
+				if cidr.DHCPRangeStart.String() != tt.want.DHCPRangeStart.String() {
+					t.Errorf("ParseCIDR(%s) returned range start %q, expected %q", tt.arg, cidr.DHCPRangeStart.String(), tt.want.DHCPRangeStart.String())
+				}
+				if cidr.DHCPRangeEnd.String() != tt.want.DHCPRangeEnd.String() {
+					t.Errorf("ParseCIDR(%s) returned range end %q, expected %q", tt.arg, cidr.DHCPRangeEnd.String(), tt.want.DHCPRangeEnd.String())
 				}
 			}
 		})
