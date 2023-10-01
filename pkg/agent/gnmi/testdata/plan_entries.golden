@@ -79,122 +79,6 @@
       ipv6: null
       state: null
       vlan: null
-  - summary: default BGP 65101
-    path: /openconfig-network-instance:network-instances/network-instance[name=default]
-    value:
-      networkinstance:
-        default:
-          afts: null
-          config: null
-          evpn: null
-          fdb: null
-          globalsag: null
-          interfaces: null
-          macdampening: null
-          name: default
-          neighboursuppress: null
-          nexthoptracking: null
-          protocols:
-            protocol:
-              ? identifier: 1
-                name: bgp
-              : bgp:
-                  global:
-                    afisafis:
-                      afisafi:
-                        3:
-                          afisafiname: 3
-                          aggregateaddressconfig: null
-                          config:
-                            afisafiname: 3
-                            tablemapname: null
-                          defaultroutedistance: null
-                          importnetworkinstance: null
-                          l2vpnevpn: null
-                          networkconfig: null
-                          routeflapdamping: null
-                          state: null
-                          usemultiplepaths: null
-                    confederation: null
-                    config:
-                      as: 65101
-                      clnttoclntreflection: null
-                      coalescetime: null
-                      deterministicmed: null
-                      disableebgpconnectedroutecheck: null
-                      ebgprequirespolicy: null
-                      fastexternalfailover: null
-                      gracefulshutdown: null
-                      holdtime: null
-                      keepaliveinterval: null
-                      maxdynamicneighbors: null
-                      networkimportcheck: null
-                      readquanta: null
-                      routemapprocessdelay: null
-                      routerid: null
-                      writequanta: null
-                    dynamicneighborprefixes: null
-                    globaldefaults: null
-                    gracefulrestart: null
-                    loggingoptions: null
-                    maxmed: null
-                    routereflector: null
-                    routeselectionoptions: null
-                    state: null
-                    updatedelay: null
-                    usemultiplepaths: null
-                  neighbors: null
-                  peergroups: null
-                  rib: null
-                config: null
-                identifier: 1
-                igmp: null
-                igmpsnooping: null
-                mld: null
-                name: bgp
-                ospfv2: null
-                pim: null
-                pimv6: null
-                state: null
-                staticroutes: null
-          rifcounters: null
-          state: null
-          tableconnections: null
-          tables: null
-          vlans: null
-          vxlanvniinstances: null
-  - summary: 'default route distribution '
-    path: /network-instances/network-instance[name=default]/table-connections/table-connection/
-    value:
-      tableconnection:
-        ? srcprotocol: 3
-          dstprotocol: 1
-          addressfamily: 1
-        : addressfamily: 1
-          config:
-            addressfamily: 1
-            defaultimportpolicy: 0
-            dstprotocol: 1
-            importpolicy: []
-            metric: null
-            srcprotocol: 3
-          dstprotocol: 1
-          srcprotocol: 3
-          state: null
-        ? srcprotocol: 15
-          dstprotocol: 1
-          addressfamily: 1
-        : addressfamily: 1
-          config:
-            addressfamily: 1
-            defaultimportpolicy: 0
-            dstprotocol: 1
-            importpolicy: []
-            metric: null
-            srcprotocol: 15
-          dstprotocol: 1
-          srcprotocol: 15
-          state: null
   - summary: Port group 1 speed SPEED_10GB (3)
     path: /openconfig-port-group:port-groups/port-group
     value:
@@ -950,3 +834,119 @@
           tables: null
           vlans: null
           vxlanvniinstances: null
+  - summary: default BGP 65101
+    path: /openconfig-network-instance:network-instances/network-instance[name=default]
+    value:
+      networkinstance:
+        default:
+          afts: null
+          config: null
+          evpn: null
+          fdb: null
+          globalsag: null
+          interfaces: null
+          macdampening: null
+          name: default
+          neighboursuppress: null
+          nexthoptracking: null
+          protocols:
+            protocol:
+              ? identifier: 1
+                name: bgp
+              : bgp:
+                  global:
+                    afisafis:
+                      afisafi:
+                        3:
+                          afisafiname: 3
+                          aggregateaddressconfig: null
+                          config:
+                            afisafiname: 3
+                            tablemapname: null
+                          defaultroutedistance: null
+                          importnetworkinstance: null
+                          l2vpnevpn: null
+                          networkconfig: null
+                          routeflapdamping: null
+                          state: null
+                          usemultiplepaths: null
+                    confederation: null
+                    config:
+                      as: 65101
+                      clnttoclntreflection: null
+                      coalescetime: null
+                      deterministicmed: null
+                      disableebgpconnectedroutecheck: null
+                      ebgprequirespolicy: null
+                      fastexternalfailover: null
+                      gracefulshutdown: null
+                      holdtime: null
+                      keepaliveinterval: null
+                      maxdynamicneighbors: null
+                      networkimportcheck: null
+                      readquanta: null
+                      routemapprocessdelay: null
+                      routerid: null
+                      writequanta: null
+                    dynamicneighborprefixes: null
+                    globaldefaults: null
+                    gracefulrestart: null
+                    loggingoptions: null
+                    maxmed: null
+                    routereflector: null
+                    routeselectionoptions: null
+                    state: null
+                    updatedelay: null
+                    usemultiplepaths: null
+                  neighbors: null
+                  peergroups: null
+                  rib: null
+                config: null
+                identifier: 1
+                igmp: null
+                igmpsnooping: null
+                mld: null
+                name: bgp
+                ospfv2: null
+                pim: null
+                pimv6: null
+                state: null
+                staticroutes: null
+          rifcounters: null
+          state: null
+          tableconnections: null
+          tables: null
+          vlans: null
+          vxlanvniinstances: null
+  - summary: 'default route distribution '
+    path: /network-instances/network-instance[name=default]/table-connections/table-connection/
+    value:
+      tableconnection:
+        ? srcprotocol: 3
+          dstprotocol: 1
+          addressfamily: 1
+        : addressfamily: 1
+          config:
+            addressfamily: 1
+            defaultimportpolicy: 0
+            dstprotocol: 1
+            importpolicy: []
+            metric: null
+            srcprotocol: 3
+          dstprotocol: 1
+          srcprotocol: 3
+          state: null
+        ? srcprotocol: 15
+          dstprotocol: 1
+          addressfamily: 1
+        : addressfamily: 1
+          config:
+            addressfamily: 1
+            defaultimportpolicy: 0
+            dstprotocol: 1
+            importpolicy: []
+            metric: null
+            srcprotocol: 15
+          dstprotocol: 1
+          srcprotocol: 15
+          state: null

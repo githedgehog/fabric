@@ -264,3 +264,21 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 	return earlyApply, readyApply, nil
 }
+
+func subnetsToRanges(subnets []string) ([]string, error) {
+	ranges := []string{}
+	for _, subnet := range subnets {
+		first, last, err := iputil.Range(subnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse subnet %s", subnet)
+		}
+
+		if first == last {
+			ranges = append(ranges, first)
+		} else {
+			ranges = append(ranges, fmt.Sprintf("%s-%s", first, last))
+		}
+	}
+
+	return ranges, nil
+}

@@ -97,6 +97,22 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
+  - nats
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - nats/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
   - vpcattachments
   verbs:
   - create

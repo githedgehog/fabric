@@ -140,6 +140,9 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=nats,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=nats/status,verbs=get;update;patch
+
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
@@ -234,7 +237,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	var nat *vpcapi.NAT
+	nat := &vpcapi.NAT{}
 	err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: "default"}, nat) // TODO support multiple NATs
 	if err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting NAT")
@@ -261,9 +264,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			}
 		}
 
-		if nat != nil {
-			agent.Spec.NAT = nat.Spec
-		}
+		agent.Spec.NAT = nat.Spec
 
 		return nil
 	})

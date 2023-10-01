@@ -3,6 +3,7 @@ package gnmi
 import (
 	"flag"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/openconfig/ygot/ygot"
@@ -131,5 +132,45 @@ func assertGolden(t *testing.T, name string, actual []byte, update *bool, diffCo
 		}
 
 		t.Fatalf("Golden file %s does not match:\n%s", name, diff)
+	}
+}
+
+func TestSubnetsToRanges(t *testing.T) {
+	tests := []struct {
+		name    string
+		subnets []string
+		want    []string
+	}{
+		{
+			name:    "empty",
+			subnets: []string{},
+			want:    []string{},
+		},
+		{
+			name:    "simple",
+			subnets: []string{"192.168.1.0/24"},
+			want:    []string{"192.168.1.0-192.168.1.255"},
+		},
+		{
+			name:    "single",
+			subnets: []string{"192.168.1.0/32"},
+			want:    []string{"192.168.1.0"},
+		},
+		{
+			name:    "multiple",
+			subnets: []string{"192.168.1.0/24", "192.168.1.0/32"},
+			want:    []string{"192.168.1.0-192.168.1.255", "192.168.1.0"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := subnetsToRanges(tt.subnets)
+			if err != nil {
+				t.Errorf("subnetsToRanges() error = %v", err)
+			} else if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("subnetsToRanges() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
