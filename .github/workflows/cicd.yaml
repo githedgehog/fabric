@@ -56,7 +56,7 @@ jobs:
         with:
           limit-access-to-actor: true
 
-  lint-and-dump:
+  test:
     # runs-on: ["lab", "simple", "jammy"]
     runs-on: ubuntu-latest
     needs:
@@ -86,6 +86,10 @@ jobs:
           make manifests generate api-samples docs
           git status --short
           git diff --quiet
+
+      - name: Run tests
+        run: |
+          make test
 
     #   - name: Run linters
     #     run: |
@@ -189,7 +193,7 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
     needs:
       - cache-tools
-      - lint-and-dump
+      - test
       - kind-test-api
       - build
 
