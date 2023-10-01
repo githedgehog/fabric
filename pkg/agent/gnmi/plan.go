@@ -82,7 +82,7 @@ type NAT struct {
 const (
 	VRF_PREFIX     = "Vrf"
 	VRF_PREFIX_VPC = "V"
-	VRF_NAT        = "NATdefault"
+	VRF_NAT        = "Ndefault"
 
 	ASN                 uint32 = 65101
 	ANCHOR_VLAN         uint16 = 500
@@ -209,7 +209,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 	}
 
 	if plan.NAT.PublicIface != "" {
-		readyApply = append(readyApply, EntVrf(VRF_NAT))
+		readyApply = append(readyApply, EntVrf(VRF_PREFIX+VRF_NAT))
 
 		publicIP, err := iputil.ParseCIDR(plan.NAT.PublicIP)
 		if err != nil {
@@ -217,9 +217,9 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		}
 		publicPrefixLen, _ := publicIP.Subnet.Mask.Size()
 
-		readyApply = append(readyApply, EntVrfMember(VRF_NAT, plan.NAT.PublicIface))
-		readyApply = append(readyApply, EntInterfaceNATZone(plan.NAT.PublicIface, NAT_ZONE_PUBLIC))
+		readyApply = append(readyApply, EntVrfMember(VRF_PREFIX+VRF_NAT, plan.NAT.PublicIface))
 		readyApply = append(readyApply, EntInterfaceIP(plan.NAT.PublicIface, publicIP.IP.String(), uint8(publicPrefixLen)))
+		readyApply = append(readyApply, EntInterfaceNATZone(plan.NAT.PublicIface, NAT_ZONE_PUBLIC))
 
 		anchorIP, err := iputil.ParseCIDR(plan.NAT.AnchorIP)
 		if err != nil {
@@ -229,9 +229,9 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 		anchorIface := fmt.Sprintf("Vlan%d", ANCHOR_VLAN)
 		readyApply = append(readyApply, EntVLANInterface(ANCHOR_VLAN, "NAT Anchor Interface"))
-		readyApply = append(readyApply, EntVrfMember(VRF_NAT, anchorIface))
+		readyApply = append(readyApply, EntVrfMember(VRF_PREFIX+VRF_NAT, anchorIface))
+		readyApply = append(readyApply, EntVLANInterfaceConf(ANCHOR_VLAN, anchorIP.IP.String(), uint8(anchorPrefixLen)))
 		readyApply = append(readyApply, EntInterfaceNATZone(anchorIface, NAT_ZONE_PUBLIC))
-		readyApply = append(readyApply, EntInterfaceIP(anchorIface, anchorIP.IP.String(), uint8(anchorPrefixLen)))
 
 		pool := []string{}
 		for idx, cidr := range plan.NAT.Pool {
@@ -246,12 +246,13 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 		for _, vpc := range plan.VPCs {
 			if vpc.SNAT {
-				vrfName := VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name
-				readyApply = append(readyApply, EntInterfaceNATZone(vrfName, NAT_ZONE_OTHER))
+				// TODO is it correct to assign to VLAN interface?
+				readyApply = append(readyApply, EntInterfaceNATZone(fmt.Sprintf("Vlan%d", vpc.VLAN), NAT_ZONE_OTHER))
 			}
 		}
 
 		// TODO is it ok we have default VRF BGP that late?
+		// TODO add back plan.NAT.Pool
 		readyApply = append(readyApply, EntVrfBGP("default", ASN, plan.NAT.Pool, plan.NAT.Neighbor, plan.NAT.RemoteAS))
 	} else {
 		readyApply = append(readyApply, EntVrfBGP("default", ASN, []string{}, "", 0))

@@ -260,7 +260,7 @@ func EntVrfBGP(vrf string, bgpASN uint32, networks []string, neighbor string, re
 	}
 
 	return &Entry{
-		Summary: fmt.Sprintf("%s BGP %d", vrf, bgpASN),
+		Summary: summary,
 		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]", vrf),
 		Value: &oc.OpenconfigNetworkInstance_NetworkInstances{
 			NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
@@ -596,6 +596,7 @@ func EntInterfaceNATZone(iface string, zone uint8) *Entry {
 		Value: &oc.OpenconfigInterfaces_Interfaces{
 			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
 				iface: {
+					Name: ygot.String(iface),
 					NatZone: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone{
 						Config: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone_Config{
 							NatZone: ygot.Uint8(zone),
@@ -623,6 +624,7 @@ func EntNATInstance(id uint32, zone uint8, namePrefix string, natRanges []string
 
 		aclBindingName := fmt.Sprintf("%s-%d", namePrefix, idx)
 		aclBindings[aclBindingName] = &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry{
+			Name: ygot.String(aclBindingName),
 			Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry_Config{
 				Name:    ygot.String(aclBindingName),
 				NatPool: ygot.String(natPoolName),
@@ -632,7 +634,7 @@ func EntNATInstance(id uint32, zone uint8, namePrefix string, natRanges []string
 
 	return &Entry{
 		Summary: fmt.Sprintf("NAT instance %d", id),
-		Path:    fmt.Sprintf("/openconfig-nat/nat/instances/instance[id=%d]", id),
+		Path:    fmt.Sprintf("/openconfig-nat:nat/instances/instance[id=%d]", id),
 		Value: &oc.OpenconfigNat_Nat_Instances{
 			Instance: map[uint32]*oc.OpenconfigNat_Nat_Instances_Instance{
 				id: {
