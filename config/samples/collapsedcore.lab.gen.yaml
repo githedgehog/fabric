@@ -8,6 +8,19 @@ metadata:
 spec:
 ---
 ###
+### default
+###
+apiVersion: vpc.githedgehog.com/v1alpha2
+kind: NAT
+metadata:
+  name: default
+spec:
+  dnat:
+    pool:
+    - 192.168.91.192/26
+  subnet: 192.168.91.0/24
+---
+###
 ### switch-1
 ###
 apiVersion: wiring.githedgehog.com/v1alpha2
@@ -30,9 +43,6 @@ spec:
   portGroupSpeeds:
     "1": SPEED_10GB
     "12": SPEED_10GB
-status:
-  applied:
-    time: null
 ---
 ###
 ### switch-2
@@ -57,9 +67,6 @@ spec:
   portGroupSpeeds:
     "1": SPEED_10GB
     "12": SPEED_10GB
-status:
-  applied:
-    time: null
 ---
 ###
 ### control-1
@@ -127,9 +134,6 @@ spec:
         ip: 192.168.101.0/31
         oniePortName: eth0
         port: switch-1/Management0
-status:
-  applied:
-    time: null
 ---
 ###
 ### control-1--mgmt--switch-2
@@ -152,9 +156,6 @@ spec:
         ip: 192.168.102.0/31
         oniePortName: eth0
         port: switch-2/Management0
-status:
-  applied:
-    time: null
 ---
 ###
 ### server-1--mclag--switch-1--switch-2
@@ -179,9 +180,6 @@ spec:
         port: server-1/enp8s0
       switch:
         port: switch-2/Ethernet46
-status:
-  applied:
-    time: null
 ---
 ###
 ### server-2--mclag--switch-1--switch-2
@@ -206,9 +204,6 @@ spec:
         port: server-2/enp8s0
       switch:
         port: switch-2/Ethernet47
-status:
-  applied:
-    time: null
 ---
 ###
 ### server-3--mclag--switch-1--switch-2
@@ -228,14 +223,11 @@ spec:
     - server:
         port: server-3/ens3f0
       switch:
-        port: switch-1/Ethernet6
+        port: switch-1/Ethernet5
     - server:
         port: server-3/ens3f1
       switch:
-        port: switch-2/Ethernet6
-status:
-  applied:
-    time: null
+        port: switch-2/Ethernet5
 ---
 ###
 ### switch-1--mclag-domain--switch-2
@@ -268,6 +260,47 @@ spec:
         port: switch-1/Ethernet68
       switch2:
         port: switch-2/Ethernet68
-status:
-  applied:
-    time: null
+---
+###
+### switch-1--nat--default
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Connection
+metadata:
+  name: switch-1--nat--default
+spec:
+  nat:
+    link:
+      nat:
+        port: default
+      switch:
+        anchorIP: 192.168.91.129/27
+        ip: 192.168.91.0/31
+        neighborIP: 192.168.91.1/31
+        port: switch-1/Ethernet0
+        remoteAS: 65102
+        snat:
+          pool:
+          - 192.168.91.128/27
+---
+###
+### switch-2--nat--default
+###
+apiVersion: wiring.githedgehog.com/v1alpha2
+kind: Connection
+metadata:
+  name: switch-2--nat--default
+spec:
+  nat:
+    link:
+      nat:
+        port: default
+      switch:
+        anchorIP: 192.168.91.97/27
+        ip: 192.168.91.65/31
+        neighborIP: 192.168.91.64/31
+        port: switch-2/Ethernet0
+        remoteAS: 65102
+        snat:
+          pool:
+          - 192.168.91.96/27

@@ -635,6 +635,8 @@ _Appears in:_
 | `port` _string_ |  |
 | `ip` _string_ |  |
 | `anchorIP` _string_ |  |
+| `neighborIP` _string_ |  |
+| `remoteAS` _integer_ |  |
 | `snat` _[SNAT](#snat)_ |  |
 
 

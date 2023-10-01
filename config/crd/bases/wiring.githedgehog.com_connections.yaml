@@ -139,8 +139,13 @@ spec:
                             type: string
                           ip:
                             type: string
+                          neighborIP:
+                            type: string
                           port:
                             type: string
+                          remoteAS:
+                            format: int32
+                            type: integer
                           snat:
                             properties:
                               pool:

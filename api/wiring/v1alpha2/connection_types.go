@@ -96,6 +96,8 @@ type ConnNATLinkSwitch struct {
 	BasePortName `json:",inline"`
 	IP           string `json:"ip,omitempty"`
 	AnchorIP     string `json:"anchorIP,omitempty"`
+	NeighborIP   string `json:"neighborIP,omitempty"`
+	RemoteAS     uint32 `json:"remoteAS,omitempty"`
 	SNAT         SNAT   `json:"snat,omitempty"`
 }
 
@@ -216,8 +218,7 @@ func (c *ConnectionSpec) GenerateName() string {
 					return "<invalid>" // TODO replace with error?
 				}
 			}
-		}
-		if c.MCLAG != nil {
+		} else if c.MCLAG != nil {
 			role = "mclag"
 			left = c.MCLAG.Links[0].Server.DeviceName()
 			for _, link := range c.MCLAG.Links {
@@ -227,6 +228,10 @@ func (c *ConnectionSpec) GenerateName() string {
 				}
 				right = append(right, link.Switch.DeviceName())
 			}
+		} else if c.NAT != nil {
+			role = "nat"
+			left = c.NAT.Link.Switch.DeviceName()
+			right = []string{c.NAT.Link.NAT.DeviceName()}
 		}
 
 		if left != "" && role != "" && len(right) > 0 {

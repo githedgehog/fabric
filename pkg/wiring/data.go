@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -22,6 +23,7 @@ type Data struct {
 	Connection    *Store[*wiringapi.Connection]
 	SwitchProfile *Store[*wiringapi.SwitchProfile]
 	ServerProfile *Store[*wiringapi.ServerProfile]
+	NAT           *Store[*vpcapi.NAT]
 }
 
 func New(objs ...metav1.Object) (*Data, error) {
@@ -32,6 +34,7 @@ func New(objs ...metav1.Object) (*Data, error) {
 		Connection:    NewStore[*wiringapi.Connection](),
 		SwitchProfile: NewStore[*wiringapi.SwitchProfile](),
 		ServerProfile: NewStore[*wiringapi.ServerProfile](),
+		NAT:           NewStore[*vpcapi.NAT](),
 	}
 
 	return data, data.Add(objs...)
@@ -52,6 +55,8 @@ func (d *Data) Add(objs ...metav1.Object) error {
 			d.SwitchProfile.Add(typed)
 		case *wiringapi.ServerProfile:
 			d.ServerProfile.Add(typed)
+		case *vpcapi.NAT:
+			d.NAT.Add(typed)
 		default:
 			return errors.Errorf("unrecognized obj type")
 		}
@@ -134,6 +139,13 @@ func (d *Data) Write(ret io.Writer) error {
 		}
 	}
 
+	for _, nat := range d.NAT.All() {
+		err := marshal(nat, true, w)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, sw := range d.Switch.All() {
 		err := marshal(sw, true, w)
 		if err != nil {
@@ -173,7 +185,7 @@ func (d *Data) Write(ret io.Writer) error {
 	for scan.Scan() {
 		line := scan.Text()
 
-		if slices.Contains([]string{"status: {}", "  creationTimestamp: null", "  position: {}"}, line) {
+		if slices.Contains([]string{"status: {}", "  creationTimestamp: null", "  position: {}", "status:", "    time: null", "  applied:"}, line) {
 			continue
 		}
 
