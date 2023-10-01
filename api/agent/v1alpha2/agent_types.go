@@ -35,6 +35,7 @@ type AgentSpec struct {
 	Connections   []ConnectionInfo        `json:"connections,omitempty"`
 	VPCs          []vpcapi.VPCSummarySpec `json:"vpcs,omitempty"`
 	VPCVLANRange  string                  `json:"vpcVLANRange,omitempty"`
+	NAT           vpcapi.NATSpec          `json:"nat,omitempty"`
 	PortChannels  map[string]uint16       `json:"portChannels,omitempty"`
 	Reinstall     string                  `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
 	Reboot        string                  `json:"reboot,omitempty"`    // set to RunID to reboot

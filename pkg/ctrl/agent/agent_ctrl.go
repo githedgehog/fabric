@@ -234,6 +234,12 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
+	var nat *vpcapi.NAT
+	err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: "default"}, nat) // TODO support multiple NATs
+	if err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting NAT")
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Labels = sw.Labels
@@ -253,6 +259,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			if err != nil {
 				return errors.Wrapf(err, "error calculating port channels")
 			}
+		}
+
+		if nat != nil {
+			agent.Spec.NAT = nat.Spec
 		}
 
 		return nil
