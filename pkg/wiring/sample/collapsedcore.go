@@ -348,11 +348,11 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 				Links: []wiringapi.ServerToSwitchLink{
 					{
 						Server: wiringapi.NewBasePortName("server-3/ens3f0"),
-						Switch: wiringapi.NewBasePortName("switch-1/Ethernet5"),
+						Switch: wiringapi.NewBasePortName("switch-1/Ethernet4"),
 					},
 					{
 						Server: wiringapi.NewBasePortName("server-3/ens3f1"),
-						Switch: wiringapi.NewBasePortName("switch-2/Ethernet5"),
+						Switch: wiringapi.NewBasePortName("switch-2/Ethernet4"),
 					},
 				},
 			},

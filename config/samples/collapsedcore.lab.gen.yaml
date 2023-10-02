@@ -233,11 +233,11 @@ spec:
     - server:
         port: server-3/ens3f0
       switch:
-        port: switch-1/Ethernet5
+        port: switch-1/Ethernet4
     - server:
         port: server-3/ens3f1
       switch:
-        port: switch-2/Ethernet5
+        port: switch-2/Ethernet4
 status:
 ---
 ###
