@@ -192,6 +192,53 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	return nil
 }
 
+type VPCSNATOptions struct {
+	VPC    string
+	Enable bool
+}
+
+func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error {
+	if options.VPC == "" {
+		return errors.Errorf("vpc is required")
+	}
+
+	kube, err := kubeClient()
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	vpc := &vpcapi.VPC{}
+	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: "default"}, vpc) // TODO ns
+	if err != nil {
+		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
+	}
+
+	vpc.Spec.SNAT = options.Enable
+
+	err = kube.Update(ctx, vpc)
+	if err != nil {
+		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
+	}
+
+	slog.Info("VPC SNAT set", "vpc", vpc.Name, "snat", vpc.Spec.SNAT)
+
+	if printYaml {
+		vpc.ObjectMeta.ManagedFields = nil
+		vpc.ObjectMeta.Generation = 0
+		vpc.ObjectMeta.ResourceVersion = ""
+		vpc.Status = vpcapi.VPCStatus{}
+
+		out, err := yaml.Marshal(vpc)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc")
+		}
+
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
 type VPCDNATOptions struct {
 	VPC      string
 	Requests []string
