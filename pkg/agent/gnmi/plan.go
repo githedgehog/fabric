@@ -86,8 +86,8 @@ const (
 
 	ASN                 uint32 = 65101
 	ANCHOR_VLAN         uint16 = 500
-	NAT_ZONE_PUBLIC            = 0
-	NAT_ZONE_OTHER             = 1
+	NAT_ZONE_PUBLIC            = 1
+	NAT_ZONE_OTHER             = 0
 	NAT_INSTANCE_ID            = 0
 	NAT_ACL_POOL_PREFIX        = "public"
 )
@@ -217,7 +217,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 	}
 
 	if plan.NAT.PublicIface != "" && nat {
-		// readyApply = append(readyApply, EntVrf(VRF_PREFIX+VRF_NAT))
+		readyApply = append(readyApply, EntVrf(VRF_PREFIX+VRF_NAT))
 
 		publicIP, err := iputil.ParseCIDR(plan.NAT.PublicIP)
 		if err != nil {
@@ -225,7 +225,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		}
 		publicPrefixLen, _ := publicIP.Subnet.Mask.Size()
 
-		// readyApply = append(readyApply, EntVrfMember(VRF_PREFIX+VRF_NAT, plan.NAT.PublicIface))
+		readyApply = append(readyApply, EntVrfMember(VRF_PREFIX+VRF_NAT, plan.NAT.PublicIface))
 		readyApply = append(readyApply, EntInterfaceIP(plan.NAT.PublicIface, publicIP.IP.String(), uint8(publicPrefixLen)))
 		readyApply = append(readyApply, EntInterfaceNATZone(plan.NAT.PublicIface, NAT_ZONE_PUBLIC))
 		readyApply = append(readyApply, EntInterfaceUP(plan.NAT.PublicIface))
@@ -238,7 +238,7 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 		anchorIface := fmt.Sprintf("Vlan%d", ANCHOR_VLAN)
 		readyApply = append(readyApply, EntVLANInterface(ANCHOR_VLAN, "NAT Anchor Interface"))
-		// readyApply = append(readyApply, EntVrfMember(VRF_PREFIX+VRF_NAT, anchorIface))
+		readyApply = append(readyApply, EntVrfMember(VRF_PREFIX+VRF_NAT, anchorIface))
 		readyApply = append(readyApply, EntVLANInterfaceConf(ANCHOR_VLAN, anchorIP.IP.String(), uint8(anchorPrefixLen)))
 		readyApply = append(readyApply, EntInterfaceNATZone(anchorIface, NAT_ZONE_PUBLIC))
 
@@ -256,8 +256,8 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		// Temp hack to avoid NAT on out NAT Public IP
 		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, publicIP.IP.String(), publicIP.IP.String()))
 
-		readyApply = append(readyApply, EntVrfBGP("default", ASN, plan.NAT.Pool, plan.NAT.Neighbor, plan.NAT.RemoteAS))
-		readyApply = append(readyApply, EntBGPRouteDistribution("default", ""))
+		readyApply = append(readyApply, EntVrfBGP(VRF_PREFIX+VRF_NAT, ASN, plan.NAT.Pool, plan.NAT.Neighbor, plan.NAT.RemoteAS))
+		readyApply = append(readyApply, EntBGPRouteDistribution(VRF_PREFIX+VRF_NAT, ""))
 
 		// Temp hack to avoid NAT on MCLAG Session IPs
 		sourceIP, _, err := net.ParseCIDR(plan.MCLAGDomain.SourceIP)
@@ -277,14 +277,14 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 			if vpc.SNAT {
 				// readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_NAT, []string{VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name}))
 				// readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_PREFIX_VPC+vpc.Name, []string{VRF_PREFIX + VRF_NAT}))
-				readyApply = append(readyApply, EntVrfImportRoutes("default", []string{VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name}))
-				readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_PREFIX_VPC+vpc.Name, []string{"default"}))
+				readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_NAT, []string{VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name}))
+				readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_PREFIX_VPC+vpc.Name, []string{VRF_PREFIX + VRF_NAT}))
 			}
 		}
 
 		for privateIP, externalIP := range plan.StaticNAT {
 			readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, privateIP, externalIP))
-			readyApply = append(readyApply, EntVrfBGP("default", ASN, []string{externalIP + "/32"}, "", plan.NAT.RemoteAS))
+			readyApply = append(readyApply, EntVrfBGP(VRF_PREFIX+VRF_NAT, ASN, []string{externalIP + "/32"}, "", plan.NAT.RemoteAS))
 		}
 	}
 

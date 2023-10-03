@@ -166,7 +166,7 @@ func EntInterfaceIP(iface, ip string, prefixLen uint8) *Entry {
 
 func EntMCLAGDomain(id uint32, sourceIP, peerIP, peerLink string) *Entry {
 	return &Entry{
-		Summary: fmt.Sprintf("MCLAG domain %d", id),
+		Summary: fmt.Sprintf("MCLAG domain %d (peer link %s)", id, peerLink),
 		Path:    "/mclag/mclag-domains/",
 		Value: &oc.OpenconfigMclag_Mclag{
 			MclagDomains: &oc.OpenconfigMclag_Mclag_MclagDomains{
