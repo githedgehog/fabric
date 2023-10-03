@@ -226,9 +226,12 @@ func EntVrf(vrf string) *Entry {
 func EntVrfBGP(vrf string, bgpASN uint32, networks []string, neighbor string, remoteAS uint32) *Entry {
 	summary := fmt.Sprintf("%s BGP %d", vrf, bgpASN)
 
+	networkImportCheck := true
+
 	var neighborsConf *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors
 	if neighbor != "" {
 		summary += fmt.Sprintf(" neighbor %s", neighbor)
+		networkImportCheck = false
 		neighborsConf = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
 				neighbor: {
@@ -238,6 +241,17 @@ func EntVrfBGP(vrf string, bgpASN uint32, networks []string, neighbor string, re
 						PeerAs:          ygot.Uint32(remoteAS),
 						Enabled:         ygot.Bool(true),
 					},
+					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
+						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{
+							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
+								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+								Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Config{
+									AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+									Enabled:     ygot.Bool(true),
+								},
+							},
+						},
+					},
 				},
 			},
 		}
@@ -246,6 +260,7 @@ func EntVrfBGP(vrf string, bgpASN uint32, networks []string, neighbor string, re
 	var netConf *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig
 	if len(networks) > 0 {
 		summary += fmt.Sprintf(" networks %s", strings.Join(networks, ","))
+		networkImportCheck = false
 		netConf = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig{
 			Network: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network{},
 		}
@@ -281,7 +296,8 @@ func EntVrfBGP(vrf string, bgpASN uint32, networks []string, neighbor string, re
 								Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
 									Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
 										Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
-											As: ygot.Uint32(bgpASN),
+											As:                 ygot.Uint32(bgpASN),
+											NetworkImportCheck: ygot.Bool(networkImportCheck),
 										},
 										AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
 											AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
@@ -628,6 +644,7 @@ func EntNATInstance(id uint32, zone uint8, namePrefix string, natRanges []string
 			Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry_Config{
 				Name:    ygot.String(aclBindingName),
 				NatPool: ygot.String(natPoolName),
+				Type:    oc.OpenconfigNat_NAT_TYPE_SNAT,
 			},
 		}
 	}
@@ -670,6 +687,37 @@ func EntStaticNAT(id uint32, privateIP, externalIP string) *Entry {
 								Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable_NatMappingEntry_Config{
 									ExternalAddress: ygot.String(externalIP),
 									InternalAddress: ygot.String(privateIP),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func EntStaticRoute(vrf string, prefix, nextHop string) *Entry {
+	// {"openconfig-network-instance:static-routes": {"static": [{"prefix": "0.0.0.0/0", "next-hops": {"next-hop": [{"index": "192.168.91.1", "config": {"index": "192.168.91.1", "next-hop": "192.168.91.1"}}]}}]}}
+
+	return &Entry{
+		Summary: fmt.Sprintf("%s Static route %s -> %s", vrf, prefix, nextHop),
+		Path:    fmt.Sprintf("/openconfig-network-instance:network-instances/network-instance[name=%s]/protocols/protocol[identifier=STATIC][name=static]/static-routes", vrf),
+		Value: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+			Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+			Name:       ygot.String("static"),
+			StaticRoutes: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes{
+				Static: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static{
+					prefix: {
+						Prefix: ygot.String(prefix),
+						NextHops: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops{
+							NextHop: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{
+								nextHop: {
+									Index: ygot.String(nextHop),
+									Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_Config{
+										Index:   ygot.String(nextHop),
+										NextHop: oc.UnionString(nextHop),
+									},
 								},
 							},
 						},

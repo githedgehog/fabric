@@ -348,7 +348,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 		return nil
 	}
 
-	slog.Info("Agent config changed", "current", currentGen, "new", agent.Generation)
+	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
 
 	// demonstrating that we're going to try to apply config
 	agent.Status.LastAttemptGen = agent.Generation
