@@ -260,8 +260,16 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 		readyApply = append(readyApply, EntBGPRouteDistribution("default", ""))
 
 		// Temp hack to avoid NAT on MCLAG Session IPs
-		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, plan.MCLAGDomain.SourceIP, plan.MCLAGDomain.SourceIP))
-		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, plan.MCLAGDomain.PeerIP, plan.MCLAGDomain.PeerIP))
+		sourceIP, _, err := net.ParseCIDR(plan.MCLAGDomain.SourceIP)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to parse mclag source ip %s", plan.MCLAGDomain.SourceIP)
+		}
+		peerIP, _, err := net.ParseCIDR(plan.MCLAGDomain.PeerIP)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to parse mclag peer ip %s", plan.MCLAGDomain.PeerIP)
+		}
+		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, sourceIP.String(), sourceIP.String()))
+		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, peerIP.String(), peerIP.String()))
 
 		for _, vpc := range plan.VPCs {
 			readyApply = append(readyApply, EntInterfaceNATZone(fmt.Sprintf("Vlan%d", vpc.VLAN), NAT_ZONE_OTHER))
