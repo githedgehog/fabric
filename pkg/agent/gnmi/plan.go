@@ -87,7 +87,6 @@ const (
 	ASN                 uint32 = 65101
 	ANCHOR_VLAN         uint16 = 500
 	NAT_ZONE_PUBLIC            = 1
-	NAT_ZONE_OTHER             = 0
 	NAT_INSTANCE_ID            = 0
 	NAT_ACL_POOL_PREFIX        = "public"
 )
@@ -253,30 +252,26 @@ func (plan *Plan) Entries() ([]*Entry, []*Entry, error) {
 
 		readyApply = append(readyApply, EntNATInstance(NAT_INSTANCE_ID, NAT_ZONE_PUBLIC, NAT_ACL_POOL_PREFIX, pool))
 
-		// Temp hack to avoid NAT on out NAT Public IP
-		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, publicIP.IP.String(), publicIP.IP.String()))
+		// // Temp hack to avoid NAT on out NAT Public IP
+		// readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, publicIP.IP.String(), publicIP.IP.String()))
 
 		readyApply = append(readyApply, EntVrfBGP(VRF_PREFIX+VRF_NAT, ASN, plan.NAT.Pool, plan.NAT.Neighbor, plan.NAT.RemoteAS))
 		readyApply = append(readyApply, EntBGPRouteDistribution(VRF_PREFIX+VRF_NAT, ""))
 
-		// Temp hack to avoid NAT on MCLAG Session IPs
-		sourceIP, _, err := net.ParseCIDR(plan.MCLAGDomain.SourceIP)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to parse mclag source ip %s", plan.MCLAGDomain.SourceIP)
-		}
-		peerIP, _, err := net.ParseCIDR(plan.MCLAGDomain.PeerIP)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to parse mclag peer ip %s", plan.MCLAGDomain.PeerIP)
-		}
-		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, sourceIP.String(), sourceIP.String()))
-		readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, peerIP.String(), peerIP.String()))
+		// // Temp hack to avoid NAT on MCLAG Session IPs
+		// sourceIP, _, err := net.ParseCIDR(plan.MCLAGDomain.SourceIP)
+		// if err != nil {
+		// 	return nil, nil, errors.Wrapf(err, "failed to parse mclag source ip %s", plan.MCLAGDomain.SourceIP)
+		// }
+		// peerIP, _, err := net.ParseCIDR(plan.MCLAGDomain.PeerIP)
+		// if err != nil {
+		// 	return nil, nil, errors.Wrapf(err, "failed to parse mclag peer ip %s", plan.MCLAGDomain.PeerIP)
+		// }
+		// readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, sourceIP.String(), sourceIP.String()))
+		// readyApply = append(readyApply, EntStaticNAT(NAT_INSTANCE_ID, peerIP.String(), peerIP.String()))
 
 		for _, vpc := range plan.VPCs {
-			readyApply = append(readyApply, EntInterfaceNATZone(fmt.Sprintf("Vlan%d", vpc.VLAN), NAT_ZONE_OTHER))
-
 			if vpc.SNAT {
-				// readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_NAT, []string{VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name}))
-				// readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_PREFIX_VPC+vpc.Name, []string{VRF_PREFIX + VRF_NAT}))
 				readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_NAT, []string{VRF_PREFIX + VRF_PREFIX_VPC + vpc.Name}))
 				readyApply = append(readyApply, EntVrfImportRoutes(VRF_PREFIX+VRF_PREFIX_VPC+vpc.Name, []string{VRF_PREFIX + VRF_NAT}))
 			}

@@ -174,8 +174,6 @@ spec:
                                   type: object
                                 switch:
                                   properties:
-                                    anchorIP:
-                                      type: string
                                     ip:
                                       type: string
                                     neighborIP:
@@ -221,17 +219,15 @@ spec:
               nat:
                 description: NATSpec defines the desired state of NAT
                 properties:
-                  dnat:
-                    properties:
-                      pool:
-                        items:
-                          type: string
-                        type: array
-                    required:
-                    - pool
-                    type: object
+                  dnatPool:
+                    items:
+                      type: string
+                    type: array
+                  subnet:
+                    type: string
                 required:
-                - dnat
+                - dnatPool
+                - subnet
                 type: object
               portChannels:
                 additionalProperties:

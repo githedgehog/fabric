@@ -15,9 +15,9 @@ kind: NAT
 metadata:
   name: default
 spec:
-  dnat:
-    pool:
-    - 192.168.91.192/26
+  dnatPool:
+  - 172.2.2.192/27
+  subnet: 172.2.2.1/24
 status:
   dnat:
     assigned: 0
@@ -289,14 +289,13 @@ spec:
       nat:
         port: default
       switch:
-        anchorIP: 192.168.91.129/27
         ip: 192.168.91.0/31
         neighborIP: 192.168.91.1
         port: switch-1/Ethernet0
         remoteAS: 65102
         snat:
           pool:
-          - 192.168.91.128/27
+          - 172.2.2.0/27
 status:
 ---
 ###
@@ -315,12 +314,11 @@ spec:
       nat:
         port: default
       switch:
-        anchorIP: 192.168.91.97/27
         ip: 192.168.91.65/31
         neighborIP: 192.168.91.64
         port: switch-2/Ethernet0
         remoteAS: 65102
         snat:
           pool:
-          - 192.168.91.96/27
+          - 172.2.2.96/27
 status:

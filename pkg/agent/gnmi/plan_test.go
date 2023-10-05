@@ -114,7 +114,7 @@ func assertGolden(t *testing.T, name string, actual []byte, update *bool, diffCo
 
 	expected, err := os.ReadFile("testdata/" + name)
 	if err != nil {
-		t.Fatalf("Errir reading golden file %s: %s", file, err)
+		t.Fatalf("Error reading golden file %s: %s", file, err)
 	}
 
 	if string(expected) != string(actual) {

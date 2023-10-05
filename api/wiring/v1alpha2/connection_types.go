@@ -95,7 +95,6 @@ type ConnMCLAGDomain struct {
 type ConnNATLinkSwitch struct {
 	BasePortName `json:",inline"`
 	IP           string `json:"ip,omitempty"`
-	AnchorIP     string `json:"anchorIP,omitempty"`
 	NeighborIP   string `json:"neighborIP,omitempty"`
 	RemoteAS     uint32 `json:"remoteAS,omitempty"`
 	SNAT         SNAT   `json:"snat,omitempty"`
@@ -427,6 +426,8 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client) 
 			}
 		}
 	}
+
+	// TODO validate that snat pool is in the nat subnet and unique per conn type=nat
 
 	return nil, nil
 }

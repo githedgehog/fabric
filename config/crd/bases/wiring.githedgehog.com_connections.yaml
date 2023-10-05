@@ -135,8 +135,6 @@ spec:
                         type: object
                       switch:
                         properties:
-                          anchorIP:
-                            type: string
                           ip:
                             type: string
                           neighborIP:

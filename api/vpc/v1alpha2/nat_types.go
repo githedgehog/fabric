@@ -29,11 +29,8 @@ import (
 
 // NATSpec defines the desired state of NAT
 type NATSpec struct {
-	DNAT DNAT `json:"dnat"`
-}
-
-type DNAT struct {
-	Pool []string `json:"pool"`
+	Subnet   string   `json:"subnet"`
+	DNATPool []string `json:"dnatPool"`
 }
 
 // NATStatus defines the observed state of NAT
@@ -51,7 +48,7 @@ type DNATStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;fabric;wiring
 // +kubebuilder:printcolumn:name="Subnet",type=string,JSONPath=`.spec.subnet`,priority=0
-// +kubebuilder:printcolumn:name="DNAT",type=string,JSONPath=`.spec.dnat`,priority=0
+// +kubebuilder:printcolumn:name="DNAT_Pool",type=string,JSONPath=`.spec.dnatPool`,priority=0
 // +kubebuilder:printcolumn:name="DNAT_AVAILABLE",type=boolean,JSONPath=`.status.dnat.available`,priority=0
 // +kubebuilder:printcolumn:name="DNAT_ASSIGNED",type=boolean,JSONPath=`.status.dnat.assigned`,priority=0
 // +kubebuilder:printcolumn:name="DNAT_ASSIGNED_L",type=boolean,JSONPath=`.status.dnat.assignedList`,priority=1
@@ -85,6 +82,8 @@ func (nat *NAT) Validate(ctx context.Context, client validation.Client) (admissi
 	if nat.Name != "default" {
 		return nil, errors.Errorf("NAT name must be default") // TODO support more than one NAT
 	}
+
+	// TODO validate subnet and dnatPool belongs to the subnet
 
 	return nil, nil
 }

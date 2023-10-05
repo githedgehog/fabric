@@ -22,8 +22,8 @@ spec:
     - jsonPath: .spec.subnet
       name: Subnet
       type: string
-    - jsonPath: .spec.dnat
-      name: DNAT
+    - jsonPath: .spec.dnatPool
+      name: DNAT_Pool
       type: string
     - jsonPath: .status.dnat.available
       name: DNAT_AVAILABLE
@@ -58,17 +58,15 @@ spec:
           spec:
             description: NATSpec defines the desired state of NAT
             properties:
-              dnat:
-                properties:
-                  pool:
-                    items:
-                      type: string
-                    type: array
-                required:
-                - pool
-                type: object
+              dnatPool:
+                items:
+                  type: string
+                type: array
+              subnet:
+                type: string
             required:
-            - dnat
+            - dnatPool
+            - subnet
             type: object
           status:
             description: NATStatus defines the observed state of NAT

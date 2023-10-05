@@ -192,20 +192,6 @@ Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 
 
 
-#### DNAT
-
-
-
-
-
-_Appears in:_
-- [NATSpec](#natspec)
-
-| Field | Description |
-| --- | --- |
-| `pool` _string array_ |  |
-
-
 #### DNATStatus
 
 
@@ -251,7 +237,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `dnat` _[DNAT](#dnat)_ |  |
+| `subnet` _string_ |  |
+| `dnatPool` _string array_ |  |
 
 
 #### NATStatus
@@ -664,7 +651,6 @@ _Appears in:_
 | --- | --- |
 | `port` _string_ |  |
 | `ip` _string_ |  |
-| `anchorIP` _string_ |  |
 | `neighborIP` _string_ |  |
 | `remoteAS` _integer_ |  |
 | `snat` _[SNAT](#snat)_ |  |

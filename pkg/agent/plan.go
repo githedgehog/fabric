@@ -8,6 +8,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/gnmi"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"golang.org/x/exp/maps"
 )
 
@@ -191,10 +192,17 @@ func PreparePlan(agent *agentapi.Agent) (*gnmi.Plan, error) {
 	if natConn != nil {
 		info := natConn.NAT.Link.Switch
 
+		cidr, err := iputil.ParseCIDR(agent.Spec.NAT.Subnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot parse cidr %s", agent.Spec.NAT.Subnet)
+		}
+
+		prefixLen, _ := cidr.Subnet.Mask.Size()
+
 		plan.NAT = gnmi.NAT{
 			PublicIface: info.LocalPortName(),
 			PublicIP:    info.IP,
-			AnchorIP:    info.AnchorIP, // TODO just use first address from the pool
+			AnchorIP:    fmt.Sprintf("%s/%d", cidr.Gateway.String(), prefixLen),
 			Pool:        info.SNAT.Pool,
 			Neighbor:    info.NeighborIP,
 			RemoteAS:    info.RemoteAS,

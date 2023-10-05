@@ -40,10 +40,9 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	_, err = createNAT(data, "default", vpcapi.NATSpec{
-		DNAT: vpcapi.DNAT{
-			Pool: []string{
-				"192.168.91.192/26", // 192.168.91.193 - 192.168.91.254
-			},
+		Subnet: "172.2.2.1/24",
+		DNATPool: []string{
+			"172.2.2.192/27",
 		},
 	})
 	if err != nil {
@@ -124,10 +123,9 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 					IP:           "192.168.91.0/31",
 					NeighborIP:   "192.168.91.1",
 					RemoteAS:     65102,
-					AnchorIP:     "192.168.91.129/27",
 					SNAT: wiringapi.SNAT{
 						Pool: []string{
-							"192.168.91.128/27",
+							"172.2.2.0/27",
 						},
 					},
 				},
@@ -148,10 +146,9 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 					IP:           "192.168.91.65/31",
 					NeighborIP:   "192.168.91.64",
 					RemoteAS:     65102,
-					AnchorIP:     "192.168.91.97/27",
 					SNAT: wiringapi.SNAT{
 						Pool: []string{
-							"192.168.91.96/27",
+							"172.2.2.96/27",
 						},
 					},
 				},
