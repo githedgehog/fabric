@@ -123,6 +123,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.RunID = svc.runID
 		agent.Status.Version = svc.Version
 		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
+		if agent.Status.Conditions == nil {
+			agent.Status.Conditions = []metav1.Condition{}
+		}
 
 		nosInfo, err := svc.client.GetNOSInfo(ctx)
 		if err != nil {
