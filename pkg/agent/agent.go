@@ -344,6 +344,9 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 
 	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
 
+	if agent.Status.Conditions == nil {
+		agent.Status.Conditions = []metav1.Condition{}
+	}
 	// TODO
 	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
 		Type:               "Applied",
