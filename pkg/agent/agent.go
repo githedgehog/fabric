@@ -124,15 +124,6 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.Version = svc.Version
 		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
 
-		// TODO
-		apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
-			Type:               "Applied",
-			Status:             metav1.ConditionFalse,
-			Reason:             "ApplyPending",
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
-		})
-
 		nosInfo, err := svc.client.GetNOSInfo(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed to get initial NOS info")
@@ -349,6 +340,15 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	}
 
 	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
+
+	// TODO
+	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+		Type:               "Applied",
+		Status:             metav1.ConditionFalse,
+		Reason:             "ApplyPending",
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
+	})
 
 	// demonstrating that we're going to try to apply config
 	agent.Status.LastAttemptGen = agent.Generation
