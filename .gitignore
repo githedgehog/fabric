@@ -1,5 +1,8 @@
 .DS_Store
 kubeconfig
+*.test
+*.report.json
+*.report.xml
 
 # Binaries for programs and plugins
 *.exe
