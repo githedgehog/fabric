@@ -104,12 +104,17 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 			return nil, errors.Wrapf(err, "failed to get vpc %s", attach.Spec.VPC) // TODO replace with some internal error to not expose to the user
 		}
 
-		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, &wiringapi.Connection{}) // TODO namespace could be different?
+		conn := &wiringapi.Connection{}
+		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn) // TODO namespace could be different?
 		if apierrors.IsNotFound(err) {
 			return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 		}
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+
+		if conn.Spec.MCLAG == nil && conn.Spec.Unbundled == nil {
+			return nil, errors.Errorf("vpc could be attached only to MCLAG and Unbundled connections")
 		}
 
 		attaches := &VPCAttachmentList{}
