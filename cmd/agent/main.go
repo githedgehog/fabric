@@ -29,7 +29,7 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/agent"
-	"go.githedgehog.com/fabric/pkg/agent/gnmi"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
 	"gopkg.in/natefinch/lumberjack.v2"
 )

@@ -1,26 +1,24 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	_ "embed"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
-	osuser "os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/agent/gnmi"
+	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,10 +50,11 @@ type Service struct {
 	ApplyOnce       bool
 	SkipActions     bool
 
-	client    *gnmi.Client
-	name      string
-	installID string
-	runID     string
+	gnmiClient *gnmi.Client
+	processor  dozer.Processor
+	name       string
+	installID  string
+	runID      string
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
@@ -71,11 +70,13 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		return errors.Wrap(err, "failed to load config")
 	}
 
-	svc.client, err = getClient()
+	svc.gnmiClient, err = getClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create gNMI client")
 	}
-	defer svc.client.Close()
+	defer svc.gnmiClient.Close()
+
+	svc.processor = bcm.Processor(svc.gnmiClient)
 
 	err = svc.processAgent(ctx, agent, true)
 	if err != nil {
@@ -127,7 +128,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			agent.Status.Conditions = []metav1.Condition{}
 		}
 
-		nosInfo, err := svc.client.GetNOSInfo(ctx)
+		nosInfo, err := svc.processor.Info(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed to get initial NOS info")
 		}
@@ -160,7 +161,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			case <-time.After(30 * time.Second):
 				slog.Debug("Sending heartbeat")
 
-				nosInfo, err := svc.client.GetNOSInfo(ctx)
+				nosInfo, err := svc.processor.Info(ctx)
 				if err != nil {
 					return errors.Wrapf(err, "failed to get heartbeat NOS info")
 				}
@@ -219,23 +220,14 @@ func (svc *Service) setInstallAndRunIDs() error {
 func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
-	plan, err := PreparePlan(agent)
+	desired, err := svc.processor.PlanDesiredState(ctx, agent)
 	if err != nil {
-		return errors.Wrap(err, "failed to process config to prepare plan")
+		return errors.Wrapf(err, "failed to plan spec")
 	}
-
-	earlyApply, readyApply, err := plan.Entries()
-	if err != nil {
-		return errors.Wrap(err, "failed to generate plan entries")
-	}
-	slog.Debug("Plan entries generated")
-
-	if svc.DryRun {
-		return nil
-	}
+	slog.Debug("Desired state generated")
 
 	if !svc.SkipControlLink {
-		if err := svc.ensureControlLink(agent); err != nil {
+		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
 			return errors.Wrap(err, "failed to ensure control link")
 		}
 		slog.Info("Control link configuration applied")
@@ -243,96 +235,81 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		slog.Info("Control link configuration is skipped")
 	}
 
-	err = svc.client.Set(ctx, earlyApply...)
-	if err != nil {
-		return errors.Wrap(err, "failed to early apply config")
-	}
-	slog.Debug("Early apply done", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
-
-	for _, user := range agent.Spec.Users {
-		slog.Debug("Setting authorized_keys", "user", user.Name)
-		osUser, err := osuser.Lookup(user.Name)
-		if err != nil {
-			return errors.Wrapf(err, "failed to lookup user %s", user.Name)
-		}
-
-		uid, err := strconv.Atoi(osUser.Uid)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse uid %s", osUser.Uid)
-		}
-		gid, err := strconv.Atoi(osUser.Gid)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse gid %s", osUser.Gid)
-		}
-
-		sshDir := filepath.Join("/home", user.Name, ".ssh")
-		err = os.MkdirAll(sshDir, 0o700)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create ssh dir %s", sshDir)
-		}
-
-		err = os.Chown(sshDir, uid, gid)
-		if err != nil {
-			return errors.Wrapf(err, "failed to chown ssh dir %s", sshDir)
-		}
-
-		err = os.WriteFile(filepath.Join(sshDir, "authorized_keys"), []byte(
-			strings.Join(append([]string{
-				"# Hedgehog Agent managed keys, do not edit manually",
-			}, user.SSHKeys...), "\n")+"\n",
-		), 0o644)
-		if err != nil {
-			return errors.Wrapf(err, "failed to write authorized_keys for user %s", user.Name)
-		}
-
-		err = os.Chown(filepath.Join(sshDir, "authorized_keys"), uid, gid)
-		if err != nil {
-			return errors.Wrapf(err, "failed to chown authorized_keys for user %s", user.Name)
-		}
-	}
-
 	if readyCheck {
-		err = svc.waitForSystemStatusReady(ctx)
-		if err != nil {
+		if err := svc.processor.WaitReady(ctx); err != nil {
 			return errors.Wrap(err, "failed to wait for system status ready")
 		}
 	}
 
-	err = svc.client.Set(ctx, readyApply...)
+	actual, err := svc.processor.LoadActualState(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to ready apply config")
+		return errors.Wrapf(err, "failed to load actual state")
 	}
-	slog.Debug("Ready apply done", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+	slog.Debug("Actual state loaded")
+
+	actions, err := svc.processor.CalculateActions(ctx, actual, desired)
+	if err != nil {
+		return errors.Wrapf(err, "failed to calculate spec")
+	}
+	slog.Debug("Actions calculated", "count", len(actions))
+
+	actual.CleanupSensetive()
+	desired.CleanupSensetive()
+
+	desiredData, err := desired.MarshalYAML()
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal desired spec")
+	}
+
+	// TODO save last desired state
+	// err = os.WriteFile("desired.yaml", desiredData, 0o644)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to write desired spec")
+	// }
+
+	actualData, err := actual.MarshalYAML()
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal actual spec")
+	}
+
+	// TODO save last actual state
+	// err = os.WriteFile("actual.yaml", actualData, 0o644)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to write actual spec")
+	// }
+
+	diff, err := dozer.SpecTextDiff(actualData, desiredData)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate diff")
+	}
+
+	if slog.Default().Enabled(ctx, slog.LevelDebug) {
+		// TODO skip if diff is empty
+		for _, line := range strings.SplitAfter(string(diff), "\n") {
+			line = strings.TrimRight(line, "\n")
+			if strings.ReplaceAll(line, " ", "") == "" {
+				continue
+			}
+			slog.Debug("Actual <> Desired", "diff", line)
+		}
+	}
+
+	if svc.DryRun {
+		slog.Warn("Dry run, exiting")
+		return nil
+	}
+
+	slog.Info("Applying actions", "count", len(actions))
+
+	warnings, err := svc.processor.ApplyActions(ctx, actions)
+	if err != nil {
+		return errors.Wrapf(err, "failed to apply actions")
+	}
+	for _, warning := range warnings {
+		slog.Warn("Action warning: " + warning)
+	}
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
-
-	return nil
-}
-
-func (svc *Service) waitForSystemStatusReady(ctx context.Context) error {
-	// TODO think about better timeout handling
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	for {
-		slog.Debug("Checking if system is ready")
-
-		buf := &bytes.Buffer{}
-		// TODO figure out how to call gNMI actions(rpcs?) from agent
-		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", "admin")
-		cmd.Stdout = io.MultiWriter(buf, os.Stdout)
-		cmd.Stderr = os.Stdout
-		err := cmd.Run()
-		if err != nil {
-			return errors.Wrap(err, "failed to run sonic-cli: show system status brief")
-		}
-
-		if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
-			break
-		}
-
-		time.Sleep(3 * time.Second)
-	}
 
 	return nil
 }
@@ -347,7 +324,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	if agent.Status.Conditions == nil {
 		agent.Status.Conditions = []metav1.Condition{}
 	}
-	// TODO
+	// TODO better handle status condtions
 	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
 		Type:               "Applied",
 		Status:             metav1.ConditionFalse,

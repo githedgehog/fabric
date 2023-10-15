@@ -16,7 +16,7 @@ ExecStart={{ .BinPath }} start
 Environment=KUBECONFIG=/etc/sonic/hedgehog/agent-kubeconfig
 
 Restart=always
-RestartSec=2
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

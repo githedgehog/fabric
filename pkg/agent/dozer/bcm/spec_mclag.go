@@ -1,0 +1,125 @@
+package bcm
+
+import (
+	"context"
+	"strings"
+
+	"github.com/openconfig/gnmic/api"
+	"github.com/openconfig/ygot/ygot"
+	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+)
+
+var specMCLAGDomainsEnforcer = &DefaultMapEnforcer[uint32, *dozer.SpecMCLAGDomain]{
+	Summary:      "MCLAG domains",
+	ValueHandler: specMCLAGDomainEnforcer,
+}
+
+var specMCLAGDomainEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecMCLAGDomain]{
+	Summary:      "MCLAG domain %d",
+	Path:         "/mclag/mclag-domains/mclag-domain[domain-id=%d]",
+	UpdateWeight: ActionWeightMCLAGDomainUpdate,
+	DeleteWeight: ActionWeightMCLAGDomainDelete,
+	Marshal: func(id uint32, value *dozer.SpecMCLAGDomain) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigMclag_Mclag_MclagDomains{
+			MclagDomain: map[uint32]*oc.OpenconfigMclag_Mclag_MclagDomains_MclagDomain{
+				id: {
+					Config: &oc.OpenconfigMclag_Mclag_MclagDomains_MclagDomain_Config{
+						DomainId:      ygot.Uint32(id),
+						SourceAddress: ygot.String(strings.SplitN(value.SourceIP, "/", 2)[0]), // TODO is it good enough?
+						PeerAddress:   ygot.String(strings.SplitN(value.PeerIP, "/", 2)[0]),
+						PeerLink:      ygot.String(value.PeerLink),
+					},
+					DomainId: ygot.Uint32(id),
+				},
+			},
+		}, nil
+	},
+}
+
+var specMCLAGInterfacesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecMCLAGInterface]{
+	Summary:      "MCLAG interfaces",
+	ValueHandler: specMCLAGInterfaceEnforcer,
+}
+
+var specMCLAGInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecMCLAGInterface]{
+	Summary:      "MCLAG interface %s",
+	Path:         "/mclag/interfaces/interface[name=%s]",
+	UpdateWeight: ActionWeightMCLAGInterfaceUpdate,
+	DeleteWeight: ActionWeightMCLAGInterfaceDelete,
+	Marshal: func(name string, value *dozer.SpecMCLAGInterface) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigMclag_Mclag_Interfaces{
+			Interface: map[string]*oc.OpenconfigMclag_Mclag_Interfaces_Interface{
+				name: {
+					Name: ygot.String(name),
+					Config: &oc.OpenconfigMclag_Mclag_Interfaces_Interface_Config{
+						MclagDomainId: ygot.Uint32(value.DomainID),
+					},
+				},
+			},
+		}, nil
+	},
+}
+
+func loadActualMCLAG(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+	gnmiMCLAG := &oc.OpenconfigMclag_Mclag{}
+	err := client.Get(ctx, "/mclag/mclag-domains", gnmiMCLAG, api.DataTypeCONFIG())
+	if err != nil {
+		return errors.Wrapf(err, "failed to read mclag domains")
+	}
+	err = client.Get(ctx, "/mclag/interfaces", gnmiMCLAG)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read mclag interfaces")
+	}
+
+	spec.MCLAGs, err = unmarshalOCMCLAGDomains(gnmiMCLAG.MclagDomains)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal mclag")
+	}
+
+	spec.MCLAGInterfaces, err = unmarshalOCMCLAGInterfaces(gnmiMCLAG.Interfaces)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal mclag interfaces")
+	}
+
+	return nil
+}
+
+func unmarshalOCMCLAGDomains(ocVal *oc.OpenconfigMclag_Mclag_MclagDomains) (map[uint32]*dozer.SpecMCLAGDomain, error) {
+	mclag := map[uint32]*dozer.SpecMCLAGDomain{}
+
+	if ocVal == nil {
+		return mclag, nil
+	}
+
+	for domainID, ocDomain := range ocVal.MclagDomain {
+		mclag[domainID] = &dozer.SpecMCLAGDomain{
+			SourceIP: *ocDomain.Config.SourceAddress,
+			PeerIP:   *ocDomain.Config.PeerAddress,
+			PeerLink: *ocDomain.Config.PeerLink,
+			// Members:  members,
+		}
+	}
+
+	return mclag, nil
+}
+
+func unmarshalOCMCLAGInterfaces(ocVal *oc.OpenconfigMclag_Mclag_Interfaces) (map[string]*dozer.SpecMCLAGInterface, error) {
+	members := map[string]*dozer.SpecMCLAGInterface{}
+
+	if ocVal == nil {
+		return members, nil
+	}
+
+	for name, mclagMember := range ocVal.Interface {
+		if mclagMember.Config != nil && mclagMember.Config.MclagDomainId != nil {
+			members[name] = &dozer.SpecMCLAGInterface{
+				DomainID: *mclagMember.Config.MclagDomainId,
+			}
+		}
+	}
+
+	return members, nil
+}

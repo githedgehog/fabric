@@ -199,6 +199,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return conns[i].Name < conns[j].Name
 	})
 
+	// TODO always provision all VPCs to all switches
 	vpcs := []vpcapi.VPCSummarySpec{}
 	vpcSummaries := &vpcapi.VPCSummaryList{}
 	err = r.List(ctx, vpcSummaries, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
