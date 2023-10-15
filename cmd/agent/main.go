@@ -129,8 +129,6 @@ func main() {
 					return setupLogger(verbose, true)
 				},
 				Action: func(cCtx *cli.Context) error {
-					slog.Info("Starting", "version", version)
-
 					return (&agent.Service{
 						Basedir: basedir,
 						Version: version,

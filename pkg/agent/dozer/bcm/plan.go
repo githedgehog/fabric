@@ -3,6 +3,7 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 
 	"github.com/pkg/errors"
@@ -74,7 +75,9 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan mclag domain")
 	}
 
-	err = planVPCsUsingACLs(agent, spec, controlIface)
+	slog.Debug("Planning VPCs", "backend", agent.Spec.VPCBackend)
+
+	err = planVPCs(agent, spec, controlIface)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan VPCs using ACLs")
 	}
@@ -261,66 +264,82 @@ func planUsers(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-// func planVPCsUsingVRFs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
-// 	if !ALLOW_VRF_BASED_VPC {
-// 		return errors.Errorf("VRF based VPCs are not allowed")
-// 	}
+func vrfName(name string) string {
+	return "Vrf" + name
+}
 
-// 	spec.RoutingPolicies[ROUTING_POLICY_VPC_NO_ADVERTISE] = &dozer.SpecRoutingPolicy{
-// 		NoAdvertise: boolPtr(true),
-// 	}
+func vpcVrfName(vpcName string) string {
+	return vrfName("V" + vpcName)
+}
 
-// 	for _, vpcSummary := range agent.Spec.VPCs {
-// 		vrfName := vpcVrfName(vpcSummary.Name)
+func planVPCsUsingVRFs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+	// spec.RoutingPolicies[ROUTING_POLICY_VPC_NO_ADVERTISE] = &dozer.SpecRoutingPolicy{
+	// 	NoAdvertise: boolPtr(true),
+	// }
 
-// 		cidr, err := iputil.ParseCIDR(vpcSummary.VPC.Subnet)
-// 		if err != nil {
-// 			return errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpcSummary.VPC.Subnet, vpcSummary.Name)
-// 		}
-// 		ip := cidr.Gateway.String()
-// 		prefixLen, _ := cidr.Subnet.Mask.Size()
+	for _, vpcSummary := range agent.Spec.VPCs {
+		vrfName := vpcVrfName(vpcSummary.Name)
 
-// 		descr := fmt.Sprintf("VPC %s", vpcSummary.Name)
-// 		vlanIfaceName, _, err := setupVLANInterfaceWithIP(spec, vpcSummary.VLAN, ip, uint8(prefixLen), descr)
-// 		if err != nil {
-// 			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpcSummary.Name)
-// 		}
+		cidr, err := iputil.ParseCIDR(vpcSummary.VPC.Subnet)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpcSummary.VPC.Subnet, vpcSummary.Name)
+		}
+		ip := cidr.Gateway.String()
+		prefixLen, _ := cidr.Subnet.Mask.Size()
 
-// 		peers := []string{}
-// 		for _, peerVPCName := range vpcSummary.Peers {
-// 			peers = append(peers, vpcVrfName(peerVPCName))
-// 		}
+		descr := fmt.Sprintf("VPC %s", vpcSummary.Name)
+		vlanIfaceName, _, err := setupVLANInterfaceWithIP(spec, vpcSummary.VLAN, ip, uint8(prefixLen), descr)
+		if err != nil {
+			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpcSummary.Name)
+		}
 
-// 		spec.VRFs[vrfName] = &dozer.SpecVRF{
-// 			// Description: stringPtr(fmt.Sprintf("VPC %s", vpcSummary.Name)),
-// 			Members: []string{vlanIfaceName},
-// 			BGP: &dozer.SpecVRFBGP{
-// 				AS:                 uint32Ptr(LOCAL_BGP_AS),
-// 				NetworkImportCheck: boolPtr(true),
-// 				Redistribute:       boolPtr(true),
-//              // generate policy per each VRF/VPC instead of shared one
-// 				ImportPolicy:       []string{ROUTING_POLICY_VPC_NO_ADVERTISE},
-// 				ImportRoutes:       peers,
-// 			},
-// 		}
+		peers := []string{}
+		for _, peerVPCName := range vpcSummary.Peers {
+			peers = append(peers, vpcVrfName(peerVPCName))
+		}
 
-// 		if vpcSummary.VPC.DHCP.Enable {
-// 			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.ControlVIP)
-// 			if err != nil {
-// 				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.ControlVIP, vpcSummary.Name)
-// 			}
+		spec.VRFs[vrfName] = &dozer.SpecVRF{
+			// Description: stringPtr(fmt.Sprintf("VPC %s", vpcSummary.Name)),
+			// Members: []string{vlanIfaceName},
+			// BGP: &dozer.SpecVRFBGP{
+			// 	AS:                 uint32Ptr(LOCAL_BGP_AS),
+			// 	NetworkImportCheck: boolPtr(true),
+			// 	Redistribute:       boolPtr(true),
+			//  // generate policy per each VRF/VPC instead of shared one
+			// 	ImportPolicy:       []string{ROUTING_POLICY_VPC_NO_ADVERTISE},
+			// 	ImportRoutes:       peers,
+			// },
+		}
 
-// 			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
-// 				SourceInterface: stringPtr(controlIface),
-// 				RelayAddress:    []string{dhcpRelayIP.String()},
-// 			}
-// 		}
-// 	}
+		if vpcSummary.VPC.DHCP.Enable {
+			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.ControlVIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.ControlVIP, vpcSummary.Name)
+			}
 
-// 	return nil
-// }
+			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
+				SourceInterface: stringPtr(controlIface),
+				RelayAddress:    []string{dhcpRelayIP.String()},
+			}
+		}
+	}
 
-func planVPCsUsingACLs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+	return nil
+}
+
+func isACLBackend(agent *agentapi.Agent) bool {
+	return agent.Spec.VPCBackend == string(agentapi.VPCBackendACL)
+}
+
+func isVRFBackend(agent *agentapi.Agent) bool {
+	return agent.Spec.VPCBackend == string(agentapi.VPCBackendVRF)
+}
+
+func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+	if !isACLBackend(agent) && !isVRFBackend(agent) {
+		return errors.Errorf("unknown VPC backend %s", agent.Spec.VPCBackend)
+	}
+
 	for _, vpc := range agent.Spec.VPCs {
 		cidr, err := iputil.ParseCIDR(vpc.VPC.Subnet)
 		if err != nil {
@@ -335,31 +354,67 @@ func planVPCsUsingACLs(agent *agentapi.Agent, spec *dozer.Spec, controlIface str
 			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpc.Name)
 		}
 
-		acl := &dozer.SpecACL{
-			Description: stringPtr(fmt.Sprintf("VPC %s ACL IN (VLAN %d)", vpc.Name, vpc.VLAN)),
-			Entries: map[uint32]*dozer.SpecACLEntry{
-				VPC_ACL_ENTRY_SEQ_SUBNET: {
-					Description:        stringPtr("Allow own subnet"),
-					Action:             dozer.SpecACLEntryActionAccept,
-					DestinationAddress: stringPtr(vpc.VPC.Subnet),
+		if isACLBackend(agent) {
+			acl := &dozer.SpecACL{
+				Description: stringPtr(fmt.Sprintf("VPC %s ACL IN (VLAN %d)", vpc.Name, vpc.VLAN)),
+				Entries: map[uint32]*dozer.SpecACLEntry{
+					VPC_ACL_ENTRY_SEQ_SUBNET: {
+						Description:        stringPtr("Allow own subnet"),
+						Action:             dozer.SpecACLEntryActionAccept,
+						DestinationAddress: stringPtr(vpc.VPC.Subnet),
+					},
+					VPC_ACL_ENTRY_DENY_ALL_VPC: {
+						Description:        stringPtr("Deny all other VPCs"),
+						Action:             dozer.SpecACLEntryActionDrop,
+						DestinationAddress: stringPtr(VPC_DENY_ALL_SUBNET),
+					},
 				},
-				VPC_ACL_ENTRY_DENY_ALL_VPC: {
-					Description:        stringPtr("Deny all other VPCs"),
-					Action:             dozer.SpecACLEntryActionDrop,
-					DestinationAddress: stringPtr(VPC_DENY_ALL_SUBNET),
-				},
-			},
+			}
+
+			if vpc.VPC.DHCP.Enable {
+				acl.Entries[VPC_ACL_ENTRY_SEQ_DHCP] = &dozer.SpecACLEntry{
+					Description:     stringPtr("Allow DHCP"),
+					Action:          dozer.SpecACLEntryActionAccept,
+					Protocol:        dozer.SpecACLEntryProtocolUDP,
+					SourcePort:      uint16Ptr(68),
+					DestinationPort: uint16Ptr(67),
+				}
+			}
+
+			if vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
+				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
+					Description:   stringPtr("Allow any traffic (NAT)"),
+					Action:        dozer.SpecACLEntryActionAccept,
+					SourceAddress: stringPtr(vpc.VPC.Subnet),
+				}
+			}
+
+			aclName := aclName(vpc.VLAN)
+			spec.ACLs[aclName] = acl
+			spec.ACLInterfaces[vlanIfaceName] = &dozer.SpecACLInterface{
+				Ingress: stringPtr(aclName),
+			}
+		} else if isVRFBackend(agent) {
+			vrfName := vpcVrfName(vpc.Name)
+
+			// TODO
+
+			spec.VRFs[vrfName] = &dozer.SpecVRF{
+				Enabled: boolPtr(true),
+				// Description: stringPtr(fmt.Sprintf("VPC %s", vpcSummary.Name)),
+				// Members: []string{vlanIfaceName},
+				// BGP: &dozer.SpecVRFBGP{
+				// 	AS:                 uint32Ptr(LOCAL_BGP_AS),
+				// 	NetworkImportCheck: boolPtr(true),
+				// 	Redistribute:       boolPtr(true),
+				//  // generate policy per each VRF/VPC instead of shared one
+				// 	ImportPolicy:       []string{ROUTING_POLICY_VPC_NO_ADVERTISE},
+				// 	ImportRoutes:       peers,
+				// },
+			}
 		}
 
 		if vpc.VPC.DHCP.Enable {
-			acl.Entries[VPC_ACL_ENTRY_SEQ_DHCP] = &dozer.SpecACLEntry{
-				Description:     stringPtr("Allow DHCP"),
-				Action:          dozer.SpecACLEntryActionAccept,
-				Protocol:        dozer.SpecACLEntryProtocolUDP,
-				SourcePort:      uint16Ptr(68),
-				DestinationPort: uint16Ptr(67),
-			}
-
 			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.ControlVIP)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.ControlVIP, vpc.Name)
@@ -369,21 +424,8 @@ func planVPCsUsingACLs(agent *agentapi.Agent, spec *dozer.Spec, controlIface str
 				SourceInterface: stringPtr(controlIface),
 				RelayAddress:    []string{dhcpRelayIP.String()},
 				LinkSelect:      true,
+				VRFSelect:       isVRFBackend(agent),
 			}
-		}
-
-		if vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
-			acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
-				Description:   stringPtr("Allow any traffic (NAT)"),
-				Action:        dozer.SpecACLEntryActionAccept,
-				SourceAddress: stringPtr(vpc.VPC.Subnet),
-			}
-		}
-
-		aclName := aclName(vpc.VLAN)
-		spec.ACLs[aclName] = acl
-		spec.ACLInterfaces[vlanIfaceName] = &dozer.SpecACLInterface{
-			Ingress: stringPtr(aclName),
 		}
 	}
 
@@ -394,16 +436,20 @@ func planVPCsUsingACLs(agent *agentapi.Agent, spec *dozer.Spec, controlIface str
 					continue
 				}
 
-				spec.ACLs[aclName(peer.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(vpc.VLAN)] = &dozer.SpecACLEntry{
-					Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", vpc.Name, vpc.VLAN)),
-					Action:             dozer.SpecACLEntryActionAccept,
-					DestinationAddress: stringPtr(vpc.VPC.Subnet),
-				}
+				if isACLBackend(agent) {
+					spec.ACLs[aclName(peer.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(vpc.VLAN)] = &dozer.SpecACLEntry{
+						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", vpc.Name, vpc.VLAN)),
+						Action:             dozer.SpecACLEntryActionAccept,
+						DestinationAddress: stringPtr(vpc.VPC.Subnet),
+					}
 
-				spec.ACLs[aclName(vpc.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(peer.VLAN)] = &dozer.SpecACLEntry{
-					Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", peer.Name, peer.VLAN)),
-					Action:             dozer.SpecACLEntryActionAccept,
-					DestinationAddress: stringPtr(peer.VPC.Subnet),
+					spec.ACLs[aclName(vpc.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(peer.VLAN)] = &dozer.SpecACLEntry{
+						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", peer.Name, peer.VLAN)),
+						Action:             dozer.SpecACLEntryActionAccept,
+						DestinationAddress: stringPtr(peer.VPC.Subnet),
+					}
+				} else if isVRFBackend(agent) {
+					// TODO
 				}
 			}
 		}
@@ -447,7 +493,7 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	publicIface := sw.LocalPortName()
 	natName := natConn.Link.NAT.Port
-	natVRF := "default" // natVrfName(natName)
+	natVRF := "default" // natVrfName(natName) // TODO move NAT to a dedicated VRF - would it work with ACLs?
 
 	spec.Interfaces[publicIface] = &dozer.SpecInterface{
 		Description: stringPtr(fmt.Sprintf("NAT external %s", natName)),

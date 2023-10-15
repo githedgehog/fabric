@@ -37,6 +37,7 @@ type AgentSpec struct {
 	VPCVLANRange  string                  `json:"vpcVLANRange,omitempty"`
 	NAT           vpcapi.NATSpec          `json:"nat,omitempty"`
 	PortChannels  map[string]uint16       `json:"portChannels,omitempty"`
+	VPCBackend    string                  `json:"vpcBackend,omitempty"`
 	Reinstall     string                  `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
 	Reboot        string                  `json:"reboot,omitempty"`    // set to RunID to reboot
 	StatusUpdates []ApplyStatusUpdate     `json:"statusUpdates,omitempty"`
@@ -60,6 +61,16 @@ type ConnectionInfo struct {
 	Name string                   `json:"name,omitempty"`
 	Spec wiringapi.ConnectionSpec `json:"spec,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=vrf;acl
+type VPCBackend string
+
+const (
+	VPCBackendVRF VPCBackend = "vrf"
+	VPCBackendACL VPCBackend = "acl"
+)
+
+var VPCBackendValues = []VPCBackend{VPCBackendVRF, VPCBackendACL}
 
 type ApplyStatusUpdate struct {
 	APIVersion string `json:"apiVersion,omitempty"`

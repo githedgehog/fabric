@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ type Fabric struct {
 	Users          []agentapi.UserCreds `json:"users,omitempty"`
 	DHCPDConfigMap string               `json:"dhcpdConfigMap,omitempty"`
 	DHCPDConfigKey string               `json:"dhcpdConfigKey,omitempty"`
+	VPCBackend     string               `json:"vpcBackend,omitempty"`
 }
 
 func Load(basedir string) (*Fabric, error) {
@@ -69,6 +71,12 @@ func Load(basedir string) (*Fabric, error) {
 		if user.Role != "admin" && user.Role != "operator" { // TODO config?
 			return nil, errors.Errorf("config: users: role must be admin or operator")
 		}
+	}
+	if cfg.VPCBackend == "" {
+		return nil, errors.Errorf("config: vpcBackend is required")
+	}
+	if !slices.Contains(agentapi.VPCBackendValues, agentapi.VPCBackend(cfg.VPCBackend)) {
+		return nil, errors.Errorf("config: vpcBackend must be one of %v", agentapi.VPCBackendValues)
 	}
 
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))

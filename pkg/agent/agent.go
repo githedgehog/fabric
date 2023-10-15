@@ -65,10 +65,14 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		return errors.New("version is required")
 	}
 
+	slog.Info("Starting", "version", svc.Version, "basedir", svc.Basedir)
+
 	agent, err := svc.loadConfigFromFile()
 	if err != nil {
 		return errors.Wrap(err, "failed to load config")
 	}
+
+	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
 	svc.gnmiClient, err = getClient()
 	if err != nil {
