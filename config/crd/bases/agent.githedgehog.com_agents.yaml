@@ -237,6 +237,8 @@ spec:
                 type: string
               reinstall:
                 type: string
+              snatAllowed:
+                type: boolean
               statusUpdates:
                 items:
                   properties:
@@ -327,6 +329,8 @@ spec:
                   repo:
                     type: string
                 type: object
+              vpcBackend:
+                type: string
               vpcVLANRange:
                 type: string
               vpcs:

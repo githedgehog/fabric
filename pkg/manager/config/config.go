@@ -22,6 +22,7 @@ type Fabric struct {
 	DHCPDConfigMap string               `json:"dhcpdConfigMap,omitempty"`
 	DHCPDConfigKey string               `json:"dhcpdConfigKey,omitempty"`
 	VPCBackend     string               `json:"vpcBackend,omitempty"`
+	SNATAllowed    bool                 `json:"snatAllowed,omitempty"`
 }
 
 func Load(basedir string) (*Fabric, error) {

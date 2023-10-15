@@ -38,6 +38,7 @@ type AgentSpec struct {
 	NAT           vpcapi.NATSpec          `json:"nat,omitempty"`
 	PortChannels  map[string]uint16       `json:"portChannels,omitempty"`
 	VPCBackend    string                  `json:"vpcBackend,omitempty"`
+	SNATAllowed   bool                    `json:"snatAllowed,omitempty"`
 	Reinstall     string                  `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
 	Reboot        string                  `json:"reboot,omitempty"`    // set to RunID to reboot
 	StatusUpdates []ApplyStatusUpdate     `json:"statusUpdates,omitempty"`

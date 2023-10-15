@@ -52,6 +52,8 @@ _Appears in:_
 | `vpcVLANRange` _string_ |  |
 | `nat` _[NATSpec](#natspec)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
+| `vpcBackend` _string_ |  |
+| `snatAllowed` _boolean_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
 | `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ |  |

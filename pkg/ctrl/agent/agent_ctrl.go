@@ -258,6 +258,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
 		agent.Spec.StatusUpdates = statusUpdates
 		agent.Spec.VPCBackend = r.Cfg.VPCBackend
+		agent.Spec.SNATAllowed = r.Cfg.SNATAllowed
 
 		if mclagPeer != nil {
 			agent.Spec.PortChannels, err = r.calculateMCLAGPortChannels(ctx, agent, mclagPeer, conns)

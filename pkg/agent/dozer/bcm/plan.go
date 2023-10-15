@@ -381,7 +381,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) erro
 				}
 			}
 
-			if vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
+			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
 				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
 					Description:   stringPtr("Allow any traffic (NAT)"),
 					Action:        dozer.SpecACLEntryActionAccept,
@@ -520,8 +520,10 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	networks := map[string]*dozer.SpecVRFBGPNetwork{}
-	for _, network := range natConn.Link.Switch.SNAT.Pool {
-		networks[network] = &dozer.SpecVRFBGPNetwork{}
+	if agent.Spec.SNATAllowed {
+		for _, network := range natConn.Link.Switch.SNAT.Pool {
+			networks[network] = &dozer.SpecVRFBGPNetwork{}
+		}
 	}
 
 	static := map[string]*dozer.SpecNATEntry{}
@@ -560,18 +562,20 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 	pools := map[string]*dozer.SpecNATPool{}
 	bindings := map[string]*dozer.SpecNATBinding{}
 
-	for idx, cidr := range natConn.Link.Switch.SNAT.Pool {
-		first, last, err := iputil.Range(cidr)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse nat pool cidr #%d %s", idx, cidr)
-		}
+	if agent.Spec.SNATAllowed {
+		for idx, cidr := range natConn.Link.Switch.SNAT.Pool {
+			first, last, err := iputil.Range(cidr)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse nat pool cidr #%d %s", idx, cidr)
+			}
 
-		name := fmt.Sprintf("%s-%d", natName, idx)
-		pools[name] = &dozer.SpecNATPool{
-			Range: stringPtr(fmt.Sprintf("%s-%s", first, last)),
-		}
-		bindings[name] = &dozer.SpecNATBinding{
-			Pool: stringPtr(name),
+			name := fmt.Sprintf("%s-%d", natName, idx)
+			pools[name] = &dozer.SpecNATPool{
+				Range: stringPtr(fmt.Sprintf("%s-%s", first, last)),
+			}
+			bindings[name] = &dozer.SpecNATBinding{
+				Pool: stringPtr(name),
+			}
 		}
 	}
 
