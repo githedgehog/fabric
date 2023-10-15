@@ -158,6 +158,10 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admissi
 
 			// TODO check start < end
 		}
+	} else {
+		if vpc.Spec.DHCP.Range != nil {
+			return nil, errors.Errorf("dhcp range is set but dhcp is disabled")
+		}
 	}
 
 	if client != nil {
