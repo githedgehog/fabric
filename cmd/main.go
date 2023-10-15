@@ -142,7 +142,7 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Switch")
 		os.Exit(1)
 	}
-	if err = vpcWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = vpcWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPC")
 		os.Exit(1)
 	}

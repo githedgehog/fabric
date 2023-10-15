@@ -130,7 +130,7 @@ var _ = BeforeSuite(func() {
 	err = switchh.SetupWithManager("", mgr) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
-	err = vpc.SetupWithManager("", mgr) // TODO cfgBasedir
+	err = vpc.SetupWithManager("", mgr, nil) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
 	err = vpcattachment.SetupWithManager("", mgr) // TODO cfgBasedir

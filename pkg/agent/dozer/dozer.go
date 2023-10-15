@@ -36,6 +36,7 @@ type Spec struct {
 	MCLAGs          map[uint32]*SpecMCLAGDomain    `json:"mclags,omitempty"`
 	MCLAGInterfaces map[string]*SpecMCLAGInterface `json:"mclagInterfaces,omitempty"`
 	VRFs            map[string]*SpecVRF            `json:"vrfs,omitempty"`
+	RouteMaps       map[string]*SpecRouteMap       `json:"routingMaps,omitempty"`
 	DHCPRelays      map[string]*SpecDHCPRelay      `json:"dhcpRelays,omitempty"`
 	NATs            map[uint32]*SpecNAT            `json:"nats,omitempty"`
 	ACLs            map[string]*SpecACL            `json:"acls,omitempty"`
@@ -78,19 +79,21 @@ type SpecMCLAGInterface struct {
 }
 
 type SpecVRF struct {
-	Enabled     *bool                        `json:"enabled,omitempty"`
-	Description *string                      `json:"description,omitempty"`
-	Interfaces  map[string]*SpecVRFInterface `json:"interfaces,omitempty"`
-	BGP         *SpecVRFBGP                  `json:"bgp,omitempty"`
+	Enabled          *bool                              `json:"enabled,omitempty"`
+	Description      *string                            `json:"description,omitempty"`
+	Interfaces       map[string]*SpecVRFInterface       `json:"interfaces,omitempty"`
+	BGP              *SpecVRFBGP                        `json:"bgp,omitempty"`
+	TableConnections map[string]*SpecVRFTableConnection `json:"tableConnections,omitempty"` // TODO enum for key: "connected" or "static"?
 }
 
 type SpecVRFInterface struct{}
 
 type SpecVRFBGP struct {
-	AS                 *uint32                        `json:"as,omitempty"`
-	NetworkImportCheck *bool                          `json:"networkImportCheck,omitempty"`
-	Networks           map[string]*SpecVRFBGPNetwork  `json:"networks,omitempty"`
-	Neighbors          map[string]*SpecVRFBGPNeighbor `json:"neighbors,omitempty"`
+	AS                 *uint32                         `json:"as,omitempty"`
+	NetworkImportCheck *bool                           `json:"networkImportCheck,omitempty"`
+	Networks           map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
+	Neighbors          map[string]*SpecVRFBGPNeighbor  `json:"neighbors,omitempty"`
+	ImportVRFs         map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
 }
 
 type SpecVRFBGPNetwork struct{}
@@ -100,6 +103,21 @@ type SpecVRFBGPNeighbor struct {
 	IPv4Unicast *bool   `json:"ipv4Unicast,omitempty"`
 	RemoteAS    *uint32 `json:"remoteAS,omitempty"`
 }
+
+type SpecVRFTableConnection struct {
+	ImportPolicies []string `json:"importPolicies,omitempty"`
+}
+
+type SpecRouteMap struct {
+	NoAdvertise *bool `json:"noAdvertise,omitempty"`
+}
+
+const (
+	SpecVRFBGPTableConnectionConnected = "connected"
+	SpecVRFBGPTableConnectionStatic    = "static"
+)
+
+type SpecVRFBGPImportVRF struct{}
 
 type SpecDHCPRelay struct {
 	SourceInterface *string  `json:"sourceInterface,omitempty"`
@@ -238,6 +256,8 @@ var (
 	_ SpecPart = (*SpecVRFBGP)(nil)
 	_ SpecPart = (*SpecVRFBGPNetwork)(nil)
 	_ SpecPart = (*SpecVRFBGPNeighbor)(nil)
+	_ SpecPart = (*SpecVRFTableConnection)(nil)
+	_ SpecPart = (*SpecRouteMap)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
 	_ SpecPart = (*SpecNAT)(nil)
 	_ SpecPart = (*SpecNATPool)(nil)
@@ -293,6 +313,14 @@ func (s *SpecVRFBGPNetwork) IsNil() bool {
 }
 
 func (s *SpecVRFBGPNeighbor) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVRFTableConnection) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecRouteMap) IsNil() bool {
 	return s == nil
 }
 

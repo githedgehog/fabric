@@ -63,7 +63,7 @@ var specMCLAGInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecMCLAGI
 	},
 }
 
-func loadActualMCLAG(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualMCLAGs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	gnmiMCLAG := &oc.OpenconfigMclag_Mclag{}
 	err := client.Get(ctx, "/mclag/mclag-domains", gnmiMCLAG, api.DataTypeCONFIG())
 	if err != nil {

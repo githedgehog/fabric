@@ -103,7 +103,7 @@ func (vpc *VPC) Default() {
 	vpc.Labels[LabelSubnet] = EncodeSubnet(vpc.Spec.Subnet)
 }
 
-func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllowed bool) (admission.Warnings, error) {
 	if len(vpc.Name) > 11 { // TODO should be probably configurable
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
@@ -121,6 +121,10 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client) (admissi
 	prefixLength, _ := cidr.Subnet.Mask.Size()
 	if prefixLength != 24 {
 		return nil, errors.Errorf("only /24 subnets currently supported")
+	}
+
+	if vpc.Spec.SNAT && !snatAllowed {
+		return nil, errors.Errorf("SNAT is not allowed by Fabric configuration")
 	}
 
 	if vpc.Spec.DHCP.Enable {

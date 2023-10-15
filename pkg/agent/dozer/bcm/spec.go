@@ -70,6 +70,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle vrfs")
 		}
 
+		if err := specRouteMapsEnforcer.Handle(basePath, actual.RouteMaps, desired.RouteMaps, actions); err != nil {
+			return errors.Wrap(err, "failed to handle route maps")
+		}
+
 		return nil
 	},
 }
@@ -95,7 +99,7 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 		return errors.Wrapf(err, "failed to load interfaces")
 	}
 
-	if err := loadActualMCLAG(ctx, client, spec); err != nil {
+	if err := loadActualMCLAGs(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load mclag")
 	}
 
@@ -103,7 +107,7 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 		return errors.Wrapf(err, "failed to load dhcp relay interfaces")
 	}
 
-	if err := loadActualNAT(ctx, client, spec); err != nil {
+	if err := loadActualNATs(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load nat instances")
 	}
 
@@ -117,6 +121,10 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualVRFs(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load vrfs")
+	}
+
+	if err := loadActualRouteMaps(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load route maps")
 	}
 
 	return nil

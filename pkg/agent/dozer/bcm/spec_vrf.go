@@ -38,6 +38,12 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf bgp")
 		}
 
+		actualTableConnections, desiredTableConnections := ValueOrNil(actual, desired,
+			func(value *dozer.SpecVRF) map[string]*dozer.SpecVRFTableConnection { return value.TableConnections })
+		if err := specVRFTableConnectionsEnforcer.Handle(basePath, actualTableConnections, desiredTableConnections, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf table connections")
+		}
+
 		return nil
 	},
 }
@@ -68,14 +74,23 @@ var specVRFInterfacesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFInterf
 	ValueHandler: specVRFInterfaceEnforcer,
 }
 
+// TODO check it works correctly
 var specVRFInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFInterface]{
 	Summary:      "VRF interface %s",
 	Path:         "/interfaces/interface[id=%s]",
 	UpdateWeight: ActionWeightVRFInterfaceUpdate,
 	DeleteWeight: ActionWeightVRFInterfaceDelete,
-	Marshal: func(id string, value *dozer.SpecVRFInterface) (ygot.ValidatedGoStruct, error) {
-		// it's currently not needed as we're only using the default VRF
-		return nil, errors.Errorf("not implemented")
+	Marshal: func(iface string, value *dozer.SpecVRFInterface) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces{
+			Interface: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface{
+				iface: {
+					Id: ygot.String(iface),
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface_Config{
+						Id: ygot.String(iface),
+					},
+				},
+			},
+		}, nil
 	},
 }
 
@@ -194,6 +209,51 @@ var SpecVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 	},
 }
 
+var specVRFTableConnectionsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFTableConnection]{
+	Summary:      "VRF table connections",
+	ValueHandler: specVRFTableConnectionEnforcer,
+}
+
+// TODO replace with proper handling, delete will not work correctly now
+var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFTableConnection]{
+	Summary:      "VRF table connection %s",
+	Path:         "/table-connections/table-connection",
+	NoReplace:    true,
+	UpdateWeight: ActionWrightVRFTableConnectionUpdate,
+	DeleteWeight: ActionWrightVRFTableConnectionDelete,
+	Marshal: func(key string, value *dozer.SpecVRFTableConnection) (ygot.ValidatedGoStruct, error) {
+		var proto oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE
+
+		if key == dozer.SpecVRFBGPTableConnectionConnected {
+			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
+		} else if key == dozer.SpecVRFBGPTableConnectionStatic {
+			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC
+		} else {
+			return nil, errors.Errorf("unknown table connection key %s", key)
+		}
+
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections{
+			TableConnection: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection{
+				{
+					SrcProtocol:   proto,
+					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				}: {
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+					SrcProtocol:   proto,
+					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Config{
+						AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+						DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						SrcProtocol:   proto,
+						ImportPolicy:  value.ImportPolicies,
+					},
+				},
+			},
+		}, nil
+	},
+}
+
 func loadActualVRFs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{}
 	err := client.Get(ctx, "/network-instances/network-instance", ocVal)
@@ -277,16 +337,44 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			}
 		}
 
+		tableConns := map[string]*dozer.SpecVRFTableConnection{}
+
+		if ocVRF.TableConnections != nil {
+			for key, tableConnection := range ocVRF.TableConnections.TableConnection {
+				if key.DstProtocol != oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP {
+					continue
+				}
+				if key.AddressFamily != oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4 {
+					continue
+				}
+				if tableConnection.Config == nil {
+					continue
+				}
+
+				name := dozer.SpecVRFBGPTableConnectionStatic
+				if key.SrcProtocol == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
+					name = dozer.SpecVRFBGPTableConnectionConnected
+				} else if key.SrcProtocol != oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC {
+					continue
+				}
+
+				tableConns[name] = &dozer.SpecVRFTableConnection{
+					ImportPolicies: tableConnection.Config.ImportPolicy,
+				}
+			}
+		}
+
 		enabled := ocVRF.Config.Enabled
 		if name == "default" {
 			enabled = ygot.Bool(true)
 		}
 
 		vrfs[name] = &dozer.SpecVRF{
-			Enabled:     enabled,
-			Description: ocVRF.Config.Description,
-			Interfaces:  interfaces,
-			BGP:         bgp,
+			Enabled:          enabled,
+			Description:      ocVRF.Config.Description,
+			Interfaces:       interfaces,
+			BGP:              bgp,
+			TableConnections: tableConns,
 		}
 	}
 

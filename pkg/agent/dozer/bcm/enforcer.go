@@ -101,6 +101,12 @@ const (
 	ActionWeightInterfaceIPDelete
 	ActionWeightInterfaceBaseDelete
 
+	// Unsorted:
+	ActionWeightRouteMapUpdate
+	ActionWrightVRFTableConnectionUpdate
+	ActionWrightVRFTableConnectionDelete
+	ActionWeightRouteMapDelete
+
 	ActionWeightMax // keep it last
 )
 

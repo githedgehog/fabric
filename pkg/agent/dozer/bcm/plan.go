@@ -32,6 +32,7 @@ const (
 	VPC_ACL_ENTRY_DENY_ALL_VPC         uint32 = 30000
 	VPC_ACL_ENTRY_PERMIT_ANY           uint32 = 40000
 	VPC_DENY_ALL_SUBNET                       = "10.0.0.0/8" // TODO move to config
+	ROUTE_MAP_VPC_NO_ADVERTISE                = "vpc-no-advertise"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -272,61 +273,6 @@ func vpcVrfName(vpcName string) string {
 	return vrfName("V" + vpcName)
 }
 
-func planVPCsUsingVRFs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
-	// spec.RoutingPolicies[ROUTING_POLICY_VPC_NO_ADVERTISE] = &dozer.SpecRoutingPolicy{
-	// 	NoAdvertise: boolPtr(true),
-	// }
-
-	for _, vpcSummary := range agent.Spec.VPCs {
-		vrfName := vpcVrfName(vpcSummary.Name)
-
-		cidr, err := iputil.ParseCIDR(vpcSummary.VPC.Subnet)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpcSummary.VPC.Subnet, vpcSummary.Name)
-		}
-		ip := cidr.Gateway.String()
-		prefixLen, _ := cidr.Subnet.Mask.Size()
-
-		descr := fmt.Sprintf("VPC %s", vpcSummary.Name)
-		vlanIfaceName, _, err := setupVLANInterfaceWithIP(spec, vpcSummary.VLAN, ip, uint8(prefixLen), descr)
-		if err != nil {
-			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpcSummary.Name)
-		}
-
-		peers := []string{}
-		for _, peerVPCName := range vpcSummary.Peers {
-			peers = append(peers, vpcVrfName(peerVPCName))
-		}
-
-		spec.VRFs[vrfName] = &dozer.SpecVRF{
-			// Description: stringPtr(fmt.Sprintf("VPC %s", vpcSummary.Name)),
-			// Members: []string{vlanIfaceName},
-			// BGP: &dozer.SpecVRFBGP{
-			// 	AS:                 uint32Ptr(LOCAL_BGP_AS),
-			// 	NetworkImportCheck: boolPtr(true),
-			// 	Redistribute:       boolPtr(true),
-			//  // generate policy per each VRF/VPC instead of shared one
-			// 	ImportPolicy:       []string{ROUTING_POLICY_VPC_NO_ADVERTISE},
-			// 	ImportRoutes:       peers,
-			// },
-		}
-
-		if vpcSummary.VPC.DHCP.Enable {
-			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.ControlVIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.ControlVIP, vpcSummary.Name)
-			}
-
-			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
-				SourceInterface: stringPtr(controlIface),
-				RelayAddress:    []string{dhcpRelayIP.String()},
-			}
-		}
-	}
-
-	return nil
-}
-
 func isACLBackend(agent *agentapi.Agent) bool {
 	return agent.Spec.VPCBackend == string(agentapi.VPCBackendACL)
 }
@@ -338,6 +284,13 @@ func isVRFBackend(agent *agentapi.Agent) bool {
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
 	if !isACLBackend(agent) && !isVRFBackend(agent) {
 		return errors.Errorf("unknown VPC backend %s", agent.Spec.VPCBackend)
+	}
+
+	if isVRFBackend(agent) {
+		// TODO switch to policy per VPC
+		spec.RouteMaps[ROUTE_MAP_VPC_NO_ADVERTISE] = &dozer.SpecRouteMap{
+			NoAdvertise: boolPtr(true),
+		}
 	}
 
 	for _, vpc := range agent.Spec.VPCs {
@@ -397,20 +350,25 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) erro
 		} else if isVRFBackend(agent) {
 			vrfName := vpcVrfName(vpc.Name)
 
-			// TODO
-
 			spec.VRFs[vrfName] = &dozer.SpecVRF{
 				Enabled: boolPtr(true),
-				// Description: stringPtr(fmt.Sprintf("VPC %s", vpcSummary.Name)),
-				// Members: []string{vlanIfaceName},
-				// BGP: &dozer.SpecVRFBGP{
-				// 	AS:                 uint32Ptr(LOCAL_BGP_AS),
-				// 	NetworkImportCheck: boolPtr(true),
-				// 	Redistribute:       boolPtr(true),
-				//  // generate policy per each VRF/VPC instead of shared one
-				// 	ImportPolicy:       []string{ROUTING_POLICY_VPC_NO_ADVERTISE},
-				// 	ImportRoutes:       peers,
-				// },
+				// Description: stringPtr(fmt.Sprintf("VPC %s", vpc.Name)),
+				Interfaces: map[string]*dozer.SpecVRFInterface{
+					vlanIfaceName: {},
+				},
+				BGP: &dozer.SpecVRFBGP{
+					AS: uint32Ptr(LOCAL_BGP_AS),
+					// NetworkImportCheck: boolPtr(true),
+					ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+				},
+				TableConnections: map[string]*dozer.SpecVRFTableConnection{
+					dozer.SpecVRFBGPTableConnectionConnected: {
+						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
+					},
+					dozer.SpecVRFBGPTableConnectionStatic: {
+						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
+					},
+				},
 			}
 		}
 
@@ -449,7 +407,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) erro
 						DestinationAddress: stringPtr(peer.VPC.Subnet),
 					}
 				} else if isVRFBackend(agent) {
-					// TODO
+					spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[vpcVrfName(peer.Name)] = &dozer.SpecVRFBGPImportVRF{}
+					spec.VRFs[vpcVrfName(peer.Name)].BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
 				}
 			}
 		}
@@ -493,7 +452,7 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	publicIface := sw.LocalPortName()
 	natName := natConn.Link.NAT.Port
-	natVRF := "default" // natVrfName(natName) // TODO move NAT to a dedicated VRF - would it work with ACLs?
+	natVRF := "default" // NAT seems to be only supported in the default VRF
 
 	spec.Interfaces[publicIface] = &dozer.SpecInterface{
 		Description: stringPtr(fmt.Sprintf("NAT external %s", natName)),
@@ -542,7 +501,7 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	spec.VRFs[natVRF] = &dozer.SpecVRF{
+	vrf := &dozer.SpecVRF{
 		Enabled:    boolPtr(true),
 		Interfaces: map[string]*dozer.SpecVRFInterface{},
 		BGP: &dozer.SpecVRFBGP{
@@ -558,6 +517,24 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Networks: networks,
 		},
 	}
+
+	if isVRFBackend(agent) {
+		vrf.TableConnections = map[string]*dozer.SpecVRFTableConnection{
+			dozer.SpecVRFBGPTableConnectionConnected: {},
+			dozer.SpecVRFBGPTableConnectionStatic:    {},
+		}
+
+		if agent.Spec.SNATAllowed {
+			for _, vpc := range agent.Spec.VPCs {
+				if vpc.VPC.SNAT {
+					spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
+					vrf.BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
+				}
+			}
+		}
+	}
+
+	spec.VRFs[natVRF] = vrf
 
 	pools := map[string]*dozer.SpecNATPool{}
 	bindings := map[string]*dozer.SpecNATBinding{}

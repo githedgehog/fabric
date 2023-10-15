@@ -168,7 +168,7 @@ var specNATEntryEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNATEntry]{
 	},
 }
 
-func loadActualNAT(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualNATs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	ocNATInstances := &oc.OpenconfigNat_Nat_Instances{}
 	err := client.Get(ctx, "/nat/instances/instance", ocNATInstances, api.DataTypeCONFIG())
 	if err != nil {
