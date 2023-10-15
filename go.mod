@@ -24,7 +24,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.28.0
-	k8s.io/apimachinery v0.28.0
+	k8s.io/apimachinery v0.28.2
 	k8s.io/client-go v0.28.0
 	oras.land/oras-go/v2 v2.3.0
 	sigs.k8s.io/controller-runtime v0.16.0
