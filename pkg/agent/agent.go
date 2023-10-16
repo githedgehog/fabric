@@ -190,6 +190,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 					return errors.New("watch error")
 				}
+				if event.Object == nil {
+					continue
+				}
 
 				agent = event.Object.(*agentapi.Agent)
 			}
