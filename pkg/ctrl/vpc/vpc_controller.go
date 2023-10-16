@@ -122,6 +122,13 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	vpc := &vpcapi.VPC{}
 	err := r.Get(ctx, req.NamespacedName, vpc)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			err = r.Delete(ctx, &vpcapi.VPCSummary{ObjectMeta: metav1.ObjectMeta{Name: req.Name, Namespace: req.Namespace}}) // TODO ns
+			if err != nil && !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, errors.Wrapf(err, "error deleting summary for vpc %s after its being deleted", req.NamespacedName)
+			}
+		}
+
 		return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
 	}
 
