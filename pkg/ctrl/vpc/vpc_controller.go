@@ -129,9 +129,11 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			if err != nil && !apierrors.IsNotFound(err) {
 				return ctrl.Result{}, errors.Wrapf(err, "error deleting summary for vpc %s after its being deleted", req.NamespacedName)
 			}
-		}
 
-		return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
+			return ctrl.Result{}, nil
+		} else {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
+		}
 	}
 
 	if vpc.Status.VLAN == 0 {
@@ -207,6 +209,10 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, errors.Wrapf(err, "error getting nat for vpc %s", vpc.Name)
 	}
 
+	if vpc.Spec.DNATRequests == nil {
+		vpc.Spec.DNATRequests = map[string]string{}
+	}
+
 	dnat := map[string]string{}
 	if nat.Spec.Subnet != "" && len(nat.Spec.DNATPool) > 0 {
 		vpcs := &vpcapi.VPCSummaryList{}
@@ -230,11 +236,28 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		dnats := map[string]string{}
 		for _, some := range vpcs.Items {
 			for internalIP, externalIP := range some.Spec.DNAT {
-				internalIPs[internalIP] = true
-				if !strings.HasPrefix(externalIP, "@") {
-					externalIPs[externalIP] = true
+				// if it was an error message, skip as we want to recalculate it and errors aren't booking the internal IP too
+				if strings.HasPrefix(externalIP, "@") {
+					continue
 				}
-				dnats[internalIP] = externalIP
+
+				// if current vpc
+				if some.Name == vpc.Name && some.Namespace == vpc.Namespace {
+					// skip if request changed
+					if vpc.Spec.DNATRequests[internalIP] != externalIP {
+						continue
+					}
+
+					// skip if request not present in new request
+					if _, ok := vpc.Spec.DNATRequests[internalIP]; !ok {
+						continue
+					}
+
+					dnats[internalIP] = externalIP
+				}
+
+				externalIPs[externalIP] = true
+				internalIPs[internalIP] = true
 			}
 		}
 
@@ -270,10 +293,12 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 			if result != "" {
 				result = "@" + result
+				l.Info("DNAT request rejected", "reason", result, "internalIP", internalIP, "externalIP", externalIP)
 			} else {
 				externalIPs[externalIP] = true
 				internalIPs[internalIP] = true
 				result = externalIP
+				l.Info("DNAT request accepted", "reason", result, "internalIP", internalIP, "externalIP", externalIP)
 			}
 
 			dnat[internalIP] = result
