@@ -287,7 +287,7 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 				if ip == nil {
 					result = "internal IP is not a valid IP"
 				} else if !vpcNet.Contains(ip) {
-					result = "internal IP is not in NAT subnet"
+					result = "internal IP is not in VPC subnet"
 				}
 			}
 
