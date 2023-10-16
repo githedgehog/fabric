@@ -190,7 +190,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 					return errors.New("watch error")
 				}
+
+				// TODO why are we getting nil events?
 				if event.Object == nil {
+					slog.Warn("Received nil object from K8s, ignoring", "event", event.Type)
 					continue
 				}
 
