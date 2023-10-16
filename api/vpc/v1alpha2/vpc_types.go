@@ -119,12 +119,6 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 		return nil, errors.Wrapf(err, "invalid subnet %s", vpc.Spec.Subnet)
 	}
 
-	// TODO to remove this limitation we need to check all VPC subnets for overlaps
-	prefixLength, _ := vpcCIDR.Subnet.Mask.Size()
-	if prefixLength != 24 {
-		return nil, errors.Errorf("only /24 subnets currently supported")
-	}
-
 	if vpc.Spec.SNAT && !snatAllowed {
 		return nil, errors.Errorf("SNAT is not allowed by Fabric configuration")
 	}
@@ -182,8 +176,8 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 			// TODO check start < end
 		}
 	} else {
-		if vpc.Spec.DHCP.Range != nil {
-			return nil, errors.Errorf("dhcp range is set but dhcp is disabled")
+		if vpc.Spec.DHCP.Range != nil && (vpc.Spec.DHCP.Range.Start != "" || vpc.Spec.DHCP.Range.End != "") {
+			return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
 		}
 	}
 
@@ -200,6 +194,9 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 		subnets := []*net.IPNet{&vpcCIDR.Subnet}
 		for _, other := range vpcs.Items {
 			if other.Name == vpc.Name {
+				continue
+			}
+			if other.Spec.Subnet == "" {
 				continue
 			}
 

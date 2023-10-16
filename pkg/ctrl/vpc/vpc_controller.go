@@ -19,7 +19,9 @@ package vpc
 import (
 	"context"
 	"fmt"
+	"net"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -207,11 +209,74 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	dnat := map[string]string{}
 	if nat.Spec.Subnet != "" && len(nat.Spec.DNATPool) > 0 {
-		for privateIP, externalIP := range vpc.Spec.DNATRequests {
-			// TODO check that privateIP is from vpc subnet
-			// TODO check that externalIP is from nat subnet and not taken
+		vpcs := &vpcapi.VPCSummaryList{}
+		err = r.List(ctx, vpcs)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error listing vpc summaries")
+		}
 
-			dnat[privateIP] = externalIP
+		_, natNet, err := net.ParseCIDR(nat.Spec.Subnet)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error parsing nat subnet %s", nat.Spec.Subnet)
+		}
+
+		_, vpcNet, err := net.ParseCIDR(vpc.Spec.Subnet)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error parsing vpc subnet %s", vpc.Spec.Subnet)
+		}
+
+		internalIPs := map[string]bool{}
+		externalIPs := map[string]bool{}
+		dnats := map[string]string{}
+		for _, some := range vpcs.Items {
+			for internalIP, externalIP := range some.Spec.DNAT {
+				internalIPs[internalIP] = true
+				if !strings.HasPrefix(externalIP, "@") {
+					externalIPs[externalIP] = true
+				}
+				dnats[internalIP] = externalIP
+			}
+		}
+
+		for internalIP, externalIP := range vpc.Spec.DNATRequests {
+			if dnats[internalIP] == externalIP {
+				continue
+			}
+
+			result := ""
+			if internalIP == "" {
+				result = "internal IP is empty"
+			} else if externalIP == "" {
+				result = "external IP is empty"
+			} else if internalIPs[internalIP] {
+				result = "internal IP already used in DNAT"
+			} else if externalIPs[externalIP] {
+				result = "external IP already used in DNAT"
+			} else {
+				ip := net.ParseIP(externalIP)
+				if ip == nil {
+					result = "external IP is not a valid IP"
+				} else if !natNet.Contains(ip) {
+					result = "external IP is not in NAT subnet"
+				}
+
+				ip = net.ParseIP(internalIP)
+				if ip == nil {
+					result = "internal IP is not a valid IP"
+				} else if !vpcNet.Contains(ip) {
+					result = "internal IP is not in NAT subnet"
+				}
+			}
+
+			if result != "" {
+				result = "@" + result
+			} else {
+				externalIPs[externalIP] = true
+				internalIPs[internalIP] = true
+				result = externalIP
+			}
+
+			dnat[internalIP] = result
 		}
 	}
 

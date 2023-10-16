@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"strings"
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
@@ -282,6 +283,19 @@ func isVRFBackend(agent *agentapi.Agent) bool {
 	return agent.Spec.VPCBackend == string(agentapi.VPCBackendVRF)
 }
 
+func filteredDNAT(dnatInfo map[string]string) map[string]string {
+	filtered := map[string]string{}
+	for key, value := range dnatInfo {
+		if strings.HasPrefix(value, "@") {
+			continue
+		}
+
+		filtered[key] = value
+	}
+
+	return filtered
+}
+
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
 	if !isACLBackend(agent) && !isVRFBackend(agent) {
 		return errors.Errorf("unknown VPC backend %s", agent.Spec.VPCBackend)
@@ -335,7 +349,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firs
 				}
 			}
 
-			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
+			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
 				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
 					Description:   stringPtr("Allow any traffic (NAT)"),
 					Action:        dozer.SpecACLEntryActionAccept,
@@ -490,7 +504,7 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
 
 	if isACLBackend(agent) || isVRFBackend(agent) && firstSwitch {
 		for _, vpcInfo := range agent.Spec.VPCs {
-			for internalIP, externalIP := range vpcInfo.DNAT {
+			for internalIP, externalIP := range filteredDNAT(vpcInfo.DNAT) {
 				static[externalIP] = &dozer.SpecNATEntry{
 					InternalAddress: stringPtr(internalIP),
 					Type:            dozer.SpecNATTypeDNAT,
@@ -520,7 +534,7 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
 
 	if isVRFBackend(agent) && firstSwitch {
 		for _, vpc := range agent.Spec.VPCs {
-			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
+			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
 				spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
 				vrf.BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
 			}
