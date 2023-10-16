@@ -89,6 +89,13 @@ func setupLogger(verbose bool, logToFile bool) error {
 }
 
 func main() {
+	defer func() {
+		if err := recover(); err != nil {
+			slog.Error("Panic", "err", err)
+			os.Exit(1)
+		}
+	}()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
