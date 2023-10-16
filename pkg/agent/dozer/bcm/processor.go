@@ -42,7 +42,7 @@ func (p *broadcomProcessor) WaitReady(ctx context.Context) error {
 
 		buf := &bytes.Buffer{}
 		// TODO figure out how to call gNMI actions(rpcs?) from agent
-		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", "admin") // TODO use hhadmin user
+		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AGENT_USER)
 		cmd.Stdout = io.MultiWriter(buf, os.Stdout)
 		cmd.Stderr = os.Stdout
 		err := cmd.Run()
