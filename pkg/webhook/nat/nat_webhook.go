@@ -2,9 +2,12 @@ package nat
 
 import (
 	"context"
+	"slices"
 
+	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,9 +71,21 @@ func (w *NATWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, 
 		return warns, err
 	}
 
+	oldNAT := oldObj.(*vpcapi.NAT)
+
+	if !equality.Semantic.DeepEqual(oldNAT.Spec.Subnet, newNAT.Spec.Subnet) {
+		return nil, errors.Errorf("subnet is immutable")
+	}
+
+	for _, oldPool := range oldNAT.Spec.DNATPool {
+		if !slices.Contains(newNAT.Spec.DNATPool, oldPool) {
+			return nil, errors.Errorf("only adding to the dnatPool is supported (%s is missing)", oldPool)
+		}
+	}
+
 	return warns, nil
 }
 
 func (w *NATWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
-	return nil, nil
+	return nil, errors.New("cannot delete NAT object")
 }

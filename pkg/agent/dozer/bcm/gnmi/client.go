@@ -199,6 +199,31 @@ func (c *Client) Get(ctx context.Context, path string, dest ygot.ValidatedGoStru
 	return nil
 }
 
+func (c *Client) GetWithOpts(ctx context.Context, path string, dest ygot.ValidatedGoStruct, extract bool, options ...api.GNMIOption) error {
+	getReq, err := api.NewGetRequest(append(options, api.Encoding(JSON_IETF), api.Path(path))...)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create get request for: %s", path)
+	}
+
+	getResp, err := c.tg.Get(ctx, getReq)
+	if err != nil {
+		return errors.Wrapf(err, "get request failed for: %s", path)
+	}
+
+	// TODO drop extract opt?
+	opts := []ytypes.UnmarshalOpt{}
+	if extract {
+		opts = append(opts, ExtractOpt{})
+	}
+
+	val := getResp.Notification[0].Update[0].Val.GetJsonIetfVal()
+	if err := UnmarshalWithOpts(val, dest, opts...); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal response for: %s", path)
+	}
+
+	return nil
+}
+
 func Marshal(value ygot.ValidatedGoStruct) (map[string]any, error) {
 	data, err := ygot.ConstructIETFJSON(value, &ygot.RFC7951JSONConfig{})
 	if err != nil {
@@ -240,13 +265,13 @@ func UnmarshalWithOpts(data []byte, dest ygot.ValidatedGoStruct, opts ...ytypes.
 
 func hasExtractOpt(opts []ytypes.UnmarshalOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(extractOpt); ok {
+		if _, ok := o.(ExtractOpt); ok {
 			return true
 		}
 	}
 	return false
 }
 
-type extractOpt struct{}
+type ExtractOpt struct{}
 
-func (extractOpt) IsUnmarshalOpt() {}
+func (ExtractOpt) IsUnmarshalOpt() {}

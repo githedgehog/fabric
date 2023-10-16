@@ -90,8 +90,8 @@ const (
 	ActionWeightNATPoolDelete
 	ActionWeightNATBaseDelete
 
-	ActionWeightMCLAGDomainDelete
 	ActionWeightMCLAGInterfaceDelete
+	ActionWeightMCLAGDomainDelete
 
 	ActionWeightInterfacePortChannelMemberDelete
 	ActionWeightInterfacePortChannelDelete

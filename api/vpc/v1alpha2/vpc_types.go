@@ -19,7 +19,9 @@ package v1alpha2
 import (
 	"context"
 	"net"
+	"net/netip"
 
+	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
@@ -103,7 +105,7 @@ func (vpc *VPC) Default() {
 	vpc.Labels[LabelSubnet] = EncodeSubnet(vpc.Spec.Subnet)
 }
 
-func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllowed bool) (admission.Warnings, error) {
+func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllowed bool, allowedSubnet string) (admission.Warnings, error) {
 	if len(vpc.Name) > 11 { // TODO should be probably configurable
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
@@ -112,19 +114,36 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 		return nil, errors.Errorf("subnet is required")
 	}
 
-	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
+	vpcCIDR, err := iputil.ParseCIDR(vpc.Spec.Subnet)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid subnet %s", vpc.Spec.Subnet)
 	}
 
 	// TODO to remove this limitation we need to check all VPC subnets for overlaps
-	prefixLength, _ := cidr.Subnet.Mask.Size()
+	prefixLength, _ := vpcCIDR.Subnet.Mask.Size()
 	if prefixLength != 24 {
 		return nil, errors.Errorf("only /24 subnets currently supported")
 	}
 
 	if vpc.Spec.SNAT && !snatAllowed {
 		return nil, errors.Errorf("SNAT is not allowed by Fabric configuration")
+	}
+
+	if allowedSubnet != "" {
+		allowedNet, err := netip.ParsePrefix(allowedSubnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid allowed subnet %s", allowedSubnet) // TODO replace with some internal error to not expose to the user
+		}
+
+		vpcNet, err := netip.ParsePrefix(vpc.Spec.Subnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid vpc subnet %s", vpc.Spec.Subnet)
+		}
+
+		// TODO replace with the proper subnet check
+		if !allowedNet.Contains(vpcNet.Addr()) {
+			return nil, errors.Errorf("vpc subnet %s is not allowed by Fabric configuration", vpc.Spec.Subnet)
+		}
 	}
 
 	if vpc.Spec.DHCP.Enable {
@@ -134,13 +153,13 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 				if ip == nil {
 					return nil, errors.Errorf("invalid dhcp range start %s", vpc.Spec.DHCP.Range.Start)
 				}
-				if ip.Equal(cidr.Gateway) {
+				if ip.Equal(vpcCIDR.Gateway) {
 					return nil, errors.Errorf("dhcp range start %s is equal to gateway", vpc.Spec.DHCP.Range.Start)
 				}
-				if ip.Equal(cidr.Subnet.IP) {
+				if ip.Equal(vpcCIDR.Subnet.IP) {
 					return nil, errors.Errorf("dhcp range start %s is equal to subnet", vpc.Spec.DHCP.Range.Start)
 				}
-				if !cidr.Subnet.Contains(ip) {
+				if !vpcCIDR.Subnet.Contains(ip) {
 					return nil, errors.Errorf("dhcp range start %s is not in the subnet", vpc.Spec.DHCP.Range.Start)
 				}
 			}
@@ -149,13 +168,13 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 				if ip == nil {
 					return nil, errors.Errorf("invalid dhcp range end %s", vpc.Spec.DHCP.Range.End)
 				}
-				if ip.Equal(cidr.Gateway) {
+				if ip.Equal(vpcCIDR.Gateway) {
 					return nil, errors.Errorf("dhcp range end %s is equal to gateway", vpc.Spec.DHCP.Range.End)
 				}
-				if ip.Equal(cidr.Subnet.IP) {
+				if ip.Equal(vpcCIDR.Subnet.IP) {
 					return nil, errors.Errorf("dhcp range end %s is equal to subnet", vpc.Spec.DHCP.Range.End)
 				}
-				if !cidr.Subnet.Contains(ip) {
+				if !vpcCIDR.Subnet.Contains(ip) {
 					return nil, errors.Errorf("dhcp range end %s is not in the subnet", vpc.Spec.DHCP.Range.End)
 				}
 			}
@@ -169,18 +188,40 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllo
 	}
 
 	if client != nil {
+		// TODO main VPC subnet validation should happen in the VPC controller
 		vpcs := &VPCList{}
 		err := client.List(ctx, vpcs, map[string]string{
-			LabelSubnet: EncodeSubnet(vpc.Spec.Subnet),
+			// LabelSubnet: EncodeSubnet(vpc.Spec.Subnet),
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
 		}
 
+		subnets := []*net.IPNet{&vpcCIDR.Subnet}
 		for _, other := range vpcs.Items {
-			if vpc.Spec.Subnet == other.Spec.Subnet && vpc.Name != other.Name { // TODO ns?
-				return nil, errors.Errorf("subnet %s is already used by other VPC", vpc.Spec.Subnet)
+			if other.Name == vpc.Name {
+				continue
 			}
+
+			_, ipNet, err := net.ParseCIDR(other.Spec.Subnet)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse subnet %s", other.Spec.Subnet) // TODO replace with some internal error to not expose to the user
+			}
+			subnets = append(subnets, ipNet)
+		}
+
+		if allowedSubnet == "" {
+			allowedSubnet = "10.0.0.0/8"
+		}
+
+		_, allowedNet, err := net.ParseCIDR(allowedSubnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse allowed subnet %s", allowedSubnet) // TODO replace with some internal error to not expose to the user
+		}
+
+		err = cidr.VerifyNoOverlap(subnets, allowedNet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "specified subnet overlaps with one of the other VPCs")
 		}
 	}
 

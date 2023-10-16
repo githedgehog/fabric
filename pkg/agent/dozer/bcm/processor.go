@@ -185,12 +185,16 @@ func (p *broadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 
 func (p *broadcomProcessor) Info(ctx context.Context) (*agentapi.NOSInfo, error) {
 	ocInfo := &oc.OpenconfigPlatform_Components_Component_SoftwareModule{}
-	err := p.client.Get(ctx, "/openconfig-platform:components/component[name=SoftwareModule]/software-module", ocInfo)
+	err := p.client.GetWithOpts(ctx, "/openconfig-platform:components/component[name=SoftwareModule]/software-module", ocInfo, true)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get NOS info")
 	}
 
 	info := &agentapi.NOSInfo{}
+
+	if ocInfo.State == nil {
+		return nil, errors.Errorf("no state in NOS info")
+	}
 	err = mapstructure.Decode(ocInfo.State, info)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot convert NOS info")

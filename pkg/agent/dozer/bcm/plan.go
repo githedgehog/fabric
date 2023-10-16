@@ -72,19 +72,19 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan users")
 	}
 
-	err = planMCLAGDomain(agent, spec)
+	first, err := planMCLAGDomain(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan mclag domain")
 	}
 
 	slog.Debug("Planning VPCs", "backend", agent.Spec.VPCBackend)
 
-	err = planVPCs(agent, spec, controlIface)
+	err = planVPCs(agent, spec, controlIface, first)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan VPCs using ACLs")
 	}
 
-	err = planNAT(agent, spec)
+	err = planNAT(agent, spec, first)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan NAT")
 	}
@@ -130,7 +130,7 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 	return controlIface, nil
 }
 
-func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	mclagPeerLinks := []string{}
 	mclagSessionLinks := []string{}
 	mclagPeerSwitch := ""
@@ -156,13 +156,13 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 	if len(mclagPeerLinks) == 0 {
-		return errors.Errorf("no mclag peer links found")
+		return false, errors.Errorf("no mclag peer links found")
 	}
 	if len(mclagSessionLinks) == 0 {
-		return errors.Errorf("no mclag session links found")
+		return false, errors.Errorf("no mclag session links found")
 	}
 	if mclagPeerSwitch == "" {
-		return errors.Errorf("no mclag peer switch found")
+		return false, errors.Errorf("no mclag peer switch found")
 	}
 
 	// using the same IP pair with switch with name < peer switch name getting first IP
@@ -183,7 +183,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
 		descr := fmt.Sprintf("MCLAG peer link %s", mclagPeerPortChannelName)
 		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to setup physical interface %s for MCLAG peer link", iface)
+			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG peer link", iface)
 		}
 	}
 
@@ -202,7 +202,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
 		descr := fmt.Sprintf("MCLAG session link %s", mclagSessionPortChannelName)
 		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
+			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
 		}
 	}
 
@@ -214,7 +214,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
 					portChan := agent.Spec.PortChannels[conn.Name]
 
 					if portChan == 0 {
-						return errors.Errorf("no port channel found for conn %s", conn.Name)
+						return false, errors.Errorf("no port channel found for conn %s", conn.Name)
 					}
 
 					connPortChannelName := portChannelName(portChan)
@@ -232,7 +232,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
 					descr := fmt.Sprintf("%s MCLAG conn %s", connPortChannelName, conn.Name)
 					err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName)
 					if err != nil {
-						return errors.Wrapf(err, "failed to setup physical interface %s", portName)
+						return false, errors.Wrapf(err, "failed to setup physical interface %s", portName)
 					}
 				}
 			}
@@ -246,7 +246,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) error {
 		// Members:  mclagMembers,
 	}
 
-	return nil
+	return sourceIP == MCLAG_SESSION_IP_1, nil
 }
 
 func planUsers(agent *agentapi.Agent, spec *dozer.Spec) error {
@@ -282,7 +282,7 @@ func isVRFBackend(agent *agentapi.Agent) bool {
 	return agent.Spec.VPCBackend == string(agentapi.VPCBackendVRF)
 }
 
-func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
 	if !isACLBackend(agent) && !isVRFBackend(agent) {
 		return errors.Errorf("unknown VPC backend %s", agent.Spec.VPCBackend)
 	}
@@ -422,7 +422,7 @@ func aclName(vlan uint16) string {
 	return fmt.Sprintf("vpc-vlan%d-in", vlan)
 }
 
-func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
 	var natConn *wiringapi.ConnNAT
 	for _, conn := range agent.Spec.Connections {
 		if conn.Spec.NAT != nil && conn.Spec.NAT.Link.Switch.DeviceName() == agent.Name {
@@ -488,17 +488,15 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	static := map[string]*dozer.SpecNATEntry{}
 
-	for _, vpcInfo := range agent.Spec.VPCs {
-		for internalIP, externalIP := range vpcInfo.DNAT {
-			static[externalIP] = &dozer.SpecNATEntry{
-				InternalAddress: stringPtr(internalIP),
-				Type:            dozer.SpecNATTypeDNAT,
+	if isACLBackend(agent) || isVRFBackend(agent) && firstSwitch {
+		for _, vpcInfo := range agent.Spec.VPCs {
+			for internalIP, externalIP := range vpcInfo.DNAT {
+				static[externalIP] = &dozer.SpecNATEntry{
+					InternalAddress: stringPtr(internalIP),
+					Type:            dozer.SpecNATTypeDNAT,
+				}
+				networks[externalIP+"/32"] = &dozer.SpecVRFBGPNetwork{}
 			}
-			static[internalIP] = &dozer.SpecNATEntry{
-				InternalAddress: stringPtr(externalIP),
-				Type:            dozer.SpecNATTypeSNAT,
-			}
-			networks[externalIP+"/32"] = &dozer.SpecVRFBGPNetwork{}
 		}
 	}
 
@@ -515,22 +513,16 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec) error {
 					IPv4Unicast: boolPtr(true),
 				},
 			},
-			Networks: networks,
+			Networks:   networks,
+			ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 		},
 	}
 
-	if isVRFBackend(agent) {
-		vrf.TableConnections = map[string]*dozer.SpecVRFTableConnection{
-			dozer.SpecVRFBGPTableConnectionConnected: {},
-			dozer.SpecVRFBGPTableConnectionStatic:    {},
-		}
-
-		if agent.Spec.SNATAllowed {
-			for _, vpc := range agent.Spec.VPCs {
-				if vpc.VPC.SNAT {
-					spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
-					vrf.BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
-				}
+	if isVRFBackend(agent) && firstSwitch {
+		for _, vpc := range agent.Spec.VPCs {
+			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(vpc.DNAT) > 0 {
+				spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
+				vrf.BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
 			}
 		}
 	}

@@ -23,6 +23,7 @@ type Fabric struct {
 	DHCPDConfigKey string               `json:"dhcpdConfigKey,omitempty"`
 	VPCBackend     string               `json:"vpcBackend,omitempty"`
 	SNATAllowed    bool                 `json:"snatAllowed,omitempty"`
+	VPCSubnet      string               `json:"vpcSubnet,omitempty"`
 }
 
 func Load(basedir string) (*Fabric, error) {
@@ -78,6 +79,9 @@ func Load(basedir string) (*Fabric, error) {
 	}
 	if !slices.Contains(agentapi.VPCBackendValues, agentapi.VPCBackend(cfg.VPCBackend)) {
 		return nil, errors.Errorf("config: vpcBackend must be one of %v", agentapi.VPCBackendValues)
+	}
+	if cfg.VPCSubnet == "" {
+		return nil, errors.Errorf("config: vpcSubnet is required")
 	}
 
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))

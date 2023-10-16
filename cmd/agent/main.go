@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/lmittmann/tint"
@@ -91,7 +92,7 @@ func setupLogger(verbose bool, logToFile bool) error {
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
-			slog.Error("Panic", "err", err)
+			slog.Error("Panic", "err", err, "stack", string(debug.Stack()))
 			os.Exit(1)
 		}
 	}()

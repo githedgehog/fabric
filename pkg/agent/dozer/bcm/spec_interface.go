@@ -68,7 +68,6 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 		if err := specInterfacesPortChannelEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle port channel")
 		}
-		// }
 
 		return nil
 	},

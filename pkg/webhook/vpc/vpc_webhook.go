@@ -55,7 +55,7 @@ func (w *VPCWebhook) Default(ctx context.Context, obj runtime.Object) error {
 func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	vpc := obj.(*vpcapi.VPC)
 
-	warns, err := vpc.Validate(ctx, w.Validation, w.Cfg.SNATAllowed)
+	warns, err := vpc.Validate(ctx, w.Validation, w.Cfg.SNATAllowed, w.Cfg.VPCSubnet)
 	if err != nil {
 		return warns, err
 	}
@@ -66,7 +66,7 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (wa
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	newVPC := newObj.(*vpcapi.VPC)
 
-	warns, err := newVPC.Validate(ctx, w.Validation, w.Cfg.SNATAllowed)
+	warns, err := newVPC.Validate(ctx, w.Validation, w.Cfg.SNATAllowed, w.Cfg.VPCSubnet)
 	if err != nil {
 		return warns, err
 	}
