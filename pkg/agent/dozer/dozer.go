@@ -205,10 +205,13 @@ func (s *Spec) Normalize() {
 }
 
 func (s *Spec) CleanupSensetive() {
-	for _, user := range s.Users {
-		user.Password = "<hidden>"
-		user.AuthorizedKeys = []string{}
+	users := map[string]*SpecUser{}
+	for name, user := range s.Users {
+		users[name] = &SpecUser{
+			Role: user.Role,
+		}
 	}
+	s.Users = users
 }
 
 func (s *Spec) MarshalYAML() ([]byte, error) {
@@ -256,6 +259,7 @@ var (
 	_ SpecPart = (*SpecVRFBGP)(nil)
 	_ SpecPart = (*SpecVRFBGPNetwork)(nil)
 	_ SpecPart = (*SpecVRFBGPNeighbor)(nil)
+	_ SpecPart = (*SpecVRFBGPImportVRF)(nil)
 	_ SpecPart = (*SpecVRFTableConnection)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
@@ -313,6 +317,10 @@ func (s *SpecVRFBGPNetwork) IsNil() bool {
 }
 
 func (s *SpecVRFBGPNeighbor) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVRFBGPImportVRF) IsNil() bool {
 	return s == nil
 }
 

@@ -90,7 +90,7 @@ func loadActualRouteMaps(ctx context.Context, client *gnmi.Client, spec *dozer.S
 func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[string]*dozer.SpecRouteMap, error) {
 	routeMaps := map[string]*dozer.SpecRouteMap{}
 
-	if ocVal == nil {
+	if ocVal == nil || ocVal.PolicyDefinitions == nil {
 		return routeMaps, nil
 	}
 

@@ -3,7 +3,6 @@ package bcm
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	osuser "os/user"
 	"path/filepath"
@@ -224,10 +223,10 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 	Summary: "User %s authorized keys",
 	CustomHandler: func(basePath, name string, _, user *dozer.SpecUser, actions *ActionQueue) error {
 		if user != nil {
-			actions.Add(&Action{
+			if err := actions.Add(&Action{
 				ASummary: fmt.Sprintf("User %s authorized keys", name),
+				Weight:   ActionWeightUserAuthorizedKeys,
 				CustomFunc: func() error {
-					slog.Debug("Setting authorized_keys", "user", name)
 					osUser, err := osuser.Lookup(name)
 					if err != nil {
 						return errors.Wrapf(err, "failed to lookup user %s", name)
@@ -269,7 +268,9 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 
 					return nil
 				},
-			})
+			}); err != nil {
+				return errors.Wrapf(err, "failed to add custom action to update authorized keys")
+			}
 		}
 
 		return nil

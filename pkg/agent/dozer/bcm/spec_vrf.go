@@ -3,6 +3,8 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/ygot/ygot"
@@ -10,6 +12,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"golang.org/x/exp/maps"
 )
 
 var specVRFsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRF]{
@@ -103,6 +106,10 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 			return errors.Wrap(err, "failed to handle vrf bgp base")
 		}
 
+		if err := specVRFImportVrfEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf bgp import vrfs")
+		}
+
 		actualNeighbors, desiredNeighbors := ValueOrNil(actual, desired,
 			func(value *dozer.SpecVRFBGP) map[string]*dozer.SpecVRFBGPNeighbor { return value.Neighbors })
 		if err := specVRFBGPNeighborsEnforcer.Handle(basePath, actualNeighbors, desiredNeighbors, actions); err != nil {
@@ -111,7 +118,7 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 
 		actualNetworks, desiredNetworks := ValueOrNil(actual, desired,
 			func(value *dozer.SpecVRFBGP) map[string]*dozer.SpecVRFBGPNetwork { return value.Networks })
-		if err := SpecVRFBGPNetworksEnforcer.Handle(basePath, actualNetworks, desiredNetworks, actions); err != nil {
+		if err := specVRFBGPNetworksEnforcer.Handle(basePath, actualNetworks, desiredNetworks, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrf bgp networks")
 		}
 
@@ -185,12 +192,12 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 	},
 }
 
-var SpecVRFBGPNetworksEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFBGPNetwork]{
+var specVRFBGPNetworksEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFBGPNetwork]{
 	Summary:      "VRF BGP networks",
-	ValueHandler: SpecVRFBGPNetworkEnforcer,
+	ValueHandler: specVRFBGPNetworkEnforcer,
 }
 
-var SpecVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPNetwork]{
+var specVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPNetwork]{
 	Summary:      "VRF BGP network %s",
 	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=%s]",
 	UpdateWeight: ActionWeightVRFBGPNetworkUpdate,
@@ -205,6 +212,40 @@ var SpecVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 					},
 				},
 			},
+		}, nil
+	},
+}
+
+var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
+	Summary: "VRF BGP import VRF %s",
+	Getter: func(name string, value *dozer.SpecVRFBGP) any {
+		return value.ImportVRFs
+	},
+	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+		if desired != nil && len(desired.ImportVRFs) == 0 {
+			return nil
+		}
+
+		return desired
+	},
+	MutateActual: func(key string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+		if actual != nil && len(actual.ImportVRFs) == 0 {
+			return nil
+		}
+
+		return actual
+	},
+	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name",
+	UpdateWeight: ActionWeightVRFBGPImportVRFUpdate,
+	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
+	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+		imports := maps.Keys(value.ImportVRFs)
+		sort.Strings(imports)
+
+		slog.Warn("Scheduling VRF imports update", "name", name, "imports", imports, "rawImports", value.ImportVRFs)
+
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
+			Name: imports,
 		}, nil
 	},
 }
@@ -288,8 +329,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 		}
 
 		bgp := &dozer.SpecVRFBGP{
-			Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
-			Networks:  map[string]*dozer.SpecVRFBGPNetwork{},
+			Neighbors:  map[string]*dozer.SpecVRFBGPNeighbor{},
+			Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
+			ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 		}
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
 			bgpProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
@@ -306,9 +348,16 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 					if bgpConfig.Global.AfiSafis != nil || bgpConfig.Global.AfiSafis.AfiSafi != nil {
 						unicast := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
-						if unicast != nil && unicast.NetworkConfig != nil {
-							for name := range unicast.NetworkConfig.Network {
-								bgp.Networks[name] = &dozer.SpecVRFBGPNetwork{}
+						if unicast != nil {
+							if unicast.NetworkConfig != nil {
+								for name := range unicast.NetworkConfig.Network {
+									bgp.Networks[name] = &dozer.SpecVRFBGPNetwork{}
+								}
+							}
+							if unicast.ImportNetworkInstance != nil && unicast.ImportNetworkInstance.Config != nil {
+								for _, name := range unicast.ImportNetworkInstance.Config.Name {
+									bgp.ImportVRFs[name] = &dozer.SpecVRFBGPImportVRF{}
+								}
 							}
 						}
 					}
@@ -365,7 +414,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 		}
 
 		enabled := ocVRF.Config.Enabled
-		if name == "default" {
+		if enabled == nil {
 			enabled = ygot.Bool(true)
 		}
 

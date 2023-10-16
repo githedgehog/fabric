@@ -49,6 +49,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 				Enabled: boolPtr(true),
 			},
 		},
+		RouteMaps:     map[string]*dozer.SpecRouteMap{},
 		DHCPRelays:    map[string]*dozer.SpecDHCPRelay{},
 		NATs:          map[uint32]*dozer.SpecNAT{},
 		ACLs:          map[string]*dozer.SpecACL{},
@@ -357,9 +358,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) erro
 					vlanIfaceName: {},
 				},
 				BGP: &dozer.SpecVRFBGP{
-					AS: uint32Ptr(LOCAL_BGP_AS),
-					// NetworkImportCheck: boolPtr(true),
-					ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+					AS:                 uint32Ptr(LOCAL_BGP_AS),
+					NetworkImportCheck: boolPtr(true),
+					ImportVRFs:         map[string]*dozer.SpecVRFBGPImportVRF{},
 				},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{
 					dozer.SpecVRFBGPTableConnectionConnected: {

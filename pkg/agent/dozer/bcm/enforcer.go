@@ -45,9 +45,14 @@ const (
 	ActionWeightSystemZTP
 	ActionWeightSystemHostname
 	ActionWeightUser
+	ActionWeightUserAuthorizedKeys
 	ActionWeightPortGroup
 
+	ActionWeightRouteMapUpdate
+
 	ActionWeightInterfaceBaseUpdate
+	ActionWeightVRFBaseUpdate
+	ActionWeightVRFInterfaceUpdate
 	ActionWeightInterfaceIPUpdate
 	ActionWeightInterfacePortChannelUpdate
 	ActionWeightInterfacePortChannelMemberUpdate
@@ -62,18 +67,21 @@ const (
 	ActionWeightACLInterfaceUpdate
 	ActionWeightACLEntryUpdate
 
-	ActionWeightVRFBaseUpdate
-	ActionWeightVRFInterfaceUpdate
 	ActionWeightVRFBGPBaseUpdate
 	ActionWeightVRFBGPNeighborUpdate
 	ActionWeightVRFBGPNetworkUpdate
+	ActionWrightVRFTableConnectionUpdate
 
 	ActionWeightNATBaseUpdate
 	ActionWeightNATPoolUpdate
 	ActionWeightNATBindingUpdate
 	ActionWeightNATEntryUpdate
 
+	ActionWeightVRFBGPImportVRFUpdate
+
 	// Deletes:
+
+	ActionWeightVRFBGPImportVRFDelete
 
 	ActionWeightDHCPRelayDelete
 
@@ -82,29 +90,27 @@ const (
 	ActionWeightNATPoolDelete
 	ActionWeightNATBaseDelete
 
+	ActionWeightMCLAGDomainDelete
+	ActionWeightMCLAGInterfaceDelete
+
+	ActionWeightInterfacePortChannelMemberDelete
+	ActionWeightInterfacePortChannelDelete
+	ActionWeightInterfaceNATZoneDelete
+	ActionWeightInterfaceIPDelete
+
+	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
 	ActionWeightVRFBGPNeighborDelete
 	ActionWeightVRFBGPBaseDelete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightVRFBaseDelete
 
-	ActionWeightMCLAGDomainDelete
-	ActionWeightMCLAGInterfaceDelete
-
 	ActionWeightACLInterfaceDelete
 	ActionWeightACLEntryDelete
 	ActionWeightACLBaseDelete
 
-	ActionWeightInterfacePortChannelMemberDelete
-	ActionWeightInterfacePortChannelDelete
-	ActionWeightInterfaceNATZoneDelete
-	ActionWeightInterfaceIPDelete
 	ActionWeightInterfaceBaseDelete
 
-	// Unsorted:
-	ActionWeightRouteMapUpdate
-	ActionWrightVRFTableConnectionUpdate
-	ActionWrightVRFTableConnectionDelete
 	ActionWeightRouteMapDelete
 
 	ActionWeightMax // keep it last
