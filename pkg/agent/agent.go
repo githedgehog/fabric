@@ -176,7 +176,19 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				if err != nil {
 					return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
 				}
-			case event := <-watcher.ResultChan():
+			case event, ok := <-watcher.ResultChan():
+				// TODO check why channel gets closed
+				if !ok {
+					slog.Warn("K8s watch channel closed, restarting agent")
+					os.Exit(1)
+				}
+
+				// TODO why are we getting nil events?
+				if event.Object == nil {
+					slog.Warn("Received nil object from K8s, restarting agent")
+					os.Exit(1)
+				}
+
 				// TODO handle bookmarks and delete events
 				if event.Type == watch.Deleted || event.Type == watch.Bookmark {
 					slog.Info("Received watch event, ignoring", "event", event.Type)
@@ -189,12 +201,6 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 					}
 
 					return errors.New("watch error")
-				}
-
-				// TODO why are we getting nil events?
-				if event.Object == nil {
-					slog.Warn("Received nil object from K8s, ignoring", "event", event.Type)
-					continue
 				}
 
 				agent = event.Object.(*agentapi.Agent)
