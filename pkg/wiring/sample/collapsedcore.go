@@ -359,6 +359,40 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 		}
 	}
 
+	// for idx := 0; idx < 40; idx++ {
+	// 	// server-scale-IDX <MCLAG> (switch-1, switch-2)
+
+	// 	serverName := fmt.Sprintf("server-scale-%02d", idx)
+
+	// 	_, err = createServer(data, serverName, "rack-1", wiringapi.ServerSpec{})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	serverPort1 := "enp0s2"
+	// 	serverPort2 := "enp0s3"
+	// 	serverSwitch1Port := fmt.Sprintf("Ethernet%d", idx+8)
+	// 	serverSwitch2Port := fmt.Sprintf("Ethernet%d", idx+8)
+
+	// 	_, err = createConnection(data, wiringapi.ConnectionSpec{
+	// 		MCLAG: &wiringapi.ConnMCLAG{
+	// 			Links: []wiringapi.ServerToSwitchLink{
+	// 				{
+	// 					Server: wiringapi.NewBasePortName(serverName + "/" + serverPort1),
+	// 					Switch: wiringapi.NewBasePortName("switch-1/" + serverSwitch1Port),
+	// 				},
+	// 				{
+	// 					Server: wiringapi.NewBasePortName(serverName + "/" + serverPort2),
+	// 					Switch: wiringapi.NewBasePortName("switch-2/" + serverSwitch2Port),
+	// 				},
+	// 			},
+	// 		},
+	// 	})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+
 	return data, nil
 }
 
