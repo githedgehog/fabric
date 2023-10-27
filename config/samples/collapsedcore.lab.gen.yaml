@@ -135,7 +135,7 @@ spec:
     link:
       server:
         ip: 192.168.101.1/31
-        port: control-1/eno2
+        port: control-1/enp7s0
       switch:
         ip: 192.168.101.0/31
         oniePortName: eth0
@@ -158,7 +158,7 @@ spec:
     link:
       server:
         ip: 192.168.102.1/31
-        port: control-1/eno3
+        port: control-1/enp8s0
       switch:
         ip: 192.168.102.0/31
         oniePortName: eth0

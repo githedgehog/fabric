@@ -166,7 +166,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 			return fmt.Sprintf("enp0s%d", portID+2)
 		}
 		if preset == SAMPLE_CC_LAB {
-			return fmt.Sprintf("eno%d", portID+1)
+			return fmt.Sprintf("enp%ds0", portID+6)
 		}
 
 		return "<invalid>"
@@ -259,8 +259,8 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	if preset == SAMPLE_CC_LAB {
 		server1Port1 = "enp7s0"
 		server1Port2 = "enp8s0"
-		server1Switch1Port = "Ethernet47"
-		server1Switch2Port = "Ethernet46"
+		server1Switch1Port = "Ethernet8"
+		server1Switch2Port = "Ethernet8"
 	}
 
 	// server-1 <MCLAG> (switch-1, switch-2)
@@ -289,8 +289,8 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	if preset == SAMPLE_CC_LAB {
 		server2Port1 = "enp7s0"
 		server2Port2 = "enp8s0"
-		server2Switch1Port = "Ethernet46"
-		server2Switch2Port = "Ethernet47"
+		server2Switch1Port = "Ethernet9"
+		server2Switch2Port = "Ethernet9"
 	}
 
 	// server-2 <MCLAG> (switch-1, switch-2)
