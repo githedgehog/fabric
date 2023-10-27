@@ -76,9 +76,9 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Getter:       func(key string, value *dozer.SpecInterface) any { return []any{value.Description, value.Enabled} },
 	Summary:      "Interface %s base",
+	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceBaseUpdate,
 	DeleteWeight: ActionWeightInterfaceBaseDelete,
-	NoReplace:    true,
 	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if (isManagement(name) || isPhysical(name)) && desired == nil {
 			return &dozer.SpecInterface{
@@ -129,6 +129,7 @@ var specInterfaceIPsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterfaceI
 
 var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIP]{
 	Summary:      "Interface IP %s", // TODO chain summary as well?
+	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceIPUpdate,
 	DeleteWeight: ActionWeightInterfaceIPDelete,
 	PathFunc: func(name string, value *dozer.SpecInterfaceIP) string {
@@ -177,6 +178,7 @@ var specInterfacePortChannelMemberEnforcer = &DefaultValueEnforcer[string, *doze
 	Summary:      "Interface %s PortChannel member",
 	Getter:       func(name string, value *dozer.SpecInterface) any { return value.PortChannel },
 	Path:         "/ethernet",
+	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfacePortChannelMemberUpdate,
 	DeleteWeight: ActionWeightInterfacePortChannelMemberDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
@@ -194,6 +196,7 @@ var specInterfaceNATZoneEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInte
 	Summary:      "Interface %s NAT zone",
 	Getter:       func(name string, value *dozer.SpecInterface) any { return value.NATZone },
 	Path:         "/nat-zone",
+	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceNATZoneUpdate,
 	DeleteWeight: ActionWeightInterfaceNATZoneDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
@@ -211,6 +214,7 @@ var specInterfacesPortChannelEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Summary:      "PortChannel %s",
 	Getter:       func(name string, value *dozer.SpecInterface) any { return value.PortChannel },
 	Path:         "/aggregation",
+	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfacePortChannelUpdate,
 	DeleteWeight: ActionWeightInterfacePortChannelDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
