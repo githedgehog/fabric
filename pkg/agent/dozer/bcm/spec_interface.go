@@ -57,7 +57,7 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 			return errors.Wrap(err, "failed to handle interface IPs")
 		}
 
-		if err := specInterfacePortChannelMemberEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+		if err := specInterfaceEthernetEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle interface port channel member")
 		}
 
@@ -95,6 +95,7 @@ var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfa
 				Name:        ygot.String(name),
 				Description: value.Description,
 				Enabled:     value.Enabled,
+				Mtu:         value.MTU, // TODO we'll not be able to unset it as we can't use replace
 			},
 		}
 
@@ -174,18 +175,35 @@ var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface
 	},
 }
 
-var specInterfacePortChannelMemberEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary:      "Interface %s PortChannel member",
+var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
+	Summary:      "Interface %s Ethernet", // TODO better summary
 	Getter:       func(name string, value *dozer.SpecInterface) any { return value.PortChannel },
 	Path:         "/ethernet",
-	NoReplace:    true,
+	NoReplace:    true, // TODO can we enable replace? so we can delete the speed config and portchannel member from it
 	UpdateWeight: ActionWeightInterfacePortChannelMemberUpdate,
 	DeleteWeight: ActionWeightInterfacePortChannelMemberDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
+
+		if value.Speed != nil {
+			ok := false
+			for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
+				if name.Name == *value.Speed {
+					speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
+					ok = true
+					break
+				}
+			}
+			if !ok {
+				return nil, errors.Errorf("invalid speed %s", *value.Speed)
+			}
+		}
+
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			Ethernet: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
 					AggregateId: value.PortChannel,
+					PortSpeed:   speed,
 				},
 			},
 		}, nil

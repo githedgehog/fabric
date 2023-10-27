@@ -60,6 +60,8 @@ type SpecInterface struct {
 	PortChannel    *string                     `json:"portChannel,omitempty"`
 	NATZone        *uint8                      `json:"natZone,omitempty"`
 	TrunkVLANRange *string                     `json:"trunkVLANRange,omitempty"`
+	MTU            *uint16                     `json:"mtu,omitempty"`
+	Speed          *string                     `json:"speed,omitempty"`
 }
 
 type SpecInterfaceIP struct {
