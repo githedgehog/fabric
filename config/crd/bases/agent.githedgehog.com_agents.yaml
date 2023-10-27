@@ -86,6 +86,29 @@ spec:
                     spec:
                       description: ConnectionSpec defines the desired state of Connection
                       properties:
+                        external:
+                          properties:
+                            link:
+                              properties:
+                                external:
+                                  properties:
+                                    port:
+                                      type: string
+                                  type: object
+                                switch:
+                                  properties:
+                                    ip:
+                                      type: string
+                                    neighborIP:
+                                      type: string
+                                    port:
+                                      type: string
+                                    remoteAS:
+                                      format: int32
+                                      type: integer
+                                  type: object
+                              type: object
+                          type: object
                         management:
                           properties:
                             link:

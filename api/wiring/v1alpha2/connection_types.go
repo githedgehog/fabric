@@ -37,6 +37,7 @@ const (
 	CONNECTION_TYPE_MCLAG       = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN = "mclag-domain"
 	CONNECTION_TYPE_NAT         = "nat"
+	CONNECTION_TYPE_EXTERNAL    = "external"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -113,6 +114,22 @@ type ConnNAT struct {
 	Link ConnNATLink `json:"link,omitempty"`
 }
 
+type ConnExternalSwitchLink struct {
+	BasePortName `json:",inline"`
+	IP           string `json:"ip,omitempty"`
+	NeighborIP   string `json:"neighborIP,omitempty"`
+	RemoteAS     uint32 `json:"remoteAS,omitempty"`
+}
+
+type ConnExternalLink struct {
+	Switch   ConnExternalSwitchLink `json:"switch,omitempty"`
+	External BasePortName           `json:"external,omitempty"`
+}
+
+type ConnExternal struct {
+	Link ConnExternalLink `json:"link,omitempty"`
+}
+
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
 	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
@@ -120,6 +137,7 @@ type ConnectionSpec struct {
 	MCLAG       *ConnMCLAG       `json:"mclag,omitempty"`
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	NAT         *ConnNAT         `json:"nat,omitempty"`
+	External    *ConnExternal    `json:"external,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -231,6 +249,10 @@ func (c *ConnectionSpec) GenerateName() string {
 			role = "nat"
 			left = c.NAT.Link.Switch.DeviceName()
 			right = []string{c.NAT.Link.NAT.DeviceName()}
+		} else if c.External != nil {
+			role = "external"
+			left = c.NAT.Link.Switch.DeviceName()
+			right = []string{c.NAT.Link.NAT.DeviceName()}
 		}
 
 		if left != "" && role != "" && len(right) > 0 {
@@ -270,6 +292,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
 	} else if c.NAT != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_NAT
+	} else if c.External != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_EXTERNAL
 	}
 
 	return labels
@@ -363,6 +387,10 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
 	} else if s.NAT != nil {
+		nonNills++
+
+		switches[s.NAT.Link.Switch.DeviceName()] = struct{}{}
+	} else if s.External != nil {
 		nonNills++
 
 		switches[s.NAT.Link.Switch.DeviceName()] = struct{}{}
