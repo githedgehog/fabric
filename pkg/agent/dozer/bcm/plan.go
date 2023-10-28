@@ -189,7 +189,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
 	for _, iface := range mclagPeerLinks {
 		descr := fmt.Sprintf("MCLAG peer link %s", mclagPeerPortChannelName)
-		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName)
+		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName, nil)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG peer link", iface)
 		}
@@ -208,7 +208,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	spec.Interfaces[mclagSessionPortChannelName] = mclagSessionPortChannel
 	for _, iface := range mclagSessionLinks {
 		descr := fmt.Sprintf("MCLAG session link %s", mclagSessionPortChannelName)
-		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName)
+		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName, nil)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
 		}
@@ -225,11 +225,17 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 						return false, errors.Errorf("no port channel found for conn %s", conn.Name)
 					}
 
+					var mtu *uint16
+					if conn.Spec.MCLAG.MTU != 0 {
+						mtu = uint16Ptr(conn.Spec.MCLAG.MTU)
+					}
+
 					connPortChannelName := portChannelName(portChan)
 					connPortChannel := &dozer.SpecInterface{
 						Enabled:        boolPtr(true),
 						Description:    stringPtr(fmt.Sprintf("%s MCLAG conn %s", portName, conn.Name)),
 						TrunkVLANRange: stringPtr(agent.Spec.VPCVLANRange),
+						MTU:            mtu,
 					}
 					spec.Interfaces[connPortChannelName] = connPortChannel
 
@@ -238,7 +244,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 					}
 
 					descr := fmt.Sprintf("%s MCLAG conn %s", connPortChannelName, conn.Name)
-					err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName)
+					err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil)
 					if err != nil {
 						return false, errors.Wrapf(err, "failed to setup physical interface %s", portName)
 					}
@@ -588,7 +594,7 @@ func vlanName(vlan uint16) string {
 	return fmt.Sprintf("Vlan%d", vlan)
 }
 
-func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, portChannel string) error { // TODO replace with generic function or drop
+func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, portChannel string, mtu *uint16) error { // TODO replace with generic function or drop
 	if iface, exist := spec.Interfaces[name]; exist {
 		descr := ""
 		if iface.Description != nil {
@@ -601,6 +607,7 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 		Description: stringPtr(description),
 		Enabled:     boolPtr(true),
 		PortChannel: &portChannel,
+		MTU:         mtu,
 	}
 	spec.Interfaces[name] = physicalIface
 

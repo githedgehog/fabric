@@ -74,7 +74,9 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 }
 
 var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Getter:       func(key string, value *dozer.SpecInterface) any { return []any{value.Description, value.Enabled} },
+	Getter: func(key string, value *dozer.SpecInterface) any {
+		return []any{value.Description, value.Enabled, value.MTU}
+	},
 	Summary:      "Interface %s base",
 	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceBaseUpdate,
@@ -291,7 +293,11 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		}
 
 		mtu := ocIface.Config.Mtu
-		if mtu != nil && *mtu == 9100 { // TODO it's a hack for now, assuming 9100 is a default MTU
+		if mtu != nil { // TODO it's a hack for now, assuming 9100 is a default MTU for everything other than Mgmt interface (1500)
+			if isManagement(name) && *mtu == 1500 || !isManagement(name) && *mtu == 9100 {
+				mtu = nil
+			}
+
 			mtu = nil
 		}
 

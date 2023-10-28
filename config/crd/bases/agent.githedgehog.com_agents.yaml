@@ -128,6 +128,8 @@ spec:
                                 type: object
                               minItems: 2
                               type: array
+                            mtu:
+                              type: integer
                           type: object
                         mclagDomain:
                           properties:

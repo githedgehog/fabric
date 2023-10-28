@@ -79,6 +79,7 @@ type ConnMgmt struct {
 type ConnMCLAG struct {
 	//+kubebuilder:validation:MinItems=2
 	Links []ServerToSwitchLink `json:"links,omitempty"`
+	MTU   uint16               `json:"mtu,omitempty"`
 }
 
 type SwitchToSwitchLink struct {
