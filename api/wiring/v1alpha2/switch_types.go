@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -42,6 +43,7 @@ type SwitchSpec struct {
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`
 	LLDPConfig      LLDPConfig        `json:"lldp,omitempty"`
 	PortGroupSpeeds map[string]string `json:"portGroupSpeeds,omitempty"`
+	PortBreakouts   map[string]string `json:"portBreakouts,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
@@ -104,6 +106,10 @@ func (sw *Switch) Default() {
 
 	uuid, _ := sw.Spec.Location.GenerateUUID()
 	sw.Labels[LabelLocation] = uuid
+
+	for name, value := range sw.Spec.PortGroupSpeeds {
+		sw.Spec.PortGroupSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
+	}
 }
 
 func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
@@ -118,7 +124,11 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admis
 			return nil, errors.Wrapf(err, "failed to get switches") // TODO replace with some internal error to not expose to the user
 		}
 
-		if len(switches.Items) > 0 {
+		for _, other := range switches.Items {
+			if sw.Name == other.Name {
+				continue
+			}
+
 			return nil, errors.Errorf("switch with location %s already exists", sw.Labels[LabelLocation])
 		}
 	}

@@ -45,8 +45,8 @@ spec:
     sig: <undefined>
     uuidSig: <undefined>
   portGroupSpeeds:
-    "1": SPEED_10GB
-    "12": SPEED_10GB
+    "1": 10GB
+    "12": 10GB
 status:
 ---
 ###
@@ -70,8 +70,8 @@ spec:
     sig: <undefined>
     uuidSig: <undefined>
   portGroupSpeeds:
-    "1": SPEED_10GB
-    "12": SPEED_10GB
+    "1": 10GB
+    "12": 10GB
 status:
 ---
 ###
@@ -183,11 +183,11 @@ spec:
     - server:
         port: server-1/enp7s0
       switch:
-        port: switch-1/Ethernet47
+        port: switch-1/Ethernet8
     - server:
         port: server-1/enp8s0
       switch:
-        port: switch-2/Ethernet46
+        port: switch-2/Ethernet8
 status:
 ---
 ###
@@ -208,11 +208,11 @@ spec:
     - server:
         port: server-2/enp7s0
       switch:
-        port: switch-1/Ethernet46
+        port: switch-1/Ethernet9
     - server:
         port: server-2/enp8s0
       switch:
-        port: switch-2/Ethernet47
+        port: switch-2/Ethernet9
 status:
 ---
 ###

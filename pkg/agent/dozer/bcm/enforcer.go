@@ -2,6 +2,7 @@ package bcm
 
 import (
 	"fmt"
+	"log/slog"
 	"reflect"
 	"slices"
 	"strings"
@@ -47,6 +48,7 @@ const (
 	ActionWeightUser
 	ActionWeightUserAuthorizedKeys
 	ActionWeightPortGroup
+	ActionWeightPortBreakout
 
 	ActionWeightRouteMapUpdate
 
@@ -196,6 +198,7 @@ type DefaultValueEnforcer[Key comparable, Value dozer.SpecPart] struct {
 	UpdateWeight   ActionWeight
 	DeleteWeight   ActionWeight
 	WarningOnError bool
+	SkipDelete     bool
 }
 
 func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actual, desired Value, actions *ActionQueue) error {
@@ -248,6 +251,11 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 	}
 
 	if desired.IsNil() { // delete actual value if desired isn't present
+		if h.SkipDelete {
+			slog.Debug("Skipping delete", "summary", summary, "key", key)
+			return nil
+		}
+
 		path := SafeSprintf(h.Path, key)
 		if h.PathFunc != nil {
 			path = h.PathFunc(key, actual)

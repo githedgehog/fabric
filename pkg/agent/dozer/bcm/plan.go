@@ -41,6 +41,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		ZTP:             boolPtr(false),
 		Hostname:        stringPtr(agent.Name),
 		PortGroups:      map[string]*dozer.SpecPortGroup{},
+		PortBreakouts:   map[string]*dozer.SpecPortBreakout{},
 		Interfaces:      map[string]*dozer.SpecInterface{},
 		MCLAGs:          map[uint32]*dozer.SpecMCLAGDomain{},
 		MCLAGInterfaces: map[string]*dozer.SpecMCLAGInterface{},
@@ -60,6 +61,12 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
 		spec.PortGroups[name] = &dozer.SpecPortGroup{
 			Speed: stringPtr(speed),
+		}
+	}
+
+	for name, mode := range agent.Spec.Switch.PortBreakouts {
+		spec.PortBreakouts[name] = &dozer.SpecPortBreakout{
+			Mode: mode,
 		}
 	}
 

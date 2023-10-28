@@ -296,6 +296,10 @@ spec:
                       uuidSig:
                         type: string
                     type: object
+                  portBreakouts:
+                    additionalProperties:
+                      type: string
+                    type: object
                   portGroupSpeeds:
                     additionalProperties:
                       type: string

@@ -177,7 +177,7 @@ var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface
 
 var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary:      "Interface %s Ethernet", // TODO better summary
-	Getter:       func(name string, value *dozer.SpecInterface) any { return value.PortChannel },
+	Getter:       func(name string, value *dozer.SpecInterface) any { return []any{value.PortChannel, value.Speed} },
 	Path:         "/ethernet",
 	NoReplace:    true, // TODO can we enable replace? so we can delete the speed config and portchannel member from it
 	UpdateWeight: ActionWeightInterfacePortChannelMemberUpdate,
@@ -186,16 +186,21 @@ var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInt
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 
 		if value.Speed != nil {
+			speedR := *value.Speed
+			if !strings.HasPrefix(speedR, "SPEED_") {
+				speedR = "SPEED_" + speedR
+			}
+
 			ok := false
 			for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
-				if name.Name == *value.Speed {
+				if name.Name == speedR {
 					speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
 					ok = true
 					break
 				}
 			}
 			if !ok {
-				return nil, errors.Errorf("invalid speed %s", *value.Speed)
+				return nil, errors.Errorf("invalid speed %s", speedR)
 			}
 		}
 
@@ -349,6 +354,12 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 
 		if ocIface.Ethernet != nil && ocIface.Ethernet.Config != nil {
 			iface.PortChannel = ocIface.Ethernet.Config.AggregateId
+
+			speed := ocIface.Ethernet.Config.PortSpeed
+			if speed > 0 && speed < oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
+				speedName, _ := strings.CutPrefix(oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"][int64(speed)].Name, "SPEED_")
+				iface.Speed = ygot.String(speedName)
+			}
 		}
 		if iface.PortChannel != nil && !isPhysical(name) && !isVLAN(name) {
 			return nil, errors.Errorf("interface %s is a port channel member but it's not Ethernet or Vlan", name)

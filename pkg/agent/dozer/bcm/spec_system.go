@@ -112,16 +112,21 @@ var specPortGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortGroup]{
 	Marshal: func(id string, value *dozer.SpecPortGroup) (ygot.ValidatedGoStruct, error) {
 		var speed oc.E_OpenconfigIfEthernet_ETHERNET_SPEED
 		if value.Speed != nil {
+			speedR := *value.Speed
+			if !strings.HasPrefix(speedR, "SPEED_") {
+				speedR = "SPEED_" + speedR
+			}
+
 			ok := false
 			for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
-				if name.Name == *value.Speed {
+				if name.Name == speedR {
 					speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
 					ok = true
 					break
 				}
 			}
 			if !ok {
-				return nil, errors.Errorf("invalid speed %s", *value.Speed)
+				return nil, errors.Errorf("invalid speed %s", speedR)
 			}
 		}
 
@@ -173,12 +178,109 @@ func unmarshalOCPortGroups(ocVal *oc.OpenconfigPortGroup_PortGroups) (map[string
 		}
 		val := &dozer.SpecPortGroup{}
 		if speed > 0 && speed < oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
-			val.Speed = ygot.String(oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"][int64(speed)].Name)
+			speedName, _ := strings.CutPrefix(oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"][int64(speed)].Name, "SPEED_")
+			val.Speed = ygot.String(speedName)
 		}
 		portGroups[name] = val
 	}
 
 	return portGroups, nil
+}
+
+var specPortBreakoutsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPortBreakout]{
+	Summary:      "Port Breakout",
+	ValueHandler: specPortBreakoutEnforcer,
+}
+
+var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBreakout]{
+	Summary:    "Port Breakout %s",
+	Path:       "/components/component[name=%s]/port/breakout-mode/groups/group[index=1]/config",
+	Weight:     ActionWeightPortBreakout,
+	SkipDelete: true,
+	Marshal: func(id string, value *dozer.SpecPortBreakout) (ygot.ValidatedGoStruct, error) {
+		num := uint8(0)
+		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
+
+		parts := strings.Split(value.Mode, "x")
+		if len(parts) != 2 {
+			return nil, errors.Errorf("invalid breakout mode %s, incorrect number of parts separated by 'x'", value.Mode)
+		}
+
+		numR, err := strconv.ParseUint(parts[0], 10, 8)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid breakouts num %s, isn't uint8", value.Mode)
+		}
+		num = uint8(numR)
+
+		speedR := parts[1]
+		if !strings.HasPrefix(speedR, "SPEED_") {
+			speedR = "SPEED_" + speedR
+		}
+
+		ok := false
+		for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
+			if name.Name == speedR {
+				speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return nil, errors.Errorf("invalid breakout speed %s", parts[1])
+		}
+
+		if num == 0 || speed == oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET {
+			return nil, errors.Errorf("invalid breakout mode %s", value.Mode)
+		}
+
+		return &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group{
+			Config: &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config{
+				Index:         ygot.Uint8(1),
+				NumBreakouts:  ygot.Uint8(num),
+				BreakoutSpeed: speed,
+				// NumPhysicalChannels: ygot.Uint8(0), // TODO check if it's really needed
+			},
+		}, nil
+	},
+}
+
+func loadActualPortBreakouts(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+	ocVal := &oc.SonicPortBreakout_SonicPortBreakout{}
+	err := client.Get(ctx, "/sonic-port-breakout/BREAKOUT_CFG", ocVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read port breakouts")
+	}
+	spec.PortBreakouts, err = unmarshalOCPortBreakouts(ocVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal port breakouts")
+	}
+
+	return nil
+}
+
+func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (map[string]*dozer.SpecPortBreakout, error) {
+	portBreakouts := map[string]*dozer.SpecPortBreakout{}
+
+	if ocVal == nil || ocVal.BREAKOUT_CFG == nil {
+		return portBreakouts, nil
+	}
+
+	for _, breakoutCfg := range ocVal.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
+		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil || breakoutCfg.Status == nil || *breakoutCfg.Status != "Completed" {
+			continue
+		}
+
+		mode := *breakoutCfg.BrkoutMode
+		if strings.HasSuffix(mode, "G") {
+			mode += "B"
+		}
+
+		portBreakouts[*breakoutCfg.Port] = &dozer.SpecPortBreakout{
+			Mode: mode,
+		}
+	}
+
+	return portBreakouts, nil
 }
 
 var specUsersEnforcer = &DefaultMapEnforcer[string, *dozer.SpecUser]{

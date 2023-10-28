@@ -30,6 +30,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle port groups")
 		}
 
+		if err := specPortBreakoutsEnforcer.Handle(basePath, actual.PortBreakouts, desired.PortBreakouts, actions); err != nil {
+			return errors.Wrap(err, "failed to handle port breakouts")
+		}
+
 		if err := specUsersEnforcer.Handle(basePath, actual.Users, desired.Users, actions); err != nil {
 			return errors.Wrap(err, "failed to handle users")
 		}
@@ -89,6 +93,10 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualPortGroups(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load port groups")
+	}
+
+	if err := loadActualPortBreakouts(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load port breakouts")
 	}
 
 	if err := loadActualUsers(ctx, client, spec); err != nil {

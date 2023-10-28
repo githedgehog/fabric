@@ -32,6 +32,7 @@ type Spec struct {
 	Hostname        *string                        `json:"hostname,omitempty"`
 	Users           map[string]*SpecUser           `json:"users,omitempty"`
 	PortGroups      map[string]*SpecPortGroup      `json:"portGroupSpeeds,omitempty"`
+	PortBreakouts   map[string]*SpecPortBreakout   `json:"portBreakouts,omitempty"`
 	Interfaces      map[string]*SpecInterface      `json:"interfaces,omitempty"`
 	MCLAGs          map[uint32]*SpecMCLAGDomain    `json:"mclags,omitempty"`
 	MCLAGInterfaces map[string]*SpecMCLAGInterface `json:"mclagInterfaces,omitempty"`
@@ -51,6 +52,10 @@ type SpecUser struct {
 
 type SpecPortGroup struct {
 	Speed *string
+}
+
+type SpecPortBreakout struct {
+	Mode string `json:"mode,omitempty"`
 }
 
 type SpecInterface struct {
@@ -252,6 +257,7 @@ var (
 	_ SpecPart = (*Spec)(nil)
 	_ SpecPart = (*SpecUser)(nil)
 	_ SpecPart = (*SpecPortGroup)(nil)
+	_ SpecPart = (*SpecPortBreakout)(nil)
 	_ SpecPart = (*SpecInterface)(nil)
 	_ SpecPart = (*SpecInterfaceIP)(nil)
 	_ SpecPart = (*SpecMCLAGDomain)(nil)
@@ -283,6 +289,10 @@ func (s *SpecUser) IsNil() bool {
 }
 
 func (s *SpecPortGroup) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecPortBreakout) IsNil() bool {
 	return s == nil
 }
 
