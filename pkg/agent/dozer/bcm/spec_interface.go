@@ -290,9 +290,15 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 			continue
 		}
 
+		mtu := ocIface.Config.Mtu
+		if mtu != nil && *mtu == 9100 { // TODO it's a hack for now, assuming 9100 is a default MTU
+			mtu = nil
+		}
+
 		iface := &dozer.SpecInterface{
 			Description: ocIface.Config.Description,
 			Enabled:     ocIface.Config.Enabled,
+			MTU:         mtu,
 			IPs:         map[string]*dozer.SpecInterfaceIP{},
 		}
 
