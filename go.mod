@@ -14,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.28.0
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/gnmic v0.32.0
-	github.com/openconfig/goyang v1.4.1
+	github.com/openconfig/goyang v1.4.3
 	github.com/openconfig/ygot v0.29.10
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
