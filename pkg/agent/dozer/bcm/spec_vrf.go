@@ -333,6 +333,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
 			ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 		}
+		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
 			bgpProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
 				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
@@ -343,6 +344,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				bgpConfig := bgpProto.Bgp
 
 				if bgpConfig.Global != nil && bgpConfig.Global.Config != nil {
+					bgpOk = true
 					bgp.AS = bgpConfig.Global.Config.As
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
 
@@ -416,6 +418,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 		enabled := ocVRF.Config.Enabled
 		if enabled == nil {
 			enabled = ygot.Bool(true)
+		}
+
+		if !bgpOk {
+			bgp = nil
 		}
 
 		vrfs[name] = &dozer.SpecVRF{

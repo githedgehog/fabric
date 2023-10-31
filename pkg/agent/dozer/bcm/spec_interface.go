@@ -356,7 +356,9 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		if ocIface.Ethernet != nil && ocIface.Ethernet.Config != nil {
 			iface.PortChannel = ocIface.Ethernet.Config.AggregateId
 
-			iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
+			if !isManagement(name) { // TODO support configuring speed on Mgmt interface
+				iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
+			}
 		}
 		if iface.PortChannel != nil && !isPhysical(name) && !isVLAN(name) {
 			return nil, errors.Errorf("interface %s is a port channel member but it's not Ethernet or Vlan", name)
