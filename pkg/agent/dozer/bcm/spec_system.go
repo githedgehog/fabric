@@ -137,7 +137,9 @@ func loadActualPortGroups(ctx context.Context, client *gnmi.Client, spec *dozer.
 	ocVal := &oc.OpenconfigPortGroup_PortGroups{}
 	err := client.Get(ctx, "/port-groups/port-group", ocVal)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read port groups")
+		if !strings.Contains(err.Error(), "rpc error: code = NotFound") { // TODO rework client to handle it
+			return errors.Wrapf(err, "failed to read port groups")
+		}
 	}
 	spec.PortGroups, err = unmarshalOCPortGroups(ocVal)
 	if err != nil {
