@@ -32,12 +32,13 @@ import (
 )
 
 const (
-	CONNECTION_TYPE_UNBUNDLED   = "unbundled"
-	CONNECTION_TYPE_MANAGEMENT  = "management"
-	CONNECTION_TYPE_MCLAG       = "mclag"
-	CONNECTION_TYPE_MCLAGDOMAIN = "mclag-domain"
-	CONNECTION_TYPE_NAT         = "nat"
-	CONNECTION_TYPE_FABRIC      = "fabric"
+	CONNECTION_TYPE_UNBUNDLED    = "unbundled"
+	CONNECTION_TYPE_MANAGEMENT   = "management"
+	CONNECTION_TYPE_MCLAG        = "mclag"
+	CONNECTION_TYPE_MCLAGDOMAIN  = "mclag-domain"
+	CONNECTION_TYPE_NAT          = "nat"
+	CONNECTION_TYPE_FABRIC       = "fabric"
+	CONNECTION_TYPE_VPC_LOOPBACK = "vpc-loopback"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -117,7 +118,17 @@ type ConnNAT struct {
 	Link ConnNATLink `json:"link,omitempty"`
 }
 
+type FabricLink struct {
+	Spine BasePortName `json:"spine,omitempty"`
+	Leaf  BasePortName `json:"leaf,omitempty"`
+}
+
 type ConnFabric struct {
+	//+kubebuilder:validation:MinItems=1
+	Links []FabricLink `json:"links,omitempty"`
+}
+
+type ConnVPCLoopback struct {
 	//+kubebuilder:validation:MinItems=1
 	Links []SwitchToSwitchLink `json:"links,omitempty"`
 }
@@ -130,6 +141,7 @@ type ConnectionSpec struct {
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	NAT         *ConnNAT         `json:"nat,omitempty"`
 	Fabric      *ConnFabric      `json:"fabric,omitempty"`
+	VPCLoopback *ConnVPCLoopback `json:"vpcLoopback,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -243,12 +255,19 @@ func (c *ConnectionSpec) GenerateName() string {
 			right = []string{c.NAT.Link.NAT.DeviceName()}
 		} else if c.Fabric != nil {
 			role = "fabric"
-			left = c.Fabric.Links[0].Switch1.DeviceName()
-			right = []string{c.Fabric.Links[0].Switch2.DeviceName()}
+			left = c.Fabric.Links[0].Spine.DeviceName()
+			right = []string{c.Fabric.Links[0].Leaf.DeviceName()}
+		} else if c.VPCLoopback != nil {
+			role = "vpc-loopback"
+			left = c.VPCLoopback.Links[0].Switch1.DeviceName()
 		}
 
-		if left != "" && role != "" && len(right) > 0 {
-			return fmt.Sprintf("%s--%s--%s", left, role, strings.Join(right, "--"))
+		if left != "" && role != "" {
+			if len(right) > 0 {
+				return fmt.Sprintf("%s--%s--%s", left, role, strings.Join(right, "--"))
+			} else {
+				return fmt.Sprintf("%s--%s", left, role)
+			}
 		}
 	}
 
@@ -286,6 +305,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_NAT
 	} else if c.Fabric != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
+	} else if c.VPCLoopback != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_VPC_LOOPBACK
 	}
 
 	return labels
@@ -386,14 +407,30 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		nonNills++
 
 		for _, link := range s.Fabric.Links {
+			switches[link.Spine.DeviceName()] = struct{}{}
+			switches[link.Leaf.DeviceName()] = struct{}{}
+			ports[link.Spine.PortName()] = struct{}{}
+			ports[link.Leaf.PortName()] = struct{}{}
+		}
+
+		if len(switches) != 2 {
+			return nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
+		}
+		if len(ports) != 2*len(s.Fabric.Links) {
+			return nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
+		}
+	} else if s.VPCLoopback != nil {
+		nonNills++
+
+		for _, link := range s.VPCLoopback.Links {
 			switches[link.Switch1.DeviceName()] = struct{}{}
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
 			ports[link.Switch2.PortName()] = struct{}{}
 		}
 
-		if len(switches) != 2 {
-			return nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
+		if len(switches) != 1 {
+			return nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
 		}
 		if len(ports) != 2*len(s.Fabric.Links) {
 			return nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")

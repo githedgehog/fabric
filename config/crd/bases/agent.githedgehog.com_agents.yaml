@@ -91,12 +91,12 @@ spec:
                             links:
                               items:
                                 properties:
-                                  switch1:
+                                  leaf:
                                     properties:
                                       port:
                                         type: string
                                     type: object
-                                  switch2:
+                                  spine:
                                     properties:
                                       port:
                                         type: string
@@ -232,6 +232,25 @@ spec:
                                       type: string
                                   type: object
                               type: object
+                          type: object
+                        vpcLoopback:
+                          properties:
+                            links:
+                              items:
+                                properties:
+                                  switch1:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                  switch2:
+                                    properties:
+                                      port:
+                                        type: string
+                                    type: object
+                                type: object
+                              minItems: 1
+                              type: array
                           type: object
                       type: object
                   type: object

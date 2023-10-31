@@ -514,6 +514,7 @@ _Appears in:_
 - [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
 - [ConnNATLink](#connnatlink)
 - [ConnNATLinkSwitch](#connnatlinkswitch)
+- [FabricLink](#fabriclink)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
 
@@ -533,7 +534,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+| `links` _[FabricLink](#fabriclink) array_ |  |
 
 
 #### ConnMCLAG
@@ -687,6 +688,20 @@ _Appears in:_
 | `link` _[ServerToSwitchLink](#servertoswitchlink)_ |  |
 
 
+#### ConnVPCLoopback
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+
+
 #### Connection
 
 
@@ -722,6 +737,7 @@ _Appears in:_
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ |  |
 | `nat` _[ConnNAT](#connnat)_ |  |
 | `fabric` _[ConnFabric](#connfabric)_ |  |
+| `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ |  |
 
 
 #### ConnectionStatus
@@ -736,6 +752,21 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `applied` _[ApplyStatus](#applystatus)_ |  |
+
+
+#### FabricLink
+
+
+
+
+
+_Appears in:_
+- [ConnFabric](#connfabric)
+
+| Field | Description |
+| --- | --- |
+| `spine` _[BasePortName](#baseportname)_ |  |
+| `leaf` _[BasePortName](#baseportname)_ |  |
 
 
 
@@ -1091,8 +1122,8 @@ _Appears in:_
 
 
 _Appears in:_
-- [ConnFabric](#connfabric)
 - [ConnMCLAGDomain](#connmclagdomain)
+- [ConnVPCLoopback](#connvpcloopback)
 
 | Field | Description |
 | --- | --- |
