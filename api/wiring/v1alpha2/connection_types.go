@@ -37,6 +37,7 @@ const (
 	CONNECTION_TYPE_MCLAG       = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN = "mclag-domain"
 	CONNECTION_TYPE_NAT         = "nat"
+	CONNECTION_TYPE_FABRIC      = "fabric"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -89,7 +90,9 @@ type SwitchToSwitchLink struct {
 
 type ConnMCLAGDomain struct {
 	//+kubebuilder:validation:MinItems=1
-	PeerLinks    []SwitchToSwitchLink `json:"peerLinks,omitempty"`
+	PeerLinks []SwitchToSwitchLink `json:"peerLinks,omitempty"`
+
+	//+kubebuilder:validation:MinItems=1
 	SessionLinks []SwitchToSwitchLink `json:"sessionLinks,omitempty"`
 }
 
@@ -114,6 +117,11 @@ type ConnNAT struct {
 	Link ConnNATLink `json:"link,omitempty"`
 }
 
+type ConnFabric struct {
+	//+kubebuilder:validation:MinItems=1
+	Links []SwitchToSwitchLink `json:"links,omitempty"`
+}
+
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
 	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
@@ -121,6 +129,7 @@ type ConnectionSpec struct {
 	MCLAG       *ConnMCLAG       `json:"mclag,omitempty"`
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	NAT         *ConnNAT         `json:"nat,omitempty"`
+	Fabric      *ConnFabric      `json:"fabric,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -232,6 +241,10 @@ func (c *ConnectionSpec) GenerateName() string {
 			role = "nat"
 			left = c.NAT.Link.Switch.DeviceName()
 			right = []string{c.NAT.Link.NAT.DeviceName()}
+		} else if c.Fabric != nil {
+			role = "fabric"
+			left = c.Fabric.Links[0].Switch1.DeviceName()
+			right = []string{c.Fabric.Links[0].Switch2.DeviceName()}
 		}
 
 		if left != "" && role != "" && len(right) > 0 {
@@ -271,6 +284,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
 	} else if c.NAT != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_NAT
+	} else if c.Fabric != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
 	}
 
 	return labels
@@ -339,10 +354,10 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			return nil, nil, nil, errors.Errorf("at least one session link must be used for mclag domain connection")
 		}
 		if len(switches) != 2 {
-			return nil, nil, nil, errors.Errorf("two switches must be used for mclag domain domain connection")
+			return nil, nil, nil, errors.Errorf("two switches must be used for mclag domain connection")
 		}
 		if len(ports) != 2*(len(s.MCLAGDomain.PeerLinks)+len(s.MCLAGDomain.SessionLinks)) {
-			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag domain domain connection")
+			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag domain connection")
 		}
 	} else if s.MCLAG != nil {
 		nonNills++
@@ -367,6 +382,22 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		nonNills++
 
 		switches[s.NAT.Link.Switch.DeviceName()] = struct{}{}
+	} else if s.Fabric != nil {
+		nonNills++
+
+		for _, link := range s.Fabric.Links {
+			switches[link.Switch1.DeviceName()] = struct{}{}
+			switches[link.Switch2.DeviceName()] = struct{}{}
+			ports[link.Switch1.PortName()] = struct{}{}
+			ports[link.Switch2.PortName()] = struct{}{}
+		}
+
+		if len(switches) != 2 {
+			return nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
+		}
+		if len(ports) != 2*len(s.Fabric.Links) {
+			return nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
+		}
 	}
 
 	if nonNills != 1 {

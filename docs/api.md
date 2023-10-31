@@ -522,6 +522,20 @@ _Appears in:_
 | `port` _string_ |  |
 
 
+#### ConnFabric
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ |  |
+
+
 #### ConnMCLAG
 
 
@@ -707,6 +721,7 @@ _Appears in:_
 | `mclag` _[ConnMCLAG](#connmclag)_ |  |
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ |  |
 | `nat` _[ConnNAT](#connnat)_ |  |
+| `fabric` _[ConnFabric](#connfabric)_ |  |
 
 
 #### ConnectionStatus
@@ -1076,6 +1091,7 @@ _Appears in:_
 
 
 _Appears in:_
+- [ConnFabric](#connfabric)
 - [ConnMCLAGDomain](#connmclagdomain)
 
 | Field | Description |

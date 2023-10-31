@@ -47,6 +47,25 @@ spec:
           spec:
             description: ConnectionSpec defines the desired state of Connection
             properties:
+              fabric:
+                properties:
+                  links:
+                    items:
+                      properties:
+                        switch1:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                        switch2:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
+                    type: array
+                type: object
               management:
                 properties:
                   link:
@@ -124,6 +143,7 @@ spec:
                               type: string
                           type: object
                       type: object
+                    minItems: 1
                     type: array
                 type: object
               nat:
