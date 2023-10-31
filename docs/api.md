@@ -534,6 +534,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `links` _[ServerToSwitchLink](#servertoswitchlink) array_ |  |
+| `mtu` _integer_ |  |
 
 
 #### ConnMCLAGDomain
@@ -1051,6 +1052,7 @@ _Appears in:_
 | `locationSig` _[LocationSig](#locationsig)_ |  |
 | `lldp` _[LLDPConfig](#lldpconfig)_ |  |
 | `portGroupSpeeds` _object (keys:string, values:string)_ |  |
+| `portBreakouts` _object (keys:string, values:string)_ |  |
 
 
 #### SwitchStatus
