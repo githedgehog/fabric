@@ -139,11 +139,13 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 }
 
 func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
+	ok := false
 	mclagPeerLinks := []string{}
 	mclagSessionLinks := []string{}
 	mclagPeerSwitch := ""
 	for _, conn := range agent.Spec.Connections {
 		if conn.Spec.MCLAGDomain != nil {
+			ok = true
 			for _, link := range conn.Spec.MCLAGDomain.PeerLinks {
 				if link.Switch1.DeviceName() == agent.Name {
 					mclagPeerLinks = append(mclagPeerLinks, link.Switch1.LocalPortName())
@@ -163,6 +165,12 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 			break
 		}
 	}
+
+	// if there is no MCLAG domain, we are done
+	if !ok {
+		return false, nil
+	}
+
 	if len(mclagPeerLinks) == 0 {
 		return false, errors.Errorf("no mclag peer links found")
 	}
@@ -257,7 +265,6 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		SourceIP: sourceIP,
 		PeerIP:   peerIP,
 		PeerLink: mclagPeerPortChannelName,
-		// Members:  mclagMembers,
 	}
 
 	return sourceIP == MCLAG_SESSION_IP_1, nil

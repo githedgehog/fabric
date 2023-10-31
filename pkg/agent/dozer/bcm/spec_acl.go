@@ -142,8 +142,8 @@ var specACLInterfacesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecACLInterf
 
 // TODO there is a good chance that it'll not be able to replace the ACLs for interface but we don't need it now
 var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInterface]{
-	Summary: "ACL interface %s",
-	Path:    "/acl/interfaces/interface[id=%s]",
+	Summary:      "ACL interface %s",
+	Path:         "/acl/interfaces/interface[id=%s]",
 	UpdateWeight: ActionWeightACLInterfaceUpdate,
 	DeleteWeight: ActionWeightACLInterfaceDelete,
 	Marshal: func(name string, value *dozer.SpecACLInterface) (ygot.ValidatedGoStruct, error) {
