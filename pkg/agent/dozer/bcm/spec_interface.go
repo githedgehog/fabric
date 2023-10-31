@@ -188,21 +188,10 @@ var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInt
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 
 		if value.Speed != nil {
-			speedR := *value.Speed
-			if !strings.HasPrefix(speedR, "SPEED_") {
-				speedR = "SPEED_" + speedR
-			}
-
-			ok := false
-			for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
-				if name.Name == speedR {
-					speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
-					ok = true
-					break
-				}
-			}
+			var ok bool
+			speed, ok = MarshalPortSpeed(*value.Speed)
 			if !ok {
-				return nil, errors.Errorf("invalid speed %s", speedR)
+				return nil, errors.Errorf("invalid speed %s", *value.Speed)
 			}
 		}
 
@@ -367,11 +356,7 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		if ocIface.Ethernet != nil && ocIface.Ethernet.Config != nil {
 			iface.PortChannel = ocIface.Ethernet.Config.AggregateId
 
-			speed := ocIface.Ethernet.Config.PortSpeed
-			if speed > 0 && speed < oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
-				speedName, _ := strings.CutPrefix(oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"][int64(speed)].Name, "SPEED_")
-				iface.Speed = ygot.String(speedName)
-			}
+			iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
 		}
 		if iface.PortChannel != nil && !isPhysical(name) && !isVLAN(name) {
 			return nil, errors.Errorf("interface %s is a port channel member but it's not Ethernet or Vlan", name)

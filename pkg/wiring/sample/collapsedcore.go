@@ -54,8 +54,8 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 	if preset == SAMPLE_CC_LAB {
 		switch1.PortGroupSpeeds = map[string]string{
-			"1":  "SPEED_10GB",
-			"12": "SPEED_10GB",
+			"1":  "SPEED_10G",
+			"12": "SPEED_10G",
 		}
 	}
 	_, err = createSwitch(data, "switch-1", "rack-1", switch1)
@@ -68,8 +68,8 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 	if preset == SAMPLE_CC_LAB {
 		switch2.PortGroupSpeeds = map[string]string{
-			"1":  "SPEED_10GB",
-			"12": "SPEED_10GB",
+			"1":  "SPEED_10G",
+			"12": "SPEED_10G",
 		}
 	}
 	_, err = createSwitch(data, "switch-2", "rack-1", switch2)

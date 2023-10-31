@@ -112,21 +112,10 @@ var specPortGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortGroup]{
 	Marshal: func(id string, value *dozer.SpecPortGroup) (ygot.ValidatedGoStruct, error) {
 		var speed oc.E_OpenconfigIfEthernet_ETHERNET_SPEED
 		if value.Speed != nil {
-			speedR := *value.Speed
-			if !strings.HasPrefix(speedR, "SPEED_") {
-				speedR = "SPEED_" + speedR
-			}
-
-			ok := false
-			for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
-				if name.Name == speedR {
-					speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
-					ok = true
-					break
-				}
-			}
+			var ok bool
+			speed, ok = MarshalPortSpeed(*value.Speed)
 			if !ok {
-				return nil, errors.Errorf("invalid speed %s", speedR)
+				return nil, errors.Errorf("invalid speed %s", *value.Speed)
 			}
 		}
 
@@ -176,12 +165,10 @@ func unmarshalOCPortGroups(ocVal *oc.OpenconfigPortGroup_PortGroups) (map[string
 		if portGroup.State != nil && speed == portGroup.State.DefaultSpeed {
 			continue
 		}
-		val := &dozer.SpecPortGroup{}
-		if speed > 0 && speed < oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
-			speedName, _ := strings.CutPrefix(oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"][int64(speed)].Name, "SPEED_")
-			val.Speed = ygot.String(speedName)
+
+		portGroups[name] = &dozer.SpecPortGroup{
+			Speed: UnmarshalPortSpeed(speed),
 		}
-		portGroups[name] = val
 	}
 
 	return portGroups, nil
@@ -198,9 +185,6 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 	Weight:     ActionWeightPortBreakout,
 	SkipDelete: true,
 	Marshal: func(id string, value *dozer.SpecPortBreakout) (ygot.ValidatedGoStruct, error) {
-		num := uint8(0)
-		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
-
 		parts := strings.Split(value.Mode, "x")
 		if len(parts) != 2 {
 			return nil, errors.Errorf("invalid breakout mode %s, incorrect number of parts separated by 'x'", value.Mode)
@@ -210,21 +194,9 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid breakouts num %s, isn't uint8", value.Mode)
 		}
-		num = uint8(numR)
+		num := uint8(numR)
 
-		speedR := parts[1]
-		if !strings.HasPrefix(speedR, "SPEED_") {
-			speedR = "SPEED_" + speedR
-		}
-
-		ok := false
-		for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
-			if name.Name == speedR {
-				speed = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
-				ok = true
-				break
-			}
-		}
+		speed, ok := MarshalPortSpeed(parts[1])
 		if !ok {
 			return nil, errors.Errorf("invalid breakout speed %s", parts[1])
 		}
@@ -270,13 +242,8 @@ func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (ma
 			continue
 		}
 
-		mode := *breakoutCfg.BrkoutMode
-		if strings.HasSuffix(mode, "G") {
-			mode += "B"
-		}
-
 		portBreakouts[*breakoutCfg.Port] = &dozer.SpecPortBreakout{
-			Mode: mode,
+			Mode: UnmarshalPortBreakout(*breakoutCfg.BrkoutMode),
 		}
 	}
 
