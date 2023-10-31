@@ -59,7 +59,8 @@ type ConnUnbundled struct {
 type ConnMgmtLinkServer struct {
 	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
-	IP string `json:"ip,omitempty"`
+	IP  string `json:"ip,omitempty"`
+	MAC string `json:"mac,omitempty"`
 }
 
 type ConnMgmtLinkSwitch struct {

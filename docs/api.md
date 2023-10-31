@@ -609,6 +609,7 @@ _Appears in:_
 | --- | --- |
 | `port` _string_ |  |
 | `ip` _string_ |  |
+| `mac` _string_ |  |
 
 
 #### ConnMgmtLinkSwitch
