@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,13 +62,14 @@ func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Obje
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
-	oldConn := oldObj.(*wiringapi.Connection)
-	newConn := newObj.(*wiringapi.Connection)
+	// TODO some connections or their parts should be immutable
 
-	// TODO some connections could be mutable probably
-	if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
-		return nil, errors.Errorf("connection spec is immutable")
-	}
+	// oldConn := oldObj.(*wiringapi.Connection)
+	// newConn := newObj.(*wiringapi.Connection)
+
+	// if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
+	// 	return nil, errors.Errorf("connection spec is immutable")
+	// }
 
 	return nil, nil
 }
