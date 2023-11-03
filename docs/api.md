@@ -510,11 +510,11 @@ _Appears in:_
 
 
 _Appears in:_
+- [ConnFabricLinkSwitch](#connfabriclinkswitch)
 - [ConnMgmtLinkServer](#connmgmtlinkserver)
 - [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
 - [ConnNATLink](#connnatlink)
 - [ConnNATLinkSwitch](#connnatlinkswitch)
-- [FabricLink](#fabriclink)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
 
@@ -535,6 +535,52 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `links` _[FabricLink](#fabriclink) array_ |  |
+| `spine` _[ConnFabricSpine](#connfabricspine)_ |  |
+| `leaf` _[ConnFabricLeaf](#connfabricleaf)_ |  |
+
+
+#### ConnFabricLeaf
+
+
+
+
+
+_Appears in:_
+- [ConnFabric](#connfabric)
+
+| Field | Description |
+| --- | --- |
+| `asn` _integer_ |  |
+| `loopbackIP` _string_ |  |
+
+
+#### ConnFabricLinkSwitch
+
+
+
+
+
+_Appears in:_
+- [FabricLink](#fabriclink)
+
+| Field | Description |
+| --- | --- |
+| `port` _string_ |  |
+| `ip` _string_ |  |
+
+
+#### ConnFabricSpine
+
+
+
+
+
+_Appears in:_
+- [ConnFabric](#connfabric)
+
+| Field | Description |
+| --- | --- |
+| `asn` _integer_ |  |
 
 
 #### ConnMCLAG
@@ -766,8 +812,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `spine` _[BasePortName](#baseportname)_ |  |
-| `leaf` _[BasePortName](#baseportname)_ |  |
+| `spine` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |
+| `leaf` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |
 
 
 

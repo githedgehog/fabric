@@ -119,14 +119,31 @@ type ConnNAT struct {
 	Link ConnNATLink `json:"link,omitempty"`
 }
 
+type ConnFabricLinkSwitch struct {
+	BasePortName `json:",inline"`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	IP string `json:"ip,omitempty"`
+}
+
 type FabricLink struct {
-	Spine BasePortName `json:"spine,omitempty"`
-	Leaf  BasePortName `json:"leaf,omitempty"`
+	Spine ConnFabricLinkSwitch `json:"spine,omitempty"`
+	Leaf  ConnFabricLinkSwitch `json:"leaf,omitempty"`
+}
+
+type ConnFabricSpine struct {
+	ASN uint32 `json:"asn,omitempty"`
+}
+
+type ConnFabricLeaf struct {
+	ASN        uint32 `json:"asn,omitempty"`
+	LoopbackIP string `json:"loopbackIP,omitempty"`
 }
 
 type ConnFabric struct {
 	//+kubebuilder:validation:MinItems=1
-	Links []FabricLink `json:"links,omitempty"`
+	Links []FabricLink    `json:"links,omitempty"`
+	Spine ConnFabricSpine `json:"spine,omitempty"`
+	Leaf  ConnFabricLeaf  `json:"leaf,omitempty"`
 }
 
 type ConnVPCLoopback struct {

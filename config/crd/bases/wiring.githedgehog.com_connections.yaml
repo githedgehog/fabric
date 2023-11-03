@@ -49,22 +49,42 @@ spec:
             properties:
               fabric:
                 properties:
+                  leaf:
+                    properties:
+                      asn:
+                        format: int32
+                        type: integer
+                      loopbackIP:
+                        type: string
+                    type: object
                   links:
                     items:
                       properties:
                         leaf:
                           properties:
+                            ip:
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
                             port:
                               type: string
                           type: object
                         spine:
                           properties:
+                            ip:
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
                             port:
                               type: string
                           type: object
                       type: object
                     minItems: 1
                     type: array
+                  spine:
+                    properties:
+                      asn:
+                        format: int32
+                        type: integer
+                    type: object
                 type: object
               management:
                 properties:
