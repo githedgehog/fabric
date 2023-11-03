@@ -523,6 +523,20 @@ _Appears in:_
 | `port` _string_ |  |
 
 
+#### ConnBundled
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `links` _[ServerToSwitchLink](#servertoswitchlink) array_ |  |
+
+
 #### ConnFabric
 
 
@@ -779,6 +793,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `unbundled` _[ConnUnbundled](#connunbundled)_ |  |
+| `bundled` _[ConnBundled](#connbundled)_ |  |
 | `management` _[ConnMgmt](#connmgmt)_ |  |
 | `mclag` _[ConnMCLAG](#connmclag)_ |  |
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ |  |
@@ -1036,6 +1051,7 @@ _Appears in:_
 
 
 _Appears in:_
+- [ConnBundled](#connbundled)
 - [ConnMCLAG](#connmclag)
 - [ConnUnbundled](#connunbundled)
 

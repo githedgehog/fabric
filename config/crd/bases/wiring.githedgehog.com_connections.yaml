@@ -47,6 +47,24 @@ spec:
           spec:
             description: ConnectionSpec defines the desired state of Connection
             properties:
+              bundled:
+                properties:
+                  links:
+                    items:
+                      properties:
+                        server:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                        switch:
+                          properties:
+                            port:
+                              type: string
+                          type: object
+                      type: object
+                    type: array
+                type: object
               fabric:
                 properties:
                   leaf:

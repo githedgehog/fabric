@@ -33,6 +33,7 @@ import (
 
 const (
 	CONNECTION_TYPE_UNBUNDLED    = "unbundled"
+	CONNECTION_TYPE_BUNDLED      = "bundled"
 	CONNECTION_TYPE_MANAGEMENT   = "management"
 	CONNECTION_TYPE_MCLAG        = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN  = "mclag-domain"
@@ -54,6 +55,10 @@ type ServerToSwitchLink struct {
 
 type ConnUnbundled struct {
 	Link ServerToSwitchLink `json:"link,omitempty"`
+}
+
+type ConnBundled struct {
+	Links []ServerToSwitchLink `json:"links,omitempty"`
 }
 
 type ConnMgmtLinkServer struct {
@@ -154,6 +159,7 @@ type ConnVPCLoopback struct {
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
 	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
+	Bundled     *ConnBundled     `json:"bundled,omitempty"`
 	Management  *ConnMgmt        `json:"management,omitempty"`
 	MCLAG       *ConnMCLAG       `json:"mclag,omitempty"`
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
@@ -240,6 +246,19 @@ func (c *ConnectionSpec) GenerateName() string {
 			role = "unbundled"
 			left = c.Unbundled.Link.Server.DeviceName()
 			right = []string{c.Unbundled.Link.Switch.DeviceName()}
+		} else if c.Bundled != nil {
+			role = "bundled"
+			left = c.Bundled.Links[0].Server.DeviceName()
+			right = []string{c.Bundled.Links[0].Switch.DeviceName()}
+			for _, link := range c.Bundled.Links {
+				// check we have the same server in each link // TODO add validation
+				if link.Server.DeviceName() != left {
+					return "<invalid>" // TODO replace with error?
+				}
+				if link.Switch.DeviceName() != right[0] {
+					return "<invalid>" // TODO replace with error?
+				}
+			}
 		} else if c.Management != nil {
 			role = "mgmt"
 			left = c.Management.Link.Server.DeviceName()
@@ -313,6 +332,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 
 	if c.Unbundled != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_UNBUNDLED
+	} else if c.Bundled != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_BUNDLED
 	} else if c.Management != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MANAGEMENT
 	} else if c.MCLAGDomain != nil {
@@ -352,6 +373,25 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		}
 		if len(ports) != 2 {
 			return nil, nil, nil, errors.Errorf("two unique ports must be used for unbundled connection")
+		}
+	} else if s.Bundled != nil {
+		nonNills++
+
+		for _, link := range s.Bundled.Links {
+			switches[link.Switch.DeviceName()] = struct{}{}
+			servers[link.Server.DeviceName()] = struct{}{}
+			ports[link.Switch.PortName()] = struct{}{}
+			ports[link.Server.PortName()] = struct{}{}
+		}
+
+		if len(switches) != 1 {
+			return nil, nil, nil, errors.Errorf("one switch must be used for bundled connection")
+		}
+		if len(servers) != 1 {
+			return nil, nil, nil, errors.Errorf("one server must be used for bundled connection")
+		}
+		if len(ports) != 2*len(s.Bundled.Links) {
+			return nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
 		}
 	} else if s.Management != nil {
 		nonNills++
