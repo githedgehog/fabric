@@ -178,8 +178,11 @@ var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface
 }
 
 var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary:      "Interface %s Ethernet", // TODO better summary
-	Getter:       func(name string, value *dozer.SpecInterface) any { return []any{value.PortChannel, value.Speed} },
+	Summary: "Interface %s Ethernet", // TODO better summary
+	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
+	Getter: func(name string, value *dozer.SpecInterface) any {
+		return []any{value.PortChannel, value.Speed, value.TrunkVLANRange}
+	},
 	Path:         "/ethernet",
 	NoReplace:    true, // TODO can we enable replace? so we can delete the speed config and portchannel member from it
 	UpdateWeight: ActionWeightInterfacePortChannelMemberUpdate,
@@ -195,12 +198,24 @@ var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInt
 			}
 		}
 
+		// TODO move it to a separate enforcer as we'll not be able to replace it
+		var switched *oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan
+		if value.TrunkVLANRange != nil {
+			switched.Config = &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config{
+				InterfaceMode: oc.OpenconfigVlan_VlanModeType_TRUNK,
+				TrunkVlans: []oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config_TrunkVlans_Union{
+					oc.UnionString(*value.TrunkVLANRange),
+				},
+			}
+		}
+
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			Ethernet: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
 					AggregateId: value.PortChannel,
 					PortSpeed:   speed,
 				},
+				SwitchedVlan: switched,
 			},
 		}, nil
 	},
@@ -225,8 +240,11 @@ var specInterfaceNATZoneEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInte
 }
 
 var specInterfacesPortChannelEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary:      "PortChannel %s",
-	Getter:       func(name string, value *dozer.SpecInterface) any { return value.PortChannel },
+	Summary: "PortChannel %s",
+	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPortChannel(name) },
+	Getter: func(name string, value *dozer.SpecInterface) any {
+		return []any{value.TrunkVLANRange}
+	},
 	Path:         "/aggregation",
 	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfacePortChannelUpdate,
@@ -235,6 +253,7 @@ var specInterfacesPortChannelEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 		var switched *oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan
 
 		if value.TrunkVLANRange != nil {
+			// TODO extract to a separate enforcer as we'll not be able to replace TrunkVLANs
 			switched = &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan_Config{
 					TrunkVlans: []oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan_Config_TrunkVlans_Union{
