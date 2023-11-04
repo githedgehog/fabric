@@ -66,6 +66,11 @@ var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 						Enabled:     value.Enabled,
 						Description: value.Description,
 					},
+					GlobalSag: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag{
+						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag_Config{
+							AnycastMac: value.AnycastMAC,
+						},
+					},
 				},
 			},
 		}, nil
@@ -424,9 +429,15 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			bgp = nil
 		}
 
+		var anycastMAC *string
+		if ocVRF.GlobalSag != nil && ocVRF.GlobalSag.Config != nil {
+			anycastMAC = ocVRF.GlobalSag.Config.AnycastMac
+		}
+
 		vrfs[name] = &dozer.SpecVRF{
 			Enabled:          enabled,
 			Description:      ocVRF.Config.Description,
+			AnycastMAC:       anycastMAC,
 			Interfaces:       interfaces,
 			BGP:              bgp,
 			TableConnections: tableConns,

@@ -88,6 +88,7 @@ type SpecMCLAGInterface struct {
 type SpecVRF struct {
 	Enabled          *bool                              `json:"enabled,omitempty"`
 	Description      *string                            `json:"description,omitempty"`
+	AnycastMAC       *string                            `json:"anycastMAC,omitempty"`
 	Interfaces       map[string]*SpecVRFInterface       `json:"interfaces,omitempty"`
 	BGP              *SpecVRFBGP                        `json:"bgp,omitempty"`
 	TableConnections map[string]*SpecVRFTableConnection `json:"tableConnections,omitempty"` // TODO enum for key: "connected" or "static"?
