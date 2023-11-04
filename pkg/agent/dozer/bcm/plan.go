@@ -87,14 +87,21 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 
 	slog.Debug("Planning VPCs", "backend", agent.Spec.VPCBackend)
 
-	err = planVPCs(agent, spec, controlIface, first)
+	// TODO check fabric mode: collapsed core w/ VRF or collapsed core w/ ACL or Clos
+
+	err = planCollapsedCoreVPCs(agent, spec, controlIface, first)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan VPCs using ACLs")
 	}
 
-	err = planNAT(agent, spec, first)
+	err = planCollapsedCoreNAT(agent, spec, first)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan NAT")
+	}
+
+	err = planClosVPCs(agent, spec, controlIface)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan Clos VPCs")
 	}
 
 	spec.Normalize()
@@ -190,9 +197,9 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	mclagPeerPortChannelName := portChannelName(MCLAG_PEER_LINK_PORT_CHANNEL_ID)
 	mclagPeerPortChannel := &dozer.SpecInterface{
-		Description:    stringPtr("MCLAG peer link"),
-		Enabled:        boolPtr(true),
-		TrunkVLANRange: stringPtr(MCLAG_PEER_LINK_TRUNK_VLAN_RANGE),
+		Description: stringPtr("MCLAG peer link"),
+		Enabled:     boolPtr(true),
+		TrunkVLANs:  []string{MCLAG_PEER_LINK_TRUNK_VLAN_RANGE},
 	}
 	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
 	for _, iface := range mclagPeerLinks {
@@ -240,10 +247,10 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 					connPortChannelName := portChannelName(portChan)
 					connPortChannel := &dozer.SpecInterface{
-						Enabled:        boolPtr(true),
-						Description:    stringPtr(fmt.Sprintf("%s MCLAG conn %s", portName, conn.Name)),
-						TrunkVLANRange: stringPtr(agent.Spec.VPCVLANRange),
-						MTU:            mtu,
+						Enabled:     boolPtr(true),
+						Description: stringPtr(fmt.Sprintf("%s MCLAG conn %s", portName, conn.Name)),
+						TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
+						MTU:         mtu,
 					}
 					spec.Interfaces[connPortChannelName] = connPortChannel
 
@@ -316,7 +323,7 @@ func filteredDNAT(dnatInfo map[string]string) map[string]string {
 	return filtered
 }
 
-func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
+func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
 	if !isACLBackend(agent) && !isVRFBackend(agent) {
 		return errors.Errorf("unknown VPC backend %s", agent.Spec.VPCBackend)
 	}
@@ -452,11 +459,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firs
 	return nil
 }
 
-func aclName(vlan uint16) string {
-	return fmt.Sprintf("vpc-vlan%d-in", vlan)
-}
-
-func planNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
+func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
 	var natConn *wiringapi.ConnNAT
 	for _, conn := range agent.Spec.Connections {
 		if conn.Spec.NAT != nil && conn.Spec.NAT.Link.Switch.DeviceName() == agent.Name {
@@ -593,12 +596,21 @@ func planNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
 	return nil
 }
 
+func planClosVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+	// TODO
+	return nil
+}
+
 func portChannelName(id uint16) string {
 	return fmt.Sprintf("PortChannel%d", id)
 }
 
 func vlanName(vlan uint16) string {
 	return fmt.Sprintf("Vlan%d", vlan)
+}
+
+func aclName(vlan uint16) string {
+	return fmt.Sprintf("vpc-vlan%d-in", vlan)
 }
 
 func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, portChannel string, mtu *uint16) error { // TODO replace with generic function or drop

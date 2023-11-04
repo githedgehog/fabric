@@ -59,14 +59,16 @@ type SpecPortBreakout struct {
 }
 
 type SpecInterface struct {
-	Description    *string                     `json:"description,omitempty"`
-	Enabled        *bool                       `json:"enabled,omitempty"`
-	IPs            map[string]*SpecInterfaceIP `json:"ips,omitempty"`
-	PortChannel    *string                     `json:"portChannel,omitempty"`
-	NATZone        *uint8                      `json:"natZone,omitempty"`
-	TrunkVLANRange *string                     `json:"trunkVLANRange,omitempty"`
-	MTU            *uint16                     `json:"mtu,omitempty"`
-	Speed          *string                     `json:"speed,omitempty"`
+	Description        *string                     `json:"description,omitempty"`
+	Enabled            *bool                       `json:"enabled,omitempty"`
+	IPs                map[string]*SpecInterfaceIP `json:"ips,omitempty"`
+	PortChannel        *string                     `json:"portChannel,omitempty"`
+	NATZone            *uint8                      `json:"natZone,omitempty"`
+	AccessVLAN         *uint16                     `json:"accessVLAN,omitempty"`
+	TrunkVLANs         []string                    `json:"trunkVLANs,omitempty"`
+	MTU                *uint16                     `json:"mtu,omitempty"`
+	Speed              *string                     `json:"speed,omitempty"`
+	VLANAnycastGateway []string                    `json:"vlanAnycastGateway,omitempty"`
 }
 
 type SpecInterfaceIP struct {

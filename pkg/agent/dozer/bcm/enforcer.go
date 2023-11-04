@@ -59,6 +59,7 @@ const (
 	ActionWeightInterfacePortChannelUpdate
 	ActionWeightInterfacePortChannelMemberUpdate
 	ActionWeightInterfaceNATZoneUpdate
+	ActionWeightInterfaceVLANAnycastGatewayUpdate
 
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate
@@ -99,6 +100,7 @@ const (
 	ActionWeightInterfacePortChannelDelete
 	ActionWeightInterfaceNATZoneDelete
 	ActionWeightInterfaceIPDelete
+	ActionWeightInterfaceVLANAnycastGatewayDelete
 
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
