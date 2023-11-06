@@ -401,7 +401,11 @@ func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface
 				BGP: &dozer.SpecVRFBGP{
 					AS:                 uint32Ptr(LOCAL_BGP_AS),
 					NetworkImportCheck: boolPtr(true),
-					ImportVRFs:         map[string]*dozer.SpecVRFBGPImportVRF{},
+					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+						Enabled:    true,
+						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
+					},
 				},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{
 					dozer.SpecVRFBGPTableConnectionConnected: {
@@ -449,8 +453,8 @@ func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface
 						DestinationAddress: stringPtr(peer.VPC.Subnet),
 					}
 				} else if isVRFBackend(agent) {
-					spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[vpcVrfName(peer.Name)] = &dozer.SpecVRFBGPImportVRF{}
-					spec.VRFs[vpcVrfName(peer.Name)].BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
+					spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(peer.Name)] = &dozer.SpecVRFBGPImportVRF{}
+					spec.VRFs[vpcVrfName(peer.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
 				}
 			}
 		}
@@ -509,7 +513,6 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 		Enabled:     boolPtr(false),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			cidr.Gateway.String(): {
-				VLAN:      boolPtr(true),
 				PrefixLen: uint8Ptr(uint8(subnetPrefixLen)),
 			},
 		},
@@ -550,16 +553,19 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 					IPv4Unicast: boolPtr(true),
 				},
 			},
-			Networks:   networks,
-			ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+				Enabled:    true,
+				Networks:   networks,
+				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+			},
 		},
 	}
 
 	if isVRFBackend(agent) && firstSwitch {
 		for _, vpc := range agent.Spec.VPCs {
 			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
-				spec.VRFs[vpcVrfName(vpc.Name)].BGP.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
-				vrf.BGP.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
+				spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
+				vrf.BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
 			}
 		}
 	}
@@ -648,7 +654,6 @@ func setupVLANInterfaceWithIP(spec *dozer.Spec, vlan uint16, ip string, prefixLe
 		Enabled:     boolPtr(true),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			ip: {
-				VLAN:      boolPtr(true),
 				PrefixLen: uint8Ptr(prefixLen),
 			},
 		},

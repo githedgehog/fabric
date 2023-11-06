@@ -141,14 +141,14 @@ var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface
 	UpdateWeight: ActionWeightInterfaceIPUpdate,
 	DeleteWeight: ActionWeightInterfaceIPDelete,
 	PathFunc: func(name string, value *dozer.SpecInterfaceIP) string {
-		if value.VLAN != nil && *value.VLAN {
+		if isVLAN(name) {
 			return fmt.Sprintf("/routed-vlan/ipv4/addresses/address[ip=%s]", name)
 		}
 
 		return fmt.Sprintf("/subinterfaces/subinterface[index=0]/ipv4[ip=%s]", name)
 	},
 	Marshal: func(name string, value *dozer.SpecInterfaceIP) (ygot.ValidatedGoStruct, error) {
-		if value.VLAN != nil && *value.VLAN {
+		if isVLAN(name) {
 			return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses{
 				Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address{
 					name: {
@@ -386,7 +386,6 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 						}
 
 						iface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
-							VLAN:      ygot.Bool(true),
 							PrefixLen: addr.Config.PrefixLength,
 						}
 					}

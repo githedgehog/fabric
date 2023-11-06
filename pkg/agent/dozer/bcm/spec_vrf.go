@@ -122,7 +122,7 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 		}
 
 		actualNetworks, desiredNetworks := ValueOrNil(actual, desired,
-			func(value *dozer.SpecVRFBGP) map[string]*dozer.SpecVRFBGPNetwork { return value.Networks })
+			func(value *dozer.SpecVRFBGP) map[string]*dozer.SpecVRFBGPNetwork { return value.IPv4Unicast.Networks })
 		if err := specVRFBGPNetworksEnforcer.Handle(basePath, actualNetworks, desiredNetworks, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrf bgp networks")
 		}
@@ -132,11 +132,49 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 }
 
 var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
-	Summary:      "VRF %s BGP base",
-	Getter:       func(name string, value *dozer.SpecVRFBGP) any { return []any{value.AS, value.NetworkImportCheck} },
+	Summary: "VRF %s BGP base",
+	Getter: func(name string, value *dozer.SpecVRFBGP) any {
+		return []any{value.AS, value.NetworkImportCheck, value.IPv4Unicast.Enabled, value.L2VPNEVPN.Enabled}
+	},
 	UpdateWeight: ActionWeightVRFBGPBaseUpdate,
 	DeleteWeight: ActionWeightVRFBGPBaseDelete,
 	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+		afiSafi := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{}
+		if value.IPv4Unicast.Enabled {
+			afiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
+				AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
+					AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+				},
+			}
+		}
+		if value.L2VPNEVPN.Enabled {
+			routeAdvertise := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{}
+			if value.L2VPNEVPN.AdvertiseIPv4Unicast != nil && *value.L2VPNEVPN.AdvertiseIPv4Unicast {
+				routeAdvertise[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList_Config{
+						AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+					},
+				}
+			}
+
+			afiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
+				AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
+					AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
+				},
+				L2VpnEvpn: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn{
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_Config{
+						AdvertiseAllVni: value.L2VPNEVPN.AdvertiseAllVNI,
+					},
+					// TODO extract as we'll not be able to replace it
+					RouteAdvertise: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise{
+						RouteAdvertiseList: routeAdvertise,
+					},
+				},
+			}
+		}
+
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
 			Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
 				Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
@@ -145,14 +183,7 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 						NetworkImportCheck: value.NetworkImportCheck,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
-						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
-							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
-								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
-								Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
-									AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
-								},
-							},
-						},
+						AfiSafi: afiSafi,
 					},
 				},
 			},
@@ -187,6 +218,13 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 								Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Config{
 									AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 									Enabled:     value.IPv4Unicast,
+								},
+							},
+							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN: {
+								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
+								Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Config{
+									AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
+									Enabled:     value.L2VPNEVPN,
 								},
 							},
 						},
@@ -224,17 +262,17 @@ var specVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Summary: "VRF BGP import VRF %s",
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
-		return value.ImportVRFs
+		return value.IPv4Unicast.ImportVRFs
 	},
 	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
-		if desired != nil && len(desired.ImportVRFs) == 0 {
+		if desired != nil && len(desired.IPv4Unicast.ImportVRFs) == 0 {
 			return nil
 		}
 
 		return desired
 	},
 	MutateActual: func(key string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
-		if actual != nil && len(actual.ImportVRFs) == 0 {
+		if actual != nil && len(actual.IPv4Unicast.ImportVRFs) == 0 {
 			return nil
 		}
 
@@ -244,10 +282,10 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	UpdateWeight: ActionWeightVRFBGPImportVRFUpdate,
 	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
 	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
-		imports := maps.Keys(value.ImportVRFs)
+		imports := maps.Keys(value.IPv4Unicast.ImportVRFs)
 		sort.Strings(imports)
 
-		slog.Warn("Scheduling VRF imports update", "name", name, "imports", imports, "rawImports", value.ImportVRFs)
+		slog.Warn("Scheduling VRF imports update", "name", name, "imports", imports, "rawImports", value.IPv4Unicast.ImportVRFs)
 
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
 			Name: imports,
@@ -334,9 +372,11 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 		}
 
 		bgp := &dozer.SpecVRFBGP{
-			Neighbors:  map[string]*dozer.SpecVRFBGPNeighbor{},
-			Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
-			ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+			Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
+			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+				Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
+				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+			},
 		}
 		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
@@ -354,16 +394,35 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
 
 					if bgpConfig.Global.AfiSafis != nil || bgpConfig.Global.AfiSafis.AfiSafi != nil {
-						unicast := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
-						if unicast != nil {
-							if unicast.NetworkConfig != nil {
-								for name := range unicast.NetworkConfig.Network {
-									bgp.Networks[name] = &dozer.SpecVRFBGPNetwork{}
+						ipv4Unicast := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
+						if ipv4Unicast != nil {
+							bgp.IPv4Unicast.Enabled = true
+							if ipv4Unicast.NetworkConfig != nil {
+								for name := range ipv4Unicast.NetworkConfig.Network {
+									bgp.IPv4Unicast.Networks[name] = &dozer.SpecVRFBGPNetwork{}
 								}
 							}
-							if unicast.ImportNetworkInstance != nil && unicast.ImportNetworkInstance.Config != nil {
-								for _, name := range unicast.ImportNetworkInstance.Config.Name {
-									bgp.ImportVRFs[name] = &dozer.SpecVRFBGPImportVRF{}
+							if ipv4Unicast.ImportNetworkInstance != nil && ipv4Unicast.ImportNetworkInstance.Config != nil {
+								for _, name := range ipv4Unicast.ImportNetworkInstance.Config.Name {
+									bgp.IPv4Unicast.ImportVRFs[name] = &dozer.SpecVRFBGPImportVRF{}
+								}
+							}
+						}
+
+						if bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN] != nil {
+							l2vpnEVPN := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN].L2VpnEvpn
+							if l2vpnEVPN != nil {
+								bgp.L2VPNEVPN.Enabled = true
+								if l2vpnEVPN.Config != nil {
+									bgp.L2VPNEVPN.AdvertiseAllVNI = l2vpnEVPN.Config.AdvertiseAllVni
+								}
+								if l2vpnEVPN.RouteAdvertise != nil {
+									for _, route := range l2vpnEVPN.RouteAdvertise.RouteAdvertiseList {
+										if route.Config != nil && route.Config.AdvertiseAfiSafi == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST {
+											bgp.L2VPNEVPN.AdvertiseIPv4Unicast = ygot.Bool(true)
+											break
+										}
+									}
 								}
 							}
 						}
@@ -376,10 +435,16 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							continue
 						}
 						var ipv4Unicast *bool
+						var l2vpnEVPN *bool
 						if neighbor.AfiSafis != nil && neighbor.AfiSafis.AfiSafi != nil {
-							unicast := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
-							if unicast != nil && unicast.Config != nil {
-								ipv4Unicast = unicast.Config.Enabled
+							ocIPv4Unicast := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
+							if ocIPv4Unicast != nil && ocIPv4Unicast.Config != nil {
+								ipv4Unicast = ocIPv4Unicast.Config.Enabled
+							}
+
+							ocL2VPNEVPN := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN]
+							if ocL2VPNEVPN != nil && ocL2VPNEVPN.Config != nil {
+								l2vpnEVPN = ocL2VPNEVPN.Config.Enabled
 							}
 						}
 
@@ -387,6 +452,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							Enabled:     neighbor.Config.Enabled,
 							RemoteAS:    neighbor.Config.PeerAs,
 							IPv4Unicast: ipv4Unicast,
+							L2VPNEVPN:   l2vpnEVPN,
 						}
 					}
 				}

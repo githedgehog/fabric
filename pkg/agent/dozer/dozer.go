@@ -42,6 +42,9 @@ type Spec struct {
 	NATs            map[uint32]*SpecNAT            `json:"nats,omitempty"`
 	ACLs            map[string]*SpecACL            `json:"acls,omitempty"`
 	ACLInterfaces   map[string]*SpecACLInterface   `json:"aclInterfaces,omitempty"`
+	VXLANTunnels    map[string]*SpecVXLANTunnel    `json:"vxlanTunnels,omitempty"`
+	VXLANEVPNNVOs   map[string]*SpecVXLANEVPNNVO   `json:"vxlanEVPNNVOs,omitempty"`
+	VXLANTunnelMap  map[string]*SpecVXLANTunnelMap `json:"vxlanTunnelMap,omitempty"`
 }
 
 type SpecUser struct {
@@ -72,7 +75,6 @@ type SpecInterface struct {
 }
 
 type SpecInterfaceIP struct {
-	VLAN      *bool  `json:"vlan,omitempty"`
 	PrefixLen *uint8 `json:"prefixLen,omitempty"`
 	Secondary *bool  `json:"secondary,omitempty"`
 }
@@ -93,25 +95,38 @@ type SpecVRF struct {
 	AnycastMAC       *string                            `json:"anycastMAC,omitempty"`
 	Interfaces       map[string]*SpecVRFInterface       `json:"interfaces,omitempty"`
 	BGP              *SpecVRFBGP                        `json:"bgp,omitempty"`
-	TableConnections map[string]*SpecVRFTableConnection `json:"tableConnections,omitempty"` // TODO enum for key: "connected" or "static"?
+	TableConnections map[string]*SpecVRFTableConnection `json:"tableConnections,omitempty"`
 }
 
 type SpecVRFInterface struct{}
 
 type SpecVRFBGP struct {
-	AS                 *uint32                         `json:"as,omitempty"`
-	NetworkImportCheck *bool                           `json:"networkImportCheck,omitempty"`
-	Networks           map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
-	Neighbors          map[string]*SpecVRFBGPNeighbor  `json:"neighbors,omitempty"`
-	ImportVRFs         map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
+	AS                 *uint32                        `json:"as,omitempty"`
+	NetworkImportCheck *bool                          `json:"networkImportCheck,omitempty"`
+	IPv4Unicast        SpecVRFBGPIPv4Unicast          `json:"ipv4Unicast,omitempty"`
+	L2VPNEVPN          SpecVRFBGPL2VPNEVPN            `json:"l2vpnEvpn,omitempty"`
+	Neighbors          map[string]*SpecVRFBGPNeighbor `json:"neighbors,omitempty"`
+}
+
+type SpecVRFBGPIPv4Unicast struct {
+	Enabled    bool                            `json:"enable,omitempty"`
+	Networks   map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
+	ImportVRFs map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
+}
+
+type SpecVRFBGPL2VPNEVPN struct {
+	Enabled              bool  `json:"enable,omitempty"`
+	AdvertiseAllVNI      *bool `json:"advertiseAllVnis,omitempty"`
+	AdvertiseIPv4Unicast *bool `json:"advertiseIPv4Unicast,omitempty"`
 }
 
 type SpecVRFBGPNetwork struct{}
 
 type SpecVRFBGPNeighbor struct {
 	Enabled     *bool   `json:"enabled,omitempty"`
-	IPv4Unicast *bool   `json:"ipv4Unicast,omitempty"`
 	RemoteAS    *uint32 `json:"remoteAS,omitempty"`
+	IPv4Unicast *bool   `json:"ipv4Unicast,omitempty"`
+	L2VPNEVPN   *bool   `json:"l2vpnEvpn,omitempty"`
 }
 
 type SpecVRFTableConnection struct {
@@ -196,6 +211,21 @@ const (
 
 type SpecACLInterface struct {
 	Ingress *string `json:"ingress,omitempty"`
+}
+
+type SpecVXLANTunnel struct {
+	SourceIP        *string `json:"sourceIP,omitempty"`
+	SourceInterface *string `json:"sourceInterface,omitempty"`
+}
+
+type SpecVXLANEVPNNVO struct {
+	SourceVTEP *string `json:"sourceVtep,omitempty"`
+}
+
+type SpecVXLANTunnelMap struct {
+	VTEP *string `json:"vtep,omitempty"` // name
+	VNI  *uint32 `json:"vni,omitempty"`
+	VLAN *uint16 `json:"vlan,omitempty"`
 }
 
 func (s *Spec) Normalize() {
