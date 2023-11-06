@@ -112,6 +112,7 @@ type SpecVRFBGPIPv4Unicast struct {
 	Enabled    bool                            `json:"enable,omitempty"`
 	Networks   map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
 	ImportVRFs map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
+	MaxPaths   *uint32                         `json:"maxPaths,omitempty"`
 }
 
 type SpecVRFBGPL2VPNEVPN struct {
