@@ -19,12 +19,12 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 		return errors.New("no agent config")
 	}
 
-	_, controlVIP, err := net.ParseCIDR(agent.Spec.ControlVIP) // it's ok as we're using /32
+	_, controlVIP, err := net.ParseCIDR(agent.Spec.Config.ControlVIP) // it's ok as we're using /32
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse control VIP %s", agent.Spec.ControlVIP)
+		return errors.Wrapf(err, "failed to parse control VIP %s", agent.Spec.Config.ControlVIP)
 	}
 	if controlVIP.Mask.String() != net.IPv4Mask(255, 255, 255, 255).String() {
-		return errors.Errorf("control VIP %s is not a /32", agent.Spec.ControlVIP)
+		return errors.Errorf("control VIP %s is not a /32", agent.Spec.Config.ControlVIP)
 	}
 
 	exists := false

@@ -28,20 +28,40 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	Version       AgentVersion            `json:"version,omitempty"`
-	ControlVIP    string                  `json:"controlVIP,omitempty"`
-	Users         []UserCreds             `json:"users,omitempty"`
-	Switch        wiringapi.SwitchSpec    `json:"switch,omitempty"`
-	Connections   []ConnectionInfo        `json:"connections,omitempty"`
-	VPCs          []vpcapi.VPCSummarySpec `json:"vpcs,omitempty"`
-	VPCVLANRange  string                  `json:"vpcVLANRange,omitempty"`
-	NAT           vpcapi.NATSpec          `json:"nat,omitempty"`
-	PortChannels  map[string]uint16       `json:"portChannels,omitempty"`
-	VPCBackend    string                  `json:"vpcBackend,omitempty"`
-	SNATAllowed   bool                    `json:"snatAllowed,omitempty"`
-	Reinstall     string                  `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
-	Reboot        string                  `json:"reboot,omitempty"`    // set to RunID to reboot
-	StatusUpdates []ApplyStatusUpdate     `json:"statusUpdates,omitempty"`
+	Config       AgentSpecConfig         `json:"config,omitempty"`
+	Version      AgentVersion            `json:"version,omitempty"`
+	Users        []UserCreds             `json:"users,omitempty"`
+	Switch       wiringapi.SwitchSpec    `json:"switch,omitempty"`
+	Connections  []ConnectionInfo        `json:"connections,omitempty"`
+	VPCs         []vpcapi.VPCSummarySpec `json:"vpcs,omitempty"`
+	VPCVLANRange string                  `json:"vpcVLANRange,omitempty"`
+	NAT          vpcapi.NATSpec          `json:"nat,omitempty"`
+	PortChannels map[string]uint16       `json:"portChannels,omitempty"`
+
+	Reinstall     string              `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot        string              `json:"reboot,omitempty"`    // set to RunID to reboot
+	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
+}
+
+type AgentSpecConfig struct {
+	ControlVIP    string                        `json:"controlVIP,omitempty"`
+	CollapsedCore *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
+	SpineLeaf     *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
+}
+
+type AgentSpecConfigCollapsedCore struct {
+	VPCBackend  string `json:"vpcBackend,omitempty"`
+	SNATAllowed bool   `json:"snatAllowed,omitempty"`
+}
+
+type AgentSpecConfigSpineLeaf struct{}
+
+func (a *Agent) IsCollapsedCore() bool {
+	return a != nil && a.Spec.Config.CollapsedCore != nil
+}
+
+func (a *Agent) IsSpineLeaf() bool {
+	return a != nil && a.Spec.Config.SpineLeaf != nil
 }
 
 type AgentVersion struct {

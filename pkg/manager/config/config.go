@@ -24,6 +24,19 @@ type Fabric struct {
 	VPCBackend     string               `json:"vpcBackend,omitempty"`
 	SNATAllowed    bool                 `json:"snatAllowed,omitempty"`
 	VPCSubnet      string               `json:"vpcSubnet,omitempty"`
+	FabricMode     FabricMode           `json:"fabricMode,omitempty"`
+}
+
+type FabricMode string
+
+const (
+	FabricModeCollapsedCore FabricMode = "collapsed-core"
+	FabricModeSpineLeaf     FabricMode = "spine-leaf"
+)
+
+var FabricModes = []FabricMode{
+	FabricModeCollapsedCore,
+	FabricModeSpineLeaf,
 }
 
 func Load(basedir string) (*Fabric, error) {
@@ -82,6 +95,12 @@ func Load(basedir string) (*Fabric, error) {
 	}
 	if cfg.VPCSubnet == "" {
 		return nil, errors.Errorf("config: vpcSubnet is required")
+	}
+	if cfg.FabricMode == "" {
+		return nil, errors.Errorf("config: fabricMode is required")
+	}
+	if !slices.Contains(FabricModes, FabricMode(cfg.FabricMode)) {
+		return nil, errors.Errorf("config: fabricMode must be one of %v", FabricModes)
 	}
 
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))

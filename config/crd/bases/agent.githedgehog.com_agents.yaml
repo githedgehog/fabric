@@ -78,6 +78,20 @@ spec:
           spec:
             description: AgentSpec defines the desired state of Agent
             properties:
+              config:
+                properties:
+                  collapsedCore:
+                    properties:
+                      snatAllowed:
+                        type: boolean
+                      vpcBackend:
+                        type: string
+                    type: object
+                  controlVIP:
+                    type: string
+                  spineLeaf:
+                    type: object
+                type: object
               connections:
                 items:
                   properties:
@@ -295,8 +309,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              controlVIP:
-                type: string
               nat:
                 description: NATSpec defines the desired state of NAT
                 properties:
@@ -318,8 +330,6 @@ spec:
                 type: string
               reinstall:
                 type: string
-              snatAllowed:
-                type: boolean
               statusUpdates:
                 items:
                   properties:
@@ -414,8 +424,6 @@ spec:
                   repo:
                     type: string
                 type: object
-              vpcBackend:
-                type: string
               vpcVLANRange:
                 type: string
               vpcs:

@@ -247,7 +247,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Labels = sw.Labels
-		agent.Spec.ControlVIP = r.Cfg.ControlVIP
+		agent.Spec.Config.ControlVIP = r.Cfg.ControlVIP
 		agent.Spec.Switch = sw.Spec
 		agent.Spec.Connections = conns
 		agent.Spec.VPCs = vpcs
@@ -257,8 +257,15 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
 		agent.Spec.StatusUpdates = statusUpdates
-		agent.Spec.VPCBackend = r.Cfg.VPCBackend
-		agent.Spec.SNATAllowed = r.Cfg.SNATAllowed
+
+		if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
+			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{
+				VPCBackend:  r.Cfg.VPCBackend,
+				SNATAllowed: r.Cfg.SNATAllowed,
+			}
+		} else if r.Cfg.FabricMode == config.FabricModeSpineLeaf {
+			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+		}
 
 		if mclagPeer != nil {
 			agent.Spec.PortChannels, err = r.calculateMCLAGPortChannels(ctx, agent, mclagPeer, conns)

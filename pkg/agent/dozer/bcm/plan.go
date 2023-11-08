@@ -85,23 +85,27 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan mclag domain")
 	}
 
-	slog.Debug("Planning VPCs", "backend", agent.Spec.VPCBackend)
+	if agent.IsCollapsedCore() {
+		slog.Info("Planing collapsed core",
+			"VPC backend", agent.Spec.Config.CollapsedCore.VPCBackend,
+			"SNAT allowed", agent.Spec.Config.CollapsedCore.SNATAllowed)
 
-	// TODO check fabric mode: collapsed core w/ VRF or collapsed core w/ ACL or Clos
+		err = planCollapsedCoreVPCs(agent, spec, controlIface, first)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan Collapsed Core VPCs")
+		}
 
-	err = planCollapsedCoreVPCs(agent, spec, controlIface, first)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan VPCs using ACLs")
-	}
+		err = planCollapsedCoreNAT(agent, spec, first)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan Collapsed Core NAT")
+		}
+	} else if agent.IsSpineLeaf() {
+		slog.Info("Planing spine leaf")
 
-	err = planCollapsedCoreNAT(agent, spec, first)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan NAT")
-	}
-
-	err = planClosVPCs(agent, spec, controlIface)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan Clos VPCs")
+		err = planSpineLeafVPCs(agent, spec, controlIface)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan Spine Leaf VPCs")
+		}
 	}
 
 	spec.Normalize()
@@ -303,11 +307,11 @@ func vpcVrfName(vpcName string) string {
 }
 
 func isACLBackend(agent *agentapi.Agent) bool {
-	return agent.Spec.VPCBackend == string(agentapi.VPCBackendACL)
+	return agent.IsCollapsedCore() && agent.Spec.Config.CollapsedCore.VPCBackend == string(agentapi.VPCBackendACL)
 }
 
 func isVRFBackend(agent *agentapi.Agent) bool {
-	return agent.Spec.VPCBackend == string(agentapi.VPCBackendVRF)
+	return agent.IsCollapsedCore() && agent.Spec.Config.CollapsedCore.VPCBackend == string(agentapi.VPCBackendVRF)
 }
 
 func filteredDNAT(dnatInfo map[string]string) map[string]string {
@@ -325,7 +329,7 @@ func filteredDNAT(dnatInfo map[string]string) map[string]string {
 
 func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
 	if !isACLBackend(agent) && !isVRFBackend(agent) {
-		return errors.Errorf("unknown VPC backend %s", agent.Spec.VPCBackend)
+		return errors.Errorf("unknown VPC backend %s", agent.Spec.Config.CollapsedCore.VPCBackend)
 	}
 
 	if isVRFBackend(agent) {
@@ -376,7 +380,7 @@ func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface
 				}
 			}
 
-			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
+			if agent.Spec.Config.CollapsedCore.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
 				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
 					Description:   stringPtr("Allow any traffic (NAT)"),
 					Action:        dozer.SpecACLEntryActionAccept,
@@ -419,9 +423,9 @@ func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface
 		}
 
 		if vpc.VPC.DHCP.Enable {
-			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.ControlVIP)
+			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.ControlVIP, vpc.Name)
+				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpc.Name)
 			}
 
 			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
@@ -520,7 +524,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 	}
 
 	networks := map[string]*dozer.SpecVRFBGPNetwork{}
-	if agent.Spec.SNATAllowed {
+	if agent.Spec.Config.CollapsedCore.SNATAllowed {
 		for _, network := range natConn.Link.Switch.SNAT.Pool {
 			networks[network] = &dozer.SpecVRFBGPNetwork{}
 		}
@@ -563,7 +567,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 
 	if isVRFBackend(agent) && firstSwitch {
 		for _, vpc := range agent.Spec.VPCs {
-			if agent.Spec.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
+			if agent.Spec.Config.CollapsedCore.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
 				spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
 				vrf.BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
 			}
@@ -575,7 +579,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 	pools := map[string]*dozer.SpecNATPool{}
 	bindings := map[string]*dozer.SpecNATBinding{}
 
-	if agent.Spec.SNATAllowed {
+	if agent.Spec.Config.CollapsedCore.SNATAllowed {
 		for idx, cidr := range natConn.Link.Switch.SNAT.Pool {
 			first, last, err := iputil.Range(cidr)
 			if err != nil {
@@ -602,7 +606,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 	return nil
 }
 
-func planClosVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+func planSpineLeafVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
 	// TODO
 	return nil
 }
