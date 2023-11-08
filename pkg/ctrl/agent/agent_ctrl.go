@@ -268,7 +268,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 		if mclagPeer != nil {
-			agent.Spec.PortChannels, err = r.calculateMCLAGPortChannels(ctx, agent, mclagPeer, conns)
+			agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
 			if err != nil {
 				return errors.Wrapf(err, "error calculating port channels")
 			}
@@ -382,7 +382,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav
 	return nil, nil
 }
 
-func (r *AgentReconciler) calculateMCLAGPortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns []agentapi.ConnectionInfo) (map[string]uint16, error) {
+func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns []agentapi.ConnectionInfo) (map[string]uint16, error) {
 	portChannels := map[string]uint16{}
 
 	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
@@ -391,28 +391,62 @@ func (r *AgentReconciler) calculateMCLAGPortChannels(ctx context.Context, agent,
 			pc1 := agent.Spec.PortChannels[conn.Name]
 			pc2 := peer.Spec.PortChannels[conn.Name]
 
+			if pc1 == 0 && pc2 == 0 {
+				continue
+			}
+
+			if pc1 != 0 && pc2 != 0 && pc1 != pc2 {
+				return nil, errors.Errorf("port channel mismatch for conn %s on %s and %s", conn.Name, agent.Name, peer.Name)
+			}
+
 			if pc1 != 0 {
+				if pc1 < PORT_CHAN_MIN || pc1 > PORT_CHAN_MAX {
+					return nil, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[conn.Name], conn.Name, agent.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
+				}
+				if taken[pc1-PORT_CHAN_MIN] {
+					return nil, errors.Errorf("port channel %d for conn %s assigned on %s is already taken", pc2, conn.Name, agent.Name)
+				}
+
 				portChannels[conn.Name] = pc1
 			}
 			if pc2 != 0 {
+				if pc2 < PORT_CHAN_MIN || pc2 > PORT_CHAN_MAX {
+					return nil, errors.Errorf("port channel %d for conn %s on peer %s is out of range %d..%d", portChannels[conn.Name], conn.Name, peer.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
+				}
+				if taken[pc2-PORT_CHAN_MIN] {
+					return nil, errors.Errorf("port channel %d for conn %s assigned on peer %s is already taken", pc2, conn.Name, peer.Name)
+				}
+
 				portChannels[conn.Name] = pc2
-			}
-			if pc1 != 0 && pc2 != 0 && pc1 != pc2 {
-				return nil, errors.Errorf("port channel mismatch for conn %s on %s, %s", conn.Name, agent.Name, peer.Name)
-			}
-			if portChannels[conn.Name] == 0 {
-				continue
-			}
-			if portChannels[conn.Name] < PORT_CHAN_MIN || portChannels[conn.Name] > PORT_CHAN_MAX {
-				return nil, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[conn.Name], conn.Name, agent.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
 			}
 
 			taken[portChannels[conn.Name]-PORT_CHAN_MIN] = true
+		} else if conn.Spec.Bundled != nil {
+			pc := agent.Spec.PortChannels[conn.Name]
+			if pc == 0 {
+				continue
+			}
+
+			if taken[pc-PORT_CHAN_MIN] {
+				return nil, errors.Errorf("port channel %d for conn %s on %s is already taken", portChannels[conn.Name], conn.Name, agent.Name)
+			}
+			portChannels[conn.Name] = pc
+
+			taken[pc-PORT_CHAN_MIN] = true
 		}
 	}
 
+	// mark all port channels on the peer as taken so we don't assign them to other connections
+	for _, pc := range peer.Spec.PortChannels {
+		if pc == 0 {
+			continue
+		}
+
+		taken[pc-PORT_CHAN_MIN] = true
+	}
+
 	for _, conn := range conns {
-		if conn.Spec.MCLAG != nil {
+		if conn.Spec.MCLAG != nil || conn.Spec.Bundled != nil {
 			if portChannels[conn.Name] != 0 {
 				continue
 			}
@@ -423,6 +457,10 @@ func (r *AgentReconciler) calculateMCLAGPortChannels(ctx context.Context, agent,
 					taken[i-PORT_CHAN_MIN] = true
 					break
 				}
+			}
+
+			if portChannels[conn.Name] == 0 {
+				return nil, errors.Errorf("no port channel available for conn %s on %s", conn.Name, agent.Name)
 			}
 		}
 	}
