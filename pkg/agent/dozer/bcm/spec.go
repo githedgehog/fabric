@@ -78,6 +78,22 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle route maps")
 		}
 
+		if err := specVXLANTunnelsEnforcer.Handle(basePath, actual.VXLANTunnels, desired.VXLANTunnels, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vxlan tunnels")
+		}
+
+		if err := specVXLANEVPNNVOsEnforcer.Handle(basePath, actual.VXLANEVPNNVOs, desired.VXLANEVPNNVOs, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vxlan evpn nvos")
+		}
+
+		if err := specVXLANTunnelMapsEnforcer.Handle(basePath, actual.VXLANTunnelMap, desired.VXLANTunnelMap, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vxlan tunnel map")
+		}
+
+		if err := specVRFVNIMapEnforcer.Handle(basePath, actual.VRFVNIMap, desired.VRFVNIMap, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf vni map")
+		}
+
 		return nil
 	},
 }
@@ -133,6 +149,14 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualRouteMaps(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load route maps")
+	}
+
+	if err := loadActualVXLANs(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load vxlan")
+	}
+
+	if err := loadActualVRFVNIMap(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load vrf vni map")
 	}
 
 	return nil

@@ -44,7 +44,8 @@ type Spec struct {
 	ACLInterfaces   map[string]*SpecACLInterface   `json:"aclInterfaces,omitempty"`
 	VXLANTunnels    map[string]*SpecVXLANTunnel    `json:"vxlanTunnels,omitempty"`
 	VXLANEVPNNVOs   map[string]*SpecVXLANEVPNNVO   `json:"vxlanEVPNNVOs,omitempty"`
-	VXLANTunnelMap  map[string]*SpecVXLANTunnelMap `json:"vxlanTunnelMap,omitempty"`
+	VXLANTunnelMap  map[string]*SpecVXLANTunnelMap `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
+	VRFVNIMap       map[string]*SpecVRFVNIEntry    `json:"vrfVNIMap,omitempty"`
 }
 
 type SpecUser struct {
@@ -229,6 +230,10 @@ type SpecVXLANTunnelMap struct {
 	VLAN *uint16 `json:"vlan,omitempty"`
 }
 
+type SpecVRFVNIEntry struct {
+	VNI *uint32 `json:"vni,omitempty"`
+}
+
 func (s *Spec) Normalize() {
 	for _, user := range s.Users {
 		if user.AuthorizedKeys == nil {
@@ -312,6 +317,10 @@ var (
 	_ SpecPart = (*SpecACL)(nil)
 	_ SpecPart = (*SpecACLEntry)(nil)
 	_ SpecPart = (*SpecACLInterface)(nil)
+	_ SpecPart = (*SpecVXLANTunnel)(nil)
+	_ SpecPart = (*SpecVXLANEVPNNVO)(nil)
+	_ SpecPart = (*SpecVXLANTunnelMap)(nil)
+	_ SpecPart = (*SpecVRFVNIEntry)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -407,5 +416,21 @@ func (s *SpecACLEntry) IsNil() bool {
 }
 
 func (s *SpecACLInterface) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVXLANTunnel) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVXLANEVPNNVO) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVXLANTunnelMap) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVRFVNIEntry) IsNil() bool {
 	return s == nil
 }

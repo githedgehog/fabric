@@ -420,7 +420,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 								}
 							}
 							if ipv4Unicast.UseMultiplePaths != nil && ipv4Unicast.UseMultiplePaths.Ebgp != nil && ipv4Unicast.UseMultiplePaths.Ebgp.Config != nil {
-								bgp.IPv4Unicast.MaxPaths = ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths
+								if ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths != nil && *ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths != 1 {
+									bgp.IPv4Unicast.MaxPaths = ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths
+								}
 							}
 						}
 

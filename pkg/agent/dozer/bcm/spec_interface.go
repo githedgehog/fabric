@@ -138,6 +138,7 @@ var specInterfaceIPsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterfaceI
 var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIP]{
 	Summary:      "Interface IP %s", // TODO chain summary as well?
 	NoReplace:    true,
+	SkipDelete:   true, // TODO check how good remove/add/replace IP works
 	UpdateWeight: ActionWeightInterfaceIPUpdate,
 	DeleteWeight: ActionWeightInterfaceIPDelete,
 	PathFunc: func(name string, value *dozer.SpecInterfaceIP) string {
@@ -327,6 +328,10 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 			continue
 		}
 
+		if strings.HasPrefix(name, "vtep") {
+			continue
+		}
+
 		mtu := ocIface.Config.Mtu
 		if mtu != nil { // TODO it's a hack for now, assuming 9100 is a default MTU for everything other than Mgmt interface (1500)
 			if isManagement(name) && *mtu == 1500 || !isManagement(name) && *mtu == 9100 {
@@ -433,7 +438,9 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		}
 
 		if ocIface.NatZone != nil && ocIface.NatZone.Config != nil {
-			iface.NATZone = ocIface.NatZone.Config.NatZone
+			if ocIface.NatZone.Config.NatZone != nil && *ocIface.NatZone.Config.NatZone != 0 {
+				iface.NATZone = ocIface.NatZone.Config.NatZone
+			}
 		}
 
 		if isPhysical(name) && iface.Enabled != nil && !*iface.Enabled && (iface.Description == nil || *iface.Description == "") {

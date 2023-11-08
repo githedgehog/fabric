@@ -82,7 +82,19 @@ const (
 
 	ActionWeightVRFBGPImportVRFUpdate
 
+	ActionWeightVXLANTunnelUpdate
+	ActionWeightVXLANEVPNNVOUpdate
+	ActionWeightVXLANTunnelMapUpdate
+
+	ActionWeightVRFVNIUpdate
+
 	// Deletes:
+
+	ActionWeightVRFVNIDelete
+
+	ActionWeightVXLANTunnelMapDelete
+	ActionWeightVXLANEVPNNVODelete
+	ActionWeightVXLANTunnelDelete
 
 	ActionWeightVRFBGPImportVRFDelete
 
