@@ -58,7 +58,7 @@ func (p *broadcomProcessor) WaitReady(ctx context.Context) error {
 	}
 
 	// TODO replace with better handling
-	cmd := exec.CommandContext(ctx, "bash", "-c", "(sudo dmidecode -t system | grep 'QEMU') && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT)")
+	cmd := exec.CommandContext(ctx, "bash", "-c", "(sudo dmidecode -t system | grep 'QEMU') && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT) || true")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stdout
 	err := cmd.Run()
