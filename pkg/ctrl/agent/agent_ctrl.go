@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"text/template"
@@ -267,14 +268,17 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
 
-		if mclagPeer != nil {
-			agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
-			if err != nil {
-				return errors.Wrapf(err, "error calculating port channels")
-			}
+		agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
+		if err != nil {
+			return errors.Wrapf(err, "error calculating port channels")
 		}
 
 		agent.Spec.NAT = nat.Spec
+
+		// tmp hack to make sure we aren't failing on dnatPool being required
+		if agent.Spec.NAT.DNATPool == nil {
+			agent.Spec.NAT.DNATPool = []string{}
+		}
 
 		return nil
 	})
@@ -388,6 +392,11 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
 	for _, conn := range conns {
 		if conn.Spec.MCLAG != nil {
+			if peer == nil {
+				slog.Warn("MCLAG connection has no peer", "conn", conn.Name, "switch", agent.Name)
+				continue
+			}
+
 			pc1 := agent.Spec.PortChannels[conn.Name]
 			pc2 := peer.Spec.PortChannels[conn.Name]
 
@@ -436,13 +445,15 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 		}
 	}
 
-	// mark all port channels on the peer as taken so we don't assign them to other connections
-	for _, pc := range peer.Spec.PortChannels {
-		if pc == 0 {
-			continue
-		}
+	if peer != nil {
+		// mark all port channels on the peer as taken so we don't assign them to other connections
+		for _, pc := range peer.Spec.PortChannels {
+			if pc == 0 {
+				continue
+			}
 
-		taken[pc-PORT_CHAN_MIN] = true
+			taken[pc-PORT_CHAN_MIN] = true
+		}
 	}
 
 	for _, conn := range conns {
