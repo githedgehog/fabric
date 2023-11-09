@@ -142,14 +142,14 @@ var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface
 	UpdateWeight: ActionWeightInterfaceIPUpdate,
 	DeleteWeight: ActionWeightInterfaceIPDelete,
 	PathFunc: func(name string, value *dozer.SpecInterfaceIP) string {
-		if isVLAN(name) {
+		if value.VLAN {
 			return fmt.Sprintf("/routed-vlan/ipv4/addresses/address[ip=%s]", name)
 		}
 
 		return fmt.Sprintf("/subinterfaces/subinterface[index=0]/ipv4[ip=%s]", name)
 	},
 	Marshal: func(name string, value *dozer.SpecInterfaceIP) (ygot.ValidatedGoStruct, error) {
-		if isVLAN(name) {
+		if value.VLAN {
 			return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses{
 				Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address{
 					name: {
@@ -212,10 +212,12 @@ var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInt
 				return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
 			}
 
-			switched.Config = &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config{
-				// InterfaceMode: oc.OpenconfigVlan_VlanModeType_UNSET, // TODO should we use TRUNK or ACCESS?
-				TrunkVlans: trunkVLANs,
-				AccessVlan: value.AccessVLAN,
+			switched = &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan{
+				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config{
+					// InterfaceMode: oc.OpenconfigVlan_VlanModeType_UNSET, // TODO should we use TRUNK or ACCESS?
+					TrunkVlans: trunkVLANs,
+					AccessVlan: value.AccessVLAN,
+				},
 			}
 		}
 
@@ -391,6 +393,7 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 						}
 
 						iface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
+							VLAN:      true,
 							PrefixLen: addr.Config.PrefixLength,
 						}
 					}

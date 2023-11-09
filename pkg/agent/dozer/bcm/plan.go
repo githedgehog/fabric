@@ -562,6 +562,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 		Enabled:     boolPtr(false),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			cidr.Gateway.String(): {
+				VLAN:      true,
 				PrefixLen: uint8Ptr(uint8(subnetPrefixLen)),
 			},
 		},
@@ -703,6 +704,7 @@ func setupVLANInterfaceWithIP(spec *dozer.Spec, vlan uint16, ip string, prefixLe
 		Enabled:     boolPtr(true),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			ip: {
+				VLAN:      true,
 				PrefixLen: uint8Ptr(prefixLen),
 			},
 		},

@@ -58,8 +58,8 @@ const (
 	ActionWeightInterfaceIPUpdate
 	ActionWeightInterfacePortChannelUpdate
 	ActionWeightInterfacePortChannelMemberUpdate
-	ActionWeightInterfaceNATZoneUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
+	ActionWeightInterfaceNATZoneUpdate
 
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate

@@ -76,6 +76,7 @@ type SpecInterface struct {
 }
 
 type SpecInterfaceIP struct {
+	VLAN      bool   `json:"vlan,omitempty"` // tmp hack as we only know about last layer of the config in enforcers and in IP enforcer we don't know the interface name
 	PrefixLen *uint8 `json:"prefixLen,omitempty"`
 	Secondary *bool  `json:"secondary,omitempty"`
 }
