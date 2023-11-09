@@ -80,13 +80,18 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan users")
 	}
 
+	err = planServerConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan server connections")
+	}
+
 	first, err := planMCLAGDomain(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan mclag domain")
 	}
 
 	if agent.IsCollapsedCore() {
-		slog.Info("Planing collapsed core",
+		slog.Info("Planning collapsed core",
 			"VPC backend", agent.Spec.Config.CollapsedCore.VPCBackend,
 			"SNAT allowed", agent.Spec.Config.CollapsedCore.SNATAllowed)
 
@@ -100,7 +105,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 			return nil, errors.Wrap(err, "failed to plan Collapsed Core NAT")
 		}
 	} else if agent.IsSpineLeaf() {
-		slog.Info("Planing spine leaf")
+		slog.Info("Planning spine leaf")
 
 		err = planSpineLeafVPCs(agent, spec, controlIface)
 		if err != nil {
@@ -147,6 +152,85 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 	}
 
 	return controlIface, nil
+}
+
+func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	// handle connections which should be configured as port channels
+	for _, conn := range agent.Spec.Connections {
+		connType := ""
+		var mtu *uint16
+		var links []wiringapi.ServerToSwitchLink
+
+		if conn.Spec.MCLAG != nil {
+			connType = "MCLAG"
+			if conn.Spec.MCLAG.MTU != 0 {
+				mtu = uint16Ptr(conn.Spec.MCLAG.MTU)
+			}
+			links = conn.Spec.MCLAG.Links
+		} else if conn.Spec.Bundled != nil {
+			connType = "Bundled"
+			// TODO MTU
+			links = conn.Spec.Bundled.Links
+		} else {
+			continue
+		}
+
+		for _, link := range links {
+			if link.Switch.DeviceName() != agent.Name {
+				continue
+			}
+
+			portName := link.Switch.LocalPortName()
+			portChan := agent.Spec.PortChannels[conn.Name]
+
+			if portChan == 0 {
+				return errors.Errorf("no port channel found for conn %s", conn.Name)
+			}
+
+			connPortChannelName := portChannelName(portChan)
+			connPortChannel := &dozer.SpecInterface{
+				Enabled:     boolPtr(true),
+				Description: stringPtr(fmt.Sprintf("%s conn %s", connType, conn.Name)),
+				TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
+				MTU:         mtu,
+			}
+			spec.Interfaces[connPortChannelName] = connPortChannel
+
+			if connType == "MCLAG" {
+				spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
+					DomainID: MCLAG_DOMAIN_ID,
+				}
+			}
+
+			descr := fmt.Sprintf("%s %s conn %s", connPortChannelName, connType, conn.Name)
+			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil)
+			if err != nil {
+				return errors.Wrapf(err, "failed to setup physical interface %s", portName)
+			}
+		}
+	}
+
+	// handle non-portchannel connections
+	for _, conn := range agent.Spec.Connections {
+		if conn.Spec.Unbundled == nil {
+			continue
+		}
+
+		if conn.Spec.Unbundled.Link.Switch.DeviceName() != agent.Name {
+			continue
+		}
+
+		swPort := conn.Spec.Unbundled.Link.Switch
+
+		spec.Interfaces[swPort.LocalPortName()] = &dozer.SpecInterface{
+			Enabled:     boolPtr(true),
+			Description: stringPtr(fmt.Sprintf("Unbundled conn %s", conn.Name)),
+			TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
+			// MTU:         mtu,
+		}
+	}
+
+	return nil
 }
 
 func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
@@ -230,45 +314,6 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName, nil)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
-		}
-	}
-
-	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.MCLAG != nil {
-			for _, link := range conn.Spec.MCLAG.Links {
-				if link.Switch.DeviceName() == agent.Name {
-					portName := link.Switch.LocalPortName()
-					portChan := agent.Spec.PortChannels[conn.Name]
-
-					if portChan == 0 {
-						return false, errors.Errorf("no port channel found for conn %s", conn.Name)
-					}
-
-					var mtu *uint16
-					if conn.Spec.MCLAG.MTU != 0 {
-						mtu = uint16Ptr(conn.Spec.MCLAG.MTU)
-					}
-
-					connPortChannelName := portChannelName(portChan)
-					connPortChannel := &dozer.SpecInterface{
-						Enabled:     boolPtr(true),
-						Description: stringPtr(fmt.Sprintf("%s MCLAG conn %s", portName, conn.Name)),
-						TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
-						MTU:         mtu,
-					}
-					spec.Interfaces[connPortChannelName] = connPortChannel
-
-					spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
-						DomainID: MCLAG_DOMAIN_ID,
-					}
-
-					descr := fmt.Sprintf("%s MCLAG conn %s", connPortChannelName, conn.Name)
-					err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil)
-					if err != nil {
-						return false, errors.Wrapf(err, "failed to setup physical interface %s", portName)
-					}
-				}
-			}
 		}
 	}
 
