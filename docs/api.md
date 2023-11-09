@@ -43,8 +43,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `config` _[AgentSpecConfig](#agentspecconfig)_ |  |
 | `version` _[AgentVersion](#agentversion)_ |  |
-| `controlVIP` _string_ |  |
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
 | `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
@@ -52,11 +52,51 @@ _Appears in:_
 | `vpcVLANRange` _string_ |  |
 | `nat` _[NATSpec](#natspec)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
-| `vpcBackend` _string_ |  |
-| `snatAllowed` _boolean_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
 | `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ |  |
+
+
+#### AgentSpecConfig
+
+
+
+
+
+_Appears in:_
+- [AgentSpec](#agentspec)
+
+| Field | Description |
+| --- | --- |
+| `controlVIP` _string_ |  |
+| `collapsedCore` _[AgentSpecConfigCollapsedCore](#agentspecconfigcollapsedcore)_ |  |
+| `spineLeaf` _[AgentSpecConfigSpineLeaf](#agentspecconfigspineleaf)_ |  |
+
+
+#### AgentSpecConfigCollapsedCore
+
+
+
+
+
+_Appears in:_
+- [AgentSpecConfig](#agentspecconfig)
+
+| Field | Description |
+| --- | --- |
+| `vpcBackend` _string_ |  |
+| `snatAllowed` _boolean_ |  |
+
+
+#### AgentSpecConfigSpineLeaf
+
+
+
+
+
+_Appears in:_
+- [AgentSpecConfig](#agentspecconfig)
+
 
 
 #### AgentStatus
