@@ -34,7 +34,6 @@ metadata:
     fabric.githedgehog.com/location: b7e0848d-15f9-5f46-ac21-1710a7b792f0
   name: switch-1
 spec:
-  lldp: {}
   location:
     aisle: "1"
     location: LOC
@@ -59,7 +58,6 @@ metadata:
     fabric.githedgehog.com/location: 81c9671f-0b80-5a45-b946-686de0b9aaa9
   name: switch-2
 spec:
-  lldp: {}
   location:
     aisle: "1"
     location: LOC

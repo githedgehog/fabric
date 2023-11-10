@@ -120,14 +120,6 @@ spec:
                           type: object
                         fabric:
                           properties:
-                            leaf:
-                              properties:
-                                asn:
-                                  format: int32
-                                  type: integer
-                                loopbackIP:
-                                  type: string
-                              type: object
                             links:
                               items:
                                 properties:
@@ -150,12 +142,6 @@ spec:
                                 type: object
                               minItems: 1
                               type: array
-                            spine:
-                              properties:
-                                asn:
-                                  format: int32
-                                  type: integer
-                              type: object
                           type: object
                         management:
                           properties:
@@ -349,20 +335,11 @@ spec:
               switch:
                 description: SwitchSpec defines the desired state of Switch
                 properties:
-                  lldp:
-                    properties:
-                      description:
-                        type: string
-                      helloTimer:
-                        description: A Duration represents the elapsed time between
-                          two instants as an int64 nanosecond count. The representation
-                          limits the largest representable duration to approximately
-                          290 years.
-                        format: int64
-                        type: integer
-                      name:
-                        type: string
-                    type: object
+                  asn:
+                    format: int32
+                    type: integer
+                  ip:
+                    type: string
                   location:
                     description: Location defines the geopraphical position of the
                       device in a datacenter

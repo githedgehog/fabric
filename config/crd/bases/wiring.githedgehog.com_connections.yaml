@@ -67,14 +67,6 @@ spec:
                 type: object
               fabric:
                 properties:
-                  leaf:
-                    properties:
-                      asn:
-                        format: int32
-                        type: integer
-                      loopbackIP:
-                        type: string
-                    type: object
                   links:
                     items:
                       properties:
@@ -97,12 +89,6 @@ spec:
                       type: object
                     minItems: 1
                     type: array
-                  spine:
-                    properties:
-                      asn:
-                        format: int32
-                        type: integer
-                    type: object
                 type: object
               management:
                 properties:

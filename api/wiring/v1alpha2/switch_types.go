@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
@@ -30,18 +29,13 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type LLDPConfig struct {
-	HelloTimer        time.Duration `json:"helloTimer,omitempty"`
-	SystemName        string        `json:"name,omitempty"`
-	SystemDescription string        `json:"description,omitempty"`
-}
-
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
 	Profile         string            `json:"profile,omitempty"`
 	Location        Location          `json:"location,omitempty"`
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`
-	LLDPConfig      LLDPConfig        `json:"lldp,omitempty"`
+	ASN             uint32            `json:"asn,omitempty"`
+	IP              string            `json:"ip,omitempty"`
 	PortGroupSpeeds map[string]string `json:"portGroupSpeeds,omitempty"`
 	PortBreakouts   map[string]string `json:"portBreakouts,omitempty"`
 }

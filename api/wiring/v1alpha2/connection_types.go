@@ -135,20 +135,9 @@ type FabricLink struct {
 	Leaf  ConnFabricLinkSwitch `json:"leaf,omitempty"`
 }
 
-type ConnFabricSpine struct {
-	ASN uint32 `json:"asn,omitempty"`
-}
-
-type ConnFabricLeaf struct {
-	ASN        uint32 `json:"asn,omitempty"`
-	LoopbackIP string `json:"loopbackIP,omitempty"`
-}
-
 type ConnFabric struct {
 	//+kubebuilder:validation:MinItems=1
-	Links []FabricLink    `json:"links,omitempty"`
-	Spine ConnFabricSpine `json:"spine,omitempty"`
-	Leaf  ConnFabricLeaf  `json:"leaf,omitempty"`
+	Links []FabricLink `json:"links,omitempty"`
 }
 
 type ConnVPCLoopback struct {

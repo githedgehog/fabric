@@ -589,23 +589,6 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `links` _[FabricLink](#fabriclink) array_ |  |
-| `spine` _[ConnFabricSpine](#connfabricspine)_ |  |
-| `leaf` _[ConnFabricLeaf](#connfabricleaf)_ |  |
-
-
-#### ConnFabricLeaf
-
-
-
-
-
-_Appears in:_
-- [ConnFabric](#connfabric)
-
-| Field | Description |
-| --- | --- |
-| `asn` _integer_ |  |
-| `loopbackIP` _string_ |  |
 
 
 #### ConnFabricLinkSwitch
@@ -621,20 +604,6 @@ _Appears in:_
 | --- | --- |
 | `port` _string_ |  |
 | `ip` _string_ |  |
-
-
-#### ConnFabricSpine
-
-
-
-
-
-_Appears in:_
-- [ConnFabric](#connfabric)
-
-| Field | Description |
-| --- | --- |
-| `asn` _integer_ |  |
 
 
 #### ConnMCLAG
@@ -871,22 +840,6 @@ _Appears in:_
 | `leaf` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |
 
 
-
-
-#### LLDPConfig
-
-
-
-
-
-_Appears in:_
-- [SwitchSpec](#switchspec)
-
-| Field | Description |
-| --- | --- |
-| `helloTimer` _Duration_ |  |
-| `name` _string_ |  |
-| `description` _string_ |  |
 
 
 #### Location
@@ -1199,7 +1152,8 @@ _Appears in:_
 | `profile` _string_ |  |
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
-| `lldp` _[LLDPConfig](#lldpconfig)_ |  |
+| `asn` _integer_ |  |
+| `ip` _string_ |  |
 | `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 | `portBreakouts` _object (keys:string, values:string)_ |  |
 

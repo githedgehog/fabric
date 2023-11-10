@@ -60,19 +60,11 @@ spec:
           spec:
             description: SwitchSpec defines the desired state of Switch
             properties:
-              lldp:
-                properties:
-                  description:
-                    type: string
-                  helloTimer:
-                    description: A Duration represents the elapsed time between two
-                      instants as an int64 nanosecond count. The representation limits
-                      the largest representable duration to approximately 290 years.
-                    format: int64
-                    type: integer
-                  name:
-                    type: string
-                type: object
+              asn:
+                format: int32
+                type: integer
+              ip:
+                type: string
               location:
                 description: Location defines the geopraphical position of the device
                   in a datacenter
