@@ -26,6 +26,14 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle hostname")
 		}
 
+		if err := specLLDPEnforcer.Handle(basePath, "", actual.LLDP, desired.LLDP, actions); err != nil {
+			return errors.Wrap(err, "failed to handle lldp")
+		}
+
+		if err := specLLDPInterfacesEnforcer.Handle(basePath, actual.LLDPInterfaces, desired.LLDPInterfaces, actions); err != nil {
+			return errors.Wrap(err, "failed to handle lldp interfaces")
+		}
+
 		if err := specPortGroupsEnforcer.Handle(basePath, actual.PortGroups, desired.PortGroups, actions); err != nil {
 			return errors.Wrap(err, "failed to handle port groups")
 		}
@@ -105,6 +113,14 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualHostname(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load hostname")
+	}
+
+	if err := loadActualLLDP(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load lldp")
+	}
+
+	if err := loadActualLLDPInterfaces(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load lldp interfaces")
 	}
 
 	if err := loadActualPortGroups(ctx, client, spec); err != nil {

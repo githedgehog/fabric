@@ -40,6 +40,8 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	spec := &dozer.Spec{
 		ZTP:             boolPtr(false),
 		Hostname:        stringPtr(agent.Name),
+		LLDP:            &dozer.SpecLLDP{},
+		LLDPInterfaces:  map[string]*dozer.SpecLLDPInterface{},
 		PortGroups:      map[string]*dozer.SpecPortGroup{},
 		PortBreakouts:   map[string]*dozer.SpecPortBreakout{},
 		Interfaces:      map[string]*dozer.SpecInterface{},
@@ -73,6 +75,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	controlIface, err := planManagementInterface(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan management interface")
+	}
+
+	err = planLLDP(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan LLDP")
 	}
 
 	err = planUsers(agent, spec)
@@ -152,6 +159,54 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 	}
 
 	return controlIface, nil
+}
+
+func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
+	parts := strings.Split(agent.Spec.Config.ControlVIP, "/")
+	if len(parts) != 2 {
+		return errors.Errorf("invalid control vip %s", agent.Spec.Config.ControlVIP)
+	}
+
+	spec.LLDP = &dozer.SpecLLDP{
+		Enabled:           boolPtr(true),
+		HelloTimer:        uint64Ptr(5), // TODO make configurable?
+		SystemName:        stringPtr(agent.Name),
+		SystemDescription: stringPtr(fmt.Sprintf("Hedgehog: [control_vip=%s]", parts[0])),
+	}
+
+	for _, conn := range agent.Spec.Connections {
+		if conn.Spec.Fabric != nil {
+			for _, link := range conn.Spec.Fabric.Links {
+				mgmtIP := ""
+				iface := ""
+
+				if link.Spine.DeviceName() == agent.Name {
+					iface = link.Spine.LocalPortName()
+					mgmtIP = link.Spine.IP
+				} else if link.Leaf.DeviceName() == agent.Name {
+					iface = link.Leaf.LocalPortName()
+					mgmtIP = link.Leaf.IP
+				}
+
+				if mgmtIP != "" {
+					parts := strings.Split(mgmtIP, "/")
+					if len(parts) != 2 {
+						return errors.Errorf("invalid lldp management ip %s", mgmtIP)
+					}
+					mgmtIP = parts[0]
+				}
+
+				if mgmtIP != "" && iface != "" {
+					spec.LLDPInterfaces[iface] = &dozer.SpecLLDPInterface{
+						Enabled:        boolPtr(true),
+						ManagementIPv4: stringPtr(mgmtIP),
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
@@ -721,5 +776,7 @@ func uint8Ptr(u uint8) *uint8 { return &u }
 func uint16Ptr(u uint16) *uint16 { return &u }
 
 func uint32Ptr(u uint32) *uint32 { return &u }
+
+func uint64Ptr(u uint64) *uint64 { return &u }
 
 func boolPtr(b bool) *bool { return &b }

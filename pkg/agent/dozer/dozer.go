@@ -30,6 +30,8 @@ type Action interface {
 type Spec struct {
 	ZTP             *bool                          `json:"ztp,omitempty"`
 	Hostname        *string                        `json:"hostname,omitempty"`
+	LLDP            *SpecLLDP                      `json:"lldp,omitempty"`
+	LLDPInterfaces  map[string]*SpecLLDPInterface  `json:"lldpInterfaces,omitempty"`
 	Users           map[string]*SpecUser           `json:"users,omitempty"`
 	PortGroups      map[string]*SpecPortGroup      `json:"portGroupSpeeds,omitempty"`
 	PortBreakouts   map[string]*SpecPortBreakout   `json:"portBreakouts,omitempty"`
@@ -46,6 +48,18 @@ type Spec struct {
 	VXLANEVPNNVOs   map[string]*SpecVXLANEVPNNVO   `json:"vxlanEVPNNVOs,omitempty"`
 	VXLANTunnelMap  map[string]*SpecVXLANTunnelMap `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
 	VRFVNIMap       map[string]*SpecVRFVNIEntry    `json:"vrfVNIMap,omitempty"`
+}
+
+type SpecLLDP struct {
+	Enabled           *bool   `json:"enabled,omitempty"`
+	HelloTimer        *uint64 `json:"helloTimer,omitempty"`
+	SystemName        *string `json:"systemName,omitempty"`
+	SystemDescription *string `json:"systemDescription,omitempty"`
+}
+
+type SpecLLDPInterface struct {
+	Enabled        *bool   `json:"enabled,omitempty"`
+	ManagementIPv4 *string `json:"managementIPv4,omitempty"`
 }
 
 type SpecUser struct {
@@ -295,6 +309,8 @@ type SpecPart interface {
 
 var (
 	_ SpecPart = (*Spec)(nil)
+	_ SpecPart = (*SpecLLDP)(nil)
+	_ SpecPart = (*SpecLLDPInterface)(nil)
 	_ SpecPart = (*SpecUser)(nil)
 	_ SpecPart = (*SpecPortGroup)(nil)
 	_ SpecPart = (*SpecPortBreakout)(nil)
@@ -325,6 +341,14 @@ var (
 )
 
 func (s *Spec) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecLLDP) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecLLDPInterface) IsNil() bool {
 	return s == nil
 }
 

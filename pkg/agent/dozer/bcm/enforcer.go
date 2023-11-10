@@ -45,6 +45,7 @@ const (
 
 	ActionWeightSystemZTP
 	ActionWeightSystemHostname
+	ActionWeightLLDP
 	ActionWeightUser
 	ActionWeightUserAuthorizedKeys
 	ActionWeightPortGroup
@@ -60,6 +61,8 @@ const (
 	ActionWeightInterfacePortChannelMemberUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
+
+	ActionWeightLLDPInterfaceUpdate
 
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate
@@ -104,6 +107,8 @@ const (
 	ActionWeightNATBindingDelete
 	ActionWeightNATPoolDelete
 	ActionWeightNATBaseDelete
+
+	ActionWeightLLDPInterfaceDelete
 
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
