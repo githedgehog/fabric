@@ -46,6 +46,7 @@ spec:
   portGroupSpeeds:
     "1": 10G
     "12": 10G
+  role: server-leaf
 status:
 ---
 ###
@@ -70,6 +71,7 @@ spec:
   portGroupSpeeds:
     "1": 10G
     "12": 10G
+  role: server-leaf
 status:
 ---
 ###

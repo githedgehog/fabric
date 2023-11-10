@@ -43,6 +43,7 @@ spec:
   locationSig:
     sig: <undefined>
     uuidSig: <undefined>
+  role: server-leaf
 status:
 ---
 ###
@@ -64,6 +65,7 @@ spec:
   locationSig:
     sig: <undefined>
     uuidSig: <undefined>
+  role: server-leaf
 status:
 ---
 ###

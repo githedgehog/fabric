@@ -1149,6 +1149,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `role` _SwitchRole_ |  |
 | `profile` _string_ |  |
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |

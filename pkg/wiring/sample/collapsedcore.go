@@ -50,6 +50,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	switch1 := wiringapi.SwitchSpec{
+		Role:     wiringapi.SwitchRoleServerLeaf,
 		Location: location("1"),
 	}
 	if preset == SAMPLE_CC_LAB {
@@ -64,6 +65,7 @@ func CollapsedCore(preset Preset) (*wiring.Data, error) {
 	}
 
 	switch2 := wiringapi.SwitchSpec{
+		Role:     wiringapi.SwitchRoleServerLeaf,
 		Location: location("2"),
 	}
 	if preset == SAMPLE_CC_LAB {

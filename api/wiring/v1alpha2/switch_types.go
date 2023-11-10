@@ -29,8 +29,23 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +kubebuilder:validation:Enum=spine;server-leaf;border-leaf
+type SwitchRole string
+
+const (
+	SwitchRoleSpine      SwitchRole = "spine"
+	SwitchRoleServerLeaf SwitchRole = "server-leaf"
+	SwitchRoleBorderLeaf SwitchRole = "border-leaf"
+)
+
+func (r SwitchRole) IsLeaf() bool {
+	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf
+}
+
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
+	// +kubebuilder:validation:Required
+	Role            SwitchRole        `json:"role,omitempty"`
 	Profile         string            `json:"profile,omitempty"`
 	Location        Location          `json:"location,omitempty"`
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`

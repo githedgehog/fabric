@@ -99,6 +99,12 @@ spec:
                 type: object
               profile:
                 type: string
+              role:
+                enum:
+                - spine
+                - server-leaf
+                - border-leaf
+                type: string
             type: object
           status:
             description: SwitchStatus defines the observed state of Switch
