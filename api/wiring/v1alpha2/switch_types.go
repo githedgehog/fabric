@@ -38,6 +38,16 @@ const (
 	SwitchRoleBorderLeaf SwitchRole = "border-leaf"
 )
 
+var SwitchRoles = []SwitchRole{
+	SwitchRoleSpine,
+	SwitchRoleServerLeaf,
+	SwitchRoleBorderLeaf,
+}
+
+func (r SwitchRole) IsSpine() bool {
+	return r == SwitchRoleSpine
+}
+
 func (r SwitchRole) IsLeaf() bool {
 	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf
 }
