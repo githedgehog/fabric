@@ -221,6 +221,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
 						NeighborAddress: ygot.String(name),
 						Enabled:         value.Enabled,
+						Description:     value.Description,
 						PeerAs:          value.RemoteAS,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
@@ -467,6 +468,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 						bgp.Neighbors[neighborName] = &dozer.SpecVRFBGPNeighbor{
 							Enabled:     neighbor.Config.Enabled,
+							Description: neighbor.Config.Description,
 							RemoteAS:    neighbor.Config.PeerAs,
 							IPv4Unicast: ipv4Unicast,
 							L2VPNEVPN:   l2vpnEVPN,

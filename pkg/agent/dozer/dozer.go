@@ -141,6 +141,7 @@ type SpecVRFBGPNetwork struct{}
 
 type SpecVRFBGPNeighbor struct {
 	Enabled     *bool   `json:"enabled,omitempty"`
+	Description *string `json:"description,omitempty"`
 	RemoteAS    *uint32 `json:"remoteAS,omitempty"`
 	IPv4Unicast *bool   `json:"ipv4Unicast,omitempty"`
 	L2VPNEVPN   *bool   `json:"l2vpnEvpn,omitempty"`
