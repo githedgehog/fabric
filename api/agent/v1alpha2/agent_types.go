@@ -28,6 +28,8 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
+	Role         wiringapi.SwitchRole    `json:"role,omitempty"`
+	Description  string                  `json:"description,omitempty"`
 	Config       AgentSpecConfig         `json:"config,omitempty"`
 	Version      AgentVersion            `json:"version,omitempty"`
 	Users        []UserCreds             `json:"users,omitempty"`
@@ -140,8 +142,10 @@ type NOSInfo struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;fabric,shortName=ag
-// +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.nosInfo.hwskuVersion`,priority=0
-// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.nosInfo.asicVersion`,priority=0
+// +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
+// +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
+// +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.nosInfo.hwskuVersion`,priority=1
+// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.nosInfo.asicVersion`,priority=1
 // +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=1
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
 // +kubebuilder:printcolumn:name="AppliedG",type=string,JSONPath=`.status.lastAppliedGen`,priority=0

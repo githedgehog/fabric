@@ -34,8 +34,9 @@ const (
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
-	Type    ServerType `json:"type,omitempty"`
-	Profile string     `json:"profile,omitempty"`
+	Type        ServerType `json:"type,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Profile     string     `json:"profile,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server
@@ -45,6 +46,7 @@ type ServerStatus struct{}
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=srv
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`,priority=0
+// +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
 // +kubebuilder:printcolumn:name="Rack",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/rack`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Server is the Schema for the servers API

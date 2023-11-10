@@ -56,6 +56,7 @@ func (r SwitchRole) IsLeaf() bool {
 type SwitchSpec struct {
 	// +kubebuilder:validation:Required
 	Role            SwitchRole        `json:"role,omitempty"`
+	Description     string            `json:"description,omitempty"`
 	Profile         string            `json:"profile,omitempty"`
 	Location        Location          `json:"location,omitempty"`
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`
@@ -74,7 +75,8 @@ type SwitchStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sw
-// +kubebuilder:printcolumn:name="Location",type=string,JSONPath=`.spec.location`,priority=0
+// +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
+// +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
 // +kubebuilder:printcolumn:name="LocationUUID",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/location`,priority=0
 // +kubebuilder:printcolumn:name="PortGroupSpeeds",type=string,JSONPath=`.spec.portGroupSpeeds`,priority=1
 // +kubebuilder:printcolumn:name="Rack",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/rack`,priority=1
