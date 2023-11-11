@@ -6,4 +6,5 @@ resources:
   - vpc_v1alpha2_vpcsummary.yaml
   - vpc_v1alpha2_vpcpeering.yaml
   - vpc_v1alpha2_nat.yaml
+  - agent_v1alpha2_controlagent.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

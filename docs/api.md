@@ -12,6 +12,7 @@ Package v1alpha2 contains API Schema definitions for the agent v1alpha2 API grou
 
 ### Resource Types
 - [Agent](#agent)
+- [ControlAgent](#controlagent)
 
 
 
@@ -133,6 +134,7 @@ _Appears in:_
 
 _Appears in:_
 - [AgentSpec](#agentspec)
+- [ControlAgentSpec](#controlagentspec)
 
 | Field | Description |
 | --- | --- |
@@ -174,6 +176,58 @@ _Appears in:_
 | --- | --- |
 | `name` _string_ |  |
 | `spec` _[ConnectionSpec](#connectionspec)_ |  |
+
+
+#### ControlAgent
+
+
+
+ControlAgent is the Schema for the controlagents API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `agent.githedgehog.com/v1alpha2`
+| `kind` _string_ | `ControlAgent`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ControlAgentSpec](#controlagentspec)_ |  |
+| `status` _[ControlAgentStatus](#controlagentstatus)_ |  |
+
+
+#### ControlAgentSpec
+
+
+
+ControlAgentSpec defines the desired state of ControlAgent
+
+_Appears in:_
+- [ControlAgent](#controlagent)
+
+| Field | Description |
+| --- | --- |
+| `controlVIP` _string_ |  |
+| `version` _[AgentVersion](#agentversion)_ |  |
+
+
+#### ControlAgentStatus
+
+
+
+ControlAgentStatus defines the observed state of ControlAgent
+
+_Appears in:_
+- [ControlAgent](#controlagent)
+
+| Field | Description |
+| --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#condition-v1-meta) array_ |  |
+| `version` _string_ |  |
+| `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAttemptGen` _integer_ |  |
+| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `lastAppliedGen` _integer_ |  |
 
 
 #### NOSInfo

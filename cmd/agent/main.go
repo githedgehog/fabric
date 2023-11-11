@@ -30,6 +30,7 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/agent"
+	"go.githedgehog.com/fabric/pkg/agent/control"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -46,7 +47,7 @@ var motd []byte
 
 var version = "(devel)"
 
-func setupLogger(verbose bool, logToFile bool) error {
+func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 	logLevel := slog.LevelInfo
 	if verbose {
 		logLevel = slog.LevelDebug
@@ -81,9 +82,11 @@ func setupLogger(verbose bool, logToFile bool) error {
 
 	slog.SetDefault(logger)
 
-	_, err := logConsole.Write([]byte(motd))
-	if err != nil {
-		return err
+	if printMotd {
+		_, err := logConsole.Write([]byte(motd))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -134,7 +137,7 @@ func main() {
 					basedirFlag,
 				},
 				Before: func(cCtx *cli.Context) error {
-					return setupLogger(verbose, true)
+					return setupLogger(verbose, true, true)
 				},
 				Action: func(cCtx *cli.Context) error {
 					return (&agent.Service{
@@ -183,7 +186,7 @@ func main() {
 					},
 				},
 				Before: func(cCtx *cli.Context) error {
-					return setupLogger(verbose, false)
+					return setupLogger(verbose, false, true)
 				},
 				Action: func(cCtx *cli.Context) error {
 					slog.Info("Applying", "version", version)
@@ -234,11 +237,16 @@ func main() {
 								Value: DEFAULT_AGENT_SERVICE_USER,
 								Usage: "user to run agent",
 							},
+							&cli.BoolFlag{
+								Name:  "control",
+								Usage: "generate control agent systemd-unit",
+							},
 						},
 						Action: func(cCtx *cli.Context) error {
 							unit, err := systemd.Generate(systemd.UnitConfig{
 								BinPath: cCtx.String("bin-path"),
 								User:    cCtx.String("user"),
+								Control: cCtx.Bool("control"),
 							})
 							if err != nil {
 								return err
@@ -247,6 +255,70 @@ func main() {
 							fmt.Println(unit)
 
 							return nil
+						},
+					},
+				},
+			},
+			{
+				Name:  "install",
+				Usage: "install systemd unit",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+					&cli.StringFlag{
+						Name: "bin-path",
+						Aliases: []string{
+							"agent-path",
+						},
+						Value: DEFAULT_BIN_PATH,
+						Usage: "path to the agent binary",
+					},
+					&cli.StringFlag{
+						Name: "user",
+						Aliases: []string{
+							"agent-user",
+						},
+						Value: DEFAULT_AGENT_SERVICE_USER,
+						Usage: "user to run agent",
+					},
+					&cli.BoolFlag{
+						Name:  "control",
+						Usage: "install control agent systemd-unit",
+					},
+				},
+				Before: func(cCtx *cli.Context) error {
+					return setupLogger(verbose, true, false)
+				},
+				Action: func(cCtx *cli.Context) error {
+					return systemd.Install(systemd.UnitConfig{
+						BinPath: cCtx.String("bin-path"),
+						User:    cCtx.String("user"),
+						Control: cCtx.Bool("control"),
+					})
+				},
+			},
+			{
+				Name:  "control",
+				Usage: "control agent",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "start",
+						Usage: "start control agent to watch for config changes and apply them",
+						Flags: []cli.Flag{
+							verboseFlag,
+							basedirFlag,
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose, true, true)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return (&control.Service{
+								Version: version,
+							}).Run(ctx)
 						},
 					},
 				},

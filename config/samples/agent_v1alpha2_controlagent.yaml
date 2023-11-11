@@ -1,0 +1,12 @@
+apiVersion: agent.githedgehog.com/v1alpha2
+kind: ControlAgent
+metadata:
+  labels:
+    app.kubernetes.io/name: controlagent
+    app.kubernetes.io/instance: controlagent-sample
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: fabric
+  name: controlagent-sample
+spec:
+  # TODO(user): Add fields here
