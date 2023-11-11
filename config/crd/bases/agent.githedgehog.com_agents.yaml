@@ -20,11 +20,19 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.description
+      name: Descr
+      type: string
     - jsonPath: .status.nosInfo.hwskuVersion
       name: HWSKU
+      priority: 1
       type: string
     - jsonPath: .status.nosInfo.asicVersion
       name: ASIC
+      priority: 1
       type: string
     - jsonPath: .status.lastHeartbeat
       name: Heartbeat
@@ -295,6 +303,8 @@ spec:
                       type: object
                   type: object
                 type: array
+              description:
+                type: string
               nat:
                 description: NATSpec defines the desired state of NAT
                 properties:
@@ -315,6 +325,12 @@ spec:
               reboot:
                 type: string
               reinstall:
+                type: string
+              role:
+                enum:
+                - spine
+                - server-leaf
+                - border-leaf
                 type: string
               statusUpdates:
                 items:
@@ -338,6 +354,8 @@ spec:
                   asn:
                     format: int32
                     type: integer
+                  description:
+                    type: string
                   ip:
                     type: string
                   location:

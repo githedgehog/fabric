@@ -21,14 +21,21 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.location
-      name: Location
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.description
+      name: Descr
       type: string
     - jsonPath: .metadata.labels.fabric\.githedgehog\.com/location
       name: LocationUUID
       type: string
     - jsonPath: .spec.portGroupSpeeds
-      name: PortGroupSpeeds
+      name: PortGroups
+      priority: 1
+      type: string
+    - jsonPath: .spec.portBreakouts
+      name: Breakouts
       priority: 1
       type: string
     - jsonPath: .metadata.labels.fabric\.githedgehog\.com/rack
@@ -63,6 +70,8 @@ spec:
               asn:
                 format: int32
                 type: integer
+              description:
+                type: string
               ip:
                 type: string
               location:

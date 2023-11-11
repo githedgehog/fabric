@@ -43,6 +43,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `role` _SwitchRole_ |  |
+| `description` _string_ |  |
 | `config` _[AgentSpecConfig](#agentspecconfig)_ |  |
 | `version` _[AgentVersion](#agentversion)_ |  |
 | `users` _[UserCreds](#usercreds) array_ |  |
@@ -1032,6 +1034,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `type` _ServerType_ |  |
+| `description` _string_ |  |
 | `profile` _string_ |  |
 
 
@@ -1150,6 +1153,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `role` _SwitchRole_ |  |
+| `description` _string_ |  |
 | `profile` _string_ |  |
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
