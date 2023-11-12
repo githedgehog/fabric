@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -20,6 +22,7 @@ import (
 
 const (
 	KUBECONFIG_FILE = "/etc/rancher/k3s/k3s.yaml"
+	NETWORK_FILES   = "/etc/systemd/network"
 )
 
 type Service struct {
@@ -204,6 +207,33 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 	} else if upgraded {
 		slog.Info("Agent upgraded, restarting")
 		os.Exit(0) // TODO graceful agent restart
+	}
+
+	slog.Debug("Recreating networkd config")
+	files, err := filepath.Glob(filepath.Join(NETWORK_FILES, "hh-*"))
+	if err != nil {
+		return errors.Wrapf(err, "failed to list network files")
+	}
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			return errors.Wrapf(err, "failed to remove network file %s", f)
+		}
+	}
+	for name, content := range agent.Spec.Networkd {
+		err = os.WriteFile(filepath.Join(NETWORK_FILES, name), []byte(content), 0o644)
+		if err != nil {
+			return errors.Wrapf(err, "failed to write network file %s", name)
+		}
+	}
+
+	slog.Debug("Reloading networkd")
+	cmd := exec.CommandContext(ctx, "networkctl", "reload")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stdout
+
+	err = cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "failed to reload networkd")
 	}
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
