@@ -2,11 +2,9 @@ package agent
 
 import (
 	"context"
-	"crypto/tls"
 	_ "embed"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
@@ -25,10 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/clientcmd"
-	"oras.land/oras-go/v2"
-	"oras.land/oras-go/v2/content/file"
-	"oras.land/oras-go/v2/registry/remote"
-	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -436,90 +431,12 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		}
 	}
 
-	desiredVersion := ""
-	if agent.Spec.Version.Default != "" {
-		desiredVersion = agent.Spec.Version.Default
-	}
-	if agent.Spec.Version.Override != "" {
-		desiredVersion = agent.Spec.Version.Override
-	}
-	if desiredVersion != "" && svc.Version != desiredVersion {
-		slog.Info("Desired version is different from current", "desired", desiredVersion, "current", svc.Version)
-		if !svc.SkipActions {
-			slog.Info("Attempting to upgrade Agent")
-
-			err := svc.agentUpgrade(ctx, agent, desiredVersion)
-			if err != nil {
-				slog.Warn("Failed to upgrade Agent", "err", err)
-			} else {
-				slog.Info("Agent upgraded")
-				os.Exit(0) // TODO graceful agent restart
-			}
-		}
-	}
-
-	return nil
-}
-
-func (svc *Service) agentUpgrade(ctx context.Context, agent *agentapi.Agent, desiredVersion string) error {
-	path, err := os.MkdirTemp("/tmp", "agent-upgrade-*")
+	upgraded, err := common.AgentUpgrade(ctx, svc.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true"})
 	if err != nil {
-		return errors.Wrap(err, "failed to create temp dir")
-	}
-	defer os.RemoveAll(path)
-
-	fs, err := file.New(path)
-	if err != nil {
-		return errors.Wrapf(err, "error creating oras file store in %s", path)
-	}
-	defer fs.Close()
-
-	repo, err := remote.NewRepository(agent.Spec.Version.Repo)
-	if err != nil {
-		return errors.Wrapf(err, "error creating oras remote repo %s", agent.Spec.Version.Repo)
-	}
-
-	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
-	baseTransport.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	// TODO load CA
-	// config.RootCAs, err = crypto.LoadCertPool(opts.CACertFilePath)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	repo.Client = &auth.Client{
-		Client: &http.Client{
-			Transport: baseTransport,
-		},
-	}
-
-	_, err = oras.Copy(context.Background(), repo, desiredVersion, fs, desiredVersion, oras.CopyOptions{
-		CopyGraphOptions: oras.CopyGraphOptions{
-			Concurrency: 2,
-		},
-	})
-	if err != nil {
-		return errors.Wrapf(err, "error downloading new agent %s from %s", desiredVersion, agent.Spec.Version.Repo)
-	}
-
-	agentPath := filepath.Join(path, "agent")
-
-	err = os.Chmod(agentPath, 0o755)
-	if err != nil {
-		return errors.Wrapf(err, "failed to chmod new agent binary in %s", path)
-	}
-
-	cmd := exec.CommandContext(ctx, agentPath, "apply", "--dry-run=true")
-	err = cmd.Run()
-	if err != nil {
-		return errors.Wrapf(err, "failed to run new agent binary in %s", path)
-	}
-
-	err = os.Rename(agentPath, "/opt/hedgehog/bin/agent")
-	if err != nil {
-		return errors.Wrapf(err, "failed to move new agent binary from %s to /opt/hedgehog/bin/agent", path)
+		slog.Warn("Failed to upgrade Agent", "err", err)
+	} else if upgraded {
+		slog.Info("Agent upgraded, restarting")
+		os.Exit(0) // TODO graceful agent restart
 	}
 
 	return nil

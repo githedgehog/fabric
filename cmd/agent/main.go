@@ -321,6 +321,28 @@ func main() {
 							}).Run(ctx)
 						},
 					},
+					{
+						Name:  "apply",
+						Usage: "apply control agent config once",
+						Flags: []cli.Flag{
+							verboseFlag,
+							basedirFlag,
+							&cli.BoolFlag{
+								Name:  "dry-run",
+								Value: true,
+							},
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose, false, true)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return (&control.Service{
+								Version:   version,
+								ApplyOnce: true,
+								DryRun:    cCtx.Bool("dry-run"),
+							}).Run(ctx)
+						},
+					},
 				},
 			},
 		},

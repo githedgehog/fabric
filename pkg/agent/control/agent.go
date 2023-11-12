@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/agent/common"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +25,7 @@ const (
 type Service struct {
 	Version string
 
+	DryRun    bool
 	ApplyOnce bool
 }
 
@@ -46,7 +48,13 @@ func (svc *Service) Run(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to get initial control agent config from k8s")
 	}
 
+	if svc.DryRun {
+		slog.Info("Dry run, exiting")
+		return nil
+	}
+
 	if svc.ApplyOnce {
+		slog.Info("Applying config once")
 		return errors.Wrapf(svc.process(ctx, agent), "failed to apply once")
 	}
 
@@ -60,6 +68,9 @@ func (svc *Service) Run(ctx context.Context) error {
 	agent.Status.LastAppliedTime = now
 	agent.Status.LastAppliedGen = currentGen
 	agent.Status.Version = svc.Version
+	if agent.Status.Conditions == nil {
+		agent.Status.Conditions = []metav1.Condition{}
+	}
 
 	err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
 	if err != nil {
@@ -156,7 +167,10 @@ func (svc *Service) processKubeUpdate(ctx context.Context, kube client.Client, a
 		return errors.Wrapf(err, "error updating control agent last attempt") // TODO gracefully handle case if resourceVersion changed
 	}
 
-	// TODO implement upgrade logic
+	err = svc.process(ctx, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to process control agent config")
+	}
 
 	// report that we've been able to apply config
 	agent.Status.LastAppliedGen = agent.Generation
@@ -182,7 +196,17 @@ func (svc *Service) processKubeUpdate(ctx context.Context, kube client.Client, a
 }
 
 func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) error {
-	slog.Info("Applying control agent config")
+	slog.Info("Processing control agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	upgraded, err := common.AgentUpgrade(ctx, svc.Version, agent.Spec.Version, false, []string{"control", "apply", "--dry-run=true"})
+	if err != nil {
+		slog.Warn("Failed to upgrade Agent", "err", err)
+	} else if upgraded {
+		slog.Info("Agent upgraded, restarting")
+		os.Exit(0) // TODO graceful agent restart
+	}
+
+	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
 	return nil
 }
