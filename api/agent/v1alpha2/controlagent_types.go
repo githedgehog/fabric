@@ -24,8 +24,9 @@ import (
 
 // ControlAgentSpec defines the desired state of ControlAgent
 type ControlAgentSpec struct {
-	ControlVIP string       `json:"controlVIP,omitempty"`
-	Version    AgentVersion `json:"version,omitempty"`
+	ControlVIP string            `json:"controlVIP,omitempty"`
+	Version    AgentVersion      `json:"version,omitempty"`
+	Networkd   map[string]string `json:"networkd,omitempty"`
 }
 
 // ControlAgentStatus defines the observed state of ControlAgent

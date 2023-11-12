@@ -69,6 +69,10 @@ spec:
             properties:
               controlVIP:
                 type: string
+              networkd:
+                additionalProperties:
+                  type: string
+                type: object
               version:
                 properties:
                   ca:
