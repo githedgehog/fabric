@@ -35,6 +35,36 @@ rules:
   - update
   - watch
 - apiGroups:
+  - agent.githedgehog.com
+  resources:
+  - controlagents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - agent.githedgehog.com
+  resources:
+  - controlagents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - agent.githedgehog.com
+  resources:
+  - controlagents/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ""
   resources:
   - configmaps

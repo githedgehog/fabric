@@ -71,7 +71,6 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, v
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
 		Watches(&vpcapi.VPCSummary{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
-		// TODO enque for rack changes?
 		Complete(r)
 }
 
