@@ -87,6 +87,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan users")
 	}
 
+	err = planFabricConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan fabric connections")
+	}
+
 	err = planServerConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan server connections")
@@ -197,6 +202,53 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 						ManagementIPv4: stringPtr(mgmtIP),
 					}
 				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	for _, conn := range agent.Spec.Connections {
+		if conn.Spec.Fabric == nil {
+			continue
+		}
+
+		for _, link := range conn.Spec.Fabric.Links {
+			port := ""
+			ipStr := ""
+			remote := ""
+			if link.Spine.DeviceName() == agent.Name {
+				port = link.Spine.LocalPortName()
+				ipStr = link.Spine.IP
+				remote = link.Leaf.Port
+			} else if link.Leaf.DeviceName() == agent.Name {
+				port = link.Leaf.LocalPortName()
+				ipStr = link.Leaf.IP
+				remote = link.Spine.Port
+			} else {
+				continue
+			}
+
+			if ipStr == "" {
+				return errors.Errorf("no IP found for fabric conn %s", conn.Name)
+			}
+
+			ip, ipNet, err := net.ParseCIDR(ipStr)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse fabric conn ip %s", ipStr)
+			}
+			ipPrefixLen, _ := ipNet.Mask.Size()
+
+			spec.Interfaces[port] = &dozer.SpecInterface{
+				Enabled:     boolPtr(true),
+				Description: stringPtr(fmt.Sprintf("Fabric %s // %s", remote, conn.Name)),
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+					},
+				},
 			}
 		}
 	}
