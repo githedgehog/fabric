@@ -209,6 +209,7 @@ _Appears in:_
 | `controlVIP` _string_ |  |
 | `version` _[AgentVersion](#agentversion)_ |  |
 | `networkd` _object (keys:string, values:string)_ |  |
+| `hosts` _object (keys:string, values:string)_ |  |
 
 
 #### ControlAgentStatus

@@ -69,6 +69,10 @@ spec:
             properties:
               controlVIP:
                 type: string
+              hosts:
+                additionalProperties:
+                  type: string
+                type: object
               networkd:
                 additionalProperties:
                   type: string

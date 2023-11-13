@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"text/template"
 
@@ -114,6 +115,11 @@ func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, errors.Wrapf(err, "error building networkd config")
 	}
 
+	hosts, err := r.buildHosts(server.Name, switchList.Items)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error building hosts config")
+	}
+
 	agent := &agentapi.ControlAgent{ObjectMeta: metav1.ObjectMeta{Name: server.Name, Namespace: server.Namespace}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Spec.ControlVIP = r.Cfg.ControlVIP
@@ -121,6 +127,7 @@ func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
 		agent.Spec.Networkd = networkd
+		agent.Spec.Hosts = hosts
 
 		return nil
 	})
@@ -193,6 +200,25 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 	}
 
 	return networkd, nil
+}
+
+func (r *ControlAgentReconciler) buildHosts(serverName string, switches []wiringapi.Switch) (map[string]string, error) {
+	hosts := map[string]string{}
+
+	for _, sw := range switches {
+		if sw.Spec.IP == "" {
+			return nil, errors.Errorf("switch %s has no IP", sw.Name)
+		}
+
+		ip, _, err := net.ParseCIDR(sw.Spec.IP)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing switch %s IP", sw.Name)
+		}
+
+		hosts[sw.Name] = ip.String()
+	}
+
+	return hosts, nil
 }
 
 func executeTemplate(tmplText string, data any) (string, error) {

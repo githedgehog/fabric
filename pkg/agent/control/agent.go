@@ -1,12 +1,15 @@
 package control
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -234,6 +237,30 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 	err = cmd.Run()
 	if err != nil {
 		return errors.Wrapf(err, "failed to reload networkd")
+	}
+
+	hostsFile, err := os.Open("/etc/hosts")
+	if err != nil {
+		return errors.Wrapf(err, "failed to open /etc/hosts")
+	}
+	defer hostsFile.Close()
+
+	hosts := bytes.NewBuffer(nil)
+	scanner := bufio.NewScanner(hostsFile)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasSuffix(line, "# hedgehog") {
+			continue
+		}
+		hosts.WriteString(line + "\n")
+	}
+	for hostname, ip := range agent.Spec.Hosts {
+		hosts.WriteString(fmt.Sprintf("%s %s # hedgehog\n", ip, hostname))
+	}
+
+	err = os.WriteFile("/etc/hosts", hosts.Bytes(), 0o644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write /etc/hosts")
 	}
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
