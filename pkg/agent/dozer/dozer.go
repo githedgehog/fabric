@@ -143,9 +143,15 @@ type SpecVRFBGPNeighbor struct {
 	Enabled     *bool   `json:"enabled,omitempty"`
 	Description *string `json:"description,omitempty"`
 	RemoteAS    *uint32 `json:"remoteAS,omitempty"`
+	PeerType    *string `json:"peerType,omitempty"`
 	IPv4Unicast *bool   `json:"ipv4Unicast,omitempty"`
 	L2VPNEVPN   *bool   `json:"l2vpnEvpn,omitempty"`
 }
+
+const (
+	SpecVRFBGPNeighborPeerTypeInternal = "internal"
+	SpecVRFBGPNeighborPeerTypeExternal = "external"
+)
 
 type SpecVRFTableConnection struct {
 	ImportPolicies []string `json:"importPolicies,omitempty"`

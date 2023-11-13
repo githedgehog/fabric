@@ -214,6 +214,17 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 	UpdateWeight: ActionWeightVRFBGPNeighborUpdate,
 	DeleteWeight: ActionWeightVRFBGPNeighborDelete,
 	Marshal: func(name string, value *dozer.SpecVRFBGPNeighbor) (ygot.ValidatedGoStruct, error) {
+		var peerType oc.E_OpenconfigBgp_PeerType
+		if value.PeerType != nil {
+			if *value.PeerType == dozer.SpecVRFBGPNeighborPeerTypeInternal {
+				peerType = oc.OpenconfigBgp_PeerType_INTERNAL
+			} else if *value.PeerType == dozer.SpecVRFBGPNeighborPeerTypeExternal {
+				peerType = oc.OpenconfigBgp_PeerType_EXTERNAL
+			} else {
+				return nil, errors.Errorf("unknown peer type %s", *value.PeerType)
+			}
+		}
+
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
 				name: {
@@ -223,6 +234,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						Enabled:         value.Enabled,
 						Description:     value.Description,
 						PeerAs:          value.RemoteAS,
+						PeerType:        peerType,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
 						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{
@@ -406,7 +418,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					bgp.AS = bgpConfig.Global.Config.As
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
 
-					if bgpConfig.Global.AfiSafis != nil || bgpConfig.Global.AfiSafis.AfiSafi != nil {
+					if bgpConfig.Global.AfiSafis != nil && bgpConfig.Global.AfiSafis.AfiSafi != nil {
 						ipv4Unicast := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
 						if ipv4Unicast != nil {
 							bgp.IPv4Unicast.Enabled = true
@@ -466,10 +478,18 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							}
 						}
 
+						var peerType *string
+						if neighbor.Config.PeerType == oc.OpenconfigBgp_PeerType_INTERNAL {
+							peerType = ygot.String(dozer.SpecVRFBGPNeighborPeerTypeInternal)
+						} else if neighbor.Config.PeerType == oc.OpenconfigBgp_PeerType_EXTERNAL {
+							peerType = ygot.String(dozer.SpecVRFBGPNeighborPeerTypeExternal)
+						}
+
 						bgp.Neighbors[neighborName] = &dozer.SpecVRFBGPNeighbor{
 							Enabled:     neighbor.Config.Enabled,
 							Description: neighbor.Config.Description,
 							RemoteAS:    neighbor.Config.PeerAs,
+							PeerType:    peerType,
 							IPv4Unicast: ipv4Unicast,
 							L2VPNEVPN:   l2vpnEVPN,
 						}
