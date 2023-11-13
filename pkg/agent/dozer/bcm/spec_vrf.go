@@ -192,6 +192,7 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 				Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
 						As:                 value.AS,
+						RouterId:           value.RouterID,
 						NetworkImportCheck: value.NetworkImportCheck,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
@@ -416,6 +417,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				if bgpConfig.Global != nil && bgpConfig.Global.Config != nil {
 					bgpOk = true
 					bgp.AS = bgpConfig.Global.Config.As
+					bgp.RouterID = bgpConfig.Global.Config.RouterId
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
 
 					if bgpConfig.Global.AfiSafis != nil && bgpConfig.Global.AfiSafis.AfiSafi != nil {

@@ -118,6 +118,7 @@ type SpecVRFInterface struct{}
 
 type SpecVRFBGP struct {
 	AS                 *uint32                        `json:"as,omitempty"`
+	RouterID           *string                        `json:"routerID,omitempty"`
 	NetworkImportCheck *bool                          `json:"networkImportCheck,omitempty"`
 	IPv4Unicast        SpecVRFBGPIPv4Unicast          `json:"ipv4Unicast,omitempty"`
 	L2VPNEVPN          SpecVRFBGPL2VPNEVPN            `json:"l2vpnEvpn,omitempty"`
