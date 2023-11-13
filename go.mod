@@ -14,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.28.0
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/gnmic v0.32.0
-	github.com/openconfig/goyang v1.4.1
+	github.com/openconfig/goyang v1.4.4
 	github.com/openconfig/ygot v0.29.10
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
@@ -94,7 +94,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20230602150820-91b7bce49751 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
