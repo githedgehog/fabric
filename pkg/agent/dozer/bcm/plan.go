@@ -162,16 +162,11 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 }
 
 func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
-	parts := strings.Split(agent.Spec.Config.ControlVIP, "/")
-	if len(parts) != 2 {
-		return errors.Errorf("invalid control vip %s", agent.Spec.Config.ControlVIP)
-	}
-
 	spec.LLDP = &dozer.SpecLLDP{
 		Enabled:           boolPtr(true),
 		HelloTimer:        uint64Ptr(5), // TODO make configurable?
 		SystemName:        stringPtr(agent.Name),
-		SystemDescription: stringPtr(fmt.Sprintf("Hedgehog: [control_vip=%s]", parts[0])),
+		SystemDescription: stringPtr(fmt.Sprintf("Hedgehog: [control_vip=%s]", agent.Spec.Config.ControlVIP)),
 	}
 
 	for _, conn := range agent.Spec.Connections {
