@@ -87,6 +87,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan users")
 	}
 
+	err = planSwitchIPLoopbacks(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan switch IP loopbacks")
+	}
+
 	err = planFabricConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan fabric connections")
@@ -204,6 +209,26 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func planSwitchIPLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
+	ip, ipNet, err := net.ParseCIDR(agent.Spec.Switch.IP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse switch ip %s", agent.Spec.Switch.IP)
+	}
+	ipPrefixLen, _ := ipNet.Mask.Size()
+
+	spec.Interfaces["Loopback0"] = &dozer.SpecInterface{
+		Enabled:     boolPtr(true),
+		Description: stringPtr("Fabric loopback"),
+		IPs: map[string]*dozer.SpecInterfaceIP{
+			ip.String(): {
+				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+			},
+		},
 	}
 
 	return nil
