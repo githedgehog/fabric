@@ -137,7 +137,7 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 	networkd := map[string]string{}
 	var err error
 
-	networkd["hh-0--loopback.network"], err = executeTemplate(loopbackNetworkTmpl, networkdConfig{
+	networkd["00-hh-0--loopback.network"], err = executeTemplate(loopbackNetworkTmpl, networkdConfig{
 		ControlVIP: r.Cfg.ControlVIP,
 	})
 	if err != nil {
@@ -185,15 +185,7 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 			},
 		}
 
-		name := strings.ToLower(fmt.Sprintf("hh-1--%s--%s--%s", cfg.Port, swName, swPort))
-
-		if cfg.MAC != "" {
-			networkd[name+".link"], err = executeTemplate(controlLinkTmpl, cfg)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error executing link template for conn %s", conn.Name)
-			}
-		}
-
+		name := strings.ToLower(fmt.Sprintf("00-hh-1--%s--%s--%s", cfg.Port, swName, swPort))
 		networkd[name+".network"], err = executeTemplate(controlNetworkTmpl, cfg)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error executing network template for conn %s", conn.Name)
@@ -251,18 +243,9 @@ Address=::1/128
 Address={{ .ControlVIP }}
 `
 
-const controlLinkTmpl = `
-[Match]
-MACAddress={{ .MAC }}
-Type=ether
-
-[Link]
-Name={{ .Port }}
-`
-
 const controlNetworkTmpl = `
 [Match]
-Name={{ .Port }}
+{{ if .MAC }}MACAddress={{ .MAC }}{{ else }}Name={{ .Port }}{{ end }}
 Type=ether
 
 [Network]

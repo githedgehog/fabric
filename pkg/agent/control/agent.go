@@ -210,7 +210,7 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 	}
 
 	slog.Debug("Recreating networkd config")
-	files, err := filepath.Glob(filepath.Join(NETWORK_FILES, "hh-*"))
+	files, err := filepath.Glob(filepath.Join(NETWORK_FILES, "00-hh-*"))
 	if err != nil {
 		return errors.Wrapf(err, "failed to list network files")
 	}
