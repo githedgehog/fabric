@@ -19,8 +19,8 @@ const (
 	MCLAG_PEER_LINK_PORT_CHANNEL_ID           = 250
 	MCLAG_SESSION_LINK_PORT_CHANNEL_ID        = 251
 	MCLAG_PEER_LINK_TRUNK_VLAN_RANGE          = "2..4094"    // TODO do we need to configure it?
-	MCLAG_SESSION_IP_1                        = "172.21.0.0" // TODO move to config
-	MCLAG_SESSION_IP_2                        = "172.21.0.1" // TODO move to config
+	MCLAG_SESSION_IP_1                        = "172.30.5.0" // TODO move to config
+	MCLAG_SESSION_IP_2                        = "172.30.5.1" // TODO move to config
 	MCLAG_SESSION_IP_PREFIX_LEN               = 31           // TODO move to config
 	AGENT_USER                                = "hhagent"
 	LOCAL_BGP_AS                       uint32 = 65101
