@@ -23,7 +23,6 @@ const (
 	MCLAG_SESSION_IP_2                        = "172.30.5.1" // TODO move to config
 	MCLAG_SESSION_IP_PREFIX_LEN               = 31           // TODO move to config
 	AGENT_USER                                = "hhagent"
-	LOCAL_BGP_AS                       uint32 = 65101
 	NAT_INSTANCE_ID                           = 0
 	NAT_ZONE_EXTERNAL                         = 1
 	NAT_ANCHOR_VLAN                    uint16 = 500
@@ -100,6 +99,21 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planServerConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan server connections")
+	}
+
+	// prep default VRF BGP
+	spec.VRFs["default"] = &dozer.SpecVRF{
+		Enabled:    boolPtr(true),
+		Interfaces: map[string]*dozer.SpecVRFInterface{},
+		BGP: &dozer.SpecVRFBGP{
+			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
+			NetworkImportCheck: boolPtr(true), // default
+			Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
+			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+				Enabled: true,
+				// TODO max path 64
+			},
+		},
 	}
 
 	first, err := planMCLAGDomain(agent, spec)
@@ -450,6 +464,11 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		PeerLink: mclagPeerPortChannelName,
 	}
 
+	spec.VRFs["default"].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
+		PeerType:    stringPtr(dozer.SpecVRFBGPNeighborPeerTypeInternal),
+		IPv4Unicast: boolPtr(true),
+	}
+
 	return sourceIP == MCLAG_SESSION_IP_1, nil
 }
 
@@ -575,7 +594,7 @@ func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface
 					vlanIfaceName: {},
 				},
 				BGP: &dozer.SpecVRFBGP{
-					AS:                 uint32Ptr(LOCAL_BGP_AS),
+					AS:                 uint32Ptr(agent.Spec.Switch.ASN),
 					NetworkImportCheck: boolPtr(true),
 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 						Enabled:    true,
@@ -721,7 +740,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 		Enabled:    boolPtr(true),
 		Interfaces: map[string]*dozer.SpecVRFInterface{},
 		BGP: &dozer.SpecVRFBGP{
-			AS:                 uint32Ptr(LOCAL_BGP_AS),
+			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
 			NetworkImportCheck: boolPtr(false),
 			Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{
 				sw.NeighborIP: {
