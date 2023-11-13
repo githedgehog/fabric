@@ -108,11 +108,15 @@ spec:
                 type: object
               profile:
                 type: string
+              protocolIP:
+                type: string
               role:
                 enum:
                 - spine
                 - server-leaf
                 - border-leaf
+                type: string
+              vtepIP:
                 type: string
             type: object
           status:

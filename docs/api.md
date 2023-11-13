@@ -1215,6 +1215,8 @@ _Appears in:_
 | `locationSig` _[LocationSig](#locationsig)_ |  |
 | `asn` _integer_ |  |
 | `ip` _string_ |  |
+| `vtepIP` _string_ |  |
+| `protocolIP` _string_ |  |
 | `portGroupSpeeds` _object (keys:string, values:string)_ |  |
 | `portBreakouts` _object (keys:string, values:string)_ |  |
 

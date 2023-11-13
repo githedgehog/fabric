@@ -62,6 +62,8 @@ type SwitchSpec struct {
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`
 	ASN             uint32            `json:"asn,omitempty"`
 	IP              string            `json:"ip,omitempty"`
+	VTEPIP          string            `json:"vtepIP,omitempty"`
+	ProtocolIP      string            `json:"protocolIP,omitempty"`
 	PortGroupSpeeds map[string]string `json:"portGroupSpeeds,omitempty"`
 	PortBreakouts   map[string]string `json:"portBreakouts,omitempty"`
 }
@@ -136,6 +138,10 @@ func (sw *Switch) Default() {
 
 func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
 	// TODO validate port group speeds against switch profile
+
+	if sw.Spec.IP == "" {
+		return nil, errors.Errorf("switch IP (spec.ip) is required")
+	}
 
 	if client != nil {
 		switches := &SwitchList{}
