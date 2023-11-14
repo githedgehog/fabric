@@ -418,9 +418,13 @@ func planBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 			NetworkImportCheck: boolPtr(true), // default
 			Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
 			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-				Enabled: true,
-				// TODO max path 64
+				Enabled:  true,
+				MaxPaths: uint32Ptr(64),
 			},
+		},
+		TableConnections: map[string]*dozer.SpecVRFTableConnection{
+			dozer.SpecVRFBGPTableConnectionConnected: {},
+			dozer.SpecVRFBGPTableConnectionStatic:    {},
 		},
 	}
 
