@@ -33,6 +33,10 @@ const (
 	VPC_ACL_ENTRY_PERMIT_ANY           uint32 = 40000
 	VPC_DENY_ALL_SUBNET                       = "10.0.0.0/8" // TODO move to config
 	ROUTE_MAP_VPC_NO_ADVERTISE                = "vpc-no-advertise"
+	LO_SWITCH                                 = "Loopback0"
+	LO_VTEP                                   = "Loopback1"
+	LO_PROTO                                  = "Loopback2"
+	VRF_DEFAULT                               = "default"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -48,7 +52,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		MCLAGInterfaces: map[string]*dozer.SpecMCLAGInterface{},
 		Users:           map[string]*dozer.SpecUser{},
 		VRFs: map[string]*dozer.SpecVRF{
-			"default": { // default VRF is always present
+			VRF_DEFAULT: { // default VRF is always present
 				Enabled: boolPtr(true),
 			},
 		},
@@ -86,11 +90,17 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan users")
 	}
 
-	err = planSwitchIPLoopbacks(agent, spec)
+	err = planLoopbacks(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan switch IP loopbacks")
 	}
 
+	err = planBGP(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan basic BGP")
+	}
+
+	// TODO only for spine-leaf
 	err = planFabricConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan fabric connections")
@@ -99,21 +109,6 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planServerConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan server connections")
-	}
-
-	// prep default VRF BGP
-	spec.VRFs["default"] = &dozer.SpecVRF{
-		Enabled:    boolPtr(true),
-		Interfaces: map[string]*dozer.SpecVRFInterface{},
-		BGP: &dozer.SpecVRFBGP{
-			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-			NetworkImportCheck: boolPtr(true), // default
-			Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
-			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-				Enabled: true,
-				// TODO max path 64
-			},
-		},
 	}
 
 	first, err := planMCLAGDomain(agent, spec)
@@ -228,16 +223,51 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planSwitchIPLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	ip, ipNet, err := net.ParseCIDR(agent.Spec.Switch.IP)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse switch ip %s", agent.Spec.Switch.IP)
 	}
 	ipPrefixLen, _ := ipNet.Mask.Size()
 
-	spec.Interfaces["Loopback0"] = &dozer.SpecInterface{
+	spec.Interfaces[LO_SWITCH] = &dozer.SpecInterface{
 		Enabled:     boolPtr(true),
-		Description: stringPtr("Fabric loopback"),
+		Description: stringPtr("Switch loopback"),
+		IPs: map[string]*dozer.SpecInterfaceIP{
+			ip.String(): {
+				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+			},
+		},
+	}
+
+	// TODO
+	// if agent.IsSpineLeaf() {
+	ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.VTEPIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse vtep ip %s", agent.Spec.Switch.VTEPIP)
+	}
+	ipPrefixLen, _ = ipNet.Mask.Size()
+
+	spec.Interfaces[LO_VTEP] = &dozer.SpecInterface{
+		Enabled:     boolPtr(true),
+		Description: stringPtr("VTEP loopback"),
+		IPs: map[string]*dozer.SpecInterfaceIP{
+			ip.String(): {
+				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+			},
+		},
+	}
+	// }
+
+	ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
+	}
+	ipPrefixLen, _ = ipNet.Mask.Size()
+
+	spec.Interfaces[LO_PROTO] = &dozer.SpecInterface{
+		Enabled:     boolPtr(true),
+		Description: stringPtr("Protocol loopback"),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			ip.String(): {
 				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
@@ -374,6 +404,30 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+func planBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
+	ip, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
+	}
+
+	spec.VRFs[VRF_DEFAULT] = &dozer.SpecVRF{
+		Enabled:    boolPtr(true),
+		Interfaces: map[string]*dozer.SpecVRFInterface{},
+		BGP: &dozer.SpecVRFBGP{
+			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
+			RouterID:           stringPtr(ip.String()),
+			NetworkImportCheck: boolPtr(true), // default
+			Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
+			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+				Enabled: true,
+				// TODO max path 64
+			},
+		},
+	}
+
+	return nil
+}
+
 func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	ok := false
 	mclagPeerLinks := []string{}
@@ -464,7 +518,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		PeerLink: mclagPeerPortChannelName,
 	}
 
-	spec.VRFs["default"].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
+	spec.VRFs[VRF_DEFAULT].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
 		PeerType:    stringPtr(dozer.SpecVRFBGPNeighborPeerTypeInternal),
 		IPv4Unicast: boolPtr(true),
 	}
@@ -689,7 +743,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 
 	publicIface := sw.LocalPortName()
 	natName := natConn.Link.NAT.Port
-	natVRF := "default" // NAT seems to be only supported in the default VRF
+	natVRF := VRF_DEFAULT // NAT is only supported in the default VRF
 
 	spec.Interfaces[publicIface] = &dozer.SpecInterface{
 		Description: stringPtr(fmt.Sprintf("NAT external %s", natName)),
