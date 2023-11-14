@@ -34,8 +34,8 @@ const (
 	VPC_DENY_ALL_SUBNET                       = "10.0.0.0/8" // TODO move to config
 	ROUTE_MAP_VPC_NO_ADVERTISE                = "vpc-no-advertise"
 	LO_SWITCH                                 = "Loopback0"
-	LO_VTEP                                   = "Loopback1"
-	LO_PROTO                                  = "Loopback2"
+	LO_PROTO                                  = "Loopback1"
+	LO_VTEP                                   = "Loopback2"
 	VRF_DEFAULT                               = "default"
 )
 
@@ -287,14 +287,20 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			port := ""
 			ipStr := ""
 			remote := ""
+			peer := ""
+			peerIP := ""
 			if link.Spine.DeviceName() == agent.Name {
 				port = link.Spine.LocalPortName()
 				ipStr = link.Spine.IP
 				remote = link.Leaf.Port
+				peer = link.Leaf.DeviceName()
+				peerIP = link.Leaf.IP
 			} else if link.Leaf.DeviceName() == agent.Name {
 				port = link.Leaf.LocalPortName()
 				ipStr = link.Leaf.IP
 				remote = link.Spine.Port
+				peer = link.Spine.DeviceName()
+				peerIP = link.Spine.IP
 			} else {
 				continue
 			}
@@ -317,6 +323,22 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
 					},
 				},
+			}
+
+			if peerSw, ok := agent.Spec.Switches[peer]; !ok {
+				return errors.Errorf("no switch found for peer %s (fabric conn %s)", peer, conn.Name)
+			} else {
+				ip, _, err := net.ParseCIDR(peerIP)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse fabric conn peer ip %s", peerIP)
+				}
+
+				spec.VRFs[VRF_DEFAULT].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+					Enabled:     boolPtr(true),
+					Description: stringPtr(fmt.Sprintf("Fabric %s // %s", remote, conn.Name)),
+					RemoteAS:    uint32Ptr(peerSw.ASN),
+					IPv4Unicast: boolPtr(true),
+				}
 			}
 		}
 	}
@@ -522,6 +544,8 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	}
 
 	spec.VRFs[VRF_DEFAULT].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
+		Enabled:     boolPtr(true),
+		Description: stringPtr(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
 		PeerType:    stringPtr(dozer.SpecVRFBGPNeighborPeerTypeInternal),
 		IPv4Unicast: boolPtr(true),
 	}
@@ -802,6 +826,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 			Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{
 				sw.NeighborIP: {
 					Enabled:     boolPtr(true),
+					Description: stringPtr(fmt.Sprintf("NAT %s", natName)),
 					RemoteAS:    uint32Ptr(sw.RemoteAS),
 					IPv4Unicast: boolPtr(true),
 				},
