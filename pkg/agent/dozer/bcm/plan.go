@@ -240,25 +240,6 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	// TODO
-	// if agent.IsSpineLeaf() {
-	ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.VTEPIP)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse vtep ip %s", agent.Spec.Switch.VTEPIP)
-	}
-	ipPrefixLen, _ = ipNet.Mask.Size()
-
-	spec.Interfaces[LO_VTEP] = &dozer.SpecInterface{
-		Enabled:     boolPtr(true),
-		Description: stringPtr("VTEP loopback"),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			ip.String(): {
-				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
-			},
-		},
-	}
-	// }
-
 	ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
@@ -273,6 +254,24 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
 			},
 		},
+	}
+
+	if agent.Spec.Switch.Role.IsLeaf() {
+		ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.VTEPIP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse vtep ip %s", agent.Spec.Switch.VTEPIP)
+		}
+		ipPrefixLen, _ = ipNet.Mask.Size()
+
+		spec.Interfaces[LO_VTEP] = &dozer.SpecInterface{
+			Enabled:     boolPtr(true),
+			Description: stringPtr("VTEP loopback"),
+			IPs: map[string]*dozer.SpecInterfaceIP{
+				ip.String(): {
+					PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+				},
+			},
+		}
 	}
 
 	return nil
