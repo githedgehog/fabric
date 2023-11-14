@@ -139,8 +139,20 @@ func (sw *Switch) Default() {
 func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
 	// TODO validate port group speeds against switch profile
 
+	if sw.Spec.ASN == 0 {
+		return nil, errors.Errorf("switch ASN (spec.asn) is required")
+	}
 	if sw.Spec.IP == "" {
 		return nil, errors.Errorf("switch IP (spec.ip) is required")
+	}
+	if sw.Spec.ProtocolIP == "" {
+		return nil, errors.Errorf("switch protocol IP (spec.protocolIP) is required")
+	}
+	if sw.Spec.Role.IsLeaf() && sw.Spec.VTEPIP == "" {
+		return nil, errors.Errorf("switch VTEP IP (spec.vtepIP) is required for leaf switches")
+	}
+	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
+		return nil, errors.Errorf("switch VTEP IP (spec.vtepIP) is not allowed for spine switches")
 	}
 
 	if client != nil {
