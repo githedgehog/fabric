@@ -20,6 +20,7 @@ var specVXLANTunnelsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVXLANTunne
 
 var specVXLANTunnelEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANTunnel]{
 	Summary:      "VXLAN tunnel %s",
+	CreatePath:   "/sonic-vxlan/VXLAN_TUNNEL/VXLAN_TUNNEL_LIST",
 	Path:         "/sonic-vxlan/VXLAN_TUNNEL/VXLAN_TUNNEL_LIST[name=%s]",
 	UpdateWeight: ActionWeightVXLANTunnelUpdate,
 	DeleteWeight: ActionWeightVXLANTunnelDelete,
@@ -43,6 +44,7 @@ var specVXLANEVPNNVOsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVXLANEVPN
 
 var specVXLANEVPNNVOEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANEVPNNVO]{
 	Summary:      "VXLAN EVPN NVO %s",
+	CreatePath:   "/sonic-vxlan/VXLAN_EVPN_NVO/VXLAN_EVPN_NVO_LIST",
 	Path:         "/sonic-vxlan/VXLAN_EVPN_NVO/VXLAN_EVPN_NVO_LIST[name=%s]",
 	UpdateWeight: ActionWeightVXLANEVPNNVOUpdate,
 	DeleteWeight: ActionWeightVXLANEVPNNVODelete,
@@ -65,6 +67,7 @@ var specVXLANTunnelMapsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVXLANTu
 
 var specVXLANTunnelMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANTunnelMap]{
 	Summary:      "VXLAN tunnel map %s",
+	CreatePath:   "/sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST",
 	Path:         "/sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST[name=vtepfabric][mapname=%s]", // TODO unhardcode vtepfabric, but it's always only single vtep configured
 	UpdateWeight: ActionWeightVXLANTunnelMapUpdate,
 	DeleteWeight: ActionWeightVXLANTunnelMapDelete,

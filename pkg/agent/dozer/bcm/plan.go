@@ -37,6 +37,9 @@ const (
 	LO_PROTO                                  = "Loopback1"
 	LO_VTEP                                   = "Loopback2"
 	VRF_DEFAULT                               = "default"
+	VTEP_FABRIC                               = "vtepfabric"
+	EVPN_NVO                                  = "nvo1"
+	ANYCAST_MAC                               = "00:00:00:11:11:11"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -95,7 +98,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan switch IP loopbacks")
 	}
 
-	err = planBGP(agent, spec)
+	err = planDefaultVRFWithBGP(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan basic BGP")
 	}
@@ -109,6 +112,13 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planServerConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan server connections")
+	}
+
+	if agent.Spec.Role.IsLeaf() {
+		err = planVXLAN(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan VXLAN")
+		}
 	}
 
 	first, err := planMCLAGDomain(agent, spec)
@@ -338,6 +348,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Description: stringPtr(fmt.Sprintf("Fabric %s // %s", remote, conn.Name)),
 					RemoteAS:    uint32Ptr(peerSw.ASN),
 					IPv4Unicast: boolPtr(true),
+					L2VPNEVPN:   boolPtr(true),
 				}
 			}
 		}
@@ -425,7 +436,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	ip, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
@@ -434,6 +445,7 @@ func planBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.VRFs[VRF_DEFAULT] = &dozer.SpecVRF{
 		Enabled:    boolPtr(true),
 		Interfaces: map[string]*dozer.SpecVRFInterface{},
+		AnycastMAC: stringPtr(ANYCAST_MAC),
 		BGP: &dozer.SpecVRFBGP{
 			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
 			RouterID:           stringPtr(ip.String()),
@@ -443,10 +455,36 @@ func planBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Enabled:  true,
 				MaxPaths: uint32Ptr(64),
 			},
+			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
+				Enabled:         true,
+				AdvertiseAllVNI: boolPtr(true),
+			},
 		},
 		TableConnections: map[string]*dozer.SpecVRFTableConnection{
 			dozer.SpecVRFBGPTableConnectionConnected: {},
 			dozer.SpecVRFBGPTableConnectionStatic:    {},
+		},
+	}
+
+	return nil
+}
+
+func planVXLAN(agent *agentapi.Agent, spec *dozer.Spec) error {
+	ip, _, err := net.ParseCIDR(agent.Spec.Switch.VTEPIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse vtep ip %s", agent.Spec.Switch.VTEPIP)
+	}
+
+	spec.VXLANTunnels = map[string]*dozer.SpecVXLANTunnel{
+		VTEP_FABRIC: {
+			SourceIP:        stringPtr(ip.String()),
+			SourceInterface: stringPtr(LO_VTEP),
+		},
+	}
+
+	spec.VXLANEVPNNVOs = map[string]*dozer.SpecVXLANEVPNNVO{
+		EVPN_NVO: {
+			SourceVTEP: stringPtr(VTEP_FABRIC),
 		},
 	}
 
