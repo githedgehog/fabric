@@ -289,8 +289,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				VPCBackend:  r.Cfg.VPCBackend,
 				SNATAllowed: r.Cfg.SNATAllowed,
 			}
+			agent.Spec.Config.SpineLeaf = nil
 		} else if r.Cfg.FabricMode == config.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+			agent.Spec.Config.CollapsedCore = nil
 		}
 
 		agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
