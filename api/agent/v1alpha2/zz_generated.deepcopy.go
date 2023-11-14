@@ -23,6 +23,7 @@ package v1alpha2
 
 import (
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -99,6 +100,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		}
 	}
 	in.Switch.DeepCopyInto(&out.Switch)
+	if in.Switches != nil {
+		in, out := &in.Switches, &out.Switches
+		*out = make(map[string]wiringv1alpha2.SwitchSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
 	if in.Connections != nil {
 		in, out := &in.Connections, &out.Connections
 		*out = make([]ConnectionInfo, len(*in))

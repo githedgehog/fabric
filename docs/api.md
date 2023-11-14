@@ -50,6 +50,7 @@ _Appears in:_
 | `version` _[AgentVersion](#agentversion)_ |  |
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
+| `switches` _object (keys:string, values:[SwitchSpec](#switchspec))_ |  |
 | `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
 | `vpcs` _[VPCSummarySpec](#vpcsummaryspec) array_ |  |
 | `vpcVLANRange` _string_ |  |

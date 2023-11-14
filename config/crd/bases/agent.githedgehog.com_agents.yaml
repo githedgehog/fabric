@@ -403,6 +403,63 @@ spec:
                   vtepIP:
                     type: string
                 type: object
+              switches:
+                additionalProperties:
+                  description: SwitchSpec defines the desired state of Switch
+                  properties:
+                    asn:
+                      format: int32
+                      type: integer
+                    description:
+                      type: string
+                    ip:
+                      type: string
+                    location:
+                      description: Location defines the geopraphical position of the
+                        device in a datacenter
+                      properties:
+                        aisle:
+                          type: string
+                        location:
+                          type: string
+                        rack:
+                          type: string
+                        row:
+                          type: string
+                        slot:
+                          type: string
+                      type: object
+                    locationSig:
+                      description: LocationSig contains signatures for the location
+                        UUID as well as the device location itself
+                      properties:
+                        sig:
+                          type: string
+                        uuidSig:
+                          type: string
+                      type: object
+                    portBreakouts:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    portGroupSpeeds:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    profile:
+                      type: string
+                    protocolIP:
+                      type: string
+                    role:
+                      enum:
+                      - spine
+                      - server-leaf
+                      - border-leaf
+                      type: string
+                    vtepIP:
+                      type: string
+                  type: object
+                type: object
               users:
                 items:
                   properties:

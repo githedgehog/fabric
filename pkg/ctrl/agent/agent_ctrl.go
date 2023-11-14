@@ -174,6 +174,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
+	neighborSwitches := map[string]bool{}
 	mclagPeerName := ""
 	conns := []agentapi.ConnectionInfo{}
 	for _, conn := range connList.Items {
@@ -181,6 +182,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Name: conn.Name,
 			Spec: conn.Spec,
 		})
+
+		sws, _, _, err := conn.Spec.Endpoints()
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting endpoints for connection %s", conn.Name)
+		}
+		for _, sw := range sws {
+			neighborSwitches[sw] = true
+		}
 
 		statusUpdates = appendUpdate(statusUpdates, &conn)
 
@@ -198,6 +207,20 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	sort.Slice(conns, func(i, j int) bool {
 		return conns[i].Name < conns[j].Name
 	})
+
+	switchList := &wiringapi.SwitchList{}
+	err = r.List(ctx, switchList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting switches")
+	}
+
+	switches := map[string]wiringapi.SwitchSpec{}
+	for _, sw := range switchList.Items {
+		if !neighborSwitches[sw.Name] {
+			continue
+		}
+		switches[sw.Name] = sw.Spec
+	}
 
 	// TODO always provision all VPCs to all switches
 	vpcs := []vpcapi.VPCSummarySpec{}
@@ -251,6 +274,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Description = sw.Spec.Description
 		agent.Spec.Config.ControlVIP = r.Cfg.ControlVIP
 		agent.Spec.Switch = sw.Spec
+		agent.Spec.Switches = switches
 		agent.Spec.Connections = conns
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
