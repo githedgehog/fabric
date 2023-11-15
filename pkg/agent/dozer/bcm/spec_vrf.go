@@ -29,6 +29,10 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf base")
 		}
 
+		if err := specVRFSAGEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf sag")
+		}
+
 		actualInterfaces, desiredInterfaces := ValueOrNil(actual, desired,
 			func(value *dozer.SpecVRF) map[string]*dozer.SpecVRFInterface { return value.Interfaces })
 		if err := specVRFInterfacesEnforcer.Handle(basePath, actualInterfaces, desiredInterfaces, actions); err != nil {
@@ -54,9 +58,8 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 	Summary: "VRF %s base",
 	Getter: func(name string, value *dozer.SpecVRF) any {
-		return []any{value.Enabled, value.Description, value.AnycastMAC}
+		return []any{value.Enabled, value.Description}
 	},
-	NoReplace:    true,
 	UpdateWeight: ActionWeightVRFBaseUpdate,
 	DeleteWeight: ActionWeightVRFBaseDelete,
 	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
@@ -69,12 +72,24 @@ var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 						Enabled:     value.Enabled,
 						Description: value.Description,
 					},
-					GlobalSag: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag{
-						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag_Config{
-							AnycastMac: value.AnycastMAC,
-						},
-					},
 				},
+			},
+		}, nil
+	},
+}
+
+var specVRFSAGEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
+	Summary: "VRF %s SAG",
+	Getter: func(name string, value *dozer.SpecVRF) any {
+		return []any{value.AnycastMAC}
+	},
+	Path:         "/global-sag/config",
+	UpdateWeight: ActionWeightVRFSAGUpdate,
+	DeleteWeight: ActionWeightVRFSAGDelete,
+	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag{
+			Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag_Config{
+				AnycastMac: value.AnycastMAC,
 			},
 		}, nil
 	},

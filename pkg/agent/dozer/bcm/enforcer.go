@@ -74,6 +74,7 @@ const (
 	ActionWeightACLEntryUpdate
 
 	ActionWeightVRFBGPBaseUpdate
+	ActionWeightVRFSAGUpdate
 	ActionWeightVRFBGPNeighborUpdate
 	ActionWeightVRFBGPNetworkUpdate
 	ActionWrightVRFTableConnectionUpdate
@@ -122,6 +123,7 @@ const (
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
 	ActionWeightVRFBGPNeighborDelete
+	ActionWeightVRFSAGDelete
 	ActionWeightVRFBGPBaseDelete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightVRFBaseDelete
