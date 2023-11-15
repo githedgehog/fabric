@@ -327,7 +327,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			spec.Interfaces[port] = &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("Fabric @%s #%s", remote, conn.Name)),
+				Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, conn.Name)),
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
 						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
@@ -345,7 +345,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				spec.VRFs[VRF_DEFAULT].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 					Enabled:     boolPtr(true),
-					Description: stringPtr(fmt.Sprintf("Fabric @%s #%s", remote, conn.Name)),
+					Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, conn.Name)),
 					RemoteAS:    uint32Ptr(peerSw.ASN),
 					IPv4Unicast: boolPtr(true),
 					L2VPNEVPN:   boolPtr(true),
@@ -393,7 +393,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			connPortChannelName := portChannelName(portChan)
 			connPortChannel := &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("%s @%s #%s", connType, link.Server.DeviceName(), conn.Name)),
+				Description: stringPtr(fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), conn.Name)),
 				TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
 				MTU:         mtu,
 			}
@@ -405,7 +405,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 
-			descr := fmt.Sprintf("PC%d %s @%s #%s", portChan, connType, link.Server.DeviceName(), conn.Name)
+			descr := fmt.Sprintf("PC%d %s %s %s", portChan, connType, link.Server.DeviceName(), conn.Name)
 			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil)
 			if err != nil {
 				return errors.Wrapf(err, "failed to setup physical interface %s", portName)
@@ -427,7 +427,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		spec.Interfaces[swPort.LocalPortName()] = &dozer.SpecInterface{
 			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("Unbundled @%s #%s", conn.Spec.Unbundled.Link.Server.DeviceName(), conn.Name)),
+			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Spec.Unbundled.Link.Server.DeviceName(), conn.Name)),
 			TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
 			// MTU:         mtu,
 		}
@@ -548,13 +548,13 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	mclagPeerPortChannelName := portChannelName(MCLAG_PEER_LINK_PORT_CHANNEL_ID)
 	mclagPeerPortChannel := &dozer.SpecInterface{
-		Description: stringPtr(fmt.Sprintf("MCLAG peer @%s", mclagPeerSwitch)),
+		Description: stringPtr(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
 		Enabled:     boolPtr(true),
 		TrunkVLANs:  []string{MCLAG_PEER_LINK_TRUNK_VLAN_RANGE},
 	}
 	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
 	for iface, peerPort := range mclagPeerLinks {
-		descr := fmt.Sprintf("PC%d MCLAG peer @%s", MCLAG_PEER_LINK_PORT_CHANNEL_ID, peerPort)
+		descr := fmt.Sprintf("PC%d MCLAG peer %s", MCLAG_PEER_LINK_PORT_CHANNEL_ID, peerPort)
 		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName, nil)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG peer link", iface)
@@ -563,7 +563,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	mclagSessionPortChannelName := portChannelName(MCLAG_SESSION_LINK_PORT_CHANNEL_ID)
 	mclagSessionPortChannel := &dozer.SpecInterface{
-		Description: stringPtr(fmt.Sprintf("MCLAG session @%s", mclagPeerSwitch)),
+		Description: stringPtr(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
 		Enabled:     boolPtr(true),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			sourceIP: {
@@ -573,7 +573,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	}
 	spec.Interfaces[mclagSessionPortChannelName] = mclagSessionPortChannel
 	for iface, peerPort := range mclagSessionLinks {
-		descr := fmt.Sprintf("PC%d MCLAG session @%s", MCLAG_SESSION_LINK_PORT_CHANNEL_ID, peerPort)
+		descr := fmt.Sprintf("PC%d MCLAG session %s", MCLAG_SESSION_LINK_PORT_CHANNEL_ID, peerPort)
 		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName, nil)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
@@ -588,7 +588,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	spec.VRFs[VRF_DEFAULT].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
 		Enabled:     boolPtr(true),
-		Description: stringPtr(fmt.Sprintf("MCLAG session @%s", mclagPeerSwitch)),
+		Description: stringPtr(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
 		PeerType:    stringPtr(dozer.SpecVRFBGPNeighborPeerTypeInternal),
 		IPv4Unicast: boolPtr(true),
 	}
@@ -900,7 +900,7 @@ func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch b
 		for idx, cidr := range natConn.Link.Switch.SNAT.Pool {
 			first, last, err := iputil.Range(cidr)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse nat pool cidr #%d %s", idx, cidr)
+				return errors.Wrapf(err, "failed to parse nat pool cidr %d %s", idx, cidr)
 			}
 
 			name := fmt.Sprintf("%s-%d", natName, idx)
