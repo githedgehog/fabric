@@ -345,7 +345,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				spec.VRFs[VRF_DEFAULT].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 					Enabled:     boolPtr(true),
-					Description: stringPtr(fmt.Sprintf("Fabric %s // %s", remote, conn.Name)),
+					Description: stringPtr(fmt.Sprintf("Fabric @%s #%s", remote, conn.Name)),
 					RemoteAS:    uint32Ptr(peerSw.ASN),
 					IPv4Unicast: boolPtr(true),
 					L2VPNEVPN:   boolPtr(true),
@@ -442,6 +442,11 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 	}
 
+	maxPaths := uint32(64)
+	if agent.Spec.Config.VS {
+		maxPaths = 16
+	}
+
 	spec.VRFs[VRF_DEFAULT] = &dozer.SpecVRF{
 		Enabled:    boolPtr(true),
 		Interfaces: map[string]*dozer.SpecVRFInterface{},
@@ -453,7 +458,7 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
 			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 				Enabled:  true,
-				MaxPaths: uint32Ptr(64),
+				MaxPaths: uint32Ptr(maxPaths),
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 				Enabled:         true,
@@ -583,7 +588,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	spec.VRFs[VRF_DEFAULT].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
 		Enabled:     boolPtr(true),
-		Description: stringPtr(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
+		Description: stringPtr(fmt.Sprintf("MCLAG session @%s", mclagPeerSwitch)),
 		PeerType:    stringPtr(dozer.SpecVRFBGPNeighborPeerTypeInternal),
 		IPv4Unicast: boolPtr(true),
 	}

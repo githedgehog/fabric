@@ -273,6 +273,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Role = sw.Spec.Role
 		agent.Spec.Description = sw.Spec.Description
 		agent.Spec.Config.ControlVIP = r.Cfg.ControlVIP
+		agent.Spec.Config.VS = r.Cfg.VS
 		agent.Spec.Switch = sw.Spec
 		agent.Spec.Switches = switches
 		agent.Spec.Connections = conns

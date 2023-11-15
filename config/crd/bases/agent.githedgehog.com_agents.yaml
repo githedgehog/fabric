@@ -99,6 +99,8 @@ spec:
                     type: string
                   spineLeaf:
                     type: object
+                  vs:
+                    type: boolean
                 type: object
               connections:
                 items:

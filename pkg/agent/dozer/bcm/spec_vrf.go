@@ -52,8 +52,11 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 }
 
 var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
-	Summary:      "VRF %s base",
-	Getter:       func(name string, value *dozer.SpecVRF) any { return []any{value.Enabled, value.Description} },
+	Summary: "VRF %s base",
+	Getter: func(name string, value *dozer.SpecVRF) any {
+		return []any{value.Enabled, value.Description, value.AnycastMAC}
+	},
+	NoReplace:    true,
 	UpdateWeight: ActionWeightVRFBaseUpdate,
 	DeleteWeight: ActionWeightVRFBaseDelete,
 	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {

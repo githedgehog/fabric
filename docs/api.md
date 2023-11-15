@@ -75,6 +75,7 @@ _Appears in:_
 | `controlVIP` _string_ |  |
 | `collapsedCore` _[AgentSpecConfigCollapsedCore](#agentspecconfigcollapsedcore)_ |  |
 | `spineLeaf` _[AgentSpecConfigSpineLeaf](#agentspecconfigspineleaf)_ |  |
+| `vs` _boolean_ |  |
 
 
 #### AgentSpecConfigCollapsedCore

@@ -50,6 +50,7 @@ type AgentSpecConfig struct {
 	ControlVIP    string                        `json:"controlVIP,omitempty"`
 	CollapsedCore *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
 	SpineLeaf     *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
+	VS            bool                          `json:"vs,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct {

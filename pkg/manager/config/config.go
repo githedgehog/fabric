@@ -25,6 +25,7 @@ type Fabric struct {
 	SNATAllowed    bool                 `json:"snatAllowed,omitempty"`
 	VPCSubnet      string               `json:"vpcSubnet,omitempty"`
 	FabricMode     FabricMode           `json:"fabricMode,omitempty"`
+	VS             bool                 `json:"vs,omitempty"`
 }
 
 type FabricMode string
