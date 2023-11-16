@@ -273,8 +273,9 @@ var specInterfacesPortChannelEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 			// TODO extract to a separate enforcer as we'll not be able to replace TrunkVLANs
 			switched = &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan_Config{
-					TrunkVlans: trunkVLANs,
-					AccessVlan: value.AccessVLAN,
+					InterfaceMode: oc.OpenconfigVlan_VlanModeType_TRUNK,
+					TrunkVlans:    trunkVLANs,
+					AccessVlan:    value.AccessVLAN, // TODO should we use UNSET mode or would it work with TRUNK or we should use NativeVlan?
 				},
 			}
 		}
