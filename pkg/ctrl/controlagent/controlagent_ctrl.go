@@ -3,6 +3,7 @@ package controlagent
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"strings"
@@ -42,14 +43,19 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, v
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("control-agent").
 		For(&wiringapi.Server{}).
-		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByServerListLabels)).
+		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByConnectionServerListLabels)).
 		Complete(r)
 }
 
-func (r *ControlAgentReconciler) enqueueByServerListLabels(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *ControlAgentReconciler) enqueueByConnectionServerListLabels(ctx context.Context, obj client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
+
+	// we only need to rebuild control agent if it's a management connection
+	if labels[wiringapi.LabelConnectionType] != wiringapi.CONNECTION_TYPE_MANAGEMENT {
+		return res
+	}
 
 	// TODO extract to lib
 	serverConnPrefix := wiringapi.ListLabelPrefix(wiringapi.ConnectionLabelTypeServer)
@@ -77,6 +83,9 @@ func (r *ControlAgentReconciler) enqueueByServerListLabels(ctx context.Context, 
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
@@ -151,6 +160,24 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 		return nil, errors.Wrapf(err, "error executing loopback template")
 	}
 
+	direct := map[string]bool{}
+	for _, conn := range conns.Items {
+		if conn.Spec.Management == nil {
+			continue
+		}
+
+		direct[conn.Spec.Management.Link.Switch.DeviceName()] = true
+	}
+
+	chainSwitchIPs := []string{}
+	for swName, sw := range switches {
+		if direct[swName] {
+			continue
+		}
+
+		chainSwitchIPs = append(chainSwitchIPs, sw.Spec.IP)
+	}
+
 	for _, conn := range conns.Items {
 		if conn.Spec.Management == nil {
 			continue
@@ -178,18 +205,39 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 			return nil, errors.Errorf("switch %s has no IP but used in conn %s", swName, conn.Name)
 		}
 
+		gateway := strings.TrimSuffix(link.Switch.IP, "/31") // TODO remove hardcoded /31
+		nextHop := getHextHopID(gateway)
+
+		routes := []networkdRoute{
+			{
+				Destination: switchIP,
+				Gateway:     gateway,
+			},
+		}
+		nextHops := []networkdNextHop{}
+
+		// Chain link only for VS or non Management ports as mgmt <> front panel doesn't work on real switches
+		if r.Cfg.VS || !strings.HasPrefix(swPort, "Management") {
+			for _, ip := range chainSwitchIPs {
+				routes = append(routes, networkdRoute{
+					Destination: ip,
+					NextHop:     nextHop,
+				})
+			}
+			nextHops = append(nextHops, networkdNextHop{
+				Id:      nextHop,
+				Gateway: gateway,
+			})
+		}
+
 		cfg := networkdConfig{
 			ControlVIP: r.Cfg.ControlVIP,
 			Port:       link.Server.LocalPortName(),
 			MAC:        link.Server.MAC,
 			IP:         link.Server.IP,
 			MUDURL:     mud,
-			Routes: []networkdRoute{
-				{
-					Destination: switchIP,
-					Gateway:     strings.TrimSuffix(link.Switch.IP, "/31"), // TODO remove hardcoded /31
-				},
-			},
+			Routes:     routes,
+			NextHops:   nextHops,
 		}
 
 		name := strings.ToLower(fmt.Sprintf("00-hh-1--%s--%s--%s", cfg.Port, swName, swPort))
@@ -246,11 +294,18 @@ type networkdConfig struct {
 	IP         string
 	MUDURL     string
 	Routes     []networkdRoute
+	NextHops   []networkdNextHop
 }
 
 type networkdRoute struct {
 	Destination string
 	Gateway     string
+	NextHop     uint32
+}
+
+type networkdNextHop struct {
+	Id      uint32
+	Gateway string
 }
 
 const loopbackNetworkTmpl = `
@@ -287,7 +342,18 @@ MUDURL={{ .MUDURL }}
 
 {{ range .Routes }}
 [Route]
-Destination={{ .Destination }}
-Gateway={{ .Gateway }}
+{{ if .Destination }}Destination={{ .Destination }}{{ end }
+{{ if .Gateway }}Gateway={{ .Gateway }}{{ end }}
+{{ if .NextHop }}NextHop={{ .NextHop }}{{ end }}
 {{ end }}
+
+{{ range .NextHops }}
+[NextHop]
+Id={{ .Id }}
+Gateway={{ .Gateway }}
 `
+
+// assuming we have unique /31 links we can just use it as an ID for next hop
+func getHextHopID(gateway string) uint32 {
+	return binary.BigEndian.Uint32(net.ParseIP(gateway).To4())
+}
