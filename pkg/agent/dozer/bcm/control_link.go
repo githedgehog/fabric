@@ -41,8 +41,9 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 		}
 	}
 
-	if !exists {
-		return errors.New("no management connection found")
+	// it's not a directly connected switch or front panel used
+	if !exists || dev != "Management0" {
+		return nil
 	}
 	if dev == "" {
 		return errors.New("no management interface found")
