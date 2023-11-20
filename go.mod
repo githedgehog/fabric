@@ -6,7 +6,7 @@ require (
 	github.com/0x5a17ed/uefi v0.6.1
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/lmittmann/tint v1.0.3
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/mapstructure v1.5.0
