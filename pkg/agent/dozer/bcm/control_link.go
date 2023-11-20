@@ -34,6 +34,10 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 	for _, conn := range agent.Spec.Connections {
 		if conn.Spec.Management != nil {
 			dev = conn.Spec.Management.Link.Switch.LocalPortName()
+			if dev != "Management0" {
+				continue
+			}
+
 			switchIP = conn.Spec.Management.Link.Switch.IP
 			controlIP = conn.Spec.Management.Link.Server.IP
 			exists = true
