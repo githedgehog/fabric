@@ -342,7 +342,7 @@ MUDURL={{ .MUDURL }}
 
 {{ range .Routes }}
 [Route]
-{{ if .Destination }}Destination={{ .Destination }}{{ end }
+{{ if .Destination }}Destination={{ .Destination }}{{ end }}
 {{ if .Gateway }}Gateway={{ .Gateway }}{{ end }}
 {{ if .NextHop }}NextHop={{ .NextHop }}{{ end }}
 {{ end }}
