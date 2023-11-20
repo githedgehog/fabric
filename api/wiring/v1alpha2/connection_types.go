@@ -479,7 +479,7 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		if len(switches) != 1 {
 			return nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
 		}
-		if len(ports) != 2*len(s.Fabric.Links) {
+		if len(ports) != 2*len(s.VPCLoopback.Links) {
 			return nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
 	}
