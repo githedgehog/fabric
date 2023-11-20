@@ -303,7 +303,7 @@ func (c *ConnectionSpec) GenerateName() string {
 func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	labels := map[string]string{}
 
-	switches, servers, _, err := c.Endpoints()
+	switches, servers, _, _, err := c.Endpoints()
 	// if error, we don't need to set labels
 	if err != nil {
 		return labels
@@ -340,10 +340,11 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	return labels
 }
 
-func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
+func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]string, error) {
 	switches := map[string]struct{}{}
 	servers := map[string]struct{}{}
 	ports := map[string]struct{}{}
+	links := map[string]string{}
 
 	nonNills := 0
 	if s.Unbundled != nil {
@@ -353,15 +354,16 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		servers[s.Unbundled.Link.Server.DeviceName()] = struct{}{}
 		ports[s.Unbundled.Link.Switch.PortName()] = struct{}{}
 		ports[s.Unbundled.Link.Server.PortName()] = struct{}{}
+		links[s.Unbundled.Link.Switch.PortName()] = s.Unbundled.Link.Server.PortName()
 
 		if len(switches) != 1 {
-			return nil, nil, nil, errors.Errorf("one switch must be used for unbundled connection")
+			return nil, nil, nil, nil, errors.Errorf("one switch must be used for unbundled connection")
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, errors.Errorf("one server must be used for unbundled connection")
+			return nil, nil, nil, nil, errors.Errorf("one server must be used for unbundled connection")
 		}
 		if len(ports) != 2 {
-			return nil, nil, nil, errors.Errorf("two unique ports must be used for unbundled connection")
+			return nil, nil, nil, nil, errors.Errorf("two unique ports must be used for unbundled connection")
 		}
 	} else if s.Bundled != nil {
 		nonNills++
@@ -371,16 +373,17 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			servers[link.Server.DeviceName()] = struct{}{}
 			ports[link.Switch.PortName()] = struct{}{}
 			ports[link.Server.PortName()] = struct{}{}
+			links[link.Switch.PortName()] = link.Server.PortName()
 		}
 
 		if len(switches) != 1 {
-			return nil, nil, nil, errors.Errorf("one switch must be used for bundled connection")
+			return nil, nil, nil, nil, errors.Errorf("one switch must be used for bundled connection")
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, errors.Errorf("one server must be used for bundled connection")
+			return nil, nil, nil, nil, errors.Errorf("one server must be used for bundled connection")
 		}
 		if len(ports) != 2*len(s.Bundled.Links) {
-			return nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
 		}
 	} else if s.Management != nil {
 		nonNills++
@@ -389,15 +392,16 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 		servers[s.Management.Link.Server.DeviceName()] = struct{}{}
 		ports[s.Management.Link.Switch.PortName()] = struct{}{}
 		ports[s.Management.Link.Server.PortName()] = struct{}{}
+		links[s.Management.Link.Switch.PortName()] = s.Management.Link.Server.PortName()
 
 		if len(switches) != 1 {
-			return nil, nil, nil, errors.Errorf("one switch must be used for management connection")
+			return nil, nil, nil, nil, errors.Errorf("one switch must be used for management connection")
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, errors.Errorf("one server must be used for management connection")
+			return nil, nil, nil, nil, errors.Errorf("one server must be used for management connection")
 		}
 		if len(ports) != 2 {
-			return nil, nil, nil, errors.Errorf("two unique ports must be used for management connection")
+			return nil, nil, nil, nil, errors.Errorf("two unique ports must be used for management connection")
 		}
 	} else if s.MCLAGDomain != nil {
 		nonNills++
@@ -407,25 +411,27 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
 			ports[link.Switch2.PortName()] = struct{}{}
+			links[link.Switch1.PortName()] = link.Switch2.PortName()
 		}
 		for _, link := range s.MCLAGDomain.SessionLinks {
 			switches[link.Switch1.DeviceName()] = struct{}{}
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
 			ports[link.Switch2.PortName()] = struct{}{}
+			links[link.Switch1.PortName()] = link.Switch2.PortName()
 		}
 
 		if len(s.MCLAGDomain.PeerLinks) < 1 {
-			return nil, nil, nil, errors.Errorf("at least one peer link must be used for mclag domain connection")
+			return nil, nil, nil, nil, errors.Errorf("at least one peer link must be used for mclag domain connection")
 		}
 		if len(s.MCLAGDomain.SessionLinks) < 1 {
-			return nil, nil, nil, errors.Errorf("at least one session link must be used for mclag domain connection")
+			return nil, nil, nil, nil, errors.Errorf("at least one session link must be used for mclag domain connection")
 		}
 		if len(switches) != 2 {
-			return nil, nil, nil, errors.Errorf("two switches must be used for mclag domain connection")
+			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mclag domain connection")
 		}
 		if len(ports) != 2*(len(s.MCLAGDomain.PeerLinks)+len(s.MCLAGDomain.SessionLinks)) {
-			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag domain connection")
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag domain connection")
 		}
 	} else if s.MCLAG != nil {
 		nonNills++
@@ -435,16 +441,17 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			servers[link.Server.DeviceName()] = struct{}{}
 			ports[link.Switch.PortName()] = struct{}{}
 			ports[link.Server.PortName()] = struct{}{}
+			links[link.Switch.PortName()] = link.Server.PortName()
 		}
 
 		if len(switches) != 2 {
-			return nil, nil, nil, errors.Errorf("two switches must be used for mclag connection")
+			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mclag connection")
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, errors.Errorf("one server must be used for mclag connection")
+			return nil, nil, nil, nil, errors.Errorf("one server must be used for mclag connection")
 		}
 		if len(ports) != 2*len(s.MCLAG.Links) {
-			return nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
 	} else if s.NAT != nil {
 		nonNills++
@@ -458,13 +465,14 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			switches[link.Leaf.DeviceName()] = struct{}{}
 			ports[link.Spine.PortName()] = struct{}{}
 			ports[link.Leaf.PortName()] = struct{}{}
+			links[link.Spine.PortName()] = link.Leaf.PortName()
 		}
 
 		if len(switches) != 2 {
-			return nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
+			return nil, nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
 		}
 		if len(ports) != 2*len(s.Fabric.Links) {
-			return nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
 	} else if s.VPCLoopback != nil {
 		nonNills++
@@ -474,33 +482,34 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, error) {
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
 			ports[link.Switch2.PortName()] = struct{}{}
+			links[link.Switch1.PortName()] = link.Switch2.PortName()
 		}
 
 		if len(switches) != 1 {
-			return nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
+			return nil, nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
 		}
 		if len(ports) != 2*len(s.VPCLoopback.Links) {
-			return nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
 	}
 
 	if nonNills != 1 {
-		return nil, nil, nil, errors.Errorf("exactly one connection type must be used")
+		return nil, nil, nil, nil, errors.Errorf("exactly one connection type must be used")
 	}
 
 	for port := range ports {
 		parts := SplitPortName(port)
 
 		if len(parts) != 2 {
-			return nil, nil, nil, errors.Errorf("invalid port name %s", port)
+			return nil, nil, nil, nil, errors.Errorf("invalid port name %s", port)
 		}
 
 		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
-			return nil, nil, nil, errors.Errorf("invalid port name %s, should be \"<device>/<port>\" format", port)
+			return nil, nil, nil, nil, errors.Errorf("invalid port name %s, should be \"<device>/<port>\" format", port)
 		}
 	}
 
-	return maps.Keys(switches), maps.Keys(servers), maps.Keys(ports), nil
+	return maps.Keys(switches), maps.Keys(servers), maps.Keys(ports), links, nil
 }
 
 func (conn *Connection) Default() {
@@ -517,7 +526,7 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client) 
 	// TODO validate local port names against server/switch profiles
 	// TODO validate used port names across all connections
 
-	switches, servers, _, err := conn.Spec.Endpoints()
+	switches, servers, _, _, err := conn.Spec.Endpoints()
 	if err != nil {
 		return nil, err
 	}

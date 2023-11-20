@@ -183,7 +183,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Spec: conn.Spec,
 		})
 
-		sws, _, _, err := conn.Spec.Endpoints()
+		sws, _, _, _, err := conn.Spec.Endpoints()
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "error getting endpoints for connection %s", conn.Name)
 		}
