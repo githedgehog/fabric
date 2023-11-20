@@ -351,6 +351,7 @@ MUDURL={{ .MUDURL }}
 [NextHop]
 Id={{ .Id }}
 Gateway={{ .Gateway }}
+{{ end }}
 `
 
 // assuming we have unique /31 links we can just use it as an ID for next hop
