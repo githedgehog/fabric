@@ -44,9 +44,10 @@ import (
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
-	natWebhook "go.githedgehog.com/fabric/pkg/webhook/nat"
+	ipv4NamespaceWebhook "go.githedgehog.com/fabric/pkg/webhook/ipv4ns"
 	serverWebhook "go.githedgehog.com/fabric/pkg/webhook/server"
 	switchWebhook "go.githedgehog.com/fabric/pkg/webhook/switchh"
+	vlanNamespaceWebook "go.githedgehog.com/fabric/pkg/webhook/vlanns"
 	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
 	vpcAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
 	vpcPeeringWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcpeering"
@@ -157,12 +158,16 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCAttachment")
 		os.Exit(1)
 	}
-	if err = vpcPeeringWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = vpcPeeringWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCPeering")
 		os.Exit(1)
 	}
-	if err = natWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "NAT")
+	if err = ipv4NamespaceWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "IPv4Namespace")
+		os.Exit(1)
+	}
+	if err = vlanNamespaceWebook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VLANNamespace")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

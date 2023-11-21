@@ -28,35 +28,35 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	Role         wiringapi.SwitchRole            `json:"role,omitempty"`
-	Description  string                          `json:"description,omitempty"`
-	Config       AgentSpecConfig                 `json:"config,omitempty"`
-	Version      AgentVersion                    `json:"version,omitempty"`
-	Users        []UserCreds                     `json:"users,omitempty"`
-	Switch       wiringapi.SwitchSpec            `json:"switch,omitempty"`
-	Switches     map[string]wiringapi.SwitchSpec `json:"switches,omitempty"`
-	Connections  []ConnectionInfo                `json:"connections,omitempty"`
-	VPCs         []vpcapi.VPCSummarySpec         `json:"vpcs,omitempty"`
-	VPCVLANRange string                          `json:"vpcVLANRange,omitempty"`
-	NAT          vpcapi.NATSpec                  `json:"nat,omitempty"`
-	PortChannels map[string]uint16               `json:"portChannels,omitempty"`
+	Role           wiringapi.SwitchRole                `json:"role,omitempty"`
+	Description    string                              `json:"description,omitempty"`
+	Config         AgentSpecConfig                     `json:"config,omitempty"`
+	Version        AgentVersion                        `json:"version,omitempty"`
+	Users          []UserCreds                         `json:"users,omitempty"`
+	Switch         wiringapi.SwitchSpec                `json:"switch,omitempty"`
+	Switches       map[string]wiringapi.SwitchSpec     `json:"switches,omitempty"`
+	Connections    map[string]wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	VPCs           map[string]vpcapi.VPCSpec           `json:"vpcs,omitempty"`
+	VPCAttachments map[string]vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
+	VPCPeers       map[string]vpcapi.VPCPeeringSpec    `json:"vpcPeers,omitempty"`
+	VNIs           map[string]uint32                   `json:"vnis,omitempty"`
+	PortChannels   map[string]uint16                   `json:"portChannels,omitempty"`
+	Reinstall      string                              `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot         string                              `json:"reboot,omitempty"`    // set to RunID to reboot
 
-	Reinstall     string              `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
-	Reboot        string              `json:"reboot,omitempty"`    // set to RunID to reboot
+	// TODO impl
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
 }
 
 type AgentSpecConfig struct {
-	ControlVIP    string                        `json:"controlVIP,omitempty"`
-	CollapsedCore *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
-	SpineLeaf     *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
-	VS            bool                          `json:"vs,omitempty"`
+	ControlVIP         string                        `json:"controlVIP,omitempty"`
+	VPCPeeringDisabled bool                          `json:"vpcPeeringDisabled,omitempty"`
+	CollapsedCore      *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
+	SpineLeaf          *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
+	VS                 bool                          `json:"vs,omitempty"`
 }
 
-type AgentSpecConfigCollapsedCore struct {
-	VPCBackend  string `json:"vpcBackend,omitempty"`
-	SNATAllowed bool   `json:"snatAllowed,omitempty"`
-}
+type AgentSpecConfigCollapsedCore struct{}
 
 type AgentSpecConfigSpineLeaf struct{}
 
@@ -81,21 +81,6 @@ type UserCreds struct {
 	Role     string   `json:"role,omitempty"`
 	SSHKeys  []string `json:"sshKeys,omitempty"`
 }
-
-type ConnectionInfo struct {
-	Name string                   `json:"name,omitempty"`
-	Spec wiringapi.ConnectionSpec `json:"spec,omitempty"`
-}
-
-// +kubebuilder:validation:Enum=vrf;acl
-type VPCBackend string
-
-const (
-	VPCBackendVRF VPCBackend = "vrf"
-	VPCBackendACL VPCBackend = "acl"
-)
-
-var VPCBackendValues = []VPCBackend{VPCBackendVRF, VPCBackendACL}
 
 type ApplyStatusUpdate struct {
 	APIVersion string `json:"apiVersion,omitempty"`

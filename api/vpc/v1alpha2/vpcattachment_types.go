@@ -18,6 +18,8 @@ package v1alpha2
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
@@ -33,13 +35,13 @@ import (
 
 // VPCAttachmentSpec defines the desired state of VPCAttachment
 type VPCAttachmentSpec struct {
-	VPC        string `json:"vpc,omitempty"`
+	Subnet     string `json:"subnet,omitempty"`
 	Connection string `json:"connection,omitempty"`
 }
 
 // VPCAttachmentStatus defines the observed state of VPCAttachment
 type VPCAttachmentStatus struct {
-	Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
+	// Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -70,14 +72,39 @@ func init() {
 	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
 }
 
+func (s *VPCAttachmentSpec) VPCName() string {
+	return strings.SplitN(s.Subnet, "/", 2)[0]
+}
+
+func (s *VPCAttachmentSpec) SubnetName() string {
+	parts := strings.SplitN(s.Subnet, "/", 2)
+	if len(parts) == 1 {
+		return "default"
+	}
+	if parts[1] == "" {
+		return "default"
+	}
+
+	return parts[1]
+}
+
 func (s *VPCAttachmentSpec) Labels() map[string]string {
 	return map[string]string{
-		LabelVPC:                  s.VPC,
+		LabelVPC:                  s.VPCName(),
+		LabelSubnet:               s.SubnetName(),
 		wiringapi.LabelConnection: s.Connection,
 	}
 }
 
 func (attach *VPCAttachment) Default() {
+	parts := strings.SplitN(attach.Spec.Subnet, "/", 2)
+	if len(parts[0]) == 0 {
+		return // it'll be handled in validation stage
+	}
+	if len(parts) == 1 {
+		attach.Spec.Subnet = parts[0] + "/default"
+	}
+
 	if attach.Labels == nil {
 		attach.Labels = map[string]string{}
 	}
@@ -88,24 +115,37 @@ func (attach *VPCAttachment) Default() {
 }
 
 func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
-	if attach.Spec.VPC == "" {
-		return nil, errors.Errorf("vpc is required")
+	if attach.Spec.Subnet == "" {
+		return nil, errors.Errorf("subnet is required")
 	}
+	parts := strings.SplitN(attach.Spec.Subnet, "/", 2)
+	if len(parts[0]) == 0 {
+		return nil, errors.Errorf("subnet should be in <vpc>/<subnet> format, vpc is missing")
+	}
+	if len(parts) == 1 {
+		return nil, errors.Errorf("subnet should be in <vpc>/<subnet> format, subnet is missing")
+	}
+	vpcName, subnet := parts[0], parts[1]
+
 	if attach.Spec.Connection == "" {
 		return nil, errors.Errorf("connection is required")
 	}
 
 	if client != nil {
-		err := client.Get(ctx, types.NamespacedName{Name: attach.Spec.VPC, Namespace: attach.Namespace}, &VPC{})
+		vpc := &VPC{}
+		err := client.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
 		if apierrors.IsNotFound(err) {
-			return nil, errors.Errorf("vpc %s not found", attach.Spec.VPC)
+			return nil, errors.Errorf("vpc %s not found", vpcName)
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get vpc %s", attach.Spec.VPC) // TODO replace with some internal error to not expose to the user
+			return nil, errors.Wrapf(err, "failed to get vpc %s", vpcName) // TODO replace with some internal error to not expose to the user
+		}
+		if vpc.Spec.Subnets == nil || vpc.Spec.Subnets[subnet] == nil {
+			return nil, errors.Errorf("subnet %s not found in vpc %s", subnet, vpcName)
 		}
 
 		conn := &wiringapi.Connection{}
-		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn) // TODO namespace could be different?
+		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn)
 		if apierrors.IsNotFound(err) {
 			return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 		}
@@ -113,8 +153,33 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 			return nil, errors.Wrapf(err, "failed to get connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
 		}
 
-		if conn.Spec.MCLAG == nil && conn.Spec.Unbundled == nil {
-			return nil, errors.Errorf("vpc could be attached only to MCLAG and Unbundled connections")
+		var switchNames []string
+		if conn.Spec.Unbundled != nil || conn.Spec.Bundled == nil || conn.Spec.MCLAG == nil {
+			switchNames, _, _, _, err = conn.Spec.Endpoints()
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get endpoints for connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+			}
+		} else {
+			return nil, errors.Errorf("vpc could be attached only to Unbundled, Bundled and MCLAG connections")
+		}
+
+		if len(switchNames) == 0 {
+			return nil, errors.Errorf("connection %s has no switch endpoints", attach.Spec.Connection)
+		}
+
+		for _, switchName := range switchNames {
+			sw := &wiringapi.Switch{}
+			err = client.Get(ctx, types.NamespacedName{Name: switchName, Namespace: attach.Namespace}, sw)
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("switch %s used in connection not found", switchName)
+			}
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get switch %s used in connection", switchName) // TODO replace with some internal error to not expose to the user
+			}
+
+			if !slices.Contains(sw.Spec.VLANNamespaces, vpc.Spec.VLANNamespace) {
+				return nil, errors.Errorf("switch %s used in connection doesn't have vlan namespace %s", switchName, vpc.Spec.VLANNamespace)
+			}
 		}
 
 		attaches := &VPCAttachmentList{}
@@ -127,7 +192,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 
 		for _, other := range attaches.Items {
 			if other.Name == attach.Name {
-				return nil, errors.Errorf("connection %s already attached to vpc %s", attach.Spec.Connection, other.Spec.VPC)
+				return nil, errors.Errorf("connection %s already attached to vpc %s", attach.Spec.Connection, vpcName)
 			}
 		}
 	}

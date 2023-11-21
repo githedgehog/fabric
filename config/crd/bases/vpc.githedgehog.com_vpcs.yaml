@@ -18,20 +18,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.subnet
-      name: Subnet
+    - jsonPath: .spec.ipv4Namespace
+      name: IPv4NS
       type: string
-    - jsonPath: .status.vlan
-      name: VLAN
+    - jsonPath: .spec.vlanNamespace
+      name: VLANNS
       type: string
-    - jsonPath: .spec.dhcp.enable
-      name: DHCP
-      type: boolean
-    - jsonPath: .spec.dhcp.range.start
-      name: Start
-      type: string
-    - jsonPath: .spec.dhcp.range.end
-      name: End
+    - jsonPath: .spec.subnets
+      name: Subnets
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -56,49 +50,42 @@ spec:
           spec:
             description: VPCSpec defines the desired state of VPC
             properties:
-              dhcp:
-                properties:
-                  enable:
-                    type: boolean
-                  range:
-                    properties:
-                      end:
-                        type: string
-                      start:
-                        type: string
-                    type: object
-                type: object
-              dnatRequests:
+              ipv4Namespace:
+                type: string
+              subnets:
                 additionalProperties:
-                  type: string
+                  properties:
+                    dhcp:
+                      properties:
+                        enable:
+                          type: boolean
+                        range:
+                          properties:
+                            end:
+                              type: string
+                            start:
+                              type: string
+                          type: object
+                      type: object
+                    subnet:
+                      type: string
+                    vlan:
+                      type: string
+                  type: object
                 type: object
-              snat:
-                type: boolean
-              subnet:
+              vlanNamespace:
                 type: string
             type: object
           status:
             description: VPCStatus defines the observed state of VPC
             properties:
-              applied:
-                properties:
-                  detailed:
-                    additionalProperties:
-                      format: int64
-                      type: integer
-                    type: object
-                  gen:
-                    format: int64
-                    type: integer
-                  time:
-                    format: date-time
-                    type: string
-                type: object
-              dnat:
+              subnetVNIs:
                 additionalProperties:
-                  type: string
+                  format: int32
+                  type: integer
                 type: object
-              vlan:
+              vni:
+                format: int32
                 type: integer
             type: object
         type: object

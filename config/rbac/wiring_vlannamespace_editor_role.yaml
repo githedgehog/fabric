@@ -1,27 +1,31 @@
-# permissions for end users to view vpcsummaries.
+# permissions for end users to edit vlannamespaces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: vpcsummary-viewer-role
+    app.kubernetes.io/instance: vlannamespace-editor-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: fabric
     app.kubernetes.io/part-of: fabric
     app.kubernetes.io/managed-by: kustomize
-  name: vpcsummary-viewer-role
+  name: vlannamespace-editor-role
 rules:
 - apiGroups:
-  - vpc.githedgehog.com
+  - wiring.githedgehog.com
   resources:
-  - vpcsummaries
+  - vlannamespaces
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
-  - vpc.githedgehog.com
+  - wiring.githedgehog.com
   resources:
-  - vpcsummaries/status
+  - vlannamespaces/status
   verbs:
   - get

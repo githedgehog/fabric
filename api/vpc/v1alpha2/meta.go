@@ -1,20 +1,18 @@
 package v1alpha2
 
-import "strings"
-
 var (
 	LabelPrefix    = "fabric.githedgehog.com/"
 	LabelVPC       = LabelName("vpc")
+	LabelVPC1      = LabelName("vpc1")
+	LabelVPC2      = LabelName("vpc2")
 	LabelSubnet    = LabelName("subnet")
+	LabelIPv4NS    = LabelName("ipv4ns")
+	LabelVLANNS    = LabelName("vlanns")
 	ListLabelValue = "true"
 )
 
 func LabelName(name string) string {
 	return LabelPrefix + name
-}
-
-func EncodeSubnet(subnet string) string {
-	return strings.ReplaceAll(subnet, "/", "_")
 }
 
 func ListLabelPrefix(listType string) string {
@@ -25,6 +23,6 @@ func ListLabel(listType, val string) string {
 	return ListLabelPrefix(listType) + val
 }
 
-func ListLabelVPC(serverName string) string {
-	return ListLabel("vpc", serverName)
+func ListLabelVPC(vpcName string) string {
+	return ListLabel("vpc", vpcName)
 }

@@ -17,24 +17,26 @@ import (
 )
 
 type Data struct {
-	Rack          *Store[*wiringapi.Rack]
-	Switch        *Store[*wiringapi.Switch]
-	Server        *Store[*wiringapi.Server]
-	Connection    *Store[*wiringapi.Connection]
-	SwitchProfile *Store[*wiringapi.SwitchProfile]
-	ServerProfile *Store[*wiringapi.ServerProfile]
-	NAT           *Store[*vpcapi.NAT]
+	Rack           *Store[*wiringapi.Rack]
+	Switch         *Store[*wiringapi.Switch]
+	Server         *Store[*wiringapi.Server]
+	Connection     *Store[*wiringapi.Connection]
+	SwitchProfile  *Store[*wiringapi.SwitchProfile]
+	ServerProfile  *Store[*wiringapi.ServerProfile]
+	IPv4Namespaces *Store[*vpcapi.IPv4Namespace]
+	VLANNamespace  *Store[*wiringapi.VLANNamespace]
 }
 
 func New(objs ...metav1.Object) (*Data, error) {
 	data := &Data{
-		Rack:          NewStore[*wiringapi.Rack](),
-		Switch:        NewStore[*wiringapi.Switch](),
-		Server:        NewStore[*wiringapi.Server](),
-		Connection:    NewStore[*wiringapi.Connection](),
-		SwitchProfile: NewStore[*wiringapi.SwitchProfile](),
-		ServerProfile: NewStore[*wiringapi.ServerProfile](),
-		NAT:           NewStore[*vpcapi.NAT](),
+		Rack:           NewStore[*wiringapi.Rack](),
+		Switch:         NewStore[*wiringapi.Switch](),
+		Server:         NewStore[*wiringapi.Server](),
+		Connection:     NewStore[*wiringapi.Connection](),
+		SwitchProfile:  NewStore[*wiringapi.SwitchProfile](),
+		ServerProfile:  NewStore[*wiringapi.ServerProfile](),
+		IPv4Namespaces: NewStore[*vpcapi.IPv4Namespace](),
+		VLANNamespace:  NewStore[*wiringapi.VLANNamespace](),
 	}
 
 	return data, data.Add(objs...)
@@ -55,8 +57,10 @@ func (d *Data) Add(objs ...metav1.Object) error {
 			d.SwitchProfile.Add(typed)
 		case *wiringapi.ServerProfile:
 			d.ServerProfile.Add(typed)
-		case *vpcapi.NAT:
-			d.NAT.Add(typed)
+		case *vpcapi.IPv4Namespace:
+			d.IPv4Namespaces.Add(typed)
+		case *wiringapi.VLANNamespace:
+			d.VLANNamespace.Add(typed)
 		default:
 			return errors.Errorf("unrecognized obj type")
 		}
@@ -132,25 +136,38 @@ func SortByName[T metav1.Object](objs []T) {
 func (d *Data) Write(ret io.Writer) error {
 	w := new(bytes.Buffer)
 
-	for idx, rack := range d.Rack.All() {
+	idx := 0
+
+	for _, vlan := range d.VLANNamespace.All() {
+		err := marshal(vlan, idx > 0, w)
+		if err != nil {
+			return err
+		}
+		idx++
+	}
+
+	for _, ns := range d.IPv4Namespaces.All() {
+		err := marshal(ns, idx > 0, w)
+		if err != nil {
+			return err
+		}
+		idx++
+	}
+
+	for _, rack := range d.Rack.All() {
 		err := marshal(rack, idx > 0, w)
 		if err != nil {
 			return err
 		}
-	}
-
-	for _, nat := range d.NAT.All() {
-		err := marshal(nat, true, w)
-		if err != nil {
-			return err
-		}
+		idx++
 	}
 
 	for _, sw := range d.Switch.All() {
-		err := marshal(sw, true, w)
+		err := marshal(sw, idx > 0, w)
 		if err != nil {
 			return err
 		}
+		idx++
 	}
 
 	for _, server := range d.Server.All() {

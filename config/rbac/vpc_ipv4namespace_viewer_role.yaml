@@ -1,31 +1,27 @@
-# permissions for end users to edit nats.
+# permissions for end users to view ipv4namespaces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: nat-editor-role
+    app.kubernetes.io/instance: ipv4namespace-viewer-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: fabric
     app.kubernetes.io/part-of: fabric
     app.kubernetes.io/managed-by: kustomize
-  name: nat-editor-role
+  name: ipv4namespace-viewer-role
 rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
-  - nats
+  - ipv4namespaces
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - vpc.githedgehog.com
   resources:
-  - nats/status
+  - ipv4namespaces/status
   verbs:
   - get

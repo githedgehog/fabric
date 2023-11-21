@@ -30,19 +30,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-nat-githedgehog-com-v1alpha2-nat
+      path: /mutate-vpc-githedgehog-com-v1alpha2-ipv4namespace
   failurePolicy: Fail
-  name: mnat.kb.io
+  name: mipv4namespace.kb.io
   rules:
   - apiGroups:
-    - nat.githedgehog.com
+    - vpc.githedgehog.com
     apiVersions:
     - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - nats
+    - ipv4namespaces
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -83,6 +83,26 @@ webhooks:
     - UPDATE
     resources:
     - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-wiring-githedgehog-com-v1alpha2-vlannamespace
+  failurePolicy: Fail
+  name: mvlannamespace.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vlannamespaces
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -176,19 +196,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-nat-githedgehog-com-v1alpha2-nat
+      path: /validate-vpc-githedgehog-com-v1alpha2-ipv4namespace
   failurePolicy: Fail
-  name: vnat.kb.io
+  name: vipv4namespace.kb.io
   rules:
   - apiGroups:
-    - nat.githedgehog.com
+    - vpc.githedgehog.com
     apiVersions:
     - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - nats
+    - ipv4namespaces
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -229,6 +249,26 @@ webhooks:
     - UPDATE
     resources:
     - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1alpha2-vlannamespace
+  failurePolicy: Fail
+  name: vvlannamespace.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vlannamespaces
   sideEffects: None
 - admissionReviewVersions:
   - v1

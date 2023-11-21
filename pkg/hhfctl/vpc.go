@@ -28,9 +28,10 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCSpec{
-			Subnet: options.Subnet,
-			DHCP:   options.DHCP,
-			SNAT:   options.SNAT,
+			// TODO fix
+			// Subnet: options.Subnet,
+			// DHCP:   options.DHCP,
+			// SNAT:   options.SNAT,
 		},
 	}
 
@@ -40,7 +41,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	}
 
 	vpc.Default()
-	warnings, err := vpc.Validate(ctx, validation.WithCtrlRuntime(kube), true, "")
+	warnings, err := vpc.Validate(ctx, validation.WithCtrlRuntime(kube), nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -90,7 +91,8 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCAttachmentSpec{
-			VPC:        options.VPC,
+			// TODO fix
+			// VPC:        options.VPC,
 			Connection: options.Connection,
 		},
 	}
@@ -150,7 +152,8 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCPeeringSpec{
-			VPCs: options.VPCs,
+			// TODO fix
+			// VPCs: options.VPCs,
 		},
 	}
 
@@ -160,7 +163,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	}
 
 	peering.Default()
-	warnings, err := peering.Validate(ctx, validation.WithCtrlRuntime(kube))
+	warnings, err := peering.Validate(ctx, validation.WithCtrlRuntime(kube), false)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -213,14 +216,16 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
 	}
 
-	vpc.Spec.SNAT = options.Enable
+	// TODO fix
+	// vpc.Spec.SNAT = options.Enable
 
 	err = kube.Update(ctx, vpc)
 	if err != nil {
 		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
 	}
 
-	slog.Info("VPC SNAT set", "vpc", vpc.Name, "snat", vpc.Spec.SNAT)
+	// TODO fix
+	// slog.Info("VPC SNAT set", "vpc", vpc.Name, "snat", vpc.Spec.SNAT)
 
 	if printYaml {
 		vpc.ObjectMeta.ManagedFields = nil
@@ -263,20 +268,21 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
 	}
 
-	if vpc.Spec.DNATRequests == nil {
-		vpc.Spec.DNATRequests = map[string]string{}
-	}
+	// TODO fix
+	// if vpc.Spec.DNATRequests == nil {
+	// 	vpc.Spec.DNATRequests = map[string]string{}
+	// }
 
-	for _, req := range options.Requests {
-		parts := strings.Split(req, "=")
-		if len(parts) == 1 {
-			vpc.Spec.DNATRequests[parts[0]] = ""
-		} else if len(parts) == 2 {
-			vpc.Spec.DNATRequests[parts[0]] = parts[1]
-		} else {
-			return errors.Errorf("request should be privateIP=externalIP or privateIP, found: %s", req)
-		}
-	}
+	// for _, req := range options.Requests {
+	// 	parts := strings.Split(req, "=")
+	// 	if len(parts) == 1 {
+	// 		vpc.Spec.DNATRequests[parts[0]] = ""
+	// 	} else if len(parts) == 2 {
+	// 		vpc.Spec.DNATRequests[parts[0]] = parts[1]
+	// 	} else {
+	// 		return errors.Errorf("request should be privateIP=externalIP or privateIP, found: %s", req)
+	// 	}
+	// }
 
 	err = kube.Update(ctx, vpc)
 	if err != nil {

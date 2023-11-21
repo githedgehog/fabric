@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -32,9 +34,15 @@ import (
 
 // VPCPeeringSpec defines the desired state of VPCPeering
 type VPCPeeringSpec struct {
-	//+kubebuilder:validation:MinItems=2
-	//+kubebuilder:validation:MaxItems=2
-	VPCs []string `json:"vpcs,omitempty"`
+	//+kubebuilder:validation:MinItems=1
+	//+kubebuilder:validation:MaxItems=10
+	Permit []map[string]VPCPeer `json:"permit,omitempty"`
+}
+
+type VPCPeer struct {
+	//+kubebuilder:validation:MinItems=1
+	//+kubebuilder:validation:MaxItems=10
+	Subnets []string `json:"subnets,omitempty"`
 }
 
 // VPCPeeringStatus defines the observed state of VPCPeering
@@ -42,9 +50,9 @@ type VPCPeeringStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcpeer;peering;vp
-// +kubebuilder:printcolumn:name="VPC1",type=string,JSONPath=`.spec.vpcs[0]`,priority=0
-// +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.spec.vpcs[1]`,priority=0
+// +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcpeer;vp
+// +kubebuilder:printcolumn:name="VPC1",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc1`,priority=0
+// +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc2`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCPeering is the Schema for the vpcpeerings API
 type VPCPeering struct {
@@ -68,51 +76,101 @@ func init() {
 	SchemeBuilder.Register(&VPCPeering{}, &VPCPeeringList{})
 }
 
-func (peering *VPCPeering) Default() {
-	sort.Slice(peering.Spec.VPCs, func(i, j int) bool {
-		return peering.Spec.VPCs[i] < peering.Spec.VPCs[j]
-	})
+func (s *VPCPeeringSpec) VPCs() (string, string, error) {
+	vpcs := []string{}
+	for _, permit := range s.Permit {
+		for vpc := range permit {
+			if slices.Contains(vpcs, vpc) {
+				return "", "", errors.Errorf("vpc peering must have 2 unique VPCs")
+			}
+			vpcs = append(vpcs, vpc)
+		}
+	}
 
+	if len(vpcs) != 2 {
+		return "", "", errors.Errorf("vpc peering must have exactly 2 VPCs")
+	}
+
+	sort.Strings(vpcs)
+
+	return vpcs[0], vpcs[1], nil
+}
+
+func (peering *VPCPeering) Default() {
 	if peering.Labels == nil {
 		peering.Labels = map[string]string{}
 	}
 
 	wiringapi.CleanupFabricLabels(peering.Labels)
 
-	for _, vpc := range peering.Spec.VPCs {
-		peering.Labels[ListLabelVPC(vpc)] = ListLabelValue
+	vpc1, vpc2, err := peering.Spec.VPCs()
+	if err != nil {
+		return // it'll be handled in validation stage
 	}
+
+	peering.Labels[ListLabelVPC(vpc1)] = ListLabelValue
+	peering.Labels[ListLabelVPC(vpc2)] = ListLabelValue
+	peering.Labels[LabelVPC1] = vpc1
+	peering.Labels[LabelVPC2] = vpc2
 }
 
-func (peering *VPCPeering) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
-	if len(peering.Spec.VPCs) != 2 {
-		return nil, errors.Errorf("vpc peering must have exactly 2 VPCs")
+func (peering *VPCPeering) Validate(ctx context.Context, client validation.Client, vpcPeeringDisabled bool) (admission.Warnings, error) {
+	if vpcPeeringDisabled {
+		return nil, errors.Errorf("vpc peering is not allowed")
 	}
-	if peering.Spec.VPCs[0] == peering.Spec.VPCs[1] {
-		return nil, errors.Errorf("vpc peering must have different VPCs")
+
+	vpc1, vpc2, err := peering.Spec.VPCs()
+	if err != nil {
+		return nil, err
 	}
+
+	for _, permit := range peering.Spec.Permit {
+		if len(permit) != 2 {
+			return nil, errors.Errorf("permit must have exactly 2 VPCs")
+		}
+	}
+
+	// TODO remove when subnet filtering is supported
+	if len(peering.Spec.Permit) != 1 {
+		return nil, errors.Errorf("permit must have exactly 1 entry")
+	}
+	if len(peering.Spec.Permit[0][vpc1].Subnets) != 0 || len(peering.Spec.Permit[0][vpc2].Subnets) != 0 {
+		return nil, errors.Errorf("subnets are not supported yet")
+	}
+
+	// TODO validate overlaps in subnets
 
 	if client != nil {
 		other := &VPCPeeringList{}
 		err := client.List(ctx, other, map[string]string{
-			ListLabelVPC(peering.Spec.VPCs[0]): ListLabelValue,
-			ListLabelVPC(peering.Spec.VPCs[1]): ListLabelValue,
+			ListLabelVPC(vpc1): ListLabelValue,
+			ListLabelVPC(vpc2): ListLabelValue,
 		})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to list VPC peerings") // TODO replace with some internal error to not expose to the user
 		}
 
-		for _, vpc := range peering.Spec.VPCs {
-			vpcs := &VPCList{}
-			err := client.List(ctx, vpcs, map[string]string{
-				ListLabelVPC(vpc): ListLabelValue,
-			})
+		ipv4Namespaces := []string{}
+		for _, vpcName := range []string{vpc1, vpc2} {
+			vpc := &VPC{}
+			err := client.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: peering.Namespace}, vpc)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
-					return nil, errors.Errorf("vpc %s not found", vpc)
+					return nil, errors.Errorf("vpc %s not found", vpcName)
 				}
+
 				return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
 			}
+
+			ipv4Namespaces = append(ipv4Namespaces, vpc.Spec.IPv4Namespace)
+		}
+
+		if len(ipv4Namespaces) != 2 {
+			return nil, errors.Errorf("failed to find IPv4 namespaces for VPCs")
+		}
+
+		if ipv4Namespaces[0] != ipv4Namespaces[1] {
+			return nil, errors.Errorf("VPCs must be in the same IPv4 namespace")
 		}
 	}
 

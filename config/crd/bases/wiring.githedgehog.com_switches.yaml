@@ -116,26 +116,15 @@ spec:
                 - server-leaf
                 - border-leaf
                 type: string
+              vlanNamespaces:
+                items:
+                  type: string
+                type: array
               vtepIP:
                 type: string
             type: object
           status:
             description: SwitchStatus defines the observed state of Switch
-            properties:
-              applied:
-                properties:
-                  detailed:
-                    additionalProperties:
-                      format: int64
-                      type: integer
-                    type: object
-                  gen:
-                    format: int64
-                    type: integer
-                  time:
-                    format: date-time
-                    type: string
-                type: object
             type: object
         type: object
     served: true

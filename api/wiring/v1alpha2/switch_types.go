@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -60,6 +61,7 @@ type SwitchSpec struct {
 	Profile         string            `json:"profile,omitempty"`
 	Location        Location          `json:"location,omitempty"`
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`
+	VLANNamespaces  []string          `json:"vlanNamespaces,omitempty"`
 	ASN             uint32            `json:"asn,omitempty"`
 	IP              string            `json:"ip,omitempty"`
 	VTEPIP          string            `json:"vtepIP,omitempty"`
@@ -70,7 +72,7 @@ type SwitchSpec struct {
 
 // SwitchStatus defines the observed state of Switch
 type SwitchStatus struct {
-	Applied ApplyStatus `json:"applied,omitempty"`
+	// Applied ApplyStatus `json:"applied,omitempty"`
 	// TODO: add port status fields
 }
 
@@ -139,25 +141,54 @@ func (sw *Switch) Default() {
 func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
 	// TODO validate port group speeds against switch profile
 
+	if len(sw.Spec.VLANNamespaces) == 0 {
+		return nil, errors.Errorf("at least one VLAN namespace required")
+	}
 	if sw.Spec.ASN == 0 {
-		return nil, errors.Errorf("switch ASN (spec.asn) is required")
+		return nil, errors.Errorf("ASN is required")
 	}
 	if sw.Spec.IP == "" {
-		return nil, errors.Errorf("switch IP (spec.ip) is required")
+		return nil, errors.Errorf("IP is required")
 	}
 	if sw.Spec.ProtocolIP == "" {
-		return nil, errors.Errorf("switch protocol IP (spec.protocolIP) is required")
+		return nil, errors.Errorf("protocol IP is required")
 	}
 	if sw.Spec.Role.IsLeaf() && sw.Spec.VTEPIP == "" {
-		return nil, errors.Errorf("switch VTEP IP (spec.vtepIP) is required for leaf switches")
+		return nil, errors.Errorf("VTEP IP is required for leaf switches")
 	}
 	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
-		return nil, errors.Errorf("switch VTEP IP (spec.vtepIP) is not allowed for spine switches")
+		return nil, errors.Errorf("VTEP IP is not allowed for spine switches")
 	}
 
 	if client != nil {
+		namespaces := &VLANNamespaceList{}
+		err := client.List(ctx, namespaces, map[string]string{})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get VLAN namespaces") // TODO replace with some internal error to not expose to the user
+		}
+
+		ranges := []meta.VLANRange{}
+
+		for _, ns := range sw.Spec.VLANNamespaces {
+			found := false
+			for _, other := range namespaces.Items {
+				if ns == other.Name {
+					found = true
+					ranges = append(ranges, other.Spec.Ranges...)
+					break
+				}
+			}
+			if !found {
+				return nil, errors.Errorf("specified VLANNamespace %s does not exist", ns)
+			}
+		}
+
+		if err := meta.CheckVLANRangesOverlap(ranges); err != nil {
+			return nil, errors.Wrapf(err, "invalid VLANNamespaces")
+		}
+
 		switches := &SwitchList{}
-		err := client.List(ctx, switches, map[string]string{
+		err = client.List(ctx, switches, map[string]string{
 			LabelLocation: sw.Labels[LabelLocation],
 		})
 		if err != nil {

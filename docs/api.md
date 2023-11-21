@@ -51,14 +51,15 @@ _Appears in:_
 | `users` _[UserCreds](#usercreds) array_ |  |
 | `switch` _[SwitchSpec](#switchspec)_ |  |
 | `switches` _object (keys:string, values:[SwitchSpec](#switchspec))_ |  |
-| `connections` _[ConnectionInfo](#connectioninfo) array_ |  |
-| `vpcs` _[VPCSummarySpec](#vpcsummaryspec) array_ |  |
-| `vpcVLANRange` _string_ |  |
-| `nat` _[NATSpec](#natspec)_ |  |
+| `connections` _object (keys:string, values:[ConnectionSpec](#connectionspec))_ |  |
+| `vpcs` _object (keys:string, values:[VPCSpec](#vpcspec))_ |  |
+| `vpcAttachments` _object (keys:string, values:[VPCAttachmentSpec](#vpcattachmentspec))_ |  |
+| `vpcPeers` _object (keys:string, values:[VPCPeeringSpec](#vpcpeeringspec))_ |  |
+| `vnis` _object (keys:string, values:integer)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
-| `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ |  |
+| `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ | TODO impl |
 
 
 #### AgentSpecConfig
@@ -73,6 +74,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `controlVIP` _string_ |  |
+| `vpcPeeringDisabled` _boolean_ |  |
 | `collapsedCore` _[AgentSpecConfigCollapsedCore](#agentspecconfigcollapsedcore)_ |  |
 | `spineLeaf` _[AgentSpecConfigSpineLeaf](#agentspecconfigspineleaf)_ |  |
 | `vs` _boolean_ |  |
@@ -87,10 +89,6 @@ _Appears in:_
 _Appears in:_
 - [AgentSpecConfig](#agentspecconfig)
 
-| Field | Description |
-| --- | --- |
-| `vpcBackend` _string_ |  |
-| `snatAllowed` _boolean_ |  |
 
 
 #### AgentSpecConfigSpineLeaf
@@ -163,21 +161,6 @@ _Appears in:_
 | `name` _string_ |  |
 | `namespace` _string_ |  |
 | `generation` _integer_ |  |
-
-
-#### ConnectionInfo
-
-
-
-
-
-_Appears in:_
-- [AgentSpec](#agentspec)
-
-| Field | Description |
-| --- | --- |
-| `name` _string_ |  |
-| `spec` _[ConnectionSpec](#connectionspec)_ |  |
 
 
 #### ControlAgent
@@ -286,75 +269,44 @@ _Appears in:_
 Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 
 ### Resource Types
-- [NAT](#nat)
+- [IPv4Namespace](#ipv4namespace)
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
 - [VPCPeering](#vpcpeering)
-- [VPCSummary](#vpcsummary)
 
 
 
-#### DNATStatus
+#### IPv4Namespace
 
 
 
-
-
-_Appears in:_
-- [NATStatus](#natstatus)
-
-| Field | Description |
-| --- | --- |
-| `available` _integer_ |  |
-| `assigned` _integer_ |  |
-| `assignedList` _string array_ |  |
-
-
-#### NAT
-
-
-
-NAT is the Schema for the nats API
+IPv4Namespace is the Schema for the ipv4namespaces API
 
 
 
 | Field | Description |
 | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
-| `kind` _string_ | `NAT`
+| `kind` _string_ | `IPv4Namespace`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[NATSpec](#natspec)_ |  |
-| `status` _[NATStatus](#natstatus)_ |  |
+| `spec` _[IPv4NamespaceSpec](#ipv4namespacespec)_ |  |
+| `status` _[IPv4NamespaceStatus](#ipv4namespacestatus)_ |  |
 
 
-#### NATSpec
+#### IPv4NamespaceSpec
 
 
 
-NATSpec defines the desired state of NAT
+IPv4NamespaceSpec defines the desired state of IPv4Namespace
 
 _Appears in:_
-- [AgentSpec](#agentspec)
-- [NAT](#nat)
+- [IPv4Namespace](#ipv4namespace)
 
 | Field | Description |
 | --- | --- |
-| `subnet` _string_ |  |
-| `dnatPool` _string array_ |  |
+| `subnets` _string array_ |  |
 
 
-#### NATStatus
-
-
-
-NATStatus defines the observed state of NAT
-
-_Appears in:_
-- [NAT](#nat)
-
-| Field | Description |
-| --- | --- |
-| `dnat` _[DNATStatus](#dnatstatus)_ |  |
 
 
 #### VPC
@@ -398,26 +350,15 @@ VPCAttachment is the Schema for the vpcattachments API
 VPCAttachmentSpec defines the desired state of VPCAttachment
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [VPCAttachment](#vpcattachment)
 
 | Field | Description |
 | --- | --- |
-| `vpc` _string_ |  |
+| `subnet` _string_ |  |
 | `connection` _string_ |  |
 
 
-#### VPCAttachmentStatus
-
-
-
-VPCAttachmentStatus defines the observed state of VPCAttachment
-
-_Appears in:_
-- [VPCAttachment](#vpcattachment)
-
-| Field | Description |
-| --- | --- |
-| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 #### VPCDHCP
@@ -427,7 +368,7 @@ _Appears in:_
 
 
 _Appears in:_
-- [VPCSpec](#vpcspec)
+- [VPCSubnet](#vpcsubnet)
 
 | Field | Description |
 | --- | --- |
@@ -448,6 +389,8 @@ _Appears in:_
 | --- | --- |
 | `start` _string_ |  |
 | `end` _string_ |  |
+
+
 
 
 #### VPCPeering
@@ -474,11 +417,12 @@ VPCPeering is the Schema for the vpcpeerings API
 VPCPeeringSpec defines the desired state of VPCPeering
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [VPCPeering](#vpcpeering)
 
 | Field | Description |
 | --- | --- |
-| `vpcs` _string array_ |  |
+| `permit` _[map[string]VPCPeer](#map[string]vpcpeer) array_ |  |
 
 
 
@@ -490,15 +434,14 @@ _Appears in:_
 VPCSpec defines the desired state of VPC
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [VPC](#vpc)
-- [VPCSummarySpec](#vpcsummaryspec)
 
 | Field | Description |
 | --- | --- |
-| `subnet` _string_ |  |
-| `dhcp` _[VPCDHCP](#vpcdhcp)_ |  |
-| `snat` _boolean_ |  |
-| `dnatRequests` _object (keys:string, values:string)_ |  |
+| `subnets` _object (keys:string, values:[VPCSubnet](#vpcsubnet))_ |  |
+| `ipv4Namespace` _string_ |  |
+| `vlanNamespace` _string_ |  |
 
 
 #### VPCStatus
@@ -512,60 +455,24 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `vlan` _integer_ |  |
-| `dnat` _object (keys:string, values:string)_ |  |
-| `applied` _[ApplyStatus](#applystatus)_ |  |
+| `vni` _integer_ |  |
+| `subnetVNIs` _object (keys:string, values:integer)_ |  |
 
 
-#### VPCSummary
-
-
-
-VPCSummary is the Schema for the vpcsummaries API
+#### VPCSubnet
 
 
 
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
-| `kind` _string_ | `VPCSummary`
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[VPCSummarySpec](#vpcsummaryspec)_ |  |
-| `status` _[VPCSummaryStatus](#vpcsummarystatus)_ |  |
 
-
-#### VPCSummarySpec
-
-
-
-VPCSummarySpec defines the desired state of VPCSummary
 
 _Appears in:_
-- [AgentSpec](#agentspec)
-- [VPCSummary](#vpcsummary)
+- [VPCSpec](#vpcspec)
 
 | Field | Description |
 | --- | --- |
-| `name` _string_ |  |
-| `vpc` _[VPCSpec](#vpcspec)_ |  |
-| `vlan` _integer_ |  |
-| `peers` _string array_ |  |
-| `dnat` _object (keys:string, values:string)_ |  |
-| `connections` _string array_ |  |
-
-
-#### VPCSummaryStatus
-
-
-
-VPCSummaryStatus defines the observed state of VPCSummary
-
-_Appears in:_
-- [VPCSummary](#vpcsummary)
-
-| Field | Description |
-| --- | --- |
-| `applied` _[ApplyStatus](#applystatus)_ |  |
+| `subnet` _string_ |  |
+| `dhcp` _[VPCDHCP](#vpcdhcp)_ |  |
+| `vlan` _string_ |  |
 
 
 
@@ -580,27 +487,10 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 - [ServerProfile](#serverprofile)
 - [Switch](#switch)
 - [SwitchProfile](#switchprofile)
+- [VLANNamespace](#vlannamespace)
 
 
 
-#### ApplyStatus
-
-
-
-
-
-_Appears in:_
-- [ConnectionStatus](#connectionstatus)
-- [SwitchStatus](#switchstatus)
-- [VPCAttachmentStatus](#vpcattachmentstatus)
-- [VPCStatus](#vpcstatus)
-- [VPCSummaryStatus](#vpcsummarystatus)
-
-| Field | Description |
-| --- | --- |
-| `gen` _integer_ |  |
-| `time` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
-| `detailed` _object (keys:string, values:integer)_ |  |
 
 
 #### BasePortName
@@ -856,8 +746,8 @@ Connection is the Schema for the connections API
 ConnectionSpec defines the desired state of Connection
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [Connection](#connection)
-- [ConnectionInfo](#connectioninfo)
 
 | Field | Description |
 | --- | --- |
@@ -871,18 +761,6 @@ _Appears in:_
 | `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ |  |
 
 
-#### ConnectionStatus
-
-
-
-ConnectionStatus defines the observed state of Connection
-
-_Appears in:_
-- [Connection](#connection)
-
-| Field | Description |
-| --- | --- |
-| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 #### FabricLink
@@ -1215,6 +1093,7 @@ _Appears in:_
 | `profile` _string_ |  |
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
+| `vlanNamespaces` _string array_ |  |
 | `asn` _integer_ |  |
 | `ip` _string_ |  |
 | `vtepIP` _string_ |  |
@@ -1223,18 +1102,6 @@ _Appears in:_
 | `portBreakouts` _object (keys:string, values:string)_ |  |
 
 
-#### SwitchStatus
-
-
-
-SwitchStatus defines the observed state of Switch
-
-_Appears in:_
-- [Switch](#switch)
-
-| Field | Description |
-| --- | --- |
-| `applied` _[ApplyStatus](#applystatus)_ |  |
 
 
 #### SwitchToSwitchLink
@@ -1251,5 +1118,38 @@ _Appears in:_
 | --- | --- |
 | `switch1` _[BasePortName](#baseportname)_ |  |
 | `switch2` _[BasePortName](#baseportname)_ |  |
+
+
+#### VLANNamespace
+
+
+
+VLANNamespace is the Schema for the vlannamespaces API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2`
+| `kind` _string_ | `VLANNamespace`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[VLANNamespaceSpec](#vlannamespacespec)_ |  |
+| `status` _[VLANNamespaceStatus](#vlannamespacestatus)_ |  |
+
+
+#### VLANNamespaceSpec
+
+
+
+VLANNamespaceSpec defines the desired state of VLANNamespace
+
+_Appears in:_
+- [VLANNamespace](#vlannamespace)
+
+| Field | Description |
+| --- | --- |
+| `ranges` _[VLANRange](#vlanrange) array_ |  |
+
+
 
 

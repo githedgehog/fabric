@@ -34,7 +34,7 @@ import (
 const (
 	CONNECTION_TYPE_UNBUNDLED    = "unbundled"
 	CONNECTION_TYPE_BUNDLED      = "bundled"
-	CONNECTION_TYPE_MANAGEMENT   = "management"
+	CONNECTION_TYPE_MANAGEMENT   = "management" // TODO rename to control?
 	CONNECTION_TYPE_MCLAG        = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN  = "mclag-domain"
 	CONNECTION_TYPE_NAT          = "nat"
@@ -159,7 +159,7 @@ type ConnectionSpec struct {
 
 // ConnectionStatus defines the observed state of Connection
 type ConnectionStatus struct {
-	Applied ApplyStatus `json:"applied,omitempty"`
+	// Applied ApplyStatus `json:"applied,omitempty"`
 }
 
 // +kubebuilder:object:root=true
