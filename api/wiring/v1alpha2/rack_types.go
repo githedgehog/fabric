@@ -38,9 +38,7 @@ type RackSpec struct {
 }
 
 // RackStatus defines the observed state of Rack
-type RackStatus struct {
-	// TODO: add port status fields
-}
+type RackStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

@@ -1,27 +1,27 @@
-# permissions for end users to view nats.
+# permissions for end users to view vlannamespaces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: nat-viewer-role
+    app.kubernetes.io/instance: vlannamespace-viewer-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: fabric
     app.kubernetes.io/part-of: fabric
     app.kubernetes.io/managed-by: kustomize
-  name: nat-viewer-role
+  name: vlannamespace-viewer-role
 rules:
 - apiGroups:
-  - vpc.githedgehog.com
+  - wiring.githedgehog.com
   resources:
-  - nats
+  - vlannamespaces
   verbs:
   - get
   - list
   - watch
 - apiGroups:
-  - vpc.githedgehog.com
+  - wiring.githedgehog.com
   resources:
-  - nats/status
+  - vlannamespaces/status
   verbs:
   - get

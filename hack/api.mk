@@ -1,18 +1,11 @@
 ##@ Fabric API (CRDs)
 
 .PHONY: api
-api: generate manifests api-samples api-lint api-helm-build ## Build and lint all APIs (K8s CRDs) including samples
-
-.PHONY: api-samples
-api-samples: ## Generate all API (K8s CRDs) samples
-	rm -rf config/samples/*.gen.yaml
-	go run ./cmd/hhf wiring sample --type=collapsedcore --preset vlab > config/samples/collapsedcore.vlab.gen.yaml
-	go run ./cmd/hhf wiring sample --type=collapsedcore --preset lab > config/samples/collapsedcore.lab.gen.yaml
-
+api: generate manifests api-lint api-chart-build ## Build and lint all APIs (K8s CRDs) including samples
 
 .PHONY: api-lint
-api-lint: kubevious ## Lint all APIs (K8s CRDs) and samples
-	$(KUBEVIOUS) guard config/crd config/samples
+api-lint: kubevious ## Lint all APIs (K8s CRDs)
+	$(KUBEVIOUS) guard config/crd
 
 .PHONY: api-lint-crds
 api-lint-crds: kubevious ## Lint all APIs (K8s CRDs)

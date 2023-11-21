@@ -31,15 +31,15 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 	dev := ""
 	switchIP := ""
 	controlIP := ""
-	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.Management != nil {
-			dev = conn.Spec.Management.Link.Switch.LocalPortName()
+	for _, spec := range agent.Spec.Connections {
+		if spec.Management != nil {
+			dev = spec.Management.Link.Switch.LocalPortName()
 			if dev != "Management0" {
 				continue
 			}
 
-			switchIP = conn.Spec.Management.Link.Switch.IP
-			controlIP = conn.Spec.Management.Link.Server.IP
+			switchIP = spec.Management.Link.Switch.IP
+			controlIP = spec.Management.Link.Server.IP
 			exists = true
 			break
 		}

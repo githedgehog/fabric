@@ -18,34 +18,32 @@ package vpc
 
 import (
 	"context"
-	"fmt"
-	"net"
-	"sort"
-	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
-	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	VPC_VNI_OFFSET = 100
+	VPC_VNI_MAX    = (16_777_215 - VPC_VNI_OFFSET) / VPC_VNI_OFFSET * VPC_VNI_OFFSET
+)
+
 // VPCReconciler reconciles a VPC object
 type VPCReconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	Cfg        *config.Fabric
-	vlanAssign sync.Mutex
+	Scheme    *runtime.Scheme
+	Cfg       *config.Fabric
+	vniAssign sync.Mutex
 }
 
 func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
@@ -55,46 +53,27 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) e
 		Cfg:    cfg,
 	}
 
+	// TODO only enqueue related VPCs
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vpcapi.VPC{}).
-		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForAttach)).
-		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForPeering)).
+		// It's enough to trigger just a single VPC update in this case as it'll update DHCP config for all VPCs
+		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOneVPC)).
 		Complete(r)
 }
 
-func (r *VPCReconciler) enqueueForAttach(ctx context.Context, obj client.Object) []reconcile.Request {
-	attach, ok := obj.(*vpcapi.VPCAttachment)
-	if !ok {
-		panic(fmt.Sprintf("enqueueForAttach got not a VPCAttachment: %#v", obj))
+func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, obj client.Object) []reconcile.Request {
+	res := []reconcile.Request{}
+
+	vpcs := &vpcapi.VPCList{}
+	err := r.List(ctx, vpcs, client.Limit(1))
+	if err != nil {
+		log.FromContext(ctx).Error(err, "error listing vpcs")
+		return res
 	}
-
-	return []reconcile.Request{{
-		NamespacedName: client.ObjectKey{
-			Name:      attach.Spec.VPC,
-			Namespace: attach.Namespace,
-		},
-	}}
-}
-
-func (r *VPCReconciler) enqueueForPeering(ctx context.Context, obj client.Object) []reconcile.Request {
-	peering, ok := obj.(*vpcapi.VPCPeering)
-	if !ok {
-		panic(fmt.Sprintf("enqueueForPeering got not a VPCPeering: %#v", obj))
-	}
-
-	res := []reconcile.Request{
-		{
-			NamespacedName: client.ObjectKey{
-				Name:      peering.Spec.VPCs[0],
-				Namespace: peering.Namespace, // TODO ns
-			},
-		},
-		{
-			NamespacedName: client.ObjectKey{
-				Name:      peering.Spec.VPCs[1],
-				Namespace: peering.Namespace, // TODO ns
-			},
-		},
+	if len(vpcs.Items) > 0 {
+		res = append(res, reconcile.Request{
+			NamespacedName: client.ObjectKeyFromObject(&vpcs.Items[0]),
+		})
 	}
 
 	return res
@@ -104,226 +83,31 @@ func (r *VPCReconciler) enqueueForPeering(ctx context.Context, obj client.Object
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/finalizers,verbs=update
-
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/finalizers,verbs=update
-
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcsummaries/finalizers,verbs=update
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/finalizers,verbs=update
 
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
-	vpc := &vpcapi.VPC{}
-	err := r.Get(ctx, req.NamespacedName, vpc)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			err = r.Delete(ctx, &vpcapi.VPCSummary{ObjectMeta: metav1.ObjectMeta{Name: req.Name, Namespace: req.Namespace}}) // TODO ns
-			if err != nil && !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "error deleting summary for vpc %s after its being deleted", req.NamespacedName)
-			}
-
-			return ctrl.Result{}, nil
-		} else {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
-		}
-	}
-
-	if vpc.Status.VLAN == 0 {
-		err = r.setNextFreeVLAN(ctx, vpc)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error assigning vlan to vpc %s", vpc.Name)
-		}
-		l.Info("vpc vlan assigned", "vpc", vpc.Name, "vlan", vpc.Status.VLAN)
-	}
-
-	attaches := &vpcapi.VPCAttachmentList{}
-	err = r.List(ctx, attaches, client.InNamespace(req.Namespace), client.MatchingLabels{
-		vpcapi.LabelVPC: vpc.Name,
-	})
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments for vpc %s", vpc.Name)
-	}
-
-	connNames := []string{}
-	for _, attach := range attaches.Items {
-		connNames = append(connNames, attach.Spec.Connection)
-	}
-	sort.Slice(connNames, func(i, j int) bool {
-		return connNames[i] < connNames[j]
-	})
-
-	summaryLabels := map[string]string{}
-	for _, connName := range connNames {
-		conn := &wiringapi.Connection{}
-		err := r.Get(ctx, client.ObjectKey{Name: connName, Namespace: vpc.Namespace}, conn) // TODO ns
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting connection %s", connName)
-		}
-
-		maps.Copy(summaryLabels, conn.Spec.ConnectionLabels())
-	}
-
-	peerings := &vpcapi.VPCPeeringList{}
-	err = r.List(ctx, peerings, client.InNamespace(req.Namespace), client.MatchingLabels{
-		vpcapi.ListLabelVPC(vpc.Name): vpcapi.ListLabelValue,
-	})
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc peerings for vpc %s", vpc.Name)
-	}
-
-	peers := []string{}
-	for _, peering := range peerings.Items {
-		for _, peer := range peering.Spec.VPCs {
-			if peer == vpc.Name {
-				continue
-			}
-			vpc := &vpcapi.VPC{}
-			err := r.Get(ctx, client.ObjectKey{Name: peer, Namespace: peering.Namespace}, vpc) // TODO ns
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					l.Info("vpc peering to non-existing vpc, ignoring", "vpc", peer)
-					continue
-				}
-
-				return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s to check peering", peer)
-			}
-
-			peers = append(peers, vpc.Name) // TODO ns
-		}
-	}
-	sort.Slice(peers, func(i, j int) bool {
-		return peers[i] < peers[j]
-	})
-
-	nat := &vpcapi.NAT{}
-	err = r.Get(ctx, client.ObjectKey{Name: "default", Namespace: vpc.Namespace}, nat) // TODO ns and multiple nats
-	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting nat for vpc %s", vpc.Name)
-	}
-
-	if vpc.Spec.DNATRequests == nil {
-		vpc.Spec.DNATRequests = map[string]string{}
-	}
-
-	dnat := map[string]string{}
-	if nat.Spec.Subnet != "" && len(nat.Spec.DNATPool) > 0 {
-		vpcs := &vpcapi.VPCSummaryList{}
-		err = r.List(ctx, vpcs)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error listing vpc summaries")
-		}
-
-		_, natNet, err := net.ParseCIDR(nat.Spec.Subnet)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error parsing nat subnet %s", nat.Spec.Subnet)
-		}
-
-		_, vpcNet, err := net.ParseCIDR(vpc.Spec.Subnet)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error parsing vpc subnet %s", vpc.Spec.Subnet)
-		}
-
-		internalIPs := map[string]bool{}
-		externalIPs := map[string]bool{}
-		dnats := map[string]string{}
-		for _, some := range vpcs.Items {
-			for internalIP, externalIP := range some.Spec.DNAT {
-				// if it was an error message, skip as we want to recalculate it and errors aren't booking the internal IP too
-				if strings.HasPrefix(externalIP, "@") {
-					continue
-				}
-
-				// if current vpc
-				if some.Name == vpc.Name && some.Namespace == vpc.Namespace {
-					// skip if request changed
-					if vpc.Spec.DNATRequests[internalIP] != externalIP {
-						continue
-					}
-
-					// skip if request not present in new request
-					if _, ok := vpc.Spec.DNATRequests[internalIP]; !ok {
-						continue
-					}
-
-					dnats[internalIP] = externalIP
-				}
-
-				externalIPs[externalIP] = true
-				internalIPs[internalIP] = true
-			}
-		}
-
-		for internalIP, externalIP := range vpc.Spec.DNATRequests {
-			if dnats[internalIP] == externalIP {
-				continue
-			}
-
-			result := ""
-			if internalIP == "" {
-				result = "internal IP is empty"
-			} else if externalIP == "" {
-				result = "external IP is empty"
-			} else if internalIPs[internalIP] {
-				result = "internal IP already used in DNAT"
-			} else if externalIPs[externalIP] {
-				result = "external IP already used in DNAT"
-			} else {
-				ip := net.ParseIP(externalIP)
-				if ip == nil {
-					result = "external IP is not a valid IP"
-				} else if !natNet.Contains(ip) {
-					result = "external IP is not in NAT subnet"
-				}
-
-				ip = net.ParseIP(internalIP)
-				if ip == nil {
-					result = "internal IP is not a valid IP"
-				} else if !vpcNet.Contains(ip) {
-					result = "internal IP is not in VPC subnet"
-				}
-			}
-
-			if result != "" {
-				result = "@" + result
-				l.Info("DNAT request rejected", "reason", result, "internalIP", internalIP, "externalIP", externalIP)
-			} else {
-				externalIPs[externalIP] = true
-				internalIPs[internalIP] = true
-				result = externalIP
-				l.Info("DNAT request accepted", "reason", result, "internalIP", internalIP, "externalIP", externalIP)
-			}
-
-			dnat[internalIP] = result
-		}
-	}
-
-	summary := &vpcapi.VPCSummary{ObjectMeta: metav1.ObjectMeta{Name: vpc.Name, Namespace: vpc.Namespace}}
-	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, summary, func() error {
-		summary.Spec.Name = vpc.Name
-		summary.Spec.VPC = vpc.Spec
-		summary.Spec.VLAN = vpc.Status.VLAN
-		summary.Spec.Connections = connNames
-		summary.Spec.Peers = peers
-		summary.Labels = summaryLabels
-		summary.Spec.DNAT = dnat
-
-		return nil
-	})
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error creating summary for vpc %s", vpc.Name)
-	}
-
-	err = r.updateDHCPConfig(ctx)
+	err := r.updateDHCPConfig(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp config")
+	}
+
+	vpc := &vpcapi.VPC{}
+	err = r.Get(ctx, req.NamespacedName, vpc)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
+	}
+
+	if err := r.ensureVNIs(ctx, vpc); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error ensuring vpc vnis")
 	}
 
 	l.Info("vpc reconciled")
@@ -331,46 +115,87 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (r *VPCReconciler) setNextFreeVLAN(ctx context.Context, vpc *vpcapi.VPC) error {
-	if vpc.Status.VLAN != 0 {
-		return nil
-	}
-
+func (r *VPCReconciler) ensureVNIs(ctx context.Context, vpc *vpcapi.VPC) error {
 	l := log.FromContext(ctx)
-	l.Info("vpc vlan not set, assigning next free", "vpc", vpc.Name)
 
-	r.vlanAssign.Lock()
-	defer r.vlanAssign.Unlock()
+	if vpc.Status.VNI == 0 {
+		l.Info("VPC VNI not set, assigning next free", "vpc", vpc.Name)
 
-	vpcs := &vpcapi.VPCList{}
-	err := r.List(ctx, vpcs) // we have to query all vpcs to find next free vlan
-	if err != nil {
-		return errors.Wrapf(err, "error listing vpcs")
+		r.vniAssign.Lock()
+		defer r.vniAssign.Unlock()
+
+		vpcs := &vpcapi.VPCList{}
+		err := r.List(ctx, vpcs) // we have to query all vpcs to find next free vni
+		if err != nil {
+			return errors.Wrapf(err, "error listing vpcs")
+		}
+
+		used := map[uint32]bool{}
+		for _, other := range vpcs.Items {
+			if other.Status.VNI == 0 {
+				continue
+			}
+			if other.Status.VNI/VPC_VNI_OFFSET < 1 {
+				continue
+			}
+			if other.Status.VNI%VPC_VNI_OFFSET != 0 {
+				continue
+			}
+
+			used[other.Status.VNI] = true
+		}
+
+		ok := false
+		for id := uint32(1) * VPC_VNI_OFFSET; id < VPC_VNI_MAX; id += VPC_VNI_OFFSET {
+			if !used[id] {
+				vpc.Status.VNI = id
+				l.Info("VPC VNI assigned", "vpc", vpc.Name, "vni", vpc.Status.VNI)
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return errors.Errorf("no free vni for vpc %s", vpc.Name)
+		}
 	}
 
-	used := make([]bool, r.Cfg.VPCVLANRange.Max-r.Cfg.VPCVLANRange.Min+1)
-	for _, v := range vpcs.Items {
-		if v.Status.VLAN == 0 {
+	if vpc.Status.SubnetVNIs != nil {
+		for subnet, vni := range vpc.Status.SubnetVNIs {
+			if _, exists := vpc.Spec.Subnets[subnet]; !exists {
+				delete(vpc.Status.SubnetVNIs, subnet)
+			}
+			if vni <= vpc.Status.VNI || vni >= vpc.Status.VNI+VPC_VNI_OFFSET {
+				delete(vpc.Status.SubnetVNIs, subnet)
+			}
+		}
+	} else {
+		vpc.Status.SubnetVNIs = map[string]uint32{}
+	}
+
+	used := map[uint32]bool{}
+	for _, vni := range vpc.Status.SubnetVNIs {
+		used[vni] = true
+	}
+
+	for subnet := range vpc.Spec.Subnets {
+		if vpc.Status.SubnetVNIs[subnet] != 0 {
 			continue
 		}
-		if v.Status.VLAN > 0 && (v.Status.VLAN < r.Cfg.VPCVLANRange.Min || v.Status.VLAN > r.Cfg.VPCVLANRange.Max) {
-			l.Info("vpc vlan out of range, ignoring", "vpc", v.Name, "vlan", v.Status.VLAN)
-			continue
+
+		ok := false
+		for id := vpc.Status.VNI + 1; id < vpc.Status.VNI+VPC_VNI_OFFSET; id++ {
+			if !used[id] {
+				vpc.Status.SubnetVNIs[subnet] = id
+				l.Info("VPC Subnet VNI assigned", "vpc", vpc.Name, "subnet", subnet, "vni", vpc.Status.VNI)
+				ok = true
+				break
+			}
 		}
-		used[v.Status.VLAN-r.Cfg.VPCVLANRange.Min] = true
-	}
 
-	for idx, val := range used {
-		if !val {
-			vpc.Status.VLAN = uint16(idx) + r.Cfg.VPCVLANRange.Min
-			break
+		if !ok {
+			return errors.Errorf("no free vni for subnet %s", subnet)
 		}
 	}
 
-	err = r.Status().Update(ctx, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "error updating vpc status %s", vpc.Name)
-	}
-
-	return nil
+	return errors.Wrapf(r.Status().Update(ctx, vpc), "error updating vpc status %s", vpc.Name)
 }

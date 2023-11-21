@@ -127,37 +127,11 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
-  - nats
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - nats/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
   - vpcattachments
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcattachments/finalizers
-  verbs:
-  - update
 - apiGroups:
   - vpc.githedgehog.com
   resources:
@@ -171,19 +145,9 @@ rules:
   resources:
   - vpcpeerings
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcpeerings/finalizers
-  verbs:
-  - update
 - apiGroups:
   - vpc.githedgehog.com
   resources:
@@ -214,32 +178,6 @@ rules:
   - vpc.githedgehog.com
   resources:
   - vpcs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcsummaries
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcsummaries/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcsummaries/status
   verbs:
   - get
   - patch
@@ -281,9 +219,19 @@ rules:
   resources:
   - switches
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switches/finalizers
+  verbs:
+  - update
 - apiGroups:
   - wiring.githedgehog.com
   resources:

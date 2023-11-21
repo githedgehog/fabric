@@ -19,9 +19,7 @@ package v1alpha2
 import (
 	"context"
 	"net"
-	"net/netip"
 
-	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
@@ -32,12 +30,20 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// TODO specify gateway explicitly?
+// TODO rename VPCSubnet.Subnet to CIDR? or CIDRBlock like in AWS?
+
 // VPCSpec defines the desired state of VPC
 type VPCSpec struct {
-	Subnet       string            `json:"subnet,omitempty"`
-	DHCP         VPCDHCP           `json:"dhcp,omitempty"`
-	SNAT         bool              `json:"snat,omitempty"`
-	DNATRequests map[string]string `json:"dnatRequests,omitempty"`
+	Subnets       map[string]*VPCSubnet `json:"subnets,omitempty"`
+	IPv4Namespace string                `json:"ipv4Namespace,omitempty"`
+	VLANNamespace string                `json:"vlanNamespace,omitempty"`
+}
+
+type VPCSubnet struct {
+	Subnet string  `json:"subnet,omitempty"`
+	DHCP   VPCDHCP `json:"dhcp,omitempty"`
+	VLAN   string  `json:"vlan,omitempty"`
 }
 
 type VPCDHCP struct {
@@ -52,19 +58,17 @@ type VPCDHCPRange struct {
 
 // VPCStatus defines the observed state of VPC
 type VPCStatus struct {
-	VLAN    uint16                `json:"vlan,omitempty"`
-	DNAT    map[string]string     `json:"dnat,omitempty"`
-	Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
+	VNI        uint32            `json:"vni,omitempty"` // 1..16_777_215
+	SubnetVNIs map[string]uint32 `json:"subnetVNIs,omitempty"`
+	// Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;fabric
-// +kubebuilder:printcolumn:name="Subnet",type=string,JSONPath=`.spec.subnet`,priority=0
-// +kubebuilder:printcolumn:name="VLAN",type=string,JSONPath=`.status.vlan`,priority=0
-// +kubebuilder:printcolumn:name="DHCP",type=boolean,JSONPath=`.spec.dhcp.enable`,priority=0
-// +kubebuilder:printcolumn:name="Start",type=string,JSONPath=`.spec.dhcp.range.start`,priority=0
-// +kubebuilder:printcolumn:name="End",type=string,JSONPath=`.spec.dhcp.range.end`,priority=0
+// +kubebuilder:printcolumn:name="IPv4NS",type=string,JSONPath=`.spec.ipv4Namespace`,priority=0
+// +kubebuilder:printcolumn:name="VLANNS",type=string,JSONPath=`.spec.vlanNamespace`,priority=0
+// +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPC is the Schema for the vpcs API
 type VPC struct {
@@ -89,12 +93,12 @@ func init() {
 }
 
 func (vpc *VPC) Default() {
-	cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
-	if err != nil {
-		return // it'll be handled in validation stage
+	if vpc.Spec.IPv4Namespace == "" {
+		vpc.Spec.IPv4Namespace = "default"
 	}
-
-	vpc.Spec.Subnet = cidr.Subnet.String()
+	if vpc.Spec.VLANNamespace == "" {
+		vpc.Spec.VLANNamespace = "default"
+	}
 
 	if vpc.Labels == nil {
 		vpc.Labels = map[string]string{}
@@ -102,123 +106,117 @@ func (vpc *VPC) Default() {
 
 	wiringapi.CleanupFabricLabels(vpc.Labels)
 
-	vpc.Labels[LabelSubnet] = EncodeSubnet(vpc.Spec.Subnet)
+	vpc.Labels[LabelIPv4NS] = vpc.Spec.IPv4Namespace
+	vpc.Labels[LabelVLANNS] = vpc.Spec.VLANNamespace
 }
 
-func (vpc *VPC) Validate(ctx context.Context, client validation.Client, snatAllowed bool, allowedSubnet string) (admission.Warnings, error) {
-	if len(vpc.Name) > 11 { // TODO should be probably configurable
+func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reservedSubnets []*net.IPNet) (admission.Warnings, error) {
+	if len(vpc.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
-
-	if vpc.Spec.Subnet == "" {
-		return nil, errors.Errorf("subnet is required")
+	if vpc.Spec.IPv4Namespace == "" {
+		return nil, errors.Errorf("ipv4Namespace is required")
+	}
+	if vpc.Spec.VLANNamespace == "" {
+		return nil, errors.Errorf("vlanNamespace is required")
+	}
+	if len(vpc.Spec.Subnets) == 0 {
+		return nil, errors.Errorf("at least one subnet is required")
+	}
+	if len(vpc.Spec.Subnets) > 10 {
+		return nil, errors.Errorf("too many subnets, max is 10")
 	}
 
-	vpcCIDR, err := iputil.ParseCIDR(vpc.Spec.Subnet)
-	if err != nil {
-		return nil, errors.Wrapf(err, "invalid subnet %s", vpc.Spec.Subnet)
-	}
+	subnets := []*net.IPNet{}
+	for _, subnetCfg := range vpc.Spec.Subnets {
+		if subnetCfg.Subnet == "" {
+			return nil, errors.Errorf("subnet is required")
+		}
 
-	if vpc.Spec.SNAT && !snatAllowed {
-		return nil, errors.Errorf("SNAT is not allowed by Fabric configuration")
-	}
-
-	if allowedSubnet != "" {
-		allowedNet, err := netip.ParsePrefix(allowedSubnet)
+		_, ipNet, err := net.ParseCIDR(subnetCfg.Subnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid allowed subnet %s", allowedSubnet) // TODO replace with some internal error to not expose to the user
+			return nil, errors.Wrapf(err, "failed to parse subnet %s", subnetCfg.Subnet)
 		}
 
-		vpcNet, err := netip.ParsePrefix(vpc.Spec.Subnet)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid vpc subnet %s", vpc.Spec.Subnet)
+		for _, reserved := range reservedSubnets {
+			if reserved.Contains(ipNet.IP) {
+				return nil, errors.Errorf("subnet %s is reserved", subnetCfg.Subnet)
+			}
 		}
 
-		// TODO replace with the proper subnet check
-		if !allowedNet.Contains(vpcNet.Addr()) {
-			return nil, errors.Errorf("vpc subnet %s is not allowed by Fabric configuration", vpc.Spec.Subnet)
+		subnets = append(subnets, ipNet)
+
+		if subnetCfg.DHCP.Enable {
+			if subnetCfg.DHCP.Range != nil {
+				if subnetCfg.DHCP.Range.Start != "" {
+					ip := net.ParseIP(subnetCfg.DHCP.Range.Start)
+					if ip == nil {
+						return nil, errors.Errorf("invalid dhcp range start %s", subnetCfg.DHCP.Range.Start)
+					}
+					if ip.Equal(ipNet.IP) {
+						return nil, errors.Errorf("dhcp range start %s is equal to subnet", subnetCfg.DHCP.Range.Start)
+					}
+					if !ipNet.Contains(ip) {
+						return nil, errors.Errorf("dhcp range start %s is not in the subnet", subnetCfg.DHCP.Range.Start)
+					}
+				}
+				if subnetCfg.DHCP.Range.End != "" {
+					ip := net.ParseIP(subnetCfg.DHCP.Range.End)
+					if ip == nil {
+						return nil, errors.Errorf("invalid dhcp range end %s", subnetCfg.DHCP.Range.End)
+					}
+					if ip.Equal(ipNet.IP) {
+						return nil, errors.Errorf("dhcp range end %s is equal to subnet", subnetCfg.DHCP.Range.End)
+					}
+					if !ipNet.Contains(ip) {
+						return nil, errors.Errorf("dhcp range end %s is not in the subnet", subnetCfg.DHCP.Range.End)
+					}
+				}
+
+				// TODO check start < end
+			}
+		} else {
+			if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
+				return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
+			}
 		}
 	}
 
-	if vpc.Spec.DHCP.Enable {
-		if vpc.Spec.DHCP.Range != nil {
-			if vpc.Spec.DHCP.Range.Start != "" {
-				ip := net.ParseIP(vpc.Spec.DHCP.Range.Start)
-				if ip == nil {
-					return nil, errors.Errorf("invalid dhcp range start %s", vpc.Spec.DHCP.Range.Start)
-				}
-				if ip.Equal(vpcCIDR.Gateway) {
-					return nil, errors.Errorf("dhcp range start %s is equal to gateway", vpc.Spec.DHCP.Range.Start)
-				}
-				if ip.Equal(vpcCIDR.Subnet.IP) {
-					return nil, errors.Errorf("dhcp range start %s is equal to subnet", vpc.Spec.DHCP.Range.Start)
-				}
-				if !vpcCIDR.Subnet.Contains(ip) {
-					return nil, errors.Errorf("dhcp range start %s is not in the subnet", vpc.Spec.DHCP.Range.Start)
-				}
-			}
-			if vpc.Spec.DHCP.Range.End != "" {
-				ip := net.ParseIP(vpc.Spec.DHCP.Range.End)
-				if ip == nil {
-					return nil, errors.Errorf("invalid dhcp range end %s", vpc.Spec.DHCP.Range.End)
-				}
-				if ip.Equal(vpcCIDR.Gateway) {
-					return nil, errors.Errorf("dhcp range end %s is equal to gateway", vpc.Spec.DHCP.Range.End)
-				}
-				if ip.Equal(vpcCIDR.Subnet.IP) {
-					return nil, errors.Errorf("dhcp range end %s is equal to subnet", vpc.Spec.DHCP.Range.End)
-				}
-				if !vpcCIDR.Subnet.Contains(ip) {
-					return nil, errors.Errorf("dhcp range end %s is not in the subnet", vpc.Spec.DHCP.Range.End)
-				}
-			}
-
-			// TODO check start < end
-		}
-	} else {
-		if vpc.Spec.DHCP.Range != nil && (vpc.Spec.DHCP.Range.Start != "" || vpc.Spec.DHCP.Range.End != "") {
-			return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
-		}
+	if err := iputil.VerifyNoOverlap(subnets); err != nil {
+		return nil, errors.Wrapf(err, "failed to verify no overlap subnets")
 	}
 
 	if client != nil {
-		// TODO main VPC subnet validation should happen in the VPC controller
+		// TODO check VLANs
+		// TODO Can we rely on Validation webhook for croll VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 		vpcs := &VPCList{}
 		err := client.List(ctx, vpcs, map[string]string{
-			// LabelSubnet: EncodeSubnet(vpc.Spec.Subnet),
+			LabelIPv4NS: vpc.Spec.IPv4Namespace,
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
 		}
 
-		subnets := []*net.IPNet{&vpcCIDR.Subnet}
 		for _, other := range vpcs.Items {
 			if other.Name == vpc.Name {
 				continue
 			}
-			if other.Spec.Subnet == "" {
+			if other.Spec.IPv4Namespace != vpc.Spec.IPv4Namespace {
 				continue
 			}
 
-			_, ipNet, err := net.ParseCIDR(other.Spec.Subnet)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse subnet %s", other.Spec.Subnet) // TODO replace with some internal error to not expose to the user
+			for _, otherSubnet := range other.Spec.Subnets {
+				_, otherNet, err := net.ParseCIDR(otherSubnet.Subnet)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to parse subnet %s", otherSubnet.Subnet)
+				}
+
+				for _, subnet := range subnets {
+					if subnet.Contains(otherNet.IP) {
+						return nil, errors.Errorf("subnet %s overlaps with subnet %s of VPC %s", subnet.String(), otherSubnet.Subnet, other.Name)
+					}
+				}
 			}
-			subnets = append(subnets, ipNet)
-		}
-
-		if allowedSubnet == "" {
-			allowedSubnet = "10.0.0.0/8"
-		}
-
-		_, allowedNet, err := net.ParseCIDR(allowedSubnet)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse allowed subnet %s", allowedSubnet) // TODO replace with some internal error to not expose to the user
-		}
-
-		err = cidr.VerifyNoOverlap(subnets, allowedNet)
-		if err != nil {
-			return nil, errors.Wrapf(err, "specified subnet overlaps with one of the other VPCs")
 		}
 	}
 

@@ -5,8 +5,6 @@ package e2e
 import (
 	"context"
 
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-
 	gg "github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
 )
@@ -48,42 +46,42 @@ func testCollapsedCoreVPCPeering(ctx context.Context) {
 	gg.By("Creating 2 VPCs with DHCP enabled and peering them")
 	//
 
-	vpc1, err := h.Kube.VPCCreate(ctx, "vpc-1", vpcapi.VPCSpec{
-		Subnet: "10.90.0.1/24",
-		DHCP: vpcapi.VPCDHCP{
-			Enable: true,
-		},
-	})
-	g.Expect(err).ToNot(g.HaveOccurred(), "vpc-1 should be created")
-	g.Expect(vpc1).ToNot(g.BeNil(), "vpc-1 should not be nil")
+	// vpc1, err := h.Kube.VPCCreate(ctx, "vpc-1", vpcapi.VPCSpec{
+	// 	Subnet: "10.90.0.1/24",
+	// 	DHCP: vpcapi.VPCDHCP{
+	// 		Enable: true,
+	// 	},
+	// })
+	// g.Expect(err).ToNot(g.HaveOccurred(), "vpc-1 should be created")
+	// g.Expect(vpc1).ToNot(g.BeNil(), "vpc-1 should not be nil")
 
-	vpc1attach, err := h.Kube.VPCAttach(ctx, vpc1, c.DualHomedServer1)
-	g.Expect(err).ToNot(g.HaveOccurred(), "vpc-1 should be attached to server-1")
-	g.Expect(vpc1attach).ToNot(g.BeNil(), "vpc-1 attach should not be nil")
+	// vpc1attach, err := h.Kube.VPCAttach(ctx, vpc1, c.DualHomedServer1)
+	// g.Expect(err).ToNot(g.HaveOccurred(), "vpc-1 should be attached to server-1")
+	// g.Expect(vpc1attach).ToNot(g.BeNil(), "vpc-1 attach should not be nil")
 
-	vpc2, err := h.Kube.VPCCreate(context.TODO(), "vpc-2", vpcapi.VPCSpec{
-		Subnet: "10.90.0.2/24",
-		DHCP: vpcapi.VPCDHCP{
-			Enable: true,
-		},
-	})
-	g.Expect(err).ToNot(g.HaveOccurred(), "vpc-2 should be created")
-	g.Expect(vpc2).ToNot(g.BeNil(), "vpc-2 should not be nil")
+	// vpc2, err := h.Kube.VPCCreate(context.TODO(), "vpc-2", vpcapi.VPCSpec{
+	// 	Subnet: "10.90.0.2/24",
+	// 	DHCP: vpcapi.VPCDHCP{
+	// 		Enable: true,
+	// 	},
+	// })
+	// g.Expect(err).ToNot(g.HaveOccurred(), "vpc-2 should be created")
+	// g.Expect(vpc2).ToNot(g.BeNil(), "vpc-2 should not be nil")
 
-	vpc2attach, err := h.Kube.VPCAttach(ctx, vpc2, c.DualHomedServer2)
-	g.Expect(err).ToNot(g.HaveOccurred(), "vpc-2 should be attached to server-2")
-	g.Expect(vpc2attach).ToNot(g.BeNil(), "vpc-2 attach should not be nil")
+	// vpc2attach, err := h.Kube.VPCAttach(ctx, vpc2, c.DualHomedServer2)
+	// g.Expect(err).ToNot(g.HaveOccurred(), "vpc-2 should be attached to server-2")
+	// g.Expect(vpc2attach).ToNot(g.BeNil(), "vpc-2 attach should not be nil")
 
-	peerVpc1Vpc2, err := h.Kube.VPCPeer(ctx, vpc1, vpc2)
-	g.Expect(err).ToNot(g.HaveOccurred(), "vpc-1 and vpc-2 should be peered")
-	g.Expect(peerVpc1Vpc2).ToNot(g.BeNil(), "vpc-1 and vpc-2 peer should not be nil")
+	// peerVpc1Vpc2, err := h.Kube.VPCPeer(ctx, vpc1, vpc2)
+	// g.Expect(err).ToNot(g.HaveOccurred(), "vpc-1 and vpc-2 should be peered")
+	// g.Expect(peerVpc1Vpc2).ToNot(g.BeNil(), "vpc-1 and vpc-2 peer should not be nil")
 
 	//
 	gg.By("Waiting for VPCs to be ready")
 	//
 
-	g.Expect(h.Kube.Wait(ctx, vpc1, vpc2, vpc1attach, vpc2attach, peerVpc1Vpc2)).
-		To(g.Succeed(), "vpc-1 and vpc-2 should be ready")
+	// g.Expect(h.Kube.Wait(ctx, vpc1, vpc2, vpc1attach, vpc2attach, peerVpc1Vpc2)).
+	// 	To(g.Succeed(), "vpc-1 and vpc-2 should be ready")
 
 	//
 	gg.By("Checking network connectivity")

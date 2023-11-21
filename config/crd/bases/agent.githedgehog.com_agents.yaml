@@ -89,237 +89,216 @@ spec:
               config:
                 properties:
                   collapsedCore:
-                    properties:
-                      snatAllowed:
-                        type: boolean
-                      vpcBackend:
-                        type: string
                     type: object
                   controlVIP:
                     type: string
                   spineLeaf:
                     type: object
+                  vpcPeeringDisabled:
+                    type: boolean
                   vs:
                     type: boolean
                 type: object
               connections:
-                items:
+                additionalProperties:
+                  description: ConnectionSpec defines the desired state of Connection
                   properties:
-                    name:
-                      type: string
-                    spec:
-                      description: ConnectionSpec defines the desired state of Connection
+                    bundled:
                       properties:
-                        bundled:
-                          properties:
-                            links:
-                              items:
+                        links:
+                          items:
+                            properties:
+                              server:
                                 properties:
-                                  server:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                  switch:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
+                                  port:
+                                    type: string
                                 type: object
-                              type: array
-                          type: object
-                        fabric:
-                          properties:
-                            links:
-                              items:
+                              switch:
                                 properties:
-                                  leaf:
-                                    properties:
-                                      ip:
-                                        pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                        type: string
-                                      port:
-                                        type: string
-                                    type: object
-                                  spine:
-                                    properties:
-                                      ip:
-                                        pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                        type: string
-                                      port:
-                                        type: string
-                                    type: object
+                                  port:
+                                    type: string
                                 type: object
-                              minItems: 1
-                              type: array
-                          type: object
-                        management:
+                            type: object
+                          type: array
+                      type: object
+                    fabric:
+                      properties:
+                        links:
+                          items:
+                            properties:
+                              leaf:
+                                properties:
+                                  ip:
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    type: string
+                                type: object
+                              spine:
+                                properties:
+                                  ip:
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
+                    management:
+                      properties:
+                        link:
                           properties:
-                            link:
+                            server:
                               properties:
-                                server:
-                                  properties:
-                                    ip:
-                                      pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                      type: string
-                                    mac:
-                                      type: string
-                                    port:
-                                      type: string
-                                  type: object
-                                switch:
-                                  properties:
-                                    ip:
-                                      pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                      type: string
-                                    oniePortName:
-                                      type: string
-                                    port:
-                                      type: string
-                                  type: object
+                                ip:
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                  type: string
+                                mac:
+                                  type: string
+                                port:
+                                  type: string
                               type: object
-                          type: object
-                        mclag:
-                          properties:
-                            links:
-                              items:
-                                properties:
-                                  server:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                  switch:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                type: object
-                              minItems: 2
-                              type: array
-                            mtu:
-                              type: integer
-                          type: object
-                        mclagDomain:
-                          properties:
-                            peerLinks:
-                              items:
-                                properties:
-                                  switch1:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                  switch2:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                type: object
-                              minItems: 1
-                              type: array
-                            sessionLinks:
-                              items:
-                                properties:
-                                  switch1:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                  switch2:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                type: object
-                              minItems: 1
-                              type: array
-                          type: object
-                        nat:
-                          properties:
-                            link:
+                            switch:
                               properties:
-                                nat:
-                                  properties:
-                                    port:
-                                      type: string
-                                  type: object
-                                switch:
-                                  properties:
-                                    ip:
-                                      type: string
-                                    neighborIP:
-                                      type: string
-                                    port:
-                                      type: string
-                                    remoteAS:
-                                      format: int32
-                                      type: integer
-                                    snat:
-                                      properties:
-                                        pool:
-                                          items:
-                                            type: string
-                                          type: array
-                                      required:
-                                      - pool
-                                      type: object
-                                  type: object
+                                ip:
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                  type: string
+                                oniePortName:
+                                  type: string
+                                port:
+                                  type: string
                               type: object
-                          type: object
-                        unbundled:
-                          properties:
-                            link:
-                              properties:
-                                server:
-                                  properties:
-                                    port:
-                                      type: string
-                                  type: object
-                                switch:
-                                  properties:
-                                    port:
-                                      type: string
-                                  type: object
-                              type: object
-                          type: object
-                        vpcLoopback:
-                          properties:
-                            links:
-                              items:
-                                properties:
-                                  switch1:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                  switch2:
-                                    properties:
-                                      port:
-                                        type: string
-                                    type: object
-                                type: object
-                              minItems: 1
-                              type: array
                           type: object
                       type: object
+                    mclag:
+                      properties:
+                        links:
+                          items:
+                            properties:
+                              server:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 2
+                          type: array
+                        mtu:
+                          type: integer
+                      type: object
+                    mclagDomain:
+                      properties:
+                        peerLinks:
+                          items:
+                            properties:
+                              switch1:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch2:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                        sessionLinks:
+                          items:
+                            properties:
+                              switch1:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch2:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
+                    nat:
+                      properties:
+                        link:
+                          properties:
+                            nat:
+                              properties:
+                                port:
+                                  type: string
+                              type: object
+                            switch:
+                              properties:
+                                ip:
+                                  type: string
+                                neighborIP:
+                                  type: string
+                                port:
+                                  type: string
+                                remoteAS:
+                                  format: int32
+                                  type: integer
+                                snat:
+                                  properties:
+                                    pool:
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - pool
+                                  type: object
+                              type: object
+                          type: object
+                      type: object
+                    unbundled:
+                      properties:
+                        link:
+                          properties:
+                            server:
+                              properties:
+                                port:
+                                  type: string
+                              type: object
+                            switch:
+                              properties:
+                                port:
+                                  type: string
+                              type: object
+                          type: object
+                      type: object
+                    vpcLoopback:
+                      properties:
+                        links:
+                          items:
+                            properties:
+                              switch1:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                              switch2:
+                                properties:
+                                  port:
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
                   type: object
-                type: array
+                type: object
               description:
                 type: string
-              nat:
-                description: NATSpec defines the desired state of NAT
-                properties:
-                  dnatPool:
-                    items:
-                      type: string
-                    type: array
-                  subnet:
-                    type: string
-                required:
-                - dnatPool
-                - subnet
-                type: object
               portChannels:
                 additionalProperties:
                   type: integer
@@ -335,6 +314,7 @@ spec:
                 - border-leaf
                 type: string
               statusUpdates:
+                description: TODO impl
                 items:
                   properties:
                     apiVersion:
@@ -402,6 +382,10 @@ spec:
                     - server-leaf
                     - border-leaf
                     type: string
+                  vlanNamespaces:
+                    items:
+                      type: string
+                    type: array
                   vtepIP:
                     type: string
                 type: object
@@ -458,6 +442,10 @@ spec:
                       - server-leaf
                       - border-leaf
                       type: string
+                    vlanNamespaces:
+                      items:
+                        type: string
+                      type: array
                     vtepIP:
                       type: string
                   type: object
@@ -488,59 +476,73 @@ spec:
                   repo:
                     type: string
                 type: object
-              vpcVLANRange:
-                type: string
-              vpcs:
-                items:
-                  description: VPCSummarySpec defines the desired state of VPCSummary
+              vnis:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                type: object
+              vpcAttachments:
+                additionalProperties:
+                  description: VPCAttachmentSpec defines the desired state of VPCAttachment
                   properties:
-                    connections:
-                      items:
-                        type: string
-                      type: array
-                    dnat:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    name:
+                    connection:
                       type: string
-                    peers:
-                      items:
-                        type: string
-                      type: array
-                    vlan:
-                      type: integer
-                    vpc:
-                      description: VPCSpec defines the desired state of VPC
-                      properties:
-                        dhcp:
-                          properties:
-                            enable:
-                              type: boolean
-                            range:
-                              properties:
-                                end:
-                                  type: string
-                                start:
-                                  type: string
-                              type: object
-                          type: object
-                        dnatRequests:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        snat:
-                          type: boolean
-                        subnet:
-                          type: string
-                      type: object
-                  required:
-                  - connections
-                  - name
-                  - vlan
-                  - vpc
+                    subnet:
+                      type: string
                   type: object
-                type: array
+                type: object
+              vpcPeers:
+                additionalProperties:
+                  description: VPCPeeringSpec defines the desired state of VPCPeering
+                  properties:
+                    permit:
+                      items:
+                        additionalProperties:
+                          properties:
+                            subnets:
+                              items:
+                                type: string
+                              maxItems: 10
+                              minItems: 1
+                              type: array
+                          type: object
+                        type: object
+                      maxItems: 10
+                      minItems: 1
+                      type: array
+                  type: object
+                type: object
+              vpcs:
+                additionalProperties:
+                  description: VPCSpec defines the desired state of VPC
+                  properties:
+                    ipv4Namespace:
+                      type: string
+                    subnets:
+                      additionalProperties:
+                        properties:
+                          dhcp:
+                            properties:
+                              enable:
+                                type: boolean
+                              range:
+                                properties:
+                                  end:
+                                    type: string
+                                  start:
+                                    type: string
+                                type: object
+                            type: object
+                          subnet:
+                            type: string
+                          vlan:
+                            type: string
+                        type: object
+                      type: object
+                    vlanNamespace:
+                      type: string
+                  type: object
+                type: object
             type: object
           status:
             description: AgentStatus defines the observed state of Agent

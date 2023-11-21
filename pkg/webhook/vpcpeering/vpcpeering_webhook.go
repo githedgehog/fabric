@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,13 +18,15 @@ type VPCPeeringWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Validation validation.Client
+	Cfg        *config.Fabric
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
 	w := &VPCPeeringWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		Cfg:        cfg,
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -54,7 +57,7 @@ func (w *VPCPeeringWebhook) Default(ctx context.Context, obj runtime.Object) err
 func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	peering := obj.(*vpcapi.VPCPeering)
 
-	warns, err := peering.Validate(ctx, w.Validation)
+	warns, err := peering.Validate(ctx, w.Validation, w.Cfg.VPCPeeringDisabled)
 	if err != nil {
 		return warns, err
 	}
@@ -70,7 +73,7 @@ func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 		return nil, errors.Errorf("vpc peering is immutable")
 	}
 
-	warns, err := newPeering.Validate(ctx, w.Validation)
+	warns, err := newPeering.Validate(ctx, w.Validation, w.Cfg.VPCPeeringDisabled)
 	if err != nil {
 		return warns, err
 	}

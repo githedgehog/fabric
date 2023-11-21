@@ -3,7 +3,6 @@ package bcm
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net"
 	"strings"
 
@@ -11,7 +10,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/iputil"
 )
 
 const (
@@ -31,8 +29,6 @@ const (
 	VPC_ACL_ENTRY_VLAN_SHIFT           uint32 = 10000
 	VPC_ACL_ENTRY_DENY_ALL_VPC         uint32 = 30000
 	VPC_ACL_ENTRY_PERMIT_ANY           uint32 = 40000
-	VPC_DENY_ALL_SUBNET                       = "10.0.0.0/8" // TODO move to config
-	ROUTE_MAP_VPC_NO_ADVERTISE                = "vpc-no-advertise"
 	LO_SWITCH                                 = "Loopback0"
 	LO_PROTO                                  = "Loopback1"
 	LO_VTEP                                   = "Loopback2"
@@ -40,6 +36,7 @@ const (
 	VTEP_FABRIC                               = "vtepfabric"
 	EVPN_NVO                                  = "nvo1"
 	ANYCAST_MAC                               = "00:00:00:11:11:11"
+	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -121,32 +118,14 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		}
 	}
 
-	first, err := planMCLAGDomain(agent, spec)
+	_ /* first */, err = planMCLAGDomain(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan mclag domain")
 	}
 
-	if agent.IsCollapsedCore() {
-		slog.Info("Planning collapsed core",
-			"VPC backend", agent.Spec.Config.CollapsedCore.VPCBackend,
-			"SNAT allowed", agent.Spec.Config.CollapsedCore.SNATAllowed)
-
-		err = planCollapsedCoreVPCs(agent, spec, controlIface, first)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan Collapsed Core VPCs")
-		}
-
-		err = planCollapsedCoreNAT(agent, spec, first)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan Collapsed Core NAT")
-		}
-	} else if agent.IsSpineLeaf() {
-		slog.Info("Planning spine leaf")
-
-		err = planSpineLeafVPCs(agent, spec, controlIface)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan Spine Leaf VPCs")
-		}
+	err = planVPCs(agent, spec, controlIface)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan Spine Leaf VPCs")
 	}
 
 	spec.Normalize()
@@ -158,9 +137,9 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 	controlIface := ""
 	controlIP := ""
 	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.Management != nil {
-			controlIface = conn.Spec.Management.Link.Switch.LocalPortName()
-			controlIP = conn.Spec.Management.Link.Switch.IP
+		if conn.Management != nil {
+			controlIface = conn.Management.Link.Switch.LocalPortName()
+			controlIP = conn.Management.Link.Switch.IP
 			break
 		}
 	}
@@ -199,8 +178,8 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.Fabric != nil {
-			for _, link := range conn.Spec.Fabric.Links {
+		if conn.Fabric != nil {
+			for _, link := range conn.Fabric.Links {
 				mgmtIP := ""
 				iface := ""
 
@@ -288,12 +267,12 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
-	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.Fabric == nil {
+	for connName, conn := range agent.Spec.Connections {
+		if conn.Fabric == nil {
 			continue
 		}
 
-		for _, link := range conn.Spec.Fabric.Links {
+		for _, link := range conn.Fabric.Links {
 			port := ""
 			ipStr := ""
 			remote := ""
@@ -316,7 +295,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			if ipStr == "" {
-				return errors.Errorf("no IP found for fabric conn %s", conn.Name)
+				return errors.Errorf("no IP found for fabric conn %s", connName)
 			}
 
 			ip, ipNet, err := net.ParseCIDR(ipStr)
@@ -327,7 +306,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			spec.Interfaces[port] = &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, conn.Name)),
+				Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
 						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
@@ -336,7 +315,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			if peerSw, ok := agent.Spec.Switches[peer]; !ok {
-				return errors.Errorf("no switch found for peer %s (fabric conn %s)", peer, conn.Name)
+				return errors.Errorf("no switch found for peer %s (fabric conn %s)", peer, connName)
 			} else {
 				ip, _, err := net.ParseCIDR(peerIP)
 				if err != nil {
@@ -345,7 +324,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				spec.VRFs[VRF_DEFAULT].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 					Enabled:     boolPtr(true),
-					Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, conn.Name)),
+					Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
 					RemoteAS:    uint32Ptr(peerSw.ASN),
 					IPv4Unicast: boolPtr(true),
 					L2VPNEVPN:   boolPtr(true),
@@ -359,21 +338,21 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	// handle connections which should be configured as port channels
-	for _, conn := range agent.Spec.Connections {
+	for connName, conn := range agent.Spec.Connections {
 		connType := ""
 		var mtu *uint16
 		var links []wiringapi.ServerToSwitchLink
 
-		if conn.Spec.MCLAG != nil {
+		if conn.MCLAG != nil {
 			connType = "MCLAG"
-			if conn.Spec.MCLAG.MTU != 0 {
-				mtu = uint16Ptr(conn.Spec.MCLAG.MTU)
+			if conn.MCLAG.MTU != 0 {
+				mtu = uint16Ptr(conn.MCLAG.MTU)
 			}
-			links = conn.Spec.MCLAG.Links
-		} else if conn.Spec.Bundled != nil {
+			links = conn.MCLAG.Links
+		} else if conn.Bundled != nil {
 			connType = "Bundled"
 			// TODO MTU
-			links = conn.Spec.Bundled.Links
+			links = conn.Bundled.Links
 		} else {
 			continue
 		}
@@ -384,17 +363,17 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			portName := link.Switch.LocalPortName()
-			portChan := agent.Spec.PortChannels[conn.Name]
+			portChan := agent.Spec.PortChannels[connName]
 
 			if portChan == 0 {
-				return errors.Errorf("no port channel found for conn %s", conn.Name)
+				return errors.Errorf("no port channel found for conn %s", connName)
 			}
 
 			connPortChannelName := portChannelName(portChan)
 			connPortChannel := &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), conn.Name)),
-				TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
+				Description: stringPtr(fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), connName)),
+				TrunkVLANs:  []string{VPC_VLAN_RANGE}, // TODO change
 				MTU:         mtu,
 			}
 			spec.Interfaces[connPortChannelName] = connPortChannel
@@ -405,7 +384,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 
-			descr := fmt.Sprintf("PC%d %s %s %s", portChan, connType, link.Server.DeviceName(), conn.Name)
+			descr := fmt.Sprintf("PC%d %s %s %s", portChan, connType, link.Server.DeviceName(), connName)
 			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil)
 			if err != nil {
 				return errors.Wrapf(err, "failed to setup physical interface %s", portName)
@@ -414,21 +393,21 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	// handle non-portchannel connections
-	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.Unbundled == nil {
+	for connName, conn := range agent.Spec.Connections {
+		if conn.Unbundled == nil {
 			continue
 		}
 
-		if conn.Spec.Unbundled.Link.Switch.DeviceName() != agent.Name {
+		if conn.Unbundled.Link.Switch.DeviceName() != agent.Name {
 			continue
 		}
 
-		swPort := conn.Spec.Unbundled.Link.Switch
+		swPort := conn.Unbundled.Link.Switch
 
 		spec.Interfaces[swPort.LocalPortName()] = &dozer.SpecInterface{
 			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Spec.Unbundled.Link.Server.DeviceName(), conn.Name)),
-			TrunkVLANs:  []string{agent.Spec.VPCVLANRange},
+			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), connName)),
+			TrunkVLANs:  []string{VPC_VLAN_RANGE},
 			// MTU:         mtu,
 		}
 	}
@@ -502,9 +481,9 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	mclagSessionLinks := map[string]string{}
 	mclagPeerSwitch := ""
 	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.MCLAGDomain != nil {
+		if conn.MCLAGDomain != nil {
 			ok = true
-			for _, link := range conn.Spec.MCLAGDomain.PeerLinks {
+			for _, link := range conn.MCLAGDomain.PeerLinks {
 				if link.Switch1.DeviceName() == agent.Name {
 					mclagPeerLinks[link.Switch1.LocalPortName()] = link.Switch2.Port
 					mclagPeerSwitch = link.Switch2.DeviceName()
@@ -513,7 +492,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 					mclagPeerSwitch = link.Switch1.DeviceName()
 				}
 			}
-			for _, link := range conn.Spec.MCLAGDomain.SessionLinks {
+			for _, link := range conn.MCLAGDomain.SessionLinks {
 				if link.Switch1.DeviceName() == agent.Name {
 					mclagSessionLinks[link.Switch1.LocalPortName()] = link.Switch2.Port
 				} else if link.Switch2.DeviceName() == agent.Name {
@@ -621,309 +600,147 @@ func vpcVrfName(vpcName string) string {
 	return vrfName("V" + vpcName)
 }
 
-func isACLBackend(agent *agentapi.Agent) bool {
-	return agent.IsCollapsedCore() && agent.Spec.Config.CollapsedCore.VPCBackend == string(agentapi.VPCBackendACL)
-}
+// func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
+// 	if !isACLBackend(agent) && !isVRFBackend(agent) {
+// 		return errors.Errorf("unknown VPC backend %s", agent.Spec.Config.CollapsedCore.VPCBackend)
+// 	}
 
-func isVRFBackend(agent *agentapi.Agent) bool {
-	return agent.IsCollapsedCore() && agent.Spec.Config.CollapsedCore.VPCBackend == string(agentapi.VPCBackendVRF)
-}
+// 	if isVRFBackend(agent) {
+// 		// TODO switch to policy per VPC
+// 		spec.RouteMaps[ROUTE_MAP_VPC_NO_ADVERTISE] = &dozer.SpecRouteMap{
+// 			NoAdvertise: boolPtr(true),
+// 		}
+// 	}
 
-func filteredDNAT(dnatInfo map[string]string) map[string]string {
-	filtered := map[string]string{}
-	for key, value := range dnatInfo {
-		if strings.HasPrefix(value, "@") {
-			continue
-		}
+// 	for _, vpc := range agent.Spec.VPCs {
+// 		cidr, err := iputil.ParseCIDR(vpc.VPC.Subnet)
+// 		if err != nil {
+// 			return errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.VPC.Subnet, vpc.Name)
+// 		}
+// 		ip := cidr.Gateway.String()
+// 		prefixLen, _ := cidr.Subnet.Mask.Size()
 
-		filtered[key] = value
-	}
+// 		descr := fmt.Sprintf("VPC %s", vpc.Name)
+// 		vlanIfaceName, _, err := setupVLANInterfaceWithIP(spec, vpc.VLAN, ip, uint8(prefixLen), descr)
+// 		if err != nil {
+// 			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpc.Name)
+// 		}
 
-	return filtered
-}
+// 		if isACLBackend(agent) {
+// 			acl := &dozer.SpecACL{
+// 				Description: stringPtr(fmt.Sprintf("VPC %s ACL IN (VLAN %d)", vpc.Name, vpc.VLAN)),
+// 				Entries: map[uint32]*dozer.SpecACLEntry{
+// 					VPC_ACL_ENTRY_SEQ_SUBNET: {
+// 						Description:        stringPtr("Allow own subnet"),
+// 						Action:             dozer.SpecACLEntryActionAccept,
+// 						DestinationAddress: stringPtr(vpc.VPC.Subnet),
+// 					},
+// 					VPC_ACL_ENTRY_DENY_ALL_VPC: {
+// 						Description:        stringPtr("Deny all other VPCs"),
+// 						Action:             dozer.SpecACLEntryActionDrop,
+// 						DestinationAddress: stringPtr(VPC_DENY_ALL_SUBNET),
+// 					},
+// 				},
+// 			}
 
-func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
-	if !isACLBackend(agent) && !isVRFBackend(agent) {
-		return errors.Errorf("unknown VPC backend %s", agent.Spec.Config.CollapsedCore.VPCBackend)
-	}
+// 			if vpc.VPC.DHCP.Enable {
+// 				acl.Entries[VPC_ACL_ENTRY_SEQ_DHCP] = &dozer.SpecACLEntry{
+// 					Description:     stringPtr("Allow DHCP"),
+// 					Action:          dozer.SpecACLEntryActionAccept,
+// 					Protocol:        dozer.SpecACLEntryProtocolUDP,
+// 					SourcePort:      uint16Ptr(68),
+// 					DestinationPort: uint16Ptr(67),
+// 				}
+// 			}
 
-	if isVRFBackend(agent) {
-		// TODO switch to policy per VPC
-		spec.RouteMaps[ROUTE_MAP_VPC_NO_ADVERTISE] = &dozer.SpecRouteMap{
-			NoAdvertise: boolPtr(true),
-		}
-	}
+// 			if agent.Spec.Config.CollapsedCore.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
+// 				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
+// 					Description:   stringPtr("Allow any traffic (NAT)"),
+// 					Action:        dozer.SpecACLEntryActionAccept,
+// 					SourceAddress: stringPtr(vpc.VPC.Subnet),
+// 				}
+// 			}
 
-	for _, vpc := range agent.Spec.VPCs {
-		cidr, err := iputil.ParseCIDR(vpc.VPC.Subnet)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.VPC.Subnet, vpc.Name)
-		}
-		ip := cidr.Gateway.String()
-		prefixLen, _ := cidr.Subnet.Mask.Size()
+// 			aclName := aclName(vpc.VLAN)
+// 			spec.ACLs[aclName] = acl
+// 			spec.ACLInterfaces[vlanIfaceName] = &dozer.SpecACLInterface{
+// 				Ingress: stringPtr(aclName),
+// 			}
+// 		} else if isVRFBackend(agent) {
+// 			vrfName := vpcVrfName(vpc.Name)
 
-		descr := fmt.Sprintf("VPC %s", vpc.Name)
-		vlanIfaceName, _, err := setupVLANInterfaceWithIP(spec, vpc.VLAN, ip, uint8(prefixLen), descr)
-		if err != nil {
-			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpc.Name)
-		}
+// 			spec.VRFs[vrfName] = &dozer.SpecVRF{
+// 				Enabled: boolPtr(true),
+// 				// Description: stringPtr(fmt.Sprintf("VPC %s", vpc.Name)),
+// 				Interfaces: map[string]*dozer.SpecVRFInterface{
+// 					vlanIfaceName: {},
+// 				},
+// 				BGP: &dozer.SpecVRFBGP{
+// 					AS:                 uint32Ptr(agent.Spec.Switch.ASN),
+// 					NetworkImportCheck: boolPtr(true),
+// 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+// 						Enabled:    true,
+// 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+// 						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
+// 					},
+// 				},
+// 				TableConnections: map[string]*dozer.SpecVRFTableConnection{
+// 					dozer.SpecVRFBGPTableConnectionConnected: {
+// 						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
+// 					},
+// 					dozer.SpecVRFBGPTableConnectionStatic: {
+// 						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
+// 					},
+// 				},
+// 			}
+// 		}
 
-		if isACLBackend(agent) {
-			acl := &dozer.SpecACL{
-				Description: stringPtr(fmt.Sprintf("VPC %s ACL IN (VLAN %d)", vpc.Name, vpc.VLAN)),
-				Entries: map[uint32]*dozer.SpecACLEntry{
-					VPC_ACL_ENTRY_SEQ_SUBNET: {
-						Description:        stringPtr("Allow own subnet"),
-						Action:             dozer.SpecACLEntryActionAccept,
-						DestinationAddress: stringPtr(vpc.VPC.Subnet),
-					},
-					VPC_ACL_ENTRY_DENY_ALL_VPC: {
-						Description:        stringPtr("Deny all other VPCs"),
-						Action:             dozer.SpecACLEntryActionDrop,
-						DestinationAddress: stringPtr(VPC_DENY_ALL_SUBNET),
-					},
-				},
-			}
+// 		if vpc.VPC.DHCP.Enable {
+// 			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
+// 			if err != nil {
+// 				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpc.Name)
+// 			}
 
-			if vpc.VPC.DHCP.Enable {
-				acl.Entries[VPC_ACL_ENTRY_SEQ_DHCP] = &dozer.SpecACLEntry{
-					Description:     stringPtr("Allow DHCP"),
-					Action:          dozer.SpecACLEntryActionAccept,
-					Protocol:        dozer.SpecACLEntryProtocolUDP,
-					SourcePort:      uint16Ptr(68),
-					DestinationPort: uint16Ptr(67),
-				}
-			}
+// 			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
+// 				SourceInterface: stringPtr(controlIface),
+// 				RelayAddress:    []string{dhcpRelayIP.String()},
+// 				LinkSelect:      true,
+// 				VRFSelect:       isVRFBackend(agent),
+// 			}
+// 		}
+// 	}
 
-			if agent.Spec.Config.CollapsedCore.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
-				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
-					Description:   stringPtr("Allow any traffic (NAT)"),
-					Action:        dozer.SpecACLEntryActionAccept,
-					SourceAddress: stringPtr(vpc.VPC.Subnet),
-				}
-			}
+// 	for _, vpc := range agent.Spec.VPCs {
+// 		for _, peerVPCName := range vpc.Peers {
+// 			for _, peer := range agent.Spec.VPCs {
+// 				if peer.Name != peerVPCName {
+// 					continue
+// 				}
 
-			aclName := aclName(vpc.VLAN)
-			spec.ACLs[aclName] = acl
-			spec.ACLInterfaces[vlanIfaceName] = &dozer.SpecACLInterface{
-				Ingress: stringPtr(aclName),
-			}
-		} else if isVRFBackend(agent) {
-			vrfName := vpcVrfName(vpc.Name)
+// 				if isACLBackend(agent) {
+// 					spec.ACLs[aclName(peer.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(vpc.VLAN)] = &dozer.SpecACLEntry{
+// 						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", vpc.Name, vpc.VLAN)),
+// 						Action:             dozer.SpecACLEntryActionAccept,
+// 						DestinationAddress: stringPtr(vpc.VPC.Subnet),
+// 					}
 
-			spec.VRFs[vrfName] = &dozer.SpecVRF{
-				Enabled: boolPtr(true),
-				// Description: stringPtr(fmt.Sprintf("VPC %s", vpc.Name)),
-				Interfaces: map[string]*dozer.SpecVRFInterface{
-					vlanIfaceName: {},
-				},
-				BGP: &dozer.SpecVRFBGP{
-					AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-					NetworkImportCheck: boolPtr(true),
-					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-						Enabled:    true,
-						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
-						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
-					},
-				},
-				TableConnections: map[string]*dozer.SpecVRFTableConnection{
-					dozer.SpecVRFBGPTableConnectionConnected: {
-						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
-					},
-					dozer.SpecVRFBGPTableConnectionStatic: {
-						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
-					},
-				},
-			}
-		}
+// 					spec.ACLs[aclName(vpc.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(peer.VLAN)] = &dozer.SpecACLEntry{
+// 						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", peer.Name, peer.VLAN)),
+// 						Action:             dozer.SpecACLEntryActionAccept,
+// 						DestinationAddress: stringPtr(peer.VPC.Subnet),
+// 					}
+// 				} else if isVRFBackend(agent) {
+// 					spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(peer.Name)] = &dozer.SpecVRFBGPImportVRF{}
+// 					spec.VRFs[vpcVrfName(peer.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
+// 				}
+// 			}
+// 		}
+// 	}
 
-		if vpc.VPC.DHCP.Enable {
-			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpc.Name)
-			}
+// 	return nil
+// }
 
-			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
-				SourceInterface: stringPtr(controlIface),
-				RelayAddress:    []string{dhcpRelayIP.String()},
-				LinkSelect:      true,
-				VRFSelect:       isVRFBackend(agent),
-			}
-		}
-	}
-
-	for _, vpc := range agent.Spec.VPCs {
-		for _, peerVPCName := range vpc.Peers {
-			for _, peer := range agent.Spec.VPCs {
-				if peer.Name != peerVPCName {
-					continue
-				}
-
-				if isACLBackend(agent) {
-					spec.ACLs[aclName(peer.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(vpc.VLAN)] = &dozer.SpecACLEntry{
-						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", vpc.Name, vpc.VLAN)),
-						Action:             dozer.SpecACLEntryActionAccept,
-						DestinationAddress: stringPtr(vpc.VPC.Subnet),
-					}
-
-					spec.ACLs[aclName(vpc.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(peer.VLAN)] = &dozer.SpecACLEntry{
-						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", peer.Name, peer.VLAN)),
-						Action:             dozer.SpecACLEntryActionAccept,
-						DestinationAddress: stringPtr(peer.VPC.Subnet),
-					}
-				} else if isVRFBackend(agent) {
-					spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(peer.Name)] = &dozer.SpecVRFBGPImportVRF{}
-					spec.VRFs[vpcVrfName(peer.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func planCollapsedCoreNAT(agent *agentapi.Agent, spec *dozer.Spec, firstSwitch bool) error {
-	var natConn *wiringapi.ConnNAT
-	for _, conn := range agent.Spec.Connections {
-		if conn.Spec.NAT != nil && conn.Spec.NAT.Link.Switch.DeviceName() == agent.Name {
-			if conn.Spec.NAT.Link.NAT.Port != "default" {
-				return errors.Errorf("only default NAT is supported")
-			}
-			natConn = conn.Spec.NAT
-			break
-		}
-	}
-
-	if natConn == nil || agent.Spec.NAT.Subnet == "" {
-		return nil
-	}
-
-	sw := natConn.Link.Switch
-	ip, ipNet, err := net.ParseCIDR(sw.IP)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse external interface ip %s", sw.IP)
-	}
-	ipPrefixLen, _ := ipNet.Mask.Size()
-
-	cidr, err := iputil.ParseCIDR(agent.Spec.NAT.Subnet)
-	if err != nil {
-		return errors.Wrapf(err, "cannot parse NAT subnet %s", agent.Spec.NAT.Subnet)
-	}
-	subnetPrefixLen, _ := cidr.Subnet.Mask.Size()
-
-	publicIface := sw.LocalPortName()
-	natName := natConn.Link.NAT.Port
-	natVRF := VRF_DEFAULT // NAT is only supported in the default VRF
-
-	spec.Interfaces[publicIface] = &dozer.SpecInterface{
-		Description: stringPtr(fmt.Sprintf("NAT external %s", natName)),
-		Enabled:     boolPtr(true),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			ip.String(): {
-				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
-			},
-		},
-		NATZone: uint8Ptr(NAT_ZONE_EXTERNAL),
-	}
-
-	anchorVLANIface := vlanName(NAT_ANCHOR_VLAN)
-	spec.Interfaces[anchorVLANIface] = &dozer.SpecInterface{
-		Description: stringPtr(fmt.Sprintf("NAT anchor %s", natName)),
-		Enabled:     boolPtr(false),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			cidr.Gateway.String(): {
-				VLAN:      true,
-				PrefixLen: uint8Ptr(uint8(subnetPrefixLen)),
-			},
-		},
-		NATZone: uint8Ptr(NAT_ZONE_EXTERNAL),
-	}
-
-	networks := map[string]*dozer.SpecVRFBGPNetwork{}
-	if agent.Spec.Config.CollapsedCore.SNATAllowed {
-		for _, network := range natConn.Link.Switch.SNAT.Pool {
-			networks[network] = &dozer.SpecVRFBGPNetwork{}
-		}
-	}
-
-	static := map[string]*dozer.SpecNATEntry{}
-
-	if isACLBackend(agent) || isVRFBackend(agent) && firstSwitch {
-		for _, vpcInfo := range agent.Spec.VPCs {
-			for internalIP, externalIP := range filteredDNAT(vpcInfo.DNAT) {
-				static[externalIP] = &dozer.SpecNATEntry{
-					InternalAddress: stringPtr(internalIP),
-					Type:            dozer.SpecNATTypeDNAT,
-				}
-				networks[externalIP+"/32"] = &dozer.SpecVRFBGPNetwork{}
-			}
-		}
-	}
-
-	vrf := &dozer.SpecVRF{
-		Enabled:    boolPtr(true),
-		Interfaces: map[string]*dozer.SpecVRFInterface{},
-		BGP: &dozer.SpecVRFBGP{
-			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-			NetworkImportCheck: boolPtr(false),
-			Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{
-				sw.NeighborIP: {
-					Enabled:     boolPtr(true),
-					Description: stringPtr(fmt.Sprintf("NAT %s", natName)),
-					RemoteAS:    uint32Ptr(sw.RemoteAS),
-					IPv4Unicast: boolPtr(true),
-				},
-			},
-			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-				Enabled:    true,
-				Networks:   networks,
-				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
-			},
-		},
-	}
-
-	if isVRFBackend(agent) && firstSwitch {
-		for _, vpc := range agent.Spec.VPCs {
-			if agent.Spec.Config.CollapsedCore.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
-				spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[natVRF] = &dozer.SpecVRFBGPImportVRF{}
-				vrf.BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
-			}
-		}
-	}
-
-	spec.VRFs[natVRF] = vrf
-
-	pools := map[string]*dozer.SpecNATPool{}
-	bindings := map[string]*dozer.SpecNATBinding{}
-
-	if agent.Spec.Config.CollapsedCore.SNATAllowed {
-		for idx, cidr := range natConn.Link.Switch.SNAT.Pool {
-			first, last, err := iputil.Range(cidr)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse nat pool cidr %d %s", idx, cidr)
-			}
-
-			name := fmt.Sprintf("%s-%d", natName, idx)
-			pools[name] = &dozer.SpecNATPool{
-				Range: stringPtr(fmt.Sprintf("%s-%s", first, last)),
-			}
-			bindings[name] = &dozer.SpecNATBinding{
-				Pool: stringPtr(name),
-			}
-		}
-	}
-
-	spec.NATs[NAT_INSTANCE_ID] = &dozer.SpecNAT{
-		Enable:   boolPtr(true),
-		Pools:    pools,
-		Bindings: bindings,
-		Static:   static,
-	}
-
-	return nil
-}
-
-func planSpineLeafVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
 	// TODO
 	return nil
 }

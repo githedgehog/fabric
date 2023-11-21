@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
-	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -67,10 +66,13 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, v
 		Version: version,
 	}
 
+	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
-		Watches(&vpcapi.VPCSummary{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
+		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Complete(r)
 }
 
@@ -99,33 +101,25 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 	return res
 }
 
-// func (r *AgentReconciler) enqueueSwitchForRack(obj client.Object) []reconcile.Request {
-// 	switches := &wiringapi.SwitchList{}
-// 	selector, err := labels.ValidatedSelectorFromSet(map[string]string{
-// 		wiringapi.LabelRack: obj.GetName(),
-// 	})
-// 	if err != nil {
-// 		// return ctrl.Result{}, errors.Wrapf(err, "error creating switch selector")
-// 		panic("error creating switch selector") // TODO replace with log error
-// 	}
-// 	err = r.List(context.TODO(), switches, client.InNamespace(obj.GetNamespace()), client.MatchingLabelsSelector{
-// 		Selector: selector,
-// 	})
-// 	if err != nil {
-// 		// return ctrl.Result{}, errors.Wrapf(err, "error getting switches")
-// 		panic("error getting switches") // TODO replace with log error
-// 	}
+func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) []reconcile.Request {
+	res := []reconcile.Request{}
 
-// 	requests := []reconcile.Request{}
-// 	for _, sw := range switches.Items {
-// 		requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{
-// 			Namespace: obj.GetNamespace(),
-// 			Name:      sw.Name,
-// 		}})
-// 	}
+	sws := &wiringapi.SwitchList{}
+	err := r.List(ctx, sws, client.InNamespace(obj.GetNamespace()))
+	if err != nil {
+		log.FromContext(ctx).Error(err, "error listing switches to reconcile all")
+		return res
+	}
 
-// 	return requests
-// }
+	for _, sw := range sws.Items {
+		res = append(res, reconcile.Request{NamespacedName: types.NamespacedName{
+			Namespace: sw.Namespace,
+			Name:      sw.Name,
+		}})
+	}
+
+	return res
+}
 
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/status,verbs=get;get;list;watch;create;update;patch;delete
@@ -134,14 +128,17 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers/status,verbs=get;update;patch
-
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=nats,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=nats/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -154,9 +151,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	sw := &wiringapi.Switch{}
 	err := r.Get(ctx, req.NamespacedName, sw)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
 
+	// TODO impl
 	statusUpdates := appendUpdate(nil, sw)
 
 	switchNsName := metav1.ObjectMeta{Name: sw.Name, Namespace: sw.Namespace}
@@ -174,15 +175,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
+	conns := map[string]wiringapi.ConnectionSpec{}
+	for _, conn := range connList.Items {
+		conns[conn.Name] = conn.Spec
+	}
+
 	neighborSwitches := map[string]bool{}
 	mclagPeerName := ""
-	conns := []agentapi.ConnectionInfo{}
 	for _, conn := range connList.Items {
-		conns = append(conns, agentapi.ConnectionInfo{
-			Name: conn.Name,
-			Spec: conn.Spec,
-		})
-
 		sws, _, _, _, err := conn.Spec.Endpoints()
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "error getting endpoints for connection %s", conn.Name)
@@ -190,8 +190,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		for _, sw := range sws {
 			neighborSwitches[sw] = true
 		}
-
-		statusUpdates = appendUpdate(statusUpdates, &conn)
 
 		if conn.Spec.MCLAGDomain != nil {
 			// TODO add some helpers
@@ -204,9 +202,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			}
 		}
 	}
-	sort.Slice(conns, func(i, j int) bool {
-		return conns[i].Name < conns[j].Name
-	})
 
 	switchList := &wiringapi.SwitchList{}
 	err = r.List(ctx, switchList, client.InNamespace(sw.Namespace))
@@ -222,33 +217,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		switches[sw.Name] = sw.Spec
 	}
 
-	// TODO always provision all VPCs to all switches
-	vpcs := []vpcapi.VPCSummarySpec{}
-	vpcSummaries := &vpcapi.VPCSummaryList{}
-	err = r.List(ctx, vpcSummaries, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting switch vpc summaries")
-	}
-	for _, vpcSummary := range vpcSummaries.Items {
-		vpcs = append(vpcs, vpcSummary.Spec)
-
-		// TODO do we need to update VPCSummary status?
-		statusUpdates = appendUpdate(statusUpdates, &vpcSummary)
-		statusUpdates = appendUpdate(statusUpdates, &vpcapi.VPC{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: vpcapi.GroupVersion.String(),
-				Kind:       "VPC",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vpcSummary.Name,
-				Namespace: vpcSummary.Namespace,
-			},
-		})
-	}
-	sort.Slice(vpcs, func(i, j int) bool {
-		return vpcs[i].Name < vpcs[j].Name
-	})
-
 	// handle MCLAG things if we see a peer switch
 	// We only support MCLAG switch pairs for now
 	// It means that 2 switches would have the same MCLAG connections and same set of PortChannels
@@ -261,10 +229,77 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	nat := &vpcapi.NAT{}
-	err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: "default"}, nat) // TODO support multiple NATs
-	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting NAT")
+	// TODO optimize by only getting related VPC attachments
+	attaches := map[string]vpcapi.VPCAttachmentSpec{}
+	attachedSubnets := map[string]bool{}
+	attachList := &vpcapi.VPCAttachmentList{}
+	err = r.List(ctx, attachList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments")
+	}
+	for _, attach := range attachList.Items {
+		if _, exists := conns[attach.Spec.Connection]; !exists {
+			continue
+		}
+
+		attaches[attach.Name] = attach.Spec
+		attachedSubnets[attach.Spec.Subnet] = true
+	}
+
+	vpcs := map[string]vpcapi.VPCSpec{}
+	vpcList := &vpcapi.VPCList{}
+	err = r.List(ctx, vpcList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
+	}
+	for _, vpc := range vpcList.Items {
+		ok := false
+		for subnetName := range vpc.Spec.Subnets {
+			if attachedSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
+				ok = true
+				break
+			}
+		}
+		if ok {
+			vpcs[vpc.Name] = vpc.Spec
+		}
+	}
+
+	// TODO only query for related peers
+	peers := map[string]vpcapi.VPCPeeringSpec{}
+	peerList := &vpcapi.VPCPeeringList{}
+	peeredVPCs := map[string]bool{}
+	err = r.List(ctx, peerList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc peerings")
+	}
+	for _, peer := range peerList.Items {
+		vpc1, vpc2, err := peer.Spec.VPCs()
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", peer.Name)
+		}
+
+		_, exists1 := vpcs[vpc1]
+		_, exists2 := vpcs[vpc2]
+
+		if exists1 || exists2 {
+			peers[peer.Name] = peer.Spec
+			peeredVPCs[vpc1] = true
+			peeredVPCs[vpc2] = true
+		}
+	}
+
+	vnis := map[string]uint32{}
+	for _, vpc := range vpcList.Items {
+		if _, exists := peeredVPCs[vpc.Name]; !exists {
+			continue
+		}
+
+		vnis[vpc.Name] = vpc.Status.VNI
+
+		for subnetName := range vpc.Spec.Subnets {
+			vnis[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] = vpc.Status.SubnetVNIs[subnetName]
+		}
 	}
 
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
@@ -272,40 +307,35 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Labels = sw.Labels
 		agent.Spec.Role = sw.Spec.Role
 		agent.Spec.Description = sw.Spec.Description
-		agent.Spec.Config.ControlVIP = r.Cfg.ControlVIP
-		agent.Spec.Config.VS = r.Cfg.VS
+
 		agent.Spec.Switch = sw.Spec
 		agent.Spec.Switches = switches
 		agent.Spec.Connections = conns
 		agent.Spec.VPCs = vpcs
-		agent.Spec.VPCVLANRange = fmt.Sprintf("%d..%d", r.Cfg.VPCVLANRange.Min, r.Cfg.VPCVLANRange.Max)
+		agent.Spec.VPCAttachments = attaches
+		agent.Spec.VPCPeers = peers
+		agent.Spec.VNIs = vnis
 		agent.Spec.Users = r.Cfg.Users
+
 		agent.Spec.Version.Default = r.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
+
 		agent.Spec.StatusUpdates = statusUpdates
 
+		agent.Spec.Config = agentapi.AgentSpecConfig{
+			ControlVIP: r.Cfg.ControlVIP,
+			VS:         r.Cfg.VS,
+		}
 		if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
-			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{
-				VPCBackend:  r.Cfg.VPCBackend,
-				SNATAllowed: r.Cfg.SNATAllowed,
-			}
-			agent.Spec.Config.SpineLeaf = nil
+			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
 		} else if r.Cfg.FabricMode == config.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
-			agent.Spec.Config.CollapsedCore = nil
 		}
 
 		agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating port channels")
-		}
-
-		agent.Spec.NAT = nat.Spec
-
-		// tmp hack to make sure we aren't failing on dnatPool being required
-		if agent.Spec.NAT.DNATPool == nil {
-			agent.Spec.NAT.DNATPool = []string{}
 		}
 
 		return nil
@@ -414,60 +444,60 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav
 	return nil, nil
 }
 
-func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns []agentapi.ConnectionInfo) (map[string]uint16, error) {
+func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec) (map[string]uint16, error) {
 	portChannels := map[string]uint16{}
 
 	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
-	for _, conn := range conns {
-		if conn.Spec.MCLAG != nil {
+	for connName, connSpec := range conns {
+		if connSpec.MCLAG != nil {
 			if peer == nil {
-				slog.Warn("MCLAG connection has no peer", "conn", conn.Name, "switch", agent.Name)
+				slog.Warn("MCLAG connection has no peer", "conn", connName, "switch", agent.Name)
 				continue
 			}
 
-			pc1 := agent.Spec.PortChannels[conn.Name]
-			pc2 := peer.Spec.PortChannels[conn.Name]
+			pc1 := agent.Spec.PortChannels[connName]
+			pc2 := peer.Spec.PortChannels[connName]
 
 			if pc1 == 0 && pc2 == 0 {
 				continue
 			}
 
 			if pc1 != 0 && pc2 != 0 && pc1 != pc2 {
-				return nil, errors.Errorf("port channel mismatch for conn %s on %s and %s", conn.Name, agent.Name, peer.Name)
+				return nil, errors.Errorf("port channel mismatch for conn %s on %s and %s", connName, agent.Name, peer.Name)
 			}
 
 			if pc1 != 0 {
 				if pc1 < PORT_CHAN_MIN || pc1 > PORT_CHAN_MAX {
-					return nil, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[conn.Name], conn.Name, agent.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
+					return nil, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[connName], connName, agent.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
 				}
 				if taken[pc1-PORT_CHAN_MIN] {
-					return nil, errors.Errorf("port channel %d for conn %s assigned on %s is already taken", pc2, conn.Name, agent.Name)
+					return nil, errors.Errorf("port channel %d for conn %s assigned on %s is already taken", pc2, connName, agent.Name)
 				}
 
-				portChannels[conn.Name] = pc1
+				portChannels[connName] = pc1
 			}
 			if pc2 != 0 {
 				if pc2 < PORT_CHAN_MIN || pc2 > PORT_CHAN_MAX {
-					return nil, errors.Errorf("port channel %d for conn %s on peer %s is out of range %d..%d", portChannels[conn.Name], conn.Name, peer.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
+					return nil, errors.Errorf("port channel %d for conn %s on peer %s is out of range %d..%d", portChannels[connName], connName, peer.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
 				}
 				if taken[pc2-PORT_CHAN_MIN] {
-					return nil, errors.Errorf("port channel %d for conn %s assigned on peer %s is already taken", pc2, conn.Name, peer.Name)
+					return nil, errors.Errorf("port channel %d for conn %s assigned on peer %s is already taken", pc2, connName, peer.Name)
 				}
 
-				portChannels[conn.Name] = pc2
+				portChannels[connName] = pc2
 			}
 
-			taken[portChannels[conn.Name]-PORT_CHAN_MIN] = true
-		} else if conn.Spec.Bundled != nil {
-			pc := agent.Spec.PortChannels[conn.Name]
+			taken[portChannels[connName]-PORT_CHAN_MIN] = true
+		} else if connSpec.Bundled != nil {
+			pc := agent.Spec.PortChannels[connName]
 			if pc == 0 {
 				continue
 			}
 
 			if taken[pc-PORT_CHAN_MIN] {
-				return nil, errors.Errorf("port channel %d for conn %s on %s is already taken", portChannels[conn.Name], conn.Name, agent.Name)
+				return nil, errors.Errorf("port channel %d for conn %s on %s is already taken", portChannels[connName], connName, agent.Name)
 			}
-			portChannels[conn.Name] = pc
+			portChannels[connName] = pc
 
 			taken[pc-PORT_CHAN_MIN] = true
 		}
@@ -484,22 +514,22 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 		}
 	}
 
-	for _, conn := range conns {
-		if conn.Spec.MCLAG != nil || conn.Spec.Bundled != nil {
-			if portChannels[conn.Name] != 0 {
+	for connName, connSpec := range conns {
+		if connSpec.MCLAG != nil || connSpec.Bundled != nil {
+			if portChannels[connName] != 0 {
 				continue
 			}
 
 			for i := PORT_CHAN_MIN; i <= PORT_CHAN_MAX; i++ {
 				if !taken[i-PORT_CHAN_MIN] {
-					portChannels[conn.Name] = uint16(i)
+					portChannels[connName] = uint16(i)
 					taken[i-PORT_CHAN_MIN] = true
 					break
 				}
 			}
 
-			if portChannels[conn.Name] == 0 {
-				return nil, errors.Errorf("no port channel available for conn %s on %s", conn.Name, agent.Name)
+			if portChannels[connName] == 0 {
+				return nil, errors.Errorf("no port channel available for conn %s on %s", connName, agent.Name)
 			}
 		}
 	}
