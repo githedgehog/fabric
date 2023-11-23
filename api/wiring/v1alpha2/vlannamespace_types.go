@@ -52,6 +52,8 @@ type VLANNamespace struct {
 	Status VLANNamespaceStatus `json:"status,omitempty"`
 }
 
+const KindVLANNamespace = "VLANNamespace"
+
 //+kubebuilder:object:root=true
 
 // VLANNamespaceList contains a list of VLANNamespace

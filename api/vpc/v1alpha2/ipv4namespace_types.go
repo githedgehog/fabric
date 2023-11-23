@@ -56,6 +56,8 @@ type IPv4Namespace struct {
 	Status IPv4NamespaceStatus `json:"status,omitempty"`
 }
 
+const KindIPv4Namespace = "IPv4Namespace"
+
 //+kubebuilder:object:root=true
 
 // IPv4NamespaceList contains a list of IPv4Namespace
