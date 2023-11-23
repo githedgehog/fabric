@@ -220,8 +220,8 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 		}
 		nextHops := []networkdNextHop{}
 
-		// Chain link only for VS or non Management ports as mgmt <> front panel doesn't work on real switches
-		if r.Cfg.VS || !strings.HasPrefix(swPort, "Management") {
+		// Chain link only for non Management ports as mgmt <> front panel doesn't work on real switches
+		if !strings.HasPrefix(swPort, "Management") {
 			for _, ip := range chainSwitchIPs {
 				routes = append(routes, networkdRoute{
 					Destination: ip,

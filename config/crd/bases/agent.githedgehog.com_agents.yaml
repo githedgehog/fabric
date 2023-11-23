@@ -96,8 +96,6 @@ spec:
                     type: object
                   vpcPeeringDisabled:
                     type: boolean
-                  vs:
-                    type: boolean
                 type: object
               connections:
                 additionalProperties:

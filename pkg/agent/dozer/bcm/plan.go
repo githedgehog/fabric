@@ -422,7 +422,7 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	maxPaths := uint32(64)
-	if agent.Spec.Config.VS {
+	if agent.Spec.IsVS() {
 		maxPaths = 16
 	}
 

@@ -27,7 +27,6 @@ type Fabric struct {
 	DHCPDConfigMap       string               `json:"dhcpdConfigMap,omitempty"`
 	DHCPDConfigKey       string               `json:"dhcpdConfigKey,omitempty"`
 	FabricMode           FabricMode           `json:"fabricMode,omitempty"`
-	VS                   bool                 `json:"vs,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }

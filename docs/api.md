@@ -77,7 +77,6 @@ _Appears in:_
 | `vpcPeeringDisabled` _boolean_ |  |
 | `collapsedCore` _[AgentSpecConfigCollapsedCore](#agentspecconfigcollapsedcore)_ |  |
 | `spineLeaf` _[AgentSpecConfigSpineLeaf](#agentspecconfigspineleaf)_ |  |
-| `vs` _boolean_ |  |
 
 
 #### AgentSpecConfigCollapsedCore

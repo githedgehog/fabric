@@ -53,7 +53,6 @@ type AgentSpecConfig struct {
 	VPCPeeringDisabled bool                          `json:"vpcPeeringDisabled,omitempty"`
 	CollapsedCore      *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
 	SpineLeaf          *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
-	VS                 bool                          `json:"vs,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}
@@ -162,4 +161,9 @@ type AgentList struct {
 
 func init() {
 	SchemeBuilder.Register(&Agent{}, &AgentList{})
+}
+
+// TODO replace with real profile, temp hack
+func (s *AgentSpec) IsVS() bool {
+	return s.Switch.Profile == "vs"
 }

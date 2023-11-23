@@ -325,7 +325,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		agent.Spec.Config = agentapi.AgentSpecConfig{
 			ControlVIP: r.Cfg.ControlVIP,
-			VS:         r.Cfg.VS,
 		}
 		if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
