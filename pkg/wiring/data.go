@@ -44,25 +44,30 @@ func New(objs ...metav1.Object) (*Data, error) {
 
 func (d *Data) Add(objs ...metav1.Object) error {
 	for _, obj := range objs {
+		var err error
 		switch typed := obj.(type) {
 		case *wiringapi.Rack:
-			d.Rack.Add(typed)
+			err = d.Rack.Add(typed)
 		case *wiringapi.Switch:
-			d.Switch.Add(typed)
+			err = d.Switch.Add(typed)
 		case *wiringapi.Server:
-			d.Server.Add(typed)
+			err = d.Server.Add(typed)
 		case *wiringapi.Connection:
-			d.Connection.Add(typed)
+			err = d.Connection.Add(typed)
 		case *wiringapi.SwitchProfile:
-			d.SwitchProfile.Add(typed)
+			err = d.SwitchProfile.Add(typed)
 		case *wiringapi.ServerProfile:
-			d.ServerProfile.Add(typed)
+			err = d.ServerProfile.Add(typed)
 		case *vpcapi.IPv4Namespace:
-			d.IPv4Namespaces.Add(typed)
+			err = d.IPv4Namespaces.Add(typed)
 		case *wiringapi.VLANNamespace:
-			d.VLANNamespace.Add(typed)
+			err = d.VLANNamespace.Add(typed)
 		default:
 			return errors.Errorf("unrecognized obj type")
+		}
+
+		if err != nil {
+			return errors.Wrap(err, "error adding object")
 		}
 	}
 
@@ -79,8 +84,14 @@ func NewStore[T metav1.Object]() *Store[T] {
 	}
 }
 
-func (s *Store[T]) Add(item T) {
+func (s *Store[T]) Add(item T) error {
+	if _, exists := s.m[item.GetName()]; exists {
+		return errors.Errorf("duplicate item %s", item.GetName())
+	}
+
 	s.m[item.GetName()] = item
+
+	return nil
 }
 
 func (s *Store[T]) Get(name string) T {

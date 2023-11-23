@@ -33,14 +33,18 @@ func init() {
 var decoder runtime.Decoder
 
 // TODO report list of files/sources
-func LoadDataFrom(from string) (*Data, error) {
-	data, err := New()
-	if err != nil {
-		return nil, err
+func LoadDataFrom(from string, data *Data) error {
+	var err error
+	if data == nil {
+		data, err = New()
+		if err != nil {
+			return err
+		}
+
 	}
 
 	if from == "-" {
-		return data, errors.Wrap(Load(os.Stdin, data), "error loading from stdin")
+		return errors.Wrap(Load(os.Stdin, data), "error loading from stdin")
 	}
 
 	fromFile := "."
@@ -54,10 +58,10 @@ func LoadDataFrom(from string) (*Data, error) {
 	f := os.DirFS(from)
 	err = LoadDir(f, fromFile, data)
 	if err != nil {
-		return nil, errors.Wrap(err, "error loading dir")
+		return errors.Wrap(err, "error loading dir")
 	}
 
-	return data, nil
+	return nil
 }
 
 func LoadDir(f fs.FS, root string, data *Data) error {
