@@ -83,7 +83,7 @@ jobs:
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running make
       - name: Make all (autogeneration) and fail on dirty
         run: |
-          make manifests generate api-samples docs
+          make generate manifests docs api
           git status --short
           git diff --quiet
 
