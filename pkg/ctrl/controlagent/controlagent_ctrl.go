@@ -183,6 +183,21 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 	}
 
 	for _, conn := range conns.Items {
+		if conn.Spec.Fabric == nil {
+			continue
+		}
+
+		for _, link := range conn.Spec.Fabric.Links {
+			// if leaf is directly attached, we're adding spine side of the link
+			if direct[link.Leaf.DeviceName()] {
+				chainSwitchIPs = append(chainSwitchIPs, link.Spine.IP)
+			} else { // if leaf is not directly attached, we're adding leaf side of the link
+				chainSwitchIPs = append(chainSwitchIPs, link.Leaf.IP)
+			}
+		}
+	}
+
+	for _, conn := range conns.Items {
 		if conn.Spec.Management == nil {
 			continue
 		}
@@ -220,7 +235,7 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 		}
 		nextHops := []networkdNextHop{}
 
-		// Chain link only for non Management ports as mgmt <> front panel doesn't work on real switches
+		// enable chain link only for non Management ports as mgmt <> front panel doesn't work on real switches
 		if !strings.HasPrefix(swPort, "Management") {
 			for _, ip := range chainSwitchIPs {
 				routes = append(routes, networkdRoute{
