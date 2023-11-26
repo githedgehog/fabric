@@ -272,22 +272,20 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		return errors.Wrapf(err, "failed to marshal desired spec")
 	}
 
-	// TODO save last desired state
-	// err = os.WriteFile("desired.yaml", desiredData, 0o644)
-	// if err != nil {
-	// 	return errors.Wrapf(err, "failed to write desired spec")
-	// }
+	err = os.WriteFile(filepath.Join(svc.Basedir, "last-desired.yaml"), desiredData, 0o644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write desired spec")
+	}
 
 	actualData, err := actual.MarshalYAML()
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal actual spec")
 	}
 
-	// TODO save last actual state
-	// err = os.WriteFile("actual.yaml", actualData, 0o644)
-	// if err != nil {
-	// 	return errors.Wrapf(err, "failed to write actual spec")
-	// }
+	err = os.WriteFile(filepath.Join(svc.Basedir, "last-actual.yaml"), actualData, 0o644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write actual spec")
+	}
 
 	diff, err := dozer.SpecTextDiff(actualData, desiredData)
 	if err != nil {

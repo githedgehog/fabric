@@ -328,7 +328,7 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 		actionType := ActionTypeUpdate
 
 		// use replace if not creating and replacing is not disabled
-		if !actual.IsNil() && !h.NoReplace {
+		if !actual.IsNil() && !h.NoReplace && !h.RecreateOnUpdate {
 			actionType = ActionTypeReplace
 		}
 

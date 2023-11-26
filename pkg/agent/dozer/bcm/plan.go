@@ -53,7 +53,10 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		Users:           map[string]*dozer.SpecUser{},
 		VRFs: map[string]*dozer.SpecVRF{
 			VRF_DEFAULT: { // default VRF is always present
-				Enabled: boolPtr(true),
+				Enabled:          boolPtr(true),
+				Interfaces:       map[string]*dozer.SpecVRFInterface{},
+				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
+				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
 			},
 		},
 		RouteMaps:     map[string]*dozer.SpecRouteMap{},
@@ -75,7 +78,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		}
 	}
 
-	controlIface, err := planManagementInterface(agent, spec)
+	controlIface, err := planControlLink(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan management interface")
 	}
@@ -133,21 +136,33 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	return spec, nil
 }
 
-func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, error) {
+func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) (string, error) {
+	direct := false
 	controlIface := ""
 	controlIP := ""
+	otherIP := ""
 	for _, conn := range agent.Spec.Connections {
 		if conn.Management != nil {
+			direct = true
 			controlIface = conn.Management.Link.Switch.LocalPortName()
 			controlIP = conn.Management.Link.Switch.IP
+			otherIP = conn.Management.Link.Server.IP
 			break
 		}
 	}
+
+	if !direct {
+		return "", nil
+	}
+
 	if controlIface == "" {
 		return "", errors.Errorf("no control interface found")
 	}
 	if controlIP == "" {
 		return "", errors.Errorf("no control IP found")
+	}
+	if otherIP == "" {
+		return "", errors.Errorf("no other IP found")
 	}
 
 	ip, ipNet, err := net.ParseCIDR(controlIP)
@@ -157,13 +172,30 @@ func planManagementInterface(agent *agentapi.Agent, spec *dozer.Spec) (string, e
 	prefixLen, _ := ipNet.Mask.Size()
 
 	spec.Interfaces[controlIface] = &dozer.SpecInterface{
-		Description: stringPtr("Control interface"),
+		Description: stringPtr("Control interface direct"),
 		Enabled:     boolPtr(true),
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			ip.String(): {
 				PrefixLen: uint8Ptr(uint8(prefixLen)),
 			},
 		},
+	}
+
+	if !strings.HasPrefix(controlIface, "Management") {
+		ip, _, err = net.ParseCIDR(otherIP)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to parse other IP %s", otherIP)
+		}
+
+		controlVIP := agent.Spec.Config.ControlVIP
+		spec.VRFs[VRF_DEFAULT].StaticRoutes[controlVIP] = &dozer.SpecVRFStaticRoute{
+			NextHops: []dozer.SpecVRFStaticRouteNextHop{
+				{
+					IP:        ip.String(),
+					Interface: stringPtr(controlIface),
+				},
+			},
+		}
 	}
 
 	return controlIface, nil
@@ -426,28 +458,24 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		maxPaths = 16
 	}
 
-	spec.VRFs[VRF_DEFAULT] = &dozer.SpecVRF{
-		Enabled:    boolPtr(true),
-		Interfaces: map[string]*dozer.SpecVRFInterface{},
-		AnycastMAC: stringPtr(ANYCAST_MAC),
-		BGP: &dozer.SpecVRFBGP{
-			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-			RouterID:           stringPtr(ip.String()),
-			NetworkImportCheck: boolPtr(true), // default
-			Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
-			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-				Enabled:  true,
-				MaxPaths: uint32Ptr(maxPaths),
-			},
-			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-				Enabled:         true,
-				AdvertiseAllVNI: boolPtr(true),
-			},
+	spec.VRFs[VRF_DEFAULT].AnycastMAC = stringPtr(ANYCAST_MAC)
+	spec.VRFs[VRF_DEFAULT].BGP = &dozer.SpecVRFBGP{
+		AS:                 uint32Ptr(agent.Spec.Switch.ASN),
+		RouterID:           stringPtr(ip.String()),
+		NetworkImportCheck: boolPtr(true), // default
+		Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
+		IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+			Enabled:  true,
+			MaxPaths: uint32Ptr(maxPaths),
 		},
-		TableConnections: map[string]*dozer.SpecVRFTableConnection{
-			dozer.SpecVRFBGPTableConnectionConnected: {},
-			dozer.SpecVRFBGPTableConnectionStatic:    {},
+		L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
+			Enabled:         true,
+			AdvertiseAllVNI: boolPtr(true),
 		},
+	}
+	spec.VRFs[VRF_DEFAULT].TableConnections = map[string]*dozer.SpecVRFTableConnection{
+		dozer.SpecVRFBGPTableConnectionConnected: {},
+		dozer.SpecVRFBGPTableConnectionStatic:    {},
 	}
 
 	return nil
