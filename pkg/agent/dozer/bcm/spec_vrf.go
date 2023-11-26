@@ -51,6 +51,12 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf table connections")
 		}
 
+		actualStaticRoutes, desiredStaticRoutes := ValueOrNil(actual, desired,
+			func(value *dozer.SpecVRF) map[string]*dozer.SpecVRFStaticRoute { return value.StaticRoutes })
+		if err := specVRFStaticRoutesEnforcer.Handle(basePath, actualStaticRoutes, desiredStaticRoutes, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf static routes")
+		}
+
 		return nil
 	},
 }
@@ -382,6 +388,57 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 	},
 }
 
+var specVRFStaticRoutesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFStaticRoute]{
+	Summary:      "VRF static routes",
+	ValueHandler: specVRFStaticRouteEnforcer,
+}
+
+var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFStaticRoute]{
+	Summary:          "VRF static route %s",
+	Path:             "/protocols/protocol[identifier=STATIC][name=static]/static-routes/static[prefix=%s]",
+	RecreateOnUpdate: true,
+	UpdateWeight:     ActionWeightVRFStaticRouteUpdate,
+	DeleteWeight:     ActionWeightVRFStaticRouteDelete,
+	Marshal: func(prefix string, value *dozer.SpecVRFStaticRoute) (ygot.ValidatedGoStruct, error) {
+		nextHops := map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{}
+
+		for _, nextHop := range value.NextHops {
+			if nextHop.Interface == nil {
+				return nil, errors.Errorf("invalid next hop %v", nextHop)
+			}
+
+			index := fmt.Sprintf("%s_%s", *nextHop.Interface, nextHop.IP)
+			nextHops[index] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{
+				Index: ygot.String(index),
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_Config{
+					Index:   ygot.String(index),
+					NextHop: oc.UnionString(nextHop.IP),
+				},
+				InterfaceRef: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef{
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef_Config{
+						Interface: nextHop.Interface,
+					},
+				},
+			}
+		}
+
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes{
+			Static: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static{
+				prefix: {
+					Prefix: ygot.String(prefix),
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_Config{
+						Prefix:      ygot.String(prefix),
+						Description: value.Description,
+					},
+					NextHops: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops{
+						NextHop: nextHops,
+					},
+				},
+			},
+		}, nil
+	},
+}
+
 func loadActualVRFs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{}
 	err := client.Get(ctx, "/network-instances/network-instance", ocVal)
@@ -545,6 +602,54 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			}
 		}
 
+		staticRoutes := map[string]*dozer.SpecVRFStaticRoute{}
+
+		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
+			staticProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
+				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+				Name:       "static",
+			}]
+			if staticProto != nil && staticProto.StaticRoutes != nil {
+				for prefix, staticRoute := range staticProto.StaticRoutes.Static {
+					var description *string
+					if staticRoute.Config != nil {
+						description = staticRoute.Config.Description
+					}
+
+					nextHops := []dozer.SpecVRFStaticRouteNextHop{}
+					if staticRoute.NextHops != nil {
+						for _, nextHop := range staticRoute.NextHops.NextHop {
+							if nextHop.Config == nil || nextHop.Config.NextHop == nil {
+								continue
+							}
+
+							var iface *string
+							if nextHop.InterfaceRef != nil || nextHop.InterfaceRef.Config != nil {
+								iface = nextHop.InterfaceRef.Config.Interface
+							}
+
+							ip := ""
+							if union, ok := nextHop.Config.NextHop.(oc.UnionString); ok {
+								ip = string(union)
+							} else {
+								return nil, errors.Errorf("invalid next hop %v for %s", nextHop, prefix)
+							}
+
+							nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{
+								Interface: iface,
+								IP:        ip,
+							})
+						}
+					}
+
+					staticRoutes[prefix] = &dozer.SpecVRFStaticRoute{
+						Description: description,
+						NextHops:    nextHops,
+					}
+				}
+			}
+		}
+
 		enabled := ocVRF.Config.Enabled
 		if enabled == nil {
 			enabled = ygot.Bool(true)
@@ -566,6 +671,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			Interfaces:       interfaces,
 			BGP:              bgp,
 			TableConnections: tableConns,
+			StaticRoutes:     staticRoutes,
 		}
 	}
 

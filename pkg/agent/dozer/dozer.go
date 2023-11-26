@@ -112,6 +112,7 @@ type SpecVRF struct {
 	Interfaces       map[string]*SpecVRFInterface       `json:"interfaces,omitempty"`
 	BGP              *SpecVRFBGP                        `json:"bgp,omitempty"`
 	TableConnections map[string]*SpecVRFTableConnection `json:"tableConnections,omitempty"`
+	StaticRoutes     map[string]*SpecVRFStaticRoute     `json:"staticRoutes,omitempty"`
 }
 
 type SpecVRFInterface struct{}
@@ -156,6 +157,16 @@ const (
 
 type SpecVRFTableConnection struct {
 	ImportPolicies []string `json:"importPolicies,omitempty"`
+}
+
+type SpecVRFStaticRoute struct {
+	Description *string                     `json:"description,omitempty"`
+	NextHops    []SpecVRFStaticRouteNextHop `json:"nextHops,omitempty"`
+}
+
+type SpecVRFStaticRouteNextHop struct {
+	IP        string  `json:"ip,omitempty"`
+	Interface *string `json:"interface,omitempty"`
 }
 
 type SpecRouteMap struct {
@@ -333,6 +344,7 @@ var (
 	_ SpecPart = (*SpecVRFBGPNeighbor)(nil)
 	_ SpecPart = (*SpecVRFBGPImportVRF)(nil)
 	_ SpecPart = (*SpecVRFTableConnection)(nil)
+	_ SpecPart = (*SpecVRFStaticRoute)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
 	_ SpecPart = (*SpecNAT)(nil)
@@ -413,6 +425,10 @@ func (s *SpecVRFBGPImportVRF) IsNil() bool {
 }
 
 func (s *SpecVRFTableConnection) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVRFStaticRoute) IsNil() bool {
 	return s == nil
 }
 

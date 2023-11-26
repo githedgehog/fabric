@@ -92,6 +92,9 @@ const (
 
 	ActionWeightVRFVNIUpdate
 
+	ActionWeightVRFStaticRouteDelete // it seems like it's better to first remove routes and then add new ones
+	ActionWeightVRFStaticRouteUpdate
+
 	// Deletes:
 
 	ActionWeightVRFVNIDelete
@@ -212,15 +215,16 @@ type DefaultValueEnforcer[Key comparable, Value dozer.SpecPart] struct {
 
 	CustomHandler func(basePath string, key Key, actual, desired Value, actions *ActionQueue) error // will be used instead of default one
 
-	Path           string // used by default value handler
-	CreatePath     string
-	PathFunc       func(key Key, value Value) string
-	Marshal        func(key Key, value Value) (ygot.ValidatedGoStruct, error) // used by default value handler
-	Weight         ActionWeight
-	UpdateWeight   ActionWeight
-	DeleteWeight   ActionWeight
-	WarningOnError bool
-	SkipDelete     bool
+	Path             string // used by default value handler
+	CreatePath       string
+	PathFunc         func(key Key, value Value) string
+	Marshal          func(key Key, value Value) (ygot.ValidatedGoStruct, error) // used by default value handler
+	Weight           ActionWeight
+	UpdateWeight     ActionWeight
+	DeleteWeight     ActionWeight
+	WarningOnError   bool
+	SkipDelete       bool
+	RecreateOnUpdate bool
 }
 
 func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actual, desired Value, actions *ActionQueue) error {
@@ -275,8 +279,13 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 	if h.DeleteWeight >= ActionWeightMax {
 		return errors.Errorf("delete weight %d is greater than max %d", h.DeleteWeight, ActionWeightMax)
 	}
+	if h.RecreateOnUpdate && h.UpdateWeight < h.DeleteWeight {
+		// if we want to recreate on update we need to delete first
+		return errors.Errorf("update weight %d is less than delete weight %d for %s but recreate on update requests", h.UpdateWeight, h.DeleteWeight, summary)
+	}
 
-	if desired.IsNil() { // delete actual value if desired isn't present
+	// delete actual value if desired isn't present or recreate on update requested
+	if desired.IsNil() || !actual.IsNil() && h.RecreateOnUpdate {
 		if h.SkipDelete {
 			slog.Debug("Skipping delete", "summary", summary, "key", key)
 			return nil
@@ -297,13 +306,15 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 		}); err != nil {
 			return errors.Wrapf(err, "failed to add delete action for %s (key %v)", summary, key)
 		}
-	} else {
+	}
+
+	if !desired.IsNil() {
 		path := SafeSprintf(h.Path, key)
 		if h.PathFunc != nil {
 			path = h.PathFunc(key, desired)
 		}
 
-		if actual.IsNil() {
+		if actual.IsNil() || h.RecreateOnUpdate {
 			summary = fmt.Sprintf("Create %s", summary)
 			if h.CreatePath != "" {
 				path = SafeSprintf(h.CreatePath, key)
