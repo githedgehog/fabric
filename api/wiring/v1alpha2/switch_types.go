@@ -136,6 +136,10 @@ func (sw *Switch) Default() {
 	for name, value := range sw.Spec.PortGroupSpeeds {
 		sw.Spec.PortGroupSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
 	}
+
+	if len(sw.Spec.VLANNamespaces) == 0 {
+		sw.Spec.VLANNamespaces = []string{"default"}
+	}
 }
 
 func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
