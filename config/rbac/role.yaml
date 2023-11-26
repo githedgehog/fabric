@@ -127,6 +127,22 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
+  - ipv4namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - ipv4namespaces/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
   - vpcattachments
   verbs:
   - get
@@ -236,6 +252,22 @@ rules:
   - wiring.githedgehog.com
   resources:
   - switches/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - vlannamespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - vlannamespaces/status
   verbs:
   - get
   - patch
