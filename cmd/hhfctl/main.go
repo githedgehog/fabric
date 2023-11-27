@@ -106,14 +106,17 @@ func main() {
 							nameFlag,
 							&cli.StringFlag{
 								Name:     "subnet",
-								Aliases:  []string{"s"},
 								Usage:    "subnet",
 								Required: true,
 							},
+							&cli.StringFlag{
+								Name:     "vlan",
+								Usage:    "vlan",
+								Required: true,
+							},
 							&cli.BoolFlag{
-								Name:    "dhcp",
-								Aliases: []string{"d"},
-								Usage:   "enable dhcp",
+								Name:  "dhcp",
+								Usage: "enable dhcp",
 							},
 							&cli.StringFlag{
 								Name:    "dhcp-range-start",
@@ -125,10 +128,6 @@ func main() {
 								Aliases: []string{"dhcp-end"},
 								Usage:   "dhcp range end",
 							},
-							&cli.BoolFlag{
-								Name:  "snat",
-								Usage: "enable snat (outbound access)",
-							},
 							printYamlFlag,
 						},
 						Before: func(cCtx *cli.Context) error {
@@ -138,7 +137,6 @@ func main() {
 							return hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
-								SNAT:   cCtx.Bool("snat"),
 								DHCP: vpcapi.VPCDHCP{
 									Enable: cCtx.Bool("dhcp"),
 									Range: &vpcapi.VPCDHCPRange{
@@ -156,13 +154,14 @@ func main() {
 							verboseFlag,
 							nameFlag,
 							&cli.StringFlag{
-								Name:     "vpc",
-								Usage:    "vpc",
+								Name:     "vpc-subnet",
+								Aliases:  []string{"subnet"},
+								Usage:    "vpc/subnet",
 								Required: true,
 							},
 							&cli.StringFlag{
 								Name:     "connection",
-								Aliases:  []string{"conn", "c"},
+								Aliases:  []string{"conn"},
 								Usage:    "connection",
 								Required: true,
 							},
@@ -174,7 +173,7 @@ func main() {
 						Action: func(cCtx *cli.Context) error {
 							return hhfctl.VPCAttach(ctx, printYaml, &hhfctl.VPCAttachOptions{
 								Name:       name,
-								VPC:        cCtx.String("vpc"),
+								VPCSubnet:  cCtx.String("vpc-subnet"),
 								Connection: cCtx.String("connection"),
 							})
 						},

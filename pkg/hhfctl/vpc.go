@@ -17,8 +17,8 @@ import (
 type VPCCreateOptions struct {
 	Name   string
 	Subnet string
+	VLAN   string
 	DHCP   vpcapi.VPCDHCP
-	SNAT   bool
 }
 
 func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
@@ -28,10 +28,13 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCSpec{
-			// TODO fix
-			// Subnet: options.Subnet,
-			// DHCP:   options.DHCP,
-			// SNAT:   options.SNAT,
+			Subnets: map[string]*vpcapi.VPCSubnet{
+				"default": {
+					Subnet: options.Subnet,
+					VLAN:   options.VLAN,
+					DHCP:   options.DHCP,
+				},
+			},
 		},
 	}
 
@@ -75,14 +78,14 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 
 type VPCAttachOptions struct {
 	Name       string
-	VPC        string
+	VPCSubnet  string
 	Connection string
 }
 
 func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) error {
 	name := options.Name
 	if name == "" {
-		name = fmt.Sprintf("%s--%s", options.VPC, options.Connection)
+		name = fmt.Sprintf("%s--%s", strings.ReplaceAll(options.VPCSubnet, "/", "--"), options.Connection)
 	}
 
 	attach := &vpcapi.VPCAttachment{
@@ -91,8 +94,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCAttachmentSpec{
-			// TODO fix
-			// VPC:        options.VPC,
+			Subnet:     options.VPCSubnet,
 			Connection: options.Connection,
 		},
 	}
