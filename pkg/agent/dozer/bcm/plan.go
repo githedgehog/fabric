@@ -87,7 +87,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		}
 	}
 
-	controlIface, err := planControlLink(agent, spec)
+	err := planControlLink(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan management interface")
 	}
@@ -140,7 +140,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan mclag domain")
 	}
 
-	err = planVPCs(agent, spec, controlIface)
+	err = planVPCs(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan Spine Leaf VPCs")
 	}
@@ -150,7 +150,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	return spec, nil
 }
 
-func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) (string, error) {
+func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 	direct := false
 	controlIface := ""
 	controlIP := ""
@@ -166,22 +166,22 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) (string, error) {
 	}
 
 	if !direct {
-		return "", nil
+		return nil
 	}
 
 	if controlIface == "" {
-		return "", errors.Errorf("no control interface found")
+		return errors.Errorf("no control interface found")
 	}
 	if controlIP == "" {
-		return "", errors.Errorf("no control IP found")
+		return errors.Errorf("no control IP found")
 	}
 	if otherIP == "" {
-		return "", errors.Errorf("no other IP found")
+		return errors.Errorf("no other IP found")
 	}
 
 	ip, ipNet, err := net.ParseCIDR(controlIP)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse control IP %s", controlIP)
+		return errors.Wrapf(err, "failed to parse control IP %s", controlIP)
 	}
 	prefixLen, _ := ipNet.Mask.Size()
 
@@ -198,7 +198,7 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) (string, error) {
 	if !strings.HasPrefix(controlIface, "Management") {
 		ip, _, err = net.ParseCIDR(otherIP)
 		if err != nil {
-			return "", errors.Wrapf(err, "failed to parse other IP %s", otherIP)
+			return errors.Wrapf(err, "failed to parse other IP %s", otherIP)
 		}
 
 		controlVIP := agent.Spec.Config.ControlVIP
@@ -212,7 +212,7 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) (string, error) {
 		}
 	}
 
-	return controlIface, nil
+	return nil
 }
 
 func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
@@ -829,7 +829,7 @@ func vpcVrfName(vpcName string) string {
 // 	return nil
 // }
 
-func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
+func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for _, attach := range agent.Spec.VPCAttachments {
 		vpcName := attach.VPCName()
 		vpc, exists := agent.Spec.VPCs[vpcName]
@@ -937,6 +937,20 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) erro
 			VNI:  uint32Ptr(subnetVNI),
 			VLAN: uint16Ptr(subnetVLAN),
 		}
+
+		if subnet.DHCP.Enable {
+			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
+			}
+
+			spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
+				SourceInterface: stringPtr(LO_SWITCH),
+				RelayAddress:    []string{dhcpRelayIP.String()},
+				LinkSelect:      true,
+				VRFSelect:       true,
+			}
+		}
 	}
 
 	return nil
@@ -948,10 +962,6 @@ func portChannelName(id uint16) string {
 
 func vlanName(vlan uint16) string {
 	return fmt.Sprintf("Vlan%d", vlan)
-}
-
-func aclName(vlan uint16) string {
-	return fmt.Sprintf("vpc-vlan%d-in", vlan)
 }
 
 func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, portChannel string, mtu *uint16) error { // TODO replace with generic function or drop
@@ -972,31 +982,6 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	spec.Interfaces[name] = physicalIface
 
 	return nil
-}
-
-func setupVLANInterfaceWithIP(spec *dozer.Spec, vlan uint16, ip string, prefixLen uint8, description string) (string, *dozer.SpecInterface, error) { // TODO replace with generic function or drop
-	name := vlanName(vlan)
-	if iface, exist := spec.Interfaces[name]; exist {
-		descr := ""
-		if iface.Description != nil {
-			descr = ", description: " + *iface.Description
-		}
-		return "", nil, errors.Errorf("vlan interface %s already used for something%s", name, descr)
-	}
-
-	vlanIface := &dozer.SpecInterface{
-		Description: stringPtr(description),
-		Enabled:     boolPtr(true),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			ip: {
-				VLAN:      true,
-				PrefixLen: uint8Ptr(prefixLen),
-			},
-		},
-	}
-	spec.Interfaces[name] = vlanIface
-
-	return name, vlanIface, nil
 }
 
 func stringPtr(s string) *string { return &s }
