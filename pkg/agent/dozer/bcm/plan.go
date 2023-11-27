@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -37,6 +38,8 @@ const (
 	EVPN_NVO                                  = "nvo1"
 	ANYCAST_MAC                               = "00:00:00:11:11:11"
 	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
+	VPC_LO_PORT_CHANNEL_1                     = 252
+	VPC_LO_PORT_CHANNEL_2                     = 253
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -107,6 +110,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planFabricConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan fabric connections")
+	}
+
+	err = planVPCLoopbacks(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
 	}
 
 	err = planServerConnections(agent, spec)
@@ -361,6 +369,53 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 					IPv4Unicast: boolPtr(true),
 					L2VPNEVPN:   boolPtr(true),
 				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
+	ports1 := []string{}
+	ports2 := []string{}
+
+	for _, conn := range agent.Spec.Connections {
+		if conn.VPCLoopback == nil {
+			continue
+		}
+
+		for _, link := range conn.VPCLoopback.Links {
+			if link.Switch1.DeviceName() != agent.Name || link.Switch2.DeviceName() != agent.Name {
+				continue
+			}
+
+			ports := []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()}
+			sort.Strings(ports)
+
+			ports1 = append(ports1, ports[0])
+			ports2 = append(ports2, ports[1])
+		}
+	}
+
+	for _, portChannel := range []uint16{VPC_LO_PORT_CHANNEL_1, VPC_LO_PORT_CHANNEL_2} {
+		portChannelName := portChannelName(portChannel)
+		spec.Interfaces[portChannelName] = &dozer.SpecInterface{
+			Enabled:     boolPtr(true),
+			Description: stringPtr("VPC Loopback"),
+		}
+
+		var ports []string
+		if portChannel == VPC_LO_PORT_CHANNEL_1 {
+			ports = ports1
+		} else if portChannel == VPC_LO_PORT_CHANNEL_2 {
+			ports = ports2
+		}
+		for _, port := range ports {
+			spec.Interfaces[port] = &dozer.SpecInterface{
+				Enabled:     boolPtr(true),
+				Description: stringPtr(fmt.Sprintf("VPC loopback PC %d", portChannel)),
+				PortChannel: stringPtr(portChannelName),
 			}
 		}
 	}
