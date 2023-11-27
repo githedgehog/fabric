@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -29,16 +29,16 @@ log-facility local7;
 {{ if .Empty -}}
 subnet {{ .Subnet }} netmask {{ .Mask }} {}
 {{- else -}}
-class "VPC_{{ .VPC }}" {
-  match if {{ .Match }};
+class "Vlan{{ .VLAN }}" {
+	match if option agent.circuit-id = "Vlan{{ .VLAN }}";
 }
 
 subnet {{ .Subnet }} netmask {{ .Mask }} {
-  pool {
-    allow members of "VPC_{{ .VPC }}";
-    range {{ .RangeStart }} {{ .RangeEnd }};
-    option routers {{ .Router }};
-  }
+	pool {
+	allow members of "Vlan{{ .VLAN }}";
+	range {{ .RangeStart }} {{ .RangeEnd }};
+	option routers {{ .Router }};
+	}
 }
 {{- end }}
 {{ end }}
@@ -53,8 +53,7 @@ type dhcpdSubnet struct {
 	Subnet     string
 	Mask       string
 	Empty      bool
-	VPC        string
-	Match      string
+	VLAN       string
 	RangeStart string
 	RangeEnd   string
 	Router     string
@@ -111,50 +110,43 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 	}
 
 	for _, vpc := range vpcs.Items {
-		for subnetName := range vpc.Spec.Subnets {
-			attaches := &vpcapi.VPCAttachmentList{}
-			err = r.List(ctx, attaches, client.MatchingLabels{
-				vpcapi.LabelVPC:    vpc.Name,
-				vpcapi.LabelSubnet: subnetName,
-			})
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					continue
-				}
-				return errors.Wrapf(err, "error listing vpc attachments for vpc %s subnet %s", vpc.Name, subnetName)
+		// TODO remove after switching to custom DHCP server
+		if vpc.Spec.IPv4Namespace != "default" || vpc.Spec.VLANNamespace != "default" {
+			continue
+		}
+
+		for subnetName, subnet := range vpc.Spec.Subnets {
+			if !subnet.DHCP.Enable || subnet.VLAN == "" {
+				continue
 			}
 
-			// if !vpc.Spec.DHCP.Enable || vpc.Status.VLAN == 0 {
-			// 	continue
-			// }
+			cidr, err := iputil.ParseCIDR(subnet.Subnet)
+			if err != nil {
+				return errors.Wrapf(err, "error parsing vpc %s/%s subnet %s", vpc.Name, subnetName, subnet.Subnet)
+			}
 
-			// cidr, err := iputil.ParseCIDR(vpc.Spec.Subnet)
-			// if err != nil {
-			// 	return errors.Wrapf(err, "error parsing vpc subnet %s", vpc.Spec.Subnet)
-			// }
+			start := cidr.DHCPRangeStart.String()
+			end := cidr.DHCPRangeEnd.String()
 
-			// start := cidr.DHCPRangeStart.String()
-			// end := cidr.DHCPRangeEnd.String()
+			if subnet.DHCP.Range != nil {
+				if subnet.DHCP.Range.Start != "" {
+					start = subnet.DHCP.Range.Start
+				}
+				if subnet.DHCP.Range.End != "" {
+					end = subnet.DHCP.Range.End
+				}
+			}
 
-			// if vpc.Spec.DHCP.Range != nil {
-			// 	if vpc.Spec.DHCP.Range.Start != "" {
-			// 		start = vpc.Spec.DHCP.Range.Start
-			// 	}
-			// 	if vpc.Spec.DHCP.Range.End != "" {
-			// 		end = vpc.Spec.DHCP.Range.End
-			// 	}
-			// }
+			// TODO add extra range validation
 
-			// // TODO add extra range validation
-
-			// cfg.Subnets = append(cfg.Subnets, dhcpdSubnet{
-			// 	Subnet:     cidr.Subnet.IP.String(),
-			// 	Mask:       net.IP(cidr.Subnet.Mask).String(),
-			// 	VLAN:       vpc.Status.VLAN,
-			// 	Router:     cidr.Gateway.String(),
-			// 	RangeStart: start,
-			// 	RangeEnd:   end,
-			// })
+			cfg.Subnets = append(cfg.Subnets, dhcpdSubnet{
+				Subnet:     cidr.Subnet.IP.String(),
+				Mask:       net.IP(cidr.Subnet.Mask).String(),
+				VLAN:       subnet.VLAN,
+				Router:     cidr.Gateway.String(),
+				RangeStart: start,
+				RangeEnd:   end,
+			})
 		}
 	}
 
