@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -824,7 +825,53 @@ func vpcVrfName(vpcName string) string {
 // }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string) error {
-	// TODO
+	for _, attach := range agent.Spec.VPCAttachments {
+		vpcName := attach.VPCName()
+		vpc, exists := agent.Spec.VPCs[vpcName]
+		if !exists {
+			return errors.Errorf("VPC %s not found", vpcName)
+		}
+
+		irbVLAN := agent.Spec.IRBVLANs[vpcName]
+		if irbVLAN == 0 {
+			return errors.Errorf("IRB VLAN for VPC %s not found", vpcName)
+		}
+
+		irbIface := vlanName(irbVLAN)
+		spec.Interfaces[irbIface] = &dozer.SpecInterface{
+			Enabled:     boolPtr(true),
+			Description: stringPtr(fmt.Sprintf("VPC %s IRB", vpcName)),
+		}
+
+		subnetName := attach.SubnetName()
+		subnet := vpc.Subnets[subnetName]
+		if subnet == nil {
+			return errors.Errorf("VPC %s subnet %s not found", vpcName, subnetName)
+		}
+
+		vlanR, err := strconv.ParseUint(subnet.VLAN, 10, 16)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
+		}
+		vlan := uint16(vlanR)
+
+		subnetIface := vlanName(vlan)
+		spec.Interfaces[subnetIface] = &dozer.SpecInterface{
+			Enabled:     boolPtr(true),
+			Description: stringPtr(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
+		}
+
+		vrfName := vpcVrfName(vpcName)
+		if spec.VRFs[vrfName] == nil {
+			spec.VRFs[vrfName] = &dozer.SpecVRF{
+				Enabled:    boolPtr(true),
+				Interfaces: map[string]*dozer.SpecVRFInterface{},
+			}
+		}
+		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
+		spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
+	}
+
 	return nil
 }
 

@@ -137,6 +137,7 @@ func main() {
 							return hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
+								VLAN:   cCtx.String("vlan"),
 								DHCP: vpcapi.VPCDHCP{
 									Enable: cCtx.Bool("dhcp"),
 									Range: &vpcapi.VPCDHCPRange{
