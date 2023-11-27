@@ -147,6 +147,14 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		subnets = append(subnets, ipNet)
 
 		if subnetCfg.DHCP.Enable {
+			// TODO remove after migration to custom DHCP server
+			if vpc.Spec.IPv4Namespace != "default" {
+				return nil, errors.Errorf("DHCP is not supported for non-default IPv4Namespace yet")
+			}
+			if vpc.Spec.VLANNamespace != "default" {
+				return nil, errors.Errorf("DHCP is not supported for non-default VLANNamespace yet")
+			}
+
 			if subnetCfg.DHCP.Range != nil {
 				if subnetCfg.DHCP.Range.Start != "" {
 					ip := net.ParseIP(subnetCfg.DHCP.Range.Start)
