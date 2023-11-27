@@ -108,7 +108,7 @@ func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	conns := &wiringapi.ConnectionList{}
-	err = r.List(ctx, conns, client.InNamespace(server.Namespace), wiringapi.MatchingLabelsForListLabelServer(server.Name))
+	err = r.List(ctx, conns, client.InNamespace(server.Namespace))
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting server connections")
 	}
