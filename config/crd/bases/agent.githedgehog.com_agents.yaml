@@ -297,6 +297,10 @@ spec:
                 type: object
               description:
                 type: string
+              irbVLANs:
+                additionalProperties:
+                  type: integer
+                type: object
               portChannels:
                 additionalProperties:
                   type: integer

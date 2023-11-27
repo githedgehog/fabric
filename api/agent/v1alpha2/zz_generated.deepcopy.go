@@ -142,6 +142,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.IRBVLANs != nil {
+		in, out := &in.IRBVLANs, &out.IRBVLANs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.PortChannels != nil {
 		in, out := &in.PortChannels, &out.PortChannels
 		*out = make(map[string]uint16, len(*in))

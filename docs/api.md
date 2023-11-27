@@ -56,6 +56,7 @@ _Appears in:_
 | `vpcAttachments` _object (keys:string, values:[VPCAttachmentSpec](#vpcattachmentspec))_ |  |
 | `vpcPeers` _object (keys:string, values:[VPCPeeringSpec](#vpcpeeringspec))_ |  |
 | `vnis` _object (keys:string, values:integer)_ |  |
+| `irbVLANs` _object (keys:string, values:integer)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |

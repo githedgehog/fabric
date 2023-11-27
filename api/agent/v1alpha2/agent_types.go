@@ -40,6 +40,7 @@ type AgentSpec struct {
 	VPCAttachments map[string]vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
 	VPCPeers       map[string]vpcapi.VPCPeeringSpec    `json:"vpcPeers,omitempty"`
 	VNIs           map[string]uint32                   `json:"vnis,omitempty"`
+	IRBVLANs       map[string]uint16                   `json:"irbVLANs,omitempty"`
 	PortChannels   map[string]uint16                   `json:"portChannels,omitempty"`
 	Reinstall      string                              `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
 	Reboot         string                              `json:"reboot,omitempty"`    // set to RunID to reboot

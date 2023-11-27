@@ -57,7 +57,7 @@ func (w *VLANNamespaceWebhook) Default(ctx context.Context, obj runtime.Object) 
 func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	ns := obj.(*wiringapi.VLANNamespace)
 
-	warns, err := ns.Validate(ctx, w.Validation, append(w.Cfg.VPCIRBVLANRangse, w.Cfg.VPCPeeringVLANRanges...))
+	warns, err := ns.Validate(ctx, w.Validation, append(w.Cfg.VPCIRBVLANRanges, w.Cfg.VPCPeeringVLANRanges...))
 	if err != nil {
 		return warns, err
 	}

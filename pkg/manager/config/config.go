@@ -19,7 +19,7 @@ type Fabric struct {
 	APIServer            string               `json:"apiServer,omitempty"`
 	AgentRepo            string               `json:"agentRepo,omitempty"`
 	AgentRepoCA          string               `json:"agentRepoCA,omitempty"`
-	VPCIRBVLANRangse     []meta.VLANRange     `json:"vpcIRBVLANRange,omitempty"`
+	VPCIRBVLANRanges     []meta.VLANRange     `json:"vpcIRBVLANRange,omitempty"`
 	VPCPeeringVLANRanges []meta.VLANRange     `json:"vpcPeeringVLANRange,omitempty"`
 	VPCPeeringDisabled   bool                 `json:"vpcPeeringDisabled,omitempty"`
 	ReservedSubnets      []string             `json:"reservedSubnets,omitempty"`
@@ -70,13 +70,13 @@ func Load(basedir string) (*Fabric, error) {
 		return nil, errors.Errorf("config: agentRepoCA is required")
 	}
 
-	if r, err := meta.NormalizedVLANRanges(cfg.VPCIRBVLANRangse); err != nil {
+	if r, err := meta.NormalizedVLANRanges(cfg.VPCIRBVLANRanges); err != nil {
 		return nil, errors.Wrapf(err, "config: vpcIRBVLANRange is invalid")
 	} else {
 		if len(r) == 0 {
 			return nil, errors.Errorf("config: vpcIRBVLANRange is required")
 		}
-		cfg.VPCIRBVLANRangse = r
+		cfg.VPCIRBVLANRanges = r
 		// TODO check total ranges size and expose as limit for API validation
 	}
 

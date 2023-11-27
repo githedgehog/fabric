@@ -238,6 +238,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]vpcapi.VPCAttachmentSpec{}
 	attachedSubnets := map[string]bool{}
+	attachedVPCs := map[string]bool{}
 	attachList := &vpcapi.VPCAttachmentList{}
 	err = r.List(ctx, attachList, client.InNamespace(sw.Namespace))
 	if err != nil {
@@ -250,6 +251,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		attaches[attach.Name] = attach.Spec
 		attachedSubnets[attach.Spec.Subnet] = true
+		attachedVPCs[attach.Spec.VPCName()] = true
 	}
 
 	vpcs := map[string]vpcapi.VPCSpec{}
@@ -341,6 +343,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating port channels")
+		}
+
+		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(agent, attaches, vpcs)
+		if err != nil {
+			return errors.Wrapf(err, "error calculating IRB VLANs")
 		}
 
 		return nil
@@ -525,6 +532,7 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 				continue
 			}
 
+			// TODO optimize by storing last taken port channel
 			for i := PORT_CHAN_MIN; i <= PORT_CHAN_MAX; i++ {
 				if !taken[i-PORT_CHAN_MIN] {
 					portChannels[connName] = uint16(i)
@@ -540,6 +548,48 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 	}
 
 	return portChannels, nil
+}
+
+func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, attaches map[string]vpcapi.VPCAttachmentSpec, vpcs map[string]vpcapi.VPCSpec) (map[string]uint16, error) {
+	irbVLANs := map[string]uint16{}
+	taken := map[uint16]bool{}
+
+	for _, attach := range attaches {
+		vpcName := attach.VPCName()
+		_, exists := vpcs[vpcName]
+		if !exists {
+			continue
+		}
+
+		vlan := agent.Spec.IRBVLANs[vpcName]
+		if vlan > 0 {
+			irbVLANs[vpcName] = vlan
+			taken[vlan] = true
+		}
+	}
+
+	for vpcName := range vpcs {
+		if irbVLANs[vpcName] != 0 {
+			continue
+		}
+
+		// TODO optimize by storing last taken vlan
+		for _, vlanRange := range r.Cfg.VPCIRBVLANRanges {
+			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
+				if !taken[vlan] {
+					irbVLANs[vpcName] = vlan
+					taken[vlan] = true
+					break
+				}
+			}
+		}
+
+		if irbVLANs[vpcName] == 0 {
+			return nil, errors.Errorf("no IRB VLAN available for vpc %s", vpcName)
+		}
+	}
+
+	return irbVLANs, nil
 }
 
 const (
