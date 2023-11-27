@@ -299,7 +299,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	vnis := map[string]uint32{}
 	for _, vpc := range vpcList.Items {
-		if _, exists := peeredVPCs[vpc.Name]; !exists {
+		if !peeredVPCs[vpc.Name] && !attachedVPCs[vpc.Name] {
 			continue
 		}
 
