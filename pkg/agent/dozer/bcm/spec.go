@@ -102,6 +102,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle vrf vni map")
 		}
 
+		if err := specSuppressVLANNeighsEnforcer.Handle(basePath, actual.SuppressVLANNeighs, desired.SuppressVLANNeighs, actions); err != nil {
+			return errors.Wrap(err, "failed to handle suppress vlan neighs")
+		}
+
 		return nil
 	},
 }
@@ -173,6 +177,10 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualVRFVNIMap(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load vrf vni map")
+	}
+
+	if err := loadActualSuppressVLANNeighs(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load suppress vlan neighs")
 	}
 
 	return nil

@@ -216,3 +216,58 @@ func unmarshalActualVRFVNIMap(ocVal *oc.SonicVrf_SonicVrf_VRF) (map[string]*doze
 
 	return vrfVnis, nil
 }
+
+var specSuppressVLANNeighsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecSuppressVLANNeigh]{
+	Summary:      "Suppress VLAN neigh",
+	ValueHandler: specSuppressVLANNeighEnforcer,
+}
+
+var specSuppressVLANNeighEnforcer = &DefaultValueEnforcer[string, *dozer.SpecSuppressVLANNeigh]{
+	Summary:      "Suppress VLAN neigh %s",
+	CreatePath:   "/sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST",
+	Path:         "/sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST[name=%s]",
+	UpdateWeight: ActionWeightSuppressVLANNeighUpdate,
+	DeleteWeight: ActionWeightSuppressVLANNeighDelete,
+	Marshal: func(name string, value *dozer.SpecSuppressVLANNeigh) (ygot.ValidatedGoStruct, error) {
+		return &oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH{
+			SUPPRESS_VLAN_NEIGH_LIST: map[string]*oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH_SUPPRESS_VLAN_NEIGH_LIST{
+				name: {
+					Name:     ygot.String(name),
+					Suppress: oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH_SUPPRESS_VLAN_NEIGH_LIST_Suppress_on,
+				},
+			},
+		}, nil
+	},
+}
+
+func loadActualSuppressVLANNeighs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+	ocVal := &oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH{}
+	err := client.Get(ctx, "/sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST", ocVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get suppress vlan neigh list")
+	}
+
+	spec.SuppressVLANNeighs, err = unmarshalActualSuppressVLANNeighs(ocVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal suppress vlan neigh list")
+	}
+
+	return nil
+}
+
+func unmarshalActualSuppressVLANNeighs(ocVal *oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH) (map[string]*dozer.SpecSuppressVLANNeigh, error) {
+	suppressVLANNeighs := map[string]*dozer.SpecSuppressVLANNeigh{}
+
+	if ocVal == nil {
+		return suppressVLANNeighs, nil
+	}
+
+	for name, suppressVLANNeigh := range ocVal.SUPPRESS_VLAN_NEIGH_LIST {
+		if suppressVLANNeigh.Suppress != oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH_SUPPRESS_VLAN_NEIGH_LIST_Suppress_on {
+			continue
+		}
+		suppressVLANNeighs[name] = &dozer.SpecSuppressVLANNeigh{}
+	}
+
+	return suppressVLANNeighs, nil
+}

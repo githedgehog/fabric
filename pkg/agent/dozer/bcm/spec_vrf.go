@@ -158,7 +158,13 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Summary: "VRF %s BGP base",
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
-		return []any{value.AS, value.RouterID, value.NetworkImportCheck, value.IPv4Unicast, value.L2VPNEVPN}
+		return []any{
+			value.AS, value.RouterID, value.NetworkImportCheck,
+			// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if we can safely embed import vrf handling here
+			value.IPv4Unicast.Enabled,
+			value.IPv4Unicast.MaxPaths,
+			value.L2VPNEVPN,
+		}
 	},
 	UpdateWeight: ActionWeightVRFBGPBaseUpdate,
 	DeleteWeight: ActionWeightVRFBGPBaseDelete,
@@ -313,6 +319,7 @@ var specVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Summary: "VRF BGP import VRF %s",
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
+		// TODO we should probably re-trigger import vrfs update if we're running BGP Base update
 		return value.IPv4Unicast.ImportVRFs
 	},
 	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {

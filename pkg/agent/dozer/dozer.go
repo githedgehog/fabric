@@ -28,26 +28,27 @@ type Action interface {
 }
 
 type Spec struct {
-	ZTP             *bool                          `json:"ztp,omitempty"`
-	Hostname        *string                        `json:"hostname,omitempty"`
-	LLDP            *SpecLLDP                      `json:"lldp,omitempty"`
-	LLDPInterfaces  map[string]*SpecLLDPInterface  `json:"lldpInterfaces,omitempty"`
-	Users           map[string]*SpecUser           `json:"users,omitempty"`
-	PortGroups      map[string]*SpecPortGroup      `json:"portGroupSpeeds,omitempty"`
-	PortBreakouts   map[string]*SpecPortBreakout   `json:"portBreakouts,omitempty"`
-	Interfaces      map[string]*SpecInterface      `json:"interfaces,omitempty"`
-	MCLAGs          map[uint32]*SpecMCLAGDomain    `json:"mclags,omitempty"`
-	MCLAGInterfaces map[string]*SpecMCLAGInterface `json:"mclagInterfaces,omitempty"`
-	VRFs            map[string]*SpecVRF            `json:"vrfs,omitempty"`
-	RouteMaps       map[string]*SpecRouteMap       `json:"routingMaps,omitempty"`
-	DHCPRelays      map[string]*SpecDHCPRelay      `json:"dhcpRelays,omitempty"`
-	NATs            map[uint32]*SpecNAT            `json:"nats,omitempty"`
-	ACLs            map[string]*SpecACL            `json:"acls,omitempty"`
-	ACLInterfaces   map[string]*SpecACLInterface   `json:"aclInterfaces,omitempty"`
-	VXLANTunnels    map[string]*SpecVXLANTunnel    `json:"vxlanTunnels,omitempty"`
-	VXLANEVPNNVOs   map[string]*SpecVXLANEVPNNVO   `json:"vxlanEVPNNVOs,omitempty"`
-	VXLANTunnelMap  map[string]*SpecVXLANTunnelMap `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
-	VRFVNIMap       map[string]*SpecVRFVNIEntry    `json:"vrfVNIMap,omitempty"`
+	ZTP                *bool                             `json:"ztp,omitempty"`
+	Hostname           *string                           `json:"hostname,omitempty"`
+	LLDP               *SpecLLDP                         `json:"lldp,omitempty"`
+	LLDPInterfaces     map[string]*SpecLLDPInterface     `json:"lldpInterfaces,omitempty"`
+	Users              map[string]*SpecUser              `json:"users,omitempty"`
+	PortGroups         map[string]*SpecPortGroup         `json:"portGroupSpeeds,omitempty"`
+	PortBreakouts      map[string]*SpecPortBreakout      `json:"portBreakouts,omitempty"`
+	Interfaces         map[string]*SpecInterface         `json:"interfaces,omitempty"`
+	MCLAGs             map[uint32]*SpecMCLAGDomain       `json:"mclags,omitempty"`
+	MCLAGInterfaces    map[string]*SpecMCLAGInterface    `json:"mclagInterfaces,omitempty"`
+	VRFs               map[string]*SpecVRF               `json:"vrfs,omitempty"`
+	RouteMaps          map[string]*SpecRouteMap          `json:"routingMaps,omitempty"`
+	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
+	NATs               map[uint32]*SpecNAT               `json:"nats,omitempty"`
+	ACLs               map[string]*SpecACL               `json:"acls,omitempty"`
+	ACLInterfaces      map[string]*SpecACLInterface      `json:"aclInterfaces,omitempty"`
+	VXLANTunnels       map[string]*SpecVXLANTunnel       `json:"vxlanTunnels,omitempty"`
+	VXLANEVPNNVOs      map[string]*SpecVXLANEVPNNVO      `json:"vxlanEVPNNVOs,omitempty"`
+	VXLANTunnelMap     map[string]*SpecVXLANTunnelMap    `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
+	VRFVNIMap          map[string]*SpecVRFVNIEntry       `json:"vrfVNIMap,omitempty"`
+	SuppressVLANNeighs map[string]*SpecSuppressVLANNeigh `json:"suppressVLANNeighs,omitempty"`
 }
 
 type SpecLLDP struct {
@@ -268,6 +269,8 @@ type SpecVRFVNIEntry struct {
 	VNI *uint32 `json:"vni,omitempty"`
 }
 
+type SpecSuppressVLANNeigh struct{}
+
 func (s *Spec) Normalize() {
 	for _, user := range s.Users {
 		if user.AuthorizedKeys == nil {
@@ -358,6 +361,7 @@ var (
 	_ SpecPart = (*SpecVXLANEVPNNVO)(nil)
 	_ SpecPart = (*SpecVXLANTunnelMap)(nil)
 	_ SpecPart = (*SpecVRFVNIEntry)(nil)
+	_ SpecPart = (*SpecSuppressVLANNeigh)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -481,5 +485,9 @@ func (s *SpecVXLANTunnelMap) IsNil() bool {
 }
 
 func (s *SpecVRFVNIEntry) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecSuppressVLANNeigh) IsNil() bool {
 	return s == nil
 }

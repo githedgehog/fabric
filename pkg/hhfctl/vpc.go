@@ -154,8 +154,12 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCPeeringSpec{
-			// TODO fix
-			// VPCs: options.VPCs,
+			Permit: []map[string]vpcapi.VPCPeer{
+				{
+					options.VPCs[0]: {},
+					options.VPCs[1]: {},
+				},
+			},
 		},
 	}
 

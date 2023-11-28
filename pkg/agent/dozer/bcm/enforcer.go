@@ -67,8 +67,6 @@ const (
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate
 
-	ActionWeightDHCPRelayUpdate
-
 	ActionWeightACLBaseUpdate
 	ActionWeightACLInterfaceUpdate
 	ActionWeightACLEntryUpdate
@@ -84,6 +82,8 @@ const (
 	ActionWeightNATBindingUpdate
 	ActionWeightNATEntryUpdate
 
+	ActionWeightSuppressVLANNeighUpdate
+
 	ActionWeightVRFBGPImportVRFUpdate
 
 	ActionWeightVXLANTunnelUpdate
@@ -95,7 +95,11 @@ const (
 	ActionWeightVRFStaticRouteDelete // it seems like it's better to first remove routes and then add new ones
 	ActionWeightVRFStaticRouteUpdate
 
+	ActionWeightDHCPRelayUpdate
+
 	// Deletes:
+
+	ActionWeightDHCPRelayDelete
 
 	ActionWeightVRFVNIDelete
 
@@ -105,7 +109,7 @@ const (
 
 	ActionWeightVRFBGPImportVRFDelete
 
-	ActionWeightDHCPRelayDelete
+	ActionWeightSuppressVLANNeighDelete
 
 	ActionWeightNATEntryDelete
 	ActionWeightNATBindingDelete

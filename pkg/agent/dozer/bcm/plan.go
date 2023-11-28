@@ -64,15 +64,16 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
 			},
 		},
-		RouteMaps:      map[string]*dozer.SpecRouteMap{},
-		DHCPRelays:     map[string]*dozer.SpecDHCPRelay{},
-		NATs:           map[uint32]*dozer.SpecNAT{},
-		ACLs:           map[string]*dozer.SpecACL{},
-		ACLInterfaces:  map[string]*dozer.SpecACLInterface{},
-		VXLANTunnels:   map[string]*dozer.SpecVXLANTunnel{},
-		VXLANEVPNNVOs:  map[string]*dozer.SpecVXLANEVPNNVO{},
-		VXLANTunnelMap: map[string]*dozer.SpecVXLANTunnelMap{},
-		VRFVNIMap:      map[string]*dozer.SpecVRFVNIEntry{},
+		RouteMaps:          map[string]*dozer.SpecRouteMap{},
+		DHCPRelays:         map[string]*dozer.SpecDHCPRelay{},
+		NATs:               map[uint32]*dozer.SpecNAT{},
+		ACLs:               map[string]*dozer.SpecACL{},
+		ACLInterfaces:      map[string]*dozer.SpecACLInterface{},
+		VXLANTunnels:       map[string]*dozer.SpecVXLANTunnel{},
+		VXLANEVPNNVOs:      map[string]*dozer.SpecVXLANEVPNNVO{},
+		VXLANTunnelMap:     map[string]*dozer.SpecVXLANTunnelMap{},
+		VRFVNIMap:          map[string]*dozer.SpecVRFVNIEntry{},
+		SuppressVLANNeighs: map[string]*dozer.SpecSuppressVLANNeigh{},
 	}
 
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
@@ -830,12 +831,8 @@ func vpcVrfName(vpcName string) string {
 // }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	for _, attach := range agent.Spec.VPCAttachments {
-		vpcName := attach.VPCName()
-		vpc, exists := agent.Spec.VPCs[vpcName]
-		if !exists {
-			return errors.Errorf("VPC %s not found", vpcName)
-		}
+	for vpcName := range agent.Spec.VPCs {
+		vrfName := vpcVrfName(vpcName)
 
 		irbVLAN := agent.Spec.IRBVLANs[vpcName]
 		if irbVLAN == 0 {
@@ -847,6 +844,73 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Enabled:     boolPtr(true),
 			Description: stringPtr(fmt.Sprintf("VPC %s IRB", vpcName)),
 		}
+
+		spec.SuppressVLANNeighs[irbIface] = &dozer.SpecSuppressVLANNeigh{}
+
+		if spec.VRFs[vrfName] == nil {
+			spec.VRFs[vrfName] = &dozer.SpecVRF{}
+		}
+		if spec.VRFs[vrfName].Interfaces == nil {
+			spec.VRFs[vrfName].Interfaces = map[string]*dozer.SpecVRFInterface{}
+		}
+
+		protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
+		}
+
+		maxPaths := uint32(64)
+		if agent.Spec.IsVS() {
+			maxPaths = 16
+		}
+
+		spec.VRFs[vrfName].Enabled = boolPtr(true)
+		spec.VRFs[vrfName].AnycastMAC = stringPtr(ANYCAST_MAC)
+		spec.VRFs[vrfName].BGP = &dozer.SpecVRFBGP{
+			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
+			RouterID:           stringPtr(protocolIP.String()),
+			NetworkImportCheck: boolPtr(true),
+			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+				Enabled:    true,
+				MaxPaths:   uint32Ptr(maxPaths),
+				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+			},
+			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
+				Enabled:              true,
+				AdvertiseIPv4Unicast: boolPtr(true),
+			},
+		}
+		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
+			dozer.SpecVRFBGPTableConnectionConnected: {},
+			dozer.SpecVRFBGPTableConnectionStatic:    {},
+		}
+		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
+
+		vpcVNI := agent.Spec.VNIs[vpcName]
+		if vpcVNI == 0 {
+			return errors.Errorf("VNI for VPC %s not found", vpcName)
+		}
+		spec.VRFVNIMap[vrfName] = &dozer.SpecVRFVNIEntry{
+			VNI: uint32Ptr(vpcVNI),
+		}
+		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", vpcVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
+			VTEP: stringPtr(VTEP_FABRIC),
+			VNI:  uint32Ptr(vpcVNI),
+			VLAN: uint16Ptr(irbVLAN),
+		}
+	}
+
+	localVPC := map[string]bool{}
+	for _, attach := range agent.Spec.VPCAttachments {
+		vpcName := attach.VPCName()
+		vpc, exists := agent.Spec.VPCs[vpcName]
+		if !exists {
+			return errors.Errorf("VPC %s not found", vpcName)
+		}
+
+		localVPC[vpcName] = true
+
+		vrfName := vpcVrfName(vpcName)
 
 		subnetName := attach.SubnetName()
 		subnet := vpc.Subnets[subnetName]
@@ -875,58 +939,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		vrfName := vpcVrfName(vpcName)
-		if spec.VRFs[vrfName] == nil {
-			spec.VRFs[vrfName] = &dozer.SpecVRF{}
-		}
-		if spec.VRFs[vrfName].Interfaces == nil {
-			spec.VRFs[vrfName].Interfaces = map[string]*dozer.SpecVRFInterface{}
-		}
-
-		protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
-		}
-
-		maxPaths := uint32(64)
-		if agent.Spec.IsVS() {
-			maxPaths = 16
-		}
-
-		spec.VRFs[vrfName].Enabled = boolPtr(true)
-		spec.VRFs[vrfName].AnycastMAC = stringPtr(ANYCAST_MAC)
-		spec.VRFs[vrfName].BGP = &dozer.SpecVRFBGP{
-			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-			RouterID:           stringPtr(protocolIP.String()),
-			NetworkImportCheck: boolPtr(true),
-			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-				Enabled:  true,
-				MaxPaths: uint32Ptr(maxPaths),
-			},
-			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-				Enabled:              true,
-				AdvertiseIPv4Unicast: boolPtr(true),
-			},
-		}
-		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
-			dozer.SpecVRFBGPTableConnectionConnected: {},
-			dozer.SpecVRFBGPTableConnectionStatic:    {},
-		}
-		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 		spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
-
-		vpcVNI := agent.Spec.VNIs[vpcName]
-		if vpcVNI == 0 {
-			return errors.Errorf("VNI for VPC %s not found", vpcName)
-		}
-		spec.VRFVNIMap[vrfName] = &dozer.SpecVRFVNIEntry{
-			VNI: uint32Ptr(vpcVNI),
-		}
-		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", vpcVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
-			VTEP: stringPtr(VTEP_FABRIC),
-			VNI:  uint32Ptr(vpcVNI),
-			VLAN: uint16Ptr(irbVLAN),
-		}
 
 		subnetVNI := agent.Spec.VNIs[attach.Subnet]
 		if subnetVNI == 0 {
@@ -937,6 +950,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			VNI:  uint32Ptr(subnetVNI),
 			VLAN: uint16Ptr(subnetVLAN),
 		}
+
+		spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
 
 		if subnet.DHCP.Enable {
 			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
@@ -951,6 +966,31 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				VRFSelect:       true,
 			}
 		}
+	}
+
+	for peeringName, peering := range agent.Spec.VPCPeers {
+		vpc1Name, vpc2Name, err := peering.VPCs()
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse VPCs for VPC peering %s", peeringName)
+		}
+
+		_, exists := agent.Spec.VPCs[vpc1Name]
+		if !exists {
+			return errors.Errorf("VPC %s not found for VPC peering %s", vpc1Name, peeringName)
+		}
+		_, exists = agent.Spec.VPCs[vpc2Name]
+		if !exists {
+			return errors.Errorf("VPC %s not found for VPC peering %s", vpc2Name, peeringName)
+		}
+
+		vrf1Name := vpcVrfName(vpc1Name)
+		vrf2Name := vpcVrfName(vpc2Name)
+
+		spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
+		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+
+		// TODO add routemap `disallowdirect`
+		// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)
 	}
 
 	return nil
