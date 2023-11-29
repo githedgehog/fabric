@@ -493,6 +493,14 @@ spec:
                       type: string
                   type: object
                 type: object
+              vpcLoopbackLinks:
+                additionalProperties:
+                  type: string
+                type: object
+              vpcLoopbackVLANs:
+                additionalProperties:
+                  type: integer
+                type: object
               vpcPeers:
                 additionalProperties:
                   description: VPCPeeringSpec defines the desired state of VPCPeering

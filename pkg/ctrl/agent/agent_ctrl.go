@@ -22,6 +22,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"math"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -351,9 +353,19 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return errors.Wrapf(err, "error calculating port channels")
 		}
 
-		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(agent, attaches, vpcs)
+		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(agent, vpcs)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating IRB VLANs")
+		}
+
+		agent.Spec.VPCLoopbackLinks, err = r.calculateVPCLoopbackLinkAllocation(agent, conns, peers, attachedVPCs)
+		if err != nil {
+			return errors.Wrapf(err, "error calculating vpc loopback allocation")
+		}
+
+		agent.Spec.VPCLoopbackVLANs, err = r.calculateVPCLoopbackVLANAllocation(agent, peers, attachedVPCs)
+		if err != nil {
+			return errors.Wrapf(err, "error calculating vpc loopback vlan allocation")
 		}
 
 		return nil
@@ -556,36 +568,38 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 	return portChannels, nil
 }
 
-func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, attaches map[string]vpcapi.VPCAttachmentSpec, vpcs map[string]vpcapi.VPCSpec) (map[string]uint16, error) {
+func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, vpcs map[string]vpcapi.VPCSpec) (map[string]uint16, error) {
 	irbVLANs := map[string]uint16{}
 	taken := map[uint16]bool{}
 
-	for _, attach := range attaches {
-		vpcName := attach.VPCName()
-		_, exists := vpcs[vpcName]
-		if !exists {
+	for vpc, vlan := range agent.Spec.IRBVLANs {
+		if vlan < 1 {
 			continue
 		}
 
-		vlan := agent.Spec.IRBVLANs[vpcName]
-		if vlan > 0 {
-			irbVLANs[vpcName] = vlan
-			taken[vlan] = true
+		// TODO check it's still in the reserved ranges
+
+		if _, exist := vpcs[vpc]; !exist {
+			continue
 		}
+
+		irbVLANs[vpc] = vlan
+		taken[vlan] = true
 	}
 
 	for vpcName := range vpcs {
-		if irbVLANs[vpcName] != 0 {
+		if irbVLANs[vpcName] > 0 {
 			continue
 		}
 
 		// TODO optimize by storing last taken vlan
+	loop:
 		for _, vlanRange := range r.Cfg.VPCIRBVLANRanges {
 			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
 				if !taken[vlan] {
 					irbVLANs[vpcName] = vlan
 					taken[vlan] = true
-					break
+					break loop
 				}
 			}
 		}
@@ -596,6 +610,149 @@ func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, attaches map[
 	}
 
 	return irbVLANs, nil
+}
+
+func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec, peers map[string]vpcapi.VPCPeeringSpec, attachedVPCs map[string]bool) (map[string]string, error) {
+	loopbackMapping := map[string]string{}
+
+	vpcLoopbacks := map[string]bool{}
+	loopbackUsage := map[string]int{}
+	for connName, conn := range conns {
+		if conn.VPCLoopback == nil {
+			continue
+		}
+
+		for linkID, link := range conn.VPCLoopback.Links {
+			ports := []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()}
+			sort.Strings(ports)
+
+			if len(ports) != 2 {
+				return nil, errors.Errorf("invalid vpc loopback link %s %d", connName, linkID)
+			}
+
+			loRef := fmt.Sprintf("%s--%s", ports[0], ports[1])
+			vpcLoopbacks[loRef] = true
+			loopbackUsage[loRef] = 0
+		}
+	}
+
+	for peer, loopback := range agent.Spec.VPCLoopbackLinks {
+		if !vpcLoopbacks[loopback] {
+			continue
+		}
+		if peerSpec, exists := peers[peer]; !exists {
+			continue
+		} else {
+			vpc1, vpc2, err := peerSpec.VPCs()
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peer)
+			}
+
+			if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+				continue
+			}
+		}
+
+		loopbackMapping[peer] = loopback
+		loopbackUsage[loopback] += 1
+	}
+
+	for peerName, peer := range peers {
+		if _, exists := loopbackMapping[peerName]; exists {
+			continue
+		}
+
+		vpc1, vpc2, err := peer.VPCs()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peer)
+		}
+
+		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+			continue
+		}
+
+		minLoUsage := math.MaxInt
+		minLo := ""
+
+		for loopback, usage := range loopbackUsage {
+			if usage < minLoUsage {
+				minLoUsage = usage
+				minLo = loopback
+			}
+		}
+
+		if minLo == "" {
+			return nil, errors.Errorf("no vpc loopback available for peer %s", peerName)
+		}
+
+		loopbackMapping[peerName] = minLo
+		loopbackUsage[minLo] += 1
+	}
+
+	return loopbackMapping, nil
+}
+
+// TODO merge with IRB vlan allocation
+func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Agent, peers map[string]vpcapi.VPCPeeringSpec, attachedVPCs map[string]bool) (map[string]uint16, error) {
+	vlans := map[string]uint16{}
+	taken := map[uint16]bool{}
+
+	for peerName, vlan := range agent.Spec.VPCLoopbackVLANs {
+		if vlan < 1 {
+			continue
+		}
+
+		// TODO check that it still belongs to reserved ranges
+
+		if peerSpec, exist := peers[peerName]; !exist {
+			continue
+		} else {
+			vpc1, vpc2, err := peerSpec.VPCs()
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peerName)
+			}
+
+			if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+				continue
+			}
+		}
+
+		vlans[peerName] = vlan
+		taken[vlan] = true
+	}
+
+	for peerName, peer := range peers {
+		if vlans[peerName] > 0 {
+			continue
+		}
+
+		vpc1, vpc2, err := peer.VPCs()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peerName)
+		}
+
+		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+			continue
+		}
+
+		// TODO optimize by storing last taken vlan
+	loop:
+		for _, vlanRange := range r.Cfg.VPCPeeringVLANRanges {
+			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
+				if !taken[vlan] {
+					vlans[peerName] = vlan
+					taken[vlan] = true
+					break loop
+				}
+			}
+		}
+
+		if vlans[peerName] == 0 {
+			return nil, errors.Errorf("no peering VLAN available for peer %s", peerName)
+		}
+	}
+
+	return vlans, nil
 }
 
 const (

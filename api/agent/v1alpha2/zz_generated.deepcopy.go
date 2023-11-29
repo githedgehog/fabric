@@ -135,6 +135,20 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.VPCLoopbackLinks != nil {
+		in, out := &in.VPCLoopbackLinks, &out.VPCLoopbackLinks
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.VPCLoopbackVLANs != nil {
+		in, out := &in.VPCLoopbackVLANs, &out.VPCLoopbackVLANs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.VNIs != nil {
 		in, out := &in.VNIs, &out.VNIs
 		*out = make(map[string]uint32, len(*in))
