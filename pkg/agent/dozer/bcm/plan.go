@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -385,45 +384,21 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
-	ports1 := []string{}
-	ports2 := []string{}
-
-	for _, conn := range agent.Spec.Connections {
+	for connName, conn := range agent.Spec.Connections {
 		if conn.VPCLoopback == nil {
 			continue
 		}
 
-		for _, link := range conn.VPCLoopback.Links {
+		for linkID, link := range conn.VPCLoopback.Links {
 			if link.Switch1.DeviceName() != agent.Name || link.Switch2.DeviceName() != agent.Name {
 				continue
 			}
 
-			ports := []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()}
-			sort.Strings(ports)
-
-			ports1 = append(ports1, ports[0])
-			ports2 = append(ports2, ports[1])
-		}
-	}
-
-	for _, portChannel := range []uint16{VPC_LO_PORT_CHANNEL_1, VPC_LO_PORT_CHANNEL_2} {
-		portChannelName := portChannelName(portChannel)
-		spec.Interfaces[portChannelName] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr("VPC Loopback"),
-		}
-
-		var ports []string
-		if portChannel == VPC_LO_PORT_CHANNEL_1 {
-			ports = ports1
-		} else if portChannel == VPC_LO_PORT_CHANNEL_2 {
-			ports = ports2
-		}
-		for _, port := range ports {
-			spec.Interfaces[port] = &dozer.SpecInterface{
-				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("VPC loopback PC %d", portChannel)),
-				PortChannel: stringPtr(portChannelName),
+			for portID, port := range []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()} {
+				spec.Interfaces[port] = &dozer.SpecInterface{
+					Enabled:     boolPtr(true),
+					Description: stringPtr(fmt.Sprintf("VPC loopback %d.%d %s", linkID, portID, connName)),
+				}
 			}
 		}
 	}
@@ -889,7 +864,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Enabled:    true,
 				MaxPaths:   uint32Ptr(maxPaths),
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
-				// ImportPolicy: stringPtr(ROUTE_MAP_DISSALLOW_DIRECT),
+				// ImportPolicy: stringPtr(ROUTE_MAP_DISSALLOW_DIRECT), // TODO
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 				Enabled:              true,
