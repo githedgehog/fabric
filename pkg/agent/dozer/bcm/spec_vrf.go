@@ -3,7 +3,6 @@ package bcm
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sort"
 	"strings"
 
@@ -90,6 +89,7 @@ var specVRFSAGEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 		return []any{value.AnycastMAC}
 	},
 	Path:         "/global-sag/config",
+	SkipDelete:   true, // TODO check if it's ok
 	UpdateWeight: ActionWeightVRFSAGUpdate,
 	DeleteWeight: ActionWeightVRFSAGDelete,
 	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
@@ -137,6 +137,10 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 
 		if err := specVRFImportVrfEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrf bgp import vrfs")
+		}
+
+		if err := specVRFImportPolicyEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf bgp import policy")
 		}
 
 		actualNeighbors, desiredNeighbors := ValueOrNil(actual, desired,
@@ -343,10 +347,38 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 		imports := maps.Keys(value.IPv4Unicast.ImportVRFs)
 		sort.Strings(imports)
 
-		slog.Warn("Scheduling VRF imports update", "name", name, "imports", imports, "rawImports", value.IPv4Unicast.ImportVRFs)
-
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
 			Name: imports,
+		}, nil
+	},
+}
+
+var specVRFImportPolicyEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
+	Summary: "VRF BGP import policy %s",
+	Getter: func(name string, value *dozer.SpecVRFBGP) any {
+		// TODO we should probably re-trigger import vrfs update if we're running BGP Base update
+		return value.IPv4Unicast.ImportPolicy
+	},
+	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+		if desired != nil && desired.IPv4Unicast.ImportPolicy == nil {
+			return nil
+		}
+
+		return desired
+	},
+	MutateActual: func(key string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+		if actual != nil && actual.IPv4Unicast.ImportPolicy == nil {
+			return nil
+		}
+
+		return actual
+	},
+	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name",
+	UpdateWeight: ActionWeightVRFBGPImportVRFUpdate,
+	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
+	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
+			PolicyName: value.IPv4Unicast.ImportPolicy,
 		}, nil
 	},
 }
@@ -513,6 +545,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 								}
 							}
 							if ipv4Unicast.ImportNetworkInstance != nil && ipv4Unicast.ImportNetworkInstance.Config != nil {
+								bgp.IPv4Unicast.ImportPolicy = ipv4Unicast.ImportNetworkInstance.Config.PolicyName
 								for _, name := range ipv4Unicast.ImportNetworkInstance.Config.Name {
 									bgp.IPv4Unicast.ImportVRFs[name] = &dozer.SpecVRFBGPImportVRF{}
 								}

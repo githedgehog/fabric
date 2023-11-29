@@ -128,10 +128,11 @@ type SpecVRFBGP struct {
 }
 
 type SpecVRFBGPIPv4Unicast struct {
-	Enabled    bool                            `json:"enable,omitempty"`
-	Networks   map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
-	ImportVRFs map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
-	MaxPaths   *uint32                         `json:"maxPaths,omitempty"`
+	Enabled      bool                            `json:"enable,omitempty"`
+	MaxPaths     *uint32                         `json:"maxPaths,omitempty"`
+	Networks     map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
+	ImportVRFs   map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
+	ImportPolicy *string                         `json:"importPolicy,omitempty"`
 }
 
 type SpecVRFBGPL2VPNEVPN struct {
@@ -171,8 +172,24 @@ type SpecVRFStaticRouteNextHop struct {
 }
 
 type SpecRouteMap struct {
-	NoAdvertise *bool `json:"noAdvertise,omitempty"`
+	Statements map[string]*SpecRouteMapStatement `json:"statements,omitempty"`
 }
+
+type SpecRouteMapStatement struct {
+	Conditions SpecRouteMapConditions `json:"conditions,omitempty"`
+	Result     SpecRouteMapResult     `json:"result,omitempty"`
+}
+
+type SpecRouteMapConditions struct {
+	DirectlyConnected *bool `json:"directlyConnected,omitempty"`
+}
+
+type SpecRouteMapResult string
+
+const (
+	SpecRouteMapResultAccept SpecRouteMapResult = "accept"
+	SpecRouteMapResultReject SpecRouteMapResult = "reject"
+)
 
 const (
 	SpecVRFBGPTableConnectionConnected = "connected"

@@ -42,6 +42,7 @@ const (
 	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
 	VPC_LO_PORT_CHANNEL_1                     = 252
 	VPC_LO_PORT_CHANNEL_2                     = 253
+	ROUTE_MAP_DISSALLOW_DIRECT                = "dissallow-direct"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -831,6 +832,20 @@ func vpcVrfName(vpcName string) string {
 // }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
+	spec.RouteMaps[ROUTE_MAP_DISSALLOW_DIRECT] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{
+					DirectlyConnected: boolPtr(true),
+				},
+				Result: dozer.SpecRouteMapResultReject,
+			},
+			"20": {
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
+
 	for vpcName := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
 
@@ -874,6 +889,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Enabled:    true,
 				MaxPaths:   uint32Ptr(maxPaths),
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+				// ImportPolicy: stringPtr(ROUTE_MAP_DISSALLOW_DIRECT),
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 				Enabled:              true,

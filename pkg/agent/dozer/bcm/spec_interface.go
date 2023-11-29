@@ -296,6 +296,7 @@ var specInterfaceVLANAnycastGatewayEnforcer = &DefaultValueEnforcer[string, *doz
 	Skip:         func(name string, actual, desired *dozer.SpecInterface) bool { return !isVLAN(name) },
 	Getter:       func(name string, value *dozer.SpecInterface) any { return value.VLANAnycastGateway },
 	Path:         "/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway",
+	SkipDelete:   true, // TODO check if it's ok
 	UpdateWeight: ActionWeightInterfaceVLANAnycastGatewayUpdate,
 	DeleteWeight: ActionWeightInterfaceVLANAnycastGatewayDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
