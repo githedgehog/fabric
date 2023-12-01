@@ -868,6 +868,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if spec.VRFs[vrfName].Interfaces == nil {
 			spec.VRFs[vrfName].Interfaces = map[string]*dozer.SpecVRFInterface{}
 		}
+		if spec.VRFs[vrfName].StaticRoutes == nil {
+			spec.VRFs[vrfName].StaticRoutes = map[string]*dozer.SpecVRFStaticRoute{}
+		}
 
 		protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 		if err != nil {
@@ -1007,10 +1010,110 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
 		} else {
 			// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)
+			vlan := agent.Spec.VPCLoopbackVLANs[peeringName]
+			if vlan == 0 {
+				return errors.Errorf("workaround VLAN for VPC peering %s not found", peeringName)
+			}
+
+			link := agent.Spec.VPCLoopbackLinks[peeringName]
+			if link == "" {
+				return errors.Errorf("workaround link for VPC peering %s not found", peeringName)
+			}
+
+			ports := strings.Split(link, "--")
+			if len(ports) != 2 {
+				return errors.Errorf("workaround link for VPC peering %s is invalid", peeringName)
+			}
+			if spec.Interfaces[ports[0]] == nil {
+				return errors.Errorf("workaround link port %s for VPC peering %s not found", ports[0], peeringName)
+			}
+			if spec.Interfaces[ports[1]] == nil {
+				return errors.Errorf("workaround link port %s for VPC peering %s not found", ports[1], peeringName)
+			}
+
+			ip1, ip2, err := vpcWorkaroundIPs("172.30.224.0/19", vlan)
+			if err != nil {
+				return errors.Wrapf(err, "failed to get workaround IPs for VPC peering")
+			}
+
+			spec.Interfaces[ports[0]].Subinterfaces[uint32(vlan)] = &dozer.SpecSubinterface{
+				VLAN: &vlan,
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip1: {
+						PrefixLen: uint8Ptr(31),
+					},
+				},
+			}
+
+			spec.Interfaces[ports[1]].Subinterfaces[uint32(vlan)] = &dozer.SpecSubinterface{
+				VLAN:            &vlan,
+				AnycastGateways: []string{ip2 + "/31"},
+			}
+
+			sub1 := fmt.Sprintf("%s.%d", ports[0], vlan)
+			sub2 := fmt.Sprintf("%s.%d", ports[1], vlan)
+
+			spec.VRFs[vrf1Name].Interfaces[sub1] = &dozer.SpecVRFInterface{}
+			spec.VRFs[vrf2Name].Interfaces[sub2] = &dozer.SpecVRFInterface{}
+
+			// TODO deduplicate
+			for subnetName, subnet := range agent.Spec.VPCs[vpc1Name].Subnets {
+				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
+				}
+				prefixLen, _ := ipNet.Mask.Size()
+
+				spec.VRFs[vrf2Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							IP:        ip1,
+							Interface: stringPtr(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
+						},
+					},
+				}
+			}
+
+			for subnetName, subnet := range agent.Spec.VPCs[vpc2Name].Subnets {
+				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
+				}
+				prefixLen, _ := ipNet.Mask.Size()
+
+				spec.VRFs[vrf1Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							IP:        ip2,
+							Interface: stringPtr(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
+						},
+					},
+				}
+			}
 		}
 	}
 
 	return nil
+}
+
+func vpcWorkaroundIPs(subnet string, vlan uint16) (string, string, error) {
+	_, ipNet, err := net.ParseCIDR(subnet) // TODO move to config
+	if err != nil {
+		return "", "", err
+	}
+	prefixLen, _ := ipNet.Mask.Size()
+	if prefixLen < 19 {
+		return "", "", errors.Errorf("subnet should be at least /19")
+	}
+	ip := ipNet.IP.To4()
+	ip[2] += byte(vlan / 128)
+	ip[3] += byte(vlan % 128 * 2)
+
+	res1 := ip.String()
+	ip[3] += 1
+	res2 := ip.String()
+
+	return res1, res2, nil
 }
 
 func portChannelName(id uint16) string {

@@ -215,7 +215,7 @@ var specInterfaceSubinterfaceBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer
 					Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4{
 						SagIpv4: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_SagIpv4{
 							Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_SagIpv4_Config{
-								StaticAnycastGateway: value.AnycastGateways,
+								StaticAnycastGateway: value.AnycastGateways, // TODO extract into a separate code so we can remove values
 							},
 						},
 					},

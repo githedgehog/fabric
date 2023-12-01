@@ -124,9 +124,9 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		return nil, err
 	}
 
-	for _, permit := range peering.Spec.Permit {
+	for idx, permit := range peering.Spec.Permit {
 		if len(permit) != 2 {
-			return nil, errors.Errorf("permit must have exactly 2 VPCs")
+			return nil, errors.Errorf("permit must have exactly 2 VPCs (idx %d)", idx)
 		}
 	}
 
