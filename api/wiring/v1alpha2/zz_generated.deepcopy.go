@@ -1055,6 +1055,13 @@ func (in *SwitchSpec) DeepCopyInto(out *SwitchSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.PortSpeeds != nil {
+		in, out := &in.PortSpeeds, &out.PortSpeeds
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.PortBreakouts != nil {
 		in, out := &in.PortBreakouts, &out.PortBreakouts
 		*out = make(map[string]string, len(*in))

@@ -67,6 +67,7 @@ type SwitchSpec struct {
 	VTEPIP          string            `json:"vtepIP,omitempty"`
 	ProtocolIP      string            `json:"protocolIP,omitempty"`
 	PortGroupSpeeds map[string]string `json:"portGroupSpeeds,omitempty"`
+	PortSpeeds      map[string]string `json:"portSpeeds,omitempty"`
 	PortBreakouts   map[string]string `json:"portBreakouts,omitempty"`
 }
 
@@ -135,6 +136,10 @@ func (sw *Switch) Default() {
 
 	for name, value := range sw.Spec.PortGroupSpeeds {
 		sw.Spec.PortGroupSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
+	}
+
+	for name, value := range sw.Spec.PortSpeeds {
+		sw.Spec.PortSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
 	}
 
 	if len(sw.Spec.VLANNamespaces) == 0 {

@@ -41,7 +41,6 @@ const (
 	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
 	VPC_LO_PORT_CHANNEL_1                     = 252
 	VPC_LO_PORT_CHANNEL_2                     = 253
-	ROUTE_MAP_DISALLOW_DIRECT                 = "disallow-direct"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -189,6 +188,7 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.Interfaces[controlIface] = &dozer.SpecInterface{
 		Description: stringPtr("Control interface direct"),
 		Enabled:     boolPtr(true),
+		Speed:       getPortSpeed(agent, controlIface),
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
@@ -370,6 +370,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.Interfaces[port] = &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
 				Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
+				Speed:       getPortSpeed(agent, port),
 				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 					0: {
 						IPs: map[string]*dozer.SpecInterfaceIP{
@@ -418,6 +419,7 @@ func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 				spec.Interfaces[port] = &dozer.SpecInterface{
 					Enabled:       boolPtr(true),
 					Description:   stringPtr(fmt.Sprintf("VPC loopback %d.%d %s", linkID, portID, connName)),
+					Speed:         getPortSpeed(agent, port),
 					Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 				}
 			}
@@ -476,7 +478,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			descr := fmt.Sprintf("PC%d %s %s %s", portChan, connType, link.Server.DeviceName(), connName)
-			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil)
+			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil, agent)
 			if err != nil {
 				return errors.Wrapf(err, "failed to setup physical interface %s", portName)
 			}
@@ -498,6 +500,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		spec.Interfaces[swPort.LocalPortName()] = &dozer.SpecInterface{
 			Enabled:     boolPtr(true),
 			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), connName)),
+			Speed:       getPortSpeed(agent, swPort.LocalPortName()),
 			TrunkVLANs:  []string{VPC_VLAN_RANGE},
 			// MTU:         mtu,
 		}
@@ -621,7 +624,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
 	for iface, peerPort := range mclagPeerLinks {
 		descr := fmt.Sprintf("PC%d MCLAG peer %s", MCLAG_PEER_LINK_PORT_CHANNEL_ID, peerPort)
-		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName, nil)
+		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName, nil, agent)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG peer link", iface)
 		}
@@ -644,7 +647,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	spec.Interfaces[mclagSessionPortChannelName] = mclagSessionPortChannel
 	for iface, peerPort := range mclagSessionLinks {
 		descr := fmt.Sprintf("PC%d MCLAG session %s", MCLAG_SESSION_LINK_PORT_CHANNEL_ID, peerPort)
-		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName, nil)
+		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName, nil, agent)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
 		}
@@ -1096,6 +1099,18 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+func getPortSpeed(agent *agentapi.Agent, port string) *string {
+	if agent.Spec.Switch.PortSpeeds == nil {
+		return nil
+	}
+
+	if speed, exists := agent.Spec.Switch.PortSpeeds[port]; exists {
+		return &speed
+	}
+
+	return nil
+}
+
 // TODO test
 func vpcWorkaroundIPs(subnet string, vlan uint16) (string, string, error) {
 	_, ipNet, err := net.ParseCIDR(subnet)
@@ -1125,7 +1140,7 @@ func vlanName(vlan uint16) string {
 	return fmt.Sprintf("Vlan%d", vlan)
 }
 
-func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, portChannel string, mtu *uint16) error { // TODO replace with generic function or drop
+func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, portChannel string, mtu *uint16, agent *agentapi.Agent) error { // TODO replace with generic function or drop
 	if iface, exist := spec.Interfaces[name]; exist {
 		descr := ""
 		if iface.Description != nil {
@@ -1137,6 +1152,7 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	physicalIface := &dozer.SpecInterface{
 		Description: stringPtr(description),
 		Enabled:     boolPtr(true),
+		Speed:       getPortSpeed(agent, name),
 		PortChannel: &portChannel,
 		MTU:         mtu,
 	}

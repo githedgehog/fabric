@@ -1101,6 +1101,7 @@ _Appears in:_
 | `vtepIP` _string_ |  |
 | `protocolIP` _string_ |  |
 | `portGroupSpeeds` _object (keys:string, values:string)_ |  |
+| `portSpeeds` _object (keys:string, values:string)_ |  |
 | `portBreakouts` _object (keys:string, values:string)_ |  |
 
 

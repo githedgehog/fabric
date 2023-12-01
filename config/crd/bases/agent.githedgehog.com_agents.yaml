@@ -374,6 +374,10 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  portSpeeds:
+                    additionalProperties:
+                      type: string
+                    type: object
                   profile:
                     type: string
                   protocolIP:
@@ -431,6 +435,10 @@ spec:
                         type: string
                       type: object
                     portGroupSpeeds:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    portSpeeds:
                       additionalProperties:
                         type: string
                       type: object
