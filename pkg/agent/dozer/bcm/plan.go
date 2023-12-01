@@ -832,19 +832,19 @@ func vpcVrfName(vpcName string) string {
 // }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	spec.RouteMaps[ROUTE_MAP_DISALLOW_DIRECT] = &dozer.SpecRouteMap{
-		Statements: map[string]*dozer.SpecRouteMapStatement{
-			"10": {
-				Conditions: dozer.SpecRouteMapConditions{
-					DirectlyConnected: boolPtr(true),
-				},
-				Result: dozer.SpecRouteMapResultReject,
-			},
-			"20": {
-				Result: dozer.SpecRouteMapResultAccept,
-			},
-		},
-	}
+	// spec.RouteMaps[ROUTE_MAP_DISALLOW_DIRECT] = &dozer.SpecRouteMap{
+	// 	Statements: map[string]*dozer.SpecRouteMapStatement{
+	// 		"10": {
+	// 			Conditions: dozer.SpecRouteMapConditions{
+	// 				DirectlyConnected: boolPtr(true),
+	// 			},
+	// 			Result: dozer.SpecRouteMapResultReject,
+	// 		},
+	// 		"20": {
+	// 			Result: dozer.SpecRouteMapResultAccept,
+	// 		},
+	// 	},
+	// }
 
 	for vpcName := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
@@ -916,7 +916,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	localVPC := map[string]bool{}
+	attachedVPC := map[string]bool{}
 	for _, attach := range agent.Spec.VPCAttachments {
 		vpcName := attach.VPCName()
 		vpc, exists := agent.Spec.VPCs[vpcName]
@@ -924,7 +924,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("VPC %s not found", vpcName)
 		}
 
-		localVPC[vpcName] = true
+		attachedVPC[vpcName] = true
 
 		vrfName := vpcVrfName(vpcName)
 
@@ -1002,11 +1002,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		vrf1Name := vpcVrfName(vpc1Name)
 		vrf2Name := vpcVrfName(vpc2Name)
 
-		spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
-		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
-
-		// TODO add routemap `disallowdirect`
-		// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)
+		if !attachedVPC[vpc1Name] || !attachedVPC[vpc2Name] {
+			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
+			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+		} else {
+			// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)
+		}
 	}
 
 	return nil
