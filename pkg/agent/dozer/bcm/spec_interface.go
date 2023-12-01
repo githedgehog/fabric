@@ -231,8 +231,10 @@ var specInterfaceSubinterfaceIPsEnforcer = &DefaultMapEnforcer[string, *dozer.Sp
 }
 
 var specInterfaceSubinterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIP]{
-	Summary: "Subinterface IP %s",
-	Path:    "/ipv4/addresses/address[ip=%s]",
+	Summary:    "Subinterface IP %s",
+	CreatePath: "/ipv4/addresses/address",
+	Path:       "/ipv4/addresses/address[ip=%s]",
+	NoReplace:  true,
 	// SkipDelete:  true, // TODO check if it's needed
 	UpdateWeight: ActionWeightInterfaceSubinterfaceIPsUpdate,
 	DeleteWeight: ActionWeightInterfaceSubinterfaceIPsDelete,

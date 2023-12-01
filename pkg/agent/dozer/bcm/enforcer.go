@@ -60,10 +60,13 @@ const (
 	ActionWeightInterfacePortChannelMemberUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
-	ActionWeightInterfaceSubinterfaceUpdate
-	ActionWeightInterfaceSubinterfaceIPsUpdate
 
+	ActionWeightInterfaceSubinterfaceIPsDelete
+	ActionWeightVRFInterfaceDelete
+	ActionWeightInterfaceSubinterfaceDelete
+	ActionWeightInterfaceSubinterfaceUpdate
 	ActionWeightVRFInterfaceUpdate
+	ActionWeightInterfaceSubinterfaceIPsUpdate
 
 	ActionWeightLLDPInterfaceUpdate
 
@@ -124,10 +127,6 @@ const (
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
 
-	ActionWeightVRFInterfaceDelete
-
-	ActionWeightInterfaceSubinterfaceIPsDelete
-	ActionWeightInterfaceSubinterfaceDelete
 	ActionWeightInterfacePortChannelMemberDelete
 	ActionWeightInterfacePortChannelDelete
 	ActionWeightInterfaceNATZoneDelete

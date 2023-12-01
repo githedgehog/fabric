@@ -1031,7 +1031,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Errorf("workaround link port %s for VPC peering %s not found", ports[1], peeringName)
 			}
 
-			ip1, ip2, err := vpcWorkaroundIPs("172.30.224.0/19", vlan)
+			ip1, ip2, err := vpcWorkaroundIPs("172.30.224.0/19", vlan) // TODO move to config
 			if err != nil {
 				return errors.Wrapf(err, "failed to get workaround IPs for VPC peering")
 			}
@@ -1096,8 +1096,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+// TODO test
 func vpcWorkaroundIPs(subnet string, vlan uint16) (string, string, error) {
-	_, ipNet, err := net.ParseCIDR(subnet) // TODO move to config
+	_, ipNet, err := net.ParseCIDR(subnet)
 	if err != nil {
 		return "", "", err
 	}
