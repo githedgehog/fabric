@@ -3,6 +3,7 @@ package dozer
 import (
 	"context"
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
@@ -78,22 +79,28 @@ type SpecPortBreakout struct {
 }
 
 type SpecInterface struct {
-	Description        *string                     `json:"description,omitempty"`
-	Enabled            *bool                       `json:"enabled,omitempty"`
-	IPs                map[string]*SpecInterfaceIP `json:"ips,omitempty"`
-	PortChannel        *string                     `json:"portChannel,omitempty"`
-	NATZone            *uint8                      `json:"natZone,omitempty"`
-	AccessVLAN         *uint16                     `json:"accessVLAN,omitempty"`
-	TrunkVLANs         []string                    `json:"trunkVLANs,omitempty"`
-	MTU                *uint16                     `json:"mtu,omitempty"`
-	Speed              *string                     `json:"speed,omitempty"`
-	VLANAnycastGateway []string                    `json:"vlanAnycastGateway,omitempty"`
+	Description        *string                      `json:"description,omitempty"`
+	Enabled            *bool                        `json:"enabled,omitempty"`
+	PortChannel        *string                      `json:"portChannel,omitempty"`
+	NATZone            *uint8                       `json:"natZone,omitempty"`
+	AccessVLAN         *uint16                      `json:"accessVLAN,omitempty"`
+	TrunkVLANs         []string                     `json:"trunkVLANs,omitempty"`
+	MTU                *uint16                      `json:"mtu,omitempty"`
+	Speed              *string                      `json:"speed,omitempty"`
+	VLANIPs            map[string]*SpecInterfaceIP  `json:"vlanIPs,omitempty"`
+	VLANAnycastGateway []string                     `json:"vlanAnycastGateway,omitempty"`
+	Subinterfaces      map[uint32]*SpecSubinterface `json:"subinterfaces,omitempty"`
 }
 
 type SpecInterfaceIP struct {
-	VLAN      bool   `json:"vlan,omitempty"` // tmp hack as we only know about last layer of the config in enforcers and in IP enforcer we don't know the interface name
 	PrefixLen *uint8 `json:"prefixLen,omitempty"`
 	Secondary *bool  `json:"secondary,omitempty"`
+}
+
+type SpecSubinterface struct {
+	VLAN            *uint16                     `json:"vlan,omitempty"`
+	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
+	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
@@ -302,6 +309,17 @@ func (s *Spec) Normalize() {
 	for _, dhcp := range s.DHCPRelays {
 		sort.Strings(dhcp.RelayAddress)
 	}
+
+	for name, iface := range s.Interfaces {
+		if strings.HasPrefix(name, "PortChannel") || strings.HasPrefix(name, "Ethernet") {
+			if iface.Subinterfaces == nil {
+				iface.Subinterfaces = map[uint32]*SpecSubinterface{}
+			}
+			if _, exists := iface.Subinterfaces[0]; !exists {
+				iface.Subinterfaces[0] = &SpecSubinterface{}
+			}
+		}
+	}
 }
 
 func (s *Spec) CleanupSensetive() {
@@ -354,6 +372,7 @@ var (
 	_ SpecPart = (*SpecPortGroup)(nil)
 	_ SpecPart = (*SpecPortBreakout)(nil)
 	_ SpecPart = (*SpecInterface)(nil)
+	_ SpecPart = (*SpecSubinterface)(nil)
 	_ SpecPart = (*SpecInterfaceIP)(nil)
 	_ SpecPart = (*SpecMCLAGDomain)(nil)
 	_ SpecPart = (*SpecMCLAGInterface)(nil)
@@ -406,6 +425,10 @@ func (s *SpecPortBreakout) IsNil() bool {
 }
 
 func (s *SpecInterface) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecSubinterface) IsNil() bool {
 	return s == nil
 }
 

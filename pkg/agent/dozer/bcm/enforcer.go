@@ -3,13 +3,13 @@ package bcm
 import (
 	"fmt"
 	"log/slog"
-	"reflect"
 	"slices"
 	"strings"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"k8s.io/apimachinery/pkg/api/equality"
 )
 
 type ActionType string
@@ -56,11 +56,13 @@ const (
 	ActionWeightInterfaceBaseUpdate
 	ActionWeightVRFBaseUpdate
 	ActionWeightVRFInterfaceUpdate
-	ActionWeightInterfaceIPUpdate
+	ActionWeightInterfaceVLANIPsUpdate
 	ActionWeightInterfacePortChannelUpdate
 	ActionWeightInterfacePortChannelMemberUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
+	ActionWeightInterfaceSubinterfaceUpdate
+	ActionWeightInterfaceSubinterfaceIPsUpdate
 
 	ActionWeightLLDPInterfaceUpdate
 
@@ -121,10 +123,12 @@ const (
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
 
+	ActionWeightInterfaceSubinterfaceIPsDelete
+	ActionWeightInterfaceSubinterfaceDelete
 	ActionWeightInterfacePortChannelMemberDelete
 	ActionWeightInterfacePortChannelDelete
 	ActionWeightInterfaceNATZoneDelete
-	ActionWeightInterfaceIPDelete
+	ActionWeightInterfaceVLANIPsDelete
 	ActionWeightInterfaceVLANAnycastGatewayDelete
 
 	ActionWrightVRFTableConnectionDelete
@@ -251,7 +255,7 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 		}
 	}
 
-	if reflect.DeepEqual(actualVal, desiredVal) {
+	if equality.Semantic.DeepEqual(actualVal, desiredVal) {
 		return nil
 	}
 

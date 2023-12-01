@@ -41,7 +41,7 @@ const (
 	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
 	VPC_LO_PORT_CHANNEL_1                     = 252
 	VPC_LO_PORT_CHANNEL_2                     = 253
-	ROUTE_MAP_DISSALLOW_DIRECT                = "dissallow-direct"
+	ROUTE_MAP_DISALLOW_DIRECT                 = "disallow-direct"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -189,9 +189,13 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.Interfaces[controlIface] = &dozer.SpecInterface{
 		Description: stringPtr("Control interface direct"),
 		Enabled:     boolPtr(true),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			ip.String(): {
-				PrefixLen: uint8Ptr(uint8(prefixLen)),
+		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+			0: {
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: uint8Ptr(uint8(prefixLen)),
+					},
+				},
 			},
 		},
 	}
@@ -269,9 +273,13 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.Interfaces[LO_SWITCH] = &dozer.SpecInterface{
 		Enabled:     boolPtr(true),
 		Description: stringPtr("Switch loopback"),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			ip.String(): {
-				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+			0: {
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+					},
+				},
 			},
 		},
 	}
@@ -285,9 +293,13 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.Interfaces[LO_PROTO] = &dozer.SpecInterface{
 		Enabled:     boolPtr(true),
 		Description: stringPtr("Protocol loopback"),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			ip.String(): {
-				PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+			0: {
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+					},
+				},
 			},
 		},
 	}
@@ -302,9 +314,13 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 		spec.Interfaces[LO_VTEP] = &dozer.SpecInterface{
 			Enabled:     boolPtr(true),
 			Description: stringPtr("VTEP loopback"),
-			IPs: map[string]*dozer.SpecInterfaceIP{
-				ip.String(): {
-					PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+				0: {
+					IPs: map[string]*dozer.SpecInterfaceIP{
+						ip.String(): {
+							PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+						},
+					},
 				},
 			},
 		}
@@ -354,9 +370,13 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.Interfaces[port] = &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
 				Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
-				IPs: map[string]*dozer.SpecInterfaceIP{
-					ip.String(): {
-						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+					0: {
+						IPs: map[string]*dozer.SpecInterfaceIP{
+							ip.String(): {
+								PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+							},
+						},
 					},
 				},
 			}
@@ -396,8 +416,9 @@ func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			for portID, port := range []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()} {
 				spec.Interfaces[port] = &dozer.SpecInterface{
-					Enabled:     boolPtr(true),
-					Description: stringPtr(fmt.Sprintf("VPC loopback %d.%d %s", linkID, portID, connName)),
+					Enabled:       boolPtr(true),
+					Description:   stringPtr(fmt.Sprintf("VPC loopback %d.%d %s", linkID, portID, connName)),
+					Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 				}
 			}
 		}
@@ -610,9 +631,13 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	mclagSessionPortChannel := &dozer.SpecInterface{
 		Description: stringPtr(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
 		Enabled:     boolPtr(true),
-		IPs: map[string]*dozer.SpecInterfaceIP{
-			sourceIP: {
-				PrefixLen: uint8Ptr(MCLAG_SESSION_IP_PREFIX_LEN),
+		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+			0: {
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					sourceIP: {
+						PrefixLen: uint8Ptr(MCLAG_SESSION_IP_PREFIX_LEN),
+					},
+				},
 			},
 		},
 	}
@@ -807,7 +832,7 @@ func vpcVrfName(vpcName string) string {
 // }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	spec.RouteMaps[ROUTE_MAP_DISSALLOW_DIRECT] = &dozer.SpecRouteMap{
+	spec.RouteMaps[ROUTE_MAP_DISALLOW_DIRECT] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			"10": {
 				Conditions: dozer.SpecRouteMapConditions{
@@ -864,7 +889,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Enabled:    true,
 				MaxPaths:   uint32Ptr(maxPaths),
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
-				// ImportPolicy: stringPtr(ROUTE_MAP_DISSALLOW_DIRECT), // TODO
+				// ImportPolicy: stringPtr(ROUTE_MAP_DISALLOW_DIRECT), // TODO
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 				Enabled:              true,

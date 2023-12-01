@@ -53,8 +53,8 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 		}
 
 		actualIPs, desiredIPs := ValueOrNil(actual, desired,
-			func(value *dozer.SpecInterface) map[string]*dozer.SpecInterfaceIP { return value.IPs })
-		if err := specInterfaceIPsEnforcer.Handle(basePath, actualIPs, desiredIPs, actions); err != nil {
+			func(value *dozer.SpecInterface) map[string]*dozer.SpecInterfaceIP { return value.VLANIPs })
+		if err := specInterfaceVLANIPsEnforcer.Handle(basePath, actualIPs, desiredIPs, actions); err != nil {
 			return errors.Wrap(err, "failed to handle interface IPs")
 		}
 
@@ -72,6 +72,12 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 
 		if err := specInterfaceVLANAnycastGatewayEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle interface VLAN Anycast Gateway")
+		}
+
+		actualSubs, desiredSubs := ValueOrNil(actual, desired,
+			func(value *dozer.SpecInterface) map[uint32]*dozer.SpecSubinterface { return value.Subinterfaces })
+		if err := specInterfaceSubinterfacesEnforcer.Handle(basePath, actualSubs, desiredSubs, actions); err != nil {
+			return errors.Wrap(err, "failed to handle interface subinterfaces")
 		}
 
 		return nil
@@ -130,52 +136,115 @@ var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfa
 	},
 }
 
-var specInterfaceIPsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterfaceIP]{
-	Summary:      "Interface %s IPs",
-	ValueHandler: specInterfaceIPEnforcer,
+var specInterfaceVLANIPsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterfaceIP]{
+	Summary:      "Interface %s VLAN IPs",
+	ValueHandler: specInterfaceVLANIPEnforcer,
 }
 
-var specInterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIP]{
-	Summary:      "Interface IP %s", // TODO chain summary as well?
-	NoReplace:    true,
-	SkipDelete:   true, // TODO check how good remove/add/replace IP works
-	UpdateWeight: ActionWeightInterfaceIPUpdate,
-	DeleteWeight: ActionWeightInterfaceIPDelete,
-	PathFunc: func(name string, value *dozer.SpecInterfaceIP) string {
-		if value.VLAN {
-			return fmt.Sprintf("/routed-vlan/ipv4/addresses/address[ip=%s]", name)
+var specInterfaceVLANIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIP]{
+	Summary: "Interface VLAN IP %s", // TODO chain summary as well?
+	Path:    "/routed-vlan/ipv4/addresses/address[ip=%s]",
+	// NoReplace:    true, // TODO check if it'll work correctly
+	// SkipDelete:   true, // TODO check how good remove/add/replace IP works
+	UpdateWeight: ActionWeightInterfaceVLANIPsUpdate,
+	DeleteWeight: ActionWeightInterfaceVLANIPsDelete,
+	Marshal: func(name string, value *dozer.SpecInterfaceIP) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses{
+			Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address{
+				name: {
+					Ip: ygot.String(name),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address_Config{
+						Ip:           ygot.String(name),
+						PrefixLength: value.PrefixLen,
+						Secondary:    ygot.Bool(false),
+					},
+				},
+			},
+		}, nil
+	},
+}
+
+var specInterfaceSubinterfacesEnforcer = &DefaultMapEnforcer[uint32, *dozer.SpecSubinterface]{
+	Summary:      "Subinterface %s",
+	ValueHandler: specInterfaceSubinterfaceEnforcer,
+}
+
+var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
+	Summary: "Subinterface %d", // TODO chain summary as well?
+	CustomHandler: func(basePath string, idx uint32, actual, desired *dozer.SpecSubinterface, actions *ActionQueue) error {
+		basePath += fmt.Sprintf("/subinterfaces/subinterface[index=%d]", idx)
+
+		if err := specInterfaceSubinterfaceBaseEnforcer.Handle(basePath, idx, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle subinterface base")
 		}
 
-		return fmt.Sprintf("/subinterfaces/subinterface[index=0]/ipv4[ip=%s]", name)
+		actualIPs, desiredIPs := ValueOrNil(actual, desired,
+			func(value *dozer.SpecSubinterface) map[string]*dozer.SpecInterfaceIP { return value.IPs })
+		if err := specInterfaceSubinterfaceIPsEnforcer.Handle(basePath, actualIPs, desiredIPs, actions); err != nil {
+			return errors.Wrap(err, "failed to handle subinterface IPs")
+		}
+
+		return nil // TODO
 	},
-	Marshal: func(name string, value *dozer.SpecInterfaceIP) (ygot.ValidatedGoStruct, error) {
-		if value.VLAN {
-			return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses{
-				Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address{
-					name: {
-						Ip: ygot.String(name),
-						Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address_Config{
-							Ip:           ygot.String(name),
-							PrefixLength: value.PrefixLen,
-							Secondary:    ygot.Bool(false),
+}
+
+var specInterfaceSubinterfaceBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
+	Summary:      "Subinterface Base %d",
+	NoReplace:    true, // TODO check if it'll work correctly
+	UpdateWeight: ActionWeightInterfaceSubinterfaceUpdate,
+	DeleteWeight: ActionWeightInterfaceSubinterfaceDelete,
+	Marshal: func(idx uint32, value *dozer.SpecSubinterface) (ygot.ValidatedGoStruct, error) {
+		var vlan *oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Vlan
+
+		if value.VLAN != nil {
+			vlan = &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Vlan{
+				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Vlan_Config{
+					VlanId: oc.UnionUint16(*value.VLAN),
+				},
+			}
+		}
+
+		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces{
+			Subinterface: map[uint32]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface{
+				idx: {
+					Index: ygot.Uint32(idx),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Config{
+						Index: ygot.Uint32(idx),
+					},
+					Vlan: vlan,
+					Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4{
+						SagIpv4: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_SagIpv4{
+							Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_SagIpv4_Config{
+								StaticAnycastGateway: value.AnycastGateways,
+							},
 						},
 					},
 				},
-			}, nil
-		}
+			},
+		}, nil
+	},
+}
 
-		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface{
-			Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4{
-				Addresses: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses{
-					Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address{
-						name: {
-							Ip: ygot.String(name),
-							Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address_Config{
-								Ip:           ygot.String(name),
-								PrefixLength: value.PrefixLen,
-								Secondary:    ygot.Bool(false),
-							},
-						},
+var specInterfaceSubinterfaceIPsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterfaceIP]{
+	Summary:      "Subinterface IPs %s",
+	ValueHandler: specInterfaceSubinterfaceIPEnforcer,
+}
+
+var specInterfaceSubinterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIP]{
+	Summary: "Subinterface IP %s",
+	Path:    "/ipv4/addresses/address[ip=%s]",
+	// SkipDelete:  true, // TODO check if it's needed
+	UpdateWeight: ActionWeightInterfaceSubinterfaceIPsUpdate,
+	DeleteWeight: ActionWeightInterfaceSubinterfaceIPsDelete,
+	Marshal: func(ip string, value *dozer.SpecInterfaceIP) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses{
+			Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address{
+				ip: {
+					Ip: ygot.String(ip),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address_Config{
+						Ip:           ygot.String(ip),
+						PrefixLength: value.PrefixLen,
+						Secondary:    ygot.Bool(false),
 					},
 				},
 			},
@@ -346,10 +415,10 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		}
 
 		iface := &dozer.SpecInterface{
-			Description: ocIface.Config.Description,
-			Enabled:     ocIface.Config.Enabled,
-			MTU:         mtu,
-			IPs:         map[string]*dozer.SpecInterfaceIP{},
+			Description:   ocIface.Config.Description,
+			Enabled:       ocIface.Config.Enabled,
+			MTU:           mtu,
+			Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 		}
 
 		// just skip interfaces disabled by Fabric
@@ -358,25 +427,55 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		}
 
 		if ocIface.Subinterfaces != nil && len(ocIface.Subinterfaces.Subinterface) > 0 {
-			if len(ocIface.Subinterfaces.Subinterface) != 1 {
-				return nil, errors.Errorf("only one subinterface expected on interface %s", name)
-			}
-
-			sub := ocIface.Subinterfaces.Subinterface[0]
-			if sub.Ipv4 != nil && sub.Ipv4.Addresses != nil {
-				if len(sub.Ipv4.Addresses.Address) != 1 {
-					return nil, errors.Errorf("only one IP address expected on interface %s", name)
+			for id, sub := range ocIface.Subinterfaces.Subinterface {
+				if sub.Config == nil {
+					continue
 				}
 
-				for _, addr := range sub.Ipv4.Addresses.Address {
-					if addr.Config == nil || addr.Config.Ip == nil {
-						continue
+				subIface := &dozer.SpecSubinterface{
+					IPs: map[string]*dozer.SpecInterfaceIP{},
+				}
+
+				if sub.Ipv4 != nil && sub.Ipv4.Addresses != nil {
+					if len(sub.Ipv4.Addresses.Address) != 1 {
+						return nil, errors.Errorf("only one IP address expected on subinterface %s.%d", name, id)
 					}
 
-					iface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
-						PrefixLen: addr.Config.PrefixLength,
+					for _, addr := range sub.Ipv4.Addresses.Address {
+						if addr.Config == nil || addr.Config.Ip == nil {
+							continue
+						}
+
+						subIface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
+							PrefixLen: addr.Config.PrefixLength,
+						}
 					}
 				}
+
+				if sub.Ipv4 != nil && sub.Ipv4.SagIpv4 != nil && sub.Ipv4.SagIpv4.Config != nil {
+					subIface.AnycastGateways = sub.Ipv4.SagIpv4.Config.StaticAnycastGateway
+				}
+
+				if sub.Vlan != nil && sub.Vlan.Config != nil {
+					var vlan *uint16
+
+					vlanID := sub.Vlan.Config.VlanId
+					if strVal, ok := vlanID.(oc.UnionString); ok {
+						vlanVal, err := strconv.ParseUint(string(strVal), 10, 16)
+						if err != nil {
+							return nil, errors.Wrapf(err, "can't parse %s", vlanID)
+						}
+						vlan = ygot.Uint16(uint16(vlanVal))
+					} else if numVal, ok := vlanID.(oc.UnionUint16); ok {
+						vlan = ygot.Uint16(uint16(numVal))
+					} else {
+						return nil, errors.Errorf("unknown vlan id type %v for %s.%d", vlanID, name, id)
+					}
+
+					subIface.VLAN = vlan
+				}
+
+				iface.Subinterfaces[id] = subIface
 			}
 		}
 
@@ -394,8 +493,7 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 							continue
 						}
 
-						iface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
-							VLAN:      true,
+						iface.VLANIPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
 							PrefixLen: addr.Config.PrefixLength,
 						}
 					}
