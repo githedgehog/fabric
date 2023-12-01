@@ -215,6 +215,12 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 						AdvertiseAllVni: value.L2VPNEVPN.AdvertiseAllVNI,
 					},
 					// TODO extract as we'll not be able to replace it
+					DefaultOriginate: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_DefaultOriginate{
+						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_DefaultOriginate_Config{
+							Ipv4: value.L2VPNEVPN.DefaultOriginateIPv4,
+						},
+					},
+					// TODO extract as we'll not be able to replace it
 					RouteAdvertise: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise{
 						RouteAdvertiseList: routeAdvertise,
 					},
@@ -563,6 +569,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 								bgp.L2VPNEVPN.Enabled = true
 								if l2vpnEVPN.Config != nil {
 									bgp.L2VPNEVPN.AdvertiseAllVNI = l2vpnEVPN.Config.AdvertiseAllVni
+								}
+								if l2vpnEVPN.DefaultOriginate != nil && l2vpnEVPN.DefaultOriginate.Config != nil {
+									bgp.L2VPNEVPN.DefaultOriginateIPv4 = l2vpnEVPN.DefaultOriginate.Config.Ipv4
 								}
 								if l2vpnEVPN.RouteAdvertise != nil {
 									for _, route := range l2vpnEVPN.RouteAdvertise.RouteAdvertiseList {

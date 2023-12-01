@@ -144,6 +144,7 @@ type SpecVRFBGPIPv4Unicast struct {
 
 type SpecVRFBGPL2VPNEVPN struct {
 	Enabled              bool  `json:"enable,omitempty"`
+	DefaultOriginateIPv4 *bool `json:"defaultOriginateIPv4,omitempty"`
 	AdvertiseAllVNI      *bool `json:"advertiseAllVnis,omitempty"`
 	AdvertiseIPv4Unicast *bool `json:"advertiseIPv4Unicast,omitempty"`
 }
