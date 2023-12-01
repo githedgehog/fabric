@@ -155,4 +155,12 @@ resources:
     defaulting: true
     validation: true
     webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: wiring
+  kind: SwitchGroup
+  path: go.githedgehog.com/fabric/api/wiring/v1alpha2
+  version: v1alpha2
 version: "3"

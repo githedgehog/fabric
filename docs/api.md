@@ -488,6 +488,7 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 - [Server](#server)
 - [ServerProfile](#serverprofile)
 - [Switch](#switch)
+- [SwitchGroup](#switchgroup)
 - [SwitchProfile](#switchprofile)
 - [VLANNamespace](#vlannamespace)
 
@@ -1013,6 +1014,27 @@ Switch is the Schema for the switches API
 | `status` _[SwitchStatus](#switchstatus)_ |  |
 
 
+#### SwitchGroup
+
+
+
+SwitchGroup is the Schema for the switchgroups API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2`
+| `kind` _string_ | `SwitchGroup`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[SwitchGroupSpec](#switchgroupspec)_ |  |
+| `status` _[SwitchGroupStatus](#switchgroupstatus)_ |  |
+
+
+
+
+
+
 #### SwitchProfile
 
 
@@ -1095,6 +1117,7 @@ _Appears in:_
 | `profile` _string_ |  |
 | `location` _[Location](#location)_ |  |
 | `locationSig` _[LocationSig](#locationsig)_ |  |
+| `groups` _string array_ |  |
 | `vlanNamespaces` _string array_ |  |
 | `asn` _integer_ |  |
 | `ip` _string_ |  |

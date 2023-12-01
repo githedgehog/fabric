@@ -259,6 +259,22 @@ rules:
 - apiGroups:
   - wiring.githedgehog.com
   resources:
+  - switchgroups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switchgroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
   - vlannamespaces
   verbs:
   - get

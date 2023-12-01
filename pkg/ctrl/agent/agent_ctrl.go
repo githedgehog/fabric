@@ -130,6 +130,9 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj client.Obj
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups/status,verbs=get;update;patch
+
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 

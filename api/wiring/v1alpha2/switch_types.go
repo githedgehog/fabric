@@ -24,7 +24,9 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -61,6 +63,7 @@ type SwitchSpec struct {
 	Profile         string            `json:"profile,omitempty"`
 	Location        Location          `json:"location,omitempty"`
 	LocationSig     LocationSig       `json:"locationSig,omitempty"`
+	Groups          []string          `json:"groups,omitempty"`
 	VLANNamespaces  []string          `json:"vlanNamespaces,omitempty"`
 	ASN             uint32            `json:"asn,omitempty"`
 	IP              string            `json:"ip,omitempty"`
@@ -210,6 +213,21 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client) (admis
 			}
 
 			return nil, errors.Errorf("switch with location %s already exists", sw.Labels[LabelLocation])
+		}
+
+		for _, group := range sw.Spec.Groups {
+			if group == "" {
+				return nil, errors.Errorf("group name cannot be empty")
+			}
+
+			sg := &SwitchGroup{}
+			err = client.Get(ctx, types.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil, errors.Errorf("switch group %s does not exist", group)
+				}
+				return nil, errors.Wrapf(err, "failed to get switch group %s", group) // TODO replace with some internal error to not expose to the user
+			}
 		}
 	}
 

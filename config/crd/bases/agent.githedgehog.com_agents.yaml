@@ -340,6 +340,10 @@ spec:
                     type: integer
                   description:
                     type: string
+                  groups:
+                    items:
+                      type: string
+                    type: array
                   ip:
                     type: string
                   location:
@@ -404,6 +408,10 @@ spec:
                       type: integer
                     description:
                       type: string
+                    groups:
+                      items:
+                        type: string
+                      type: array
                     ip:
                       type: string
                     location:
