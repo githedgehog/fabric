@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -242,7 +243,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]vpcapi.VPCAttachmentSpec{}
-	attachedSubnets := map[string]bool{}
+	attachedSubnets := map[string]bool{} // TODO probably it's not really needed
 	attachedVPCs := map[string]bool{}
 	attachList := &vpcapi.VPCAttachmentList{}
 	err = r.List(ctx, attachList, client.InNamespace(sw.Namespace))
@@ -266,7 +267,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
 	}
 	for _, vpc := range vpcList.Items {
-		ok := false
+		ok := attachedVPCs[vpc.Name]
 		for subnetName := range vpc.Spec.Subnets {
 			if attachedSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
 				ok = true
@@ -295,7 +296,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		_, exists1 := vpcs[vpc1]
 		_, exists2 := vpcs[vpc2]
 
-		if exists1 || exists2 {
+		if exists1 || exists2 || peer.Spec.Remote != "" && slices.Contains(sw.Spec.Groups, peer.Spec.Remote) {
 			peers[peer.Name] = peer.Spec
 			peeredVPCs[vpc1] = true
 			peeredVPCs[vpc2] = true
@@ -646,6 +647,11 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 		if peerSpec, exists := peers[peer]; !exists {
 			continue
 		} else {
+			// TODO would be needed for external peering
+			if peerSpec.Remote != "" {
+				continue
+			}
+
 			vpc1, vpc2, err := peerSpec.VPCs()
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peer)
@@ -661,6 +667,11 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 	}
 
 	for peerName, peer := range peers {
+		// TODO would be needed for external peering
+		if peer.Remote != "" {
+			continue
+		}
+
 		if _, exists := loopbackMapping[peerName]; exists {
 			continue
 		}
@@ -710,6 +721,11 @@ func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Age
 		if peerSpec, exist := peers[peerName]; !exist {
 			continue
 		} else {
+			// TODO would be needed for external peering
+			if peerSpec.Remote != "" {
+				continue
+			}
+
 			vpc1, vpc2, err := peerSpec.VPCs()
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peerName)
@@ -725,6 +741,11 @@ func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Age
 	}
 
 	for peerName, peer := range peers {
+		// TODO would be needed for external peering
+		if peer.Remote != "" {
+			continue
+		}
+
 		if vlans[peerName] > 0 {
 			continue
 		}

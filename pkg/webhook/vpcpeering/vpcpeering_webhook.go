@@ -69,8 +69,8 @@ func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	newPeering := newObj.(*vpcapi.VPCPeering)
 	oldPeering := oldObj.(*vpcapi.VPCPeering)
 
-	if !equality.Semantic.DeepEqual(oldPeering.Spec, newPeering.Spec) {
-		return nil, errors.Errorf("vpc peering is immutable")
+	if !equality.Semantic.DeepEqual(oldPeering.Spec.Permit, newPeering.Spec.Permit) {
+		return nil, errors.Errorf("vpc peering permit list is immutable")
 	}
 
 	warns, err := newPeering.Validate(ctx, w.Validation, w.Cfg.VPCPeeringDisabled)

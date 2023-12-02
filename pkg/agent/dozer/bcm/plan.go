@@ -1011,7 +1011,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if !attachedVPC[vpc1Name] || !attachedVPC[vpc2Name] {
 			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
-		} else {
+
+			// remote
+			if !attachedVPC[vpc1Name] && !attachedVPC[vpc2Name] {
+				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
+				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
+			}
+		} else if peering.Remote == "" {
 			// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)
 			vlan := agent.Spec.VPCLoopbackVLANs[peeringName]
 			if vlan == 0 {

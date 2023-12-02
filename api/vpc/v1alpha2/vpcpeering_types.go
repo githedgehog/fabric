@@ -34,6 +34,7 @@ import (
 
 // VPCPeeringSpec defines the desired state of VPCPeering
 type VPCPeeringSpec struct {
+	Remote string `json:"remote,omitempty"`
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=10
 	Permit []map[string]VPCPeer `json:"permit,omitempty"`
@@ -171,6 +172,18 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 
 		if ipv4Namespaces[0] != ipv4Namespaces[1] {
 			return nil, errors.Errorf("VPCs must be in the same IPv4 namespace")
+		}
+
+		if peering.Spec.Remote != "" {
+			switchGroup := &wiringapi.SwitchGroup{}
+			err := client.Get(ctx, types.NamespacedName{Name: peering.Spec.Remote, Namespace: peering.Namespace}, switchGroup)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil, errors.Errorf("switch group %s not found", peering.Spec.Remote)
+				}
+
+				return nil, errors.Wrapf(err, "failed to list switch groups") // TODO replace with some internal error to not expose to the user
+			}
 		}
 	}
 
