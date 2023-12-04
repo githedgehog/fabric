@@ -424,6 +424,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `remote` _string_ |  |
 | `permit` _[map[string]VPCPeer](#map[string]vpcpeer) array_ |  |
 
 
