@@ -516,7 +516,7 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	maxPaths := uint32(64)
-	if agent.Spec.IsVS() {
+	if agent.Spec.IsVS() || agent.Status.NOSInfo.HwskuVersion == "Accton-AS4630-54NPE" { // TODO move to SwitchProfile
 		maxPaths = 16
 	}
 
