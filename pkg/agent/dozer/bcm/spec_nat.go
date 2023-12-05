@@ -3,6 +3,7 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/openconfig/gnmic/api"
 	"github.com/openconfig/ygot/ygot"
@@ -172,7 +173,9 @@ func loadActualNATs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 	ocNATInstances := &oc.OpenconfigNat_Nat_Instances{}
 	err := client.Get(ctx, "/nat/instances/instance", ocNATInstances, api.DataTypeCONFIG())
 	if err != nil {
-		return errors.Wrapf(err, "failed to read nat instances")
+		if !strings.Contains(err.Error(), "rpc error: code = InvalidArgument desc = Node nat not found") { // TODO rework client to handle it
+			return errors.Wrapf(err, "failed to read nat instances")
+		}
 	}
 	spec.NATs, err = unmarshalOCNATInstances(ocNATInstances)
 	if err != nil {
