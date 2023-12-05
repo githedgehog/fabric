@@ -515,11 +515,6 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 	}
 
-	maxPaths := uint32(64)
-	if agent.Spec.IsVS() || agent.Status.NOSInfo.HwskuVersion == "Accton-AS4630-54NPE" { // TODO move to SwitchProfile
-		maxPaths = 16
-	}
-
 	spec.VRFs[VRF_DEFAULT].AnycastMAC = stringPtr(ANYCAST_MAC)
 	spec.VRFs[VRF_DEFAULT].BGP = &dozer.SpecVRFBGP{
 		AS:                 uint32Ptr(agent.Spec.Switch.ASN),
@@ -528,7 +523,7 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
 		IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 			Enabled:  true,
-			MaxPaths: uint32Ptr(maxPaths),
+			MaxPaths: uint32Ptr(getMaxPaths(agent)),
 		},
 		L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 			Enabled:         true,
@@ -880,11 +875,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 		}
 
-		maxPaths := uint32(64)
-		if agent.Spec.IsVS() {
-			maxPaths = 16
-		}
-
 		spec.VRFs[vrfName].Enabled = boolPtr(true)
 		spec.VRFs[vrfName].AnycastMAC = stringPtr(ANYCAST_MAC)
 		spec.VRFs[vrfName].BGP = &dozer.SpecVRFBGP{
@@ -893,7 +883,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			NetworkImportCheck: boolPtr(true),
 			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 				Enabled:    true,
-				MaxPaths:   uint32Ptr(maxPaths),
+				MaxPaths:   uint32Ptr(getMaxPaths(agent)),
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 				// ImportPolicy: stringPtr(ROUTE_MAP_DISALLOW_DIRECT), // TODO
 			},
@@ -1115,6 +1105,14 @@ func getPortSpeed(agent *agentapi.Agent, port string) *string {
 	}
 
 	return nil
+}
+
+func getMaxPaths(agent *agentapi.Agent) uint32 {
+	if agent.Spec.IsVS() || agent.Status.NOSInfo.HwskuVersion == "Accton-AS4630-54NPE" { // TODO move to SwitchProfile
+		return 16
+	}
+
+	return 64
 }
 
 // TODO test
