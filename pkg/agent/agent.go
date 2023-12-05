@@ -231,12 +231,6 @@ func (svc *Service) setInstallAndRunIDs() error {
 func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
-	desired, err := svc.processor.PlanDesiredState(ctx, agent)
-	if err != nil {
-		return errors.Wrapf(err, "failed to plan spec")
-	}
-	slog.Debug("Desired state generated")
-
 	if !svc.SkipControlLink {
 		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
 			return errors.Wrap(err, "failed to ensure control link")
@@ -251,6 +245,21 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 			return errors.Wrap(err, "failed to wait for system status ready")
 		}
 	}
+
+	// Make sure we have NOS info
+	if agent.Status.NOSInfo.HwskuVersion == "" {
+		nosInfo, err := svc.processor.Info(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to get starting NOS info")
+		}
+		agent.Status.NOSInfo = *nosInfo
+	}
+
+	desired, err := svc.processor.PlanDesiredState(ctx, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to plan spec")
+	}
+	slog.Debug("Desired state generated")
 
 	actual, err := svc.processor.LoadActualState(ctx)
 	if err != nil {
