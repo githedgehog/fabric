@@ -330,6 +330,31 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:    "connection",
+				Aliases: []string{"conn"},
+				Usage:   "Connection commands",
+				Flags: []cli.Flag{
+					verboseFlag,
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "get",
+						Usage: "Get connections",
+						Flags: []cli.Flag{
+							verboseFlag,
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return hhfctl.ConnectionGet(ctx, &hhfctl.ConnectionGetOptions{
+								Type: cCtx.Args().First(),
+							})
+						},
+					},
+				},
+			},
 		},
 	}
 
