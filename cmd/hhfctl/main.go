@@ -203,62 +203,6 @@ func main() {
 							})
 						},
 					},
-					{
-						Name:  "snat",
-						Usage: "Enable SNAT for the VPC (outbound)",
-						Flags: []cli.Flag{
-							verboseFlag,
-							&cli.StringFlag{
-								Name:     "vpc",
-								Usage:    "vpc",
-								Required: true,
-							},
-							&cli.BoolFlag{
-								Name:  "enable",
-								Usage: "enable snat",
-								Value: true,
-							},
-							printYamlFlag,
-						},
-						Before: func(cCtx *cli.Context) error {
-							return setupLogger(verbose)
-						},
-						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCSNAT(ctx, printYaml, &hhfctl.VPCSNATOptions{
-								VPC:    cCtx.String("vpc"),
-								Enable: cCtx.Bool("enable"),
-							})
-						},
-					},
-					{
-						Name:    "dnat-request",
-						Aliases: []string{"dnat"},
-						Usage:   "Request DNAT for the private IPs in VPC (inbound)",
-						Flags: []cli.Flag{
-							verboseFlag,
-							&cli.StringFlag{
-								Name:     "vpc",
-								Usage:    "vpc",
-								Required: true,
-							},
-							&cli.StringSliceFlag{
-								Name:     "request",
-								Aliases:  []string{"r", "req"},
-								Usage:    "request privateIP=externalIP or privateIP (auto assign externalIP)",
-								Required: true,
-							},
-							printYamlFlag,
-						},
-						Before: func(cCtx *cli.Context) error {
-							return setupLogger(verbose)
-						},
-						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCDNATRequest(ctx, printYaml, &hhfctl.VPCDNATOptions{
-								VPC:      cCtx.String("vpc"),
-								Requests: cCtx.StringSlice("request"),
-							})
-						},
-					},
 				},
 			},
 			{
