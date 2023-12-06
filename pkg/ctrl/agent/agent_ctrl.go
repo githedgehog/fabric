@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"maps"
 	"math"
 	"slices"
 	"sort"
@@ -233,32 +234,53 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// We only support MCLAG switch pairs for now
 	// It means that 2 switches would have the same MCLAG connections and same set of PortChannels
 	var mclagPeer *agentapi.Agent
+	mclagConns := map[string]wiringapi.ConnectionSpec{}
 	if mclagPeerName != "" {
 		mclagPeer = &agentapi.Agent{}
 		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: mclagPeerName}, mclagPeer)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
 		}
+
+		connList := &wiringapi.ConnectionList{}
+		err = r.List(ctx, connList, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(mclagPeerName))
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting mclag peer switch connections")
+		}
+
+		for _, conn := range connList.Items {
+			mclagConns[conn.Name] = conn.Spec
+		}
 	}
 
 	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]vpcapi.VPCAttachmentSpec{}
-	attachedSubnets := map[string]bool{} // TODO probably it's not really needed
+	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
 	attachedVPCs := map[string]bool{}
+	mclagAttachedVPCs := map[string]bool{} // TODO remove?
 	attachList := &vpcapi.VPCAttachmentList{}
 	err = r.List(ctx, attachList, client.InNamespace(sw.Namespace))
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments")
 	}
 	for _, attach := range attachList.Items {
-		if _, exists := conns[attach.Spec.Connection]; !exists {
-			continue
+		_, conn := conns[attach.Spec.Connection]
+		_, mclagConn := mclagConns[attach.Spec.Connection]
+
+		if conn {
+			attaches[attach.Name] = attach.Spec
+			attachedVPCs[attach.Spec.VPCName()] = true
 		}
 
-		attaches[attach.Name] = attach.Spec
-		attachedSubnets[attach.Spec.Subnet] = true
-		attachedVPCs[attach.Spec.VPCName()] = true
+		// whatever vpc subnet that got configured on our mclag peer should be configured on us too
+		if conn || mclagConn {
+			configuredSubnets[attach.Spec.Subnet] = true
+			mclagAttachedVPCs[attach.Spec.VPCName()] = true
+		}
 	}
+
+	// we handle VPCs attached to our MCLAG peer like our attached VPCs in most cases
+	maps.Copy(attachedVPCs, mclagAttachedVPCs)
 
 	vpcs := map[string]vpcapi.VPCSpec{}
 	vpcList := &vpcapi.VPCList{}
@@ -267,9 +289,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
 	}
 	for _, vpc := range vpcList.Items {
-		ok := attachedVPCs[vpc.Name]
+		ok := attachedVPCs[vpc.Name] || mclagAttachedVPCs[vpc.Name]
 		for subnetName := range vpc.Spec.Subnets {
-			if attachedSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
+			if configuredSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
 				ok = true
 				break
 			}
@@ -311,7 +333,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	vnis := map[string]uint32{}
 	for _, vpc := range vpcList.Items {
-		if !peeredVPCs[vpc.Name] && !attachedVPCs[vpc.Name] {
+		if _, exists := vpcs[vpc.Name]; !exists {
 			continue
 		}
 
@@ -334,6 +356,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
 		agent.Spec.VPCPeers = peers
+		agent.Spec.ConfiguredVPCSubnets = configuredSubnets
+		agent.Spec.MCLAGAttachedVPCs = mclagAttachedVPCs
 		agent.Spec.VNIs = vnis
 		agent.Spec.Users = r.Cfg.Users
 

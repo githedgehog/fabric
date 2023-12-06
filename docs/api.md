@@ -57,6 +57,8 @@ _Appears in:_
 | `vpcPeers` _object (keys:string, values:[VPCPeeringSpec](#vpcpeeringspec))_ |  |
 | `vpcLoopbackLinks` _object (keys:string, values:string)_ |  |
 | `vpcLoopbackVLANs` _object (keys:string, values:integer)_ |  |
+| `configuredVPCSubnets` _object (keys:string, values:boolean)_ |  |
+| `mclagAttachedVPCs` _object (keys:string, values:boolean)_ |  |
 | `vnis` _object (keys:string, values:integer)_ |  |
 | `irbVLANs` _object (keys:string, values:integer)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |

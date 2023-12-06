@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
@@ -912,7 +913,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	attachedVPC := map[string]bool{}
+	attachedVPCs := map[string]bool{}
 	for _, attach := range agent.Spec.VPCAttachments {
 		vpcName := attach.VPCName()
 		vpc, exists := agent.Spec.VPCs[vpcName]
@@ -920,9 +921,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("VPC %s not found", vpcName)
 		}
 
-		attachedVPC[vpcName] = true
-
-		vrfName := vpcVrfName(vpcName)
+		attachedVPCs[vpcName] = true
 
 		subnetName := attach.SubnetName()
 		subnet := vpc.Subnets[subnetName]
@@ -930,53 +929,37 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("VPC %s subnet %s not found", vpcName, subnetName)
 		}
 
-		vlanRaw, err := strconv.ParseUint(subnet.VLAN, 10, 16)
+		err := planVPCSubnet(agent, spec, vpcName, subnetName, subnet)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
+			return errors.Wrapf(err, "failed to plan VPC %s subnet %s", vpcName, subnetName)
 		}
-		subnetVLAN := uint16(vlanRaw)
+	}
 
-		subnetCIDR, err := iputil.ParseCIDR(subnet.Subnet)
+	for configuredSubnet, val := range agent.Spec.ConfiguredVPCSubnets {
+		if !val {
+			continue
+		}
+
+		parts := strings.Split(configuredSubnet, "/")
+		if len(parts) != 2 {
+			return errors.Errorf("invalid configured subnet %s", configuredSubnet)
+		}
+
+		vpcName := parts[0]
+		subnetName := parts[1]
+
+		vpc, exists := agent.Spec.VPCs[vpcName]
+		if !exists {
+			return errors.Errorf("VPC %s not found", vpcName)
+		}
+		subnet, exists := vpc.Subnets[subnetName]
+		if !exists {
+			return errors.Errorf("VPC %s subnet %s not found", vpcName, subnetName)
+		}
+
+		err := planVPCSubnet(agent, spec, vpcName, subnetName, subnet)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse subnet %s for VPC %s", subnet.Subnet, vpcName)
-		}
-		prefixLen, _ := subnetCIDR.Subnet.Mask.Size()
-
-		subnetIface := vlanName(subnetVLAN)
-		spec.Interfaces[subnetIface] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
-			VLANAnycastGateway: []string{
-				fmt.Sprintf("%s/%d", subnetCIDR.Gateway.String(), prefixLen),
-			},
-		}
-
-		spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
-
-		subnetVNI := agent.Spec.VNIs[attach.Subnet]
-		if subnetVNI == 0 {
-			return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
-		}
-		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
-			VTEP: stringPtr(VTEP_FABRIC),
-			VNI:  uint32Ptr(subnetVNI),
-			VLAN: uint16Ptr(subnetVLAN),
-		}
-
-		spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
-
-		if subnet.DHCP.Enable {
-			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
-			}
-
-			spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
-				SourceInterface: stringPtr(LO_SWITCH),
-				RelayAddress:    []string{dhcpRelayIP.String()},
-				LinkSelect:      true,
-				VRFSelect:       true,
-			}
+			return errors.Wrapf(err, "failed to plan VPC %s subnet %s for configuredSubnets", vpcName, subnetName)
 		}
 	}
 
@@ -998,12 +981,15 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		vrf1Name := vpcVrfName(vpc1Name)
 		vrf2Name := vpcVrfName(vpc2Name)
 
-		if !attachedVPC[vpc1Name] || !attachedVPC[vpc2Name] {
+		vpc1Attached := attachedVPCs[vpc1Name] || agent.Spec.MCLAGAttachedVPCs[vpc1Name]
+		vpc2Attached := attachedVPCs[vpc2Name] || agent.Spec.MCLAGAttachedVPCs[vpc2Name]
+
+		if !vpc1Attached || !vpc2Attached {
 			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
 
 			// remote
-			if !attachedVPC[vpc1Name] && !attachedVPC[vpc2Name] {
+			if !vpc1Attached && !vpc2Attached {
 				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
 				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
 			}
@@ -1089,6 +1075,61 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 				}
 			}
+		}
+	}
+
+	return nil
+}
+
+func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName, subnetName string, subnet *vpcapi.VPCSubnet) error {
+	vrfName := vpcVrfName(vpcName)
+
+	vlanRaw, err := strconv.ParseUint(subnet.VLAN, 10, 16)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
+	}
+	subnetVLAN := uint16(vlanRaw)
+
+	subnetCIDR, err := iputil.ParseCIDR(subnet.Subnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse subnet %s for VPC %s", subnet.Subnet, vpcName)
+	}
+	prefixLen, _ := subnetCIDR.Subnet.Mask.Size()
+
+	subnetIface := vlanName(subnetVLAN)
+	spec.Interfaces[subnetIface] = &dozer.SpecInterface{
+		Enabled:     boolPtr(true),
+		Description: stringPtr(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
+		VLANAnycastGateway: []string{
+			fmt.Sprintf("%s/%d", subnetCIDR.Gateway.String(), prefixLen),
+		},
+	}
+
+	spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
+
+	subnetVNI := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
+	if subnetVNI == 0 {
+		return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
+	}
+	spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
+		VTEP: stringPtr(VTEP_FABRIC),
+		VNI:  uint32Ptr(subnetVNI),
+		VLAN: uint16Ptr(subnetVLAN),
+	}
+
+	spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
+
+	if subnet.DHCP.Enable {
+		dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
+		}
+
+		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
+			SourceInterface: stringPtr(LO_SWITCH),
+			RelayAddress:    []string{dhcpRelayIP.String()},
+			LinkSelect:      true,
+			VRFSelect:       true,
 		}
 	}
 

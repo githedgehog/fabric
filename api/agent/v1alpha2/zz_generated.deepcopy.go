@@ -149,6 +149,20 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.ConfiguredVPCSubnets != nil {
+		in, out := &in.ConfiguredVPCSubnets, &out.ConfiguredVPCSubnets
+		*out = make(map[string]bool, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.MCLAGAttachedVPCs != nil {
+		in, out := &in.MCLAGAttachedVPCs, &out.MCLAGAttachedVPCs
+		*out = make(map[string]bool, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.VNIs != nil {
 		in, out := &in.VNIs, &out.VNIs
 		*out = make(map[string]uint32, len(*in))

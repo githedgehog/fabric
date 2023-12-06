@@ -97,6 +97,10 @@ spec:
                   vpcPeeringDisabled:
                     type: boolean
                 type: object
+              configuredVPCSubnets:
+                additionalProperties:
+                  type: boolean
+                type: object
               connections:
                 additionalProperties:
                   description: ConnectionSpec defines the desired state of Connection
@@ -300,6 +304,10 @@ spec:
               irbVLANs:
                 additionalProperties:
                   type: integer
+                type: object
+              mclagAttachedVPCs:
+                additionalProperties:
+                  type: boolean
                 type: object
               portChannels:
                 additionalProperties:
