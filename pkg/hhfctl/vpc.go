@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
@@ -44,7 +43,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	}
 
 	vpc.Default()
-	warnings, err := vpc.Validate(ctx, validation.WithCtrlRuntime(kube), nil)
+	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -105,7 +104,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 	}
 
 	attach.Default()
-	warnings, err := attach.Validate(ctx, validation.WithCtrlRuntime(kube))
+	warnings, err := attach.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -169,7 +168,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	}
 
 	peering.Default()
-	warnings, err := peering.Validate(ctx, validation.WithCtrlRuntime(kube), false)
+	warnings, err := peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, false)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
