@@ -273,10 +273,76 @@ _Appears in:_
 Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group
 
 ### Resource Types
+- [External](#external)
+- [ExternalAttachment](#externalattachment)
+- [ExternalPeering](#externalpeering)
 - [IPv4Namespace](#ipv4namespace)
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
 - [VPCPeering](#vpcpeering)
+
+
+
+#### External
+
+
+
+External is the Schema for the externals API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `External`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ExternalSpec](#externalspec)_ |  |
+| `status` _[ExternalStatus](#externalstatus)_ |  |
+
+
+#### ExternalAttachment
+
+
+
+ExternalAttachment is the Schema for the externalattachments API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `ExternalAttachment`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ExternalAttachmentSpec](#externalattachmentspec)_ |  |
+| `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ |  |
+
+
+
+
+
+
+#### ExternalPeering
+
+
+
+ExternalPeering is the Schema for the externalpeerings API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2`
+| `kind` _string_ | `ExternalPeering`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ExternalPeeringSpec](#externalpeeringspec)_ |  |
+| `status` _[ExternalPeeringStatus](#externalpeeringstatus)_ |  |
+
+
+
+
+
+
+
 
 
 

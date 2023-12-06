@@ -30,6 +30,66 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-vpc-githedgehog-com-v1alpha2-external
+  failurePolicy: Fail
+  name: mexternal.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - externals
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-vpc-githedgehog-com-v1alpha2-externalattachment
+  failurePolicy: Fail
+  name: mexternalattachment.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - externalattachments
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-vpc-githedgehog-com-v1alpha2-externalpeering
+  failurePolicy: Fail
+  name: mexternalpeering.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - externalpeerings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-vpc-githedgehog-com-v1alpha2-ipv4namespace
   failurePolicy: Fail
   name: mipv4namespace.kb.io
@@ -189,6 +249,66 @@ webhooks:
     - UPDATE
     resources:
     - connections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1alpha2-external
+  failurePolicy: Fail
+  name: vexternal.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - externals
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1alpha2-externalattachment
+  failurePolicy: Fail
+  name: vexternalattachment.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - externalattachments
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1alpha2-externalpeering
+  failurePolicy: Fail
+  name: vexternalpeering.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - externalpeerings
   sideEffects: None
 - admissionReviewVersions:
   - v1

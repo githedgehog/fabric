@@ -163,4 +163,40 @@ resources:
   kind: SwitchGroup
   path: go.githedgehog.com/fabric/api/wiring/v1alpha2
   version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: vpc
+  kind: External
+  path: go.githedgehog.com/fabric/api/vpc/v1alpha2
+  version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: vpc
+  kind: ExternalAttachment
+  path: go.githedgehog.com/fabric/api/vpc/v1alpha2
+  version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
+  group: vpc
+  kind: ExternalPeering
+  path: go.githedgehog.com/fabric/api/vpc/v1alpha2
+  version: v1alpha2
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"

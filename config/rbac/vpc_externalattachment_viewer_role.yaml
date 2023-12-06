@@ -1,0 +1,27 @@
+# permissions for end users to view externalattachments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: externalattachment-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: fabric
+    app.kubernetes.io/part-of: fabric
+    app.kubernetes.io/managed-by: kustomize
+  name: externalattachment-viewer-role
+rules:
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalattachments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalattachments/status
+  verbs:
+  - get
