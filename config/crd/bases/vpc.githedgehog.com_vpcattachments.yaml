@@ -22,8 +22,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.vpc
-      name: VPC
+    - jsonPath: .spec.subnet
+      name: VPCSUBNET
       type: string
     - jsonPath: .spec.connection
       name: Connection
