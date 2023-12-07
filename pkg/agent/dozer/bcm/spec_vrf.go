@@ -159,17 +159,20 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	},
 }
 
+var specVRFBGPBaseEnforcerGetter = func(name string, value *dozer.SpecVRFBGP) any {
+	return []any{
+		value.AS, value.RouterID, value.NetworkImportCheck,
+		// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if current approach is ok
+		value.IPv4Unicast.Enabled,
+		value.IPv4Unicast.MaxPaths,
+		value.IPv4Unicast.TableMap,
+		value.L2VPNEVPN,
+	}
+}
+
 var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
-	Summary: "VRF %s BGP base",
-	Getter: func(name string, value *dozer.SpecVRFBGP) any {
-		return []any{
-			value.AS, value.RouterID, value.NetworkImportCheck,
-			// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if we can safely embed import vrf handling here
-			value.IPv4Unicast.Enabled,
-			value.IPv4Unicast.MaxPaths,
-			value.L2VPNEVPN,
-		}
-	},
+	Summary:      "VRF %s BGP base",
+	Getter:       specVRFBGPBaseEnforcerGetter,
 	UpdateWeight: ActionWeightVRFBGPBaseUpdate,
 	DeleteWeight: ActionWeightVRFBGPBaseDelete,
 	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
@@ -178,7 +181,8 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 			ipv4Unicast := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
 				AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
-					AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+					AfiSafiName:  oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+					TableMapName: value.IPv4Unicast.TableMap,
 				},
 			}
 
@@ -329,8 +333,7 @@ var specVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Summary: "VRF BGP import VRF %s",
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
-		// TODO we should probably re-trigger import vrfs update if we're running BGP Base update
-		return value.IPv4Unicast.ImportVRFs
+		return []any{specVRFBGPBaseEnforcerGetter(name, value), value.IPv4Unicast.ImportVRFs} // TODO check if it helps
 	},
 	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
 		if desired != nil && len(desired.IPv4Unicast.ImportVRFs) == 0 {
@@ -545,6 +548,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						ipv4Unicast := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
 						if ipv4Unicast != nil {
 							bgp.IPv4Unicast.Enabled = true
+							bgp.IPv4Unicast.TableMap = ipv4Unicast.Config.TableMapName
 							if ipv4Unicast.NetworkConfig != nil {
 								for name := range ipv4Unicast.NetworkConfig.Network {
 									bgp.IPv4Unicast.Networks[name] = &dozer.SpecVRFBGPNetwork{}

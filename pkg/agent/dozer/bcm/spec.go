@@ -82,6 +82,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle vrfs")
 		}
 
+		if err := specPrefixListsEnforcer.Handle(basePath, actual.PrefixLists, desired.PrefixLists, actions); err != nil {
+			return errors.Wrap(err, "failed to handle prefix lists")
+		}
+
 		if err := specRouteMapsEnforcer.Handle(basePath, actual.RouteMaps, desired.RouteMaps, actions); err != nil {
 			return errors.Wrap(err, "failed to handle route maps")
 		}
@@ -165,6 +169,10 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualVRFs(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load vrfs")
+	}
+
+	if err := loadActualPrefixLists(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load prefix lists")
 	}
 
 	if err := loadActualRouteMaps(ctx, client, spec); err != nil {

@@ -40,7 +40,7 @@ type Spec struct {
 	MCLAGs             map[uint32]*SpecMCLAGDomain       `json:"mclags,omitempty"`
 	MCLAGInterfaces    map[string]*SpecMCLAGInterface    `json:"mclagInterfaces,omitempty"`
 	VRFs               map[string]*SpecVRF               `json:"vrfs,omitempty"`
-	RouteMaps          map[string]*SpecRouteMap          `json:"routingMaps,omitempty"`
+	RouteMaps          map[string]*SpecRouteMap          `json:"routeMaps,omitempty"`
 	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
 	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
 	NATs               map[uint32]*SpecNAT               `json:"nats,omitempty"`
@@ -141,6 +141,7 @@ type SpecVRFBGPIPv4Unicast struct {
 	Networks     map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
 	ImportVRFs   map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
 	ImportPolicy *string                         `json:"importPolicy,omitempty"`
+	TableMap     *string                         `json:"tableMap,omitempty"`
 }
 
 type SpecVRFBGPL2VPNEVPN struct {
@@ -190,7 +191,8 @@ type SpecRouteMapStatement struct {
 }
 
 type SpecRouteMapConditions struct {
-	DirectlyConnected *bool `json:"directlyConnected,omitempty"`
+	DirectlyConnected *bool   `json:"directlyConnected,omitempty"`
+	MatchPrefixList   *string `json:"matchPrefixSet,omitempty"`
 }
 
 type SpecRouteMapResult string
@@ -212,6 +214,7 @@ type SpecPrefixListPrefix struct {
 type SpecPrefixListAction string
 
 const (
+	SpecPrefixListActionUnset  SpecPrefixListAction = ""
 	SpecPrefixListActionPermit SpecPrefixListAction = "permit"
 	SpecPrefixListActionDeny   SpecPrefixListAction = "deny"
 )
@@ -403,6 +406,7 @@ var (
 	_ SpecPart = (*SpecVRFTableConnection)(nil)
 	_ SpecPart = (*SpecVRFStaticRoute)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
+	_ SpecPart = (*SpecPrefixList)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
 	_ SpecPart = (*SpecNAT)(nil)
 	_ SpecPart = (*SpecNATPool)(nil)
@@ -495,6 +499,10 @@ func (s *SpecVRFStaticRoute) IsNil() bool {
 }
 
 func (s *SpecRouteMap) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecPrefixList) IsNil() bool {
 	return s == nil
 }
 

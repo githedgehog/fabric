@@ -42,6 +42,8 @@ const (
 	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
 	VPC_LO_PORT_CHANNEL_1                     = 252
 	VPC_LO_PORT_CHANNEL_2                     = 253
+	PREFIX_LIST_DEFAULT_ROUTE                 = "default-route"
+	ROUTE_MAP_BLOCK_DEFAULT                   = "block-default"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -65,6 +67,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 			},
 		},
 		RouteMaps:          map[string]*dozer.SpecRouteMap{},
+		PrefixLists:        map[string]*dozer.SpecPrefixList{},
 		DHCPRelays:         map[string]*dozer.SpecDHCPRelay{},
 		NATs:               map[uint32]*dozer.SpecNAT{},
 		ACLs:               map[string]*dozer.SpecACL{},
@@ -831,19 +834,28 @@ func vpcVrfName(vpcName string) string {
 // }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	// spec.RouteMaps[ROUTE_MAP_DISALLOW_DIRECT] = &dozer.SpecRouteMap{
-	// 	Statements: map[string]*dozer.SpecRouteMapStatement{
-	// 		"10": {
-	// 			Conditions: dozer.SpecRouteMapConditions{
-	// 				DirectlyConnected: boolPtr(true),
-	// 			},
-	// 			Result: dozer.SpecRouteMapResultReject,
-	// 		},
-	// 		"20": {
-	// 			Result: dozer.SpecRouteMapResultAccept,
-	// 		},
-	// 	},
-	// }
+	spec.PrefixLists[PREFIX_LIST_DEFAULT_ROUTE] = &dozer.SpecPrefixList{
+		Prefixes: map[uint32]*dozer.SpecPrefixListPrefix{
+			10: {
+				Prefix: "0.0.0.0/0",
+				Action: dozer.SpecPrefixListActionPermit,
+			},
+		},
+	}
+
+	spec.RouteMaps[ROUTE_MAP_BLOCK_DEFAULT] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: stringPtr(PREFIX_LIST_DEFAULT_ROUTE),
+				},
+				Result: dozer.SpecRouteMapResultReject,
+			},
+			"20": {
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
 
 	for vpcName := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
@@ -991,7 +1003,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			// remote
 			if !vpc1Attached && !vpc2Attached {
 				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
+				spec.VRFs[vrf1Name].BGP.IPv4Unicast.TableMap = stringPtr(ROUTE_MAP_BLOCK_DEFAULT)
+
 				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
+				spec.VRFs[vrf2Name].BGP.IPv4Unicast.TableMap = stringPtr(ROUTE_MAP_BLOCK_DEFAULT)
 			}
 		} else if peering.Remote == "" {
 			// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)

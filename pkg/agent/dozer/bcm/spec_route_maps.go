@@ -33,6 +33,14 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 						InstallProtocolEq: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED,
 					},
 				}
+			} else if statement.Conditions.MatchPrefixList != nil {
+				conditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions{
+					MatchPrefixSet: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchPrefixSet{
+						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchPrefixSet_Config{
+							PrefixSet: statement.Conditions.MatchPrefixList,
+						},
+					},
+				}
 			}
 
 			result := oc.OpenconfigRoutingPolicy_PolicyResultType_REJECT_ROUTE
@@ -102,9 +110,11 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 
 		for _, statement := range ocRouteMap.Statements.Statement.Values() {
 			conditions := dozer.SpecRouteMapConditions{}
-			if statement.Conditions != nil && statement.Conditions.Config != nil {
-				if statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
+			if statement.Conditions != nil {
+				if statement.Conditions.Config != nil && statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
 					conditions.DirectlyConnected = ygot.Bool(true)
+				} else if statement.Conditions.MatchPrefixSet != nil && statement.Conditions.MatchPrefixSet.Config != nil && statement.Conditions.MatchPrefixSet.Config.PrefixSet != nil {
+					conditions.MatchPrefixList = statement.Conditions.MatchPrefixSet.Config.PrefixSet
 				}
 			}
 
