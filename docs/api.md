@@ -2,6 +2,7 @@
 
 ## Packages
 - [agent.githedgehog.com/v1alpha2](#agentgithedgehogcomv1alpha2)
+- [dhcp.githedgehog.com/v1alpha2](#dhcpgithedgehogcomv1alpha2)
 - [vpc.githedgehog.com/v1alpha2](#vpcgithedgehogcomv1alpha2)
 - [wiring.githedgehog.com/v1alpha2](#wiringgithedgehogcomv1alpha2)
 
@@ -265,6 +266,83 @@ _Appears in:_
 | `password` _string_ |  |
 | `role` _string_ |  |
 | `sshKeys` _string array_ |  |
+
+
+
+## dhcp.githedgehog.com/v1alpha2
+
+Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group
+
+### Resource Types
+- [DHCPSubnet](#dhcpsubnet)
+
+
+
+#### DHCPAllocatedIP
+
+
+
+
+
+_Appears in:_
+- [DHCPSubnetStatus](#dhcpsubnetstatus)
+
+| Field | Description |
+| --- | --- |
+| `expiry` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
+| `mac` _string_ |  |
+| `hostname` _string_ |  |
+
+
+#### DHCPSubnet
+
+
+
+DHCPSubnet is the Schema for the dhcpsubnets API
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `dhcp.githedgehog.com/v1alpha2`
+| `kind` _string_ | `DHCPSubnet`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[DHCPSubnetSpec](#dhcpsubnetspec)_ |  |
+| `status` _[DHCPSubnetStatus](#dhcpsubnetstatus)_ |  |
+
+
+#### DHCPSubnetSpec
+
+
+
+DHCPSubnetSpec defines the desired state of DHCPSubnet
+
+_Appears in:_
+- [DHCPSubnet](#dhcpsubnet)
+
+| Field | Description |
+| --- | --- |
+| `subnet` _string_ |  |
+| `cidrBlock` _string_ |  |
+| `gateway` _string_ |  |
+| `startIP` _string_ |  |
+| `endIP` _string_ |  |
+| `vrf` _string_ |  |
+| `circuitID` _string_ |  |
+
+
+#### DHCPSubnetStatus
+
+
+
+DHCPSubnetStatus defines the observed state of DHCPSubnet
+
+_Appears in:_
+- [DHCPSubnet](#dhcpsubnet)
+
+| Field | Description |
+| --- | --- |
+| `allocatedIPs` _object (keys:string, values:[DHCPAllocatedIP](#dhcpallocatedip))_ |  |
 
 
 

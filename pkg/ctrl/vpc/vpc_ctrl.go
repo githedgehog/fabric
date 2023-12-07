@@ -89,10 +89,14 @@ func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, obj client.Object) []
 
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
+//+kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets/finalizers,verbs=update
+
 func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
-	err := r.updateDHCPConfig(ctx)
+	err := r.updateISCDHCPConfig(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp config")
 	}
@@ -101,9 +105,19 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	err = r.Get(ctx, req.NamespacedName, vpc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			l.Info("vpc deleted, cleaning up dhcp subnets")
+			err = r.deleteDHCPSubnets(ctx, req.NamespacedName, map[string]*vpcapi.VPCSubnet{})
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "error deleting dhcp subnets for removed vpc")
+			}
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
+	}
+
+	err = r.updateDHCPSubnets(ctx, vpc)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp subnets")
 	}
 
 	if err := r.ensureVNIs(ctx, vpc); err != nil {

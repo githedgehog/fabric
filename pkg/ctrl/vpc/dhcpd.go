@@ -3,10 +3,13 @@ package vpc
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"html/template"
 	"net"
+	"strings"
 
 	"github.com/pkg/errors"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
@@ -59,7 +62,7 @@ type dhcpdSubnet struct {
 	Router     string
 }
 
-func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
+func (r *VPCReconciler) updateISCDHCPConfig(ctx context.Context) error {
 	tmpl, err := template.New("dhcp-server-config").Parse(DHCP_SERVER_CONFIF_TMPL)
 	if err != nil {
 		return errors.Wrapf(err, "error parsing dhcp server config template")
@@ -166,6 +169,89 @@ func (r *VPCReconciler) updateDHCPConfig(ctx context.Context) error {
 	})
 	if err != nil {
 		return errors.Wrapf(err, "error creating dhcp server config map")
+	}
+
+	return nil
+}
+
+func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
+	err := r.deleteDHCPSubnets(ctx, client.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, vpc.Spec.Subnets)
+	if err != nil {
+		return errors.Wrapf(err, "error deleting obsolete dhcp subnets")
+	}
+
+	for subnetName, subnet := range vpc.Spec.Subnets {
+		if !subnet.DHCP.Enable {
+			continue
+		}
+
+		cidr, err := iputil.ParseCIDR(subnet.Subnet)
+		if err != nil {
+			return errors.Wrapf(err, "error parsing vpc %s/%s subnet %s", vpc.Name, subnetName, subnet.Subnet)
+		}
+
+		start := cidr.DHCPRangeStart.String()
+		end := cidr.DHCPRangeEnd.String()
+
+		if subnet.DHCP.Range != nil {
+			if subnet.DHCP.Range.Start != "" {
+				start = subnet.DHCP.Range.Start
+			}
+			if subnet.DHCP.Range.End != "" {
+				end = subnet.DHCP.Range.End
+			}
+		}
+
+		gateway := cidr.Gateway.String()
+
+		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
+		_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
+			dhcp.Labels = map[string]string{
+				vpcapi.LabelVPC:    vpc.Name,
+				vpcapi.LabelSubnet: subnetName,
+			}
+			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
+				Subnet:    fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock: subnet.Subnet,
+				Gateway:   gateway,
+				StartIP:   start,
+				EndIP:     end,
+				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
+				CircuitID: fmt.Sprintf("Vlan%s", subnet.VLAN), // TODO move to utils
+			}
+
+			return nil
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error creating dhcp subnet for %s/%s", vpc.Name, subnetName)
+		}
+	}
+
+	return nil
+}
+
+func (r *VPCReconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
+	dhcpSubnets := &dhcpapi.DHCPSubnetList{}
+	err := r.List(ctx, dhcpSubnets, client.MatchingLabels{vpcapi.LabelVPC: vpcKey.Name})
+	if err != nil {
+		return errors.Wrapf(err, "error listing dhcp subnets")
+	}
+
+	for _, subnet := range dhcpSubnets.Items {
+		subnetName := "default"
+		parts := strings.Split(subnet.Spec.Subnet, "/")
+		if len(parts) == 2 {
+			subnetName = parts[1]
+		}
+
+		if _, exists := subnets[subnetName]; exists {
+			continue
+		}
+
+		err = r.Delete(ctx, &subnet)
+		if client.IgnoreNotFound(err) != nil {
+			return errors.Wrapf(err, "error deleting dhcp subnet %s", subnet.Name)
+		}
 	}
 
 	return nil

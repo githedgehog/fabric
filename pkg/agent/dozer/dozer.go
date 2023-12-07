@@ -41,6 +41,7 @@ type Spec struct {
 	MCLAGInterfaces    map[string]*SpecMCLAGInterface    `json:"mclagInterfaces,omitempty"`
 	VRFs               map[string]*SpecVRF               `json:"vrfs,omitempty"`
 	RouteMaps          map[string]*SpecRouteMap          `json:"routingMaps,omitempty"`
+	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
 	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
 	NATs               map[uint32]*SpecNAT               `json:"nats,omitempty"`
 	ACLs               map[string]*SpecACL               `json:"acls,omitempty"`
@@ -197,6 +198,22 @@ type SpecRouteMapResult string
 const (
 	SpecRouteMapResultAccept SpecRouteMapResult = "accept"
 	SpecRouteMapResultReject SpecRouteMapResult = "reject"
+)
+
+type SpecPrefixList struct {
+	Prefixes map[uint32]*SpecPrefixListPrefix `json:"prefixes,omitempty"`
+}
+
+type SpecPrefixListPrefix struct {
+	Prefix string               `json:"prefix,omitempty"`
+	Action SpecPrefixListAction `json:"action,omitempty"`
+}
+
+type SpecPrefixListAction string
+
+const (
+	SpecPrefixListActionPermit SpecPrefixListAction = "permit"
+	SpecPrefixListActionDeny   SpecPrefixListAction = "deny"
 )
 
 const (

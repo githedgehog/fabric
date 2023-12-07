@@ -101,6 +101,32 @@ rules:
   - update
   - watch
 - apiGroups:
+  - dhcp.githedgehog.com
+  resources:
+  - dhcpsubnets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - dhcp.githedgehog.com
+  resources:
+  - dhcpsubnets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - dhcp.githedgehog.com
+  resources:
+  - dhcpsubnets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - rolebindings
