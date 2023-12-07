@@ -70,7 +70,7 @@ type VPCStatus struct {
 // +kubebuilder:printcolumn:name="VLANNS",type=string,JSONPath=`.spec.vlanNamespace`,priority=0
 // +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=1
 // +kubebuilder:printcolumn:name="VNI",type=string,JSONPath=`.status.vni`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPC is the Schema for the vpcs API
 type VPC struct {
 	metav1.TypeMeta   `json:",inline"`
