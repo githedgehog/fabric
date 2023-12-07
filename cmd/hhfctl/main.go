@@ -191,6 +191,10 @@ func main() {
 								Usage:    "vpc",
 								Required: true,
 							},
+							&cli.StringFlag{
+								Name:  "remote",
+								Usage: "SwitchGroup name for remote peering",
+							},
 							printYamlFlag,
 						},
 						Before: func(cCtx *cli.Context) error {
@@ -198,8 +202,9 @@ func main() {
 						},
 						Action: func(cCtx *cli.Context) error {
 							return hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
-								Name: name,
-								VPCs: cCtx.StringSlice("vpc"),
+								Name:   name,
+								VPCs:   cCtx.StringSlice("vpc"),
+								Remote: cCtx.String("remote"),
 							})
 						},
 					},
@@ -294,6 +299,32 @@ func main() {
 						Action: func(cCtx *cli.Context) error {
 							return hhfctl.ConnectionGet(ctx, &hhfctl.ConnectionGetOptions{
 								Type: cCtx.Args().First(),
+							})
+						},
+					},
+				},
+			},
+			{
+				Name:    "switchgroup",
+				Aliases: []string{"sg"},
+				Usage:   "SwitchGroup commands",
+				Flags: []cli.Flag{
+					verboseFlag,
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "create",
+						Usage: "Create SwitchGroup",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return hhfctl.SwitchGroupCreate(ctx, printYaml, &hhfctl.SwitchGroupCreateOptions{
+								Name: name,
 							})
 						},
 					},

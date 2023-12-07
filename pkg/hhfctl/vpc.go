@@ -137,8 +137,9 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 }
 
 type VPCPeerOptions struct {
-	Name string
-	VPCs []string
+	Name   string
+	VPCs   []string
+	Remote string
 }
 
 func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error {
@@ -153,6 +154,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 			Namespace: "default", // TODO ns
 		},
 		Spec: vpcapi.VPCPeeringSpec{
+			Remote: options.Remote,
 			Permit: []map[string]vpcapi.VPCPeer{
 				{
 					options.VPCs[0]: {},

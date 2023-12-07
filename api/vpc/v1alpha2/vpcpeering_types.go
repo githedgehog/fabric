@@ -54,6 +54,7 @@ type VPCPeeringStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcpeer;vp
 // +kubebuilder:printcolumn:name="VPC1",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc1`,priority=0
 // +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc2`,priority=0
+// +kubebuilder:printcolumn:name="Remote",type=string,JSONPath=`.spec.remote`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCPeering is the Schema for the vpcpeerings API
 type VPCPeering struct {

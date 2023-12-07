@@ -27,6 +27,9 @@ spec:
     - jsonPath: .spec.description
       name: Descr
       type: string
+    - jsonPath: .spec.groups
+      name: Groups
+      type: string
     - jsonPath: .metadata.labels.fabric\.githedgehog\.com/location
       name: LocationUUID
       type: string

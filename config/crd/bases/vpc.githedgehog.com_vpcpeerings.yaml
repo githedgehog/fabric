@@ -27,6 +27,9 @@ spec:
     - jsonPath: .metadata.labels.fabric\.githedgehog\.com/vpc2
       name: VPC2
       type: string
+    - jsonPath: .spec.remote
+      name: Remote
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
