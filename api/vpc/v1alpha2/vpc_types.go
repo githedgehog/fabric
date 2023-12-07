@@ -68,7 +68,8 @@ type VPCStatus struct {
 // +kubebuilder:resource:categories=hedgehog;fabric
 // +kubebuilder:printcolumn:name="IPv4NS",type=string,JSONPath=`.spec.ipv4Namespace`,priority=0
 // +kubebuilder:printcolumn:name="VLANNS",type=string,JSONPath=`.spec.vlanNamespace`,priority=0
-// +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=0
+// +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=1
+// +kubebuilder:printcolumn:name="VNI",type=string,JSONPath=`.status.vni`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPC is the Schema for the vpcs API
 type VPC struct {
