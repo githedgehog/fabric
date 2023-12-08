@@ -153,6 +153,54 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
+  - externalattachments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalattachments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalpeerings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalpeerings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externals
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externals/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
   - ipv4namespaces
   verbs:
   - get

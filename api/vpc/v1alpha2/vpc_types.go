@@ -24,7 +24,9 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -198,8 +200,18 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 	if client != nil {
 		// TODO check VLANs
 		// TODO Can we rely on Validation webhook for croll VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
+
+		ipNs := &IPv4Namespace{}
+		err := client.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace}, ipNs)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("IPv4Namespace %s not found", vpc.Spec.IPv4Namespace)
+			}
+			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+		}
+
 		vpcs := &VPCList{}
-		err := client.List(ctx, vpcs, map[string]string{
+		err = client.List(ctx, vpcs, map[string]string{
 			LabelIPv4NS: vpc.Spec.IPv4Namespace,
 		})
 		if err != nil {

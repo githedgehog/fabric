@@ -51,7 +51,7 @@ type VPCPeeringStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcpeer;vp
+// +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcpeer
 // +kubebuilder:printcolumn:name="VPC1",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc1`,priority=0
 // +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc2`,priority=0
 // +kubebuilder:printcolumn:name="Remote",type=string,JSONPath=`.spec.remote`,priority=0

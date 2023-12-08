@@ -19,22 +19,34 @@ package v1alpha2
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ExternalSpec defines the desired state of External
-type ExternalSpec struct{}
+type ExternalSpec struct {
+	IPv4Namespace     string `json:"ipv4Namespace,omitempty"`
+	InboundCommunity  string `json:"inboundCommunity,omitempty"`
+	OutboundCommunity string `json:"outboundCommunity,omitempty"`
+}
 
 // ExternalStatus defines the observed state of External
 type ExternalStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;fabric;external,shortName=ext
+// +kubebuilder:printcolumn:name="IPv4NS",type=string,JSONPath=`.spec.ipv4Namespace`,priority=0
+// +kubebuilder:printcolumn:name="InComm",type=string,JSONPath=`.spec.inboundCommunity`,priority=0
+// +kubebuilder:printcolumn:name="OutComm",type=string,JSONPath=`.spec.outboundCommunity`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // External is the Schema for the externals API
 type External struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -58,9 +70,42 @@ func init() {
 }
 
 func (external *External) Default() {
-	// TODO
+	if external.Spec.IPv4Namespace == "" {
+		external.Spec.IPv4Namespace = "default"
+	}
+
+	if external.Labels == nil {
+		external.Labels = map[string]string{}
+	}
+
+	wiringapi.CleanupFabricLabels(external.Labels)
+
+	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
 }
 
 func (external *External) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
-	return nil, nil // TODO
+	if external.Spec.IPv4Namespace == "" {
+		return nil, errors.Errorf("IPv4Namespace is required")
+	}
+	if external.Spec.InboundCommunity == "" {
+		return nil, errors.Errorf("inboundCommunity is required")
+	}
+	if external.Spec.OutboundCommunity == "" {
+		return nil, errors.Errorf("outboundCommunity is required")
+	}
+
+	// TODO validate communities
+
+	if client != nil {
+		ipNs := &IPv4Namespace{}
+		err := client.Get(ctx, types.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("IPv4Namespace %s not found", external.Spec.IPv4Namespace)
+			}
+			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", external.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+		}
+	}
+
+	return nil, nil
 }

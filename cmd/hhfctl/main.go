@@ -318,6 +318,7 @@ func main() {
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,
+							printYamlFlag,
 						},
 						Before: func(cCtx *cli.Context) error {
 							return setupLogger(verbose)
@@ -325,6 +326,50 @@ func main() {
 						Action: func(cCtx *cli.Context) error {
 							return hhfctl.SwitchGroupCreate(ctx, printYaml, &hhfctl.SwitchGroupCreateOptions{
 								Name: name,
+							})
+						},
+					},
+				},
+			},
+			{
+				Name:  "external",
+				Usage: "External commands",
+				Flags: []cli.Flag{
+					verboseFlag,
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "create",
+						Usage: "Create External",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							printYamlFlag,
+							&cli.StringFlag{
+								Name:    "ipv4-namespace",
+								Aliases: []string{"ipns"},
+								Usage:   "ipv4 namespace",
+							},
+							&cli.StringFlag{
+								Name:    "inbound-community",
+								Aliases: []string{"in"},
+								Usage:   "inbound community",
+							},
+							&cli.StringFlag{
+								Name:    "outbound-community",
+								Aliases: []string{"out"},
+								Usage:   "outbound community",
+							},
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return hhfctl.ExternalCreate(ctx, printYaml, &hhfctl.ExternalCreateOptions{
+								Name:              name,
+								IPv4Namespace:     cCtx.String("ipv4-namespace"),
+								InboundCommunity:  cCtx.String("inbound-community"),
+								OutboundCommunity: cCtx.String("outbound-community"),
 							})
 						},
 					},

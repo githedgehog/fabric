@@ -8,13 +8,45 @@ metadata:
 spec:
   group: vpc.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
+    - external
     kind: ExternalAttachment
     listKind: ExternalAttachmentList
     plural: externalattachments
+    shortNames:
+    - extattach
     singular: externalattachment
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.external
+      name: External
+      type: string
+    - jsonPath: .spec.connection
+      name: Connection
+      type: string
+    - jsonPath: .spec.switch.vlan
+      name: SwVLAN
+      priority: 1
+      type: string
+    - jsonPath: .spec.switch.ip
+      name: SwIP
+      priority: 1
+      type: string
+    - jsonPath: .spec.neighbor.asn
+      name: NeighASN
+      priority: 1
+      type: string
+    - jsonPath: .spec.neighbor.ip
+      name: NeighIP
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: ExternalAttachment is the Schema for the externalattachments
@@ -34,6 +66,26 @@ spec:
             type: object
           spec:
             description: ExternalAttachmentSpec defines the desired state of ExternalAttachment
+            properties:
+              connection:
+                type: string
+              external:
+                type: string
+              neighbor:
+                properties:
+                  asn:
+                    format: int32
+                    type: integer
+                  ip:
+                    type: string
+                type: object
+              switch:
+                properties:
+                  ip:
+                    type: string
+                  vlan:
+                    type: integer
+                type: object
             type: object
           status:
             description: ExternalAttachmentStatus defines the observed state of ExternalAttachment

@@ -16,7 +16,6 @@ spec:
     plural: vpcpeerings
     shortNames:
     - vpcpeer
-    - vp
     singular: vpcpeering
   scope: Namespaced
   versions:

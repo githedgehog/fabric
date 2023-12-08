@@ -395,8 +395,53 @@ ExternalAttachment is the Schema for the externalattachments API
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ |  |
 
 
+#### ExternalAttachmentNeighbor
 
 
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description |
+| --- | --- |
+| `asn` _integer_ |  |
+| `ip` _string_ |  |
+
+
+#### ExternalAttachmentSpec
+
+
+
+ExternalAttachmentSpec defines the desired state of ExternalAttachment
+
+_Appears in:_
+- [ExternalAttachment](#externalattachment)
+
+| Field | Description |
+| --- | --- |
+| `external` _string_ |  |
+| `connection` _string_ |  |
+| `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ |  |
+| `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ |  |
+
+
+
+
+#### ExternalAttachmentSwitch
+
+
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description |
+| --- | --- |
+| `vlan` _integer_ |  |
+| `ip` _string_ |  |
 
 
 #### ExternalPeering
@@ -416,10 +461,97 @@ ExternalPeering is the Schema for the externalpeerings API
 | `status` _[ExternalPeeringStatus](#externalpeeringstatus)_ |  |
 
 
+#### ExternalPeeringSpec
+
+
+
+ExternalPeeringSpec defines the desired state of ExternalPeering
+
+_Appears in:_
+- [ExternalPeering](#externalpeering)
+
+| Field | Description |
+| --- | --- |
+| `permit` _[ExternalPeeringSpecPermit](#externalpeeringspecpermit)_ |  |
+
+
+#### ExternalPeeringSpecExternal
 
 
 
 
+
+_Appears in:_
+- [ExternalPeeringSpecPermit](#externalpeeringspecpermit)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `prefixes` _[ExternalPeeringSpecPrefix](#externalpeeringspecprefix) array_ |  |
+
+
+#### ExternalPeeringSpecPermit
+
+
+
+
+
+_Appears in:_
+- [ExternalPeeringSpec](#externalpeeringspec)
+
+| Field | Description |
+| --- | --- |
+| `vpc` _[ExternalPeeringSpecVPC](#externalpeeringspecvpc)_ |  |
+| `external` _[ExternalPeeringSpecExternal](#externalpeeringspecexternal)_ |  |
+
+
+#### ExternalPeeringSpecPrefix
+
+
+
+
+
+_Appears in:_
+- [ExternalPeeringSpecExternal](#externalpeeringspecexternal)
+
+| Field | Description |
+| --- | --- |
+| `prefix` _string_ |  |
+| `ge` _integer_ |  |
+| `le` _integer_ |  |
+
+
+#### ExternalPeeringSpecVPC
+
+
+
+
+
+_Appears in:_
+- [ExternalPeeringSpecPermit](#externalpeeringspecpermit)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ |  |
+| `subnets` _string array_ |  |
+
+
+
+
+#### ExternalSpec
+
+
+
+ExternalSpec defines the desired state of External
+
+_Appears in:_
+- [External](#external)
+
+| Field | Description |
+| --- | --- |
+| `ipv4Namespace` _string_ |  |
+| `inboundCommunity` _string_ |  |
+| `outboundCommunity` _string_ |  |
 
 
 
@@ -650,6 +782,7 @@ Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API gro
 
 
 _Appears in:_
+- [ConnExternalLink](#connexternallink)
 - [ConnFabricLinkSwitch](#connfabriclinkswitch)
 - [ConnMgmtLinkServer](#connmgmtlinkserver)
 - [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
@@ -675,6 +808,34 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `links` _[ServerToSwitchLink](#servertoswitchlink) array_ |  |
+
+
+#### ConnExternal
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ConnExternalLink](#connexternallink)_ |  |
+
+
+#### ConnExternalLink
+
+
+
+
+
+_Appears in:_
+- [ConnExternal](#connexternal)
+
+| Field | Description |
+| --- | --- |
+| `switch` _[BasePortName](#baseportname)_ |  |
 
 
 #### ConnFabric
@@ -909,6 +1070,7 @@ _Appears in:_
 | `nat` _[ConnNAT](#connnat)_ |  |
 | `fabric` _[ConnFabric](#connfabric)_ |  |
 | `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ |  |
+| `external` _[ConnExternal](#connexternal)_ |  |
 
 
 

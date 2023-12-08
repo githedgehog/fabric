@@ -65,6 +65,17 @@ spec:
                       type: object
                     type: array
                 type: object
+              external:
+                properties:
+                  link:
+                    properties:
+                      switch:
+                        properties:
+                          port:
+                            type: string
+                        type: object
+                    type: object
+                type: object
               fabric:
                 properties:
                   links:

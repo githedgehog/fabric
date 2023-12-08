@@ -16,8 +16,6 @@ spec:
     plural: vpcattachments
     shortNames:
     - vpcattach
-    - attach
-    - va
     singular: vpcattachment
   scope: Namespaced
   versions:

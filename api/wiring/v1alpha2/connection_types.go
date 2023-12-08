@@ -40,6 +40,7 @@ const (
 	CONNECTION_TYPE_NAT          = "nat"
 	CONNECTION_TYPE_FABRIC       = "fabric"
 	CONNECTION_TYPE_VPC_LOOPBACK = "vpc-loopback"
+	CONNECTION_EXTERNAL          = "external"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -145,6 +146,14 @@ type ConnVPCLoopback struct {
 	Links []SwitchToSwitchLink `json:"links,omitempty"`
 }
 
+type ConnExternalLink struct {
+	Switch BasePortName `json:"switch,omitempty"`
+}
+
+type ConnExternal struct {
+	Link ConnExternalLink `json:"link,omitempty"`
+}
+
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
 	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
@@ -155,6 +164,7 @@ type ConnectionSpec struct {
 	NAT         *ConnNAT         `json:"nat,omitempty"`
 	Fabric      *ConnFabric      `json:"fabric,omitempty"`
 	VPCLoopback *ConnVPCLoopback `json:"vpcLoopback,omitempty"`
+	External    *ConnExternal    `json:"external,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -286,6 +296,9 @@ func (c *ConnectionSpec) GenerateName() string {
 		} else if c.VPCLoopback != nil {
 			role = "vpc-loopback"
 			left = c.VPCLoopback.Links[0].Switch1.DeviceName()
+		} else if c.External != nil {
+			role = "external"
+			left = c.External.Link.Switch.DeviceName()
 		}
 
 		if left != "" && role != "" {
@@ -335,6 +348,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
 	} else if c.VPCLoopback != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_VPC_LOOPBACK
+	} else if c.External != nil {
+		labels[LabelConnectionType] = CONNECTION_EXTERNAL
 	}
 
 	return labels
@@ -491,6 +506,11 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(ports) != 2*len(s.VPCLoopback.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
+	} else if s.External != nil {
+		nonNills++
+
+		switches[s.External.Link.Switch.DeviceName()] = struct{}{}
+		ports[s.External.Link.Switch.PortName()] = struct{}{}
 	}
 
 	if nonNills != 1 {

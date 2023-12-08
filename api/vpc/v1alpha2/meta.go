@@ -8,6 +8,7 @@ var (
 	LabelSubnet    = LabelName("subnet")
 	LabelIPv4NS    = LabelName("ipv4ns")
 	LabelVLANNS    = LabelName("vlanns")
+	LabelExternal  = LabelName("external")
 	ListLabelValue = "true"
 )
 

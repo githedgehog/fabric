@@ -8,13 +8,38 @@ metadata:
 spec:
   group: vpc.githedgehog.com
   names:
+    categories:
+    - hedgehog
+    - fabric
+    - external
     kind: ExternalPeering
     listKind: ExternalPeeringList
     plural: externalpeerings
+    shortNames:
+    - extpeering
+    - extpeer
     singular: externalpeering
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.permit.vpc.name
+      name: VPC
+      type: string
+    - jsonPath: .spec.permit.vpc.subnets
+      name: VPCSubnets
+      priority: 1
+      type: string
+    - jsonPath: .spec.permit.external.name
+      name: External
+      type: string
+    - jsonPath: .spec.permit.external.prefixes
+      name: ExtPrefixes
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: ExternalPeering is the Schema for the externalpeerings API
@@ -33,6 +58,35 @@ spec:
             type: object
           spec:
             description: ExternalPeeringSpec defines the desired state of ExternalPeering
+            properties:
+              permit:
+                properties:
+                  external:
+                    properties:
+                      name:
+                        type: string
+                      prefixes:
+                        items:
+                          properties:
+                            ge:
+                              type: integer
+                            le:
+                              type: integer
+                            prefix:
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  vpc:
+                    properties:
+                      name:
+                        type: string
+                      subnets:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                type: object
             type: object
           status:
             description: ExternalPeeringStatus defines the observed state of ExternalPeering
