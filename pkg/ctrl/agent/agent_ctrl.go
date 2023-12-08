@@ -77,6 +77,9 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, v
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Complete(r)
 }
 
@@ -334,9 +337,62 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
+	attachedExternals := map[string]bool{}
+	externalAttaches := map[string]vpcapi.ExternalAttachmentSpec{}
+	externalAttachList := &vpcapi.ExternalAttachmentList{}
+	err = r.List(ctx, externalAttachList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing external attachments")
+	}
+	for _, attach := range externalAttachList.Items {
+		if _, exists := conns[attach.Spec.Connection]; !exists {
+			continue
+		}
+
+		attachedExternals[attach.Spec.External] = true
+		externalAttaches[attach.Name] = attach.Spec
+	}
+
+	externals := map[string]vpcapi.ExternalSpec{}
+	externalList := &vpcapi.ExternalList{}
+	err = r.List(ctx, externalList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing externals")
+	}
+	for _, ext := range externalList.Items {
+		if !attachedExternals[ext.Name] {
+			continue
+		}
+
+		externals[ext.Name] = ext.Spec
+	}
+
+	externalPeerings := map[string]vpcapi.ExternalPeeringSpec{}
+	externalPeeringList := &vpcapi.ExternalPeeringList{}
+	err = r.List(ctx, externalPeeringList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing external peerings")
+	}
+	for _, peering := range externalPeeringList.Items {
+		if _, exists := externals[peering.Spec.Permit.External.Name]; !exists {
+			continue
+		}
+
+		// TODO is it ok?
+		peeredVPCs[peering.Spec.Permit.VPC.Name] = true
+
+		externalPeerings[peering.Name] = peering.Spec
+	}
+
 	for _, vpc := range vpcList.Items {
 		if peeredVPCs[vpc.Name] {
 			vpcs[vpc.Name] = vpc.Spec
+		}
+	}
+
+	for name, vpc := range vpcs {
+		if !slices.Contains(sw.Spec.VLANNamespaces, vpc.VLANNamespace) {
+			return ctrl.Result{}, errors.Errorf("switch %s doesn't have vlan namespace %s while gets vpc %s", sw.Name, vpc.VLANNamespace, name)
 		}
 	}
 
@@ -364,7 +420,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Connections = conns
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
-		agent.Spec.VPCPeers = peers
+		agent.Spec.VPCPeerings = peers
+		agent.Spec.Externals = externals
+		agent.Spec.ExternalAttachments = externalAttaches
+		agent.Spec.ExternalPeerings = externalPeerings
 		agent.Spec.ConfiguredVPCSubnets = configuredSubnets
 		agent.Spec.MCLAGAttachedVPCs = mclagAttachedVPCs
 		agent.Spec.VNIs = vnis

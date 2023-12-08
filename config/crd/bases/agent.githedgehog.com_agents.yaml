@@ -312,6 +312,78 @@ spec:
                 type: object
               description:
                 type: string
+              externalAttachments:
+                additionalProperties:
+                  description: ExternalAttachmentSpec defines the desired state of
+                    ExternalAttachment
+                  properties:
+                    connection:
+                      type: string
+                    external:
+                      type: string
+                    neighbor:
+                      properties:
+                        asn:
+                          format: int32
+                          type: integer
+                        ip:
+                          type: string
+                      type: object
+                    switch:
+                      properties:
+                        ip:
+                          type: string
+                        vlan:
+                          type: integer
+                      type: object
+                  type: object
+                type: object
+              externalPeerings:
+                additionalProperties:
+                  description: ExternalPeeringSpec defines the desired state of ExternalPeering
+                  properties:
+                    permit:
+                      properties:
+                        external:
+                          properties:
+                            name:
+                              type: string
+                            prefixes:
+                              items:
+                                properties:
+                                  ge:
+                                    type: integer
+                                  le:
+                                    type: integer
+                                  prefix:
+                                    type: string
+                                type: object
+                              type: array
+                          type: object
+                        vpc:
+                          properties:
+                            name:
+                              type: string
+                            subnets:
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                      type: object
+                  type: object
+                type: object
+              externals:
+                additionalProperties:
+                  description: ExternalSpec defines the desired state of External
+                  properties:
+                    inboundCommunity:
+                      type: string
+                    ipv4Namespace:
+                      type: string
+                    outboundCommunity:
+                      type: string
+                  type: object
+                type: object
               irbVLANs:
                 additionalProperties:
                   type: integer

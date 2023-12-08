@@ -128,8 +128,8 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = val
 		}
 	}
-	if in.VPCPeers != nil {
-		in, out := &in.VPCPeers, &out.VPCPeers
+	if in.VPCPeerings != nil {
+		in, out := &in.VPCPeerings, &out.VPCPeerings
 		*out = make(map[string]vpcv1alpha2.VPCPeeringSpec, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
@@ -147,6 +147,27 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		*out = make(map[string]uint16, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
+		}
+	}
+	if in.Externals != nil {
+		in, out := &in.Externals, &out.Externals
+		*out = make(map[string]vpcv1alpha2.ExternalSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.ExternalAttachments != nil {
+		in, out := &in.ExternalAttachments, &out.ExternalAttachments
+		*out = make(map[string]vpcv1alpha2.ExternalAttachmentSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.ExternalPeerings != nil {
+		in, out := &in.ExternalPeerings, &out.ExternalPeerings
+		*out = make(map[string]vpcv1alpha2.ExternalPeeringSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
 		}
 	}
 	if in.ConfiguredVPCSubnets != nil {

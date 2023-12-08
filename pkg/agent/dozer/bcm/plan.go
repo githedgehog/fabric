@@ -116,7 +116,6 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan basic BGP")
 	}
 
-	// TODO only for spine-leaf
 	err = planFabricConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan fabric connections")
@@ -125,6 +124,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planVPCLoopbacks(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
+	}
+
+	err = planExternalConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan external connections")
 	}
 
 	err = planServerConnections(agent, spec)
@@ -436,6 +440,25 @@ func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 				}
 			}
+		}
+	}
+
+	return nil
+}
+
+func planExternalConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	for connName, conn := range agent.Spec.Connections {
+		if conn.External == nil {
+			continue
+		}
+
+		port := conn.External.Link.Switch.LocalPortName()
+
+		spec.Interfaces[port] = &dozer.SpecInterface{
+			Enabled:       boolPtr(true),
+			Description:   stringPtr(fmt.Sprintf("External %s", connName)),
+			Speed:         getPortSpeed(agent, port),
+			Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 		}
 	}
 
@@ -821,7 +844,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	for peeringName, peering := range agent.Spec.VPCPeers {
+	for peeringName, peering := range agent.Spec.VPCPeerings {
 		vpc1Name, vpc2Name, err := peering.VPCs()
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse VPCs for VPC peering %s", peeringName)

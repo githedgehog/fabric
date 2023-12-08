@@ -58,6 +58,9 @@ _Appears in:_
 | `vpcPeers` _object (keys:string, values:[VPCPeeringSpec](#vpcpeeringspec))_ |  |
 | `vpcLoopbackLinks` _object (keys:string, values:string)_ |  |
 | `vpcLoopbackVLANs` _object (keys:string, values:integer)_ |  |
+| `externals` _object (keys:string, values:[ExternalSpec](#externalspec))_ |  |
+| `externalAttachments` _object (keys:string, values:[ExternalAttachmentSpec](#externalattachmentspec))_ |  |
+| `externalPeerings` _object (keys:string, values:[ExternalPeeringSpec](#externalpeeringspec))_ |  |
 | `configuredVPCSubnets` _object (keys:string, values:boolean)_ |  |
 | `mclagAttachedVPCs` _object (keys:string, values:boolean)_ |  |
 | `vnis` _object (keys:string, values:integer)_ |  |
@@ -417,6 +420,7 @@ _Appears in:_
 ExternalAttachmentSpec defines the desired state of ExternalAttachment
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [ExternalAttachment](#externalattachment)
 
 | Field | Description |
@@ -468,6 +472,7 @@ ExternalPeering is the Schema for the externalpeerings API
 ExternalPeeringSpec defines the desired state of ExternalPeering
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [ExternalPeering](#externalpeering)
 
 | Field | Description |
@@ -545,6 +550,7 @@ _Appears in:_
 ExternalSpec defines the desired state of External
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [External](#external)
 
 | Field | Description |
