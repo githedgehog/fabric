@@ -207,12 +207,18 @@ const (
 )
 
 type SpecPrefixList struct {
-	Prefixes map[uint32]*SpecPrefixListPrefix `json:"prefixes,omitempty"`
+	Prefixes map[uint32]*SpecPrefixListEntry `json:"prefixes,omitempty"`
+}
+
+type SpecPrefixListEntry struct {
+	Prefix SpecPrefixListPrefix `json:"prefix,omitempty"`
+	Action SpecPrefixListAction `json:"action,omitempty"`
 }
 
 type SpecPrefixListPrefix struct {
-	Prefix string               `json:"prefix,omitempty"`
-	Action SpecPrefixListAction `json:"action,omitempty"`
+	Prefix string `json:"prefix,omitempty"`
+	Ge     uint8  `json:"ge,omitempty"`
+	Le     uint8  `json:"le,omitempty"`
 }
 
 type SpecPrefixListAction string

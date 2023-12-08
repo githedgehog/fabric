@@ -2,6 +2,9 @@ package bcm
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/openconfig/gnmic/api"
 	"github.com/openconfig/ygot/ygot"
@@ -24,26 +27,46 @@ var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList
 	Marshal: func(name string, value *dozer.SpecPrefixList) (ygot.ValidatedGoStruct, error) {
 		prefixes := map[oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Key]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix{}
 
-		for seq, prefix := range value.Prefixes {
+		for seq, entry := range value.Prefixes {
 			action := oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_UNSET
-			if prefix.Action == dozer.SpecPrefixListActionPermit {
+			if entry.Action == dozer.SpecPrefixListActionPermit {
 				action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT
-			} else if prefix.Action == dozer.SpecPrefixListActionDeny {
+			} else if entry.Action == dozer.SpecPrefixListActionDeny {
 				action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_DENY
+			}
+
+			maskLenRange := "exact"
+			if entry.Prefix.Ge > 0 || entry.Prefix.Le > 0 {
+				prefixParts := strings.Split(entry.Prefix.Prefix, "/")
+				if len(prefixParts) != 2 {
+					return nil, errors.Errorf("invalid prefix %s", entry.Prefix.Prefix)
+				}
+
+				ge := fmt.Sprintf("%d", entry.Prefix.Ge)
+				le := fmt.Sprintf("%d", entry.Prefix.Le)
+
+				if entry.Prefix.Ge == 0 {
+					ge = prefixParts[1]
+				}
+				if entry.Prefix.Le == 0 {
+					le = "32"
+				}
+
+				maskLenRange = fmt.Sprintf("%s..%s", ge, le)
 			}
 
 			prefixes[oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Key{
 				SequenceNumber:  seq,
-				IpPrefix:        prefix.Prefix,
-				MasklengthRange: "exact",
+				IpPrefix:        entry.Prefix.Prefix,
+				MasklengthRange: maskLenRange,
 			}] = &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix{
 				SequenceNumber:  ygot.Uint32(seq),
-				IpPrefix:        ygot.String(prefix.Prefix),
-				MasklengthRange: ygot.String("exact"),
+				IpPrefix:        ygot.String(entry.Prefix.Prefix),
+				MasklengthRange: ygot.String(maskLenRange),
 				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Config{
 					SequenceNumber:  ygot.Uint32(seq),
-					IpPrefix:        ygot.String(prefix.Prefix),
-					MasklengthRange: ygot.String("exact"),
+					IpPrefix:        ygot.String(entry.Prefix.Prefix),
+					MasklengthRange: ygot.String(maskLenRange),
 					Action:          action,
 				},
 			}
@@ -96,7 +119,7 @@ func unmarshalOCPrefixLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_Defi
 		}
 
 		prefixList := &dozer.SpecPrefixList{
-			Prefixes: map[uint32]*dozer.SpecPrefixListPrefix{},
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
 
 		if ocPrefixList.ExtendedPrefixes != nil {
@@ -116,8 +139,34 @@ func unmarshalOCPrefixLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_Defi
 					action = dozer.SpecPrefixListActionDeny
 				}
 
-				prefixList.Prefixes[key.SequenceNumber] = &dozer.SpecPrefixListPrefix{
-					Prefix: key.IpPrefix,
+				le := uint8(0)
+				ge := uint8(0)
+
+				if *ocPrefix.Config.MasklengthRange != "exact" {
+					parts := strings.Split(*ocPrefix.Config.MasklengthRange, "..")
+					if len(parts) != 2 {
+						return nil, errors.Errorf("invalid mask length range %s for prefix list %s", *ocPrefix.Config.MasklengthRange, name)
+					}
+
+					leR, err := strconv.ParseUint(parts[1], 10, 8)
+					if err != nil {
+						return nil, errors.Wrapf(err, "invalid mask length range %s for prefix list %s", *ocPrefix.Config.MasklengthRange, name)
+					}
+					le = uint8(leR)
+
+					geR, err := strconv.ParseUint(parts[0], 10, 8)
+					if err != nil {
+						return nil, errors.Wrapf(err, "invalid mask length range %s for prefix list %s", *ocPrefix.Config.MasklengthRange, name)
+					}
+					ge = uint8(geR)
+				}
+
+				prefixList.Prefixes[key.SequenceNumber] = &dozer.SpecPrefixListEntry{
+					Prefix: dozer.SpecPrefixListPrefix{
+						Prefix: key.IpPrefix,
+						Le:     le,
+						Ge:     ge,
+					},
 					Action: action,
 				}
 			}
