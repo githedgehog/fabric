@@ -26,21 +26,65 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 		statements := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{}
 
 		for seq, statement := range value.Statements {
-			var conditions *oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions
+			conditions := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions{}
+			ok := false
 			if statement.Conditions.DirectlyConnected != nil && *statement.Conditions.DirectlyConnected {
-				conditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions{
-					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_Config{
-						InstallProtocolEq: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED,
-					},
+				if conditions.Config == nil {
+					conditions.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_Config{}
 				}
-			} else if statement.Conditions.MatchPrefixList != nil {
-				conditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions{
-					MatchPrefixSet: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchPrefixSet{
-						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchPrefixSet_Config{
-							PrefixSet: statement.Conditions.MatchPrefixList,
-						},
-					},
+
+				conditions.Config.InstallProtocolEq = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
+				ok = true
+			}
+			if statement.Conditions.MatchPrefixList != nil {
+				if conditions.MatchPrefixSet == nil {
+					conditions.MatchPrefixSet = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchPrefixSet{}
 				}
+				if conditions.MatchPrefixSet.Config == nil {
+					conditions.MatchPrefixSet.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchPrefixSet_Config{}
+				}
+
+				conditions.MatchPrefixSet.Config.PrefixSet = statement.Conditions.MatchPrefixList
+				ok = true
+			}
+			if statement.Conditions.MatchEVPNDefaultRoute != nil && *statement.Conditions.MatchEVPNDefaultRoute {
+				if conditions.BgpConditions == nil {
+					conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
+				}
+				if conditions.BgpConditions.MatchEvpnSet == nil {
+					conditions.BgpConditions.MatchEvpnSet = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchEvpnSet{}
+				}
+				if conditions.BgpConditions.MatchEvpnSet.Config == nil {
+					conditions.BgpConditions.MatchEvpnSet.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchEvpnSet_Config{}
+				}
+
+				conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route = ygot.Bool(true)
+				ok = true
+			}
+			if statement.Conditions.MatchEVPNVNI != nil {
+				if conditions.BgpConditions == nil {
+					conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
+				}
+				if conditions.BgpConditions.MatchEvpnSet == nil {
+					conditions.BgpConditions.MatchEvpnSet = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchEvpnSet{}
+				}
+				if conditions.BgpConditions.MatchEvpnSet.Config == nil {
+					conditions.BgpConditions.MatchEvpnSet.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchEvpnSet_Config{}
+				}
+
+				conditions.BgpConditions.MatchEvpnSet.Config.VniNumber = statement.Conditions.MatchEVPNVNI
+				ok = true
+			}
+			if statement.Conditions.Call != nil {
+				if conditions.Config == nil {
+					conditions.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_Config{}
+				}
+
+				conditions.Config.CallPolicy = statement.Conditions.Call
+				ok = true
+			}
+			if !ok {
+				conditions = nil
 			}
 
 			result := oc.OpenconfigRoutingPolicy_PolicyResultType_REJECT_ROUTE
@@ -113,8 +157,16 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			if statement.Conditions != nil {
 				if statement.Conditions.Config != nil && statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
 					conditions.DirectlyConnected = ygot.Bool(true)
-				} else if statement.Conditions.MatchPrefixSet != nil && statement.Conditions.MatchPrefixSet.Config != nil && statement.Conditions.MatchPrefixSet.Config.PrefixSet != nil {
+				}
+				if statement.Conditions.MatchPrefixSet != nil && statement.Conditions.MatchPrefixSet.Config != nil && statement.Conditions.MatchPrefixSet.Config.PrefixSet != nil {
 					conditions.MatchPrefixList = statement.Conditions.MatchPrefixSet.Config.PrefixSet
+				}
+				if statement.Conditions.BgpConditions != nil && statement.Conditions.BgpConditions.MatchEvpnSet != nil && statement.Conditions.BgpConditions.MatchEvpnSet.Config != nil {
+					conditions.MatchEVPNDefaultRoute = statement.Conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route
+					conditions.MatchEVPNVNI = statement.Conditions.BgpConditions.MatchEvpnSet.Config.VniNumber
+				}
+				if statement.Conditions.Config != nil && statement.Conditions.Config.CallPolicy != nil {
+					conditions.Call = statement.Conditions.Config.CallPolicy
 				}
 			}
 

@@ -154,12 +154,13 @@ type SpecVRFBGPL2VPNEVPN struct {
 type SpecVRFBGPNetwork struct{}
 
 type SpecVRFBGPNeighbor struct {
-	Enabled     *bool   `json:"enabled,omitempty"`
-	Description *string `json:"description,omitempty"`
-	RemoteAS    *uint32 `json:"remoteAS,omitempty"`
-	PeerType    *string `json:"peerType,omitempty"`
-	IPv4Unicast *bool   `json:"ipv4Unicast,omitempty"`
-	L2VPNEVPN   *bool   `json:"l2vpnEvpn,omitempty"`
+	Enabled                 *bool    `json:"enabled,omitempty"`
+	Description             *string  `json:"description,omitempty"`
+	RemoteAS                *uint32  `json:"remoteAS,omitempty"`
+	PeerType                *string  `json:"peerType,omitempty"`
+	IPv4Unicast             *bool    `json:"ipv4Unicast,omitempty"`
+	L2VPNEVPN               *bool    `json:"l2vpnEvpn,omitempty"`
+	L2VPNEVPNImportPolicies []string `json:"l2vpnEvpnImportPolicies,omitempty"`
 }
 
 const (
@@ -191,8 +192,11 @@ type SpecRouteMapStatement struct {
 }
 
 type SpecRouteMapConditions struct {
-	DirectlyConnected *bool   `json:"directlyConnected,omitempty"`
-	MatchPrefixList   *string `json:"matchPrefixSet,omitempty"`
+	DirectlyConnected     *bool   `json:"directlyConnected,omitempty"`
+	MatchEVPNDefaultRoute *bool   `json:"matchEvpnDefaultRoute,omitempty"`
+	MatchEVPNVNI          *uint32 `json:"matchEvpnVni,omitempty"`
+	MatchPrefixList       *string `json:"matchPrefixSet,omitempty"`
+	Call                  *string `json:"call,omitempty"`
 }
 
 type SpecRouteMapResult string

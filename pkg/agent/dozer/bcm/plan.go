@@ -16,34 +16,34 @@ import (
 )
 
 const (
-	MCLAG_DOMAIN_ID                           = 100
-	MCLAG_PEER_LINK_PORT_CHANNEL_ID           = 250
-	MCLAG_SESSION_LINK_PORT_CHANNEL_ID        = 251
-	MCLAG_PEER_LINK_TRUNK_VLAN_RANGE          = "2..4094"    // TODO do we need to configure it?
-	MCLAG_SESSION_IP_1                        = "172.30.5.0" // TODO move to config
-	MCLAG_SESSION_IP_2                        = "172.30.5.1" // TODO move to config
-	MCLAG_SESSION_IP_PREFIX_LEN               = 31           // TODO move to config
-	AGENT_USER                                = "hhagent"
-	NAT_INSTANCE_ID                           = 0
-	NAT_ZONE_EXTERNAL                         = 1
-	NAT_ANCHOR_VLAN                    uint16 = 500
-	VPC_ACL_ENTRY_SEQ_DHCP             uint32 = 10
-	VPC_ACL_ENTRY_SEQ_SUBNET           uint32 = 20
-	VPC_ACL_ENTRY_VLAN_SHIFT           uint32 = 10000
-	VPC_ACL_ENTRY_DENY_ALL_VPC         uint32 = 30000
-	VPC_ACL_ENTRY_PERMIT_ANY           uint32 = 40000
-	LO_SWITCH                                 = "Loopback0"
-	LO_PROTO                                  = "Loopback1"
-	LO_VTEP                                   = "Loopback2"
-	VRF_DEFAULT                               = "default"
-	VTEP_FABRIC                               = "vtepfabric"
-	EVPN_NVO                                  = "nvo1"
-	ANYCAST_MAC                               = "00:00:00:11:11:11"
-	VPC_VLAN_RANGE                            = "1000..1999" // TODO remove
-	VPC_LO_PORT_CHANNEL_1                     = 252
-	VPC_LO_PORT_CHANNEL_2                     = 253
-	PREFIX_LIST_DEFAULT_ROUTE                 = "default-route"
-	ROUTE_MAP_BLOCK_DEFAULT                   = "block-default"
+	MCLAG_DOMAIN_ID                            = 100
+	MCLAG_PEER_LINK_PORT_CHANNEL_ID            = 250
+	MCLAG_SESSION_LINK_PORT_CHANNEL_ID         = 251
+	MCLAG_PEER_LINK_TRUNK_VLAN_RANGE           = "2..4094"    // TODO do we need to configure it?
+	MCLAG_SESSION_IP_1                         = "172.30.5.0" // TODO move to config
+	MCLAG_SESSION_IP_2                         = "172.30.5.1" // TODO move to config
+	MCLAG_SESSION_IP_PREFIX_LEN                = 31           // TODO move to config
+	AGENT_USER                                 = "hhagent"
+	NAT_INSTANCE_ID                            = 0
+	NAT_ZONE_EXTERNAL                          = 1
+	NAT_ANCHOR_VLAN                     uint16 = 500
+	VPC_ACL_ENTRY_SEQ_DHCP              uint32 = 10
+	VPC_ACL_ENTRY_SEQ_SUBNET            uint32 = 20
+	VPC_ACL_ENTRY_VLAN_SHIFT            uint32 = 10000
+	VPC_ACL_ENTRY_DENY_ALL_VPC          uint32 = 30000
+	VPC_ACL_ENTRY_PERMIT_ANY            uint32 = 40000
+	LO_SWITCH                                  = "Loopback0"
+	LO_PROTO                                   = "Loopback1"
+	LO_VTEP                                    = "Loopback2"
+	VRF_DEFAULT                                = "default"
+	VTEP_FABRIC                                = "vtepfabric"
+	EVPN_NVO                                   = "nvo1"
+	ANYCAST_MAC                                = "00:00:00:11:11:11"
+	VPC_VLAN_RANGE                             = "1000..1999" // TODO remove
+	VPC_LO_PORT_CHANNEL_1                      = 252
+	VPC_LO_PORT_CHANNEL_2                      = 253
+	ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE        = "evpn-default-remote-block"
+	ROUTE_MAP_MAX_STATEMENT                    = 65535
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -334,6 +334,14 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			fmt.Sprintf("%d", ROUTE_MAP_MAX_STATEMENT): {
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
+
 	for connName, conn := range agent.Spec.Connections {
 		if conn.Fabric == nil {
 			continue
@@ -395,11 +403,12 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 
 				spec.VRFs[VRF_DEFAULT].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
-					Enabled:     boolPtr(true),
-					Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
-					RemoteAS:    uint32Ptr(peerSw.ASN),
-					IPv4Unicast: boolPtr(true),
-					L2VPNEVPN:   boolPtr(true),
+					Enabled:                 boolPtr(true),
+					Description:             stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
+					RemoteAS:                uint32Ptr(peerSw.ASN),
+					IPv4Unicast:             boolPtr(true),
+					L2VPNEVPN:               boolPtr(true),
+					L2VPNEVPNImportPolicies: []string{ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE},
 				}
 			}
 		}
@@ -693,170 +702,7 @@ func vpcVrfName(vpcName string) string {
 	return vrfName("V" + vpcName)
 }
 
-// func planCollapsedCoreVPCs(agent *agentapi.Agent, spec *dozer.Spec, controlIface string, firstSwitch bool) error {
-// 	if !isACLBackend(agent) && !isVRFBackend(agent) {
-// 		return errors.Errorf("unknown VPC backend %s", agent.Spec.Config.CollapsedCore.VPCBackend)
-// 	}
-
-// 	if isVRFBackend(agent) {
-// 		// TODO switch to policy per VPC
-// 		spec.RouteMaps[ROUTE_MAP_VPC_NO_ADVERTISE] = &dozer.SpecRouteMap{
-// 			NoAdvertise: boolPtr(true),
-// 		}
-// 	}
-
-// 	for _, vpc := range agent.Spec.VPCs {
-// 		cidr, err := iputil.ParseCIDR(vpc.VPC.Subnet)
-// 		if err != nil {
-// 			return errors.Wrapf(err, "failed to parse subnet %s for vpc %s", vpc.VPC.Subnet, vpc.Name)
-// 		}
-// 		ip := cidr.Gateway.String()
-// 		prefixLen, _ := cidr.Subnet.Mask.Size()
-
-// 		descr := fmt.Sprintf("VPC %s", vpc.Name)
-// 		vlanIfaceName, _, err := setupVLANInterfaceWithIP(spec, vpc.VLAN, ip, uint8(prefixLen), descr)
-// 		if err != nil {
-// 			return errors.Wrapf(err, "failed to setup VLAN interface for vpc %s", vpc.Name)
-// 		}
-
-// 		if isACLBackend(agent) {
-// 			acl := &dozer.SpecACL{
-// 				Description: stringPtr(fmt.Sprintf("VPC %s ACL IN (VLAN %d)", vpc.Name, vpc.VLAN)),
-// 				Entries: map[uint32]*dozer.SpecACLEntry{
-// 					VPC_ACL_ENTRY_SEQ_SUBNET: {
-// 						Description:        stringPtr("Allow own subnet"),
-// 						Action:             dozer.SpecACLEntryActionAccept,
-// 						DestinationAddress: stringPtr(vpc.VPC.Subnet),
-// 					},
-// 					VPC_ACL_ENTRY_DENY_ALL_VPC: {
-// 						Description:        stringPtr("Deny all other VPCs"),
-// 						Action:             dozer.SpecACLEntryActionDrop,
-// 						DestinationAddress: stringPtr(VPC_DENY_ALL_SUBNET),
-// 					},
-// 				},
-// 			}
-
-// 			if vpc.VPC.DHCP.Enable {
-// 				acl.Entries[VPC_ACL_ENTRY_SEQ_DHCP] = &dozer.SpecACLEntry{
-// 					Description:     stringPtr("Allow DHCP"),
-// 					Action:          dozer.SpecACLEntryActionAccept,
-// 					Protocol:        dozer.SpecACLEntryProtocolUDP,
-// 					SourcePort:      uint16Ptr(68),
-// 					DestinationPort: uint16Ptr(67),
-// 				}
-// 			}
-
-// 			if agent.Spec.Config.CollapsedCore.SNATAllowed && vpc.VPC.SNAT || len(filteredDNAT(vpc.DNAT)) > 0 {
-// 				acl.Entries[VPC_ACL_ENTRY_PERMIT_ANY] = &dozer.SpecACLEntry{
-// 					Description:   stringPtr("Allow any traffic (NAT)"),
-// 					Action:        dozer.SpecACLEntryActionAccept,
-// 					SourceAddress: stringPtr(vpc.VPC.Subnet),
-// 				}
-// 			}
-
-// 			aclName := aclName(vpc.VLAN)
-// 			spec.ACLs[aclName] = acl
-// 			spec.ACLInterfaces[vlanIfaceName] = &dozer.SpecACLInterface{
-// 				Ingress: stringPtr(aclName),
-// 			}
-// 		} else if isVRFBackend(agent) {
-// 			vrfName := vpcVrfName(vpc.Name)
-
-// 			spec.VRFs[vrfName] = &dozer.SpecVRF{
-// 				Enabled: boolPtr(true),
-// 				// Description: stringPtr(fmt.Sprintf("VPC %s", vpc.Name)),
-// 				Interfaces: map[string]*dozer.SpecVRFInterface{
-// 					vlanIfaceName: {},
-// 				},
-// 				BGP: &dozer.SpecVRFBGP{
-// 					AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-// 					NetworkImportCheck: boolPtr(true),
-// 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-// 						Enabled:    true,
-// 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
-// 						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
-// 					},
-// 				},
-// 				TableConnections: map[string]*dozer.SpecVRFTableConnection{
-// 					dozer.SpecVRFBGPTableConnectionConnected: {
-// 						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
-// 					},
-// 					dozer.SpecVRFBGPTableConnectionStatic: {
-// 						ImportPolicies: []string{ROUTE_MAP_VPC_NO_ADVERTISE},
-// 					},
-// 				},
-// 			}
-// 		}
-
-// 		if vpc.VPC.DHCP.Enable {
-// 			dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
-// 			if err != nil {
-// 				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpc.Name)
-// 			}
-
-// 			spec.DHCPRelays[vlanIfaceName] = &dozer.SpecDHCPRelay{
-// 				SourceInterface: stringPtr(controlIface),
-// 				RelayAddress:    []string{dhcpRelayIP.String()},
-// 				LinkSelect:      true,
-// 				VRFSelect:       isVRFBackend(agent),
-// 			}
-// 		}
-// 	}
-
-// 	for _, vpc := range agent.Spec.VPCs {
-// 		for _, peerVPCName := range vpc.Peers {
-// 			for _, peer := range agent.Spec.VPCs {
-// 				if peer.Name != peerVPCName {
-// 					continue
-// 				}
-
-// 				if isACLBackend(agent) {
-// 					spec.ACLs[aclName(peer.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(vpc.VLAN)] = &dozer.SpecACLEntry{
-// 						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", vpc.Name, vpc.VLAN)),
-// 						Action:             dozer.SpecACLEntryActionAccept,
-// 						DestinationAddress: stringPtr(vpc.VPC.Subnet),
-// 					}
-
-// 					spec.ACLs[aclName(vpc.VLAN)].Entries[VPC_ACL_ENTRY_VLAN_SHIFT+uint32(peer.VLAN)] = &dozer.SpecACLEntry{
-// 						Description:        stringPtr(fmt.Sprintf("Allow VPC %s (VLAN %d)", peer.Name, peer.VLAN)),
-// 						Action:             dozer.SpecACLEntryActionAccept,
-// 						DestinationAddress: stringPtr(peer.VPC.Subnet),
-// 					}
-// 				} else if isVRFBackend(agent) {
-// 					spec.VRFs[vpcVrfName(vpc.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(peer.Name)] = &dozer.SpecVRFBGPImportVRF{}
-// 					spec.VRFs[vpcVrfName(peer.Name)].BGP.IPv4Unicast.ImportVRFs[vpcVrfName(vpc.Name)] = &dozer.SpecVRFBGPImportVRF{}
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	return nil
-// }
-
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	spec.PrefixLists[PREFIX_LIST_DEFAULT_ROUTE] = &dozer.SpecPrefixList{
-		Prefixes: map[uint32]*dozer.SpecPrefixListPrefix{
-			10: {
-				Prefix: "0.0.0.0/0",
-				Action: dozer.SpecPrefixListActionPermit,
-			},
-		},
-	}
-
-	spec.RouteMaps[ROUTE_MAP_BLOCK_DEFAULT] = &dozer.SpecRouteMap{
-		Statements: map[string]*dozer.SpecRouteMapStatement{
-			"10": {
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchPrefixList: stringPtr(PREFIX_LIST_DEFAULT_ROUTE),
-				},
-				Result: dozer.SpecRouteMapResultReject,
-			},
-			"20": {
-				Result: dozer.SpecRouteMapResultAccept,
-			},
-		},
-	}
-
 	for vpcName := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
 
@@ -1003,13 +849,47 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			// remote
 			if !vpc1Attached && !vpc2Attached {
 				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
-				spec.VRFs[vrf1Name].BGP.IPv4Unicast.TableMap = stringPtr(ROUTE_MAP_BLOCK_DEFAULT)
-
 				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
-				spec.VRFs[vrf2Name].BGP.IPv4Unicast.TableMap = stringPtr(ROUTE_MAP_BLOCK_DEFAULT)
+
+				// TODO dedup
+
+				vni1 := agent.Spec.VNIs[vpc1Name]
+				if vni1 == 0 {
+					return errors.Errorf("VNI for VPC %s not found", vpc1Name)
+				}
+				if vni1%100 != 0 {
+					return errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc1Name)
+				}
+				if vni1/100 >= ROUTE_MAP_MAX_STATEMENT {
+					return errors.Errorf("VNI for VPC %s is too large", vpc1Name)
+				}
+				vni2 := agent.Spec.VNIs[vpc2Name]
+				if vni2 == 0 {
+					return errors.Errorf("VNI for VPC %s not found", vpc2Name)
+				}
+				if vni2%100 != 0 {
+					return errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc2Name)
+				}
+				if vni2/100 >= ROUTE_MAP_MAX_STATEMENT {
+					return errors.Errorf("VNI for VPC %s is too large", vpc2Name)
+				}
+
+				spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", uint(vni1/100))] = &dozer.SpecRouteMapStatement{
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchEVPNVNI:          uint32Ptr(vni1),
+						MatchEVPNDefaultRoute: boolPtr(true),
+					},
+					Result: dozer.SpecRouteMapResultReject,
+				}
+				spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", uint(vni2/100))] = &dozer.SpecRouteMapStatement{
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchEVPNVNI:          uint32Ptr(vni2),
+						MatchEVPNDefaultRoute: boolPtr(true),
+					},
+					Result: dozer.SpecRouteMapResultReject,
+				}
 			}
 		} else if peering.Remote == "" {
-			// TODO apply VPC loopback workaround if both VPCs are local (if any subnets used in VPC peering are local)
 			vlan := agent.Spec.VPCLoopbackVLANs[peeringName]
 			if vlan == 0 {
 				return errors.Errorf("workaround VLAN for VPC peering %s not found", peeringName)
