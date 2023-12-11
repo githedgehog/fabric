@@ -20,7 +20,7 @@ require (
 	github.com/openconfig/ygot v0.29.16
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
-	github.com/samber/slog-multi v1.0.1
+	github.com/samber/slog-multi v1.0.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/vishvananda/netlink v1.1.0
