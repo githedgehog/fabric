@@ -52,6 +52,7 @@ const (
 	ActionWeightPortBreakout
 
 	ActionWeightPrefixListUpdate
+	ActionWeightCommunityListUpdate
 	ActionWeightRouteMapUpdate
 
 	ActionWeightInterfaceBaseUpdate
@@ -149,6 +150,7 @@ const (
 
 	ActionWeightRouteMapDelete
 	ActionWeightPrefixListDelete
+	ActionWeightCommunityListDelete
 
 	ActionWeightMax // keep it last
 )

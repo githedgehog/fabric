@@ -165,6 +165,7 @@ var specVRFBGPBaseEnforcerGetter = func(name string, value *dozer.SpecVRFBGP) an
 		// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if current approach is ok
 		value.IPv4Unicast.Enabled,
 		value.IPv4Unicast.MaxPaths,
+		value.IPv4Unicast.MaxPathsIBGP,
 		value.IPv4Unicast.TableMap,
 		value.L2VPNEVPN,
 	}
@@ -186,13 +187,23 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 				},
 			}
 
-			if value.IPv4Unicast.MaxPaths != nil {
-				ipv4Unicast.UseMultiplePaths = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths{
-					Ebgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths_Ebgp{
+			if value.IPv4Unicast.MaxPaths != nil || value.IPv4Unicast.MaxPathsIBGP != nil {
+				ipv4Unicast.UseMultiplePaths = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths{}
+
+				if value.IPv4Unicast.MaxPaths != nil {
+					ipv4Unicast.UseMultiplePaths.Ebgp = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths_Ebgp{
 						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths_Ebgp_Config{
 							MaximumPaths: value.IPv4Unicast.MaxPaths,
 						},
-					},
+					}
+				}
+
+				if value.IPv4Unicast.MaxPathsIBGP != nil {
+					ipv4Unicast.UseMultiplePaths.Ibgp = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths_Ibgp{
+						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_UseMultiplePaths_Ibgp_Config{
+							MaximumPaths: value.IPv4Unicast.MaxPathsIBGP,
+						},
+					}
 				}
 			}
 
@@ -216,7 +227,8 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 				},
 				L2VpnEvpn: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn{
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_Config{
-						AdvertiseAllVni: value.L2VPNEVPN.AdvertiseAllVNI,
+						AdvertiseAllVni:    value.L2VPNEVPN.AdvertiseAllVNI,
+						AdvertiseDefaultGw: value.L2VPNEVPN.AdvertiseDefaultGw,
 					},
 					// TODO extract as we'll not be able to replace it
 					DefaultOriginate: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_DefaultOriginate{
@@ -583,6 +595,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 								bgp.L2VPNEVPN.Enabled = true
 								if l2vpnEVPN.Config != nil {
 									bgp.L2VPNEVPN.AdvertiseAllVNI = l2vpnEVPN.Config.AdvertiseAllVni
+									bgp.L2VPNEVPN.AdvertiseDefaultGw = l2vpnEVPN.Config.AdvertiseDefaultGw
 								}
 								if l2vpnEVPN.DefaultOriginate != nil && l2vpnEVPN.DefaultOriginate.Config != nil {
 									bgp.L2VPNEVPN.DefaultOriginateIPv4 = l2vpnEVPN.DefaultOriginate.Config.Ipv4

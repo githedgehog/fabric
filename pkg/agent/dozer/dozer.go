@@ -42,6 +42,7 @@ type Spec struct {
 	VRFs               map[string]*SpecVRF               `json:"vrfs,omitempty"`
 	RouteMaps          map[string]*SpecRouteMap          `json:"routeMaps,omitempty"`
 	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
+	CommunityLists     map[string]*SpecCommunityList     `json:"communityLists,omitempty"`
 	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
 	NATs               map[uint32]*SpecNAT               `json:"nats,omitempty"`
 	ACLs               map[string]*SpecACL               `json:"acls,omitempty"`
@@ -138,6 +139,7 @@ type SpecVRFBGP struct {
 type SpecVRFBGPIPv4Unicast struct {
 	Enabled      bool                            `json:"enable,omitempty"`
 	MaxPaths     *uint32                         `json:"maxPaths,omitempty"`
+	MaxPathsIBGP *uint32                         `json:"maxPathsIBGP,omitempty"`
 	Networks     map[string]*SpecVRFBGPNetwork   `json:"networks,omitempty"`
 	ImportVRFs   map[string]*SpecVRFBGPImportVRF `json:"importVRFs,omitempty"`
 	ImportPolicy *string                         `json:"importPolicy,omitempty"`
@@ -149,6 +151,7 @@ type SpecVRFBGPL2VPNEVPN struct {
 	DefaultOriginateIPv4 *bool `json:"defaultOriginateIPv4,omitempty"`
 	AdvertiseAllVNI      *bool `json:"advertiseAllVnis,omitempty"`
 	AdvertiseIPv4Unicast *bool `json:"advertiseIPv4Unicast,omitempty"`
+	AdvertiseDefaultGw   *bool `json:"advertiseDefaultGw,omitempty"`
 }
 
 type SpecVRFBGPNetwork struct{}
@@ -222,6 +225,10 @@ type SpecPrefixListPrefix struct {
 }
 
 type SpecPrefixListAction string
+
+type SpecCommunityList struct {
+	Members []string `json:"members,omitempty"`
+}
 
 const (
 	SpecPrefixListActionUnset  SpecPrefixListAction = ""
@@ -417,6 +424,7 @@ var (
 	_ SpecPart = (*SpecVRFStaticRoute)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
 	_ SpecPart = (*SpecPrefixList)(nil)
+	_ SpecPart = (*SpecCommunityList)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
 	_ SpecPart = (*SpecNAT)(nil)
 	_ SpecPart = (*SpecNATPool)(nil)
@@ -513,6 +521,10 @@ func (s *SpecRouteMap) IsNil() bool {
 }
 
 func (s *SpecPrefixList) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecCommunityList) IsNil() bool {
 	return s == nil
 }
 

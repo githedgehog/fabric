@@ -150,7 +150,12 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 
 	err = planVPCs(agent, spec)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan Spine Leaf VPCs")
+		return nil, errors.Wrap(err, "failed to plan VPCs")
+	}
+
+	err = planExternalPeerings(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan external peerings")
 	}
 
 	spec.Normalize()
@@ -462,6 +467,95 @@ func planExternalConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
+	for _, external := range agent.Spec.Externals {
+		ipnsVrfName := ipnsVrfName(external.IPv4Namespace)
+
+		if spec.VRFs[ipnsVrfName] != nil {
+			continue
+		}
+
+		protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
+		}
+
+		spec.VRFs[ipnsVrfName] = &dozer.SpecVRF{
+			Enabled: boolPtr(true),
+			// Description:      stringPtr(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
+			AnycastMAC:       stringPtr(ANYCAST_MAC),
+			Interfaces:       map[string]*dozer.SpecVRFInterface{},
+			StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
+			TableConnections: map[string]*dozer.SpecVRFTableConnection{},
+			BGP: &dozer.SpecVRFBGP{
+				AS:                 uint32Ptr(agent.Spec.Switch.ASN),
+				RouterID:           stringPtr(protocolIP.String()),
+				NetworkImportCheck: boolPtr(true),
+				IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+					Enabled:      true,
+					MaxPaths:     uint32Ptr(getMaxPaths(agent)),
+					MaxPathsIBGP: uint32Ptr(getMaxPaths(agent)), // TODO should it be it's own value? limit on 4630 is 16 like for eBGP
+					Networks:     map[string]*dozer.SpecVRFBGPNetwork{},
+					ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
+				},
+				L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
+					Enabled:              true,
+					AdvertiseDefaultGw:   boolPtr(true),
+					AdvertiseIPv4Unicast: boolPtr(true), // TODO add route map
+				},
+				Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
+			},
+		}
+	}
+
+	for name, attach := range agent.Spec.ExternalAttachments {
+		conn, exists := agent.Spec.Connections[attach.Connection]
+		if !exists {
+			return errors.Errorf("connection %s not found for external attach %s", attach.Connection, name)
+		}
+		if conn.External == nil {
+			return errors.Errorf("connection %s is not external for external attach %s", attach.Connection, name)
+		}
+
+		external, exists := agent.Spec.Externals[attach.External]
+		if !exists {
+			return errors.Errorf("external %s not found for external attach %s", attach.External, name)
+		}
+
+		port := conn.External.Link.Switch.LocalPortName()
+		var vlan *uint16
+		if attach.Switch.VLAN != 0 {
+			vlan = uint16Ptr(uint16(attach.Switch.VLAN))
+		}
+
+		ip, ipNet, err := net.ParseCIDR(attach.Switch.IP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse external attach switch ip %s", attach.Switch.IP)
+		}
+		prefixLength, _ := ipNet.Mask.Size()
+
+		spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = &dozer.SpecSubinterface{
+			VLAN: vlan,
+			IPs: map[string]*dozer.SpecInterfaceIP{
+				ip.String(): {
+					PrefixLen: uint8Ptr(uint8(prefixLength)),
+				},
+			},
+		}
+
+		subIfaceName := fmt.Sprintf("%s.%d", port, attach.Switch.VLAN)
+
+		ipns := external.IPv4Namespace
+		ipnsVrfName := ipnsVrfName(ipns)
+		spec.VRFs[ipnsVrfName].Interfaces[subIfaceName] = &dozer.SpecVRFInterface{}
+
+		spec.VRFs[ipnsVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
+			Enabled:     boolPtr(true),
+			RemoteAS:    uint32Ptr(attach.Neighbor.ASN),
+			IPv4Unicast: boolPtr(true),
+			// TODO route-maps for in/out
+		}
+	}
+
 	return nil
 }
 
@@ -723,6 +817,10 @@ func vrfName(name string) string {
 
 func vpcVrfName(vpcName string) string {
 	return vrfName("V" + vpcName)
+}
+
+func ipnsVrfName(ipnsName string) string {
+	return vrfName("I" + ipnsName)
 }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
@@ -1049,6 +1147,25 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName, subnetName 
 			LinkSelect:      true,
 			VRFSelect:       true,
 		}
+	}
+
+	return nil
+}
+
+func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
+	for name, peering := range agent.Spec.ExternalPeerings {
+		external, exists := agent.Spec.Externals[peering.Permit.External.Name]
+		if !exists {
+			return errors.Errorf("external %s not found for external peering %s", peering.Permit.External.Name, name)
+		}
+
+		// TODO handle case if vpc is local
+
+		ipnsVrf := ipnsVrfName(external.IPv4Namespace)
+		vpcVrf := vpcVrfName(peering.Permit.VPC.Name)
+
+		spec.VRFs[ipnsVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
+		spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[ipnsVrf] = &dozer.SpecVRFBGPImportVRF{}
 	}
 
 	return nil
