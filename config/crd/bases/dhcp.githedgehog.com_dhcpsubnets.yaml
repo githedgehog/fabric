@@ -92,7 +92,7 @@ spec:
           status:
             description: DHCPSubnetStatus defines the observed state of DHCPSubnet
             properties:
-              allocatedIPs:
+              allocated:
                 additionalProperties:
                   properties:
                     expiry:
@@ -100,12 +100,12 @@ spec:
                       type: string
                     hostname:
                       type: string
-                    mac:
+                    ip:
                       type: string
                   required:
                   - expiry
                   - hostname
-                  - mac
+                  - ip
                   type: object
                 type: object
             type: object

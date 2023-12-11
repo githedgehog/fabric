@@ -35,12 +35,12 @@ type DHCPSubnetSpec struct {
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet
 type DHCPSubnetStatus struct {
-	AllocatedIPs map[string]DHCPAllocatedIP `json:"allocatedIPs,omitempty"`
+	Allocated map[string]DHCPAllocated `json:"allocated,omitempty"`
 }
 
-type DHCPAllocatedIP struct {
+type DHCPAllocated struct {
+	IP       string      `json:"ip"`
 	Expiry   metav1.Time `json:"expiry"`
-	MAC      string      `json:"mac"`
 	Hostname string      `json:"hostname"` // from dhcp request
 }
 

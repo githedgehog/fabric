@@ -24,7 +24,7 @@ fmt: ## Run go fmt against code.
 
 .PHONY: vet
 vet: ## Run go vet against code.
-	go vet ./...
+	GOOS=linux go vet ./...
 
 .PHONY: test
 test: manifests generate fmt vet envtest gcov2lcov ## Run tests.

@@ -281,7 +281,7 @@ Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group
 
 
 
-#### DHCPAllocatedIP
+#### DHCPAllocated
 
 
 
@@ -292,8 +292,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `ip` _string_ |  |
 | `expiry` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#time-v1-meta)_ |  |
-| `mac` _string_ |  |
 | `hostname` _string_ |  |
 
 
@@ -345,7 +345,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `allocatedIPs` _object (keys:string, values:[DHCPAllocatedIP](#dhcpallocatedip))_ |  |
+| `allocated` _object (keys:string, values:[DHCPAllocated](#dhcpallocated))_ |  |
 
 
 
