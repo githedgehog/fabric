@@ -202,7 +202,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		// TODO Can we rely on Validation webhook for croll VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 
 		ipNs := &IPv4Namespace{}
-		err := client.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace}, ipNs)
+		err := client.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", vpc.Spec.IPv4Namespace)
