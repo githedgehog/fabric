@@ -10,6 +10,7 @@ import (
 	"github.com/coredhcp/coredhcp/handler"
 	"github.com/coredhcp/coredhcp/logger"
 	"github.com/insomniacslk/dhcp/dhcpv4"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
 	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -81,6 +82,9 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						}
 						log.Infof("Received Add event for subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)
 						// Create a new managed subnet.
+						if len(event.Subnet.Status.Allocated) == 0 {
+							event.Subnet.Status.Allocated = make(map[string]dhcpapi.DHCPAllocated)
+						}
 						pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID] = &ManagedSubnet{
 							dhcpSubnet: event.Subnet,
 							pool:       pool,
@@ -149,7 +153,10 @@ func handlerDHCP4(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
 }
 
 // This is called with a subnet lock held. We will use the last copy we cached.
-func updateBackend4(info *updateBackend) error {
+func updateBackend4(dhcpsubnet *dhcpapi.DHCPSubnet) error {
 	// Do i need entire dhcpsubnet object or only status
+	// Locks for subnet are already held by the caller
+	// ignore error for time being
+	pluginHdl.svcHdl.updateStatus(*dhcpsubnet)
 	return nil
 }
