@@ -582,9 +582,16 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 									bgp.IPv4Unicast.ImportVRFs[name] = &dozer.SpecVRFBGPImportVRF{}
 								}
 							}
-							if ipv4Unicast.UseMultiplePaths != nil && ipv4Unicast.UseMultiplePaths.Ebgp != nil && ipv4Unicast.UseMultiplePaths.Ebgp.Config != nil {
-								if ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths != nil && *ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths != 1 {
-									bgp.IPv4Unicast.MaxPaths = ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths
+							if ipv4Unicast.UseMultiplePaths != nil {
+								if ipv4Unicast.UseMultiplePaths.Ebgp != nil && ipv4Unicast.UseMultiplePaths.Ebgp.Config != nil {
+									if ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths != nil && *ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths != 1 {
+										bgp.IPv4Unicast.MaxPaths = ipv4Unicast.UseMultiplePaths.Ebgp.Config.MaximumPaths
+									}
+								}
+								if ipv4Unicast.UseMultiplePaths.Ibgp != nil && ipv4Unicast.UseMultiplePaths.Ibgp.Config != nil {
+									if ipv4Unicast.UseMultiplePaths.Ibgp.Config.MaximumPaths != nil && *ipv4Unicast.UseMultiplePaths.Ibgp.Config.MaximumPaths != 1 {
+										bgp.IPv4Unicast.MaxPathsIBGP = ipv4Unicast.UseMultiplePaths.Ibgp.Config.MaximumPaths
+									}
 								}
 							}
 						}
