@@ -87,14 +87,14 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
 			resp.Options.Update(dhcpv4.OptSubnetMask(reservation.address.Mask))
 			resp.Options.Update(dhcpv4.OptRouter(net.IP(subnet.dhcpSubnet.Spec.Gateway)))
-			pluginHdl.updateBackendChan <- &updateBackend{
+			updateBackend4(&updateBackend{
 				IP:         reservation.address.String(),
 				MacAddress: req.ClientHWAddr.String(),
 				Expiry:     reservation.expiry,
 				Hostname:   req.HostName(),
 				Vrf:        string(vrfName),
 				circuitID:  string(circuitID),
-			}
+			})
 			return nil
 		}
 		ipnet, err := subnet.pool.Allocate()
@@ -112,14 +112,14 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			state:      committed,
 			Hostname:   req.HostName(),
 		}
-		pluginHdl.updateBackendChan <- &updateBackend{
+		updateBackend4(&updateBackend{
 			IP:         ipnet.String(),
 			MacAddress: req.ClientHWAddr.String(),
 			Expiry:     time.Now().Add(leaseTime),
 			Hostname:   req.HostName(),
 			Vrf:        string(vrfName),
 			circuitID:  string(circuitID),
-		}
+		})
 	}
 	return nil
 }
