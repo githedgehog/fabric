@@ -126,7 +126,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
 	}
 
-	err = planExternalConnections(agent, spec)
+	err = planExternals(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan external connections")
 	}
@@ -451,7 +451,7 @@ func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planExternalConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for connName, conn := range agent.Spec.Connections {
 		if conn.External == nil {
 			continue
@@ -467,7 +467,7 @@ func planExternalConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	for _, external := range agent.Spec.Externals {
+	for externalName, external := range agent.Spec.Externals {
 		ipnsVrfName := ipnsVrfName(external.IPv4Namespace)
 
 		if spec.VRFs[ipnsVrfName] != nil {
@@ -503,6 +503,22 @@ func planExternalConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 					AdvertiseIPv4Unicast: boolPtr(true), // TODO add route map
 				},
 				Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
+			},
+		}
+
+		commList := inboundCommListName(externalName)
+		spec.CommunityLists[commList] = &dozer.SpecCommunityList{
+			Members: []string{external.InboundCommunity},
+		}
+
+		spec.RouteMaps[inboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchCommunityList: stringPtr(commList),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
 			},
 		}
 	}
@@ -1239,6 +1255,14 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	spec.Interfaces[name] = physicalIface
 
 	return nil
+}
+
+func inboundCommListName(external string) string {
+	return fmt.Sprintf("ext-inbound-%s", external)
+}
+
+func inboundRouteMapName(external string) string {
+	return fmt.Sprintf("ext-inbound-%s", external)
 }
 
 func stringPtr(s string) *string { return &s }

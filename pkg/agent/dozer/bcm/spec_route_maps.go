@@ -47,6 +47,17 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 				conditions.MatchPrefixSet.Config.PrefixSet = statement.Conditions.MatchPrefixList
 				ok = true
 			}
+			if statement.Conditions.MatchCommunityList != nil {
+				if conditions.BgpConditions == nil {
+					conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
+				}
+				if conditions.BgpConditions.Config == nil {
+					conditions.BgpConditions.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_Config{}
+				}
+				conditions.BgpConditions.Config.CommunitySet = statement.Conditions.MatchCommunityList
+
+				ok = true
+			}
 			if statement.Conditions.MatchEVPNDefaultRoute != nil && *statement.Conditions.MatchEVPNDefaultRoute {
 				if conditions.BgpConditions == nil {
 					conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
@@ -92,6 +103,28 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 				result = oc.OpenconfigRoutingPolicy_PolicyResultType_ACCEPT_ROUTE
 			}
 
+			var bgpActions *oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions
+			if len(statement.SetCommunities) > 0 {
+				comms := []oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config_Communities_Union{}
+				for _, comm := range statement.SetCommunities {
+					comms = append(comms, oc.UnionString(comm))
+				}
+
+				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{
+					SetCommunity: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity{
+						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config{
+							Method:  oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config_Method_INLINE,
+							Options: oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_REPLACE,
+						},
+						Inline: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline{
+							Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config{
+								Communities: comms,
+							},
+						},
+					},
+				}
+			}
+
 			statements.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
 				Name: ygot.String(seq),
 				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Config{
@@ -99,6 +132,7 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 				},
 				Conditions: conditions,
 				Actions: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions{
+					BgpActions: bgpActions,
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_Config{
 						PolicyResult: result,
 					},
@@ -161,9 +195,15 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 				if statement.Conditions.MatchPrefixSet != nil && statement.Conditions.MatchPrefixSet.Config != nil && statement.Conditions.MatchPrefixSet.Config.PrefixSet != nil {
 					conditions.MatchPrefixList = statement.Conditions.MatchPrefixSet.Config.PrefixSet
 				}
-				if statement.Conditions.BgpConditions != nil && statement.Conditions.BgpConditions.MatchEvpnSet != nil && statement.Conditions.BgpConditions.MatchEvpnSet.Config != nil {
-					conditions.MatchEVPNDefaultRoute = statement.Conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route
-					conditions.MatchEVPNVNI = statement.Conditions.BgpConditions.MatchEvpnSet.Config.VniNumber
+				if statement.Conditions.BgpConditions != nil {
+					if statement.Conditions.BgpConditions.MatchEvpnSet != nil && statement.Conditions.BgpConditions.MatchEvpnSet.Config != nil {
+						conditions.MatchEVPNDefaultRoute = statement.Conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route
+						conditions.MatchEVPNVNI = statement.Conditions.BgpConditions.MatchEvpnSet.Config.VniNumber
+					}
+
+					if statement.Conditions.BgpConditions.Config != nil {
+						conditions.MatchCommunityList = statement.Conditions.BgpConditions.Config.CommunitySet
+					}
 				}
 				if statement.Conditions.Config != nil && statement.Conditions.Config.CallPolicy != nil {
 					conditions.Call = statement.Conditions.Config.CallPolicy
@@ -178,9 +218,26 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 				result = dozer.SpecRouteMapResultAccept
 			}
 
+			var setComms []string
+			if statement.Actions.BgpActions != nil && statement.Actions.BgpActions.SetCommunity != nil {
+				setComm := statement.Actions.BgpActions.SetCommunity
+
+				if setComm.Config != nil && setComm.Inline != nil && setComm.Inline.Config != nil {
+					for _, comm := range setComm.Inline.Config.Communities {
+						if str, ok := comm.(oc.UnionString); ok {
+							setComms = append(setComms, string(str))
+						} else {
+							return nil, errors.Errorf("unexpected community member type: %T", comm)
+						}
+					}
+				}
+
+			}
+
 			statements[*statement.Name] = &dozer.SpecRouteMapStatement{
-				Conditions: conditions,
-				Result:     result,
+				Conditions:     conditions,
+				SetCommunities: setComms,
+				Result:         result,
 			}
 		}
 
