@@ -7,6 +7,8 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
@@ -87,14 +89,12 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
 			resp.Options.Update(dhcpv4.OptSubnetMask(reservation.address.Mask))
 			resp.Options.Update(dhcpv4.OptRouter(net.IP(subnet.dhcpSubnet.Spec.Gateway)))
-			updateBackend4(&updateBackend{
-				IP:         reservation.address.String(),
-				MacAddress: req.ClientHWAddr.String(),
-				Expiry:     reservation.expiry,
-				Hostname:   req.HostName(),
-				Vrf:        string(vrfName),
-				circuitID:  string(circuitID),
-			})
+			subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1alpha2.DHCPAllocated{
+				IP:       reservation.address.IP.String(),
+				Expiry:   metav1.NewTime(reservation.expiry),
+				Hostname: reservation.Hostname,
+			}
+			updateBackend4(subnet.dhcpSubnet)
 			return nil
 		}
 		ipnet, err := subnet.pool.Allocate()
@@ -112,14 +112,13 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			state:      committed,
 			Hostname:   req.HostName(),
 		}
-		updateBackend4(&updateBackend{
-			IP:         ipnet.String(),
-			MacAddress: req.ClientHWAddr.String(),
-			Expiry:     time.Now().Add(leaseTime),
-			Hostname:   req.HostName(),
-			Vrf:        string(vrfName),
-			circuitID:  string(circuitID),
-		})
+		subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1alpha2.DHCPAllocated{
+			IP:       ipnet.IP.String(),
+			Expiry:   metav1.NewTime(time.Now().Add(leaseTime)),
+			Hostname: req.HostName(),
+		}
+		updateBackend4(subnet.dhcpSubnet)
+
 	}
 	return nil
 }
@@ -145,14 +144,9 @@ func handleDecline4(req, resp *dhcpv4.DHCPv4) error {
 		if err := subnet.pool.Free(reservation.address); err != nil {
 			log.Errorf("IP address %s could not be released", reservation.address.String())
 		}
-		updateBackend4(&updateBackend{
-			IP:         reservation.address.String(),
-			MacAddress: req.ClientHWAddr.String(),
-			Expiry:     reservation.expiry,
-			Hostname:   req.HostName(),
-			Vrf:        string(vrfName),
-			circuitID:  string(circuitID),
-		})
+		delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
+		updateBackend4(subnet.dhcpSubnet)
+
 	}
 	return nil
 }
@@ -178,15 +172,8 @@ func handleRelease4(req, resp *dhcpv4.DHCPv4) error {
 		if err := subnet.pool.Free(reservation.address); err != nil {
 			log.Errorf("IP address %s could not be released", reservation.address.String())
 		}
-
-		updateBackend4(&updateBackend{
-			IP:         reservation.address.String(),
-			MacAddress: req.ClientHWAddr.String(),
-			Expiry:     reservation.expiry,
-			Hostname:   req.HostName(),
-			Vrf:        string(vrfName),
-			circuitID:  string(circuitID),
-		})
+		delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
+		updateBackend4(subnet.dhcpSubnet)
 
 	}
 	return nil

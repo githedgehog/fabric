@@ -104,7 +104,6 @@ func (r *ipv4range) allocate() (net.IPNet, error) {
 	}
 
 	next = avail
-	log.Infof("allocating address %s", r.toIP(uint32(next)).String())
 	r.bitmap.Set(next)
 	return net.IPNet{
 		IP:   r.toIP(uint32(next)),
