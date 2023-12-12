@@ -110,6 +110,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle suppress vlan neighs")
 		}
 
+		if err := specCommunityListsEnforcer.Handle(basePath, actual.CommunityLists, desired.CommunityLists, actions); err != nil {
+			return errors.Wrap(err, "failed to handle community lists")
+		}
+
 		return nil
 	},
 }
@@ -173,6 +177,10 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualPrefixLists(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load prefix lists")
+	}
+
+	if err := loadActualCommunityLists(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load community lists")
 	}
 
 	if err := loadActualRouteMaps(ctx, client, spec); err != nil {
