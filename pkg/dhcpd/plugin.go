@@ -45,8 +45,21 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						pluginHdl.dhcpSubnets.Lock()
 						if val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]; ok {
 							log.Errorf("Received Add event for already existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)
-							pluginHdl.dhcpSubnets.Unlock()
-							continue
+							if event.Subnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP ||
+								event.Subnet.Spec.CIDRBlock != val.dhcpSubnet.Spec.CIDRBlock ||
+								event.Subnet.Spec.EndIP != val.dhcpSubnet.Spec.EndIP { //
+								// seems like things have changed since we last synced We delete what we have cached and remove our cached copy and process the add event here
+								for mac, _ := range val.allocations.allocation {
+									delete(val.allocations.allocation, mac)
+								}
+
+								delete(pluginHdl.dhcpSubnets.subnets, event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID)
+
+							} else {
+								pluginHdl.dhcpSubnets.Unlock()
+								continue
+							}
+
 						}
 						_, cidr, err := net.ParseCIDR(event.Subnet.Spec.CIDRBlock)
 						if err != nil {
@@ -98,15 +111,46 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						// Maybe we have a new allocation for this subnet.
 						// Lets handle this later
 						// Will require merge
+						pluginHdl.dhcpSubnets.Lock()
+						val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
+						if !ok {
+							log.Infof("Received modify event for dhcp subnet that does not exist: %s:%s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID)
+							pluginHdl.dhcpSubnets.Unlock()
+							continue
+						}
+						if val.dhcpSubnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP {
+							// ignore this event.
+							// Can't modify the start ip
+							pluginHdl.dhcpSubnets.Unlock()
+							continue
+						}
+						_, received, _ := net.ParseCIDR(event.Subnet.Spec.CIDRBlock)
+						_, cached, _ := net.ParseCIDR(val.dhcpSubnet.Spec.CIDRBlock)
+						recprefixLen, _ := received.Mask.Size()
+						cachedprefixLen, _ := cached.Mask.Size()
+						if recprefixLen < cachedprefixLen {
+							// can't reduce CIDR block size
+							log.Errorf("Can't reduce CIDR block size for %s:%s from %d to %d", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, cachedprefixLen, recprefixLen)
+							pluginHdl.dhcpSubnets.Unlock()
+							continue
+						}
+						// now we know we are increasing the cidr block size without increasing start ip update the cached copy of dhcp subnets
+						val.dhcpSubnet = event.Subnet
 					case EventTypeDeleted:
 						pluginHdl.dhcpSubnets.Lock()
-						if val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]; !ok {
+						val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
+						if !ok {
 							log.Errorf("Received Delete event for non existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)
 							pluginHdl.dhcpSubnets.Unlock()
 							continue
 						}
 						// delete the mapping
 						// Does this mean the dhcp status object is gone or do i need to do something else here?
+						// Delete all reservations
+						for mac, _ := range val.allocations.allocation {
+							delete(val.allocations.allocation, mac)
+						}
+
 						delete(pluginHdl.dhcpSubnets.subnets, event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID)
 						pluginHdl.dhcpSubnets.Unlock()
 					}
@@ -114,13 +158,6 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 
 			}
 		}()
-		// subnet := dhcpapi.DHCPSubnet{}
-		// subnet.Status.Allocated["asdasd"] = dhcpapi.DHCPAllocated{
-		// 	IP:       "",
-		// 	Expiry:   metav1.Time{},
-		// 	Hostname: "",
-		// }
-		// err := svc.updateStatus(subnet)
 
 		return handlerDHCP4, nil
 	}

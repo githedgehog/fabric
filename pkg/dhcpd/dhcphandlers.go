@@ -192,8 +192,23 @@ func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) {
 func handleExpiredLeases() {
 	pluginHdl.dhcpSubnets.Lock()
 	defer pluginHdl.dhcpSubnets.Unlock()
+	// wake up every 2 min and try looking for expired leases
+	// This is a long loop we migh want to break this so we don't spend too much time here
+	ticker := time.NewTicker(120 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			for _, v := range pluginHdl.dhcpSubnets.subnets {
+				for hwmacaddress, reservation := range v.allocations.allocation {
+					if time.Now().After(reservation.expiry) {
+						// lease expired
+						delete(v.allocations.allocation, hwmacaddress)
+						delete(v.dhcpSubnet.Status.Allocated, hwmacaddress)
+					}
+				}
+				updateBackend4(v.dhcpSubnet)
+			}
+		}
+	}
 
-	// for k, v := range pluginHdl.dhcpSubnets.subnets {
-
-	// }
 }
