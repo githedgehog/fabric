@@ -243,6 +243,10 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		SystemDescription: stringPtr(fmt.Sprintf("Hedgehog: [control_vip=%s]", agent.Spec.Config.ControlVIP)),
 	}
 
+	if !agent.IsSpineLeaf() {
+		return nil
+	}
+
 	for _, conn := range agent.Spec.Connections {
 		if conn.Fabric != nil {
 			for _, link := range conn.Fabric.Links {
@@ -319,7 +323,7 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	if agent.Spec.Switch.Role.IsLeaf() {
+	if agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsLeaf() {
 		ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.VTEPIP)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse vtep ip %s", agent.Spec.Switch.VTEPIP)
@@ -345,6 +349,10 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	if !agent.IsSpineLeaf() {
+		return nil
+	}
+
 	spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			fmt.Sprintf("%d", ROUTE_MAP_MAX_STATEMENT): {
@@ -532,7 +540,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 					},
 					L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-						Enabled:            true,
+						Enabled:            agent.IsSpineLeaf(),
 						AdvertiseDefaultGw: boolPtr(true),
 					},
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
@@ -731,7 +739,7 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 			MaxPaths: uint32Ptr(getMaxPaths(agent)),
 		},
 		L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-			Enabled:         true,
+			Enabled:         agent.IsSpineLeaf(),
 			AdvertiseAllVNI: boolPtr(true),
 		},
 	}
@@ -744,6 +752,10 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planVXLAN(agent *agentapi.Agent, spec *dozer.Spec) error {
+	if !agent.IsSpineLeaf() {
+		return nil
+	}
+
 	ip, _, err := net.ParseCIDR(agent.Spec.Switch.VTEPIP)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse vtep ip %s", agent.Spec.Switch.VTEPIP)
@@ -913,8 +925,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Description: stringPtr(fmt.Sprintf("VPC %s IRB", vpcName)),
 		}
 
-		spec.SuppressVLANNeighs[irbIface] = &dozer.SpecSuppressVLANNeigh{}
-
 		if spec.VRFs[vrfName] == nil {
 			spec.VRFs[vrfName] = &dozer.SpecVRF{}
 		}
@@ -942,7 +952,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-				Enabled:              true,
+				Enabled:              agent.IsSpineLeaf(),
 				AdvertiseIPv4Unicast: boolPtr(true),
 			},
 		}
@@ -952,17 +962,21 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
-		vpcVNI := agent.Spec.VNIs[vpcName]
-		if vpcVNI == 0 {
-			return errors.Errorf("VNI for VPC %s not found", vpcName)
-		}
-		spec.VRFVNIMap[vrfName] = &dozer.SpecVRFVNIEntry{
-			VNI: uint32Ptr(vpcVNI),
-		}
-		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", vpcVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
-			VTEP: stringPtr(VTEP_FABRIC),
-			VNI:  uint32Ptr(vpcVNI),
-			VLAN: uint16Ptr(irbVLAN),
+		if agent.IsSpineLeaf() {
+			spec.SuppressVLANNeighs[irbIface] = &dozer.SpecSuppressVLANNeigh{}
+
+			vpcVNI := agent.Spec.VNIs[vpcName]
+			if vpcVNI == 0 {
+				return errors.Errorf("VNI for VPC %s not found", vpcName)
+			}
+			spec.VRFVNIMap[vrfName] = &dozer.SpecVRFVNIEntry{
+				VNI: uint32Ptr(vpcVNI),
+			}
+			spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", vpcVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
+				VTEP: stringPtr(VTEP_FABRIC),
+				VNI:  uint32Ptr(vpcVNI),
+				VLAN: uint16Ptr(irbVLAN),
+			}
 		}
 	}
 
@@ -1197,17 +1211,19 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName, subnetName 
 
 	spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
 
-	subnetVNI := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
-	if subnetVNI == 0 {
-		return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
-	}
-	spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
-		VTEP: stringPtr(VTEP_FABRIC),
-		VNI:  uint32Ptr(subnetVNI),
-		VLAN: uint16Ptr(subnetVLAN),
-	}
+	if agent.IsSpineLeaf() {
+		spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
 
-	spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
+		subnetVNI := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
+		if subnetVNI == 0 {
+			return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
+		}
+		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
+			VTEP: stringPtr(VTEP_FABRIC),
+			VNI:  uint32Ptr(subnetVNI),
+			VLAN: uint16Ptr(subnetVLAN),
+		}
+	}
 
 	if subnet.DHCP.Enable {
 		dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)

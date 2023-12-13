@@ -397,15 +397,18 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	vnis := map[string]uint32{}
-	for _, vpc := range vpcList.Items {
-		if _, exists := vpcs[vpc.Name]; !exists {
-			continue
-		}
 
-		vnis[vpc.Name] = vpc.Status.VNI
+	if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
+		for _, vpc := range vpcList.Items {
+			if _, exists := vpcs[vpc.Name]; !exists {
+				continue
+			}
 
-		for subnetName := range vpc.Spec.Subnets {
-			vnis[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] = vpc.Status.SubnetVNIs[subnetName]
+			vnis[vpc.Name] = vpc.Status.VNI
+
+			for subnetName := range vpc.Spec.Subnets {
+				vnis[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] = vpc.Status.SubnetVNIs[subnetName]
+			}
 		}
 	}
 

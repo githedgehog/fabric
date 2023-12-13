@@ -151,7 +151,7 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Server")
 		os.Exit(1)
 	}
-	if err = switchWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = switchWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Switch")
 		os.Exit(1)
 	}

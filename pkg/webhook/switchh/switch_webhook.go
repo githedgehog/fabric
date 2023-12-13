@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,13 +18,15 @@ type SwitchWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Validation validation.Client
+	Cfg        *config.Fabric
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
 	w := &SwitchWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		Cfg:        cfg,
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -54,7 +57,7 @@ func (w *SwitchWebhook) Default(ctx context.Context, obj runtime.Object) error {
 func (w *SwitchWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	sw := obj.(*wiringapi.Switch)
 
-	warns, err := sw.Validate(ctx, w.Validation)
+	warns, err := sw.Validate(ctx, w.Validation, w.Cfg.FabricMode == config.FabricModeSpineLeaf)
 	if err != nil {
 		return warns, err
 	}
@@ -70,7 +73,7 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Objec
 		return nil, errors.Errorf("switch location is immutable")
 	}
 
-	warns, err := newSw.Validate(ctx, w.Validation)
+	warns, err := newSw.Validate(ctx, w.Validation, w.Cfg.FabricMode == config.FabricModeSpineLeaf)
 	if err != nil {
 		return warns, err
 	}
