@@ -338,6 +338,11 @@ spec:
                       type: object
                   type: object
                 type: object
+              externalPeeringPrefixIDs:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                type: object
               externalPeerings:
                 additionalProperties:
                   description: ExternalPeeringSpec defines the desired state of ExternalPeering
@@ -371,6 +376,10 @@ spec:
                           type: object
                       type: object
                   type: object
+                type: object
+              externalSeqs:
+                additionalProperties:
+                  type: integer
                 type: object
               externals:
                 additionalProperties:

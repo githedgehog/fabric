@@ -21,7 +21,7 @@ var specPrefixListsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPrefixList]
 
 var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList]{
 	Summary:      "Prefix Lists %s",
-	Path:         "/routing-policy/defined-sets/prefix-sets[name=%s]",
+	Path:         "/routing-policy/defined-sets/prefix-sets/prefix-set[name=%s]",
 	UpdateWeight: ActionWeightPrefixListUpdate,
 	DeleteWeight: ActionWeightPrefixListDelete,
 	Marshal: func(name string, value *dozer.SpecPrefixList) (ygot.ValidatedGoStruct, error) {
@@ -72,19 +72,17 @@ var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList
 			}
 		}
 
-		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets{
-			PrefixSets: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets{
-				PrefixSet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet{
-					name: {
+		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets{
+			PrefixSet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet{
+				name: {
+					Name: ygot.String(name),
+					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config{
 						Name: ygot.String(name),
-						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config{
-							Name: ygot.String(name),
-							Mode: oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config_Mode_IPV4,
-						},
-						// TODO handle separately to be able to update prefix lists
-						ExtendedPrefixes: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes{
-							ExtendedPrefix: prefixes,
-						},
+						Mode: oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config_Mode_IPV4,
+					},
+					// TODO handle separately to be able to update prefix lists
+					ExtendedPrefixes: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes{
+						ExtendedPrefix: prefixes,
 					},
 				},
 			},
@@ -128,7 +126,7 @@ func unmarshalOCPrefixLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_Defi
 					continue
 				}
 
-				if ocPrefix.Config.MasklengthRange == nil || ocPrefix.Config.MasklengthRange != nil && *ocPrefix.Config.MasklengthRange != "exact" {
+				if ocPrefix.Config.MasklengthRange == nil {
 					continue
 				}
 

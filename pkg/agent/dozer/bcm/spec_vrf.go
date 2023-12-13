@@ -216,6 +216,7 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 					AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList_Config{
 						AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+						RouteMap:         value.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps,
 					},
 				}
 			}
@@ -283,6 +284,16 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			}
 		}
 
+		var ipApplyPolicy *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy
+		if value.IPv4UnicastImportPolicies != nil || value.IPv4UnicastExportPolicies != nil {
+			ipApplyPolicy = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy{
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy_Config{
+					ImportPolicy: value.IPv4UnicastImportPolicies,
+					ExportPolicy: value.IPv4UnicastExportPolicies,
+				},
+			}
+		}
+
 		var l2ApplyPolicy *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy
 		if value.L2VPNEVPNImportPolicies != nil {
 			l2ApplyPolicy = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy{
@@ -311,6 +322,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 									AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 									Enabled:     value.IPv4Unicast,
 								},
+								ApplyPolicy: ipApplyPolicy,
 							},
 							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN: {
 								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
@@ -387,8 +399,7 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 var specVRFImportPolicyEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Summary: "VRF BGP import policy %s",
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
-		// TODO we should probably re-trigger import vrfs update if we're running BGP Base update
-		return value.IPv4Unicast.ImportPolicy
+		return []any{specVRFBGPBaseEnforcerGetter(name, value), value.IPv4Unicast.ImportPolicy} // TODO check if it helps
 	},
 	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
 		if desired != nil && desired.IPv4Unicast.ImportPolicy == nil {
@@ -611,6 +622,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 									for _, route := range l2vpnEVPN.RouteAdvertise.RouteAdvertiseList {
 										if route.Config != nil && route.Config.AdvertiseAfiSafi == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST {
 											bgp.L2VPNEVPN.AdvertiseIPv4Unicast = ygot.Bool(true)
+											bgp.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = route.Config.RouteMap
 											break
 										}
 									}
@@ -626,12 +638,18 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							continue
 						}
 						var ipv4Unicast *bool
+						var ipv4ImportPolicies []string
+						var ipv4ExportPolicies []string
 						var l2vpnEVPN *bool
 						var l2ImportPolicies []string
 						if neighbor.AfiSafis != nil && neighbor.AfiSafis.AfiSafi != nil {
 							ocIPv4Unicast := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
 							if ocIPv4Unicast != nil && ocIPv4Unicast.Config != nil {
 								ipv4Unicast = ocIPv4Unicast.Config.Enabled
+								if ocIPv4Unicast.ApplyPolicy != nil && ocIPv4Unicast.ApplyPolicy.Config != nil {
+									ipv4ImportPolicies = ocIPv4Unicast.ApplyPolicy.Config.ImportPolicy
+									ipv4ExportPolicies = ocIPv4Unicast.ApplyPolicy.Config.ExportPolicy
+								}
 							}
 
 							ocL2VPNEVPN := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN]
@@ -653,13 +671,15 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						}
 
 						bgp.Neighbors[neighborName] = &dozer.SpecVRFBGPNeighbor{
-							Enabled:                 neighbor.Config.Enabled,
-							Description:             neighbor.Config.Description,
-							RemoteAS:                neighbor.Config.PeerAs,
-							PeerType:                peerType,
-							IPv4Unicast:             ipv4Unicast,
-							L2VPNEVPN:               l2vpnEVPN,
-							L2VPNEVPNImportPolicies: l2ImportPolicies,
+							Enabled:                   neighbor.Config.Enabled,
+							Description:               neighbor.Config.Description,
+							RemoteAS:                  neighbor.Config.PeerAs,
+							PeerType:                  peerType,
+							IPv4Unicast:               ipv4Unicast,
+							IPv4UnicastImportPolicies: ipv4ImportPolicies,
+							IPv4UnicastExportPolicies: ipv4ExportPolicies,
+							L2VPNEVPN:                 l2vpnEVPN,
+							L2VPNEVPNImportPolicies:   l2ImportPolicies,
 						}
 					}
 				}

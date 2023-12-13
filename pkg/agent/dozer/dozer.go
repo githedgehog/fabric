@@ -147,23 +147,26 @@ type SpecVRFBGPIPv4Unicast struct {
 }
 
 type SpecVRFBGPL2VPNEVPN struct {
-	Enabled              bool  `json:"enable,omitempty"`
-	DefaultOriginateIPv4 *bool `json:"defaultOriginateIPv4,omitempty"`
-	AdvertiseAllVNI      *bool `json:"advertiseAllVnis,omitempty"`
-	AdvertiseIPv4Unicast *bool `json:"advertiseIPv4Unicast,omitempty"`
-	AdvertiseDefaultGw   *bool `json:"advertiseDefaultGw,omitempty"`
+	Enabled                       bool     `json:"enable,omitempty"`
+	DefaultOriginateIPv4          *bool    `json:"defaultOriginateIPv4,omitempty"`
+	AdvertiseAllVNI               *bool    `json:"advertiseAllVnis,omitempty"`
+	AdvertiseIPv4Unicast          *bool    `json:"advertiseIPv4Unicast,omitempty"`
+	AdvertiseIPv4UnicastRouteMaps []string `json:"advertiseIPv4UnicastRouteMaps,omitempty"`
+	AdvertiseDefaultGw            *bool    `json:"advertiseDefaultGw,omitempty"`
 }
 
 type SpecVRFBGPNetwork struct{}
 
 type SpecVRFBGPNeighbor struct {
-	Enabled                 *bool    `json:"enabled,omitempty"`
-	Description             *string  `json:"description,omitempty"`
-	RemoteAS                *uint32  `json:"remoteAS,omitempty"`
-	PeerType                *string  `json:"peerType,omitempty"`
-	IPv4Unicast             *bool    `json:"ipv4Unicast,omitempty"`
-	L2VPNEVPN               *bool    `json:"l2vpnEvpn,omitempty"`
-	L2VPNEVPNImportPolicies []string `json:"l2vpnEvpnImportPolicies,omitempty"`
+	Enabled                   *bool    `json:"enabled,omitempty"`
+	Description               *string  `json:"description,omitempty"`
+	RemoteAS                  *uint32  `json:"remoteAS,omitempty"`
+	PeerType                  *string  `json:"peerType,omitempty"`
+	IPv4Unicast               *bool    `json:"ipv4Unicast,omitempty"`
+	IPv4UnicastImportPolicies []string `json:"ipv4UnicastImportPolicies,omitempty"`
+	IPv4UnicastExportPolicies []string `json:"ipv4UnicastExportPolicies,omitempty"`
+	L2VPNEVPN                 *bool    `json:"l2vpnEvpn,omitempty"`
+	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
 }
 
 const (
@@ -190,9 +193,10 @@ type SpecRouteMap struct {
 }
 
 type SpecRouteMapStatement struct {
-	Conditions     SpecRouteMapConditions `json:"conditions,omitempty"`
-	SetCommunities []string               `json:"setCommunities,omitempty"`
-	Result         SpecRouteMapResult     `json:"result,omitempty"`
+	Conditions         SpecRouteMapConditions `json:"conditions,omitempty"`
+	SetCommunities     []string               `json:"setCommunities,omitempty"`
+	SetLocalPreference *uint32                `json:"setLocalPreference,omitempty"`
+	Result             SpecRouteMapResult     `json:"result,omitempty"`
 }
 
 type SpecRouteMapConditions struct {

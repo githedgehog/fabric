@@ -28,29 +28,31 @@ import (
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	Role                 wiringapi.SwitchRole                     `json:"role,omitempty"`
-	Description          string                                   `json:"description,omitempty"`
-	Config               AgentSpecConfig                          `json:"config,omitempty"`
-	Version              AgentVersion                             `json:"version,omitempty"`
-	Users                []UserCreds                              `json:"users,omitempty"`
-	Switch               wiringapi.SwitchSpec                     `json:"switch,omitempty"`
-	Switches             map[string]wiringapi.SwitchSpec          `json:"switches,omitempty"`
-	Connections          map[string]wiringapi.ConnectionSpec      `json:"connections,omitempty"`
-	VPCs                 map[string]vpcapi.VPCSpec                `json:"vpcs,omitempty"`
-	VPCAttachments       map[string]vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
-	VPCPeerings          map[string]vpcapi.VPCPeeringSpec         `json:"vpcPeers,omitempty"`
-	VPCLoopbackLinks     map[string]string                        `json:"vpcLoopbackLinks,omitempty"`
-	VPCLoopbackVLANs     map[string]uint16                        `json:"vpcLoopbackVLANs,omitempty"`
-	Externals            map[string]vpcapi.ExternalSpec           `json:"externals,omitempty"`
-	ExternalAttachments  map[string]vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"`
-	ExternalPeerings     map[string]vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`
-	ConfiguredVPCSubnets map[string]bool                          `json:"configuredVPCSubnets,omitempty"`
-	MCLAGAttachedVPCs    map[string]bool                          `json:"mclagAttachedVPCs,omitempty"`
-	VNIs                 map[string]uint32                        `json:"vnis,omitempty"`
-	IRBVLANs             map[string]uint16                        `json:"irbVLANs,omitempty"`
-	PortChannels         map[string]uint16                        `json:"portChannels,omitempty"`
-	Reinstall            string                                   `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
-	Reboot               string                                   `json:"reboot,omitempty"`    // set to RunID to reboot
+	Role                     wiringapi.SwitchRole                     `json:"role,omitempty"`
+	Description              string                                   `json:"description,omitempty"`
+	Config                   AgentSpecConfig                          `json:"config,omitempty"`
+	Version                  AgentVersion                             `json:"version,omitempty"`
+	Users                    []UserCreds                              `json:"users,omitempty"`
+	Switch                   wiringapi.SwitchSpec                     `json:"switch,omitempty"`
+	Switches                 map[string]wiringapi.SwitchSpec          `json:"switches,omitempty"`
+	Connections              map[string]wiringapi.ConnectionSpec      `json:"connections,omitempty"`
+	VPCs                     map[string]vpcapi.VPCSpec                `json:"vpcs,omitempty"`
+	VPCAttachments           map[string]vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
+	VPCPeerings              map[string]vpcapi.VPCPeeringSpec         `json:"vpcPeers,omitempty"`
+	VPCLoopbackLinks         map[string]string                        `json:"vpcLoopbackLinks,omitempty"`
+	VPCLoopbackVLANs         map[string]uint16                        `json:"vpcLoopbackVLANs,omitempty"`
+	Externals                map[string]vpcapi.ExternalSpec           `json:"externals,omitempty"`
+	ExternalAttachments      map[string]vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"`
+	ExternalPeerings         map[string]vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`
+	ConfiguredVPCSubnets     map[string]bool                          `json:"configuredVPCSubnets,omitempty"`
+	MCLAGAttachedVPCs        map[string]bool                          `json:"mclagAttachedVPCs,omitempty"`
+	VNIs                     map[string]uint32                        `json:"vnis,omitempty"`
+	IRBVLANs                 map[string]uint16                        `json:"irbVLANs,omitempty"`
+	ExternalPeeringPrefixIDs map[string]uint32                        `json:"externalPeeringPrefixIDs,omitempty"`
+	ExternalSeqs             map[string]uint16                        `json:"externalSeqs,omitempty"`
+	PortChannels             map[string]uint16                        `json:"portChannels,omitempty"`
+	Reinstall                string                                   `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
+	Reboot                   string                                   `json:"reboot,omitempty"`    // set to RunID to reboot
 
 	// TODO impl
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`

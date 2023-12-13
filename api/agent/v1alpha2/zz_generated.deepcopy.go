@@ -198,6 +198,20 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.ExternalPeeringPrefixIDs != nil {
+		in, out := &in.ExternalPeeringPrefixIDs, &out.ExternalPeeringPrefixIDs
+		*out = make(map[string]uint32, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.ExternalSeqs != nil {
+		in, out := &in.ExternalSeqs, &out.ExternalSeqs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.PortChannels != nil {
 		in, out := &in.PortChannels, &out.PortChannels
 		*out = make(map[string]uint16, len(*in))

@@ -464,6 +464,69 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return errors.Wrapf(err, "error calculating vpc loopback vlan allocation")
 		}
 
+		externalSeqs := map[string]uint16{}
+		takenSeqs := map[uint16]bool{}
+		for name := range externals {
+			if agent.Spec.ExternalSeqs[name] == 0 {
+				continue
+			}
+
+			externalSeqs[name] = agent.Spec.ExternalSeqs[name]
+			takenSeqs[externalSeqs[name]] = true
+		}
+		for name := range externals {
+			if externalSeqs[name] != 0 {
+				continue
+			}
+
+			for idx := 10; idx <= 65535; idx++ {
+				if !takenSeqs[uint16(idx)] {
+					externalSeqs[name] = uint16(idx)
+					takenSeqs[uint16(idx)] = true
+					break
+				}
+			}
+
+			if externalSeqs[name] == 0 {
+				return errors.Errorf("error calculating external seqs for %s", name)
+			}
+		}
+		agent.Spec.ExternalSeqs = externalSeqs
+
+		externalPeeringPrefixIDs := map[string]uint32{}
+		taken := map[uint32]bool{}
+		for _, peering := range externalPeerings {
+			for _, prefix := range peering.Permit.External.Prefixes {
+				val := agent.Spec.ExternalPeeringPrefixIDs[prefix.Prefix]
+				if val == 0 {
+					continue
+				}
+
+				externalPeeringPrefixIDs[prefix.Prefix] = val
+				taken[val] = true
+			}
+		}
+		for _, peering := range externalPeerings {
+			for _, prefix := range peering.Permit.External.Prefixes {
+				if externalPeeringPrefixIDs[prefix.Prefix] != 0 {
+					continue
+				}
+
+				for idx := uint32(10); idx <= 4294967295; idx++ {
+					if !taken[idx] {
+						externalPeeringPrefixIDs[prefix.Prefix] = idx
+						taken[idx] = true
+						break
+					}
+				}
+
+				if externalPeeringPrefixIDs[prefix.Prefix] == 0 {
+					return errors.Errorf("error calculating external peering prefix ids for %s", prefix.Prefix)
+				}
+			}
+		}
+		agent.Spec.ExternalPeeringPrefixIDs = externalPeeringPrefixIDs
+
 		return nil
 	})
 	if err != nil {

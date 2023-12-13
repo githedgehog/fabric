@@ -2,6 +2,7 @@ package bcm
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -17,7 +18,7 @@ var specCommunityListsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecCommunit
 
 var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommunityList]{
 	Summary:      "Community Lists %s",
-	Path:         "/routing-policy/defined-sets/bgp-defined-sets/community-sets[community-set-name=%s]",
+	Path:         "/routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=%s]",
 	UpdateWeight: ActionWeightCommunityListUpdate,
 	DeleteWeight: ActionWeightCommunityListDelete,
 	Marshal: func(name string, value *dozer.SpecCommunityList) (ygot.ValidatedGoStruct, error) {
@@ -26,15 +27,15 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 			members = append(members, oc.UnionString(member))
 		}
 
-		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets{
-			CommunitySets: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets{
-				CommunitySet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet{
-					name: {
+		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets{
+			CommunitySet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet{
+				name: {
+					CommunitySetName: ygot.String(name),
+					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config{
 						CommunitySetName: ygot.String(name),
-						Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config{
-							CommunitySetName: ygot.String(name),
-							CommunityMember:  members,
-						},
+						CommunityMember:  members,
+						MatchSetOptions:  oc.OpenconfigRoutingPolicy_MatchSetOptionsType_ANY,
+						Action:           oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT,
 					},
 				},
 			},
@@ -65,6 +66,15 @@ func unmarshalOCCommunityLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_D
 
 	for name, ocList := range ocVal.CommunitySets.CommunitySet {
 		if ocList.Config == nil {
+			continue
+		}
+
+		if ocList.Config.MatchSetOptions != oc.OpenconfigRoutingPolicy_MatchSetOptionsType_ANY {
+			slog.Warn("unsupported community list match set options", "name", name, "match_set_options", ocList.Config.MatchSetOptions)
+			continue
+		}
+		if ocList.Config.Action != oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT {
+			slog.Warn("unsupported community list action", "name", name, "action", ocList.Config.Action)
 			continue
 		}
 

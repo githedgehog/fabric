@@ -65,6 +65,8 @@ _Appears in:_
 | `mclagAttachedVPCs` _object (keys:string, values:boolean)_ |  |
 | `vnis` _object (keys:string, values:integer)_ |  |
 | `irbVLANs` _object (keys:string, values:integer)_ |  |
+| `externalPeeringPrefixIDs` _object (keys:string, values:integer)_ |  |
+| `externalSeqs` _object (keys:string, values:integer)_ |  |
 | `portChannels` _object (keys:string, values:integer)_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
