@@ -136,6 +136,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						}
 						// now we know we are increasing the cidr block size without increasing start ip update the cached copy of dhcp subnets
 						val.dhcpSubnet = event.Subnet
+						pluginHdl.dhcpSubnets.Unlock()
 					case EventTypeDeleted:
 						pluginHdl.dhcpSubnets.Lock()
 						val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
