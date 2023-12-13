@@ -29,7 +29,7 @@ require (
 	k8s.io/api v0.28.4
 	k8s.io/apimachinery v0.28.4
 	k8s.io/client-go v0.28.4
-	oras.land/oras-go/v2 v2.3.0
+	oras.land/oras-go/v2 v2.3.1
 	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -160,7 +160,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
+	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
