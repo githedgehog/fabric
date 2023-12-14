@@ -316,6 +316,7 @@ const (
 
 type SpecACLInterface struct {
 	Ingress *string `json:"ingress,omitempty"`
+	Egress  *string `json:"egress,omitempty"`
 }
 
 type SpecVXLANTunnel struct {

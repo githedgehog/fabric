@@ -412,6 +412,17 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
+	ipv4NamespaceList := &vpcapi.IPv4NamespaceList{}
+	err = r.List(ctx, ipv4NamespaceList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing ipv4 namespaces")
+	}
+
+	ipv4Namespaces := map[string]vpcapi.IPv4NamespaceSpec{}
+	for _, ns := range ipv4NamespaceList.Items {
+		ipv4Namespaces[ns.Name] = ns.Spec
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Labels = sw.Labels
@@ -424,6 +435,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
 		agent.Spec.VPCPeerings = peers
+		agent.Spec.IPv4Namespaces = ipv4Namespaces
 		agent.Spec.Externals = externals
 		agent.Spec.ExternalAttachments = externalAttaches
 		agent.Spec.ExternalPeerings = externalPeerings

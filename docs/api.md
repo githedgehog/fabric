@@ -58,6 +58,7 @@ _Appears in:_
 | `vpcPeers` _object (keys:string, values:[VPCPeeringSpec](#vpcpeeringspec))_ |  |
 | `vpcLoopbackLinks` _object (keys:string, values:string)_ |  |
 | `vpcLoopbackVLANs` _object (keys:string, values:integer)_ |  |
+| `ipv4Namespaces` _object (keys:string, values:[IPv4NamespaceSpec](#ipv4namespacespec))_ |  |
 | `externals` _object (keys:string, values:[ExternalSpec](#externalspec))_ |  |
 | `externalAttachments` _object (keys:string, values:[ExternalAttachmentSpec](#externalattachmentspec))_ |  |
 | `externalPeerings` _object (keys:string, values:[ExternalPeeringSpec](#externalpeeringspec))_ |  |
@@ -588,6 +589,7 @@ IPv4Namespace is the Schema for the ipv4namespaces API
 IPv4NamespaceSpec defines the desired state of IPv4Namespace
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [IPv4Namespace](#ipv4namespace)
 
 | Field | Description |

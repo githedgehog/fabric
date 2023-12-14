@@ -393,6 +393,18 @@ spec:
                       type: string
                   type: object
                 type: object
+              ipv4Namespaces:
+                additionalProperties:
+                  description: IPv4NamespaceSpec defines the desired state of IPv4Namespace
+                  properties:
+                    subnets:
+                      items:
+                        type: string
+                      maxItems: 10
+                      minItems: 1
+                      type: array
+                  type: object
+                type: object
               irbVLANs:
                 additionalProperties:
                   type: integer

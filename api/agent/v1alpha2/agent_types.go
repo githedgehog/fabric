@@ -41,6 +41,7 @@ type AgentSpec struct {
 	VPCPeerings              map[string]vpcapi.VPCPeeringSpec         `json:"vpcPeers,omitempty"`
 	VPCLoopbackLinks         map[string]string                        `json:"vpcLoopbackLinks,omitempty"`
 	VPCLoopbackVLANs         map[string]uint16                        `json:"vpcLoopbackVLANs,omitempty"`
+	IPv4Namespaces           map[string]vpcapi.IPv4NamespaceSpec      `json:"ipv4Namespaces,omitempty"`
 	Externals                map[string]vpcapi.ExternalSpec           `json:"externals,omitempty"`
 	ExternalAttachments      map[string]vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"`
 	ExternalPeerings         map[string]vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`

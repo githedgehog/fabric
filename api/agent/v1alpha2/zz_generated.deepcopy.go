@@ -149,6 +149,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.IPv4Namespaces != nil {
+		in, out := &in.IPv4Namespaces, &out.IPv4Namespaces
+		*out = make(map[string]vpcv1alpha2.IPv4NamespaceSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
 	if in.Externals != nil {
 		in, out := &in.Externals, &out.Externals
 		*out = make(map[string]vpcv1alpha2.ExternalSpec, len(*in))

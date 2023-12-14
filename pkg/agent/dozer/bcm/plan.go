@@ -516,6 +516,27 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
+		spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)] = &dozer.SpecACL{
+			Entries: map[uint32]*dozer.SpecACLEntry{
+				65535: {
+					Action: dozer.SpecACLEntryActionAccept,
+				},
+			},
+		}
+
+		ipns, exists := agent.Spec.IPv4Namespaces[external.IPv4Namespace]
+		if !exists {
+			return errors.Errorf("ipv4 namespace %s not found for external %s", external.IPv4Namespace, externalName)
+		}
+		seq := uint32(10)
+		for _, subnet := range ipns.Subnets {
+			spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)].Entries[seq] = &dozer.SpecACLEntry{
+				DestinationAddress: stringPtr(subnet),
+				Action:             dozer.SpecACLEntryActionDrop,
+			}
+			seq += 10
+		}
+
 		if spec.VRFs[ipnsVrfName] == nil {
 			protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 			if err != nil {
@@ -636,6 +657,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4Unicast:               boolPtr(true),
 			IPv4UnicastImportPolicies: []string{inboundRouteMapName(attach.External)},
 			IPv4UnicastExportPolicies: []string{outboundRouteMapName(attach.External)},
+		}
+
+		spec.ACLInterfaces[subIfaceName] = &dozer.SpecACLInterface{
+			Egress: stringPtr(ipnsEgressAccessList(ipns)),
 		}
 	}
 
@@ -1451,6 +1476,10 @@ func importVrfPrefixListName(vpc, ext string) string {
 
 func importVrfRouteMapName(vpc string) string {
 	return fmt.Sprintf("import-vrf--%s", vpc)
+}
+
+func ipnsEgressAccessList(ipns string) string {
+	return fmt.Sprintf("ipns-egress--%s", ipns)
 }
 
 func stringPtr(s string) *string { return &s }

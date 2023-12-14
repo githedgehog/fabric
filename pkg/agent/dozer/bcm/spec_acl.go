@@ -147,20 +147,40 @@ var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInter
 	UpdateWeight: ActionWeightACLInterfaceUpdate,
 	DeleteWeight: ActionWeightACLInterfaceDelete,
 	Marshal: func(name string, value *dozer.SpecACLInterface) (ygot.ValidatedGoStruct, error) {
-		aclSets := &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
-			IngressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet{},
+		var ingressAclSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets
+		if value.Ingress != nil {
+			ingressAclSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
+				IngressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet{
+					{
+						SetName: *value.Ingress,
+						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+					}: {
+						SetName: value.Ingress,
+						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+						Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Config{
+							SetName: value.Ingress,
+							Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+						},
+					},
+				},
+			}
 		}
 
-		if value.Ingress != nil {
-			aclSets.IngressAclSet[oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Key{
-				SetName: *value.Ingress,
-				Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
-			}] = &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet{
-				SetName: value.Ingress,
-				Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
-				Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Config{
-					SetName: value.Ingress,
-					Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+		var egressAclSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets
+		if value.Egress != nil {
+			egressAclSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets{
+				EgressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet{
+					{
+						SetName: *value.Egress,
+						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+					}: {
+						SetName: value.Egress,
+						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+						Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Config{
+							SetName: value.Egress,
+							Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+						},
+					},
 				},
 			}
 		}
@@ -177,7 +197,8 @@ var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInter
 							Interface: ygot.String(name),
 						},
 					},
-					IngressAclSets: aclSets,
+					IngressAclSets: ingressAclSets,
+					EgressAclSets:  egressAclSets,
 				},
 			},
 		}, nil
@@ -302,6 +323,7 @@ func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.Sp
 		}
 
 		var ingress *string
+		var egress *string
 
 		for key, value := range iface.IngressAclSets.IngressAclSet {
 			if key.Type != oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4 {
@@ -311,8 +333,17 @@ func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.Sp
 			ingress = value.SetName
 		}
 
+		for key, value := range iface.EgressAclSets.EgressAclSet {
+			if key.Type != oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4 {
+				continue
+			}
+
+			egress = value.SetName
+		}
+
 		interfaces[name] = &dozer.SpecACLInterface{
 			Ingress: ingress,
+			Egress:  egress,
 		}
 	}
 
