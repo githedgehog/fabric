@@ -398,7 +398,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	vnis := map[string]uint32{}
 
-	if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
+	if r.Cfg.FabricMode == config.FabricModeSpineLeaf {
 		for _, vpc := range vpcList.Items {
 			if _, exists := vpcs[vpc.Name]; !exists {
 				continue

@@ -130,6 +130,10 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 }
 
 func (r *VPCReconciler) ensureVNIs(ctx context.Context, vpc *vpcapi.VPC) error {
+	if r.Cfg.FabricMode != config.FabricModeSpineLeaf {
+		return nil
+	}
+
 	l := log.FromContext(ctx)
 
 	if vpc.Status.VNI == 0 {
