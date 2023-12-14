@@ -166,13 +166,8 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineL
 	if sw.Spec.ProtocolIP == "" {
 		return nil, errors.Errorf("protocol IP is required")
 	}
-	if sw.Spec.Role.IsLeaf() {
-		if spineLeaf && sw.Spec.VTEPIP == "" {
-			return nil, errors.Errorf("VTEP IP is required for leaf switches in spine-leaf mode")
-		}
-		if !spineLeaf && sw.Spec.VTEPIP != "" {
-			return nil, errors.Errorf("VTEP IP is not allowed for leaf switches in non spine-leaf mode")
-		}
+	if sw.Spec.Role.IsLeaf() && spineLeaf && sw.Spec.VTEPIP == "" {
+		return nil, errors.Errorf("VTEP IP is required for leaf switches in spine-leaf mode")
 	}
 	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
 		return nil, errors.Errorf("VTEP IP is not allowed for spine switches")
