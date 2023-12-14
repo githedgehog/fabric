@@ -3,11 +3,9 @@ package vpc
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,7 +64,7 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (wa
 }
 
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
-	oldVPC := oldObj.(*vpcapi.VPC)
+	// oldVPC := oldObj.(*vpcapi.VPC)
 	newVPC := newObj.(*vpcapi.VPC)
 
 	warns, err := newVPC.Validate(ctx, w.Validation, w.Cfg.ParsedReservedSubnets())
@@ -76,17 +74,16 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, 
 
 	// TODO check that you can only add subnets, or edit/remove unused ones
 
-	for subnetName, oldSubnet := range oldVPC.Spec.Subnets {
-		newSubnet, ok := newVPC.Spec.Subnets[subnetName]
-		if !ok {
-			continue
-		}
+	// for subnetName, oldSubnet := range oldVPC.Spec.Subnets {
+	// 	newSubnet, ok := newVPC.Spec.Subnets[subnetName]
+	// 	if !ok {
+	// 		continue
+	// 	}
 
-		// TODO unused subnets could be editable
-		if !equality.Semantic.DeepEqual(oldSubnet, newSubnet) {
-			return nil, errors.Errorf("subnets are immutable, but %s changed", subnetName)
-		}
-	}
+	// 	if !equality.Semantic.DeepEqual(oldSubnet, newSubnet) {
+	// 		return nil, errors.Errorf("subnets are immutable, but %s changed", subnetName)
+	// 	}
+	// }
 
 	return nil, nil
 }
