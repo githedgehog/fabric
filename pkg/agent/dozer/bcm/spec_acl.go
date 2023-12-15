@@ -325,20 +325,24 @@ func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.Sp
 		var ingress *string
 		var egress *string
 
-		for key, value := range iface.IngressAclSets.IngressAclSet {
-			if key.Type != oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4 {
-				continue
-			}
+		if iface.IngressAclSets == nil {
+			for key, value := range iface.IngressAclSets.IngressAclSet {
+				if key.Type != oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4 {
+					continue
+				}
 
-			ingress = value.SetName
+				ingress = value.SetName
+			}
 		}
 
-		for key, value := range iface.EgressAclSets.EgressAclSet {
-			if key.Type != oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4 {
-				continue
-			}
+		if iface.EgressAclSets == nil {
+			for key, value := range iface.EgressAclSets.EgressAclSet {
+				if key.Type != oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4 {
+					continue
+				}
 
-			egress = value.SetName
+				egress = value.SetName
+			}
 		}
 
 		interfaces[name] = &dozer.SpecACLInterface{
