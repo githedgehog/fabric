@@ -685,10 +685,16 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			links = conn.MCLAG.Links
 		} else if conn.Bundled != nil {
 			connType = "Bundled"
-			// TODO MTU
+			if conn.Bundled.MTU != 0 {
+				mtu = uint16Ptr(conn.Bundled.MTU)
+			}
 			links = conn.Bundled.Links
 		} else {
 			continue
+		}
+
+		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
+			return errors.Wrapf(err, "failed to validate server facing MTU for conn %s", connName)
 		}
 
 		for _, link := range links {
@@ -732,6 +738,15 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
+		var mtu *uint16
+		if conn.Unbundled.MTU != 0 {
+			mtu = uint16Ptr(conn.Unbundled.MTU)
+		}
+
+		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
+			return errors.Wrapf(err, "failed to validate server facing MTU for conn %s", connName)
+		}
+
 		if conn.Unbundled.Link.Switch.DeviceName() != agent.Name {
 			continue
 		}
@@ -743,7 +758,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), connName)),
 			Speed:       getPortSpeed(agent, swPort.LocalPortName()),
 			TrunkVLANs:  []string{VPC_VLAN_RANGE},
-			// MTU:         mtu,
+			MTU:         mtu,
 		}
 	}
 

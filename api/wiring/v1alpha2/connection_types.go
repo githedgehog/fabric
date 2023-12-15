@@ -54,12 +54,18 @@ type ServerToSwitchLink struct {
 	Switch BasePortName `json:"switch,omitempty"`
 }
 
+type ServerFacingConnectionConfig struct {
+	MTU uint16 `json:"mtu,omitempty"`
+}
+
 type ConnUnbundled struct {
-	Link ServerToSwitchLink `json:"link,omitempty"`
+	Link                         ServerToSwitchLink `json:"link,omitempty"`
+	ServerFacingConnectionConfig `json:",inline"`
 }
 
 type ConnBundled struct {
-	Links []ServerToSwitchLink `json:"links,omitempty"`
+	Links                        []ServerToSwitchLink `json:"links,omitempty"`
+	ServerFacingConnectionConfig `json:",inline"`
 }
 
 type ConnMgmtLinkServer struct {
@@ -87,8 +93,8 @@ type ConnMgmt struct {
 
 type ConnMCLAG struct {
 	//+kubebuilder:validation:MinItems=2
-	Links []ServerToSwitchLink `json:"links,omitempty"`
-	MTU   uint16               `json:"mtu,omitempty"`
+	Links                        []ServerToSwitchLink `json:"links,omitempty"`
+	ServerFacingConnectionConfig `json:",inline"`
 }
 
 type SwitchToSwitchLink struct {
@@ -542,9 +548,27 @@ func (conn *Connection) Default() {
 	maps.Copy(conn.Labels, conn.Spec.ConnectionLabels())
 }
 
-func (conn *Connection) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+func (conn *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {
+	if conn.Unbundled != nil && conn.Unbundled.MTU > fabricMTU-serverFacingMTUOffset {
+		return errors.Errorf("unbundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", conn.Unbundled.MTU, fabricMTU, serverFacingMTUOffset)
+	}
+	if conn.Bundled != nil && conn.Bundled.MTU > fabricMTU-serverFacingMTUOffset {
+		return errors.Errorf("bundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", conn.Bundled.MTU, fabricMTU, serverFacingMTUOffset)
+	}
+	if conn.MCLAG != nil && conn.MCLAG.MTU > fabricMTU-serverFacingMTUOffset {
+		return errors.Errorf("mclag connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", conn.MCLAG.MTU, fabricMTU, serverFacingMTUOffset)
+	}
+
+	return nil
+}
+
+func (conn *Connection) Validate(ctx context.Context, client validation.Client, fabricMTU uint16, serverFacingMTUOffset uint16) (admission.Warnings, error) {
 	// TODO validate local port names against server/switch profiles
 	// TODO validate used port names across all connections
+
+	if err := conn.Spec.ValidateServerFacingMTU(fabricMTU, serverFacingMTUOffset); err != nil {
+		return nil, err
+	}
 
 	switches, servers, _, _, err := conn.Spec.Endpoints()
 	if err != nil {

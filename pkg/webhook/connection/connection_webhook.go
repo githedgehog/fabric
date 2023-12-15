@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -16,13 +17,15 @@ type ConnectionWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Validation validation.Client
+	Cfg        *config.Fabric
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
 	w := &ConnectionWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		Cfg:        cfg,
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -53,7 +56,7 @@ func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) err
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	conn := obj.(*wiringapi.Connection)
 
-	warns, err := conn.Validate(ctx, w.Validation)
+	warns, err := conn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset)
 	if err != nil {
 		return warns, err
 	}

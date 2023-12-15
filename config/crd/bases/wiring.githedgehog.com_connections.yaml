@@ -64,6 +64,8 @@ spec:
                           type: object
                       type: object
                     type: array
+                  mtu:
+                    type: integer
                 type: object
               external:
                 properties:
@@ -230,6 +232,8 @@ spec:
                             type: string
                         type: object
                     type: object
+                  mtu:
+                    type: integer
                 type: object
               vpcLoopback:
                 properties:

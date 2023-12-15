@@ -91,6 +91,8 @@ _Appears in:_
 | `spineLeaf` _[AgentSpecConfigSpineLeaf](#agentspecconfigspineleaf)_ |  |
 | `baseVPCCommunity` _string_ |  |
 | `vpcLoopbackSubnet` _string_ |  |
+| `fabricMTU` _integer_ |  |
+| `serverFacingMTUOffset` _integer_ |  |
 
 
 #### AgentSpecConfigCollapsedCore
@@ -820,6 +822,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `links` _[ServerToSwitchLink](#servertoswitchlink) array_ |  |
+| `mtu` _integer_ |  |
 
 
 #### ConnExternal
@@ -1029,6 +1032,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `link` _[ServerToSwitchLink](#servertoswitchlink)_ |  |
+| `mtu` _integer_ |  |
 
 
 #### ConnVPCLoopback
@@ -1218,6 +1222,22 @@ Server is the Schema for the servers API
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[ServerSpec](#serverspec)_ |  |
 | `status` _[ServerStatus](#serverstatus)_ |  |
+
+
+#### ServerFacingConnectionConfig
+
+
+
+
+
+_Appears in:_
+- [ConnBundled](#connbundled)
+- [ConnMCLAG](#connmclag)
+- [ConnUnbundled](#connunbundled)
+
+| Field | Description |
+| --- | --- |
+| `mtu` _integer_ |  |
 
 
 #### ServerProfile

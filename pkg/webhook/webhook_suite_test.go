@@ -121,7 +121,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = connection.SetupWithManager("", mgr) // TODO cfgBasedir
+	err = connection.SetupWithManager("", mgr, nil) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
 	err = server.SetupWithManager("", mgr) // TODO cfgBasedir

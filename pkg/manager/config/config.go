@@ -15,20 +15,22 @@ import (
 )
 
 type Fabric struct {
-	ControlVIP           string               `json:"controlVIP,omitempty"`
-	APIServer            string               `json:"apiServer,omitempty"`
-	AgentRepo            string               `json:"agentRepo,omitempty"`
-	AgentRepoCA          string               `json:"agentRepoCA,omitempty"`
-	VPCIRBVLANRanges     []meta.VLANRange     `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges []meta.VLANRange     `json:"vpcPeeringVLANRange,omitempty"`
-	VPCPeeringDisabled   bool                 `json:"vpcPeeringDisabled,omitempty"`
-	ReservedSubnets      []string             `json:"reservedSubnets,omitempty"`
-	Users                []agentapi.UserCreds `json:"users,omitempty"`
-	DHCPDConfigMap       string               `json:"dhcpdConfigMap,omitempty"`
-	DHCPDConfigKey       string               `json:"dhcpdConfigKey,omitempty"`
-	FabricMode           FabricMode           `json:"fabricMode,omitempty"`
-	BaseVPCCommunity     string               `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet    string               `json:"vpcLoopbackSubnet,omitempty"`
+	ControlVIP            string               `json:"controlVIP,omitempty"`
+	APIServer             string               `json:"apiServer,omitempty"`
+	AgentRepo             string               `json:"agentRepo,omitempty"`
+	AgentRepoCA           string               `json:"agentRepoCA,omitempty"`
+	VPCIRBVLANRanges      []meta.VLANRange     `json:"vpcIRBVLANRange,omitempty"`
+	VPCPeeringVLANRanges  []meta.VLANRange     `json:"vpcPeeringVLANRange,omitempty"`
+	VPCPeeringDisabled    bool                 `json:"vpcPeeringDisabled,omitempty"`
+	ReservedSubnets       []string             `json:"reservedSubnets,omitempty"`
+	Users                 []agentapi.UserCreds `json:"users,omitempty"`
+	DHCPDConfigMap        string               `json:"dhcpdConfigMap,omitempty"`
+	DHCPDConfigKey        string               `json:"dhcpdConfigKey,omitempty"`
+	FabricMode            FabricMode           `json:"fabricMode,omitempty"`
+	BaseVPCCommunity      string               `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet     string               `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU             uint16               `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset uint16               `json:"serverFacingMTUOffset,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -137,6 +139,16 @@ func Load(basedir string) (*Fabric, error) {
 	}
 	if cfg.VPCLoopbackSubnet == "" {
 		return nil, errors.Errorf("config: vpcLoopbackSubnet is required")
+	}
+
+	if cfg.FabricMTU == 0 {
+		return nil, errors.Errorf("config: fabricMTU is required")
+	}
+	if cfg.FabricMTU > 9216 {
+		return nil, errors.Errorf("config: fabricMTU must be <= 9216")
+	}
+	if cfg.ServerFacingMTUOffset == 0 {
+		return nil, errors.Errorf("config: serverFacingMTUOffset is required")
 	}
 
 	// TODO validate format of all fields

@@ -143,7 +143,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = connectionWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = connectionWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
 		os.Exit(1)
 	}

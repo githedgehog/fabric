@@ -94,6 +94,10 @@ spec:
                     type: object
                   controlVIP:
                     type: string
+                  fabricMTU:
+                    type: integer
+                  serverFacingMTUOffset:
+                    type: integer
                   spineLeaf:
                     type: object
                   vpcLoopbackSubnet:
@@ -126,6 +130,8 @@ spec:
                                 type: object
                             type: object
                           type: array
+                        mtu:
+                          type: integer
                       type: object
                     external:
                       properties:
@@ -292,6 +298,8 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        mtu:
+                          type: integer
                       type: object
                     vpcLoopback:
                       properties:

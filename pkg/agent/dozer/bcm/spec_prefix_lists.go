@@ -3,6 +3,7 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -157,6 +158,16 @@ func unmarshalOCPrefixLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_Defi
 						return nil, errors.Wrapf(err, "invalid mask length range %s for prefix list %s", *ocPrefix.Config.MasklengthRange, name)
 					}
 					ge = uint8(geR)
+				}
+
+				_, ipNet, err := net.ParseCIDR(key.IpPrefix)
+				if err != nil {
+					return nil, errors.Wrapf(err, "invalid prefix %s for prefix list %s", key.IpPrefix, name)
+				}
+				prefixLen, _ := ipNet.Mask.Size()
+
+				if ge == uint8(prefixLen) {
+					ge = 0
 				}
 
 				prefixList.Prefixes[key.SequenceNumber] = &dozer.SpecPrefixListEntry{

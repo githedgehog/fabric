@@ -60,12 +60,14 @@ type AgentSpec struct {
 }
 
 type AgentSpecConfig struct {
-	ControlVIP         string                        `json:"controlVIP,omitempty"`
-	VPCPeeringDisabled bool                          `json:"vpcPeeringDisabled,omitempty"`
-	CollapsedCore      *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
-	SpineLeaf          *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
-	BaseVPCCommunity   string                        `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet  string                        `json:"vpcLoopbackSubnet,omitempty"`
+	ControlVIP            string                        `json:"controlVIP,omitempty"`
+	VPCPeeringDisabled    bool                          `json:"vpcPeeringDisabled,omitempty"`
+	CollapsedCore         *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
+	SpineLeaf             *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
+	BaseVPCCommunity      string                        `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet     string                        `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU             uint16                        `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset uint16                        `json:"serverFacingMTUOffset,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}
