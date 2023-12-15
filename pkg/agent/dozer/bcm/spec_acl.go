@@ -318,7 +318,7 @@ func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.Sp
 	}
 
 	for name, iface := range ocVal.Interfaces.Interface {
-		if iface.IngressAclSets == nil {
+		if iface.IngressAclSets == nil && iface.EgressAclSets == nil {
 			continue
 		}
 
