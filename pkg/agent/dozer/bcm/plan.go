@@ -1059,9 +1059,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			dozer.SpecVRFBGPTableConnectionConnected: {
 				ImportPolicies: []string{stampVPCRouteMap},
 			},
-			dozer.SpecVRFBGPTableConnectionStatic: {
-				ImportPolicies: []string{stampVPCRouteMap},
-			},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
