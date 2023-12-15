@@ -1001,6 +1001,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Statements: map[string]*dozer.SpecRouteMapStatement{
 					"1": {
 						Conditions: dozer.SpecRouteMapConditions{
+							MatchNextHopPrefixList: stringPtr(PREFIX_LIST_VPC_LO),
+						},
+						Result: dozer.SpecRouteMapResultReject,
+					},
+					"5": {
+						Conditions: dozer.SpecRouteMapConditions{
 							MatchCommunityList: stringPtr(vpcPeersCommList),
 						},
 						Result: dozer.SpecRouteMapResultAccept,

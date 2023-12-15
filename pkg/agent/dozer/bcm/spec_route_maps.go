@@ -54,7 +54,15 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 					conditions.BgpConditions.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_Config{}
 				}
 				conditions.BgpConditions.Config.CommunitySet = statement.Conditions.MatchCommunityList
-
+			}
+			if statement.Conditions.MatchNextHopPrefixList != nil {
+				if conditions.BgpConditions == nil {
+					conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
+				}
+				if conditions.BgpConditions.Config == nil {
+					conditions.BgpConditions.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_Config{}
+				}
+				conditions.BgpConditions.Config.NextHopSet = statement.Conditions.MatchNextHopPrefixList
 			}
 			if statement.Conditions.MatchEVPNDefaultRoute != nil && *statement.Conditions.MatchEVPNDefaultRoute {
 				if conditions.BgpConditions == nil {
@@ -205,6 +213,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 
 					if statement.Conditions.BgpConditions.Config != nil {
 						conditions.MatchCommunityList = statement.Conditions.BgpConditions.Config.CommunitySet
+						conditions.MatchNextHopPrefixList = statement.Conditions.BgpConditions.Config.NextHopSet
 					}
 				}
 				if statement.Conditions.Config != nil && statement.Conditions.Config.CallPolicy != nil {

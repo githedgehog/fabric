@@ -200,12 +200,13 @@ type SpecRouteMapStatement struct {
 }
 
 type SpecRouteMapConditions struct {
-	DirectlyConnected     *bool   `json:"directlyConnected,omitempty"`
-	MatchEVPNDefaultRoute *bool   `json:"matchEvpnDefaultRoute,omitempty"`
-	MatchEVPNVNI          *uint32 `json:"matchEvpnVni,omitempty"`
-	MatchPrefixList       *string `json:"matchPrefixLists,omitempty"`
-	MatchCommunityList    *string `json:"matchCommunityLists,omitempty"`
-	Call                  *string `json:"call,omitempty"`
+	DirectlyConnected      *bool   `json:"directlyConnected,omitempty"`
+	MatchEVPNDefaultRoute  *bool   `json:"matchEvpnDefaultRoute,omitempty"`
+	MatchEVPNVNI           *uint32 `json:"matchEvpnVni,omitempty"`
+	MatchPrefixList        *string `json:"matchPrefixLists,omitempty"`
+	MatchNextHopPrefixList *string `json:"matchNextHopPrefixLists,omitempty"`
+	MatchCommunityList     *string `json:"matchCommunityLists,omitempty"`
+	Call                   *string `json:"call,omitempty"`
 }
 
 type SpecRouteMapResult string
