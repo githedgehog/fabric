@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -960,6 +962,43 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[vrfName].StaticRoutes = map[string]*dozer.SpecVRFStaticRoute{}
 		}
 
+		vpcPeersCommList := vpcPeersCommListName(vpcName)
+		spec.CommunityLists[vpcPeersCommList] = &dozer.SpecCommunityList{
+			Members: []string{},
+		}
+
+		importVrfRouteMap := importVrfRouteMapName(vpcName)
+		if _, exists := spec.RouteMaps[importVrfRouteMap]; !exists {
+			spec.RouteMaps[importVrfRouteMap] = &dozer.SpecRouteMap{
+				Statements: map[string]*dozer.SpecRouteMapStatement{
+					"1": {
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchCommunityList: stringPtr(vpcPeersCommList),
+						},
+						Result: dozer.SpecRouteMapResultAccept,
+					},
+					"65535": {
+						Result: dozer.SpecRouteMapResultReject,
+					},
+				},
+			}
+		}
+
+		vpcComm, err := communityForVPC(agent, vpcName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get community for VPC %s", vpcName)
+		}
+
+		stampVPCRouteMap := stampVPCRouteMapName(vpcName)
+		spec.RouteMaps[stampVPCRouteMap] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					SetCommunities: []string{vpcComm},
+					Result:         dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+
 		protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
@@ -972,9 +1011,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			RouterID:           stringPtr(protocolIP.String()),
 			NetworkImportCheck: boolPtr(true),
 			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-				Enabled:    true,
-				MaxPaths:   uint32Ptr(getMaxPaths(agent)),
-				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+				Enabled:      true,
+				MaxPaths:     uint32Ptr(getMaxPaths(agent)),
+				ImportPolicy: stringPtr(importVrfRouteMap),
+				ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 				Enabled:              agent.IsSpineLeaf(),
@@ -982,8 +1022,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
-			dozer.SpecVRFBGPTableConnectionConnected: {},
-			dozer.SpecVRFBGPTableConnectionStatic:    {},
+			dozer.SpecVRFBGPTableConnectionConnected: {
+				ImportPolicies: []string{stampVPCRouteMap},
+			},
+			dozer.SpecVRFBGPTableConnectionStatic: {},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
@@ -1068,6 +1110,24 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		_, exists = agent.Spec.VPCs[vpc2Name]
 		if !exists {
 			return errors.Errorf("VPC %s not found for VPC peering %s", vpc2Name, peeringName)
+		}
+
+		peerComm, err := communityForVPC(agent, vpc2Name)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get community for VPC %s", vpc2Name)
+		}
+		if !slices.Contains(spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members, peerComm) {
+			spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members = append(spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members, peerComm)
+			sort.Strings(spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members)
+		}
+
+		peerComm, err = communityForVPC(agent, vpc1Name)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get community for VPC %s", vpc1Name)
+		}
+		if !slices.Contains(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members, peerComm) {
+			spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members = append(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members, peerComm)
+			sort.Strings(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members)
 		}
 
 		vrf1Name := vpcVrfName(vpc1Name)
@@ -1328,19 +1388,12 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			importVrfRouteMap := importVrfRouteMapName(vpcName)
-			if _, exists := spec.RouteMaps[importVrfRouteMap]; !exists {
-				spec.RouteMaps[importVrfRouteMap] = &dozer.SpecRouteMap{
-					Statements: map[string]*dozer.SpecRouteMapStatement{
-						"65535": {
-							Result: dozer.SpecRouteMapResultAccept,
-						},
-					},
-				}
-			}
-
 			idx := agent.Spec.ExternalSeqs[externalName]
 			if idx == 0 {
 				return errors.Errorf("no external seq for external %s", externalName)
+			}
+			if idx < 10 {
+				return errors.Errorf("external seq for external %s is too small", externalName)
 			}
 			if idx >= 30000 {
 				return errors.Errorf("external seq for external %s is too large", externalName)
@@ -1363,8 +1416,6 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			ipnsVrf := ipnsVrfName(external.IPv4Namespace)
 			vpcVrf := vpcVrfName(vpcName)
-
-			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportPolicy = stringPtr(importVrfRouteMap)
 
 			spec.VRFs[ipnsVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[ipnsVrf] = &dozer.SpecVRFBGPImportVRF{}
@@ -1478,8 +1529,42 @@ func importVrfRouteMapName(vpc string) string {
 	return fmt.Sprintf("import-vrf--%s", vpc)
 }
 
+func vpcPeersCommListName(vpc string) string {
+	return fmt.Sprintf("vpc-peers--%s", vpc)
+}
+
 func ipnsEgressAccessList(ipns string) string {
 	return fmt.Sprintf("ipns-egress--%s", ipns)
+}
+
+func stampVPCRouteMapName(vpc string) string {
+	return fmt.Sprintf("stamp-vpc--%s", vpc)
+}
+
+func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
+	baseParts := strings.Split(agent.Spec.Config.BaseVPCCommunity, ":")
+	if len(baseParts) != 2 {
+		return "", errors.Errorf("invalid base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
+	}
+	base, err := strconv.ParseUint(baseParts[1], 10, 16)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
+	}
+
+	vni, exists := agent.Spec.VNIs[vpc]
+	if !exists {
+		return "", errors.Errorf("VNI for VPC %s not found", vpc)
+	}
+	if vni%100 != 0 {
+		return "", errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc)
+	}
+
+	id := base + uint64(vni)/100
+	if id >= 65535 {
+		return "", errors.Errorf("VPC %s community id is too large", vpc)
+	}
+
+	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
 }
 
 func stringPtr(s string) *string { return &s }

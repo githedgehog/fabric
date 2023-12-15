@@ -27,6 +27,7 @@ type Fabric struct {
 	DHCPDConfigMap       string               `json:"dhcpdConfigMap,omitempty"`
 	DHCPDConfigKey       string               `json:"dhcpdConfigKey,omitempty"`
 	FabricMode           FabricMode           `json:"fabricMode,omitempty"`
+	BaseVPCCommunity     string               `json:"baseVPCCommunity,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -129,6 +130,12 @@ func Load(basedir string) (*Fabric, error) {
 		}
 		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet)
 	}
+
+	if cfg.BaseVPCCommunity == "" {
+		return nil, errors.Errorf("config: baseVPCCommunity is required")
+	}
+
+	// TODO validate format of all fields
 
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))
 

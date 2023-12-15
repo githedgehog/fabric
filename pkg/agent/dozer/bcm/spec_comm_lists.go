@@ -81,6 +81,9 @@ func unmarshalOCCommunityLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_D
 		list := &dozer.SpecCommunityList{}
 		for _, member := range ocList.Config.CommunityMember {
 			if str, ok := member.(oc.UnionString); ok {
+				if len(str) == 0 {
+					continue
+				}
 				list.Members = append(list.Members, string(str))
 			} else {
 				return nil, errors.Errorf("unexpected community member type: %T", member)

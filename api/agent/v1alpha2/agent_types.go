@@ -64,6 +64,7 @@ type AgentSpecConfig struct {
 	VPCPeeringDisabled bool                          `json:"vpcPeeringDisabled,omitempty"`
 	CollapsedCore      *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
 	SpineLeaf          *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
+	BaseVPCCommunity   string                        `json:"baseVPCCommunity,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}
