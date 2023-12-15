@@ -28,6 +28,7 @@ type Fabric struct {
 	DHCPDConfigKey       string               `json:"dhcpdConfigKey,omitempty"`
 	FabricMode           FabricMode           `json:"fabricMode,omitempty"`
 	BaseVPCCommunity     string               `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet    string               `json:"vpcLoopbackSubnet,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -133,6 +134,9 @@ func Load(basedir string) (*Fabric, error) {
 
 	if cfg.BaseVPCCommunity == "" {
 		return nil, errors.Errorf("config: baseVPCCommunity is required")
+	}
+	if cfg.VPCLoopbackSubnet == "" {
+		return nil, errors.Errorf("config: vpcLoopbackSubnet is required")
 	}
 
 	// TODO validate format of all fields

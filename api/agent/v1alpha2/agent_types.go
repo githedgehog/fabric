@@ -65,6 +65,7 @@ type AgentSpecConfig struct {
 	CollapsedCore      *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
 	SpineLeaf          *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
 	BaseVPCCommunity   string                        `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet  string                        `json:"vpcLoopbackSubnet,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}

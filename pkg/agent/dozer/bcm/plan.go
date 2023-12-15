@@ -47,6 +47,7 @@ const (
 	ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE        = "evpn-default-remote-block"
 	ROUTE_MAP_MAX_STATEMENT                    = 65535
 	PREFIX_LIST_ANY                            = "any-prefix"
+	PREFIX_LIST_VPC_LO                         = "vpc-lo-prefix"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -938,6 +939,18 @@ func ipnsVrfName(ipnsName string) string {
 }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
+	spec.PrefixLists[PREFIX_LIST_VPC_LO] = &dozer.SpecPrefixList{
+		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
+			10: {
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: agent.Spec.Config.VPCLoopbackSubnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			},
+		},
+	}
+
 	for vpcName := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
 
@@ -992,6 +1005,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		stampVPCRouteMap := stampVPCRouteMapName(vpcName)
 		spec.RouteMaps[stampVPCRouteMap] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"1": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LO),
+					},
+					Result: dozer.SpecRouteMapResultReject,
+				},
 				"10": {
 					SetCommunities: []string{vpcComm},
 					Result:         dozer.SpecRouteMapResultAccept,
@@ -1025,7 +1044,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			dozer.SpecVRFBGPTableConnectionConnected: {
 				ImportPolicies: []string{stampVPCRouteMap},
 			},
-			dozer.SpecVRFBGPTableConnectionStatic: {},
+			dozer.SpecVRFBGPTableConnectionStatic: {
+				ImportPolicies: []string{stampVPCRouteMap},
+			},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
@@ -1466,7 +1487,7 @@ func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, peeringName
 		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[1], peeringName)
 	}
 
-	ip1, ip2, err := vpcWorkaroundIPs("172.30.224.0/19", vlan) // TODO move to config
+	ip1, ip2, err := vpcWorkaroundIPs(agent, vlan)
 	if err != nil {
 		return "", "", "", "", errors.Wrapf(err, "failed to get workaround IPs for peering")
 	}
@@ -1512,21 +1533,27 @@ func getMaxPaths(agent *agentapi.Agent) uint32 {
 }
 
 // TODO test
-func vpcWorkaroundIPs(subnet string, vlan uint16) (string, string, error) {
-	_, ipNet, err := net.ParseCIDR(subnet)
+func vpcWorkaroundIPs(agent *agentapi.Agent, vlan uint16) (string, string, error) {
+	_, ipNet, err := net.ParseCIDR(agent.Spec.Config.VPCLoopbackSubnet)
 	if err != nil {
 		return "", "", err
 	}
 	prefixLen, _ := ipNet.Mask.Size()
-	if prefixLen < 19 {
-		return "", "", errors.Errorf("subnet should be at least /19")
+	if prefixLen > 20 {
+		return "", "", errors.Errorf("subnet should be at least /20")
 	}
 	ip := ipNet.IP.To4()
 	ip[2] += byte(vlan / 128)
 	ip[3] += byte(vlan % 128 * 2)
 
 	res1 := ip.String()
+
 	ip[3] += 1
+
+	if !ipNet.Contains(ip) {
+		return "", "", errors.Errorf("subnet %s is too small for VLAN %d", agent.Spec.Config.VPCLoopbackSubnet, vlan)
+	}
+
 	res2 := ip.String()
 
 	return res1, res2, nil

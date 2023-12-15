@@ -96,6 +96,8 @@ spec:
                     type: string
                   spineLeaf:
                     type: object
+                  vpcLoopbackSubnet:
+                    type: string
                   vpcPeeringDisabled:
                     type: boolean
                 type: object

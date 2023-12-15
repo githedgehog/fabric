@@ -449,8 +449,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.StatusUpdates = statusUpdates
 
 		agent.Spec.Config = agentapi.AgentSpecConfig{
-			ControlVIP:       r.Cfg.ControlVIP,
-			BaseVPCCommunity: r.Cfg.BaseVPCCommunity,
+			ControlVIP:        r.Cfg.ControlVIP,
+			BaseVPCCommunity:  r.Cfg.BaseVPCCommunity,
+			VPCLoopbackSubnet: r.Cfg.VPCLoopbackSubnet,
 		}
 		if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}

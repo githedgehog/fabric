@@ -90,6 +90,7 @@ _Appears in:_
 | `collapsedCore` _[AgentSpecConfigCollapsedCore](#agentspecconfigcollapsedcore)_ |  |
 | `spineLeaf` _[AgentSpecConfigSpineLeaf](#agentspecconfigspineleaf)_ |  |
 | `baseVPCCommunity` _string_ |  |
+| `vpcLoopbackSubnet` _string_ |  |
 
 
 #### AgentSpecConfigCollapsedCore
