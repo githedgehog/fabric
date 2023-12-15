@@ -1184,48 +1184,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 		} else if peering.Remote == "" {
-			vlan := agent.Spec.VPCLoopbackVLANs[peeringName]
-			if vlan == 0 {
-				return errors.Errorf("workaround VLAN for VPC peering %s not found", peeringName)
-			}
-
-			link := agent.Spec.VPCLoopbackLinks[peeringName]
-			if link == "" {
-				return errors.Errorf("workaround link for VPC peering %s not found", peeringName)
-			}
-
-			ports := strings.Split(link, "--")
-			if len(ports) != 2 {
-				return errors.Errorf("workaround link for VPC peering %s is invalid", peeringName)
-			}
-			if spec.Interfaces[ports[0]] == nil {
-				return errors.Errorf("workaround link port %s for VPC peering %s not found", ports[0], peeringName)
-			}
-			if spec.Interfaces[ports[1]] == nil {
-				return errors.Errorf("workaround link port %s for VPC peering %s not found", ports[1], peeringName)
-			}
-
-			ip1, ip2, err := vpcWorkaroundIPs("172.30.224.0/19", vlan) // TODO move to config
+			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, "vpc@"+peeringName)
 			if err != nil {
-				return errors.Wrapf(err, "failed to get workaround IPs for VPC peering")
+				return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
 			}
-
-			spec.Interfaces[ports[0]].Subinterfaces[uint32(vlan)] = &dozer.SpecSubinterface{
-				VLAN: &vlan,
-				IPs: map[string]*dozer.SpecInterfaceIP{
-					ip1: {
-						PrefixLen: uint8Ptr(31),
-					},
-				},
-			}
-
-			spec.Interfaces[ports[1]].Subinterfaces[uint32(vlan)] = &dozer.SpecSubinterface{
-				VLAN:            &vlan,
-				AnycastGateways: []string{ip2 + "/31"},
-			}
-
-			sub1 := fmt.Sprintf("%s.%d", ports[0], vlan)
-			sub2 := fmt.Sprintf("%s.%d", ports[1], vlan)
 
 			spec.VRFs[vrf1Name].Interfaces[sub1] = &dozer.SpecVRFInterface{}
 			spec.VRFs[vrf2Name].Interfaces[sub2] = &dozer.SpecVRFInterface{}
@@ -1328,6 +1290,17 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName, subnetName 
 }
 
 func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
+	attachedVPCs := map[string]bool{}
+	for _, attach := range agent.Spec.VPCAttachments {
+		vpcName := attach.VPCName()
+		_, exists := agent.Spec.VPCs[vpcName]
+		if !exists {
+			return errors.Errorf("VPC %s not found", vpcName)
+		}
+
+		attachedVPCs[vpcName] = true
+	}
+
 	for name, peering := range agent.Spec.ExternalPeerings {
 		externalName := peering.Permit.External.Name
 		external, exists := agent.Spec.Externals[externalName]
@@ -1360,8 +1333,10 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		// Start of Import VRF business
-		{
+		ipnsVrf := ipnsVrfName(external.IPv4Namespace)
+		vpcVrf := vpcVrfName(vpcName)
+
+		if !attachedVPCs[vpcName] {
 			prefixes := map[uint32]*dozer.SpecPrefixListEntry{}
 			for _, prefix := range peering.Permit.External.Prefixes {
 				idx := agent.Spec.ExternalPeeringPrefixIDs[prefix.Prefix]
@@ -1414,17 +1389,106 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Result: dozer.SpecRouteMapResultReject,
 			}
 
-			ipnsVrf := ipnsVrfName(external.IPv4Namespace)
-			vpcVrf := vpcVrfName(vpcName)
-
 			spec.VRFs[ipnsVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[ipnsVrf] = &dozer.SpecVRFBGPImportVRF{}
-		}
+		} else {
+			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, "ext@"+name)
+			if err != nil {
+				return errors.Wrapf(err, "failed to plan loopback workaround for external peering %s", name)
+			}
 
-		// TODO handle case if vpc is local
+			spec.VRFs[vpcVrf].Interfaces[sub1] = &dozer.SpecVRFInterface{}
+			spec.VRFs[ipnsVrf].Interfaces[sub2] = &dozer.SpecVRFInterface{}
+
+			for _, subnetName := range peering.Permit.VPC.Subnets {
+				subnet, exists := vpc.Subnets[subnetName]
+				if !exists {
+					return errors.Errorf("VPC %s subnet %s not found for external peering %s", vpcName, subnetName, name)
+				}
+
+				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpcName)
+				}
+				prefixLen, _ := ipNet.Mask.Size()
+
+				spec.VRFs[ipnsVrf].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							IP:        ip1,
+							Interface: stringPtr(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
+						},
+					},
+				}
+			}
+
+			for _, prefix := range peering.Permit.External.Prefixes {
+				_, ipNet, err := net.ParseCIDR(prefix.Prefix)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse prefix %s for external peering %s", prefix.Prefix, name)
+				}
+				prefixLen, _ := ipNet.Mask.Size()
+
+				spec.VRFs[vpcVrf].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							IP:        ip2,
+							Interface: stringPtr(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
+						},
+					},
+				}
+			}
+		}
 	}
 
 	return nil
+}
+
+func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, peeringName string) (string, string, string, string, error) {
+	vlan := agent.Spec.VPCLoopbackVLANs[peeringName]
+	if vlan == 0 {
+		return "", "", "", "", errors.Errorf("workaround VLAN for peering %s not found", peeringName)
+	}
+
+	link := agent.Spec.VPCLoopbackLinks[peeringName]
+	if link == "" {
+		return "", "", "", "", errors.Errorf("workaround link for peering %s not found", peeringName)
+	}
+
+	ports := strings.Split(link, "--")
+	if len(ports) != 2 {
+		return "", "", "", "", errors.Errorf("workaround link for peering %s is invalid", peeringName)
+	}
+	if spec.Interfaces[ports[0]] == nil {
+		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[0], peeringName)
+	}
+	if spec.Interfaces[ports[1]] == nil {
+		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[1], peeringName)
+	}
+
+	ip1, ip2, err := vpcWorkaroundIPs("172.30.224.0/19", vlan) // TODO move to config
+	if err != nil {
+		return "", "", "", "", errors.Wrapf(err, "failed to get workaround IPs for peering")
+	}
+
+	spec.Interfaces[ports[0]].Subinterfaces[uint32(vlan)] = &dozer.SpecSubinterface{
+		VLAN: &vlan,
+		IPs: map[string]*dozer.SpecInterfaceIP{
+			ip1: {
+				PrefixLen: uint8Ptr(31),
+			},
+		},
+	}
+
+	spec.Interfaces[ports[1]].Subinterfaces[uint32(vlan)] = &dozer.SpecSubinterface{
+		VLAN:            &vlan,
+		AnycastGateways: []string{ip2 + "/31"},
+	}
+
+	sub1 := fmt.Sprintf("%s.%d", ports[0], vlan)
+	sub2 := fmt.Sprintf("%s.%d", ports[1], vlan)
+
+	return sub1, sub2, ip1, ip2, nil
 }
 
 func getPortSpeed(agent *agentapi.Agent, port string) *string {

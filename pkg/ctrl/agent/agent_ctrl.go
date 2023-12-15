@@ -313,15 +313,15 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	// TODO only query for related peers
-	peers := map[string]vpcapi.VPCPeeringSpec{}
-	peerList := &vpcapi.VPCPeeringList{}
+	// TODO only query for related peerings
+	peerings := map[string]vpcapi.VPCPeeringSpec{}
+	peeringsList := &vpcapi.VPCPeeringList{}
 	peeredVPCs := map[string]bool{}
-	err = r.List(ctx, peerList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, peeringsList, client.InNamespace(sw.Namespace))
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc peerings")
 	}
-	for _, peer := range peerList.Items {
+	for _, peer := range peeringsList.Items {
 		vpc1, vpc2, err := peer.Spec.VPCs()
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", peer.Name)
@@ -331,7 +331,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		_, exists2 := vpcs[vpc2]
 
 		if exists1 || exists2 || peer.Spec.Remote != "" && slices.Contains(sw.Spec.Groups, peer.Spec.Remote) {
-			peers[peer.Name] = peer.Spec
+			peerings[peer.Name] = peer.Spec
 			peeredVPCs[vpc1] = true
 			peeredVPCs[vpc2] = true
 		}
@@ -432,7 +432,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Connections = conns
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
-		agent.Spec.VPCPeerings = peers
+		agent.Spec.VPCPeerings = peerings
 		agent.Spec.IPv4Namespaces = ipv4Namespaces
 		agent.Spec.Externals = externals
 		agent.Spec.ExternalAttachments = externalAttaches
@@ -468,12 +468,12 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return errors.Wrapf(err, "error calculating IRB VLANs")
 		}
 
-		agent.Spec.VPCLoopbackLinks, err = r.calculateVPCLoopbackLinkAllocation(agent, conns, peers, attachedVPCs)
+		agent.Spec.VPCLoopbackLinks, err = r.calculateVPCLoopbackLinkAllocation(agent, conns, peerings, externalPeerings, attachedVPCs)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating vpc loopback allocation")
 		}
 
-		agent.Spec.VPCLoopbackVLANs, err = r.calculateVPCLoopbackVLANAllocation(agent, peers, attachedVPCs)
+		agent.Spec.VPCLoopbackVLANs, err = r.calculateVPCLoopbackVLANAllocation(agent, peerings, externalPeerings, attachedVPCs)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating vpc loopback vlan allocation")
 		}
@@ -785,7 +785,7 @@ func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, vpcs map[stri
 	return irbVLANs, nil
 }
 
-func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec, peers map[string]vpcapi.VPCPeeringSpec, attachedVPCs map[string]bool) (map[string]string, error) {
+func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]string, error) {
 	loopbackMapping := map[string]string{}
 
 	vpcLoopbacks := map[string]bool{}
@@ -809,45 +809,54 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 		}
 	}
 
-	for peer, loopback := range agent.Spec.VPCLoopbackLinks {
+	for peeringHack, loopback := range agent.Spec.VPCLoopbackLinks {
 		if !vpcLoopbacks[loopback] {
 			continue
 		}
-		if peerSpec, exists := peers[peer]; !exists {
-			continue
-		} else {
-			// TODO would be needed for external peering
-			if peerSpec.Remote != "" {
-				continue
-			}
 
-			vpc1, vpc2, err := peerSpec.VPCs()
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peer)
-			}
-
-			if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+		if strings.HasPrefix(peeringHack, "vpc@") {
+			if peeringSpec, exists := peerings[strings.TrimPrefix(peeringHack, "vpc@")]; !exists {
 				continue
+			} else {
+				if peeringSpec.Remote != "" {
+					continue
+				}
+
+				vpc1, vpc2, err := peeringSpec.VPCs()
+				if err != nil {
+					return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peeringHack)
+				}
+
+				if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+					continue
+				}
+			}
+		} else if strings.HasPrefix(peeringHack, "ext@") {
+			if peeringSpec, exists := externalPeerings[strings.TrimPrefix(peeringHack, "ext@")]; !exists {
+				continue
+			} else {
+				if _, exists := attachedVPCs[peeringSpec.Permit.VPC.Name]; !exists {
+					continue
+				}
 			}
 		}
 
-		loopbackMapping[peer] = loopback
+		loopbackMapping[peeringHack] = loopback
 		loopbackUsage[loopback] += 1
 	}
 
-	for peerName, peer := range peers {
-		// TODO would be needed for external peering
-		if peer.Remote != "" {
+	for peeringName, peering := range peerings {
+		if peering.Remote != "" {
 			continue
 		}
 
-		if _, exists := loopbackMapping[peerName]; exists {
+		if _, exists := loopbackMapping["vpc@"+peeringName]; exists {
 			continue
 		}
 
-		vpc1, vpc2, err := peer.VPCs()
+		vpc1, vpc2, err := peering.VPCs()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peer)
+			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peering)
 		}
 
 		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
@@ -865,10 +874,37 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 		}
 
 		if minLo == "" {
-			return nil, errors.Errorf("no vpc loopback available for peer %s", peerName)
+			return nil, errors.Errorf("no vpc loopback available for vpc peering %s", peeringName)
 		}
 
-		loopbackMapping[peerName] = minLo
+		loopbackMapping["vpc@"+peeringName] = minLo
+		loopbackUsage[minLo] += 1
+	}
+
+	for peeringName, peering := range externalPeerings {
+		if _, exists := loopbackMapping["ext@"+peeringName]; exists {
+			continue
+		}
+
+		if _, exists := attachedVPCs[peering.Permit.VPC.Name]; !exists {
+			continue
+		}
+
+		minLoUsage := math.MaxInt
+		minLo := ""
+
+		for loopback, usage := range loopbackUsage {
+			if usage < minLoUsage {
+				minLoUsage = usage
+				minLo = loopback
+			}
+		}
+
+		if minLo == "" {
+			return nil, errors.Errorf("no vpc loopback available for external peering %s", peeringName)
+		}
+
+		loopbackMapping["ext@"+peeringName] = minLo
 		loopbackUsage[minLo] += 1
 	}
 
@@ -876,52 +912,60 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 }
 
 // TODO merge with IRB vlan allocation
-func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Agent, peers map[string]vpcapi.VPCPeeringSpec, attachedVPCs map[string]bool) (map[string]uint16, error) {
+func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Agent, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]uint16, error) {
 	vlans := map[string]uint16{}
 	taken := map[uint16]bool{}
 
-	for peerName, vlan := range agent.Spec.VPCLoopbackVLANs {
+	for peeringHack, vlan := range agent.Spec.VPCLoopbackVLANs {
 		if vlan < 1 {
 			continue
 		}
 
 		// TODO check that it still belongs to reserved ranges
 
-		if peerSpec, exist := peers[peerName]; !exist {
-			continue
-		} else {
-			// TODO would be needed for external peering
-			if peerSpec.Remote != "" {
+		if strings.HasPrefix(peeringHack, "vpc@") {
+			if peerSpec, exist := peerings[peeringHack]; !exist {
 				continue
-			}
+			} else {
+				if peerSpec.Remote != "" {
+					continue
+				}
 
-			vpc1, vpc2, err := peerSpec.VPCs()
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peerName)
-			}
+				vpc1, vpc2, err := peerSpec.VPCs()
+				if err != nil {
+					return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peeringHack)
+				}
 
-			if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+				if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+					continue
+				}
+			}
+		} else if strings.HasPrefix(peeringHack, "ext@") {
+			if peeringSpec, exists := externalPeerings[strings.TrimPrefix(peeringHack, "ext@")]; !exists {
 				continue
+			} else {
+				if _, exists := attachedVPCs[peeringSpec.Permit.VPC.Name]; !exists {
+					continue
+				}
 			}
 		}
 
-		vlans[peerName] = vlan
+		vlans[peeringHack] = vlan
 		taken[vlan] = true
 	}
 
-	for peerName, peer := range peers {
-		// TODO would be needed for external peering
-		if peer.Remote != "" {
+	for peeringName, peering := range peerings {
+		if peering.Remote != "" {
 			continue
 		}
 
-		if vlans[peerName] > 0 {
+		if vlans["vpc@"+peeringName] > 0 {
 			continue
 		}
 
-		vpc1, vpc2, err := peer.VPCs()
+		vpc1, vpc2, err := peering.VPCs()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peerName)
+			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peeringName)
 		}
 
 		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
@@ -929,19 +973,45 @@ func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Age
 		}
 
 		// TODO optimize by storing last taken vlan
-	loop:
+	vpcLoop:
 		for _, vlanRange := range r.Cfg.VPCPeeringVLANRanges {
 			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
 				if !taken[vlan] {
-					vlans[peerName] = vlan
+					vlans["vpc@"+peeringName] = vlan
 					taken[vlan] = true
-					break loop
+					break vpcLoop
 				}
 			}
 		}
 
-		if vlans[peerName] == 0 {
-			return nil, errors.Errorf("no peering VLAN available for peer %s", peerName)
+		if vlans["vpc@"+peeringName] == 0 {
+			return nil, errors.Errorf("no peering VLAN available for peer %s", peeringName)
+		}
+	}
+
+	for peeringName, peering := range externalPeerings {
+		if vlans["ext@"+peeringName] > 0 {
+			continue
+		}
+
+		if _, exists := attachedVPCs[peering.Permit.VPC.Name]; !exists {
+			continue
+		}
+
+		// TODO optimize by storing last taken vlan
+	extLoop:
+		for _, vlanRange := range r.Cfg.VPCPeeringVLANRanges {
+			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
+				if !taken[vlan] {
+					vlans["ext@"+peeringName] = vlan
+					taken[vlan] = true
+					break extLoop
+				}
+			}
+		}
+
+		if vlans["ext@"+peeringName] == 0 {
+			return nil, errors.Errorf("no peering VLAN available for peer %s", peeringName)
 		}
 	}
 
