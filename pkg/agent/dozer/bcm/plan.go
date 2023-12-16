@@ -42,12 +42,11 @@ const (
 	EVPN_NVO                                   = "nvo1"
 	ANYCAST_MAC                                = "00:00:00:11:11:11"
 	VPC_VLAN_RANGE                             = "1000..1999" // TODO remove
-	VPC_LO_PORT_CHANNEL_1                      = 252
-	VPC_LO_PORT_CHANNEL_2                      = 253
-	ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE        = "evpn-default-remote-block"
 	ROUTE_MAP_MAX_STATEMENT                    = 65535
+	ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE        = "evpn-default-remote-block"
+	ROUTE_MAP_REJECT_VPC_LOOPBACK              = "reject-vpc-loopback"
 	PREFIX_LIST_ANY                            = "any-prefix"
-	PREFIX_LIST_VPC_LO                         = "vpc-lo-prefix"
+	PREFIX_LIST_VPC_LOOPBACK                   = "vpc-loopback-prefix"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -954,7 +953,7 @@ func ipnsVrfName(ipnsName string) string {
 }
 
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	spec.PrefixLists[PREFIX_LIST_VPC_LO] = &dozer.SpecPrefixList{
+	spec.PrefixLists[PREFIX_LIST_VPC_LOOPBACK] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
 			10: {
 				Prefix: dozer.SpecPrefixListPrefix{
@@ -962,6 +961,17 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Le:     32,
 				},
 				Action: dozer.SpecPrefixListActionPermit,
+			},
+		},
+	}
+
+	spec.RouteMaps[ROUTE_MAP_REJECT_VPC_LOOPBACK] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"1": {
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
+				},
+				Result: dozer.SpecRouteMapResultReject,
 			},
 		},
 	}
@@ -1001,7 +1011,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Statements: map[string]*dozer.SpecRouteMapStatement{
 					"1": {
 						Conditions: dozer.SpecRouteMapConditions{
-							MatchNextHopPrefixList: stringPtr(PREFIX_LIST_VPC_LO),
+							MatchNextHopPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
 						},
 						Result: dozer.SpecRouteMapResultReject,
 					},
@@ -1028,7 +1038,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"1": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LO),
+						MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
@@ -1066,7 +1076,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				ImportPolicies: []string{stampVPCRouteMap},
 			},
 			dozer.SpecVRFBGPTableConnectionStatic: {
-				ImportPolicies: []string{stampVPCRouteMap},
+				ImportPolicies: []string{ROUTE_MAP_REJECT_VPC_LOOPBACK},
 			},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
