@@ -431,7 +431,9 @@ var (
 	_ SpecPart = (*SpecVRFTableConnection)(nil)
 	_ SpecPart = (*SpecVRFStaticRoute)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
+	_ SpecPart = (*SpecRouteMapStatement)(nil)
 	_ SpecPart = (*SpecPrefixList)(nil)
+	_ SpecPart = (*SpecPrefixListEntry)(nil)
 	_ SpecPart = (*SpecCommunityList)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
 	_ SpecPart = (*SpecNAT)(nil)
@@ -528,7 +530,15 @@ func (s *SpecRouteMap) IsNil() bool {
 	return s == nil
 }
 
+func (s *SpecRouteMapStatement) IsNil() bool {
+	return s == nil
+}
+
 func (s *SpecPrefixList) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecPrefixListEntry) IsNil() bool {
 	return s == nil
 }
 

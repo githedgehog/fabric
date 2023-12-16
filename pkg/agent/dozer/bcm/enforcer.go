@@ -102,6 +102,8 @@ const (
 
 	ActionWeightVRFStaticRouteDelete // it seems like it's better to first remove routes and then add new ones
 	ActionWeightVRFStaticRouteUpdate
+	ActionWeightRouteMapStatementDelete
+	ActionWeightRouteMapStatementUpdate
 
 	ActionWeightDHCPRelayUpdate
 
