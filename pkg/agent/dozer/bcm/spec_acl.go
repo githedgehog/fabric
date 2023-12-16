@@ -70,11 +70,12 @@ var specACLEntriesEnforcer = &DefaultMapEnforcer[uint32, *dozer.SpecACLEntry]{
 }
 
 var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
-	Summary:      "ACL entry %d",
-	Path:         "/acl-entries/acl-entry[sequence-id=%d]",
-	CreatePath:   "/acl-entries/acl-entry",
-	UpdateWeight: ActionWeightACLEntryUpdate,
-	DeleteWeight: ActionWeightACLEntryDelete,
+	Summary:          "ACL entry %d",
+	Path:             "/acl-entries/acl-entry[sequence-id=%d]",
+	CreatePath:       "/acl-entries/acl-entry",
+	RecreateOnUpdate: true, // TODO validate
+	UpdateWeight:     ActionWeightACLEntryUpdate,
+	DeleteWeight:     ActionWeightACLEntryDelete,
 	Marshal: func(seq uint32, value *dozer.SpecACLEntry) (ygot.ValidatedGoStruct, error) {
 		var action oc.E_OpenconfigAcl_FORWARDING_ACTION
 		switch value.Action {

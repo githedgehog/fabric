@@ -77,6 +77,7 @@ const (
 
 	ActionWeightACLBaseUpdate
 	ActionWeightACLInterfaceUpdate
+	ActionWeightACLEntryDelete
 	ActionWeightACLEntryUpdate
 
 	ActionWeightVRFBGPBaseUpdate
@@ -145,7 +146,6 @@ const (
 	ActionWeightVRFBaseDelete
 
 	ActionWeightACLInterfaceDelete
-	ActionWeightACLEntryDelete
 	ActionWeightACLBaseDelete
 
 	ActionWeightInterfaceBaseDelete
