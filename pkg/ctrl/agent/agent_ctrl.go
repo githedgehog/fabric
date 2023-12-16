@@ -466,17 +466,17 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return errors.Wrapf(err, "error calculating port channels")
 		}
 
-		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(agent, vpcs)
+		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(ctx, agent, vpcs)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating IRB VLANs")
 		}
 
-		agent.Spec.VPCLoopbackLinks, err = r.calculateVPCLoopbackLinkAllocation(agent, conns, peerings, externalPeerings, attachedVPCs)
+		agent.Spec.VPCLoopbackLinks, err = r.calculateVPCLoopbackLinkAllocation(ctx, agent, conns, peerings, externalPeerings, attachedVPCs)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating vpc loopback allocation")
 		}
 
-		agent.Spec.VPCLoopbackVLANs, err = r.calculateVPCLoopbackVLANAllocation(agent, peerings, externalPeerings, attachedVPCs)
+		agent.Spec.VPCLoopbackVLANs, err = r.calculateVPCLoopbackVLANAllocation(ctx, agent, peerings, externalPeerings, attachedVPCs)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating vpc loopback vlan allocation")
 		}
@@ -651,6 +651,8 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav
 }
 
 func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec) (map[string]uint16, error) {
+	l := log.FromContext(ctx)
+
 	portChannels := map[string]uint16{}
 
 	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
@@ -731,6 +733,8 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 				if !taken[i-PORT_CHAN_MIN] {
 					portChannels[connName] = uint16(i)
 					taken[i-PORT_CHAN_MIN] = true
+
+					l.Info("assigned port channel", "conn", connName, "portChannel", portChannels[connName])
 					break
 				}
 			}
@@ -744,7 +748,9 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 	return portChannels, nil
 }
 
-func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, vpcs map[string]vpcapi.VPCSpec) (map[string]uint16, error) {
+func (r *AgentReconciler) calculateIRBVLANs(ctx context.Context, agent *agentapi.Agent, vpcs map[string]vpcapi.VPCSpec) (map[string]uint16, error) {
+	l := log.FromContext(ctx)
+
 	irbVLANs := map[string]uint16{}
 	taken := map[uint16]bool{}
 
@@ -775,6 +781,7 @@ func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, vpcs map[stri
 				if !taken[vlan] {
 					irbVLANs[vpcName] = vlan
 					taken[vlan] = true
+					l.Info("assigned IRB VLAN", "vpc", vpcName, "vlan", irbVLANs[vpcName])
 					break loop
 				}
 			}
@@ -788,7 +795,9 @@ func (r *AgentReconciler) calculateIRBVLANs(agent *agentapi.Agent, vpcs map[stri
 	return irbVLANs, nil
 }
 
-func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]string, error) {
+func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(ctx context.Context, agent *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]string, error) {
+	l := log.FromContext(ctx)
+
 	loopbackMapping := map[string]string{}
 
 	vpcLoopbacks := map[string]bool{}
@@ -882,6 +891,7 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 
 		loopbackMapping["vpc@"+peeringName] = minLo
 		loopbackUsage[minLo] += 1
+		l.Info("assigned vpc loopback link", "vpcPeering", peeringName, "link", minLo)
 	}
 
 	for peeringName, peering := range externalPeerings {
@@ -909,13 +919,16 @@ func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(agent *agentapi.Age
 
 		loopbackMapping["ext@"+peeringName] = minLo
 		loopbackUsage[minLo] += 1
+		l.Info("assigned vpc loopback link", "externalPeering", peeringName, "link", minLo)
 	}
 
 	return loopbackMapping, nil
 }
 
 // TODO merge with IRB vlan allocation
-func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Agent, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]uint16, error) {
+func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(ctx context.Context, agent *agentapi.Agent, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]uint16, error) {
+	l := log.FromContext(ctx)
+
 	vlans := map[string]uint16{}
 	taken := map[uint16]bool{}
 
@@ -927,7 +940,7 @@ func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Age
 		// TODO check that it still belongs to reserved ranges
 
 		if strings.HasPrefix(peeringHack, "vpc@") {
-			if peerSpec, exist := peerings[peeringHack]; !exist {
+			if peerSpec, exist := peerings[strings.TrimPrefix(peeringHack, "vpc@")]; !exist {
 				continue
 			} else {
 				if peerSpec.Remote != "" {
@@ -982,6 +995,7 @@ func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Age
 				if !taken[vlan] {
 					vlans["vpc@"+peeringName] = vlan
 					taken[vlan] = true
+					l.Info("assigned vpc loopback vlan", "vpcPeering", peeringName, "vlan", vlans["vpc@"+peeringName])
 					break vpcLoop
 				}
 			}
@@ -1008,6 +1022,7 @@ func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(agent *agentapi.Age
 				if !taken[vlan] {
 					vlans["ext@"+peeringName] = vlan
 					taken[vlan] = true
+					l.Info("assigned vpc loopback vlan", "externalPeering", peeringName, "vlan", vlans["ext@"+peeringName])
 					break extLoop
 				}
 			}
