@@ -1023,9 +1023,14 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[vrfName].StaticRoutes = map[string]*dozer.SpecVRFStaticRoute{}
 		}
 
+		peerComm, err := communityForVPC(agent, vpcName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get community for VPC %s", vpcName)
+		}
+
 		vpcPeersCommList := vpcPeersCommListName(vpcName)
 		spec.CommunityLists[vpcPeersCommList] = &dozer.SpecCommunityList{
-			Members: []string{},
+			Members: []string{peerComm},
 		}
 
 		importVrfRouteMap := importVrfRouteMapName(vpcName)
