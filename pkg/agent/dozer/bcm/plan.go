@@ -491,6 +491,23 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
+	for ipnsName, ipns := range agent.Spec.IPv4Namespaces {
+		spec.PrefixLists[ipnsSubnetsPrefixListName(ipnsName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+		}
+
+		for idx, subnet := range ipns.Subnets {
+			spec.PrefixLists[ipnsSubnetsPrefixListName(ipnsName)].Prefixes[uint32(idx+1)] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			}
+		}
+
+	}
+
 	for externalName, external := range agent.Spec.Externals {
 		ipnsVrfName := ipnsVrfName(external.IPv4Namespace)
 
@@ -578,6 +595,12 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		spec.RouteMaps[inboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"5": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: stringPtr(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+					},
+					Result: dozer.SpecRouteMapResultReject,
+				},
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
 						MatchCommunityList: stringPtr(commList),
@@ -1661,6 +1684,10 @@ func ipnsEgressAccessList(ipns string) string {
 
 func stampVPCRouteMapName(vpc string) string {
 	return fmt.Sprintf("stamp-vpc--%s", vpc)
+}
+
+func ipnsSubnetsPrefixListName(ipns string) string {
+	return fmt.Sprintf("ipns-subnets--%s", ipns)
 }
 
 func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
