@@ -3,6 +3,8 @@ package bcm
 import (
 	"context"
 	"log/slog"
+	"slices"
+	"sort"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -22,8 +24,11 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 	UpdateWeight: ActionWeightCommunityListUpdate,
 	DeleteWeight: ActionWeightCommunityListDelete,
 	Marshal: func(name string, value *dozer.SpecCommunityList) (ygot.ValidatedGoStruct, error) {
+		memberStrs := slices.Clone(value.Members)
+		sort.Strings(memberStrs)
+
 		members := []oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config_CommunityMember_Union{}
-		for _, member := range value.Members {
+		for _, member := range memberStrs {
 			members = append(members, oc.UnionString(member))
 		}
 
