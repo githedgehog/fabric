@@ -237,6 +237,24 @@ func main() {
 						},
 					},
 					{
+						Name:  "power-reset",
+						Usage: "Power reset the switch (unsafe, skips graceful shutdown)",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							yesFlag,
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							if err := yesCheck(cCtx); err != nil {
+								return err
+							}
+							return hhfctl.SwitchPowerReset(ctx, yes, name)
+						},
+					},
+					{
 						Name:  "reinstall",
 						Usage: "Reinstall the switch (reboot into ONIE)",
 						Flags: []cli.Flag{

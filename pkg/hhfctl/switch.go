@@ -42,6 +42,30 @@ func SwitchReboot(ctx context.Context, yes bool, name string) error {
 	return nil
 }
 
+func SwitchPowerReset(ctx context.Context, yes bool, name string) error {
+	kube, err := kubeClient()
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	agent, err := getAgent(ctx, kube, name)
+	if err != nil {
+		return err
+	}
+
+	if agent.Status.RunID == "" {
+		return errors.Errorf("agent is not running (missing .status.runID)")
+	}
+
+	agent.Spec.PowerReset = agent.Status.RunID
+	err = kube.Update(ctx, agent)
+	if err != nil {
+		return errors.Wrap(err, "cannot update agent")
+	}
+
+	return nil
+}
+
 func SwitchReinstall(ctx context.Context, yes bool, name string) error {
 	kube, err := kubeClient()
 	if err != nil {
