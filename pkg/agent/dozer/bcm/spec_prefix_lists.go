@@ -21,58 +21,30 @@ var specPrefixListsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPrefixList]
 }
 
 var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList]{
-	Summary:      "Prefix Lists %s",
-	Path:         "/routing-policy/defined-sets/prefix-sets/prefix-set[name=%s]",
+	Summary: "Prefix List %s",
+	CustomHandler: func(basePath, name string, actual, desired *dozer.SpecPrefixList, actions *ActionQueue) error {
+		basePath += fmt.Sprintf("/routing-policy/defined-sets/prefix-sets/prefix-set[name=%s]", name)
+
+		if err := specPrefixListBaseEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrapf(err, "failed to enforce prefix list base")
+		}
+
+		actualEntries, desiredEntries := ValueOrNil(actual, desired,
+			func(value *dozer.SpecPrefixList) map[uint32]*dozer.SpecPrefixListEntry { return value.Prefixes })
+
+		if err := specPrefixListEntriesEnforcer.Handle(basePath, actualEntries, desiredEntries, actions); err != nil {
+			return errors.Wrapf(err, "failed to enforce prefix list entries")
+		}
+
+		return nil
+	},
+}
+
+var specPrefixListBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList]{
+	Summary:      "Prefix List Base %s",
 	UpdateWeight: ActionWeightPrefixListUpdate,
 	DeleteWeight: ActionWeightPrefixListDelete,
 	Marshal: func(name string, value *dozer.SpecPrefixList) (ygot.ValidatedGoStruct, error) {
-		prefixes := map[oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Key]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix{}
-
-		for seq, entry := range value.Prefixes {
-			action := oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_UNSET
-			if entry.Action == dozer.SpecPrefixListActionPermit {
-				action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT
-			} else if entry.Action == dozer.SpecPrefixListActionDeny {
-				action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_DENY
-			}
-
-			maskLenRange := "exact"
-			if entry.Prefix.Ge > 0 || entry.Prefix.Le > 0 {
-				prefixParts := strings.Split(entry.Prefix.Prefix, "/")
-				if len(prefixParts) != 2 {
-					return nil, errors.Errorf("invalid prefix %s", entry.Prefix.Prefix)
-				}
-
-				ge := fmt.Sprintf("%d", entry.Prefix.Ge)
-				le := fmt.Sprintf("%d", entry.Prefix.Le)
-
-				if entry.Prefix.Ge == 0 {
-					ge = prefixParts[1]
-				}
-				if entry.Prefix.Le == 0 {
-					le = "32"
-				}
-
-				maskLenRange = fmt.Sprintf("%s..%s", ge, le)
-			}
-
-			prefixes[oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Key{
-				SequenceNumber:  seq,
-				IpPrefix:        entry.Prefix.Prefix,
-				MasklengthRange: maskLenRange,
-			}] = &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix{
-				SequenceNumber:  ygot.Uint32(seq),
-				IpPrefix:        ygot.String(entry.Prefix.Prefix),
-				MasklengthRange: ygot.String(maskLenRange),
-				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Config{
-					SequenceNumber:  ygot.Uint32(seq),
-					IpPrefix:        ygot.String(entry.Prefix.Prefix),
-					MasklengthRange: ygot.String(maskLenRange),
-					Action:          action,
-				},
-			}
-		}
-
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets{
 			PrefixSet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet{
 				name: {
@@ -81,9 +53,82 @@ var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList
 						Name: ygot.String(name),
 						Mode: oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config_Mode_IPV4,
 					},
-					// TODO handle separately to be able to update prefix lists
-					ExtendedPrefixes: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes{
-						ExtendedPrefix: prefixes,
+				},
+			},
+		}, nil
+	},
+}
+
+var specPrefixListEntriesEnforcer = &DefaultMapEnforcer[uint32, *dozer.SpecPrefixListEntry]{
+	Summary:      "Prefix List Entries",
+	ValueHandler: specPrefixListEntryEnforcer,
+}
+
+func getMaskLenRange(entry *dozer.SpecPrefixListEntry) (string, error) {
+	maskLenRange := "exact"
+	if entry.Prefix.Ge > 0 || entry.Prefix.Le > 0 {
+		prefixParts := strings.Split(entry.Prefix.Prefix, "/")
+		if len(prefixParts) != 2 {
+			return "", errors.Errorf("invalid prefix %s", entry.Prefix.Prefix)
+		}
+
+		ge := fmt.Sprintf("%d", entry.Prefix.Ge)
+		le := fmt.Sprintf("%d", entry.Prefix.Le)
+
+		if entry.Prefix.Ge == 0 {
+			ge = prefixParts[1]
+		}
+		if entry.Prefix.Le == 0 {
+			le = "32"
+		}
+
+		maskLenRange = fmt.Sprintf("%s..%s", ge, le)
+	}
+
+	return maskLenRange, nil
+}
+
+var specPrefixListEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecPrefixListEntry]{
+	Summary: "Prefix Lists Entry %d",
+	PathFunc: func(seq uint32, value *dozer.SpecPrefixListEntry) string {
+		maskLenRange, err := getMaskLenRange(value)
+		if err != nil {
+			maskLenRange = "invalid"
+		}
+
+		return fmt.Sprintf("/extended-prefixes/extended-prefix[sequence-number=%d][ip-prefix=%s][masklength-range=%s]", seq, value.Prefix.Prefix, maskLenRange)
+	},
+	RecreateOnUpdate: true, // TODO validate
+	UpdateWeight:     ActionWeightPrefixListEntryUpdate,
+	DeleteWeight:     ActionWeightPrefixListEntryDelete,
+	Marshal: func(seq uint32, entry *dozer.SpecPrefixListEntry) (ygot.ValidatedGoStruct, error) {
+		action := oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_UNSET
+		if entry.Action == dozer.SpecPrefixListActionPermit {
+			action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT
+		} else if entry.Action == dozer.SpecPrefixListActionDeny {
+			action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_DENY
+		}
+
+		maskLenRange, err := getMaskLenRange(entry)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get mask length range")
+		}
+
+		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes{
+			ExtendedPrefix: map[oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Key]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix{
+				{
+					SequenceNumber:  seq,
+					IpPrefix:        entry.Prefix.Prefix,
+					MasklengthRange: maskLenRange,
+				}: {
+					SequenceNumber:  ygot.Uint32(seq),
+					IpPrefix:        ygot.String(entry.Prefix.Prefix),
+					MasklengthRange: ygot.String(maskLenRange),
+					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Config{
+						SequenceNumber:  ygot.Uint32(seq),
+						IpPrefix:        ygot.String(entry.Prefix.Prefix),
+						MasklengthRange: ygot.String(maskLenRange),
+						Action:          action,
 					},
 				},
 			},

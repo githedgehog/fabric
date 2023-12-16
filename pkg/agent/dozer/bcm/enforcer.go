@@ -52,6 +52,8 @@ const (
 	ActionWeightPortBreakout
 
 	ActionWeightPrefixListUpdate
+	ActionWeightPrefixListEntryDelete
+	ActionWeightPrefixListEntryUpdate
 	ActionWeightCommunityListUpdate
 	ActionWeightRouteMapUpdate
 

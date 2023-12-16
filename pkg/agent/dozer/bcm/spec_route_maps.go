@@ -49,9 +49,6 @@ var specRouteMapBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Config{
 						Name: ygot.String(name),
 					},
-					// Statements: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements{
-					// 	Statement: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{},
-					// },
 				},
 			},
 		}, nil
