@@ -19,16 +19,6 @@ var log = logger.GetLogger("plugins/dhcpd")
 
 func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 	return func(args ...string) (handler.Handler4, error) {
-		// TODO
-		// you can use params from svc here, like
-		// svc.kubeUpdates channel to listen for updates from k8s
-		// svc.updateStatus to update status of a subnets in k8s
-
-		// for {
-		// 	switch <-svc.kubeUpdates {
-		// 	//..
-		// 	}
-		// }
 		pluginHdl = &pluginState{
 			dhcpSubnets: &DHCPSubnets{
 				subnets: map[string]*ManagedSubnet{},
