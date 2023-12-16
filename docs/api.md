@@ -71,6 +71,7 @@ _Appears in:_
 | `portChannels` _object (keys:string, values:integer)_ |  |
 | `reinstall` _string_ |  |
 | `reboot` _string_ |  |
+| `powerReset` _string_ |  |
 | `statusUpdates` _[ApplyStatusUpdate](#applystatusupdate) array_ | TODO impl |
 
 

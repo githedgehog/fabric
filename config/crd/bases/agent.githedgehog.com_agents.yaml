@@ -429,6 +429,8 @@ spec:
                 additionalProperties:
                   type: integer
                 type: object
+              powerReset:
+                type: string
               reboot:
                 type: string
               reinstall:

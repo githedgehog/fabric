@@ -399,6 +399,26 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 }
 
 func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) error {
+	if agent.Spec.PowerReset != "" && agent.Spec.PowerReset == svc.runID {
+		slog.Info("Power reset requested, executing in 5 seconds", "runID", agent.Spec.PowerReset)
+		time.Sleep(5 * time.Second)
+		if !svc.SkipActions {
+			slog.Info("Power resetting")
+
+			if file, err := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0o200); err != nil {
+				return errors.Wrapf(err, "error opening /proc/sysrq-trigger")
+			} else {
+				defer file.Close()
+
+				if _, err := file.WriteString("b"); err != nil {
+					if !os.IsExist(err) {
+						return errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
+					}
+				}
+			}
+		}
+	}
+
 	reboot := false
 	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
 		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)

@@ -52,8 +52,9 @@ type AgentSpec struct {
 	ExternalPeeringPrefixIDs map[string]uint32                        `json:"externalPeeringPrefixIDs,omitempty"`
 	ExternalSeqs             map[string]uint16                        `json:"externalSeqs,omitempty"`
 	PortChannels             map[string]uint16                        `json:"portChannels,omitempty"`
-	Reinstall                string                                   `json:"reinstall,omitempty"` // set to InstallID to reinstall NOS
-	Reboot                   string                                   `json:"reboot,omitempty"`    // set to RunID to reboot
+	Reinstall                string                                   `json:"reinstall,omitempty"`  // set to InstallID to reinstall NOS
+	Reboot                   string                                   `json:"reboot,omitempty"`     // set to RunID to reboot
+	PowerReset               string                                   `json:"powerReset,omitempty"` // set to RunID to power reset
 
 	// TODO impl
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
