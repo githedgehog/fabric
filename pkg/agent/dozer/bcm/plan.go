@@ -47,6 +47,7 @@ const (
 	ROUTE_MAP_REJECT_VPC_LOOPBACK              = "reject-vpc-loopback"
 	PREFIX_LIST_ANY                            = "any-prefix"
 	PREFIX_LIST_VPC_LOOPBACK                   = "vpc-loopback-prefix"
+	NO_COMMUNITY                               = "no-community"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -999,7 +1000,11 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	for vpcName := range agent.Spec.VPCs {
+	spec.CommunityLists[NO_COMMUNITY] = &dozer.SpecCommunityList{
+		Members: []string{"REGEX:^$"},
+	}
+
+	for vpcName, vpc := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
 
 		irbVLAN := agent.Spec.IRBVLANs[vpcName]
@@ -1033,6 +1038,28 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Members: []string{peerComm},
 		}
 
+		spec.PrefixLists[vpcPeersPrefixListName(vpcName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+		}
+
+		spec.PrefixLists[vpcSubnetsPrefixListName(vpcName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+		}
+		for subnetName, subnet := range vpc.Subnets {
+			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
+			if vni == 0 {
+				return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
+			}
+
+			spec.PrefixLists[vpcSubnetsPrefixListName(vpcName)].Prefixes[vni] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet.Subnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			}
+		}
+
 		importVrfRouteMap := importVrfRouteMapName(vpcName)
 		if _, exists := spec.RouteMaps[importVrfRouteMap]; !exists {
 			spec.RouteMaps[importVrfRouteMap] = &dozer.SpecRouteMap{
@@ -1046,6 +1073,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					"5": {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchCommunityList: stringPtr(vpcPeersCommList),
+						},
+						Result: dozer.SpecRouteMapResultAccept,
+					},
+					"10": {
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchCommunityList: stringPtr(NO_COMMUNITY),
+							MatchPrefixList:    stringPtr(vpcPeersPrefixListName(vpcName)),
 						},
 						Result: dozer.SpecRouteMapResultAccept,
 					},
@@ -1070,9 +1104,15 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
-				"10": {
+				"5": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: stringPtr(vpcSubnetsPrefixListName(vpcName)),
+					},
 					SetCommunities: []string{vpcComm},
 					Result:         dozer.SpecRouteMapResultAccept,
+				},
+				"10": {
+					Result: dozer.SpecRouteMapResultReject,
 				},
 			},
 		}
@@ -1183,11 +1223,11 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to parse VPCs for VPC peering %s", peeringName)
 		}
 
-		_, exists := agent.Spec.VPCs[vpc1Name]
+		vpc1, exists := agent.Spec.VPCs[vpc1Name]
 		if !exists {
 			return errors.Errorf("VPC %s not found for VPC peering %s", vpc1Name, peeringName)
 		}
-		_, exists = agent.Spec.VPCs[vpc2Name]
+		vpc2, exists := agent.Spec.VPCs[vpc2Name]
 		if !exists {
 			return errors.Errorf("VPC %s not found for VPC peering %s", vpc2Name, peeringName)
 		}
@@ -1208,6 +1248,38 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if !slices.Contains(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members, peerComm) {
 			spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members = append(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members, peerComm)
 			sort.Strings(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members)
+		}
+
+		peersPrefixList := vpcPeersPrefixListName(vpc2Name)
+		for subnetName, subnet := range vpc1.Subnets {
+			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpc1Name, subnetName)]
+			if vni == 0 {
+				return errors.Errorf("VNI for VPC %s subnet %s not found", vpc1Name, subnetName)
+			}
+
+			spec.PrefixLists[peersPrefixList].Prefixes[vni] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet.Subnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			}
+		}
+
+		peersPrefixList = vpcPeersPrefixListName(vpc1Name)
+		for subnetName, subnet := range vpc2.Subnets {
+			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpc2Name, subnetName)]
+			if vni == 0 {
+				return errors.Errorf("VNI for VPC %s subnet %s not found", vpc2Name, subnetName)
+			}
+
+			spec.PrefixLists[peersPrefixList].Prefixes[vni] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet.Subnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			}
 		}
 
 		vrf1Name := vpcVrfName(vpc1Name)
@@ -1681,6 +1753,14 @@ func importVrfRouteMapName(vpc string) string {
 
 func vpcPeersCommListName(vpc string) string {
 	return fmt.Sprintf("vpc-peers--%s", vpc)
+}
+
+func vpcPeersPrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-peers--%s", vpc)
+}
+
+func vpcSubnetsPrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-subnets--%s", vpc)
 }
 
 func ipnsEgressAccessList(ipns string) string {

@@ -54,11 +54,18 @@ const (
 	ActionWeightPrefixListUpdate
 	ActionWeightPrefixListEntryDelete
 	ActionWeightPrefixListEntryUpdate
+
 	ActionWeightCommunityListUpdate
+
 	ActionWeightRouteMapUpdate
+	ActionWeightRouteMapStatementDelete
+	ActionWeightRouteMapStatementUpdate
 
 	ActionWeightInterfaceBaseUpdate
+
 	ActionWeightVRFBaseUpdate
+	ActionWeightVRFVNIUpdate
+
 	ActionWeightInterfaceVLANIPsUpdate
 	ActionWeightInterfacePortChannelUpdate
 	ActionWeightInterfacePortChannelMemberUpdate
@@ -82,12 +89,6 @@ const (
 	ActionWeightACLEntryDelete
 	ActionWeightACLEntryUpdate
 
-	ActionWeightVRFBGPBaseUpdate
-	ActionWeightVRFSAGUpdate
-	ActionWeightVRFBGPNeighborUpdate
-	ActionWeightVRFBGPNetworkUpdate
-	ActionWrightVRFTableConnectionUpdate
-
 	ActionWeightNATBaseUpdate
 	ActionWeightNATPoolUpdate
 	ActionWeightNATBindingUpdate
@@ -95,18 +96,24 @@ const (
 
 	ActionWeightSuppressVLANNeighUpdate
 
-	ActionWeightVRFBGPImportVRFUpdate
-
-	ActionWeightVXLANTunnelUpdate
-	ActionWeightVXLANEVPNNVOUpdate
-	ActionWeightVXLANTunnelMapUpdate
-
-	ActionWeightVRFVNIUpdate
-
 	ActionWeightVRFStaticRouteDelete // it seems like it's better to first remove routes and then add new ones
 	ActionWeightVRFStaticRouteUpdate
-	ActionWeightRouteMapStatementDelete
-	ActionWeightRouteMapStatementUpdate
+
+	ActionWeightVRFBGPBaseUpdate
+	ActionWeightVRFSAGUpdate
+
+	ActionWeightVXLANTunnelMapDelete
+	ActionWeightVXLANTunnelUpdate
+	ActionWeightVXLANEVPNNVODelete
+	ActionWeightVXLANEVPNNVOUpdate
+	ActionWeightVXLANTunnelDelete
+	ActionWeightVXLANTunnelMapUpdate
+
+	ActionWeightVRFBGPNeighborUpdate
+	ActionWeightVRFBGPNetworkUpdate
+	ActionWrightVRFTableConnectionUpdate
+
+	ActionWeightVRFBGPImportVRFUpdate
 
 	ActionWeightDHCPRelayUpdate
 
@@ -114,13 +121,16 @@ const (
 
 	ActionWeightDHCPRelayDelete
 
+	ActionWeightVRFBGPImportVRFDelete
+
 	ActionWeightVRFVNIDelete
 
-	ActionWeightVXLANTunnelMapDelete
-	ActionWeightVXLANEVPNNVODelete
-	ActionWeightVXLANTunnelDelete
-
-	ActionWeightVRFBGPImportVRFDelete
+	ActionWrightVRFTableConnectionDelete
+	ActionWeightVRFBGPNetworkDelete
+	ActionWeightVRFBGPNeighborDelete
+	ActionWeightVRFSAGDelete
+	ActionWeightVRFBGPBaseDelete
+	ActionWeightVRFBaseDelete
 
 	ActionWeightSuppressVLANNeighDelete
 
@@ -139,13 +149,6 @@ const (
 	ActionWeightInterfaceNATZoneDelete
 	ActionWeightInterfaceVLANIPsDelete
 	ActionWeightInterfaceVLANAnycastGatewayDelete
-
-	ActionWrightVRFTableConnectionDelete
-	ActionWeightVRFBGPNetworkDelete
-	ActionWeightVRFBGPNeighborDelete
-	ActionWeightVRFSAGDelete
-	ActionWeightVRFBGPBaseDelete
-	ActionWeightVRFBaseDelete
 
 	ActionWeightACLInterfaceDelete
 	ActionWeightACLBaseDelete
