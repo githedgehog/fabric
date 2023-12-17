@@ -416,8 +416,8 @@ var specVRFImportPolicyEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBG
 		return actual
 	},
 	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name",
-	UpdateWeight: ActionWeightVRFBGPImportVRFUpdate,
-	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
+	UpdateWeight: ActionWeightVRFBGPImportVRFPolicyUpdate,
+	DeleteWeight: ActionWeightVRFBGPImportVRFPolicyDelete,
 	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
 			PolicyName: value.IPv4Unicast.ImportPolicy,

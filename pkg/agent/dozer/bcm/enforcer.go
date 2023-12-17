@@ -113,6 +113,7 @@ const (
 	ActionWeightVRFBGPNetworkUpdate
 	ActionWrightVRFTableConnectionUpdate
 
+	ActionWeightVRFBGPImportVRFPolicyUpdate
 	ActionWeightVRFBGPImportVRFUpdate
 
 	ActionWeightDHCPRelayUpdate
@@ -122,6 +123,7 @@ const (
 	ActionWeightDHCPRelayDelete
 
 	ActionWeightVRFBGPImportVRFDelete
+	ActionWeightVRFBGPImportVRFPolicyDelete
 
 	ActionWeightVRFVNIDelete
 
