@@ -74,6 +74,7 @@ const (
 
 	ActionWeightInterfaceSubinterfaceIPsDelete
 	ActionWeightVRFInterfaceDelete
+	ActionWeightACLInterfaceDelete
 	ActionWeightInterfaceSubinterfaceDelete
 	ActionWeightInterfaceSubinterfaceUpdate
 	ActionWeightVRFInterfaceUpdate
@@ -152,7 +153,6 @@ const (
 	ActionWeightInterfaceVLANIPsDelete
 	ActionWeightInterfaceVLANAnycastGatewayDelete
 
-	ActionWeightACLInterfaceDelete
 	ActionWeightACLBaseDelete
 
 	ActionWeightInterfaceBaseDelete

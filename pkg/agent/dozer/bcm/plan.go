@@ -1552,6 +1552,10 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[vpcVrf].Interfaces[sub1] = &dozer.SpecVRFInterface{}
 			spec.VRFs[ipnsVrf].Interfaces[sub2] = &dozer.SpecVRFInterface{}
 
+			spec.ACLInterfaces[sub1] = &dozer.SpecACLInterface{
+				Egress: stringPtr(ipnsEgressAccessList(external.IPv4Namespace)),
+			}
+
 			for _, subnetName := range peering.Permit.VPC.Subnets {
 				subnet, exists := vpc.Subnets[subnetName]
 				if !exists {
