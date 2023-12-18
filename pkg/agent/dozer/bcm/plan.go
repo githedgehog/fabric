@@ -715,6 +715,10 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
+		if mtu == nil {
+			mtu = uint16Ptr(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
+		}
+
 		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
 			return errors.Wrapf(err, "failed to validate server facing MTU for conn %s", connName)
 		}
@@ -762,6 +766,10 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		var mtu *uint16
 		if conn.Unbundled.MTU != 0 {
 			mtu = uint16Ptr(conn.Unbundled.MTU)
+		}
+
+		if mtu == nil {
+			mtu = uint16Ptr(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
 		}
 
 		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
