@@ -89,6 +89,10 @@ func (ns *IPv4Namespace) Default() {
 }
 
 func (ns *IPv4Namespace) Validate(ctx context.Context, client validation.Client, resrvedSubnets []*net.IPNet) (admission.Warnings, error) {
+	if len(ns.Name) > 11 {
+		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
+	}
+
 	subnets := []*net.IPNet{}
 	for _, subnet := range ns.Spec.Subnets {
 		_, ipNet, err := net.ParseCIDR(subnet)
