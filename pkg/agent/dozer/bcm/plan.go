@@ -1045,11 +1045,25 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		spec.PrefixLists[vpcSubnetsPrefixListName(vpcName)] = &dozer.SpecPrefixList{
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
+
+		spec.PrefixLists[vpcNotSubnetsPrefixListName(vpcName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
+				65535: {
+					Prefix: dozer.SpecPrefixListPrefix{
+						Prefix: "0.0.0.0/0",
+						Le:     32,
+					},
+					Action: dozer.SpecPrefixListActionPermit,
+				},
+			},
+		}
+
 		for subnetName, subnet := range vpc.Subnets {
 			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
 			if vni == 0 {
 				return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
 			}
+			vni = vni % 100
 
 			spec.PrefixLists[vpcSubnetsPrefixListName(vpcName)].Prefixes[vni] = &dozer.SpecPrefixListEntry{
 				Prefix: dozer.SpecPrefixListPrefix{
@@ -1057,6 +1071,14 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Le:     32,
 				},
 				Action: dozer.SpecPrefixListActionPermit,
+			}
+
+			spec.PrefixLists[vpcNotSubnetsPrefixListName(vpcName)].Prefixes[vni] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet.Subnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionDeny,
 			}
 		}
 
@@ -1070,13 +1092,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 						},
 						Result: dozer.SpecRouteMapResultReject,
 					},
-					"5": {
+					"50000": {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchCommunityList: stringPtr(vpcPeersCommList),
 						},
 						Result: dozer.SpecRouteMapResultAccept,
 					},
-					"10": {
+					"50001": {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchCommunityList: stringPtr(NO_COMMUNITY),
 							MatchPrefixList:    stringPtr(vpcPeersPrefixListName(vpcName)),
@@ -1282,6 +1304,43 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		// TODO dedup
+		vni1 := agent.Spec.VNIs[vpc1Name]
+		if vni1 == 0 {
+			return errors.Errorf("VNI for VPC %s not found", vpc1Name)
+		}
+		if vni1%100 != 0 {
+			return errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc1Name)
+		}
+		if vni1/100 >= 40000 { // 50k is reserved for external-related in import vpc route map
+			return errors.Errorf("VNI for VPC %s is too large", vpc1Name)
+		}
+		vni2 := agent.Spec.VNIs[vpc2Name]
+		if vni2 == 0 {
+			return errors.Errorf("VNI for VPC %s not found", vpc2Name)
+		}
+		if vni2%100 != 0 {
+			return errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc2Name)
+		}
+		if vni2/100 >= 40000 { // 50k is reserved for external-related in import vpc route map
+			return errors.Errorf("VNI for VPC %s is too large", vpc2Name)
+		}
+
+		spec.RouteMaps[importVrfRouteMapName(vpc1Name)].Statements[fmt.Sprintf("%d", 10000+vni2/100)] = &dozer.SpecRouteMapStatement{
+			Conditions: dozer.SpecRouteMapConditions{
+				MatchPrefixList: stringPtr(vpcNotSubnetsPrefixListName(vpc2Name)),
+				MatchSourceVRF:  stringPtr(vpcVrfName(vpc2Name)),
+			},
+			Result: dozer.SpecRouteMapResultReject,
+		}
+		spec.RouteMaps[importVrfRouteMapName(vpc2Name)].Statements[fmt.Sprintf("%d", 10000+vni1/100)] = &dozer.SpecRouteMapStatement{
+			Conditions: dozer.SpecRouteMapConditions{
+				MatchPrefixList: stringPtr(vpcNotSubnetsPrefixListName(vpc1Name)),
+				MatchSourceVRF:  stringPtr(vpcVrfName(vpc1Name)),
+			},
+			Result: dozer.SpecRouteMapResultReject,
+		}
+
 		vrf1Name := vpcVrfName(vpc1Name)
 		vrf2Name := vpcVrfName(vpc2Name)
 
@@ -1296,29 +1355,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if !vpc1Attached && !vpc2Attached {
 				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
 				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
-
-				// TODO dedup
-
-				vni1 := agent.Spec.VNIs[vpc1Name]
-				if vni1 == 0 {
-					return errors.Errorf("VNI for VPC %s not found", vpc1Name)
-				}
-				if vni1%100 != 0 {
-					return errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc1Name)
-				}
-				if vni1/100 >= ROUTE_MAP_MAX_STATEMENT {
-					return errors.Errorf("VNI for VPC %s is too large", vpc1Name)
-				}
-				vni2 := agent.Spec.VNIs[vpc2Name]
-				if vni2 == 0 {
-					return errors.Errorf("VNI for VPC %s not found", vpc2Name)
-				}
-				if vni2%100 != 0 {
-					return errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc2Name)
-				}
-				if vni2/100 >= ROUTE_MAP_MAX_STATEMENT {
-					return errors.Errorf("VNI for VPC %s is too large", vpc2Name)
-				}
 
 				spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", uint(vni1/100))] = &dozer.SpecRouteMapStatement{
 					Conditions: dozer.SpecRouteMapConditions{
@@ -1519,26 +1555,19 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if idx == 0 {
 				return errors.Errorf("no external seq for external %s", externalName)
 			}
-			if idx < 10 {
+			if idx < 10 { // first 10 reserved for static statements
 				return errors.Errorf("external seq for external %s is too small", externalName)
 			}
-			if idx >= 30000 {
+			if idx >= 10000 {
 				return errors.Errorf("external seq for external %s is too large", externalName)
 			}
-			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", idx)] = &dozer.SpecRouteMapStatement{
+			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchCommunityList: stringPtr(inboundCommListName(externalName)),
 					MatchPrefixList:    stringPtr(importVrfPrefixList),
 				},
 				SetLocalPreference: uint32Ptr(500),
 				Result:             dozer.SpecRouteMapResultAccept,
-			}
-			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", idx+30000)] = &dozer.SpecRouteMapStatement{
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchCommunityList: stringPtr(inboundCommListName(externalName)),
-					MatchPrefixList:    stringPtr(PREFIX_LIST_ANY),
-				},
-				Result: dozer.SpecRouteMapResultReject,
 			}
 
 			spec.VRFs[ipnsVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
@@ -1767,6 +1796,10 @@ func vpcPeersPrefixListName(vpc string) string {
 
 func vpcSubnetsPrefixListName(vpc string) string {
 	return fmt.Sprintf("vpc-subnets--%s", vpc)
+}
+
+func vpcNotSubnetsPrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-not-subnets--%s", vpc)
 }
 
 func ipnsEgressAccessList(ipns string) string {

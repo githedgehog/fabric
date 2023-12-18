@@ -57,14 +57,14 @@ const (
 
 	ActionWeightCommunityListUpdate
 
-	ActionWeightRouteMapUpdate
-	ActionWeightRouteMapStatementDelete
-	ActionWeightRouteMapStatementUpdate
-
 	ActionWeightInterfaceBaseUpdate
 
 	ActionWeightVRFBaseUpdate
 	ActionWeightVRFVNIUpdate
+
+	ActionWeightRouteMapUpdate
+	ActionWeightRouteMapStatementDelete
+	ActionWeightRouteMapStatementUpdate
 
 	ActionWeightInterfaceVLANIPsUpdate
 	ActionWeightInterfacePortChannelUpdate

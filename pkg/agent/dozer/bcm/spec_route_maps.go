@@ -136,6 +136,16 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 
 			conditions.Config.CallPolicy = statement.Conditions.Call
 		}
+		if statement.Conditions.MatchSourceVRF != nil {
+			if conditions.MatchSrcNetworkInstance == nil {
+				conditions.MatchSrcNetworkInstance = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchSrcNetworkInstance{}
+			}
+			if conditions.MatchSrcNetworkInstance.Config == nil {
+				conditions.MatchSrcNetworkInstance.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_MatchSrcNetworkInstance_Config{}
+			}
+
+			conditions.MatchSrcNetworkInstance.Config.Name = statement.Conditions.MatchSourceVRF
+		}
 
 		result := oc.OpenconfigRoutingPolicy_PolicyResultType_REJECT_ROUTE
 		if statement.Result == dozer.SpecRouteMapResultAccept {
@@ -247,6 +257,9 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 				}
 				if statement.Conditions.Config != nil && statement.Conditions.Config.CallPolicy != nil {
 					conditions.Call = statement.Conditions.Config.CallPolicy
+				}
+				if statement.Conditions.MatchSrcNetworkInstance != nil && statement.Conditions.MatchSrcNetworkInstance.Config != nil {
+					conditions.MatchSourceVRF = statement.Conditions.MatchSrcNetworkInstance.Config.Name
 				}
 			}
 

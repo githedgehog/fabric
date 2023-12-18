@@ -206,6 +206,7 @@ type SpecRouteMapConditions struct {
 	MatchPrefixList        *string `json:"matchPrefixLists,omitempty"`
 	MatchNextHopPrefixList *string `json:"matchNextHopPrefixLists,omitempty"`
 	MatchCommunityList     *string `json:"matchCommunityLists,omitempty"`
+	MatchSourceVRF         *string `json:"matchSourceVrf,omitempty"`
 	Call                   *string `json:"call,omitempty"`
 }
 
