@@ -1576,6 +1576,8 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 						},
 					},
 				}
+
+				spec.VRFs[ipnsVrf].BGP.IPv4Unicast.Networks[subnet.Subnet] = &dozer.SpecVRFBGPNetwork{}
 			}
 
 			for _, prefix := range peering.Permit.External.Prefixes {
