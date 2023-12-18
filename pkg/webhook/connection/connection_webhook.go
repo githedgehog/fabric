@@ -68,13 +68,18 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	// TODO some connections or their parts should be immutable
 
 	// oldConn := oldObj.(*wiringapi.Connection)
-	// newConn := newObj.(*wiringapi.Connection)
+	newConn := newObj.(*wiringapi.Connection)
+
+	warns, err := newConn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset)
+	if err != nil {
+		return warns, err
+	}
 
 	// if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
 	// 	return nil, errors.Errorf("connection spec is immutable")
 	// }
 
-	return nil, nil
+	return warns, nil
 }
 
 func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
