@@ -68,7 +68,8 @@ const (
 
 	ActionWeightInterfaceVLANIPsUpdate
 	ActionWeightInterfacePortChannelUpdate
-	ActionWeightInterfacePortChannelMemberUpdate
+	ActionWeightInterfaceEthernetBaseUpdate
+	ActionWeightInterfaceEthernetSwitchedUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
 
@@ -147,7 +148,8 @@ const (
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
 
-	ActionWeightInterfacePortChannelMemberDelete
+	ActionWeightInterfaceEthernetSwitchedDelete
+	ActionWeightInterfaceEthernetBaseDelete
 	ActionWeightInterfacePortChannelDelete
 	ActionWeightInterfaceNATZoneDelete
 	ActionWeightInterfaceVLANIPsDelete

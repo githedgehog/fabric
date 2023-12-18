@@ -41,7 +41,6 @@ const (
 	VTEP_FABRIC                                = "vtepfabric"
 	EVPN_NVO                                   = "nvo1"
 	ANYCAST_MAC                                = "00:00:00:11:11:11"
-	VPC_VLAN_RANGE                             = "1000..1999" // TODO remove
 	ROUTE_MAP_MAX_STATEMENT                    = 65535
 	ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE        = "evpn-default-remote-block"
 	ROUTE_MAP_REJECT_VPC_LOOPBACK              = "reject-vpc-loopback"
@@ -727,7 +726,6 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			portName := link.Switch.LocalPortName()
 			portChan := agent.Spec.PortChannels[connName]
-
 			if portChan == 0 {
 				return errors.Errorf("no port channel found for conn %s", connName)
 			}
@@ -736,7 +734,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			connPortChannel := &dozer.SpecInterface{
 				Enabled:     boolPtr(true),
 				Description: stringPtr(fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), connName)),
-				TrunkVLANs:  []string{VPC_VLAN_RANGE}, // TODO change
+				TrunkVLANs:  []string{},
 				MTU:         mtu,
 			}
 			spec.Interfaces[connPortChannelName] = connPortChannel
@@ -780,7 +778,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Enabled:     boolPtr(true),
 			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), connName)),
 			Speed:       getPortSpeed(agent, swPort.LocalPortName()),
-			TrunkVLANs:  []string{VPC_VLAN_RANGE},
+			TrunkVLANs:  []string{},
 			MTU:         mtu,
 		}
 	}
@@ -1190,7 +1188,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	attachedVPCs := map[string]bool{}
-	for _, attach := range agent.Spec.VPCAttachments {
+	for attachName, attach := range agent.Spec.VPCAttachments {
 		vpcName := attach.VPCName()
 		vpc, exists := agent.Spec.VPCs[vpcName]
 		if !exists {
@@ -1208,6 +1206,52 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		err := planVPCSubnet(agent, spec, vpcName, subnetName, subnet)
 		if err != nil {
 			return errors.Wrapf(err, "failed to plan VPC %s subnet %s", vpcName, subnetName)
+		}
+
+		conn, exists := agent.Spec.Connections[attach.Connection]
+		if !exists {
+			return errors.Errorf("connection %s not found for VPC attachment %s", attach.Connection, attachName)
+		}
+
+		ifaces := []string{}
+		if conn.MCLAG != nil {
+			for _, link := range conn.MCLAG.Links {
+				if link.Switch.DeviceName() != agent.Name {
+					continue
+				}
+
+				portChan := agent.Spec.PortChannels[attach.Connection]
+				if portChan == 0 {
+					return errors.Errorf("no port channel found for conn %s", attach.Connection)
+				}
+
+				ifaces = append(ifaces, portChannelName(portChan))
+			}
+		} else if conn.Bundled != nil {
+			for _, link := range conn.Bundled.Links {
+				if link.Switch.DeviceName() != agent.Name {
+					continue
+				}
+
+				portChan := agent.Spec.PortChannels[attach.Connection]
+				if portChan == 0 {
+					return errors.Errorf("no port channel found for conn %s", attach.Connection)
+				}
+
+				ifaces = append(ifaces, portChannelName(portChan))
+			}
+		} else if conn.Unbundled != nil {
+			if conn.Unbundled.Link.Switch.DeviceName() != agent.Name {
+				continue
+			}
+
+			ifaces = append(ifaces, conn.Unbundled.Link.Switch.LocalPortName())
+		}
+
+		for _, iface := range ifaces {
+			if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN) {
+				spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN)
+			}
 		}
 	}
 

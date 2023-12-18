@@ -58,8 +58,12 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 			return errors.Wrap(err, "failed to handle interface IPs")
 		}
 
-		if err := specInterfaceEthernetEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
-			return errors.Wrap(err, "failed to handle interface port channel member")
+		if err := specInterfaceEthernetBaseEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle interface ethernet")
+		}
+
+		if err := specInterfaceEthernetSwitchedEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle interface switched")
 		}
 
 		if err := specInterfaceNATZoneEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
@@ -254,16 +258,17 @@ var specInterfaceSubinterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.S
 	},
 }
 
-var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary: "Interface %s Ethernet", // TODO better summary
+var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
+	Summary: "Interface %s Ethernet Base", // TODO better summary
 	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
 	Getter: func(name string, value *dozer.SpecInterface) any {
-		return []any{value.PortChannel, value.Speed, value.TrunkVLANs, value.AccessVLAN}
+		return []any{value.PortChannel, value.Speed} //, value.TrunkVLANs, value.AccessVLAN}
 	},
-	Path:         "/ethernet",
-	NoReplace:    true, // TODO can we enable replace? so we can delete the speed config and portchannel member from it
-	UpdateWeight: ActionWeightInterfacePortChannelMemberUpdate,
-	DeleteWeight: ActionWeightInterfacePortChannelMemberDelete,
+	Path:      "/ethernet",
+	NoReplace: true,
+	// TODO do we need recreate on update so we can remove from the port channel? and than SwitchedEnforcer will need to be triggered too
+	UpdateWeight: ActionWeightInterfaceEthernetBaseUpdate,
+	DeleteWeight: ActionWeightInterfaceEthernetBaseDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 
@@ -275,30 +280,37 @@ var specInterfaceEthernetEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInt
 			}
 		}
 
-		// TODO move it to a separate enforcer as we'll not be able to replace it
-		var switched *oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan
-		if len(value.TrunkVLANs) > 0 || value.AccessVLAN != nil {
-			trunkVLANs, err := marshalEthernetTrunkVLANs(value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
-			}
-
-			switched = &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan{
-				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config{
-					// InterfaceMode: oc.OpenconfigVlan_VlanModeType_UNSET, // TODO should we use TRUNK or ACCESS?
-					TrunkVlans: trunkVLANs,
-					AccessVlan: value.AccessVLAN,
-				},
-			}
-		}
-
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			Ethernet: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
 					AggregateId: value.PortChannel,
 					PortSpeed:   speed,
 				},
-				SwitchedVlan: switched,
+			},
+		}, nil
+	},
+}
+
+var specInterfaceEthernetSwitchedEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
+	Summary: "Interface %s Ethernet Switched",
+	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
+	Getter: func(name string, value *dozer.SpecInterface) any {
+		return []any{value.TrunkVLANs, value.AccessVLAN}
+	},
+	Path:         "/ethernet/switched-vlan/config",
+	UpdateWeight: ActionWeightInterfaceEthernetSwitchedUpdate,
+	DeleteWeight: ActionWeightInterfaceEthernetSwitchedDelete,
+	Marshal: func(key string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+		trunkVLANs, err := marshalEthernetTrunkVLANs(value)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
+		}
+
+		return &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan{
+			Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config{
+				// InterfaceMode: oc.OpenconfigVlan_VlanModeType_UNSET, // TODO should we use TRUNK or ACCESS?
+				TrunkVlans: trunkVLANs,
+				AccessVlan: value.AccessVLAN,
 			},
 		}, nil
 	},
@@ -328,37 +340,22 @@ var specInterfacesPortChannelEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Getter: func(name string, value *dozer.SpecInterface) any {
 		return []any{value.TrunkVLANs, value.AccessVLAN}
 	},
-	Path:         "/aggregation",
-	NoReplace:    true,
+	Path:         "/aggregation/switched-vlan/config",
 	UpdateWeight: ActionWeightInterfacePortChannelUpdate,
 	DeleteWeight: ActionWeightInterfacePortChannelDelete,
 	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
-		var switched *oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan
-
-		if value.TrunkVLANs != nil {
-			trunkVLANs, err := marshalPortChannelTrunkVLANs(value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
-			}
-
-			// TODO extract to a separate enforcer as we'll not be able to replace TrunkVLANs
-			switched = &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan{
-				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan_Config{
-					InterfaceMode: oc.OpenconfigVlan_VlanModeType_TRUNK,
-					TrunkVlans:    trunkVLANs,
-					AccessVlan:    value.AccessVLAN, // TODO should we use UNSET mode or would it work with TRUNK or we should use NativeVlan?
-				},
-			}
+		trunkVLANs, err := marshalPortChannelTrunkVLANs(value)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
 		}
 
-		val := &oc.OpenconfigInterfaces_Interfaces_Interface{
-			Aggregation: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation{
-				Config:       &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_Config{},
-				SwitchedVlan: switched,
+		return &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan{
+			Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan_Config{
+				// InterfaceMode: oc.OpenconfigVlan_VlanModeType_TRUNK, // TODO should we use TRUNK or ACCESS?
+				TrunkVlans: trunkVLANs,
+				AccessVlan: value.AccessVLAN,
 			},
-		}
-
-		return val, nil
+		}, nil
 	},
 }
 
@@ -408,12 +405,10 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		}
 
 		mtu := ocIface.Config.Mtu
-		if mtu != nil { // TODO it's a hack for now, assuming 9100 is a default MTU for everything other than Mgmt interface (1500)
+		if mtu != nil { // TODO it's a hack for now, assuming 9100 is a default MTU for everything other than Mgmt interface (1500), to be replaced with SwitchProfile
 			if isManagement(name) && *mtu == 1500 || !isManagement(name) && *mtu == 9100 {
 				mtu = nil
 			}
-
-			mtu = nil
 		}
 
 		iface := &dozer.SpecInterface{
@@ -513,11 +508,16 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 			return nil, errors.Errorf("interface %s has VLAN config but not a Vlan", name)
 		}
 
-		if ocIface.Ethernet != nil && ocIface.Ethernet.Config != nil {
-			iface.PortChannel = ocIface.Ethernet.Config.AggregateId
+		if ocIface.Ethernet != nil {
+			if ocIface.Ethernet.Config != nil {
+				iface.PortChannel = ocIface.Ethernet.Config.AggregateId
+				if iface.PortChannel != nil {
+					iface.MTU = nil // we only want to see it on the portchannel itself
+				}
 
-			if !isManagement(name) { // TODO support configuring speed on Mgmt interface
-				iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
+				if !isManagement(name) { // TODO support configuring speed on Mgmt interface
+					iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
+				}
 			}
 
 			if ocIface.Ethernet.SwitchedVlan != nil && ocIface.Ethernet.SwitchedVlan.Config != nil {
@@ -533,7 +533,7 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 			return nil, errors.Errorf("interface %s is a port channel member but it's not Ethernet or Vlan", name)
 		}
 
-		if ocIface.Aggregation != nil && ocIface.Aggregation.SwitchedVlan != nil && ocIface.Aggregation.SwitchedVlan.Config != nil {
+		if isPortChannel(name) && ocIface.Aggregation != nil && ocIface.Aggregation.SwitchedVlan != nil && ocIface.Aggregation.SwitchedVlan.Config != nil {
 			var err error
 			iface.TrunkVLANs, err = unmarshalPortChannelTrunkVLANs(ocIface.Aggregation.SwitchedVlan.Config.TrunkVlans)
 			if err != nil {

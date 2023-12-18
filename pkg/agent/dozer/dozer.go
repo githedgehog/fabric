@@ -358,6 +358,10 @@ func (s *Spec) Normalize() {
 	}
 
 	for name, iface := range s.Interfaces {
+		if len(iface.TrunkVLANs) > 0 {
+			sort.Strings(iface.TrunkVLANs)
+		}
+
 		if strings.HasPrefix(name, "PortChannel") || strings.HasPrefix(name, "Ethernet") {
 			if iface.Subinterfaces == nil {
 				iface.Subinterfaces = map[uint32]*SpecSubinterface{}
