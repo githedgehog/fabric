@@ -1638,6 +1638,8 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Egress: stringPtr(ipnsEgressAccessList(external.IPv4Namespace)),
 			}
 
+			spec.VRFs[vpcVrf].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
+
 			for _, subnetName := range peering.Permit.VPC.Subnets {
 				subnet, exists := vpc.Subnets[subnetName]
 				if !exists {
