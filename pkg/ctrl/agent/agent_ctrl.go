@@ -421,6 +421,21 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		ipv4Namespaces[ns.Name] = ns.Spec
 	}
 
+	vlanNamespaceList := &wiringapi.VLANNamespaceList{}
+	err = r.List(ctx, vlanNamespaceList, client.InNamespace(sw.Namespace))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error listing vlan namespaces")
+	}
+
+	vlanNamespaces := map[string]wiringapi.VLANNamespaceSpec{}
+	for _, ns := range vlanNamespaceList.Items {
+		if !slices.Contains(sw.Spec.VLANNamespaces, ns.Name) {
+			continue
+		}
+
+		vlanNamespaces[ns.Name] = ns.Spec
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Labels = sw.Labels
@@ -434,6 +449,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.VPCAttachments = attaches
 		agent.Spec.VPCPeerings = peerings
 		agent.Spec.IPv4Namespaces = ipv4Namespaces
+		agent.Spec.VLANNamespaces = vlanNamespaces
 		agent.Spec.Externals = externals
 		agent.Spec.ExternalAttachments = externalAttaches
 		agent.Spec.ExternalPeerings = externalPeerings

@@ -156,6 +156,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.VLANNamespaces != nil {
+		in, out := &in.VLANNamespaces, &out.VLANNamespaces
+		*out = make(map[string]wiringv1alpha2.VLANNamespaceSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
 	if in.Externals != nil {
 		in, out := &in.Externals, &out.Externals
 		*out = make(map[string]vpcv1alpha2.ExternalSpec, len(*in))

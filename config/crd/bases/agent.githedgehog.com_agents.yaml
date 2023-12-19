@@ -412,7 +412,7 @@ spec:
                     subnets:
                       items:
                         type: string
-                      maxItems: 10
+                      maxItems: 20
                       minItems: 1
                       type: array
                   type: object
@@ -619,6 +619,23 @@ spec:
                     type: string
                   repo:
                     type: string
+                type: object
+              vlanNamespaces:
+                additionalProperties:
+                  description: VLANNamespaceSpec defines the desired state of VLANNamespace
+                  properties:
+                    ranges:
+                      items:
+                        properties:
+                          from:
+                            type: integer
+                          to:
+                            type: integer
+                        type: object
+                      maxItems: 20
+                      minItems: 1
+                      type: array
+                  type: object
                 type: object
               vnis:
                 additionalProperties:

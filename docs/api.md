@@ -59,6 +59,7 @@ _Appears in:_
 | `vpcLoopbackLinks` _object (keys:string, values:string)_ |  |
 | `vpcLoopbackVLANs` _object (keys:string, values:integer)_ |  |
 | `ipv4Namespaces` _object (keys:string, values:[IPv4NamespaceSpec](#ipv4namespacespec))_ |  |
+| `vlanNamespaces` _object (keys:string, values:[VLANNamespaceSpec](#vlannamespacespec))_ |  |
 | `externals` _object (keys:string, values:[ExternalSpec](#externalspec))_ |  |
 | `externalAttachments` _object (keys:string, values:[ExternalAttachmentSpec](#externalattachmentspec))_ |  |
 | `externalPeerings` _object (keys:string, values:[ExternalPeeringSpec](#externalpeeringspec))_ |  |
@@ -1512,6 +1513,7 @@ VLANNamespace is the Schema for the vlannamespaces API
 VLANNamespaceSpec defines the desired state of VLANNamespace
 
 _Appears in:_
+- [AgentSpec](#agentspec)
 - [VLANNamespace](#vlannamespace)
 
 | Field | Description |
