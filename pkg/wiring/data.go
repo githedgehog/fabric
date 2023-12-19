@@ -216,6 +216,20 @@ func (d *Data) Write(ret io.Writer) error {
 		}
 	}
 
+	for _, ext := range d.External.All() {
+		err := marshal(ext, true, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, extAtt := range d.ExternalAttachment.All() {
+		err := marshal(extAtt, true, w)
+		if err != nil {
+			return err
+		}
+	}
+
 	// ugly output cleanup
 	scan := bufio.NewScanner(w)
 	for scan.Scan() {
