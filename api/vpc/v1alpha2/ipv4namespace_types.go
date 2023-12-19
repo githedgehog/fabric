@@ -35,7 +35,7 @@ import (
 // IPv4NamespaceSpec defines the desired state of IPv4Namespace
 type IPv4NamespaceSpec struct {
 	//+kubebuilder:validation:MinItems=1
-	//+kubebuilder:validation:MaxItems=10
+	//+kubebuilder:validation:MaxItems=20
 	Subnets []string `json:"subnets,omitempty"`
 }
 

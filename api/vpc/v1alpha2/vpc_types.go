@@ -126,7 +126,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 	if len(vpc.Spec.Subnets) == 0 {
 		return nil, errors.Errorf("at least one subnet is required")
 	}
-	if len(vpc.Spec.Subnets) > 10 {
+	if len(vpc.Spec.Subnets) > 20 {
 		return nil, errors.Errorf("too many subnets, max is 10")
 	}
 

@@ -39,6 +39,7 @@ const (
 	SwitchRoleSpine      SwitchRole = "spine"
 	SwitchRoleServerLeaf SwitchRole = "server-leaf"
 	SwitchRoleBorderLeaf SwitchRole = "border-leaf"
+	SwitchRoleMixedLeaf  SwitchRole = "mixed-leaf"
 )
 
 var SwitchRoles = []SwitchRole{
