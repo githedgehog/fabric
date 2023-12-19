@@ -21,6 +21,7 @@ const (
 	MCLAG_DOMAIN_ID                            = 100
 	MCLAG_PEER_LINK_PORT_CHANNEL_ID            = 250
 	MCLAG_SESSION_LINK_PORT_CHANNEL_ID         = 251
+	MCLAG_PEER_LINK_TRUNK_VLAN_RANGE           = "2..4094"    // TODO do we need to configure it?
 	MCLAG_SESSION_IP_1                         = "172.30.5.0" // TODO move to config
 	MCLAG_SESSION_IP_2                         = "172.30.5.1" // TODO move to config
 	MCLAG_SESSION_IP_PREFIX_LEN                = 31           // TODO move to config
@@ -898,18 +899,11 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		sourceIP, peerIP = peerIP, sourceIP
 	}
 
-	trunkVLANs := []string{}
-	for _, ns := range agent.Spec.VLANNamespaces {
-		for _, vlans := range ns.Ranges {
-			trunkVLANs = append(trunkVLANs, fmt.Sprintf("%d..%d", vlans.From, vlans.To))
-		}
-	}
-
 	mclagPeerPortChannelName := portChannelName(MCLAG_PEER_LINK_PORT_CHANNEL_ID)
 	mclagPeerPortChannel := &dozer.SpecInterface{
 		Description: stringPtr(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
 		Enabled:     boolPtr(true),
-		TrunkVLANs:  trunkVLANs,
+		TrunkVLANs:  []string{MCLAG_PEER_LINK_TRUNK_VLAN_RANGE},
 	}
 	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
 	for iface, peerPort := range mclagPeerLinks {
