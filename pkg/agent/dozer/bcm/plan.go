@@ -729,6 +729,8 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			portName := link.Switch.LocalPortName()
+			spec.Interfaces[portName].MTU = mtu
+
 			portChan := agent.Spec.PortChannels[connName]
 			if portChan == 0 {
 				return errors.Errorf("no port channel found for conn %s", connName)
