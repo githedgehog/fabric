@@ -17,26 +17,30 @@ import (
 )
 
 type Data struct {
-	Rack           *Store[*wiringapi.Rack]
-	Switch         *Store[*wiringapi.Switch]
-	Server         *Store[*wiringapi.Server]
-	Connection     *Store[*wiringapi.Connection]
-	SwitchProfile  *Store[*wiringapi.SwitchProfile]
-	ServerProfile  *Store[*wiringapi.ServerProfile]
-	IPv4Namespaces *Store[*vpcapi.IPv4Namespace]
-	VLANNamespace  *Store[*wiringapi.VLANNamespace]
+	Rack               *Store[*wiringapi.Rack]
+	Switch             *Store[*wiringapi.Switch]
+	Server             *Store[*wiringapi.Server]
+	Connection         *Store[*wiringapi.Connection]
+	SwitchProfile      *Store[*wiringapi.SwitchProfile]
+	ServerProfile      *Store[*wiringapi.ServerProfile]
+	IPv4Namespaces     *Store[*vpcapi.IPv4Namespace]
+	VLANNamespace      *Store[*wiringapi.VLANNamespace]
+	External           *Store[*vpcapi.External]
+	ExternalAttachment *Store[*vpcapi.ExternalAttachment]
 }
 
 func New(objs ...metav1.Object) (*Data, error) {
 	data := &Data{
-		Rack:           NewStore[*wiringapi.Rack](),
-		Switch:         NewStore[*wiringapi.Switch](),
-		Server:         NewStore[*wiringapi.Server](),
-		Connection:     NewStore[*wiringapi.Connection](),
-		SwitchProfile:  NewStore[*wiringapi.SwitchProfile](),
-		ServerProfile:  NewStore[*wiringapi.ServerProfile](),
-		IPv4Namespaces: NewStore[*vpcapi.IPv4Namespace](),
-		VLANNamespace:  NewStore[*wiringapi.VLANNamespace](),
+		Rack:               NewStore[*wiringapi.Rack](),
+		Switch:             NewStore[*wiringapi.Switch](),
+		Server:             NewStore[*wiringapi.Server](),
+		Connection:         NewStore[*wiringapi.Connection](),
+		SwitchProfile:      NewStore[*wiringapi.SwitchProfile](),
+		ServerProfile:      NewStore[*wiringapi.ServerProfile](),
+		IPv4Namespaces:     NewStore[*vpcapi.IPv4Namespace](),
+		VLANNamespace:      NewStore[*wiringapi.VLANNamespace](),
+		External:           NewStore[*vpcapi.External](),
+		ExternalAttachment: NewStore[*vpcapi.ExternalAttachment](),
 	}
 
 	return data, data.Add(objs...)
@@ -62,6 +66,10 @@ func (d *Data) Add(objs ...metav1.Object) error {
 			err = d.IPv4Namespaces.Add(typed)
 		case *wiringapi.VLANNamespace:
 			err = d.VLANNamespace.Add(typed)
+		case *vpcapi.External:
+			err = d.External.Add(typed)
+		case *vpcapi.ExternalAttachment:
+			err = d.ExternalAttachment.Add(typed)
 		default:
 			return errors.Errorf("unrecognized obj type")
 		}

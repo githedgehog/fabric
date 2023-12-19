@@ -154,6 +154,14 @@ func Load(r io.Reader, data *Data) error {
 			if err := data.Add(typed); err != nil {
 				return err
 			}
+		case *vpcapi.External:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
+		case *vpcapi.ExternalAttachment:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
 		}
 	}
 
