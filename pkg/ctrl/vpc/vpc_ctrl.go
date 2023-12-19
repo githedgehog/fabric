@@ -200,7 +200,8 @@ func (r *VPCReconciler) ensureVNIs(ctx context.Context, vpc *vpcapi.VPC) error {
 		for id := vpc.Status.VNI + 1; id < vpc.Status.VNI+VPC_VNI_OFFSET; id++ {
 			if !used[id] {
 				vpc.Status.SubnetVNIs[subnet] = id
-				l.Info("VPC Subnet VNI assigned", "vpc", vpc.Name, "subnet", subnet, "vni", vpc.Status.VNI)
+				used[id] = true
+				l.Info("VPC Subnet VNI assigned", "vpc", vpc.Name, "subnet", subnet, "vni", id)
 				ok = true
 				break
 			}
