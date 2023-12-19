@@ -153,6 +153,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		}
 
 		ipv4Namespaces := []string{}
+		vlanNamespaces := []string{}
 		for _, vpcName := range []string{vpc1, vpc2} {
 			vpc := &VPC{}
 			err := client.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: peering.Namespace}, vpc)
@@ -165,14 +166,21 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 			}
 
 			ipv4Namespaces = append(ipv4Namespaces, vpc.Spec.IPv4Namespace)
+			vlanNamespaces = append(vlanNamespaces, vpc.Spec.VLANNamespace)
 		}
 
 		if len(ipv4Namespaces) != 2 {
 			return nil, errors.Errorf("failed to find IPv4 namespaces for VPCs")
 		}
-
 		if ipv4Namespaces[0] != ipv4Namespaces[1] {
 			return nil, errors.Errorf("VPCs must be in the same IPv4 namespace")
+		}
+
+		if len(vlanNamespaces) != 2 {
+			return nil, errors.Errorf("failed to find VLAN namespaces for VPCs")
+		}
+		if vlanNamespaces[0] != vlanNamespaces[1] {
+			return nil, errors.Errorf("VPCs must be in the same VLAN namespace")
 		}
 
 		if peering.Spec.Remote != "" {
