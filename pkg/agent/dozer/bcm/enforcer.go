@@ -1,6 +1,7 @@
 package bcm
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -9,6 +10,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"golang.org/x/exp/maps"
 	"k8s.io/apimachinery/pkg/api/equality"
 )
 
@@ -57,6 +59,7 @@ const (
 
 	ActionWeightCommunityListUpdate
 
+	ActionWeightInterfaceBasePortChannelsUpdate
 	ActionWeightInterfaceBaseUpdate
 
 	ActionWeightVRFBaseUpdate
@@ -189,11 +192,11 @@ func (q *ActionQueue) Sort() {
 	})
 }
 
-type ValueEnforcer[Key comparable, Value dozer.SpecPart] interface {
+type ValueEnforcer[Key cmp.Ordered, Value dozer.SpecPart] interface {
 	Handle(basePath string, key Key, actual, desired Value, actions *ActionQueue) error
 }
 
-type DefaultMapEnforcer[Key comparable, Value dozer.SpecPart] struct {
+type DefaultMapEnforcer[Key cmp.Ordered, Value dozer.SpecPart] struct {
 	Summary       string
 	CustomHandler func(basePath string, actual, desired map[Key]Value, actions *ActionQueue) error
 	ValueHandler  ValueEnforcer[Key, Value] // used by default map handler
@@ -208,7 +211,11 @@ func (h *DefaultMapEnforcer[Key, Value]) Handle(basePath string, actualMap, desi
 	}
 
 	// for each actual value in the map we want to delete it if it's not present in desired
-	for key, actual := range actualMap {
+	actualKeys := maps.Keys(actualMap)
+	slices.Sort(actualKeys)
+	for _, key := range actualKeys {
+		actual := actualMap[key]
+
 		if desired, ok := desiredMap[key]; !ok {
 			err := h.ValueHandler.Handle(basePath, key, actual, desired, actions)
 			if err != nil {
@@ -218,8 +225,12 @@ func (h *DefaultMapEnforcer[Key, Value]) Handle(basePath string, actualMap, desi
 	}
 
 	// for each desired value in the map we want to create or update state (actual=value or nil and desired=value)
-	for key, desired := range desiredMap {
+	desiredKeys := maps.Keys(desiredMap)
+	slices.Sort(desiredKeys)
+	for _, key := range desiredKeys {
+		desired := desiredMap[key]
 		actual := actualMap[key]
+
 		err := h.ValueHandler.Handle(basePath, key, actual, desired, actions)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating create/update actions for map")

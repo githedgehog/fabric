@@ -715,9 +715,10 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
-		if mtu == nil {
-			mtu = uint16Ptr(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
-		}
+		// TODO remove when we have a way to configure MTU for port channels reliably
+		// if mtu == nil {
+		mtu = uint16Ptr(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
+		//}
 
 		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
 			return errors.Wrapf(err, "failed to validate server facing MTU for conn %s", connName)
@@ -729,8 +730,6 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			portName := link.Switch.LocalPortName()
-			spec.Interfaces[portName].MTU = mtu
-
 			portChan := agent.Spec.PortChannels[connName]
 			if portChan == 0 {
 				return errors.Errorf("no port channel found for conn %s", connName)
@@ -752,7 +751,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			descr := fmt.Sprintf("PC%d %s %s %s", portChan, connType, link.Server.DeviceName(), connName)
-			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, nil, agent)
+			err := setupPhysicalInterfaceWithPortChannel(spec, portName, descr, connPortChannelName, mtu, agent)
 			if err != nil {
 				return errors.Wrapf(err, "failed to setup physical interface %s", portName)
 			}

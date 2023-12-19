@@ -48,6 +48,10 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	CustomHandler: func(basePath string, name string, actual, desired *dozer.SpecInterface, actions *ActionQueue) error {
 		basePath += fmt.Sprintf("/interfaces/interface[name=%s]", name)
 
+		if err := specInterfaceBasePortChannelsEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle interface base port channels")
+		}
+
 		if err := specInterfaceBaseEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle interface base")
 		}
@@ -88,11 +92,37 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	},
 }
 
+var specInterfaceBasePortChannelsEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
+	Getter: func(key string, value *dozer.SpecInterface) any {
+		return []any{value.Description, value.Enabled, value.MTU}
+	},
+	Skip: func(key string, actual, desired *dozer.SpecInterface) bool {
+		return !isPortChannel(key)
+	},
+	Summary:      "Interface %s Base PortChannels",
+	NoReplace:    true,
+	UpdateWeight: ActionWeightInterfaceBasePortChannelsUpdate,
+	DeleteWeight: ActionWeightInterfaceBaseDelete,
+	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+		if (isManagement(name) || isPhysical(name)) && desired == nil {
+			return &dozer.SpecInterface{
+				Enabled:     ygot.Bool(false),
+				Description: ygot.String(INTERFACE_DISABLED_DESCRIPTION),
+			}
+		}
+		return desired
+	},
+	Marshal: marshalSpecInterfaceBaseEnforcer,
+}
+
 var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Getter: func(key string, value *dozer.SpecInterface) any {
 		return []any{value.Description, value.Enabled, value.MTU}
 	},
-	Summary:      "Interface %s base",
+	Skip: func(key string, actual, desired *dozer.SpecInterface) bool {
+		return isPortChannel(key)
+	},
+	Summary:      "Interface %s Base",
 	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceBaseUpdate,
 	DeleteWeight: ActionWeightInterfaceBaseDelete,
@@ -105,39 +135,41 @@ var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfa
 		}
 		return desired
 	},
-	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
-		val := &oc.OpenconfigInterfaces_Interfaces_Interface{
-			Name: ygot.String(name),
-			Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
-				Name:        ygot.String(name),
-				Description: value.Description,
-				Enabled:     value.Enabled,
-				Mtu:         value.MTU, // TODO we'll not be able to unset it as we can't use replace
-			},
-		}
+	Marshal: marshalSpecInterfaceBaseEnforcer,
+}
 
-		if isPortChannel(name) {
-			val.Aggregation = &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation{
-				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_Config{},
-			}
-		}
+var marshalSpecInterfaceBaseEnforcer = func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	val := &oc.OpenconfigInterfaces_Interfaces_Interface{
+		Name: ygot.String(name),
+		Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
+			Name:        ygot.String(name),
+			Description: value.Description,
+			Enabled:     value.Enabled,
+			Mtu:         value.MTU, // TODO we'll not be able to unset it as we can't use replace
+		},
+	}
 
-		if isVLAN(name) {
-			val.RoutedVlan = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan{
-				Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4{
-					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{
-						Enabled: ygot.Bool(true),
-					},
+	if isPortChannel(name) {
+		val.Aggregation = &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation{
+			Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_Config{},
+		}
+	}
+
+	if isVLAN(name) {
+		val.RoutedVlan = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan{
+			Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4{
+				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{
+					Enabled: ygot.Bool(true),
 				},
-			}
-		}
-
-		return &oc.OpenconfigInterfaces_Interfaces{
-			Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
-				name: val,
 			},
-		}, nil
-	},
+		}
+	}
+
+	return &oc.OpenconfigInterfaces_Interfaces{
+		Interface: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface{
+			name: val,
+		},
+	}, nil
 }
 
 var specInterfaceVLANIPsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterfaceIP]{
@@ -511,9 +543,6 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 		if ocIface.Ethernet != nil {
 			if ocIface.Ethernet.Config != nil {
 				iface.PortChannel = ocIface.Ethernet.Config.AggregateId
-				if iface.PortChannel != nil {
-					iface.MTU = nil // we only want to see it on the portchannel itself
-				}
 
 				if !isManagement(name) { // TODO support configuring speed on Mgmt interface
 					iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)

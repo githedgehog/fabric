@@ -7,6 +7,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,7 +68,7 @@ func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Obje
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	// TODO some connections or their parts should be immutable
 
-	// oldConn := oldObj.(*wiringapi.Connection)
+	oldConn := oldObj.(*wiringapi.Connection)
 	newConn := newObj.(*wiringapi.Connection)
 
 	warns, err := newConn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset)
@@ -75,9 +76,11 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 		return warns, err
 	}
 
-	// if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
-	// 	return nil, errors.Errorf("connection spec is immutable")
-	// }
+	if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil {
+		if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
+			return nil, errors.Errorf("connection spec is immutable")
+		}
+	}
 
 	return warns, nil
 }
