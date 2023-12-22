@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "fabric-dhcpd.fullname" . }}
+  labels:
+    {{- include "fabric-dhcpd.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "fabric-dhcpd.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "fabric-dhcpd.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
