@@ -7,6 +7,7 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
+	"github.com/vishvananda/netlink"
 	"go.githedgehog.com/fabric/api/dhcp/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,15 +24,22 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		if err != nil {
 			return errors.Wrapf(err, "handleDiscover4: failed to get subnet info")
 		}
+		routes, err := netlink.RouteGet(req.GatewayIPAddr)
+		if err != nil {
+			log.Debugf("Error getting route %v", err)
+			return errors.Wrapf(err, "handleDiscover4: failed to get route")
+		}
 		subnet.Lock()
 		defer subnet.Unlock()
 		if reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]; ok {
 			// We have a reservation for this populate the response and send back
 			resp.YourIPAddr = reservation.address.IP
-			//net.ParseCIDR(reservation.address.String())
 			resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
 			resp.Options.Update(dhcpv4.OptSubnetMask(reservation.address.Mask))
-			resp.Options.Update(dhcpv4.OptRouter(net.IP(subnet.dhcpSubnet.Spec.Gateway)))
+
+			resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
+
+			resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
 			return nil
 		}
 		// This is not  a know reservation
@@ -42,7 +50,9 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		resp.YourIPAddr = ipnet.IP
 		resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
 		resp.Options.Update(dhcpv4.OptSubnetMask(ipnet.Mask))
-		resp.Options.Update(dhcpv4.OptRouter(net.IP(subnet.dhcpSubnet.Spec.Gateway)))
+		resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
+		resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
+
 		subnet.allocations.allocation[req.ClientHWAddr.String()] = &ipreservation{
 			address:    ipnet,
 			MacAddress: req.ClientHWAddr.String(),
@@ -70,14 +80,20 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 
 func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
+
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 		if len(vrfName) > 1 {
 			vrfName = vrfName[1:]
 		}
+		routes, err := netlink.RouteGet(req.GatewayIPAddr)
+		if err != nil {
+			log.Errorf("Error getting route %v", err)
+		}
+		log.Debugf("Received request from %s:%s serverip %s Req Summary %s", vrfName, circuitID, req.ServerIPAddr, req.Summary())
 		subnet, err := getSubnetInfo(string(vrfName), string(circuitID))
 		if err != nil {
-			return errors.Wrapf(err, "handleDiscover4: failed to get subnet info")
+			return errors.Wrapf(err, "handleRequest4: failed to get subnet info")
 		}
 		subnet.Lock()
 		defer subnet.Unlock()
@@ -88,7 +104,8 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			resp.YourIPAddr = reservation.address.IP
 			resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
 			resp.Options.Update(dhcpv4.OptSubnetMask(reservation.address.Mask))
-			resp.Options.Update(dhcpv4.OptRouter(net.IP(subnet.dhcpSubnet.Spec.Gateway)))
+			resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
+			resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 			subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1alpha2.DHCPAllocated{
 				IP:       reservation.address.IP.String(),
 				Expiry:   metav1.NewTime(reservation.expiry),
@@ -99,12 +116,13 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		}
 		ipnet, err := subnet.pool.Allocate()
 		if err != nil {
-			return errors.Wrapf(err, "handleDiscover4: failed to allocate ip")
+			return errors.Wrapf(err, "handleRequest4: failed to allocate ip")
 		}
 		resp.YourIPAddr = ipnet.IP
 		resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
 		resp.Options.Update(dhcpv4.OptSubnetMask(ipnet.Mask))
-		resp.Options.Update(dhcpv4.OptRouter(net.IP(subnet.dhcpSubnet.Spec.Gateway)))
+		resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
+		resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
 		subnet.allocations.allocation[req.ClientHWAddr.String()] = &ipreservation{
 			address:    ipnet,
 			MacAddress: req.ClientHWAddr.String(),

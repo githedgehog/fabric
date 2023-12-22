@@ -82,6 +82,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 								Hostname:   v.Hostname,
 								state:      committed,
 							}
+							pool.AllocateIP(net.IPNet{IP: net.ParseIP(v.IP), Mask: cidr.Mask})
 						}
 						log.Infof("Received Add event for subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)
 						// Create a new managed subnet.
@@ -104,7 +105,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						pluginHdl.dhcpSubnets.Lock()
 						val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
 						if !ok {
-							log.Infof("Received modify event for dhcp subnet that does not exist: %s:%s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID)
+							log.Errorf("Received modify event for dhcp subnet that does not exist: %s:%s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID)
 							pluginHdl.dhcpSubnets.Unlock()
 							continue
 						}
@@ -185,6 +186,8 @@ func updateBackend4(dhcpsubnet *dhcpapi.DHCPSubnet) error {
 	// Do i need entire dhcpsubnet object or only status
 	// Locks for subnet are already held by the caller
 	// ignore error for time being
-	pluginHdl.svcHdl.updateStatus(*dhcpsubnet)
+	if err := pluginHdl.svcHdl.updateStatus(*dhcpsubnet); err != nil {
+		log.Errorf("Update to dhcpsubnet failed: %v", err)
+	}
 	return nil
 }
