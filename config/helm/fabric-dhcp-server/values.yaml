@@ -5,9 +5,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/githedgehog/fabric/fabric-dhcp-server
+  repository: 172.30.1.1:31000/githedgehog/fabric/fabric-dhcp-server
   pullPolicy: Always
-  tag: "v0.15.3"
+  tag: "v0.22.3"
 
 imagePullSecrets: []
 nameOverride: ""
