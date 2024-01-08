@@ -1604,6 +1604,14 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			importVrfRouteMap := importVrfRouteMapName(vpcName)
+			spec.RouteMaps[importVrfRouteMap].Statements["5"] = &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: stringPtr(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
+					MatchSourceVRF:  stringPtr(ipnsVrfName(vpc.IPv4Namespace)),
+				},
+				Result: dozer.SpecRouteMapResultReject,
+			}
+
 			idx := agent.Spec.ExternalSeqs[externalName]
 			if idx == 0 {
 				return errors.Errorf("no external seq for external %s", externalName)
