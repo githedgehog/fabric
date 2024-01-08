@@ -179,8 +179,7 @@ type SpecVRFTableConnection struct {
 }
 
 type SpecVRFStaticRoute struct {
-	Description *string                     `json:"description,omitempty"`
-	NextHops    []SpecVRFStaticRouteNextHop `json:"nextHops,omitempty"`
+	NextHops []SpecVRFStaticRouteNextHop `json:"nextHops,omitempty"`
 }
 
 type SpecVRFStaticRouteNextHop struct {

@@ -509,8 +509,7 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 				prefix: {
 					Prefix: ygot.String(prefix),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_Config{
-						Prefix:      ygot.String(prefix),
-						Description: value.Description,
+						Prefix: ygot.String(prefix),
 					},
 					NextHops: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops{
 						NextHop: nextHops,
@@ -722,11 +721,6 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			}]
 			if staticProto != nil && staticProto.StaticRoutes != nil {
 				for prefix, staticRoute := range staticProto.StaticRoutes.Static {
-					var description *string
-					if staticRoute.Config != nil {
-						description = staticRoute.Config.Description
-					}
-
 					nextHops := []dozer.SpecVRFStaticRouteNextHop{}
 					if staticRoute.NextHops != nil {
 						for _, nextHop := range staticRoute.NextHops.NextHop {
@@ -754,8 +748,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					}
 
 					staticRoutes[prefix] = &dozer.SpecVRFStaticRoute{
-						Description: description,
-						NextHops:    nextHops,
+						NextHops: nextHops,
 					}
 				}
 			}
