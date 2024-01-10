@@ -31,7 +31,7 @@ api-chart-push-dev: api-chart-build helm ## Push Fabric API (CRDs) Helm chart
 
 .PHONY: api-chart-install
 api-chart-install: api-chart-build helm ## Install Fabric API (CRDs) Helm chart
-	$(HELM) upgrade --install fabric-api $(API_HELM_PACKAGE)
+	$(HELM) upgrade --install --namespace default fabric-api $(API_HELM_PACKAGE)
 
 # .PHONY: api-helm-install
 # api-helm-install: api-helm-build helm ## Install Fabric API (CRDs) Helm chart
