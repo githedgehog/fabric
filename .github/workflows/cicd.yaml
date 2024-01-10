@@ -57,8 +57,7 @@ jobs:
           limit-access-to-actor: true
 
   test:
-    # runs-on: ["lab", "simple", "jammy"]
-    runs-on: ubuntu-latest
+    runs-on: lab
     needs:
       - cache-tools
 
@@ -107,8 +106,7 @@ jobs:
           limit-access-to-actor: true
 
   kind-test-api:
-    # runs-on: ["lab", "dind", "jammy"]
-    runs-on: ubuntu-latest
+    runs-on: lab
     needs:
       - cache-tools
 
@@ -154,8 +152,7 @@ jobs:
           limit-access-to-actor: true
 
   build:
-    # runs-on: ["lab", "dind", "jammy"]
-    runs-on: ubuntu-latest
+    runs-on: lab
     needs:
       - cache-tools
 
@@ -189,8 +186,7 @@ jobs:
           limit-access-to-actor: true
 
   publish:
-    # runs-on: ["lab", "simple", "jammy"]
-    runs-on: ubuntu-latest
+    runs-on: lab
     if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
     needs:
       - cache-tools
