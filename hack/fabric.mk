@@ -17,7 +17,7 @@ fabric-image-push-dev: fabric-image-build ## Push fabric image
 	skopeo copy --dest-tls-verify=false docker-daemon:$(OCI_REPO)/fabric:$(VERSION) docker://$(OCI_REPO)/fabric:$(VERSION)
 
 .PHONY: fabric-chart-build
-fabric-chart-build: ## Build fabric chart
+fabric-chart-build: helmify kustomize helm ## Build fabric chart
 	rm config/helm/fabric-*.tgz || true
 	rm -rf config/helm/fabric/templates/*.yaml config/helm/fabric/values.yaml
 	$(KUSTOMIZE) build config/default | $(HELMIFY) config/helm/fabric
