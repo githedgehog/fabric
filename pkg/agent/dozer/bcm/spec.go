@@ -34,6 +34,14 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle lldp interfaces")
 		}
 
+		if err := specNTPEnforcer.Handle(basePath, "", actual.NTP, desired.NTP, actions); err != nil {
+			return errors.Wrap(err, "failed to handle ntp")
+		}
+
+		if err := specNTPServersEnforcer.Handle(basePath, actual.NTPServers, desired.NTPServers, actions); err != nil {
+			return errors.Wrap(err, "failed to handle ntp servers")
+		}
+
 		if err := specPortGroupsEnforcer.Handle(basePath, actual.PortGroups, desired.PortGroups, actions); err != nil {
 			return errors.Wrap(err, "failed to handle port groups")
 		}
@@ -133,6 +141,14 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualLLDPInterfaces(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load lldp interfaces")
+	}
+
+	if err := loadActualNTP(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load ntp")
+	}
+
+	if err := loadActualNTPServers(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load ntp servers")
 	}
 
 	if err := loadActualPortGroups(ctx, client, spec); err != nil {

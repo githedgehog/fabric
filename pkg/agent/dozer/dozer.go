@@ -33,6 +33,8 @@ type Spec struct {
 	Hostname           *string                           `json:"hostname,omitempty"`
 	LLDP               *SpecLLDP                         `json:"lldp,omitempty"`
 	LLDPInterfaces     map[string]*SpecLLDPInterface     `json:"lldpInterfaces,omitempty"`
+	NTP                *SpecNTP                          `json:"ntp,omitempty"`
+	NTPServers         map[string]*SpecNTPServer         `json:"ntpServers,omitempty"`
 	Users              map[string]*SpecUser              `json:"users,omitempty"`
 	PortGroups         map[string]*SpecPortGroup         `json:"portGroupSpeeds,omitempty"`
 	PortBreakouts      map[string]*SpecPortBreakout      `json:"portBreakouts,omitempty"`
@@ -64,6 +66,14 @@ type SpecLLDP struct {
 type SpecLLDPInterface struct {
 	Enabled        *bool   `json:"enabled,omitempty"`
 	ManagementIPv4 *string `json:"managementIPv4,omitempty"`
+}
+
+type SpecNTP struct {
+	SourceInterface []string `json:"sourceInterface,omitempty"`
+}
+
+type SpecNTPServer struct {
+	Prefer *bool `json:"prefer,omitempty"`
 }
 
 type SpecUser struct {
@@ -418,6 +428,8 @@ var (
 	_ SpecPart = (*Spec)(nil)
 	_ SpecPart = (*SpecLLDP)(nil)
 	_ SpecPart = (*SpecLLDPInterface)(nil)
+	_ SpecPart = (*SpecNTP)(nil)
+	_ SpecPart = (*SpecNTPServer)(nil)
 	_ SpecPart = (*SpecUser)(nil)
 	_ SpecPart = (*SpecPortGroup)(nil)
 	_ SpecPart = (*SpecPortBreakout)(nil)
@@ -463,6 +475,14 @@ func (s *SpecLLDP) IsNil() bool {
 }
 
 func (s *SpecLLDPInterface) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecNTP) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecNTPServer) IsNil() bool {
 	return s == nil
 }
 

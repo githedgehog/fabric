@@ -55,6 +55,8 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		Hostname:        stringPtr(agent.Name),
 		LLDP:            &dozer.SpecLLDP{},
 		LLDPInterfaces:  map[string]*dozer.SpecLLDPInterface{},
+		NTP:             &dozer.SpecNTP{},
+		NTPServers:      map[string]*dozer.SpecNTPServer{},
 		PortGroups:      map[string]*dozer.SpecPortGroup{},
 		PortBreakouts:   map[string]*dozer.SpecPortBreakout{},
 		Interfaces:      map[string]*dozer.SpecInterface{},
@@ -113,6 +115,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planLoopbacks(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan switch IP loopbacks")
+	}
+
+	err = planNTP(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan NTP")
 	}
 
 	err = planDefaultVRFWithBGP(agent, spec)
@@ -279,6 +286,21 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
+	spec.NTP.SourceInterface = []string{LO_SWITCH}
+
+	if !strings.HasSuffix(agent.Spec.Config.ControlVIP, "/32") {
+		return errors.Errorf("invalid control VIP %s", agent.Spec.Config.ControlVIP)
+	}
+	addr, _ := strings.CutSuffix(agent.Spec.Config.ControlVIP, "/32")
+
+	spec.NTPServers[addr] = &dozer.SpecNTPServer{
+		Prefer: boolPtr(true),
 	}
 
 	return nil

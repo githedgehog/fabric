@@ -85,6 +85,8 @@ const (
 	ActionWeightInterfaceSubinterfaceIPsUpdate
 
 	ActionWeightLLDPInterfaceUpdate
+	ActionWeightNTP
+	ActionWeightNTPServerUpdate
 
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate
@@ -147,6 +149,7 @@ const (
 	ActionWeightNATBaseDelete
 
 	ActionWeightLLDPInterfaceDelete
+	ActionWeightNTPServerDelete
 
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
