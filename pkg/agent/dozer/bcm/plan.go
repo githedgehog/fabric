@@ -1422,12 +1422,20 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		vpc1Attached := attachedVPCs[vpc1Name] || agent.Spec.MCLAGAttachedVPCs[vpc1Name]
 		vpc2Attached := attachedVPCs[vpc2Name] || agent.Spec.MCLAGAttachedVPCs[vpc2Name]
 
-		if !vpc1Attached || !vpc2Attached {
-			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
-			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+		if !vpc1Attached || !vpc2Attached { // one or both VPCs aren't attached - no loopback workaround needed
+			remote := !vpc1Attached && !vpc2Attached // both VPCs aren't attached - remote peering
 
-			// remote
-			if !vpc1Attached && !vpc2Attached {
+			// we only need to import vrf if the other VPC is attached (locally or on other MCLAG switch) or it's remote peering
+
+			if remote || vpc1Attached {
+				spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
+			}
+
+			if remote || vpc2Attached {
+				spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+			}
+
+			if remote {
 				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
 				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
 
@@ -1446,7 +1454,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Result: dozer.SpecRouteMapResultReject,
 				}
 			}
-		} else if peering.Remote == "" {
+		} else if peering.Remote == "" { // both VPCs are attached - loopback workaround needed
 			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, "vpc@"+peeringName)
 			if err != nil {
 				return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
