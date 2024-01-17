@@ -182,7 +182,7 @@ func main() {
 					{
 						Name:    "peer",
 						Aliases: []string{"peering"},
-						Usage:   "Peering connection between vpcs",
+						Usage:   "Enable peering between vpcs",
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,
@@ -350,8 +350,9 @@ func main() {
 				},
 			},
 			{
-				Name:  "external",
-				Usage: "External commands",
+				Name:    "external",
+				Aliases: []string{"ext"},
+				Usage:   "External commands",
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
@@ -388,6 +389,48 @@ func main() {
 								IPv4Namespace:     cCtx.String("ipv4-namespace"),
 								InboundCommunity:  cCtx.String("inbound-community"),
 								OutboundCommunity: cCtx.String("outbound-community"),
+							})
+						},
+					},
+					{
+						Name:    "peer",
+						Aliases: []string{"peering"},
+						Usage:   "Enable peering between external and vpc",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							printYamlFlag,
+							&cli.StringFlag{
+								Name:  "vpc",
+								Usage: "vpc name",
+							},
+							&cli.StringFlag{
+								Name:    "external",
+								Aliases: []string{"ext"},
+								Usage:   "external name",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-subnet",
+								Aliases: []string{"subnet"},
+								Usage:   "vpc subnets to enable peering for",
+								Value:   cli.NewStringSlice("default"),
+							},
+							&cli.StringSliceFlag{
+								Name:    "external-prefix",
+								Aliases: []string{"prefix"},
+								Usage:   "external prefixes to enable peering for, could be in a format 10.0.0.0/8_le32_ge32",
+								Value:   cli.NewStringSlice("0.0.0.0/0_le32"),
+							},
+						},
+						Before: func(cCtx *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return hhfctl.ExternalPeering(ctx, printYaml, &hhfctl.ExternalPeeringOptions{
+								VPC:              cCtx.String("vpc"),
+								VPCSubnets:       cCtx.StringSlice("vpc-subnet"),
+								External:         cCtx.String("external"),
+								ExternalPrefixes: cCtx.StringSlice("external-prefix"),
 							})
 						},
 					},
