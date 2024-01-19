@@ -49,6 +49,7 @@ type VPCSubnet struct {
 }
 
 type VPCDHCP struct {
+	Relay  string        `json:"relay,omitempty"`
 	Enable bool          `json:"enable,omitempty"`
 	Range  *VPCDHCPRange `json:"range,omitempty"`
 }
@@ -131,56 +132,64 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 	}
 
 	subnets := []*net.IPNet{}
-	for _, subnetCfg := range vpc.Spec.Subnets {
+	for subnetName, subnetCfg := range vpc.Spec.Subnets {
 		if subnetCfg.Subnet == "" {
-			return nil, errors.Errorf("subnet is required")
+			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
 		}
 
 		_, ipNet, err := net.ParseCIDR(subnetCfg.Subnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse subnet %s", subnetCfg.Subnet)
+			return nil, errors.Wrapf(err, "subnet %s: failed to parse subnet %s", subnetName, subnetCfg.Subnet)
 		}
 
 		for _, reserved := range reservedSubnets {
 			if reserved.Contains(ipNet.IP) {
-				return nil, errors.Errorf("subnet %s is reserved", subnetCfg.Subnet)
+				return nil, errors.Errorf("subnet %s: subnet %s is reserved", subnetName, subnetCfg.Subnet)
 			}
+		}
+
+		if subnetCfg.VLAN == "" {
+			return nil, errors.Errorf("subnet %s: vlan is required", subnetName)
 		}
 
 		subnets = append(subnets, ipNet)
 
+		if subnetCfg.DHCP.Relay != "" && subnetCfg.DHCP.Enable {
+			return nil, errors.Errorf("subnet %s: dhcp relay and dhcp server cannot be enabled at the same time", subnetName)
+		}
+
 		if subnetCfg.DHCP.Enable {
 			// TODO remove after migration to custom DHCP server
 			if vpc.Spec.IPv4Namespace != "default" {
-				return nil, errors.Errorf("DHCP is not supported for non-default IPv4Namespace yet")
+				return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default IPv4Namespace yet", subnetName)
 			}
 			if vpc.Spec.VLANNamespace != "default" {
-				return nil, errors.Errorf("DHCP is not supported for non-default VLANNamespace yet")
+				return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default VLANNamespace yet", subnetName)
 			}
 
 			if subnetCfg.DHCP.Range != nil {
 				if subnetCfg.DHCP.Range.Start != "" {
 					ip := net.ParseIP(subnetCfg.DHCP.Range.Start)
 					if ip == nil {
-						return nil, errors.Errorf("invalid dhcp range start %s", subnetCfg.DHCP.Range.Start)
+						return nil, errors.Errorf("subnet %s: invalid dhcp range start %s", subnetName, subnetCfg.DHCP.Range.Start)
 					}
 					if ip.Equal(ipNet.IP) {
-						return nil, errors.Errorf("dhcp range start %s is equal to subnet", subnetCfg.DHCP.Range.Start)
+						return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.Start)
 					}
 					if !ipNet.Contains(ip) {
-						return nil, errors.Errorf("dhcp range start %s is not in the subnet", subnetCfg.DHCP.Range.Start)
+						return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
 					}
 				}
 				if subnetCfg.DHCP.Range.End != "" {
 					ip := net.ParseIP(subnetCfg.DHCP.Range.End)
 					if ip == nil {
-						return nil, errors.Errorf("invalid dhcp range end %s", subnetCfg.DHCP.Range.End)
+						return nil, errors.Errorf("subnet %s: invalid dhcp range end %s", subnetName, subnetCfg.DHCP.Range.End)
 					}
 					if ip.Equal(ipNet.IP) {
-						return nil, errors.Errorf("dhcp range end %s is equal to subnet", subnetCfg.DHCP.Range.End)
+						return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.End)
 					}
 					if !ipNet.Contains(ip) {
-						return nil, errors.Errorf("dhcp range end %s is not in the subnet", subnetCfg.DHCP.Range.End)
+						return nil, errors.Errorf("subnet %s: dhcp range end %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.End)
 					}
 				}
 
