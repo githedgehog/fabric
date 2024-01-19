@@ -19,11 +19,13 @@ package v1alpha2
 import (
 	"context"
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -592,7 +594,7 @@ func (conn *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFaci
 	return nil
 }
 
-func (conn *Connection) Validate(ctx context.Context, client validation.Client, fabricMTU uint16, serverFacingMTUOffset uint16) (admission.Warnings, error) {
+func (conn *Connection) Validate(ctx context.Context, client validation.Client, fabricMTU uint16, serverFacingMTUOffset uint16, resrvedSubnets []*net.IPNet) (admission.Warnings, error) {
 	// TODO validate local port names against server/switch profiles
 	// TODO validate used port names across all connections
 
@@ -603,6 +605,30 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 	switches, servers, _, _, err := conn.Spec.Endpoints()
 	if err != nil {
 		return nil, err
+	}
+
+	if conn.Spec.StaticExternal != nil {
+		se := conn.Spec.StaticExternal.Link.Switch
+
+		subnets := []*net.IPNet{}
+		for _, subnet := range se.Subnets {
+			_, ipNet, err := net.ParseCIDR(subnet)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
+			}
+
+			subnets = append(subnets, ipNet)
+		}
+
+		if err := iputil.VerifyNoOverlap(subnets); err != nil {
+			return nil, errors.Wrapf(err, "subnets overlap")
+		}
+
+		subnets = append(subnets, resrvedSubnets...)
+
+		if err := iputil.VerifyNoOverlap(subnets); err != nil {
+			return nil, errors.Wrapf(err, "subnets overlap with reserved subnets")
+		}
 	}
 
 	if client != nil {
