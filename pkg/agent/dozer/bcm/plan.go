@@ -142,6 +142,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan external connections")
 	}
 
+	err = planStaticExternals(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan static external connections")
+	}
+
 	err = planServerConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan server connections")
@@ -708,6 +713,62 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		spec.ACLInterfaces[subIfaceName] = &dozer.SpecACLInterface{
 			Egress: stringPtr(ipnsEgressAccessList(ipns)),
+		}
+	}
+
+	return nil
+}
+
+func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
+	for connName, conn := range agent.Spec.Connections {
+		if conn.StaticExternal == nil {
+			continue
+		}
+		if conn.StaticExternal.Link.Switch.DeviceName() != agent.Name {
+			continue
+		}
+
+		cfg := conn.StaticExternal.Link.Switch
+		ip, ipNet, err := net.ParseCIDR(cfg.IP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse static external %s ip %s", connName, cfg.IP)
+		}
+		ipPrefixLen, _ := ipNet.Mask.Size()
+
+		var vlan *uint16
+		if cfg.VLAN != 0 {
+			vlan = uint16Ptr(cfg.VLAN)
+		}
+
+		spec.Interfaces[cfg.LocalPortName()] = &dozer.SpecInterface{
+			Enabled:     boolPtr(true),
+			Description: stringPtr(fmt.Sprintf("StaticExt %s", connName)),
+			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+				uint32(cfg.VLAN): {
+					VLAN: vlan,
+					IPs: map[string]*dozer.SpecInterfaceIP{
+						ip.String(): {
+							PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+						},
+					},
+				},
+			},
+		}
+
+		for _, subnet := range cfg.Subnets {
+			ip, _, err := net.ParseCIDR(subnet)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse static external %s subnet %s", connName, subnet)
+			}
+
+			spec.VRFs[VRF_DEFAULT].StaticRoutes[ip.String()] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        cfg.Gateway,
+						Interface: stringPtr(cfg.LocalPortName()),
+					},
+				},
+			}
 		}
 	}
 
