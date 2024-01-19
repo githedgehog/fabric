@@ -158,6 +158,13 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 			return nil, errors.Errorf("subnet %s: dhcp relay and dhcp server cannot be enabled at the same time", subnetName)
 		}
 
+		if subnetCfg.DHCP.Relay != "" {
+			_, _, err := net.ParseCIDR(subnetCfg.DHCP.Relay)
+			if err != nil {
+				return nil, errors.Wrapf(err, "subnet %s: failed to parse dhcp relay %s", subnetName, subnetCfg.DHCP.Relay)
+			}
+		}
+
 		if subnetCfg.DHCP.Enable {
 			// TODO remove after migration to custom DHCP server
 			if vpc.Spec.IPv4Namespace != "default" {
