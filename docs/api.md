@@ -668,6 +668,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `relay` _string_ |  |
 | `enable` _boolean_ |  |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ |  |
 
@@ -804,6 +805,7 @@ _Appears in:_
 - [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
 - [ConnNATLink](#connnatlink)
 - [ConnNATLinkSwitch](#connnatlinkswitch)
+- [ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
 
@@ -1022,6 +1024,52 @@ _Appears in:_
 | `snat` _[SNAT](#snat)_ |  |
 
 
+#### ConnStaticExternal
+
+
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description |
+| --- | --- |
+| `link` _[ConnStaticExternalLink](#connstaticexternallink)_ |  |
+
+
+#### ConnStaticExternalLink
+
+
+
+
+
+_Appears in:_
+- [ConnStaticExternal](#connstaticexternal)
+
+| Field | Description |
+| --- | --- |
+| `switch` _[ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)_ |  |
+
+
+#### ConnStaticExternalLinkSwitch
+
+
+
+
+
+_Appears in:_
+- [ConnStaticExternalLink](#connstaticexternallink)
+
+| Field | Description |
+| --- | --- |
+| `port` _string_ |  |
+| `ip` _string_ |  |
+| `gateway` _string_ |  |
+| `subnets` _string array_ |  |
+| `vlan` _integer_ |  |
+
+
 #### ConnUnbundled
 
 
@@ -1089,6 +1137,7 @@ _Appears in:_
 | `fabric` _[ConnFabric](#connfabric)_ |  |
 | `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ |  |
 | `external` _[ConnExternal](#connexternal)_ |  |
+| `staticExternal` _[ConnStaticExternal](#connstaticexternal)_ |  |
 
 
 
