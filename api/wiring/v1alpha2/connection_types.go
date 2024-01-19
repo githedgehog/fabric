@@ -41,6 +41,7 @@ const (
 	CONNECTION_TYPE_FABRIC       = "fabric"
 	CONNECTION_TYPE_VPC_LOOPBACK = "vpc-loopback"
 	CONNECTION_EXTERNAL          = "external"
+	CONNECTION_STATIC_EXTERNAL   = "static-external"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -160,17 +161,36 @@ type ConnExternal struct {
 	Link ConnExternalLink `json:"link,omitempty"`
 }
 
+type ConnStaticExternalLinkSwitch struct {
+	BasePortName `json:",inline"`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	IP string `json:"ip,omitempty"`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
+	Gateway string   `json:"gateway,omitempty"`
+	Subnets []string `json:"subnets,omitempty"`
+	VLAN    uint16   `json:"vlan,omitempty"`
+}
+
+type ConnStaticExternalLink struct {
+	Switch ConnStaticExternalLinkSwitch `json:"switch,omitempty"`
+}
+
+type ConnStaticExternal struct {
+	Link ConnStaticExternalLink `json:"link,omitempty"`
+}
+
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
-	Unbundled   *ConnUnbundled   `json:"unbundled,omitempty"`
-	Bundled     *ConnBundled     `json:"bundled,omitempty"`
-	Management  *ConnMgmt        `json:"management,omitempty"`
-	MCLAG       *ConnMCLAG       `json:"mclag,omitempty"`
-	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
-	NAT         *ConnNAT         `json:"nat,omitempty"`
-	Fabric      *ConnFabric      `json:"fabric,omitempty"`
-	VPCLoopback *ConnVPCLoopback `json:"vpcLoopback,omitempty"`
-	External    *ConnExternal    `json:"external,omitempty"`
+	Unbundled      *ConnUnbundled      `json:"unbundled,omitempty"`
+	Bundled        *ConnBundled        `json:"bundled,omitempty"`
+	Management     *ConnMgmt           `json:"management,omitempty"`
+	MCLAG          *ConnMCLAG          `json:"mclag,omitempty"`
+	MCLAGDomain    *ConnMCLAGDomain    `json:"mclagDomain,omitempty"`
+	NAT            *ConnNAT            `json:"nat,omitempty"`
+	Fabric         *ConnFabric         `json:"fabric,omitempty"`
+	VPCLoopback    *ConnVPCLoopback    `json:"vpcLoopback,omitempty"`
+	External       *ConnExternal       `json:"external,omitempty"`
+	StaticExternal *ConnStaticExternal `json:"staticExternal,omitempty"`
 }
 
 // ConnectionStatus defines the observed state of Connection
@@ -305,6 +325,9 @@ func (c *ConnectionSpec) GenerateName() string {
 		} else if c.External != nil {
 			role = "external"
 			left = c.External.Link.Switch.DeviceName()
+		} else if c.StaticExternal != nil {
+			role = "static-external"
+			left = c.StaticExternal.Link.Switch.DeviceName()
 		}
 
 		if left != "" && role != "" {
@@ -356,6 +379,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_VPC_LOOPBACK
 	} else if c.External != nil {
 		labels[LabelConnectionType] = CONNECTION_EXTERNAL
+	} else if c.StaticExternal != nil {
+		labels[LabelConnectionType] = CONNECTION_STATIC_EXTERNAL
 	}
 
 	return labels
@@ -517,6 +542,11 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 
 		switches[s.External.Link.Switch.DeviceName()] = struct{}{}
 		ports[s.External.Link.Switch.PortName()] = struct{}{}
+	} else if s.StaticExternal != nil {
+		nonNills++
+
+		switches[s.StaticExternal.Link.Switch.DeviceName()] = struct{}{}
+		ports[s.StaticExternal.Link.Switch.PortName()] = struct{}{}
 	}
 
 	if nonNills != 1 {
