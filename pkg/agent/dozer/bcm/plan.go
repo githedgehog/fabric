@@ -764,7 +764,7 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[VRF_DEFAULT].StaticRoutes[subnet] = &dozer.SpecVRFStaticRoute{
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
-						IP:        cfg.Gateway,
+						IP:        cfg.NextHop,
 						Interface: stringPtr(ifName),
 					},
 				},

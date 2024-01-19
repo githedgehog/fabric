@@ -1065,7 +1065,7 @@ _Appears in:_
 | --- | --- |
 | `port` _string_ |  |
 | `ip` _string_ |  |
-| `gateway` _string_ |  |
+| `nextHop` _string_ |  |
 | `subnets` _string array_ |  |
 | `vlan` _integer_ |  |
 
