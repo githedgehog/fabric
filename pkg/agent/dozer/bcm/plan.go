@@ -755,17 +755,17 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		for _, subnet := range cfg.Subnets {
-			ip, _, err := net.ParseCIDR(subnet)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse static external %s subnet %s", connName, subnet)
-			}
+		ifName := cfg.LocalPortName()
+		if cfg.VLAN != 0 {
+			ifName = fmt.Sprintf("%s.%d", cfg.LocalPortName(), cfg.VLAN)
+		}
 
-			spec.VRFs[VRF_DEFAULT].StaticRoutes[ip.String()] = &dozer.SpecVRFStaticRoute{
+		for _, subnet := range cfg.Subnets {
+			spec.VRFs[VRF_DEFAULT].StaticRoutes[subnet] = &dozer.SpecVRFStaticRoute{
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
 						IP:        cfg.Gateway,
-						Interface: stringPtr(cfg.LocalPortName()),
+						Interface: stringPtr(ifName),
 					},
 				},
 			}
