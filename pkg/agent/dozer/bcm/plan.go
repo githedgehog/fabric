@@ -1604,10 +1604,19 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName, subnetName 
 		}
 	}
 
-	if subnet.DHCP.Enable {
-		dhcpRelayIP, _, err := net.ParseCIDR(agent.Spec.Config.ControlVIP)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
+	if subnet.DHCP.Enable || subnet.DHCP.Relay != "" {
+		var dhcpRelayIP net.IP
+
+		if subnet.DHCP.Enable {
+			dhcpRelayIP, _, err = net.ParseCIDR(agent.Spec.Config.ControlVIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
+			}
+		} else {
+			dhcpRelayIP, _, err = net.ParseCIDR(subnet.DHCP.Relay)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", subnet.DHCP.Relay, vpcName)
+			}
 		}
 
 		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
