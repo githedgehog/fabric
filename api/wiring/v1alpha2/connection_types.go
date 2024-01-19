@@ -168,7 +168,7 @@ type ConnStaticExternalLinkSwitch struct {
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
 	IP string `json:"ip,omitempty"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
-	Gateway string   `json:"gateway,omitempty"`
+	NextHop string   `json:"nextHop,omitempty"`
 	Subnets []string `json:"subnets,omitempty"`
 	VLAN    uint16   `json:"vlan,omitempty"`
 }
@@ -609,6 +609,20 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 
 	if conn.Spec.StaticExternal != nil {
 		se := conn.Spec.StaticExternal.Link.Switch
+
+		_, ipNet, err := net.ParseCIDR(se.IP)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse cidr %s", se.IP)
+		}
+
+		nextHop := net.ParseIP(se.NextHop)
+		if nextHop == nil {
+			return nil, errors.Errorf("failed to parse next hop %s", se.NextHop)
+		}
+
+		if !ipNet.Contains(nextHop) {
+			return nil, errors.Errorf("next hop %s is not in cidr %s", nextHop, ipNet)
+		}
 
 		subnets := []*net.IPNet{}
 		for _, subnet := range se.Subnets {
