@@ -757,7 +757,7 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		ifName := cfg.LocalPortName()
 		if cfg.VLAN != 0 {
-			ifName = fmt.Sprintf("%s.%d", cfg.LocalPortName(), cfg.VLAN)
+			ifName = fmt.Sprintf("%s.%d", strings.ReplaceAll(cfg.LocalPortName(), "Ethernet", "Eth"), cfg.VLAN)
 		}
 
 		for _, subnet := range cfg.Subnets {
