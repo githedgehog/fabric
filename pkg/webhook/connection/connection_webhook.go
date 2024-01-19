@@ -57,7 +57,7 @@ func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) err
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	conn := obj.(*wiringapi.Connection)
 
-	warns, err := conn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset)
+	warns, err := conn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset, w.Cfg.ParsedReservedSubnets())
 	if err != nil {
 		return warns, err
 	}
@@ -71,7 +71,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	oldConn := oldObj.(*wiringapi.Connection)
 	newConn := newObj.(*wiringapi.Connection)
 
-	warns, err := newConn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset)
+	warns, err := newConn.Validate(ctx, w.Validation, w.Cfg.FabricMTU, w.Cfg.ServerFacingMTUOffset, w.Cfg.ParsedReservedSubnets())
 	if err != nil {
 		return warns, err
 	}
