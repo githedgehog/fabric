@@ -71,6 +71,8 @@ spec:
                             start:
                               type: string
                           type: object
+                        relay:
+                          type: string
                       type: object
                     subnet:
                       type: string

@@ -283,6 +283,29 @@ spec:
                               type: object
                           type: object
                       type: object
+                    staticExternal:
+                      properties:
+                        link:
+                          properties:
+                            switch:
+                              properties:
+                                gateway:
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
+                                  type: string
+                                ip:
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                  type: string
+                                port:
+                                  type: string
+                                subnets:
+                                  items:
+                                    type: string
+                                  type: array
+                                vlan:
+                                  type: integer
+                              type: object
+                          type: object
+                      type: object
                     unbundled:
                       properties:
                         link:
@@ -703,6 +726,8 @@ spec:
                                   start:
                                     type: string
                                 type: object
+                              relay:
+                                type: string
                             type: object
                           subnet:
                             type: string
