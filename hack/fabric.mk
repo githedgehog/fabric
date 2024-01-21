@@ -82,21 +82,56 @@ fabric-dhcp-server-chart-push: fabric-dhcp-server-chart-build
 fabric-dhcp-server-chart-push-dev: fabric-dhcp-server-chart-build
 	$(HELM) push --insecure-skip-tls-verify config/helm/fabric-dhcp-server-$(VERSION).tgz oci://$(OCI_REPO)/charts
 
+.PHONY: fabric-dhcpd-build
+fabric-build-build:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/fabric-dhcpd -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhdhcpd/main.go
+
+.PHONY: fabric-dhcpd-image-build
+fabric-dhcpd-image-build: fabric-dhcpd-build
+	cp bin/fabric-dhcpd config/docker/fabric-dhcpd/fabric-dhcpd
+	cd config/docker/fabric-dhcpd && docker build -t $(OCI_REPO)/fabric-dhcpd:$(VERSION) -f Dockerfile .
+
+.PHONY: fabric-dhcpd-push
+fabric-dhcpd-push: fabric-dhcpd-image-build
+	docker push $(OCI_REPO)/fabric-dhcpd:$(VERSION)
+
+.PHONY: fabric-dhcpd-push-dev
+fabric-dhcpd-push-dev: fabric-dhcpd-image-build
+	skopeo copy --dest-tls-verify=false docker-daemon:$(OCI_REPO)/fabric-dhcpd:$(VERSION) docker://$(OCI_REPO)/fabric-dhcpd:$(VERSION)
+
+.PHONY: fabric-dhcpd-chart-build
+fabric-dhcpd-chart-build:
+	rm config/helm/fabric-dhcpd-*.tgz || true
+	$(HELM) package config/helm/fabric-dhcpd --destination config/helm --version $(VERSION)
+
+.PHONY: fabric-dhcpd-chart-push
+fabric-dhcpd-chart-push: fabric-dhcpd-chart-build
+	$(HELM) push config/helm/fabric-dhcpd-$(VERSION).tgz oci://$(OCI_REPO)/charts
+
+.PHONY: fabric-dhcpd-chart-push-dev
+fabric-dhcpd-chart-push-dev: fabric-dhcpd-chart-build
+	$(HELM) push --insecure-skip-tls-verify config/helm/fabric-dhcpd-$(VERSION).tgz oci://$(OCI_REPO)/charts
+
+
 .PHONY: dev-push
-dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev
+dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev fabric-dhcpd-push-dev fabric-dhcpd-chart-push-dev
 
 .PHONY: build
-build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build
+build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build fabric-dhcpd-build fabric-dhcpd-chart-build
 
 .PHONY: push
-push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push
+push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push fabric-dhcpd-push fabric-dhcpd-chart-push
 
 # TODO set dhcp-server image version too (helm set)
+# if kubectl get helmchart/fabric-dhcp-server ; then helm upgrade --reuse-values --set image.tag="$(VERSION)" fabric-dhcp-server config/helm/fabric-dhcp-server-$(VERSION).tgz ; fi
+# if kubectl get helmchart/fabric-dhcpd ; then helm upgrade --reuse-values --set image.tag="$(VERSION)" fabric-dhcpd config/helm/fabric-dhcpd-$(VERSION).tgz ; fi
+
 .PHONY: dev-patch
 dev-patch:
 	kubectl patch helmchart fabric-api --type=merge -p '{"spec":{"version":"$(VERSION)"}}'
 	kubectl patch helmchart fabric --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"controllerManager.manager.image.tag":"$(VERSION)"}}}'
-	kubectl patch helmchart fabric-dhcp-server --type=merge -p '{"spec":{"version":"$(VERSION)"}}'
+	if kubectl get helmchart/fabric-dhcp-server ; then kubectl patch helmchart fabric-dhcp-server --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
+	if kubectl get helmchart/fabric-dhcpd ; then kubectl patch helmchart fabric-dhcpd --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
 
 .PHONY: dev
 dev:
