@@ -83,7 +83,7 @@ fabric-dhcp-server-chart-push-dev: fabric-dhcp-server-chart-build
 	$(HELM) push --insecure-skip-tls-verify config/helm/fabric-dhcp-server-$(VERSION).tgz oci://$(OCI_REPO)/charts
 
 .PHONY: fabric-dhcpd-build
-fabric-build-build:
+fabric-dhcpd-build:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/fabric-dhcpd -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhdhcpd/main.go
 
 .PHONY: fabric-dhcpd-image-build
