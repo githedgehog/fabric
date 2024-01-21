@@ -6,6 +6,7 @@ package dhcpd
 import (
 	"context"
 	"log/slog"
+	"os"
 
 	"github.com/coredhcp/coredhcp/config"
 	"github.com/coredhcp/coredhcp/logger"
@@ -14,6 +15,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+const defaultConfig = `
+server4:
+  listen:
+    - "0.0.0.0"
+  plugins:
+    - hhdhcp: ""
+`
 
 func (d *Service) runCoreDHCP(ctx context.Context) error {
 	log := logger.GetLogger("main")
@@ -24,6 +33,14 @@ func (d *Service) runCoreDHCP(ctx context.Context) error {
 	}
 
 	// TODO conf some facade to direct logrus to slog
+
+	if _, err := os.Stat(d.Config); errors.Is(err, os.ErrNotExist) {
+		d.Config = "/etc/coredhcp.conf"
+
+		if err := os.WriteFile(d.Config, []byte(defaultConfig), 0644); err != nil {
+			return errors.Wrapf(err, "failed to write default config")
+		}
+	}
 
 	config, err := config.Load(d.Config)
 	if err != nil {
