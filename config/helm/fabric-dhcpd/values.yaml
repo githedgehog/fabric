@@ -5,10 +5,9 @@
 replicaCount: 1
 
 image:
-  repository: amitlimaye546/dhcp
+  repository: ghcr.io/githedgehog/fabric/fabric-dhcpd
   pullPolicy: Always
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "2.9"
+  tag: "0.0.0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -25,14 +24,15 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  {}
   # fsGroup: 2000
 
-
-securityContext: 
+securityContext:
   runAsUser: 0
 
-resources: {}
+resources:
+  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
