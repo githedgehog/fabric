@@ -1,6 +1,6 @@
 apiVersion: v2
 name: fabric-dhcp-server
-description: Fabric DHCP Server
+description: Hedgehog Fabric DHCP Server (ISC)
 
 # A chart can be either an 'application' or a 'library' chart.
 #
