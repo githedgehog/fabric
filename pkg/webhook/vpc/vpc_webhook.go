@@ -55,7 +55,7 @@ func (w *VPCWebhook) Default(ctx context.Context, obj runtime.Object) error {
 func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	vpc := obj.(*vpcapi.VPC)
 
-	warns, err := vpc.Validate(ctx, w.Validation, w.Cfg.ParsedReservedSubnets())
+	warns, err := vpc.Validate(ctx, w.Validation, w.Cfg.ParsedReservedSubnets(), w.Cfg.DHCPMode.IsMultiNSDHCP())
 	if err != nil {
 		return warns, err
 	}
@@ -67,7 +67,7 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, 
 	// oldVPC := oldObj.(*vpcapi.VPC)
 	newVPC := newObj.(*vpcapi.VPC)
 
-	warns, err := newVPC.Validate(ctx, w.Validation, w.Cfg.ParsedReservedSubnets())
+	warns, err := newVPC.Validate(ctx, w.Validation, w.Cfg.ParsedReservedSubnets(), w.Cfg.DHCPMode.IsMultiNSDHCP())
 	if err != nil {
 		return warns, err
 	}

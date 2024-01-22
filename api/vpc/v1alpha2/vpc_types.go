@@ -114,7 +114,7 @@ func (vpc *VPC) Default() {
 	vpc.Labels[LabelVLANNS] = vpc.Spec.VLANNamespace
 }
 
-func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reservedSubnets []*net.IPNet) (admission.Warnings, error) {
+func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reservedSubnets []*net.IPNet, multiNSDHCP bool) (admission.Warnings, error) {
 	if len(vpc.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
@@ -166,12 +166,13 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		}
 
 		if subnetCfg.DHCP.Enable {
-			// TODO remove after migration to custom DHCP server
-			if vpc.Spec.IPv4Namespace != "default" {
-				return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default IPv4Namespace yet", subnetName)
-			}
-			if vpc.Spec.VLANNamespace != "default" {
-				return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default VLANNamespace yet", subnetName)
+			if !multiNSDHCP {
+				if vpc.Spec.IPv4Namespace != "default" {
+					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default IPv4Namespace in the current Fabric config", subnetName)
+				}
+				if vpc.Spec.VLANNamespace != "default" {
+					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default VLANNamespace in the current Fabric config", subnetName)
+				}
 			}
 
 			if subnetCfg.DHCP.Range != nil {

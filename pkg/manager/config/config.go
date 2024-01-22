@@ -24,6 +24,7 @@ type Fabric struct {
 	VPCPeeringDisabled    bool                 `json:"vpcPeeringDisabled,omitempty"`
 	ReservedSubnets       []string             `json:"reservedSubnets,omitempty"`
 	Users                 []agentapi.UserCreds `json:"users,omitempty"`
+	DHCPMode              DHCPMode             `json:"dhcpMode,omitempty"`
 	DHCPDConfigMap        string               `json:"dhcpdConfigMap,omitempty"`
 	DHCPDConfigKey        string               `json:"dhcpdConfigKey,omitempty"`
 	FabricMode            FabricMode           `json:"fabricMode,omitempty"`
@@ -45,6 +46,22 @@ const (
 var FabricModes = []FabricMode{
 	FabricModeCollapsedCore,
 	FabricModeSpineLeaf,
+}
+
+type DHCPMode string
+
+const (
+	DHCPModeISC      DHCPMode = "isc"
+	DHCPModeHedgehog DHCPMode = "hedgehog"
+)
+
+var DHCPModes = []DHCPMode{
+	DHCPModeISC,
+	DHCPModeHedgehog,
+}
+
+func (m DHCPMode) IsMultiNSDHCP() bool {
+	return m == DHCPModeHedgehog
 }
 
 func Load(basedir string) (*Fabric, error) {
@@ -149,6 +166,13 @@ func Load(basedir string) (*Fabric, error) {
 	}
 	if cfg.ServerFacingMTUOffset == 0 {
 		return nil, errors.Errorf("config: serverFacingMTUOffset is required")
+	}
+
+	if cfg.DHCPMode == "" {
+		return nil, errors.Errorf("config: dhcp is required")
+	}
+	if !slices.Contains(DHCPModes, DHCPMode(cfg.DHCPMode)) {
+		return nil, errors.Errorf("config: dhcp must be one of %v", DHCPModes)
 	}
 
 	// TODO validate format of all fields

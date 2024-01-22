@@ -43,7 +43,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	}
 
 	vpc.Default()
-	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
+	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil, true)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
