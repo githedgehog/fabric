@@ -686,7 +686,7 @@ func (conn *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFaci
 	return nil
 }
 
-func (conn *Connection) Validate(ctx context.Context, client validation.Client, fabricMTU uint16, serverFacingMTUOffset uint16, resrvedSubnets []*net.IPNet) (admission.Warnings, error) {
+func (conn *Connection) Validate(ctx context.Context, client validation.Client, fabricMTU uint16, serverFacingMTUOffset uint16, resrvedSubnets []*net.IPNet, eslagAllowed bool) (admission.Warnings, error) {
 	// TODO validate local port names against server/switch profiles
 	// TODO validate used port names across all connections
 
@@ -734,6 +734,12 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 
 		if err := iputil.VerifyNoOverlap(subnets); err != nil {
 			return nil, errors.Wrapf(err, "subnets overlap with reserved subnets")
+		}
+	}
+
+	if conn.Spec.ESLAG != nil {
+		if !eslagAllowed {
+			return nil, errors.Errorf("eslag connection is not allowed in current fabric configuration")
 		}
 	}
 
