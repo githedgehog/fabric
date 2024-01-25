@@ -35,35 +35,51 @@ import (
 // TODO specify gateway explicitly?
 // TODO rename VPCSubnet.Subnet to CIDR? or CIDRBlock like in AWS?
 
-// VPCSpec defines the desired state of VPC
+// VPCSpec defines the desired state of VPC.
+// At least one subnet is required.
 type VPCSpec struct {
-	Subnets       map[string]*VPCSubnet `json:"subnets,omitempty"`
-	IPv4Namespace string                `json:"ipv4Namespace,omitempty"`
-	VLANNamespace string                `json:"vlanNamespace,omitempty"`
+	// Subnets is the list of VPC subnets to configure
+	Subnets map[string]*VPCSubnet `json:"subnets,omitempty"`
+	// IPv4Namespace is the name of the IPv4Namespace this VPC belongs to
+	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
+	// VLANNamespace is the name of the VLANNamespace this VPC belongs to
+	VLANNamespace string `json:"vlanNamespace,omitempty"`
 }
 
+// VPCSubnet defines the VPC subnet configuration
 type VPCSubnet struct {
-	Subnet string  `json:"subnet,omitempty"`
-	DHCP   VPCDHCP `json:"dhcp,omitempty"`
-	VLAN   string  `json:"vlan,omitempty"`
+	// Subnet is the subnet CIDR block, such as "10.0.0.0/24", should belong to the IPv4Namespace and be unique within the namespace
+	Subnet string `json:"subnet,omitempty"`
+	// DHCP is the on-demand DHCP configuration for the subnet
+	DHCP VPCDHCP `json:"dhcp,omitempty"`
+	// VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace
+	VLAN string `json:"vlan,omitempty"`
 }
 
+// VPCDHCP defines the on-demand DHCP configuration for the subnet
 type VPCDHCP struct {
-	Relay  string        `json:"relay,omitempty"`
-	Enable bool          `json:"enable,omitempty"`
-	Range  *VPCDHCPRange `json:"range,omitempty"`
+	// Relay is the DHCP relay IP address, if specified, DHCP server will be disabled
+	Relay string `json:"relay,omitempty"`
+	// Enable enables DHCP server for the subnet
+	Enable bool `json:"enable,omitempty"`
+	// Range is the DHCP range for the subnet if DHCP server is enabled
+	Range *VPCDHCPRange `json:"range,omitempty"`
 }
 
+// VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled
 type VPCDHCPRange struct {
+	// Start is the start IP address of the DHCP range
 	Start string `json:"start,omitempty"`
-	End   string `json:"end,omitempty"`
+	// End is the end IP address of the DHCP range
+	End string `json:"end,omitempty"`
 }
 
 // VPCStatus defines the observed state of VPC
 type VPCStatus struct {
-	VNI        uint32            `json:"vni,omitempty"` // 1..16_777_215
+	// VNI is the global Fabric-level VNI allocated for the VPC
+	VNI uint32 `json:"vni,omitempty"`
+	// SubnetVNIs is the map of subnet names to the global Fabric-level VNIs allocated for the VPC subnets
 	SubnetVNIs map[string]uint32 `json:"subnetVNIs,omitempty"`
-	// Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -74,12 +90,15 @@ type VPCStatus struct {
 // +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=1
 // +kubebuilder:printcolumn:name="VNI",type=string,JSONPath=`.status.vni`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// VPC is the Schema for the vpcs API
+// VPC is Virtual Private Cloud, similar to the public cloud VPC it provides an isolated private network for the
+// resources with support for multiple subnets each with user-provided VLANs and on-demand DHCP.
 type VPC struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VPCSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the VPC
+	Spec VPCSpec `json:"spec,omitempty"`
+	// Status is the observed state of the VPC
 	Status VPCStatus `json:"status,omitempty"`
 }
 

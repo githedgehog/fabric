@@ -30,10 +30,14 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ExternalSpec defines the desired state of External
+// ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
+// filter routes from/to the external system.
 type ExternalSpec struct {
-	IPv4Namespace     string `json:"ipv4Namespace,omitempty"`
-	InboundCommunity  string `json:"inboundCommunity,omitempty"`
+	// IPv4Namespace is the name of the IPv4Namespace this External belongs to
+	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
+	// InboundCommunity is the name of the inbound community to filter routes from the external system
+	InboundCommunity string `json:"inboundCommunity,omitempty"`
+	// OutboundCommunity is the name of the outbound community that all outbound routes will be stamped with
 	OutboundCommunity string `json:"outboundCommunity,omitempty"`
 }
 
@@ -47,12 +51,16 @@ type ExternalStatus struct{}
 // +kubebuilder:printcolumn:name="InComm",type=string,JSONPath=`.spec.inboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="OutComm",type=string,JSONPath=`.spec.outboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// External is the Schema for the externals API
+// External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
+// Users can do external peering with the external system by specifying the name of the External Object without need to
+// worry about the details of how external system is attached to the Fabric.
 type External struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ExternalSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the External
+	Spec ExternalSpec `json:"spec,omitempty"`
+	// Status is the observed state of the External
 	Status ExternalStatus `json:"status,omitempty"`
 }
 

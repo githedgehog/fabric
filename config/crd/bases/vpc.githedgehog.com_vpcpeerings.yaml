@@ -35,7 +35,9 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: VPCPeering is the Schema for the vpcpeerings API
+        description: "VPCPeering represents a peering between two VPCs with corresponding
+          filtering rules. Minimal example of the VPC peering showing vpc-1 to vpc-2
+          peering with all subnets allowed: \n spec: permit: - vpc-1: {} vpc-2: {}"
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,13 +52,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: VPCPeeringSpec defines the desired state of VPCPeering
+            description: Spec is the desired state of the VPCPeering
             properties:
               permit:
+                description: Permit defines a list of the peering policies - which
+                  VPC subnets will have access to the peer VPC subnets.
                 items:
                   additionalProperties:
                     properties:
                       subnets:
+                        description: Subnets is the list of subnets to advertise from
+                          current VPC to the peer VPC
                         items:
                           type: string
                         maxItems: 10
@@ -71,7 +77,7 @@ spec:
                 type: string
             type: object
           status:
-            description: VPCPeeringStatus defines the observed state of VPCPeering
+            description: Status is the observed state of the VPCPeering
             type: object
         type: object
     served: true

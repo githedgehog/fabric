@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API group
+// Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API group. It is public API group mainly for
+// the underlay definition including Switches, Server, wiring between them and etc. Intended to be used by the user.
 // +kubebuilder:object:generate=true
 // +groupName=wiring.githedgehog.com
 package v1alpha2

@@ -49,7 +49,10 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: DHCPSubnet is the Schema for the dhcpsubnets API
+        description: DHCPSubnet is the configuration (spec) for the Hedgehog DHCP
+          server and storage for the leases (status). It's primarely internal API
+          group, but it makes allocated IPs / leases information available to the
+          end user through API. Not intended to be modified by the user.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -64,21 +67,32 @@ spec:
           metadata:
             type: object
           spec:
-            description: DHCPSubnetSpec defines the desired state of DHCPSubnet
+            description: Spec is the desired state of the DHCPSubnet
             properties:
               cidrBlock:
+                description: CIDR block to use for VPC subnet, such as "10.10.10.0/24"
                 type: string
               circuitID:
+                description: VLAN ID to identify specific subnet withing the VPC,
+                  such as "Vlan1000" as it's named on switch
                 type: string
               endIP:
+                description: End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
                 type: string
               gateway:
+                description: Gateway, such as 10.10.10.1
                 type: string
               startIP:
+                description: Start IP from the CIDRBlock to allocate IPs, such as
+                  10.10.10.10
                 type: string
               subnet:
+                description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
                 type: string
               vrf:
+                description: VRF name to identify specific VPC (will be added to DHCP
+                  packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as
+                  it's named on switch
                 type: string
             required:
             - cidrBlock
@@ -90,23 +104,31 @@ spec:
             - vrf
             type: object
           status:
-            description: DHCPSubnetStatus defines the observed state of DHCPSubnet
+            description: Status is the observed state of the DHCPSubnet
             properties:
               allocated:
                 additionalProperties:
+                  description: DHCPAllocated is a single allocated IP with expiry
+                    time and hostname from DHCP requests, it's effectively a DHCP
+                    lease
                   properties:
                     expiry:
+                      description: Expiry time of the lease
                       format: date-time
                       type: string
                     hostname:
+                      description: Hostname from DHCP request
                       type: string
                     ip:
+                      description: Allocated IP address
                       type: string
                   required:
                   - expiry
                   - hostname
                   - ip
                   type: object
+                description: Allocated is a map of allocated IPs with expiry time
+                  and hostname from DHCP requests
                 type: object
             type: object
         type: object

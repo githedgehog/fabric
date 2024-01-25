@@ -33,28 +33,42 @@ import (
 
 // ExternalPeeringSpec defines the desired state of ExternalPeering
 type ExternalPeeringSpec struct {
+	// Permit defines the peering policy - which VPC and External to peer with and which subnets/prefixes to permit
 	Permit ExternalPeeringSpecPermit `json:"permit,omitempty"`
 }
 
+// ExternalPeeringSpecPermit defines the peering policy - which VPC and External to peer with and which subnets/prefixes to permit
 type ExternalPeeringSpecPermit struct {
-	VPC      ExternalPeeringSpecVPC      `json:"vpc,omitempty"`
+	// VPC is the VPC-side of the configuration to peer with
+	VPC ExternalPeeringSpecVPC `json:"vpc,omitempty"`
+	// External is the External-side of the configuration to peer with
 	External ExternalPeeringSpecExternal `json:"external,omitempty"`
 }
 
+// ExternalPeeringSpecVPC defines the VPC-side of the configuration to peer with
 type ExternalPeeringSpecVPC struct {
-	Name    string   `json:"name,omitempty"`
+	// Name is the name of the VPC to peer with
+	Name string `json:"name,omitempty"`
+	// Subnets is the list of subnets to advertise from VPC to the External
 	Subnets []string `json:"subnets,omitempty"`
 }
 
+// ExternalPeeringSpecExternal defines the External-side of the configuration to peer with
 type ExternalPeeringSpecExternal struct {
-	Name     string                      `json:"name,omitempty"`
+	// Name is the name of the External to peer with
+	Name string `json:"name,omitempty"`
+	// Prefixes is the list of prefixes to permit from the External to the VPC
 	Prefixes []ExternalPeeringSpecPrefix `json:"prefixes,omitempty"`
 }
 
+// ExternalPeeringSpecPrefix defines the prefix to permit from the External to the VPC
 type ExternalPeeringSpecPrefix struct {
+	// Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for default route
 	Prefix string `json:"prefix,omitempty"`
-	Ge     uint8  `json:"ge,omitempty"`
-	Le     uint8  `json:"le,omitempty"`
+	// Ge is the minimum prefix length to permit from the External to the VPC, e.g. 24 for /24
+	Ge uint8 `json:"ge,omitempty"`
+	// Le is the maximum prefix length to permit from the External to the VPC, e.g. 32 for /32
+	Le uint8 `json:"le,omitempty"`
 }
 
 // ExternalPeeringStatus defines the observed state of ExternalPeering
@@ -73,7 +87,9 @@ type ExternalPeering struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ExternalPeeringSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the ExternalPeering
+	Spec ExternalPeeringSpec `json:"spec,omitempty"`
+	// Status is the observed state of the ExternalPeering
 	Status ExternalPeeringStatus `json:"status,omitempty"`
 }
 

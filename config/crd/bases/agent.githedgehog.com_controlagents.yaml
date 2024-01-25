@@ -65,7 +65,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: ControlAgentSpec defines the desired state of ControlAgent
+            description: ControlAgentSpec defines the desired state of the ControlAgent
+              and includes all relevant information to configure the control node.
+              Not intended to be modified by the user.
             properties:
               controlVIP:
                 type: string

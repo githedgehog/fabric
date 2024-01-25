@@ -93,9 +93,6 @@ func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Obje
 	if conn.Spec.Management != nil {
 		return nil, errors.New("cannot delete management connection")
 	}
-	if conn.Spec.NAT != nil {
-		return nil, errors.New("cannot delete NAT connection")
-	}
 
 	return nil, nil
 }

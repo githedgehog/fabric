@@ -47,15 +47,19 @@ spec:
           metadata:
             type: object
           spec:
-            description: VPCAttachmentSpec defines the desired state of VPCAttachment
+            description: Spec is the desired state of the VPCAttachment
             properties:
               connection:
+                description: Connection is the name of the connection to attach to
+                  the VPC
                 type: string
               subnet:
+                description: Subnet is the full name of the VPC subnet to attach to,
+                  such as "vpc-1/default"
                 type: string
             type: object
           status:
-            description: VPCAttachmentStatus defines the observed state of VPCAttachment
+            description: Status is the observed state of the VPCAttachment
             type: object
         type: object
     served: true

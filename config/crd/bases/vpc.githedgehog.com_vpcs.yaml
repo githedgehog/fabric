@@ -38,7 +38,9 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: VPC is the Schema for the vpcs API
+        description: VPC is Virtual Private Cloud, similar to the public cloud VPC
+          it provides an isolated private network for the resources with support for
+          multiple subnets each with user-provided VLANs and on-demand DHCP.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -53,45 +55,70 @@ spec:
           metadata:
             type: object
           spec:
-            description: VPCSpec defines the desired state of VPC
+            description: Spec is the desired state of the VPC
             properties:
               ipv4Namespace:
+                description: IPv4Namespace is the name of the IPv4Namespace this VPC
+                  belongs to
                 type: string
               subnets:
                 additionalProperties:
+                  description: VPCSubnet defines the VPC subnet configuration
                   properties:
                     dhcp:
+                      description: DHCP is the on-demand DHCP configuration for the
+                        subnet
                       properties:
                         enable:
+                          description: Enable enables DHCP server for the subnet
                           type: boolean
                         range:
+                          description: Range is the DHCP range for the subnet if DHCP
+                            server is enabled
                           properties:
                             end:
+                              description: End is the end IP address of the DHCP range
                               type: string
                             start:
+                              description: Start is the start IP address of the DHCP
+                                range
                               type: string
                           type: object
                         relay:
+                          description: Relay is the DHCP relay IP address, if specified,
+                            DHCP server will be disabled
                           type: string
                       type: object
                     subnet:
+                      description: Subnet is the subnet CIDR block, such as "10.0.0.0/24",
+                        should belong to the IPv4Namespace and be unique within the
+                        namespace
                       type: string
                     vlan:
+                      description: VLAN is the VLAN ID for the subnet, should belong
+                        to the VLANNamespace and be unique within the namespace
                       type: string
                   type: object
+                description: Subnets is the list of VPC subnets to configure
                 type: object
               vlanNamespace:
+                description: VLANNamespace is the name of the VLANNamespace this VPC
+                  belongs to
                 type: string
             type: object
           status:
-            description: VPCStatus defines the observed state of VPC
+            description: Status is the observed state of the VPC
             properties:
               subnetVNIs:
                 additionalProperties:
                   format: int32
                   type: integer
+                description: SubnetVNIs is the map of subnet names to the global Fabric-level
+                  VNIs allocated for the VPC subnets
                 type: object
               vni:
+                description: VNI is the global Fabric-level VNI allocated for the
+                  VPC
                 format: int32
                 type: integer
             type: object

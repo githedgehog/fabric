@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group
+// Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group. It is the primarely internal API
+// group for the intended Hedgehog DHCP server configuration and storing leases as well as making them available to the
+// end user through API. Not intended to be modified by the user.
 // +kubebuilder:object:generate=true
 // +groupName=dhcp.githedgehog.com
 package v1alpha2

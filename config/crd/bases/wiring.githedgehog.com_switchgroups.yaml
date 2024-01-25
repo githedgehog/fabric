@@ -27,7 +27,8 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: SwitchGroup is the Schema for the switchgroups API
+        description: SwitchGroup is the marker API object to group switches together,
+          switch can belong to multiple groups
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -42,10 +43,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: SwitchGroupSpec defines the desired state of SwitchGroup
+            description: Spec is the desired state of the SwitchGroup
             type: object
           status:
-            description: SwitchGroupStatus defines the observed state of SwitchGroup
+            description: Status is the observed state of the SwitchGroup
             type: object
         type: object
     served: true

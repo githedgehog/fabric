@@ -30,7 +30,9 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: IPv4Namespace is the Schema for the ipv4namespaces API
+        description: IPv4Namespace represents a namespace for VPC subnets allocation.
+          All VPC subnets withing a single IPv4Namespace are non-overlapping. Users
+          can create multiple IPv4Namespaces to allocate same VPC subnets.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -45,9 +47,12 @@ spec:
           metadata:
             type: object
           spec:
-            description: IPv4NamespaceSpec defines the desired state of IPv4Namespace
+            description: Spec is the desired state of the IPv4Namespace
             properties:
               subnets:
+                description: Subnets is the list of subnets to allocate VPC subnets
+                  from, couldn't overlap between each other and with Fabric reserved
+                  subnets
                 items:
                   type: string
                 maxItems: 20
@@ -55,7 +60,7 @@ spec:
                 type: array
             type: object
           status:
-            description: IPv4NamespaceStatus defines the observed state of IPv4Namespace
+            description: Status is the observed state of the IPv4Namespace
             type: object
         type: object
     served: true

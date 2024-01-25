@@ -36,6 +36,7 @@ import (
 type IPv4NamespaceSpec struct {
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=20
+	// Subnets is the list of subnets to allocate VPC subnets from, couldn't overlap between each other and with Fabric reserved subnets
 	Subnets []string `json:"subnets,omitempty"`
 }
 
@@ -47,12 +48,15 @@ type IPv4NamespaceStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=ipns
 // +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// IPv4Namespace is the Schema for the ipv4namespaces API
+// IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets withing a single IPv4Namespace are
+// non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC subnets.
 type IPv4Namespace struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IPv4NamespaceSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the IPv4Namespace
+	Spec IPv4NamespaceSpec `json:"spec,omitempty"`
+	// Status is the observed state of the IPv4Namespace
 	Status IPv4NamespaceStatus `json:"status,omitempty"`
 }
 

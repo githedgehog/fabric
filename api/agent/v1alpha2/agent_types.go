@@ -26,7 +26,8 @@ import (
 
 // TODO do we need to create user inputable AgentAction CRD with version override, reinstall and reboot requests?
 
-// AgentSpec defines the desired state of Agent
+// AgentSpec defines the desired state of the Agent and includes all relevant information required to fully configure
+// the switch and manage its lifecycle. It is not intended to be used directly by users.
 type AgentSpec struct {
 	Role                     wiringapi.SwitchRole                     `json:"role,omitempty"`
 	Description              string                                   `json:"description,omitempty"`
@@ -108,38 +109,67 @@ type ApplyStatusUpdate struct {
 
 // TODO replace flat attempl/apply in agent status with ApplyStatus
 
-// AgentStatus defines the observed state of Agent
+// AgentStatus defines the observed state of the agent running on a specific switch and includes information about the
+// switch itself as well as the state of the agent and applied configuration.
 type AgentStatus struct {
-	Version         string              `json:"version,omitempty"`
-	InstallID       string              `json:"installID,omitempty"`
-	RunID           string              `json:"runID,omitempty"`
-	LastHeartbeat   metav1.Time         `json:"lastHeartbeat,omitempty"`
-	LastAttemptTime metav1.Time         `json:"lastAttemptTime,omitempty"`
-	LastAttemptGen  int64               `json:"lastAttemptGen,omitempty"`
-	LastAppliedTime metav1.Time         `json:"lastAppliedTime,omitempty"`
-	LastAppliedGen  int64               `json:"lastAppliedGen,omitempty"`
-	NOSInfo         NOSInfo             `json:"nosInfo,omitempty"`
-	StatusUpdates   []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
-	Conditions      []metav1.Condition  `json:"conditions"`
+	// Current running agent version
+	Version string `json:"version,omitempty"`
+	// ID of the agent installation, used to track NOS re-installs
+	InstallID string `json:"installID,omitempty"`
+	// ID of the agent run, used to track NOS reboots
+	RunID string `json:"runID,omitempty"`
+	// Time of the last heartbeat from the agent
+	LastHeartbeat metav1.Time `json:"lastHeartbeat,omitempty"`
+	// Time of the last attempt to apply configuration
+	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
+	// Generation of the last attempt to apply configuration
+	LastAttemptGen int64 `json:"lastAttemptGen,omitempty"`
+	// Time of the last successful configuration application
+	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
+	// Generation of the last successful configuration application
+	LastAppliedGen int64 `json:"lastAppliedGen,omitempty"`
+	// Information about the switch and NOS
+	NOSInfo NOSInfo `json:"nosInfo,omitempty"`
+	// Status updates from the agent
+	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
+	// Conditions of the agent, includes readiness marker for use with kubectl wait
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
+// NOSInfo contains information about the switch and NOS received from the switch itself by the agent
 type NOSInfo struct {
-	AsicVersion         string `json:"asicVersion,omitempty"`
-	BuildCommit         string `json:"buildCommit,omitempty"`
-	BuildDate           string `json:"buildDate,omitempty"`
-	BuiltBy             string `json:"builtBy,omitempty"`
-	ConfigDbVersion     string `json:"configDbVersion,omitempty"`
+	// ASIC name, such as "broadcom" or "vs"
+	AsicVersion string `json:"asicVersion,omitempty"`
+	// NOS build commit
+	BuildCommit string `json:"buildCommit,omitempty"`
+	// NOS build date
+	BuildDate string `json:"buildDate,omitempty"`
+	// NOS build user
+	BuiltBy string `json:"builtBy,omitempty"`
+	// NOS config DB version, such as "version_4_2_1"
+	ConfigDbVersion string `json:"configDbVersion,omitempty"`
+	// Distribution version, such as "Debian 10.13"
 	DistributionVersion string `json:"distributionVersion,omitempty"`
-	HardwareVersion     string `json:"hardwareVersion,omitempty"`
-	HwskuVersion        string `json:"hwskuVersion,omitempty"`
-	KernelVersion       string `json:"kernelVersion,omitempty"`
-	MfgName             string `json:"mfgName,omitempty"`
-	PlatformName        string `json:"platformName,omitempty"`
-	ProductDescription  string `json:"productDescription,omitempty"`
-	ProductVersion      string `json:"productVersion,omitempty"`
-	SerialNumber        string `json:"serialNumber,omitempty"`
-	SoftwareVersion     string `json:"softwareVersion,omitempty"`
-	UpTime              string `json:"upTime,omitempty"`
+	// Hardware version, such as "X01"
+	HardwareVersion string `json:"hardwareVersion,omitempty"`
+	// Hwsku version, such as "DellEMC-S5248f-P-25G-DPB"
+	HwskuVersion string `json:"hwskuVersion,omitempty"`
+	// Kernel version, such as "5.10.0-21-amd64"
+	KernelVersion string `json:"kernelVersion,omitempty"`
+	// Manufacturer name, such as "Dell EMC"
+	MfgName string `json:"mfgName,omitempty"`
+	// Platform name, such as "x86_64-dellemc_s5248f_c3538-r0"
+	PlatformName string `json:"platformName,omitempty"`
+	// NOS product description, such as "Enterprise SONiC Distribution by Broadcom - Enterprise Base package"
+	ProductDescription string `json:"productDescription,omitempty"`
+	// NOS product version, empty for Broadcom SONiC
+	ProductVersion string `json:"productVersion,omitempty"`
+	// Switch serial number
+	SerialNumber string `json:"serialNumber,omitempty"`
+	// NOS software version, such as "4.2.0-Enterprise_Base"
+	SoftwareVersion string `json:"softwareVersion,omitempty"`
+	// Switch uptime, such as "21:21:27 up 1 day, 23:26, 0 users, load average: 1.92, 1.99, 2.00 "
+	UpTime string `json:"upTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -158,12 +188,19 @@ type NOSInfo struct {
 // +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
 // +kubebuilder:printcolumn:name="AttemptG",type=string,JSONPath=`.status.lastAttemptGen`,priority=2
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
-// Agent is the Schema for the agents API
+// Agent is an internal API object used by the controller to pass all relevant information to the agent running on a
+// specific switch in order to fully configure it and manage its lifecycle. It is not intended to be used directly by
+// users. Spec of the object isn't user-editable, it is managed by the controller. Status of the object is updated by
+// the agent and is used by the controller to track the state of the agent and the switch it is running on. Name of the
+// Agent object is the same as the name of the switch it is running on and it's created in the same namespace as the
+// Switch object.
 type Agent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AgentSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the Agent
+	Spec AgentSpec `json:"spec,omitempty"`
+	// Status is the observed state of the Agent
 	Status AgentStatus `json:"status,omitempty"`
 }
 

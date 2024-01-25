@@ -36,7 +36,11 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: External is the Schema for the externals API
+        description: External object represents an external system connected to the
+          Fabric and available to the specific IPv4Namespace. Users can do external
+          peering with the external system by specifying the name of the External
+          Object without need to worry about the details of how external system is
+          attached to the Fabric.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -51,17 +55,23 @@ spec:
           metadata:
             type: object
           spec:
-            description: ExternalSpec defines the desired state of External
+            description: Spec is the desired state of the External
             properties:
               inboundCommunity:
+                description: InboundCommunity is the name of the inbound community
+                  to filter routes from the external system
                 type: string
               ipv4Namespace:
+                description: IPv4Namespace is the name of the IPv4Namespace this External
+                  belongs to
                 type: string
               outboundCommunity:
+                description: OutboundCommunity is the name of the outbound community
+                  that all outbound routes will be stamped with
                 type: string
             type: object
           status:
-            description: ExternalStatus defines the observed state of External
+            description: Status is the observed state of the External
             type: object
         type: object
     served: true

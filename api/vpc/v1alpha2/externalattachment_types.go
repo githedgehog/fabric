@@ -32,20 +32,30 @@ import (
 
 // ExternalAttachmentSpec defines the desired state of ExternalAttachment
 type ExternalAttachmentSpec struct {
-	External   string                     `json:"external,omitempty"`
-	Connection string                     `json:"connection,omitempty"`
-	Switch     ExternalAttachmentSwitch   `json:"switch,omitempty"`
-	Neighbor   ExternalAttachmentNeighbor `json:"neighbor,omitempty"`
+	// External is the name of the External object this attachment belongs to
+	External string `json:"external,omitempty"`
+	// Connection is the name of the Connection object this attachment belongs to (essentialy the name of the switch/port)
+	Connection string `json:"connection,omitempty"`
+	// Switch is the switch port configuration for the external attachment
+	Switch ExternalAttachmentSwitch `json:"switch,omitempty"`
+	// Neighbor is the BGP neighbor configuration for the external attachment
+	Neighbor ExternalAttachmentNeighbor `json:"neighbor,omitempty"`
 }
 
+// ExternalAttachmentSwitch defines the switch port configuration for the external attachment
 type ExternalAttachmentSwitch struct {
+	// VLAN is the VLAN ID used for the subinterface on a switch port specified in the connection
 	VLAN uint16 `json:"vlan,omitempty"`
-	IP   string `json:"ip,omitempty"`
+	// IP is the IP address of the subinterface on a switch port specified in the connection
+	IP string `json:"ip,omitempty"`
 }
 
+// ExternalAttachmentNeighbor defines the BGP neighbor configuration for the external attachment
 type ExternalAttachmentNeighbor struct {
+	// ASN is the ASN of the BGP neighbor
 	ASN uint32 `json:"asn,omitempty"`
-	IP  string `json:"ip,omitempty"`
+	// IP is the IP address of the BGP neighbor to peer with
+	IP string `json:"ip,omitempty"`
 }
 
 // ExternalAttachmentStatus defines the observed state of ExternalAttachment
@@ -61,12 +71,15 @@ type ExternalAttachmentStatus struct{}
 // +kubebuilder:printcolumn:name="NeighASN",type=string,JSONPath=`.spec.neighbor.asn`,priority=1
 // +kubebuilder:printcolumn:name="NeighIP",type=string,JSONPath=`.spec.neighbor.ip`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// ExternalAttachment is the Schema for the externalattachments API
+// ExternalAttachment is a definition of how specific switch is connected with external system (External object).
+// Effectively it represents BGP peering between the switch and external system including all needed configuration.
 type ExternalAttachment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ExternalAttachmentSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the ExternalAttachment
+	Spec ExternalAttachmentSpec `json:"spec,omitempty"`
+	// Status is the observed state of the ExternalAttachment
 	Status ExternalAttachmentStatus `json:"status,omitempty"`
 }
 

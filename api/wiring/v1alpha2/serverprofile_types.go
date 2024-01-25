@@ -43,7 +43,7 @@ type ServerProfileStatus struct{}
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:categories=hedgehog;wiring
 
-// ServerProfile is the Schema for the serverprofiles API
+// ServerProfile is currently not used/implemented in the Fabric API
 type ServerProfile struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -35,7 +35,9 @@ import (
 
 // VPCAttachmentSpec defines the desired state of VPCAttachment
 type VPCAttachmentSpec struct {
-	Subnet     string `json:"subnet,omitempty"`
+	// Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default"
+	Subnet string `json:"subnet,omitempty"`
+	// Connection is the name of the connection to attach to the VPC
 	Connection string `json:"connection,omitempty"`
 }
 
@@ -55,7 +57,9 @@ type VPCAttachment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VPCAttachmentSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the VPCAttachment
+	Spec VPCAttachmentSpec `json:"spec,omitempty"`
+	// Status is the observed state of the VPCAttachment
 	Status VPCAttachmentStatus `json:"status,omitempty"`
 }
 

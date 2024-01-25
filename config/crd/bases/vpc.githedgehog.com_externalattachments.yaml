@@ -49,8 +49,10 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: ExternalAttachment is the Schema for the externalattachments
-          API
+        description: ExternalAttachment is a definition of how specific switch is
+          connected with external system (External object). Effectively it represents
+          BGP peering between the switch and external system including all needed
+          configuration.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -65,30 +67,45 @@ spec:
           metadata:
             type: object
           spec:
-            description: ExternalAttachmentSpec defines the desired state of ExternalAttachment
+            description: Spec is the desired state of the ExternalAttachment
             properties:
               connection:
+                description: Connection is the name of the Connection object this
+                  attachment belongs to (essentialy the name of the switch/port)
                 type: string
               external:
+                description: External is the name of the External object this attachment
+                  belongs to
                 type: string
               neighbor:
+                description: Neighbor is the BGP neighbor configuration for the external
+                  attachment
                 properties:
                   asn:
+                    description: ASN is the ASN of the BGP neighbor
                     format: int32
                     type: integer
                   ip:
+                    description: IP is the IP address of the BGP neighbor to peer
+                      with
                     type: string
                 type: object
               switch:
+                description: Switch is the switch port configuration for the external
+                  attachment
                 properties:
                   ip:
+                    description: IP is the IP address of the subinterface on a switch
+                      port specified in the connection
                     type: string
                   vlan:
+                    description: VLAN is the VLAN ID used for the subinterface on
+                      a switch port specified in the connection
                     type: integer
                 type: object
             type: object
           status:
-            description: ExternalAttachmentStatus defines the observed state of ExternalAttachment
+            description: Status is the observed state of the ExternalAttachment
             type: object
         type: object
     served: true

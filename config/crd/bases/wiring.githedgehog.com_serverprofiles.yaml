@@ -20,7 +20,8 @@ spec:
   - name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: ServerProfile is the Schema for the serverprofiles API
+        description: ServerProfile is currently not used/implemented in the Fabric
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

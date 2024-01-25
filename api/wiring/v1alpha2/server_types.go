@@ -25,6 +25,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // +kubebuilder:validation:Enum=control;
+// ServerType is the type of server, could be control for control nodes or default (empty string) for everything else
 type ServerType string
 
 const (
@@ -34,9 +35,12 @@ const (
 
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
-	Type        ServerType `json:"type,omitempty"`
-	Description string     `json:"description,omitempty"`
-	Profile     string     `json:"profile,omitempty"`
+	// Type is the type of server, could be control for control nodes or default (empty string) for everything else
+	Type ServerType `json:"type,omitempty"`
+	// Description is a description of the server
+	Description string `json:"description,omitempty"`
+	// Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric
+	Profile string `json:"profile,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server
@@ -54,7 +58,9 @@ type Server struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ServerSpec   `json:"spec,omitempty"`
+	// Spec is desired state of the server
+	Spec ServerSpec `json:"spec,omitempty"`
+	// Status is the observed state of the server
 	Status ServerStatus `json:"status,omitempty"`
 }
 

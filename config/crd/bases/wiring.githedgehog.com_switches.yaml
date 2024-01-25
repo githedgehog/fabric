@@ -68,22 +68,28 @@ spec:
           metadata:
             type: object
           spec:
-            description: SwitchSpec defines the desired state of Switch
+            description: Spec is desired state of the switch
             properties:
               asn:
+                description: ASN is the ASN of the switch
                 format: int32
                 type: integer
               description:
+                description: Description is a description of the switch
                 type: string
               groups:
+                description: Groups is a list of switch groups the switch belongs
+                  to
                 items:
                   type: string
                 type: array
               ip:
+                description: IP is the IP of the switch that could be used to access
+                  it from other switches and control nodes in the Fabric
                 type: string
               location:
-                description: Location defines the geopraphical position of the device
-                  in a datacenter
+                description: Location is the location of the switch, it is used to
+                  generate the location UUID and location signature
                 properties:
                   aisle:
                     type: string
@@ -97,8 +103,7 @@ spec:
                     type: string
                 type: object
               locationSig:
-                description: LocationSig contains signatures for the location UUID
-                  as well as the device location itself
+                description: LocationSig is the location signature for the switch
                 properties:
                   sig:
                     type: string
@@ -108,34 +113,48 @@ spec:
               portBreakouts:
                 additionalProperties:
                   type: string
+                description: 'PortBreakouts is a map of port breakouts, key is the
+                  port name, value is the breakout configuration, such as "1/55: 4x25G"'
                 type: object
               portGroupSpeeds:
                 additionalProperties:
                   type: string
+                description: 'PortGroupSpeeds is a map of port group speeds, key is
+                  the port group name, value is the speed, such as ''"2": 10G'''
                 type: object
               portSpeeds:
                 additionalProperties:
                   type: string
+                description: PortSpeeds is a map of port speeds, key is the port name,
+                  value is the speed
                 type: object
               profile:
+                description: Profile is the profile of the switch, name of the SwitchProfile
+                  object to be used for this switch, currently not used by the Fabric
                 type: string
               protocolIP:
+                description: ProtocolIP is used as BGP Router ID for switch configuration
                 type: string
               role:
+                description: Role is the role of the switch, could be spine, server-leaf
+                  or border-leaf or mixed-leaf
                 enum:
                 - spine
                 - server-leaf
                 - border-leaf
                 type: string
               vlanNamespaces:
+                description: VLANNamespaces is a list of VLAN namespaces the switch
+                  is part of, their VLAN ranges could not overlap
                 items:
                   type: string
                 type: array
               vtepIP:
+                description: VTEPIP is the VTEP IP of the switch
                 type: string
             type: object
           status:
-            description: SwitchStatus defines the observed state of Switch
+            description: Status is the observed state of the switch
             type: object
         type: object
     served: true

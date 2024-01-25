@@ -46,7 +46,7 @@ type SwitchProfileStatus struct{}
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:categories=hedgehog;wiring
 
-// SwitchProfile is the Schema for the switchprofiles API
+// SwitchProfile is currently not used/implemented in the Fabric API
 type SwitchProfile struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

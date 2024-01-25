@@ -42,9 +42,12 @@ spec:
           metadata:
             type: object
           spec:
-            description: VLANNamespaceSpec defines the desired state of VLANNamespace
+            description: Spec is the desired state of the VLANNamespace
             properties:
               ranges:
+                description: Ranges is a list of VLAN ranges to be used in this namespace,
+                  couldn't overlap between each other and with Fabric reserved VLAN
+                  ranges
                 items:
                   properties:
                     from:
@@ -57,7 +60,7 @@ spec:
                 type: array
             type: object
           status:
-            description: VLANNamespaceStatus defines the observed state of VLANNamespace
+            description: Status is the observed state of the VLANNamespace
             type: object
         type: object
     served: true

@@ -20,7 +20,8 @@ spec:
   - name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: SwitchProfile is the Schema for the switchprofiles API
+        description: SwitchProfile is currently not used/implemented in the Fabric
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -22,7 +22,8 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ControlAgentSpec defines the desired state of ControlAgent
+// ControlAgentSpec defines the desired state of the ControlAgent and includes all relevant information to configure
+// the control node. Not intended to be modified by the user.
 type ControlAgentSpec struct {
 	ControlVIP string            `json:"controlVIP,omitempty"`
 	Version    AgentVersion      `json:"version,omitempty"`

@@ -24,24 +24,36 @@ import (
 
 // DHCPSubnetSpec defines the desired state of DHCPSubnet
 type DHCPSubnetSpec struct {
-	Subnet    string `json:"subnet"`    // e.g. vpc-0/default (vpc name + vpc subnet name)
-	CIDRBlock string `json:"cidrBlock"` // e.g. 10.10.10.0/24
-	Gateway   string `json:"gateway"`   // e.g. 10.10.10.1
-	StartIP   string `json:"startIP"`   // e.g. 10.10.10.10
-	EndIP     string `json:"endIP"`     // e.g. 10.10.10.99
-	VRF       string `json:"vrf"`       // e.g. VrfVvpc-1 as it's named on switch
-	CircuitID string `json:"circuitID"` // e.g. Vlan1000 as it's named on switch
+	// Full VPC subnet name (including VPC name), such as "vpc-0/default"
+	Subnet string `json:"subnet"`
+	// CIDR block to use for VPC subnet, such as "10.10.10.0/24"
+	CIDRBlock string `json:"cidrBlock"`
+	// Gateway, such as 10.10.10.1
+	Gateway string `json:"gateway"`
+	// Start IP from the CIDRBlock to allocate IPs, such as 10.10.10.10
+	StartIP string `json:"startIP"`
+	// End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
+	EndIP string `json:"endIP"`
+	// VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch
+	VRF string `json:"vrf"`
+	// VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch
+	CircuitID string `json:"circuitID"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet
 type DHCPSubnetStatus struct {
+	// Allocated is a map of allocated IPs with expiry time and hostname from DHCP requests
 	Allocated map[string]DHCPAllocated `json:"allocated,omitempty"`
 }
 
+// DHCPAllocated is a single allocated IP with expiry time and hostname from DHCP requests, it's effectively a DHCP lease
 type DHCPAllocated struct {
-	IP       string      `json:"ip"`
-	Expiry   metav1.Time `json:"expiry"`
-	Hostname string      `json:"hostname"` // from dhcp request
+	// Allocated IP address
+	IP string `json:"ip"`
+	// Expiry time of the lease
+	Expiry metav1.Time `json:"expiry"`
+	// Hostname from DHCP request
+	Hostname string `json:"hostname"`
 }
 
 // +kubebuilder:object:root=true
@@ -55,12 +67,16 @@ type DHCPAllocated struct {
 // +kubebuilder:printcolumn:name="VRF",type=string,JSONPath=`.spec.vrf`,priority=1
 // +kubebuilder:printcolumn:name="CircuitID",type=string,JSONPath=`.spec.circuitID`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// DHCPSubnet is the Schema for the dhcpsubnets API
+// DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
+// primarely internal API group, but it makes allocated IPs / leases information available to the end user through API.
+// Not intended to be modified by the user.
 type DHCPSubnet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DHCPSubnetSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the DHCPSubnet
+	Spec DHCPSubnetSpec `json:"spec,omitempty"`
+	// Status is the observed state of the DHCPSubnet
 	Status DHCPSubnetStatus `json:"status,omitempty"`
 }
 

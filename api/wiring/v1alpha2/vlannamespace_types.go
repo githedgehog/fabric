@@ -33,6 +33,7 @@ import (
 type VLANNamespaceSpec struct {
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=20
+	// Ranges is a list of VLAN ranges to be used in this namespace, couldn't overlap between each other and with Fabric reserved VLAN ranges
 	Ranges []meta.VLANRange `json:"ranges,omitempty"`
 }
 
@@ -48,7 +49,9 @@ type VLANNamespace struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VLANNamespaceSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the VLANNamespace
+	Spec VLANNamespaceSpec `json:"spec,omitempty"`
+	// Status is the observed state of the VLANNamespace
 	Status VLANNamespaceStatus `json:"status,omitempty"`
 }
 

@@ -39,7 +39,6 @@ const (
 	CONNECTION_TYPE_MANAGEMENT   = "management" // TODO rename to control?
 	CONNECTION_TYPE_MCLAG        = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN  = "mclag-domain"
-	CONNECTION_TYPE_NAT          = "nat"
 	CONNECTION_TYPE_FABRIC       = "fabric"
 	CONNECTION_TYPE_VPC_LOOPBACK = "vpc-loopback"
 	CONNECTION_EXTERNAL          = "external"
@@ -48,150 +47,200 @@ const (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// BasePortName defines the full name of the switch port
 type BasePortName struct {
+	// Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+	// SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
 	Port string `json:"port,omitempty"`
 }
 
+// ServerToSwitchLink defines the server-to-switch link
 type ServerToSwitchLink struct {
+	// Server is the server side of the connection
 	Server BasePortName `json:"server,omitempty"`
+	// Switch is the switch side of the connection
 	Switch BasePortName `json:"switch,omitempty"`
 }
 
+// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 type ServerFacingConnectionConfig struct {
+	// MTU is the MTU to be configured on the switch port or port channel
 	MTU uint16 `json:"mtu,omitempty"`
 }
 
+// ConnUnbundled defines the unbundled connection (no port channel, single server to a single switch with a single link)
 type ConnUnbundled struct {
-	Link                         ServerToSwitchLink `json:"link,omitempty"`
+	// Link is the server-to-switch link
+	Link ServerToSwitchLink `json:"link,omitempty"`
+	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
 }
 
+// ConnBundled defines the bundled connection (port channel, single server to a single switch with multiple links)
 type ConnBundled struct {
-	Links                        []ServerToSwitchLink `json:"links,omitempty"`
+	// Links is the list of server-to-switch links
+	Links []ServerToSwitchLink `json:"links,omitempty"`
+	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
 }
 
+// ConnMgmtLinkServer defines the server side of the management link
 type ConnMgmtLinkServer struct {
+	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
-	IP  string `json:"ip,omitempty"`
+	// IP is the IP address of the server side of the management link (control node port configuration)
+	IP string `json:"ip,omitempty"`
+	// MAC is an optional MAC address of the control node port for the management link, if specified will be used to
+	// create a "virtual" link with the connection names on the control node
 	MAC string `json:"mac,omitempty"`
 }
 
+// ConnMgmtLinkSwitch defines the switch side of the management link
 type ConnMgmtLinkSwitch struct {
+	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
-	IP           string `json:"ip,omitempty"`
+	// IP is the IP address of the switch side of the management link (switch port configuration)
+	IP string `json:"ip,omitempty"`
+	// ONIEPortName is an optional ONIE port name of the switch side of the management link that's only used by the IPv6 Link Local discovery
 	ONIEPortName string `json:"oniePortName,omitempty"`
 }
 
+// ConnMgmtLink defines the management connection link
 type ConnMgmtLink struct {
+	// Server is the server side of the management link
 	Server ConnMgmtLinkServer `json:"server,omitempty"`
+	// Switch is the switch side of the management link
 	Switch ConnMgmtLinkSwitch `json:"switch,omitempty"`
 }
 
+// ConnMgmt defines the management connection (single control node/server to a single switch with a single link)
 type ConnMgmt struct {
 	Link ConnMgmtLink `json:"link,omitempty"`
 }
 
+// ConnMCLAG defines the MCLAG connection (port channel, single server to multiple switches with multiple links)
 type ConnMCLAG struct {
 	//+kubebuilder:validation:MinItems=2
-	Links                        []ServerToSwitchLink `json:"links,omitempty"`
+	// Links is the list of server-to-switch links
+	Links []ServerToSwitchLink `json:"links,omitempty"`
+	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
 }
 
+// SwitchToSwitchLink defines the switch-to-switch link
 type SwitchToSwitchLink struct {
+	// Switch1 is the first switch side of the connection
 	Switch1 BasePortName `json:"switch1,omitempty"`
+	// Switch2 is the second switch side of the connection
 	Switch2 BasePortName `json:"switch2,omitempty"`
 }
 
+// ConnMCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch or
+// redundancy group and allows to use MCLAG connections to connect servers in a multi-homed way.
 type ConnMCLAGDomain struct {
 	//+kubebuilder:validation:MinItems=1
+	// PeerLinks is the list of peer links between the switches, used to pass server traffic between switch
 	PeerLinks []SwitchToSwitchLink `json:"peerLinks,omitempty"`
 
 	//+kubebuilder:validation:MinItems=1
+	// SessionLinks is the list of session links between the switches, used only to pass MCLAG control plane and BGP
+	// traffic between switches
 	SessionLinks []SwitchToSwitchLink `json:"sessionLinks,omitempty"`
 }
 
-type ConnNATLinkSwitch struct {
-	BasePortName `json:",inline"`
-	IP           string `json:"ip,omitempty"`
-	NeighborIP   string `json:"neighborIP,omitempty"`
-	RemoteAS     uint32 `json:"remoteAS,omitempty"`
-	SNAT         SNAT   `json:"snat,omitempty"`
-}
-
-type SNAT struct {
-	Pool []string `json:"pool"`
-}
-
-type ConnNATLink struct {
-	Switch ConnNATLinkSwitch `json:"switch,omitempty"`
-	NAT    BasePortName      `json:"nat,omitempty"`
-}
-
-type ConnNAT struct {
-	Link ConnNATLink `json:"link,omitempty"`
-}
-
+// ConnFabricLinkSwitch defines the switch side of the fabric link
 type ConnFabricLinkSwitch struct {
+	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	// IP is the IP address of the switch side of the fabric link (switch port configuration)
 	IP string `json:"ip,omitempty"`
 }
 
+// FabricLink defines the fabric connection link
 type FabricLink struct {
+	// Spine is the spine side of the fabric link
 	Spine ConnFabricLinkSwitch `json:"spine,omitempty"`
-	Leaf  ConnFabricLinkSwitch `json:"leaf,omitempty"`
+	// Leaf is the leaf side of the fabric link
+	Leaf ConnFabricLinkSwitch `json:"leaf,omitempty"`
 }
 
+// ConnFabric defines the fabric connection (single spine to a single leaf with at least one link)
 type ConnFabric struct {
 	//+kubebuilder:validation:MinItems=1
+	// Links is the list of spine-to-leaf links
 	Links []FabricLink `json:"links,omitempty"`
 }
 
+// ConnVPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) that enables automated
+// workaround named "VPC Loopback" that allow to avoid switch hardware limitations and traffic going through CPU in some
+// cases
 type ConnVPCLoopback struct {
 	//+kubebuilder:validation:MinItems=1
+	// Links is the list of VPC loopback links
 	Links []SwitchToSwitchLink `json:"links,omitempty"`
 }
 
+// ConnExternalLink defines the external connection link
 type ConnExternalLink struct {
 	Switch BasePortName `json:"switch,omitempty"`
 }
 
+// ConnExternal defines the external connection (single switch to a single external device with a single link)
 type ConnExternal struct {
+	// Link is the external connection link
 	Link ConnExternalLink `json:"link,omitempty"`
 }
 
+// ConnStaticExternalLinkSwitch defines the switch side of the static external connection link
 type ConnStaticExternalLinkSwitch struct {
+	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	// IP is the IP address of the switch side of the static external connection link (switch port configuration)
 	IP string `json:"ip,omitempty"`
 	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
-	NextHop string   `json:"nextHop,omitempty"`
+	// NextHop is the next hop IP address for static routes that will be created for the subnets
+	NextHop string `json:"nextHop,omitempty"`
+	// Subnets is the list of subnets that will get static routes using the specified next hop
 	Subnets []string `json:"subnets,omitempty"`
-	VLAN    uint16   `json:"vlan,omitempty"`
+	// VLAN is the optional VLAN ID to be configured on the switch port
+	VLAN uint16 `json:"vlan,omitempty"`
 }
 
+// ConnStaticExternalLink defines the static external connection link
 type ConnStaticExternalLink struct {
+	// Switch is the switch side of the static external connection link
 	Switch ConnStaticExternalLinkSwitch `json:"switch,omitempty"`
 }
 
+// ConnStaticExternal defines the static external connection (single switch to a single external device with a single link)
 type ConnStaticExternal struct {
+	// Link is the static external connection link
 	Link ConnStaticExternalLink `json:"link,omitempty"`
 }
 
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
-	Unbundled      *ConnUnbundled      `json:"unbundled,omitempty"`
-	Bundled        *ConnBundled        `json:"bundled,omitempty"`
-	Management     *ConnMgmt           `json:"management,omitempty"`
-	MCLAG          *ConnMCLAG          `json:"mclag,omitempty"`
-	MCLAGDomain    *ConnMCLAGDomain    `json:"mclagDomain,omitempty"`
-	NAT            *ConnNAT            `json:"nat,omitempty"`
-	Fabric         *ConnFabric         `json:"fabric,omitempty"`
-	VPCLoopback    *ConnVPCLoopback    `json:"vpcLoopback,omitempty"`
-	External       *ConnExternal       `json:"external,omitempty"`
+	// Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link)
+	Unbundled *ConnUnbundled `json:"unbundled,omitempty"`
+	// Bundled defines the bundled connection (port channel, single server to a single switch with multiple links)
+	Bundled *ConnBundled `json:"bundled,omitempty"`
+	// Management defines the management connection (single control node/server to a single switch with a single link)
+	Management *ConnMgmt `json:"management,omitempty"`
+	// MCLAG defines the MCLAG connection (port channel, single server to multiple switches with multiple links)
+	MCLAG *ConnMCLAG `json:"mclag,omitempty"`
+	// MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing
+	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
+	// Fabric defines the fabric connection (single spine to a single leaf with at least one link)
+	Fabric *ConnFabric `json:"fabric,omitempty"`
+	// VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround
+	VPCLoopback *ConnVPCLoopback `json:"vpcLoopback,omitempty"`
+	// External defines the external connection (single switch to a single external device with a single link)
+	External *ConnExternal `json:"external,omitempty"`
+	// StaticExternal defines the static external connection (single switch to a single external device with a single link)
 	StaticExternal *ConnStaticExternal `json:"staticExternal,omitempty"`
 }
 
@@ -205,12 +254,17 @@ type ConnectionStatus struct {
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=conn
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/connection-type`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// Connection is the Schema for the connections API
+// Connection object represents a logical and physical connections between any devices in the Fabric (Switch, Server
+// and External objects). It's needed to define all physical and logical connections between the devices in the Wiring
+// Diagram. Connection type is defined by the top-level field in the ConnectionSpec. Exactly one of them could be used
+// in a single Connection object.
 type Connection struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ConnectionSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the Connection
+	Spec ConnectionSpec `json:"spec,omitempty"`
+	// Status is the observed state of the Connection
 	Status ConnectionStatus `json:"status,omitempty"`
 }
 
@@ -313,10 +367,6 @@ func (c *ConnectionSpec) GenerateName() string {
 				}
 				right = append(right, link.Switch.DeviceName())
 			}
-		} else if c.NAT != nil {
-			role = "nat"
-			left = c.NAT.Link.Switch.DeviceName()
-			right = []string{c.NAT.Link.NAT.DeviceName()}
 		} else if c.Fabric != nil {
 			role = "fabric"
 			left = c.Fabric.Links[0].Spine.DeviceName()
@@ -373,8 +423,6 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
 	} else if c.MCLAG != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
-	} else if c.NAT != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_NAT
 	} else if c.Fabric != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
 	} else if c.VPCLoopback != nil {
@@ -501,10 +549,6 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(ports) != 2*len(s.MCLAG.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
-	} else if s.NAT != nil {
-		nonNills++
-
-		switches[s.NAT.Link.Switch.DeviceName()] = struct{}{}
 	} else if s.Fabric != nil {
 		nonNills++
 

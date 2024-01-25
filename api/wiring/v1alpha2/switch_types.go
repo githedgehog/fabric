@@ -33,6 +33,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // +kubebuilder:validation:Enum=spine;server-leaf;border-leaf
+// SwitchRole is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
 type SwitchRole string
 
 const (
@@ -59,20 +60,34 @@ func (r SwitchRole) IsLeaf() bool {
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
 	// +kubebuilder:validation:Required
-	Role            SwitchRole        `json:"role,omitempty"`
-	Description     string            `json:"description,omitempty"`
-	Profile         string            `json:"profile,omitempty"`
-	Location        Location          `json:"location,omitempty"`
-	LocationSig     LocationSig       `json:"locationSig,omitempty"`
-	Groups          []string          `json:"groups,omitempty"`
-	VLANNamespaces  []string          `json:"vlanNamespaces,omitempty"`
-	ASN             uint32            `json:"asn,omitempty"`
-	IP              string            `json:"ip,omitempty"`
-	VTEPIP          string            `json:"vtepIP,omitempty"`
-	ProtocolIP      string            `json:"protocolIP,omitempty"`
+	// Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
+	Role SwitchRole `json:"role,omitempty"`
+	// Description is a description of the switch
+	Description string `json:"description,omitempty"`
+	// Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric
+	Profile string `json:"profile,omitempty"`
+	// Location is the location of the switch, it is used to generate the location UUID and location signature
+	Location Location `json:"location,omitempty"`
+	// LocationSig is the location signature for the switch
+	LocationSig LocationSig `json:"locationSig,omitempty"`
+	// Groups is a list of switch groups the switch belongs to
+	Groups []string `json:"groups,omitempty"`
+	// VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap
+	VLANNamespaces []string `json:"vlanNamespaces,omitempty"`
+	// ASN is the ASN of the switch
+	ASN uint32 `json:"asn,omitempty"`
+	// IP is the IP of the switch that could be used to access it from other switches and control nodes in the Fabric
+	IP string `json:"ip,omitempty"`
+	// VTEPIP is the VTEP IP of the switch
+	VTEPIP string `json:"vtepIP,omitempty"`
+	// ProtocolIP is used as BGP Router ID for switch configuration
+	ProtocolIP string `json:"protocolIP,omitempty"`
+	// PortGroupSpeeds is a map of port group speeds, key is the port group name, value is the speed, such as '"2": 10G'
 	PortGroupSpeeds map[string]string `json:"portGroupSpeeds,omitempty"`
-	PortSpeeds      map[string]string `json:"portSpeeds,omitempty"`
-	PortBreakouts   map[string]string `json:"portBreakouts,omitempty"`
+	// PortSpeeds is a map of port speeds, key is the port name, value is the speed
+	PortSpeeds map[string]string `json:"portSpeeds,omitempty"`
+	// PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G"
+	PortBreakouts map[string]string `json:"portBreakouts,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
@@ -100,7 +115,9 @@ type Switch struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SwitchSpec   `json:"spec,omitempty"`
+	// Spec is desired state of the switch
+	Spec SwitchSpec `json:"spec,omitempty"`
+	// Status is the observed state of the switch
 	Status SwitchStatus `json:"status,omitempty"`
 }
 

@@ -32,12 +32,14 @@ type SwitchGroupStatus struct{}
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sg
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// SwitchGroup is the Schema for the switchgroups API
+// SwitchGroup is the marker API object to group switches together, switch can belong to multiple groups
 type SwitchGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SwitchGroupSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the SwitchGroup
+	Spec SwitchGroupSpec `json:"spec,omitempty"`
+	// Status is the observed state of the SwitchGroup
 	Status SwitchGroupStatus `json:"status,omitempty"`
 }
 

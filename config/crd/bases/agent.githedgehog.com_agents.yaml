@@ -69,7 +69,14 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: Agent is the Schema for the agents API
+        description: Agent is an internal API object used by the controller to pass
+          all relevant information to the agent running on a specific switch in order
+          to fully configure it and manage its lifecycle. It is not intended to be
+          used directly by users. Spec of the object isn't user-editable, it is managed
+          by the controller. Status of the object is updated by the agent and is used
+          by the controller to track the state of the agent and the switch it is running
+          on. Name of the Agent object is the same as the name of the switch it is
+          running on and it's created in the same namespace as the Switch object.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -84,7 +91,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AgentSpec defines the desired state of Agent
+            description: Spec is the desired state of the Agent
             properties:
               config:
                 properties:
@@ -114,55 +121,106 @@ spec:
                   description: ConnectionSpec defines the desired state of Connection
                   properties:
                     bundled:
+                      description: Bundled defines the bundled connection (port channel,
+                        single server to a single switch with multiple links)
                       properties:
                         links:
+                          description: Links is the list of server-to-switch links
                           items:
+                            description: ServerToSwitchLink defines the server-to-switch
+                              link
                             properties:
                               server:
+                                description: Server is the server side of the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                               switch:
+                                description: Switch is the switch side of the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                             type: object
                           type: array
                         mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
                           type: integer
                       type: object
                     external:
+                      description: External defines the external connection (single
+                        switch to a single external device with a single link)
                       properties:
                         link:
+                          description: Link is the external connection link
                           properties:
                             switch:
+                              description: BasePortName defines the full name of the
+                                switch port
                               properties:
                                 port:
+                                  description: Port defines the full name of the switch
+                                    port in the format of "device/port", such as "spine-1/Ethernet1".
+                                    SONiC port name is used as a port name and switch
+                                    name should be same as the name of the Switch
+                                    object.
                                   type: string
                               type: object
                           type: object
                       type: object
                     fabric:
+                      description: Fabric defines the fabric connection (single spine
+                        to a single leaf with at least one link)
                       properties:
                         links:
+                          description: Links is the list of spine-to-leaf links
                           items:
+                            description: FabricLink defines the fabric connection
+                              link
                             properties:
                               leaf:
+                                description: Leaf is the leaf side of the fabric link
                                 properties:
                                   ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
                                     pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                                     type: string
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                               spine:
+                                description: Spine is the spine side of the fabric
+                                  link
                                 properties:
                                   ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
                                     pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                                     type: string
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                             type: object
@@ -170,173 +228,288 @@ spec:
                           type: array
                       type: object
                     management:
+                      description: Management defines the management connection (single
+                        control node/server to a single switch with a single link)
                       properties:
                         link:
+                          description: ConnMgmtLink defines the management connection
+                            link
                           properties:
                             server:
+                              description: Server is the server side of the management
+                                link
                               properties:
                                 ip:
+                                  description: IP is the IP address of the server
+                                    side of the management link (control node port
+                                    configuration)
                                   pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                                   type: string
                                 mac:
+                                  description: MAC is an optional MAC address of the
+                                    control node port for the management link, if
+                                    specified will be used to create a "virtual" link
+                                    with the connection names on the control node
                                   type: string
                                 port:
+                                  description: Port defines the full name of the switch
+                                    port in the format of "device/port", such as "spine-1/Ethernet1".
+                                    SONiC port name is used as a port name and switch
+                                    name should be same as the name of the Switch
+                                    object.
                                   type: string
                               type: object
                             switch:
+                              description: Switch is the switch side of the management
+                                link
                               properties:
                                 ip:
+                                  description: IP is the IP address of the switch
+                                    side of the management link (switch port configuration)
                                   pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                                   type: string
                                 oniePortName:
+                                  description: ONIEPortName is an optional ONIE port
+                                    name of the switch side of the management link
+                                    that's only used by the IPv6 Link Local discovery
                                   type: string
                                 port:
+                                  description: Port defines the full name of the switch
+                                    port in the format of "device/port", such as "spine-1/Ethernet1".
+                                    SONiC port name is used as a port name and switch
+                                    name should be same as the name of the Switch
+                                    object.
                                   type: string
                               type: object
                           type: object
                       type: object
                     mclag:
+                      description: MCLAG defines the MCLAG connection (port channel,
+                        single server to multiple switches with multiple links)
                       properties:
                         links:
+                          description: Links is the list of server-to-switch links
                           items:
+                            description: ServerToSwitchLink defines the server-to-switch
+                              link
                             properties:
                               server:
+                                description: Server is the server side of the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                               switch:
+                                description: Switch is the switch side of the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                             type: object
                           minItems: 2
                           type: array
                         mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
                           type: integer
                       type: object
                     mclagDomain:
+                      description: MCLAGDomain defines the MCLAG domain connection
+                        which makes two switches into a single logical switch for
+                        server multi-homing
                       properties:
                         peerLinks:
+                          description: PeerLinks is the list of peer links between
+                            the switches, used to pass server traffic between switch
                           items:
+                            description: SwitchToSwitchLink defines the switch-to-switch
+                              link
                             properties:
                               switch1:
+                                description: Switch1 is the first switch side of the
+                                  connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                               switch2:
+                                description: Switch2 is the second switch side of
+                                  the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                             type: object
                           minItems: 1
                           type: array
                         sessionLinks:
+                          description: SessionLinks is the list of session links between
+                            the switches, used only to pass MCLAG control plane and
+                            BGP traffic between switches
                           items:
+                            description: SwitchToSwitchLink defines the switch-to-switch
+                              link
                             properties:
                               switch1:
+                                description: Switch1 is the first switch side of the
+                                  connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                               switch2:
+                                description: Switch2 is the second switch side of
+                                  the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                             type: object
                           minItems: 1
                           type: array
                       type: object
-                    nat:
-                      properties:
-                        link:
-                          properties:
-                            nat:
-                              properties:
-                                port:
-                                  type: string
-                              type: object
-                            switch:
-                              properties:
-                                ip:
-                                  type: string
-                                neighborIP:
-                                  type: string
-                                port:
-                                  type: string
-                                remoteAS:
-                                  format: int32
-                                  type: integer
-                                snat:
-                                  properties:
-                                    pool:
-                                      items:
-                                        type: string
-                                      type: array
-                                  required:
-                                  - pool
-                                  type: object
-                              type: object
-                          type: object
-                      type: object
                     staticExternal:
+                      description: StaticExternal defines the static external connection
+                        (single switch to a single external device with a single link)
                       properties:
                         link:
+                          description: Link is the static external connection link
                           properties:
                             switch:
+                              description: Switch is the switch side of the static
+                                external connection link
                               properties:
                                 ip:
+                                  description: IP is the IP address of the switch
+                                    side of the static external connection link (switch
+                                    port configuration)
                                   pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                                   type: string
                                 nextHop:
+                                  description: NextHop is the next hop IP address
+                                    for static routes that will be created for the
+                                    subnets
                                   pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
                                   type: string
                                 port:
+                                  description: Port defines the full name of the switch
+                                    port in the format of "device/port", such as "spine-1/Ethernet1".
+                                    SONiC port name is used as a port name and switch
+                                    name should be same as the name of the Switch
+                                    object.
                                   type: string
                                 subnets:
+                                  description: Subnets is the list of subnets that
+                                    will get static routes using the specified next
+                                    hop
                                   items:
                                     type: string
                                   type: array
                                 vlan:
+                                  description: VLAN is the optional VLAN ID to be
+                                    configured on the switch port
                                   type: integer
                               type: object
                           type: object
                       type: object
                     unbundled:
+                      description: Unbundled defines the unbundled connection (no
+                        port channel, single server to a single switch with a single
+                        link)
                       properties:
                         link:
+                          description: Link is the server-to-switch link
                           properties:
                             server:
+                              description: Server is the server side of the connection
                               properties:
                                 port:
+                                  description: Port defines the full name of the switch
+                                    port in the format of "device/port", such as "spine-1/Ethernet1".
+                                    SONiC port name is used as a port name and switch
+                                    name should be same as the name of the Switch
+                                    object.
                                   type: string
                               type: object
                             switch:
+                              description: Switch is the switch side of the connection
                               properties:
                                 port:
+                                  description: Port defines the full name of the switch
+                                    port in the format of "device/port", such as "spine-1/Ethernet1".
+                                    SONiC port name is used as a port name and switch
+                                    name should be same as the name of the Switch
+                                    object.
                                   type: string
                               type: object
                           type: object
                         mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
                           type: integer
                       type: object
                     vpcLoopback:
+                      description: VPCLoopback defines the VPC loopback connection
+                        (multiple port pairs on a single switch) for automated workaround
                       properties:
                         links:
+                          description: Links is the list of VPC loopback links
                           items:
+                            description: SwitchToSwitchLink defines the switch-to-switch
+                              link
                             properties:
                               switch1:
+                                description: Switch1 is the first switch side of the
+                                  connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                               switch2:
+                                description: Switch2 is the second switch side of
+                                  the connection
                                 properties:
                                   port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
                                     type: string
                                 type: object
                             type: object
@@ -353,22 +526,37 @@ spec:
                     ExternalAttachment
                   properties:
                     connection:
+                      description: Connection is the name of the Connection object
+                        this attachment belongs to (essentialy the name of the switch/port)
                       type: string
                     external:
+                      description: External is the name of the External object this
+                        attachment belongs to
                       type: string
                     neighbor:
+                      description: Neighbor is the BGP neighbor configuration for
+                        the external attachment
                       properties:
                         asn:
+                          description: ASN is the ASN of the BGP neighbor
                           format: int32
                           type: integer
                         ip:
+                          description: IP is the IP address of the BGP neighbor to
+                            peer with
                           type: string
                       type: object
                     switch:
+                      description: Switch is the switch port configuration for the
+                        external attachment
                       properties:
                         ip:
+                          description: IP is the IP address of the subinterface on
+                            a switch port specified in the connection
                           type: string
                         vlan:
+                          description: VLAN is the VLAN ID used for the subinterface
+                            on a switch port specified in the connection
                           type: integer
                       type: object
                   type: object
@@ -383,28 +571,52 @@ spec:
                   description: ExternalPeeringSpec defines the desired state of ExternalPeering
                   properties:
                     permit:
+                      description: Permit defines the peering policy - which VPC and
+                        External to peer with and which subnets/prefixes to permit
                       properties:
                         external:
+                          description: External is the External-side of the configuration
+                            to peer with
                           properties:
                             name:
+                              description: Name is the name of the External to peer
+                                with
                               type: string
                             prefixes:
+                              description: Prefixes is the list of prefixes to permit
+                                from the External to the VPC
                               items:
+                                description: ExternalPeeringSpecPrefix defines the
+                                  prefix to permit from the External to the VPC
                                 properties:
                                   ge:
+                                    description: Ge is the minimum prefix length to
+                                      permit from the External to the VPC, e.g. 24
+                                      for /24
                                     type: integer
                                   le:
+                                    description: Le is the maximum prefix length to
+                                      permit from the External to the VPC, e.g. 32
+                                      for /32
                                     type: integer
                                   prefix:
+                                    description: Prefix is the subnet to permit from
+                                      the External to the VPC, e.g. 0.0.0.0/0 for
+                                      default route
                                     type: string
                                 type: object
                               type: array
                           type: object
                         vpc:
+                          description: VPC is the VPC-side of the configuration to
+                            peer with
                           properties:
                             name:
+                              description: Name is the name of the VPC to peer with
                               type: string
                             subnets:
+                              description: Subnets is the list of subnets to advertise
+                                from VPC to the External
                               items:
                                 type: string
                               type: array
@@ -418,13 +630,21 @@ spec:
                 type: object
               externals:
                 additionalProperties:
-                  description: ExternalSpec defines the desired state of External
+                  description: ExternalSpec describes IPv4 namespace External belongs
+                    to and inbound/outbound communities which are used to filter routes
+                    from/to the external system.
                   properties:
                     inboundCommunity:
+                      description: InboundCommunity is the name of the inbound community
+                        to filter routes from the external system
                       type: string
                     ipv4Namespace:
+                      description: IPv4Namespace is the name of the IPv4Namespace
+                        this External belongs to
                       type: string
                     outboundCommunity:
+                      description: OutboundCommunity is the name of the outbound community
+                        that all outbound routes will be stamped with
                       type: string
                   type: object
                 type: object
@@ -433,6 +653,9 @@ spec:
                   description: IPv4NamespaceSpec defines the desired state of IPv4Namespace
                   properties:
                     subnets:
+                      description: Subnets is the list of subnets to allocate VPC
+                        subnets from, couldn't overlap between each other and with
+                        Fabric reserved subnets
                       items:
                         type: string
                       maxItems: 20
@@ -459,6 +682,8 @@ spec:
               reinstall:
                 type: string
               role:
+                description: SwitchRole is the role of the switch, could be spine,
+                  server-leaf or border-leaf or mixed-leaf
                 enum:
                 - spine
                 - server-leaf
@@ -485,19 +710,25 @@ spec:
                 description: SwitchSpec defines the desired state of Switch
                 properties:
                   asn:
+                    description: ASN is the ASN of the switch
                     format: int32
                     type: integer
                   description:
+                    description: Description is a description of the switch
                     type: string
                   groups:
+                    description: Groups is a list of switch groups the switch belongs
+                      to
                     items:
                       type: string
                     type: array
                   ip:
+                    description: IP is the IP of the switch that could be used to
+                      access it from other switches and control nodes in the Fabric
                     type: string
                   location:
-                    description: Location defines the geopraphical position of the
-                      device in a datacenter
+                    description: Location is the location of the switch, it is used
+                      to generate the location UUID and location signature
                     properties:
                       aisle:
                         type: string
@@ -511,8 +742,7 @@ spec:
                         type: string
                     type: object
                   locationSig:
-                    description: LocationSig contains signatures for the location
-                      UUID as well as the device location itself
+                    description: LocationSig is the location signature for the switch
                     properties:
                       sig:
                         type: string
@@ -522,30 +752,46 @@ spec:
                   portBreakouts:
                     additionalProperties:
                       type: string
+                    description: 'PortBreakouts is a map of port breakouts, key is
+                      the port name, value is the breakout configuration, such as
+                      "1/55: 4x25G"'
                     type: object
                   portGroupSpeeds:
                     additionalProperties:
                       type: string
+                    description: 'PortGroupSpeeds is a map of port group speeds, key
+                      is the port group name, value is the speed, such as ''"2": 10G'''
                     type: object
                   portSpeeds:
                     additionalProperties:
                       type: string
+                    description: PortSpeeds is a map of port speeds, key is the port
+                      name, value is the speed
                     type: object
                   profile:
+                    description: Profile is the profile of the switch, name of the
+                      SwitchProfile object to be used for this switch, currently not
+                      used by the Fabric
                     type: string
                   protocolIP:
+                    description: ProtocolIP is used as BGP Router ID for switch configuration
                     type: string
                   role:
+                    description: Role is the role of the switch, could be spine, server-leaf
+                      or border-leaf or mixed-leaf
                     enum:
                     - spine
                     - server-leaf
                     - border-leaf
                     type: string
                   vlanNamespaces:
+                    description: VLANNamespaces is a list of VLAN namespaces the switch
+                      is part of, their VLAN ranges could not overlap
                     items:
                       type: string
                     type: array
                   vtepIP:
+                    description: VTEPIP is the VTEP IP of the switch
                     type: string
                 type: object
               switches:
@@ -553,19 +799,25 @@ spec:
                   description: SwitchSpec defines the desired state of Switch
                   properties:
                     asn:
+                      description: ASN is the ASN of the switch
                       format: int32
                       type: integer
                     description:
+                      description: Description is a description of the switch
                       type: string
                     groups:
+                      description: Groups is a list of switch groups the switch belongs
+                        to
                       items:
                         type: string
                       type: array
                     ip:
+                      description: IP is the IP of the switch that could be used to
+                        access it from other switches and control nodes in the Fabric
                       type: string
                     location:
-                      description: Location defines the geopraphical position of the
-                        device in a datacenter
+                      description: Location is the location of the switch, it is used
+                        to generate the location UUID and location signature
                       properties:
                         aisle:
                           type: string
@@ -579,8 +831,7 @@ spec:
                           type: string
                       type: object
                     locationSig:
-                      description: LocationSig contains signatures for the location
-                        UUID as well as the device location itself
+                      description: LocationSig is the location signature for the switch
                       properties:
                         sig:
                           type: string
@@ -590,30 +841,48 @@ spec:
                     portBreakouts:
                       additionalProperties:
                         type: string
+                      description: 'PortBreakouts is a map of port breakouts, key
+                        is the port name, value is the breakout configuration, such
+                        as "1/55: 4x25G"'
                       type: object
                     portGroupSpeeds:
                       additionalProperties:
                         type: string
+                      description: 'PortGroupSpeeds is a map of port group speeds,
+                        key is the port group name, value is the speed, such as ''"2":
+                        10G'''
                       type: object
                     portSpeeds:
                       additionalProperties:
                         type: string
+                      description: PortSpeeds is a map of port speeds, key is the
+                        port name, value is the speed
                       type: object
                     profile:
+                      description: Profile is the profile of the switch, name of the
+                        SwitchProfile object to be used for this switch, currently
+                        not used by the Fabric
                       type: string
                     protocolIP:
+                      description: ProtocolIP is used as BGP Router ID for switch
+                        configuration
                       type: string
                     role:
+                      description: Role is the role of the switch, could be spine,
+                        server-leaf or border-leaf or mixed-leaf
                       enum:
                       - spine
                       - server-leaf
                       - border-leaf
                       type: string
                     vlanNamespaces:
+                      description: VLANNamespaces is a list of VLAN namespaces the
+                        switch is part of, their VLAN ranges could not overlap
                       items:
                         type: string
                       type: array
                     vtepIP:
+                      description: VTEPIP is the VTEP IP of the switch
                       type: string
                   type: object
                 type: object
@@ -648,6 +917,9 @@ spec:
                   description: VLANNamespaceSpec defines the desired state of VLANNamespace
                   properties:
                     ranges:
+                      description: Ranges is a list of VLAN ranges to be used in this
+                        namespace, couldn't overlap between each other and with Fabric
+                        reserved VLAN ranges
                       items:
                         properties:
                           from:
@@ -670,8 +942,12 @@ spec:
                   description: VPCAttachmentSpec defines the desired state of VPCAttachment
                   properties:
                     connection:
+                      description: Connection is the name of the connection to attach
+                        to the VPC
                       type: string
                     subnet:
+                      description: Subnet is the full name of the VPC subnet to attach
+                        to, such as "vpc-1/default"
                       type: string
                   type: object
                 type: object
@@ -688,10 +964,14 @@ spec:
                   description: VPCPeeringSpec defines the desired state of VPCPeering
                   properties:
                     permit:
+                      description: Permit defines a list of the peering policies -
+                        which VPC subnets will have access to the peer VPC subnets.
                       items:
                         additionalProperties:
                           properties:
                             subnets:
+                              description: Subnets is the list of subnets to advertise
+                                from current VPC to the peer VPC
                               items:
                                 type: string
                               maxItems: 10
@@ -708,42 +988,68 @@ spec:
                 type: object
               vpcs:
                 additionalProperties:
-                  description: VPCSpec defines the desired state of VPC
+                  description: VPCSpec defines the desired state of VPC. At least
+                    one subnet is required.
                   properties:
                     ipv4Namespace:
+                      description: IPv4Namespace is the name of the IPv4Namespace
+                        this VPC belongs to
                       type: string
                     subnets:
                       additionalProperties:
+                        description: VPCSubnet defines the VPC subnet configuration
                         properties:
                           dhcp:
+                            description: DHCP is the on-demand DHCP configuration
+                              for the subnet
                             properties:
                               enable:
+                                description: Enable enables DHCP server for the subnet
                                 type: boolean
                               range:
+                                description: Range is the DHCP range for the subnet
+                                  if DHCP server is enabled
                                 properties:
                                   end:
+                                    description: End is the end IP address of the
+                                      DHCP range
                                     type: string
                                   start:
+                                    description: Start is the start IP address of
+                                      the DHCP range
                                     type: string
                                 type: object
                               relay:
+                                description: Relay is the DHCP relay IP address, if
+                                  specified, DHCP server will be disabled
                                 type: string
                             type: object
                           subnet:
+                            description: Subnet is the subnet CIDR block, such as
+                              "10.0.0.0/24", should belong to the IPv4Namespace and
+                              be unique within the namespace
                             type: string
                           vlan:
+                            description: VLAN is the VLAN ID for the subnet, should
+                              belong to the VLANNamespace and be unique within the
+                              namespace
                             type: string
                         type: object
+                      description: Subnets is the list of VPC subnets to configure
                       type: object
                     vlanNamespace:
+                      description: VLANNamespace is the name of the VLANNamespace
+                        this VPC belongs to
                       type: string
                   type: object
                 type: object
             type: object
           status:
-            description: AgentStatus defines the observed state of Agent
+            description: Status is the observed state of the Agent
             properties:
               conditions:
+                description: Conditions of the agent, includes readiness marker for
+                  use with kubectl wait
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -812,60 +1118,87 @@ spec:
                   type: object
                 type: array
               installID:
+                description: ID of the agent installation, used to track NOS re-installs
                 type: string
               lastAppliedGen:
+                description: Generation of the last successful configuration application
                 format: int64
                 type: integer
               lastAppliedTime:
+                description: Time of the last successful configuration application
                 format: date-time
                 type: string
               lastAttemptGen:
+                description: Generation of the last attempt to apply configuration
                 format: int64
                 type: integer
               lastAttemptTime:
+                description: Time of the last attempt to apply configuration
                 format: date-time
                 type: string
               lastHeartbeat:
+                description: Time of the last heartbeat from the agent
                 format: date-time
                 type: string
               nosInfo:
+                description: Information about the switch and NOS
                 properties:
                   asicVersion:
+                    description: ASIC name, such as "broadcom" or "vs"
                     type: string
                   buildCommit:
+                    description: NOS build commit
                     type: string
                   buildDate:
+                    description: NOS build date
                     type: string
                   builtBy:
+                    description: NOS build user
                     type: string
                   configDbVersion:
+                    description: NOS config DB version, such as "version_4_2_1"
                     type: string
                   distributionVersion:
+                    description: Distribution version, such as "Debian 10.13"
                     type: string
                   hardwareVersion:
+                    description: Hardware version, such as "X01"
                     type: string
                   hwskuVersion:
+                    description: Hwsku version, such as "DellEMC-S5248f-P-25G-DPB"
                     type: string
                   kernelVersion:
+                    description: Kernel version, such as "5.10.0-21-amd64"
                     type: string
                   mfgName:
+                    description: Manufacturer name, such as "Dell EMC"
                     type: string
                   platformName:
+                    description: Platform name, such as "x86_64-dellemc_s5248f_c3538-r0"
                     type: string
                   productDescription:
+                    description: NOS product description, such as "Enterprise SONiC
+                      Distribution by Broadcom - Enterprise Base package"
                     type: string
                   productVersion:
+                    description: NOS product version, empty for Broadcom SONiC
                     type: string
                   serialNumber:
+                    description: Switch serial number
                     type: string
                   softwareVersion:
+                    description: NOS software version, such as "4.2.0-Enterprise_Base"
                     type: string
                   upTime:
+                    description: 'Switch uptime, such as "21:21:27 up 1 day, 23:26,
+                      0 users, load average: 1.92, 1.99, 2.00 "'
                     type: string
                 type: object
               runID:
+                description: ID of the agent run, used to track NOS reboots
                 type: string
               statusUpdates:
+                description: Status updates from the agent
                 items:
                   properties:
                     apiVersion:
@@ -882,6 +1215,7 @@ spec:
                   type: object
                 type: array
               version:
+                description: Current running agent version
                 type: string
             required:
             - conditions

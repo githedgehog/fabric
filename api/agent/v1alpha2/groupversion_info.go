@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha2 contains API Schema definitions for the agent v1alpha2 API group
+// Package v1alpha2 contains API Schema definitions for the agent v1alpha2 API group. This is the internal API group
+// for the switch and control node agents. Not intended to be modified by the user.
 // +kubebuilder:object:generate=true
 // +groupName=agent.githedgehog.com
 package v1alpha2

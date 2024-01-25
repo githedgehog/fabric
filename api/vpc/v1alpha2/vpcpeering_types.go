@@ -37,12 +37,14 @@ type VPCPeeringSpec struct {
 	Remote string `json:"remote,omitempty"`
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=10
+	// Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets.
 	Permit []map[string]VPCPeer `json:"permit,omitempty"`
 }
 
 type VPCPeer struct {
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=10
+	// Subnets is the list of subnets to advertise from current VPC to the peer VPC
 	Subnets []string `json:"subnets,omitempty"`
 }
 
@@ -56,12 +58,20 @@ type VPCPeeringStatus struct{}
 // +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc2`,priority=0
 // +kubebuilder:printcolumn:name="Remote",type=string,JSONPath=`.spec.remote`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// VPCPeering is the Schema for the vpcpeerings API
+// VPCPeering represents a peering between two VPCs with corresponding filtering rules.
+// Minimal example of the VPC peering showing vpc-1 to vpc-2 peering with all subnets allowed:
+//
+//	spec:
+//	  permit:
+//	  - vpc-1: {}
+//	    vpc-2: {}
 type VPCPeering struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VPCPeeringSpec   `json:"spec,omitempty"`
+	// Spec is the desired state of the VPCPeering
+	Spec VPCPeeringSpec `json:"spec,omitempty"`
+	// Status is the observed state of the VPCPeering
 	Status VPCPeeringStatus `json:"status,omitempty"`
 }
 
