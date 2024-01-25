@@ -159,6 +159,8 @@ spec:
                 - spine
                 - server-leaf
                 - border-leaf
+                - mixed-leaf
+                - virtual-edge
                 type: string
               vlanNamespaces:
                 description: VLANNamespaces is a list of VLAN namespaces the switch

@@ -134,6 +134,16 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan basic BGP")
 	}
 
+	if agent.Spec.Switch.Role.IsVirtualEdge() {
+		err = planVirtualEdge(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan virtual edge")
+		}
+		spec.Normalize()
+
+		return spec, nil
+	}
+
 	err = planFabricConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan fabric connections")

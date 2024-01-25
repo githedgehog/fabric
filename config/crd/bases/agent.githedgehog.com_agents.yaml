@@ -737,6 +737,8 @@ spec:
                 - spine
                 - server-leaf
                 - border-leaf
+                - mixed-leaf
+                - virtual-edge
                 type: string
               statusUpdates:
                 description: TODO impl
@@ -849,6 +851,8 @@ spec:
                     - spine
                     - server-leaf
                     - border-leaf
+                    - mixed-leaf
+                    - virtual-edge
                     type: string
                   vlanNamespaces:
                     description: VLANNamespaces is a list of VLAN namespaces the switch
@@ -957,6 +961,8 @@ spec:
                       - spine
                       - server-leaf
                       - border-leaf
+                      - mixed-leaf
+                      - virtual-edge
                       type: string
                     vlanNamespaces:
                       description: VLANNamespaces is a list of VLAN namespaces the

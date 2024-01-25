@@ -34,15 +34,16 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:validation:Enum=spine;server-leaf;border-leaf
+// +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf;virtual-edge
 // SwitchRole is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
 type SwitchRole string
 
 const (
-	SwitchRoleSpine      SwitchRole = "spine"
-	SwitchRoleServerLeaf SwitchRole = "server-leaf"
-	SwitchRoleBorderLeaf SwitchRole = "border-leaf"
-	SwitchRoleMixedLeaf  SwitchRole = "mixed-leaf"
+	SwitchRoleSpine       SwitchRole = "spine"
+	SwitchRoleServerLeaf  SwitchRole = "server-leaf"
+	SwitchRoleBorderLeaf  SwitchRole = "border-leaf"
+	SwitchRoleMixedLeaf   SwitchRole = "mixed-leaf"
+	SwitchRoleVirtualEdge SwitchRole = "virtual-edge"
 )
 
 var SwitchRoles = []SwitchRole{
@@ -57,6 +58,10 @@ func (r SwitchRole) IsSpine() bool {
 
 func (r SwitchRole) IsLeaf() bool {
 	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf
+}
+
+func (r SwitchRole) IsVirtualEdge() bool {
+	return r == SwitchRoleVirtualEdge
 }
 
 // SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
