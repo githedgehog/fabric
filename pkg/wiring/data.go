@@ -18,6 +18,7 @@ import (
 
 type Data struct {
 	Rack               *Store[*wiringapi.Rack]
+	SwitchGroup        *Store[*wiringapi.SwitchGroup]
 	Switch             *Store[*wiringapi.Switch]
 	Server             *Store[*wiringapi.Server]
 	Connection         *Store[*wiringapi.Connection]
@@ -32,6 +33,7 @@ type Data struct {
 func New(objs ...metav1.Object) (*Data, error) {
 	data := &Data{
 		Rack:               NewStore[*wiringapi.Rack](),
+		SwitchGroup:        NewStore[*wiringapi.SwitchGroup](),
 		Switch:             NewStore[*wiringapi.Switch](),
 		Server:             NewStore[*wiringapi.Server](),
 		Connection:         NewStore[*wiringapi.Connection](),
@@ -52,6 +54,8 @@ func (d *Data) Add(objs ...metav1.Object) error {
 		switch typed := obj.(type) {
 		case *wiringapi.Rack:
 			err = d.Rack.Add(typed)
+		case *wiringapi.SwitchGroup:
+			err = d.SwitchGroup.Add(typed)
 		case *wiringapi.Switch:
 			err = d.Switch.Add(typed)
 		case *wiringapi.Server:
@@ -175,6 +179,14 @@ func (d *Data) Write(ret io.Writer) error {
 
 	for _, rack := range d.Rack.All() {
 		err := marshal(rack, idx > 0, w)
+		if err != nil {
+			return err
+		}
+		idx++
+	}
+
+	for _, sg := range d.SwitchGroup.All() {
+		err := marshal(sg, idx > 0, w)
 		if err != nil {
 			return err
 		}

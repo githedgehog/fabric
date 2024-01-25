@@ -126,6 +126,10 @@ func Load(r io.Reader, data *Data) error {
 			if err := data.Add(typed); err != nil {
 				return err
 			}
+		case *wiringapi.SwitchGroup:
+			if err := data.Add(typed); err != nil {
+				return err
+			}
 		case *wiringapi.Switch:
 			if err := data.Add(typed); err != nil {
 				return err
