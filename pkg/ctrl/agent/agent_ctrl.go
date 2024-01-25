@@ -32,6 +32,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
@@ -265,6 +266,21 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
+	eslagPeers := []*agentapi.Agent{}
+	if sw.Spec.Redundancy.Type == meta.RedundancyTypeESLAG {
+		for _, other := range switchList.Items {
+			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
+				ag := &agentapi.Agent{}
+				err = r.Get(ctx, types.NamespacedName{Namespace: other.Namespace, Name: other.Name}, ag)
+				if err != nil && !apierrors.IsNotFound(err) {
+					return ctrl.Result{}, errors.Wrapf(err, "error getting eslag peer agent")
+				}
+
+				eslagPeers = append(eslagPeers, ag)
+			}
+		}
+	}
+
 	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]vpcapi.VPCAttachmentSpec{}
 	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
@@ -482,7 +498,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return errors.Wrapf(err, "error calculating port channels")
 		}
 
-		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(ctx, agent, vpcs)
+		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(ctx, agent, vpcs, eslagPeers)
 		if err != nil {
 			return errors.Wrapf(err, "error calculating IRB VLANs")
 		}
@@ -764,15 +780,27 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 	return portChannels, nil
 }
 
-func (r *AgentReconciler) calculateIRBVLANs(ctx context.Context, agent *agentapi.Agent, vpcs map[string]vpcapi.VPCSpec) (map[string]uint16, error) {
+func (r *AgentReconciler) calculateIRBVLANs(ctx context.Context, agent *agentapi.Agent, vpcs map[string]vpcapi.VPCSpec, eslagPeers []*agentapi.Agent) (map[string]uint16, error) {
 	l := log.FromContext(ctx)
 
 	irbVLANs := map[string]uint16{}
 	taken := map[uint16]bool{}
 
+	for _, eslagPeer := range eslagPeers {
+		if eslagPeer.Spec.IRBVLANs == nil {
+			eslagPeer.Spec.IRBVLANs = map[string]uint16{}
+		}
+	}
+
 	for vpc, vlan := range agent.Spec.IRBVLANs {
 		if vlan < 1 {
 			continue
+		}
+
+		for _, eslagPeer := range eslagPeers {
+			if eslagPeer.Spec.IRBVLANs[vpc] > 0 && eslagPeer.Spec.IRBVLANs[vpc] != vlan {
+				return nil, errors.Errorf("irb vlan mismatch for vpc %s on %s and %s that are in a eslag redundancy group", vpc, agent.Name, eslagPeer.Name)
+			}
 		}
 
 		// TODO check it's still in the reserved ranges
@@ -783,6 +811,21 @@ func (r *AgentReconciler) calculateIRBVLANs(ctx context.Context, agent *agentapi
 
 		irbVLANs[vpc] = vlan
 		taken[vlan] = true
+	}
+
+	for _, eslagPeer := range eslagPeers {
+		for vpc, vlan := range eslagPeer.Spec.IRBVLANs {
+			if vlan < 1 {
+				continue
+			}
+
+			if _, exist := vpcs[vpc]; !exist {
+				continue
+			}
+
+			irbVLANs[vpc] = vlan
+			taken[vlan] = true
+		}
 	}
 
 	for vpcName := range vpcs {
