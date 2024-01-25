@@ -159,6 +159,46 @@ spec:
                             port or port channel
                           type: integer
                       type: object
+                    eslag:
+                      description: ESLAG defines the ESLAG connection (port channel,
+                        single server to 2-4 switches with multiple links)
+                      properties:
+                        links:
+                          description: Links is the list of server-to-switch links
+                          items:
+                            description: ServerToSwitchLink defines the server-to-switch
+                              link
+                            properties:
+                              server:
+                                description: Server is the server side of the connection
+                                properties:
+                                  port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                              switch:
+                                description: Switch is the switch side of the connection
+                                properties:
+                                  port:
+                                    description: Port defines the full name of the
+                                      switch port in the format of "device/port",
+                                      such as "spine-1/Ethernet1". SONiC port name
+                                      is used as a port name and switch name should
+                                      be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 2
+                          type: array
+                        mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
+                          type: integer
+                      type: object
                     external:
                       description: External defines the external connection (single
                         switch to a single external device with a single link)
@@ -285,7 +325,7 @@ spec:
                       type: object
                     mclag:
                       description: MCLAG defines the MCLAG connection (port channel,
-                        single server to multiple switches with multiple links)
+                        single server to pair of switches with multiple links)
                       properties:
                         links:
                           description: Links is the list of server-to-switch links
@@ -776,6 +816,23 @@ spec:
                   protocolIP:
                     description: ProtocolIP is used as BGP Router ID for switch configuration
                     type: string
+                  redundancy:
+                    description: Redundancy is the switch redundancy configuration
+                      including name of the redundancy group switch belongs to and
+                      its type, used both for MCLAG and ESLAG connections
+                    properties:
+                      name:
+                        description: Group is the name of the redundancy group switch
+                          belongs to
+                        type: string
+                      type:
+                        description: Type is the type of the redundancy group, could
+                          be mclag or eslag
+                        enum:
+                        - mclag
+                        - eslag
+                        type: string
+                    type: object
                   role:
                     description: Role is the role of the switch, could be spine, server-leaf
                       or border-leaf or mixed-leaf
@@ -867,6 +924,23 @@ spec:
                       description: ProtocolIP is used as BGP Router ID for switch
                         configuration
                       type: string
+                    redundancy:
+                      description: Redundancy is the switch redundancy configuration
+                        including name of the redundancy group switch belongs to and
+                        its type, used both for MCLAG and ESLAG connections
+                      properties:
+                        name:
+                          description: Group is the name of the redundancy group switch
+                            belongs to
+                          type: string
+                        type:
+                          description: Type is the type of the redundancy group, could
+                            be mclag or eslag
+                          enum:
+                          - mclag
+                          - eslag
+                          type: string
+                      type: object
                     role:
                       description: Role is the role of the switch, could be spine,
                         server-leaf or border-leaf or mixed-leaf

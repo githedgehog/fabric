@@ -135,6 +135,23 @@ spec:
               protocolIP:
                 description: ProtocolIP is used as BGP Router ID for switch configuration
                 type: string
+              redundancy:
+                description: Redundancy is the switch redundancy configuration including
+                  name of the redundancy group switch belongs to and its type, used
+                  both for MCLAG and ESLAG connections
+                properties:
+                  name:
+                    description: Group is the name of the redundancy group switch
+                      belongs to
+                    type: string
+                  type:
+                    description: Type is the type of the redundancy group, could be
+                      mclag or eslag
+                    enum:
+                    - mclag
+                    - eslag
+                    type: string
+                type: object
               role:
                 description: Role is the role of the switch, could be spine, server-leaf
                   or border-leaf or mixed-leaf

@@ -57,6 +57,18 @@ func (r SwitchRole) IsLeaf() bool {
 	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf
 }
 
+// SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
+// to and its type, used both for MCLAG and ESLAG connections. It defines how redundancy will be configured and handled
+// on the switch as well as which connection types will be available. If not specified, switch will not be part of any
+// redundancy group. If name isn't empty, type must be specified as well and name should be the same as one of the
+// SwitchGroup objects.
+type SwitchRedundancy struct {
+	// Group is the name of the redundancy group switch belongs to
+	Group string `json:"name,omitempty"`
+	// Type is the type of the redundancy group, could be mclag or eslag
+	Type meta.RedundancyType `json:"type,omitempty"`
+}
+
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
 	// +kubebuilder:validation:Required
@@ -72,6 +84,8 @@ type SwitchSpec struct {
 	LocationSig LocationSig `json:"locationSig,omitempty"`
 	// Groups is a list of switch groups the switch belongs to
 	Groups []string `json:"groups,omitempty"`
+	// Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used both for MCLAG and ESLAG connections
+	Redundancy SwitchRedundancy `json:"redundancy,omitempty"`
 	// VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap
 	VLANNamespaces []string `json:"vlanNamespaces,omitempty"`
 	// ASN is the ASN of the switch

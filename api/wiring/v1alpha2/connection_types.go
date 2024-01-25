@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"golang.org/x/exp/maps"
@@ -39,6 +40,7 @@ const (
 	CONNECTION_TYPE_MANAGEMENT   = "management" // TODO rename to control?
 	CONNECTION_TYPE_MCLAG        = "mclag"
 	CONNECTION_TYPE_MCLAGDOMAIN  = "mclag-domain"
+	CONNECTION_TYPE_ESLAG        = "eslag"
 	CONNECTION_TYPE_FABRIC       = "fabric"
 	CONNECTION_TYPE_VPC_LOOPBACK = "vpc-loopback"
 	CONNECTION_EXTERNAL          = "external"
@@ -120,12 +122,21 @@ type ConnMgmt struct {
 	Link ConnMgmtLink `json:"link,omitempty"`
 }
 
-// ConnMCLAG defines the MCLAG connection (port channel, single server to multiple switches with multiple links)
+// ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
 type ConnMCLAG struct {
 	//+kubebuilder:validation:MinItems=2
 	// Links is the list of server-to-switch links
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
+	ServerFacingConnectionConfig `json:",inline"`
+}
+
+// ConnESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
+type ConnESLAG struct {
+	//+kubebuilder:validation:MinItems=2
+	// Links is the list of server-to-switch links
+	Links []ServerToSwitchLink `json:"links,omitempty"`
+	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, eslag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
 }
 
@@ -230,8 +241,10 @@ type ConnectionSpec struct {
 	Bundled *ConnBundled `json:"bundled,omitempty"`
 	// Management defines the management connection (single control node/server to a single switch with a single link)
 	Management *ConnMgmt `json:"management,omitempty"`
-	// MCLAG defines the MCLAG connection (port channel, single server to multiple switches with multiple links)
+	// MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
 	MCLAG *ConnMCLAG `json:"mclag,omitempty"`
+	// ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
+	ESLAG *ConnESLAG `json:"eslag,omitempty"`
 	// MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	// Fabric defines the fabric connection (single spine to a single leaf with at least one link)
@@ -367,6 +380,16 @@ func (c *ConnectionSpec) GenerateName() string {
 				}
 				right = append(right, link.Switch.DeviceName())
 			}
+		} else if c.ESLAG != nil {
+			role = "eslag"
+			left = c.ESLAG.Links[0].Server.DeviceName()
+			for _, link := range c.ESLAG.Links {
+				// check we have the same server in each link // TODO add validation
+				if link.Server.DeviceName() != left {
+					return "<invalid>" // TODO replace with error?
+				}
+				right = append(right, link.Switch.DeviceName())
+			}
 		} else if c.Fabric != nil {
 			role = "fabric"
 			left = c.Fabric.Links[0].Spine.DeviceName()
@@ -423,6 +446,8 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
 	} else if c.MCLAG != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
+	} else if c.ESLAG != nil {
+		labels[LabelConnectionType] = CONNECTION_TYPE_ESLAG
 	} else if c.Fabric != nil {
 		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
 	} else if c.VPCLoopback != nil {
@@ -548,6 +573,29 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		}
 		if len(ports) != 2*len(s.MCLAG.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
+		}
+	} else if s.ESLAG != nil {
+		nonNills++
+
+		for _, link := range s.ESLAG.Links {
+			switches[link.Switch.DeviceName()] = struct{}{}
+			servers[link.Server.DeviceName()] = struct{}{}
+			ports[link.Switch.PortName()] = struct{}{}
+			ports[link.Server.PortName()] = struct{}{}
+			links[link.Switch.PortName()] = link.Server.PortName()
+		}
+
+		if len(switches) < 2 {
+			return nil, nil, nil, nil, errors.Errorf("at least two switches must be used for eslag connection")
+		}
+		if len(switches) > 4 {
+			return nil, nil, nil, nil, errors.Errorf("at most four switches must be used for eslag connection")
+		}
+		if len(servers) != 1 {
+			return nil, nil, nil, nil, errors.Errorf("one server must be used for eslag connection")
+		}
+		if len(ports) != 2*len(s.ESLAG.Links) {
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for eslag connection")
 		}
 	} else if s.Fabric != nil {
 		nonNills++
@@ -690,15 +738,60 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 	}
 
 	if client != nil {
+		rGroup := ""
+		rType := meta.RedundancyTypeNone
+
 		for _, switchName := range switches {
-			err := client.Get(ctx, types.NamespacedName{Name: switchName, Namespace: conn.Namespace}, &Switch{}) // TODO namespace could be different?
+			sw := &Switch{}
+			err := client.Get(ctx, types.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch %s not found", switchName)
 			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get switch %s", switchName) // TODO replace with some internal error to not expose to the user
 			}
+
+			if conn.Spec.MCLAG != nil || conn.Spec.ESLAG != nil || conn.Spec.MCLAGDomain != nil {
+				if sw.Spec.Redundancy.Group != "" {
+					if rGroup != "" && rGroup != sw.Spec.Redundancy.Group {
+						return nil, errors.Errorf("all switches in MCLAG/ESLAG/MCLAGDomain connection should belong to the same redundancy group, found %s in %s", switchName, rGroup)
+					}
+					rGroup = sw.Spec.Redundancy.Group
+				}
+				if sw.Spec.Redundancy.Type != "" {
+					if rType != "" && rType != sw.Spec.Redundancy.Type {
+						return nil, errors.Errorf("all switches in MCLAG/ESLAG/MCLAGDomain connection should belong to the same redundancy type, found %s in %s", switchName, rType)
+					}
+					rType = sw.Spec.Redundancy.Type
+				}
+			}
 		}
+
+		if conn.Spec.MCLAG != nil {
+			if rGroup == "" {
+				return nil, errors.Errorf("all switches in MCLAG connection should have redundancy group")
+			}
+			if rType != meta.RedundancyTypeMCLAG {
+				return nil, errors.Errorf("all switches in MCLAG connection should have MCLAG redundancy type, found %s", rType)
+			}
+		}
+		if conn.Spec.ESLAG != nil {
+			if rGroup == "" {
+				return nil, errors.Errorf("all switches in ESLAG connection should have redundancy group")
+			}
+			if rType != meta.RedundancyTypeESLAG {
+				return nil, errors.Errorf("all switches in ESLAG connection should have ESLAG redundancy type, found %s", rType)
+			}
+		}
+		if conn.Spec.MCLAGDomain != nil {
+			if rGroup == "" {
+				return nil, errors.Errorf("all switches in MCLAGDomain connection should have redundancy group")
+			}
+			if rType != meta.RedundancyTypeMCLAG {
+				return nil, errors.Errorf("all switches in MCLAGDomain connection should have MCLAG redundancy type, found %s", rType)
+			}
+		}
+
 		for _, serverName := range servers {
 			err := client.Get(ctx, types.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
 			if apierrors.IsNotFound(err) {
