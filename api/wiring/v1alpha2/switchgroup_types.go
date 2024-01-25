@@ -43,6 +43,8 @@ type SwitchGroup struct {
 	Status SwitchGroupStatus `json:"status,omitempty"`
 }
 
+const KindSwitchGroup = "SwitchGroup"
+
 //+kubebuilder:object:root=true
 
 // SwitchGroupList contains a list of SwitchGroup
