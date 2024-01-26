@@ -419,6 +419,17 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			continue
 		}
 
+		subnetVNIs := true
+		for subnetName := range vpc.Spec.Subnets {
+			if _, exists := vpc.Status.SubnetVNIs[subnetName]; !exists {
+				subnetVNIs = false
+				break
+			}
+		}
+		if vpc.Status.VNI == 0 || !subnetVNIs {
+			return ctrl.Result{}, errors.Errorf("vpc %s doesn't have vni or subnet vnis", vpc.Name)
+		}
+
 		vnis[vpc.Name] = vpc.Status.VNI
 
 		for subnetName := range vpc.Spec.Subnets {
