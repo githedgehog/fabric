@@ -1261,7 +1261,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `name` _string_ | Group is the name of the redundancy group switch belongs to |
+| `group` _string_ | Group is the name of the redundancy group switch belongs to |
 | `type` _[RedundancyType](#redundancytype)_ | Type is the type of the redundancy group, could be mclag or eslag |
 
 

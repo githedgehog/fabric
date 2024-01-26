@@ -64,7 +64,7 @@ func (r SwitchRole) IsLeaf() bool {
 // SwitchGroup objects.
 type SwitchRedundancy struct {
 	// Group is the name of the redundancy group switch belongs to
-	Group string `json:"name,omitempty"`
+	Group string `json:"group,omitempty"`
 	// Type is the type of the redundancy group, could be mclag or eslag
 	Type meta.RedundancyType `json:"type,omitempty"`
 }

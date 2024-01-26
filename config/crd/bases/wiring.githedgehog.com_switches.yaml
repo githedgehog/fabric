@@ -140,7 +140,7 @@ spec:
                   name of the redundancy group switch belongs to and its type, used
                   both for MCLAG and ESLAG connections
                 properties:
-                  name:
+                  group:
                     description: Group is the name of the redundancy group switch
                       belongs to
                     type: string
