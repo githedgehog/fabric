@@ -273,7 +273,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	eslagPeers := []*agentapi.Agent{}
-	if sw.Spec.Redundancy.Type == meta.RedundancyTypeESLAG {
+	if sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeESLAG {
 		for _, other := range switchList.Items {
 			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
 				ag := &agentapi.Agent{}
