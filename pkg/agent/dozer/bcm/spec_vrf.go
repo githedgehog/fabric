@@ -32,6 +32,10 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf sag")
 		}
 
+		if err := specVRFEVPNMHEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf evpn mh")
+		}
+
 		actualInterfaces, desiredInterfaces := ValueOrNil(actual, desired,
 			func(value *dozer.SpecVRF) map[string]*dozer.SpecVRFInterface { return value.Interfaces })
 		if err := specVRFInterfacesEnforcer.Handle(basePath, actualInterfaces, desiredInterfaces, actions); err != nil {
@@ -56,6 +60,12 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf static routes")
 		}
 
+		actualEthernetSegments, desiredEthernetSegments := ValueOrNil(actual, desired,
+			func(value *dozer.SpecVRF) map[string]*dozer.SpecVRFEthernetSegment { return value.EthernetSegments })
+		if err := specVRFEthernetSegmentsEnforcer.Handle(basePath, actualEthernetSegments, desiredEthernetSegments, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf ethernet segments")
+		}
+
 		return nil
 	},
 }
@@ -76,6 +86,51 @@ var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 						Name:        ygot.String(name),
 						Enabled:     value.Enabled,
 						Description: value.Description,
+					},
+				},
+			},
+		}, nil
+	},
+}
+
+var specVRFEVPNMHEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
+	Summary: "VRF %s EVPNMH",
+	Getter: func(name string, value *dozer.SpecVRF) any {
+		return []any{value.EVPNMH}
+	},
+	Path:         "/evpn/evpn-mh/config",
+	UpdateWeight: ActionWeightVRFEVPNMHUpdate,
+	DeleteWeight: ActionWeightVRFEVPNMHDelete,
+	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EvpnMh{
+			Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EvpnMh_Config{
+				MacHoldtime:  value.EVPNMH.MACHoldtime,
+				StartupDelay: value.EVPNMH.StartupDelay,
+			},
+		}, nil
+	},
+}
+
+var specVRFEthernetSegmentsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFEthernetSegment]{
+	Summary:      "VRF ethernet segments",
+	ValueHandler: specVRFEVPNEthernetSegmentEnforcer,
+}
+
+var specVRFEVPNEthernetSegmentEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFEthernetSegment]{
+	Summary:      "VRF %s EVPN ethernet segment",
+	Path:         "/evpn/ethernet-segments/ethernet-segment[name=%s]",
+	UpdateWeight: ActionWeightVRFEthernetSegmentUpdate,
+	DeleteWeight: ActionWeightVRFEthernetSegmentDelete,
+	Marshal: func(name string, value *dozer.SpecVRFEthernetSegment) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EthernetSegments{
+			EthernetSegment: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EthernetSegments_EthernetSegment{
+				name: {
+					Name: ygot.String(name),
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EthernetSegments_EthernetSegment_Config{
+						Name:      stringPtr(name),
+						EsiType:   oc.OpenconfigEvpn_EsiType_TYPE_0_OPERATOR_CONFIGURED,
+						Esi:       oc.UnionString(value.ESI),
+						Interface: stringPtr(name),
 					},
 				},
 			},
@@ -754,6 +809,35 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			}
 		}
 
+		evpnMH := dozer.SpecVRFEVPNMH{}
+		es := map[string]*dozer.SpecVRFEthernetSegment{}
+
+		if ocVRF.Evpn != nil {
+			if ocVRF.Evpn.EvpnMh != nil && ocVRF.Evpn.EvpnMh.Config != nil {
+				evpnMH.MACHoldtime = ocVRF.Evpn.EvpnMh.Config.MacHoldtime
+				evpnMH.StartupDelay = ocVRF.Evpn.EvpnMh.Config.StartupDelay
+			}
+
+			if ocVRF.Evpn.EthernetSegments != nil {
+				for name, ocES := range ocVRF.Evpn.EthernetSegments.EthernetSegment {
+					if ocES.Config == nil {
+						continue
+					}
+					if ocES.Config.EsiType != oc.OpenconfigEvpn_EsiType_TYPE_0_OPERATOR_CONFIGURED {
+						continue
+					}
+
+					if esi, ok := ocES.Config.Esi.(oc.UnionString); !ok {
+						return nil, errors.Errorf("invalid ESI %v for %s", ocES.Config.Esi, name)
+					} else {
+						es[name] = &dozer.SpecVRFEthernetSegment{
+							ESI: string(esi),
+						}
+					}
+				}
+			}
+		}
+
 		enabled := ocVRF.Config.Enabled
 		if enabled == nil {
 			enabled = ygot.Bool(true)
@@ -776,6 +860,8 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			BGP:              bgp,
 			TableConnections: tableConns,
 			StaticRoutes:     staticRoutes,
+			EVPNMH:           evpnMH,
+			EthernetSegments: es,
 		}
 	}
 

@@ -108,6 +108,11 @@ const (
 
 	ActionWeightVRFBGPBaseUpdate
 	ActionWeightVRFSAGUpdate
+	ActionWeightVRFEVPNMHUpdate
+	ActionWeightVRFEthernetSegmentUpdate
+
+	ActionWeightLSTGroupUpdate
+	ActionWeightLSTInterfaceUpdate
 
 	ActionWeightVXLANTunnelMapDelete
 	ActionWeightVXLANTunnelUpdate
@@ -134,6 +139,11 @@ const (
 
 	ActionWeightVRFVNIDelete
 
+	ActionWeightLSTInterfaceDelete
+	ActionWeightLSTGroupDelete
+
+	ActionWeightVRFEthernetSegmentDelete
+	ActionWeightVRFEVPNMHDelete
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
 	ActionWeightVRFBGPNeighborDelete

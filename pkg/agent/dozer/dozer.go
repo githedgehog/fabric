@@ -203,7 +203,7 @@ type SpecVRFStaticRouteNextHop struct {
 }
 
 type SpecVRFEthernetSegment struct {
-	ESI *string `json:"esi,omitempty"`
+	ESI string `json:"esi,omitempty"`
 }
 
 type SpecVRFEVPNMH struct {
@@ -371,11 +371,11 @@ type SpecPortChannelConfig struct {
 
 type SpecLSTGroup struct {
 	AllEVPNESDownstream *bool   `json:"allEvpnEsDownstream,omitempty"`
-	Timeout             *uint32 `json:"timeout,omitempty"`
+	Timeout             *uint16 `json:"timeout,omitempty"`
 }
 
 type SpecLSTInterface struct {
-	Group *string `json:"group,omitempty"`
+	Groups []string `json:"groups,omitempty"`
 }
 
 func (s *Spec) Normalize() {

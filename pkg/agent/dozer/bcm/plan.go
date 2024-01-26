@@ -869,8 +869,10 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
 					SystemMAC: stringPtr(mac.String()),
 				}
+
+				esi := strings.ReplaceAll(agent.Spec.Config.ESLAGESIPrefix+mac.String(), ":", "")
 				spec.VRFs[VRF_DEFAULT].EthernetSegments[connPortChannelName] = &dozer.SpecVRFEthernetSegment{
-					ESI: stringPtr(agent.Spec.Config.ESLAGESIPrefix + mac.String()),
+					ESI: esi,
 				}
 			}
 
@@ -1090,7 +1092,7 @@ func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	spec.LSTGroups[LST_GROUP_SPINELINK] = &dozer.SpecLSTGroup{
 		AllEVPNESDownstream: boolPtr(true),
-		Timeout:             uint32Ptr(180),
+		Timeout:             uint16Ptr(180),
 	}
 
 	for _, conn := range agent.Spec.Connections {
@@ -1106,7 +1108,7 @@ func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error {
 			port := link.Leaf.LocalPortName()
 
 			spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
-				Group: stringPtr(LST_GROUP_SPINELINK),
+				Groups: []string{LST_GROUP_SPINELINK},
 			}
 		}
 	}

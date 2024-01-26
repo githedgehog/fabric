@@ -122,6 +122,14 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle community lists")
 		}
 
+		if err := specLSTGroupsEnforcer.Handle(basePath, actual.LSTGroups, desired.LSTGroups, actions); err != nil {
+			return errors.Wrap(err, "failed to handle lst groups")
+		}
+
+		if err := specLSTInterfacesEnforcer.Handle(basePath, actual.LSTInterfaces, desired.LSTInterfaces, actions); err != nil {
+			return errors.Wrap(err, "failed to handle lst interfaces")
+		}
+
 		return nil
 	},
 }
@@ -213,6 +221,14 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualSuppressVLANNeighs(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load suppress vlan neighs")
+	}
+
+	if err := loadActualLSTGroups(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load lst groups")
+	}
+
+	if err := loadActualLSTInterfaces(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load lst interfaces")
 	}
 
 	return nil
