@@ -130,6 +130,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle lst interfaces")
 		}
 
+		if err := specPortChannelConfigsEnforcer.Handle(basePath, actual.PortChannelConfigs, desired.PortChannelConfigs, actions); err != nil {
+			return errors.Wrap(err, "failed to handle port channel configs")
+		}
+
 		return nil
 	},
 }
@@ -229,6 +233,10 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 
 	if err := loadActualLSTInterfaces(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load lst interfaces")
+	}
+
+	if err := loadActualPortChannelConfigs(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load port channel configs")
 	}
 
 	return nil
