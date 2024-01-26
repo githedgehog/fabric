@@ -45,11 +45,15 @@ func loadActualPortChannelConfigs(ctx context.Context, client *gnmi.Client, spec
 func unmarshalActualPortChannelConfigs(ocVal *oc.SonicPortchannel_SonicPortchannel) (map[string]*dozer.SpecPortChannelConfig, error) {
 	portChannelConfigs := map[string]*dozer.SpecPortChannelConfig{}
 
-	if ocVal == nil {
+	if ocVal == nil || ocVal.PORTCHANNEL == nil {
 		return portChannelConfigs, nil
 	}
 
 	for name, portChannel := range ocVal.PORTCHANNEL.PORTCHANNEL_LIST {
+		if portChannel.SystemMac == nil {
+			continue
+		}
+
 		portChannelConfigs[name] = &dozer.SpecPortChannelConfig{
 			SystemMAC: portChannel.SystemMac,
 		}

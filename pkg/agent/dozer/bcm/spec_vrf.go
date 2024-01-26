@@ -98,6 +98,13 @@ var specVRFEVPNMHEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 	Getter: func(name string, value *dozer.SpecVRF) any {
 		return []any{value.EVPNMH}
 	},
+	MutateActual: func(key string, actual *dozer.SpecVRF) *dozer.SpecVRF {
+		if actual != nil && actual.EVPNMH.StartupDelay == nil && actual.EVPNMH.MACHoldtime == nil {
+			return nil
+		}
+
+		return actual
+	},
 	Path:         "/evpn/evpn-mh/config",
 	UpdateWeight: ActionWeightVRFEVPNMHUpdate,
 	DeleteWeight: ActionWeightVRFEVPNMHDelete,
@@ -818,7 +825,8 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				evpnMH.StartupDelay = ocVRF.Evpn.EvpnMh.Config.StartupDelay
 			}
 
-			if ocVRF.Evpn.EthernetSegments != nil {
+			// only get ethernet segments from the default VRF
+			if name == "default" && ocVRF.Evpn.EthernetSegments != nil {
 				for name, ocES := range ocVRF.Evpn.EthernetSegments.EthernetSegment {
 					if ocES.Config == nil {
 						continue

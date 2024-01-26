@@ -1398,6 +1398,19 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				ifaces = append(ifaces, portChannelName(portChan))
 			}
+		} else if conn.ESLAG != nil {
+			for _, link := range conn.ESLAG.Links {
+				if link.Switch.DeviceName() != agent.Name {
+					continue
+				}
+
+				portChan := agent.Spec.PortChannels[attach.Connection]
+				if portChan == 0 {
+					return errors.Errorf("no port channel found for conn %s", attach.Connection)
+				}
+
+				ifaces = append(ifaces, portChannelName(portChan))
+			}
 		} else if conn.Bundled != nil {
 			for _, link := range conn.Bundled.Links {
 				if link.Switch.DeviceName() != agent.Name {
