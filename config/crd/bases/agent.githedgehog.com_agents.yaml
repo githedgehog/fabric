@@ -116,6 +116,11 @@ spec:
                 additionalProperties:
                   type: boolean
                 type: object
+              connSystemIDs:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                type: object
               connections:
                 additionalProperties:
                   description: ConnectionSpec defines the desired state of Connection

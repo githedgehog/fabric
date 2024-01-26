@@ -41,6 +41,7 @@ import (
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
+	connectioncontroller "go.githedgehog.com/fabric/pkg/ctrl/connection"
 	controlagentcontroller "go.githedgehog.com/fabric/pkg/ctrl/controlagent"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/config"
@@ -140,6 +141,10 @@ func main() {
 	}
 	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VPC")
+		os.Exit(1)
+	}
+	if err = connectioncontroller.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Connection")
 		os.Exit(1)
 	}
 

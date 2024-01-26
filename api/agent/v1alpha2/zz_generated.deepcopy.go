@@ -212,6 +212,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.ConnSystemIDs != nil {
+		in, out := &in.ConnSystemIDs, &out.ConnSystemIDs
+		*out = make(map[string]uint32, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.ExternalPeeringPrefixIDs != nil {
 		in, out := &in.ExternalPeeringPrefixIDs, &out.ExternalPeeringPrefixIDs
 		*out = make(map[string]uint32, len(*in))

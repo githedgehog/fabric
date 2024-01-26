@@ -202,8 +202,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	conns := map[string]wiringapi.ConnectionSpec{}
+	connSystemIDs := map[string]uint32{}
 	for _, conn := range connList.Items {
+		if conn.Spec.ESLAG != nil && conn.Status.SystemID == 0 {
+			return ctrl.Result{}, errors.Errorf("connection %s is ESLAG but doesn't have system ID", conn.Name)
+		}
+
 		conns[conn.Name] = conn.Spec
+		connSystemIDs[conn.Name] = conn.Status.SystemID
 	}
 
 	neighborSwitches := map[string]bool{}
@@ -472,6 +478,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Switch = sw.Spec
 		agent.Spec.Switches = switches
 		agent.Spec.Connections = conns
+		agent.Spec.ConnSystemIDs = connSystemIDs
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
 		agent.Spec.VPCPeerings = peerings

@@ -51,6 +51,7 @@ type AgentSpec struct {
 	MCLAGAttachedVPCs        map[string]bool                          `json:"mclagAttachedVPCs,omitempty"`
 	VNIs                     map[string]uint32                        `json:"vnis,omitempty"`
 	IRBVLANs                 map[string]uint16                        `json:"irbVLANs,omitempty"`
+	ConnSystemIDs            map[string]uint32                        `json:"connSystemIDs,omitempty"`
 	ExternalPeeringPrefixIDs map[string]uint32                        `json:"externalPeeringPrefixIDs,omitempty"`
 	ExternalSeqs             map[string]uint16                        `json:"externalSeqs,omitempty"`
 	PortChannels             map[string]uint16                        `json:"portChannels,omitempty"`

@@ -259,6 +259,7 @@ type ConnectionSpec struct {
 
 // ConnectionStatus defines the observed state of Connection
 type ConnectionStatus struct {
+	SystemID uint32 `json:"systemID,omitempty"`
 	// Applied ApplyStatus `json:"applied,omitempty"`
 }
 
