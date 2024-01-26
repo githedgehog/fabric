@@ -2,6 +2,7 @@ package bcm
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"slices"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
@@ -47,6 +49,7 @@ const (
 	PREFIX_LIST_ANY                            = "any-prefix"
 	PREFIX_LIST_VPC_LOOPBACK                   = "vpc-loopback-prefix"
 	NO_COMMUNITY                               = "no-community"
+	LST_GROUP_SPINELINK                        = "spinelink"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -69,6 +72,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 				Interfaces:       map[string]*dozer.SpecVRFInterface{},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
+				EthernetSegments: map[string]*dozer.SpecVRFEthernetSegment{},
 			},
 		},
 		RouteMaps:          map[string]*dozer.SpecRouteMap{},
@@ -83,6 +87,9 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		VXLANTunnelMap:     map[string]*dozer.SpecVXLANTunnelMap{},
 		VRFVNIMap:          map[string]*dozer.SpecVRFVNIEntry{},
 		SuppressVLANNeighs: map[string]*dozer.SpecSuppressVLANNeigh{},
+		PortChannelConfigs: map[string]*dozer.SpecPortChannelConfig{},
+		LSTGroups:          map[string]*dozer.SpecLSTGroup{},
+		LSTInterfaces:      map[string]*dozer.SpecLSTInterface{},
 	}
 
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
@@ -159,9 +166,17 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		}
 	}
 
-	_ /* first */, err = planMCLAGDomain(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan mclag domain")
+	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
+		_ /* first */, err = planMCLAGDomain(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan mclag domain")
+		}
+	} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
+		err = planESLAG(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan eslag")
+		}
+
 	}
 
 	err = planVPCs(agent, spec)
@@ -794,6 +809,12 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				mtu = uint16Ptr(conn.Bundled.MTU)
 			}
 			links = conn.Bundled.Links
+		} else if conn.ESLAG != nil {
+			connType = "ESLAG"
+			if conn.ESLAG.MTU != 0 {
+				mtu = uint16Ptr(conn.ESLAG.MTU)
+			}
+			links = conn.ESLAG.Links
 		} else {
 			continue
 		}
@@ -830,6 +851,26 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if connType == "MCLAG" {
 				spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
 					DomainID: MCLAG_DOMAIN_ID,
+				}
+			} else if connType == "ESLAG" {
+				mac, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse ESLAG MAC base %s", agent.Spec.Config.ESLAGMACBase)
+				}
+
+				macVal := binary.BigEndian.Uint64(append([]byte{0, 0}, mac...))
+				macVal += uint64(agent.Spec.ConnSystemIDs[connName])
+
+				newMACVal := make([]byte, 8)
+				binary.BigEndian.PutUint64(newMACVal, macVal)
+
+				mac = newMACVal[2:]
+
+				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
+					SystemMAC: stringPtr(mac.String()),
+				}
+				spec.VRFs[VRF_DEFAULT].EthernetSegments[connPortChannelName] = &dozer.SpecVRFEthernetSegment{
+					ESI: stringPtr(agent.Spec.Config.ESLAGESIPrefix + mac.String()),
 				}
 			}
 
@@ -1035,6 +1076,42 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	}
 
 	return sourceIP == MCLAG_SESSION_IP_1, nil
+}
+
+func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error {
+	spec.VRFs[VRF_DEFAULT].EVPNMH = dozer.SpecVRFEVPNMH{
+		MACHoldtime:  uint32Ptr(60),
+		StartupDelay: uint32Ptr(60),
+	}
+
+	if !agent.Spec.Role.IsLeaf() {
+		return nil
+	}
+
+	spec.LSTGroups[LST_GROUP_SPINELINK] = &dozer.SpecLSTGroup{
+		AllEVPNESDownstream: boolPtr(true),
+		Timeout:             uint32Ptr(180),
+	}
+
+	for _, conn := range agent.Spec.Connections {
+		if conn.Fabric == nil {
+			continue
+		}
+
+		for _, link := range conn.Fabric.Links {
+			if link.Leaf.DeviceName() != agent.Name {
+				continue
+			}
+
+			port := link.Leaf.LocalPortName()
+
+			spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
+				Group: stringPtr(LST_GROUP_SPINELINK),
+			}
+		}
+	}
+
+	return nil
 }
 
 func planUsers(agent *agentapi.Agent, spec *dozer.Spec) error {

@@ -987,6 +987,9 @@ ConnectionStatus defines the observed state of Connection
 _Appears in:_
 - [Connection](#connection)
 
+| Field | Description |
+| --- | --- |
+| `systemID` _integer_ |  |
 
 
 #### FabricLink

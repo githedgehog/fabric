@@ -72,6 +72,8 @@ type AgentSpecConfig struct {
 	VPCLoopbackSubnet     string                        `json:"vpcLoopbackSubnet,omitempty"`
 	FabricMTU             uint16                        `json:"fabricMTU,omitempty"`
 	ServerFacingMTUOffset uint16                        `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase          string                        `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix        string                        `json:"eslagESIPrefix,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}

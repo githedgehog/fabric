@@ -101,6 +101,10 @@ spec:
                     type: object
                   controlVIP:
                     type: string
+                  eslagESIPrefix:
+                    type: string
+                  eslagMACBase:
+                    type: string
                   fabricMTU:
                     type: integer
                   serverFacingMTUOffset:

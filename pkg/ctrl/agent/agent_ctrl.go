@@ -504,6 +504,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			VPCLoopbackSubnet:     r.Cfg.VPCLoopbackSubnet,
 			FabricMTU:             r.Cfg.FabricMTU,
 			ServerFacingMTUOffset: r.Cfg.ServerFacingMTUOffset,
+			ESLAGMACBase:          r.Cfg.ESLAGMACBase,
+			ESLAGESIPrefix:        r.Cfg.ESLAGESIPrefix,
 		}
 		if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
@@ -746,7 +748,7 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 			}
 
 			taken[portChannels[connName]-PORT_CHAN_MIN] = true
-		} else if connSpec.Bundled != nil {
+		} else if connSpec.Bundled != nil || connSpec.ESLAG != nil {
 			pc := agent.Spec.PortChannels[connName]
 			if pc == 0 {
 				continue
@@ -773,7 +775,7 @@ func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer
 	}
 
 	for connName, connSpec := range conns {
-		if connSpec.MCLAG != nil || connSpec.Bundled != nil {
+		if connSpec.MCLAG != nil || connSpec.Bundled != nil || connSpec.ESLAG != nil {
 			if portChannels[connName] != 0 {
 				continue
 			}

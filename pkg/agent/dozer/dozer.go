@@ -54,6 +54,9 @@ type Spec struct {
 	VXLANTunnelMap     map[string]*SpecVXLANTunnelMap    `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
 	VRFVNIMap          map[string]*SpecVRFVNIEntry       `json:"vrfVNIMap,omitempty"`
 	SuppressVLANNeighs map[string]*SpecSuppressVLANNeigh `json:"suppressVLANNeighs,omitempty"`
+	PortChannelConfigs map[string]*SpecPortChannelConfig `json:"portChannelConfigs,omitempty"`
+	LSTGroups          map[string]*SpecLSTGroup          `json:"lstGroups,omitempty"`
+	LSTInterfaces      map[string]*SpecLSTInterface      `json:"lstInterfaces,omitempty"`
 }
 
 type SpecLLDP struct {
@@ -133,6 +136,8 @@ type SpecVRF struct {
 	BGP              *SpecVRFBGP                        `json:"bgp,omitempty"`
 	TableConnections map[string]*SpecVRFTableConnection `json:"tableConnections,omitempty"`
 	StaticRoutes     map[string]*SpecVRFStaticRoute     `json:"staticRoutes,omitempty"`
+	EthernetSegments map[string]*SpecVRFEthernetSegment `json:"ethernetSegments,omitempty"`
+	EVPNMH           SpecVRFEVPNMH                      `json:"evpnMH,omitempty"`
 }
 
 type SpecVRFInterface struct{}
@@ -195,6 +200,15 @@ type SpecVRFStaticRoute struct {
 type SpecVRFStaticRouteNextHop struct {
 	IP        string  `json:"ip,omitempty"`
 	Interface *string `json:"interface,omitempty"`
+}
+
+type SpecVRFEthernetSegment struct {
+	ESI *string `json:"esi,omitempty"`
+}
+
+type SpecVRFEVPNMH struct {
+	MACHoldtime  *uint32 `json:"macHoldtime,omitempty"`
+	StartupDelay *uint32 `json:"startupDelay,omitempty"`
 }
 
 type SpecRouteMap struct {
@@ -351,6 +365,19 @@ type SpecVRFVNIEntry struct {
 
 type SpecSuppressVLANNeigh struct{}
 
+type SpecPortChannelConfig struct {
+	SystemMAC *string `json:"systemMAC,omitempty"`
+}
+
+type SpecLSTGroup struct {
+	AllEVPNESDownstream *bool   `json:"allEvpnEsDownstream,omitempty"`
+	Timeout             *uint32 `json:"timeout,omitempty"`
+}
+
+type SpecLSTInterface struct {
+	Group *string `json:"group,omitempty"`
+}
+
 func (s *Spec) Normalize() {
 	for _, user := range s.Users {
 		if user.AuthorizedKeys == nil {
@@ -446,6 +473,7 @@ var (
 	_ SpecPart = (*SpecVRFBGPImportVRF)(nil)
 	_ SpecPart = (*SpecVRFTableConnection)(nil)
 	_ SpecPart = (*SpecVRFStaticRoute)(nil)
+	_ SpecPart = (*SpecVRFEthernetSegment)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
 	_ SpecPart = (*SpecRouteMapStatement)(nil)
 	_ SpecPart = (*SpecPrefixList)(nil)
@@ -464,6 +492,9 @@ var (
 	_ SpecPart = (*SpecVXLANTunnelMap)(nil)
 	_ SpecPart = (*SpecVRFVNIEntry)(nil)
 	_ SpecPart = (*SpecSuppressVLANNeigh)(nil)
+	_ SpecPart = (*SpecPortChannelConfig)(nil)
+	_ SpecPart = (*SpecLSTGroup)(nil)
+	_ SpecPart = (*SpecLSTInterface)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -550,6 +581,10 @@ func (s *SpecVRFStaticRoute) IsNil() bool {
 	return s == nil
 }
 
+func (s *SpecVRFEthernetSegment) IsNil() bool {
+	return s == nil
+}
+
 func (s *SpecRouteMap) IsNil() bool {
 	return s == nil
 }
@@ -619,5 +654,17 @@ func (s *SpecVRFVNIEntry) IsNil() bool {
 }
 
 func (s *SpecSuppressVLANNeigh) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecPortChannelConfig) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecLSTGroup) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecLSTInterface) IsNil() bool {
 	return s == nil
 }
