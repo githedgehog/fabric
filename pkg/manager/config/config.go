@@ -32,6 +32,8 @@ type Fabric struct {
 	VPCLoopbackSubnet     string               `json:"vpcLoopbackSubnet,omitempty"`
 	FabricMTU             uint16               `json:"fabricMTU,omitempty"`
 	ServerFacingMTUOffset uint16               `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase          string               `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix        string               `json:"eslagESIPrefix,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -173,6 +175,24 @@ func Load(basedir string) (*Fabric, error) {
 	}
 	if !slices.Contains(DHCPModes, DHCPMode(cfg.DHCPMode)) {
 		return nil, errors.Errorf("config: dhcp must be one of %v", DHCPModes)
+	}
+
+	if cfg.FabricMode == FabricModeSpineLeaf {
+		if cfg.ESLAGMACBase == "" {
+			return nil, errors.Errorf("config: eslagMACBase is required")
+		}
+		if mac, err := net.ParseMAC(cfg.ESLAGMACBase); err != nil {
+			return nil, errors.Errorf("config: eslagMACBase should be a valid MAC address")
+		} else if len(mac) != 6 {
+			return nil, errors.Errorf("config: eslagMACBase should be a valid 48 bit MAC address")
+		}
+
+		if cfg.ESLAGESIPrefix == "" {
+			return nil, errors.Errorf("config: eslagESIPrefix is required")
+		}
+		if len(cfg.ESLAGESIPrefix) != 12 {
+			return nil, errors.Errorf("config: eslagESIPrefix should be a valid 12 hex long prefix, e.g. 00:f2:00:00:")
+		}
 	}
 
 	// TODO validate format of all fields
