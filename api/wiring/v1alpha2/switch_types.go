@@ -19,6 +19,8 @@ package v1alpha2
 import (
 	"context"
 	"fmt"
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -181,6 +183,13 @@ func (sw *Switch) Default() {
 	if len(sw.Spec.VLANNamespaces) == 0 {
 		sw.Spec.VLANNamespaces = []string{"default"}
 	}
+
+	if sw.Spec.Redundancy.Group != "" && !slices.Contains(sw.Spec.Groups, sw.Spec.Redundancy.Group) {
+		sw.Spec.Groups = append(sw.Spec.Groups, sw.Spec.Redundancy.Group)
+	}
+
+	sort.Strings(sw.Spec.Groups)
+	sort.Strings(sw.Spec.VLANNamespaces)
 }
 
 func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineLeaf bool) (admission.Warnings, error) {
@@ -203,6 +212,16 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineL
 	}
 	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
 		return nil, errors.Errorf("VTEP IP is not allowed for spine switches")
+	}
+
+	if !slices.Contains(meta.RedundancyTypes, sw.Spec.Redundancy.Type) {
+		return nil, errors.Errorf("invalid redundancy type")
+	}
+	if sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeNone {
+		return nil, errors.Errorf("redundancy group specified without type")
+	}
+	if sw.Spec.Redundancy.Group == "" && sw.Spec.Redundancy.Type != meta.RedundancyTypeNone {
+		return nil, errors.Errorf("redundancy type specified without group")
 	}
 
 	if client != nil {

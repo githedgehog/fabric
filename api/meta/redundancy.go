@@ -10,3 +10,9 @@ const (
 	RedundancyTypeMCLAG RedundancyType = "mclag"
 	RedundancyTypeESLAG RedundancyType = "eslag"
 )
+
+var RedundancyTypes = []RedundancyType{
+	RedundancyTypeNone,
+	RedundancyTypeMCLAG,
+	RedundancyTypeESLAG,
+}
