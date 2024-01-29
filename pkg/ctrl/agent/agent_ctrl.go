@@ -471,6 +471,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
+		agent.Annotations = sw.Annotations
 		agent.Labels = sw.Labels
 		agent.Spec.Role = sw.Spec.Role
 		agent.Spec.Description = sw.Spec.Description
