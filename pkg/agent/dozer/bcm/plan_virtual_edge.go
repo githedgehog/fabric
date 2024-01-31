@@ -142,6 +142,11 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastImportPolicies: []string{inboundRouteMapName(ipnsVrf)},
 			IPv4UnicastExportPolicies: []string{outboundRouteMapName(ipnsVrf)},
 		}
+		spec.VRFs[ipnsVrf].TableConnections = map[string]*dozer.SpecVRFTableConnection{
+			dozer.SpecVRFBGPTableConnectionConnected: {},
+			dozer.SpecVRFBGPTableConnectionStatic:    {},
+		}
+
 	}
 
 	return nil
