@@ -246,6 +246,30 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
 		}
 
+		for subnetName, subnetCfg := range vpc.Spec.Subnets {
+			_, vpcSubnet, err := net.ParseCIDR(subnetCfg.Subnet)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse vpc subnet %s", subnetCfg.Subnet)
+			}
+
+			ok := false
+			for _, ipNsSubnetCfg := range ipNs.Spec.Subnets {
+				_, ipNsSubnet, err := net.ParseCIDR(ipNsSubnetCfg)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to parse IPv4Namespace %s subnet %s", vpc.Spec.IPv4Namespace, ipNsSubnetCfg)
+				}
+
+				if ipNsSubnet.Contains(vpcSubnet.IP) {
+					ok = true
+					break
+				}
+			}
+
+			if !ok {
+				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to the IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
+			}
+		}
+
 		vpcs := &VPCList{}
 		err = client.List(ctx, vpcs, map[string]string{
 			LabelIPv4NS: vpc.Spec.IPv4Namespace,
