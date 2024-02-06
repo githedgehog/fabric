@@ -42,9 +42,7 @@ type VPCAttachmentSpec struct {
 }
 
 // VPCAttachmentStatus defines the observed state of VPCAttachment
-type VPCAttachmentStatus struct {
-	// Applied wiringapi.ApplyStatus `json:"applied,omitempty"`
-}
+type VPCAttachmentStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

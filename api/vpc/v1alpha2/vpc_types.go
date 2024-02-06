@@ -75,12 +75,7 @@ type VPCDHCPRange struct {
 }
 
 // VPCStatus defines the observed state of VPC
-type VPCStatus struct {
-	// VNI is the global Fabric-level VNI allocated for the VPC
-	VNI uint32 `json:"vni,omitempty"`
-	// SubnetVNIs is the map of subnet names to the global Fabric-level VNIs allocated for the VPC subnets
-	SubnetVNIs map[string]uint32 `json:"subnetVNIs,omitempty"`
-}
+type VPCStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

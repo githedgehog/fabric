@@ -16,6 +16,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 )
 
@@ -844,7 +845,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			portName := link.Switch.LocalPortName()
-			portChan := agent.Spec.PortChannels[connName]
+			portChan := agent.Spec.Catalog.PortChannelIDs[connName]
 			if portChan == 0 {
 				return errors.Errorf("no port channel found for conn %s", connName)
 			}
@@ -869,7 +870,11 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 
 				macVal := binary.BigEndian.Uint64(append([]byte{0, 0}, mac...))
-				macVal += uint64(agent.Spec.ConnSystemIDs[connName])
+				id := agent.Spec.Catalog.ConnectionIDs[connName]
+				if id == 0 {
+					return errors.Errorf("no connection id found for conn %s", connName)
+				}
+				macVal += uint64(id)
 
 				newMACVal := make([]byte, 8)
 				binary.BigEndian.PutUint64(newMACVal, macVal)
@@ -1186,7 +1191,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for vpcName, vpc := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
 
-		irbVLAN := agent.Spec.IRBVLANs[vpcName]
+		irbVLAN := agent.Spec.Catalog.IRBVLANs[vpcName]
 		if irbVLAN == 0 {
 			return errors.Errorf("IRB VLAN for VPC %s not found", vpcName)
 		}
@@ -1238,8 +1243,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		for subnetName, subnet := range vpc.Subnets {
-			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
-			if vni == 0 {
+			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+			if vni == 0 || !ok {
 				return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
 			}
 			vni = vni % 100
@@ -1353,7 +1358,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if agent.IsSpineLeaf() {
 			spec.SuppressVLANNeighs[irbIface] = &dozer.SpecSuppressVLANNeigh{}
 
-			vpcVNI := agent.Spec.VNIs[vpcName]
+			vpcVNI := agent.Spec.Catalog.VPCVNIs[vpcName]
 			if vpcVNI == 0 {
 				return errors.Errorf("VNI for VPC %s not found", vpcName)
 			}
@@ -1368,15 +1373,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	attachedVPCs := map[string]bool{}
 	for attachName, attach := range agent.Spec.VPCAttachments {
 		vpcName := attach.VPCName()
 		vpc, exists := agent.Spec.VPCs[vpcName]
 		if !exists {
 			return errors.Errorf("VPC %s not found", vpcName)
 		}
-
-		attachedVPCs[vpcName] = true
 
 		subnetName := attach.SubnetName()
 		subnet := vpc.Subnets[subnetName]
@@ -1401,7 +1403,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					continue
 				}
 
-				portChan := agent.Spec.PortChannels[attach.Connection]
+				portChan := agent.Spec.Catalog.PortChannelIDs[attach.Connection]
 				if portChan == 0 {
 					return errors.Errorf("no port channel found for conn %s", attach.Connection)
 				}
@@ -1414,7 +1416,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					continue
 				}
 
-				portChan := agent.Spec.PortChannels[attach.Connection]
+				portChan := agent.Spec.Catalog.PortChannelIDs[attach.Connection]
 				if portChan == 0 {
 					return errors.Errorf("no port channel found for conn %s", attach.Connection)
 				}
@@ -1427,7 +1429,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					continue
 				}
 
-				portChan := agent.Spec.PortChannels[attach.Connection]
+				portChan := agent.Spec.Catalog.PortChannelIDs[attach.Connection]
 				if portChan == 0 {
 					return errors.Errorf("no port channel found for conn %s", attach.Connection)
 				}
@@ -1512,8 +1514,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		peersPrefixList := vpcPeersPrefixListName(vpc2Name)
 		for subnetName, subnet := range vpc1.Subnets {
-			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpc1Name, subnetName)]
-			if vni == 0 {
+			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpc1Name, subnetName)
+			if vni == 0 || !ok {
 				return errors.Errorf("VNI for VPC %s subnet %s not found", vpc1Name, subnetName)
 			}
 
@@ -1528,8 +1530,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		peersPrefixList = vpcPeersPrefixListName(vpc1Name)
 		for subnetName, subnet := range vpc2.Subnets {
-			vni := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpc2Name, subnetName)]
-			if vni == 0 {
+			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpc2Name, subnetName)
+			if vni == 0 || !ok {
 				return errors.Errorf("VNI for VPC %s subnet %s not found", vpc2Name, subnetName)
 			}
 
@@ -1543,7 +1545,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		// TODO dedup
-		vni1 := agent.Spec.VNIs[vpc1Name]
+		vni1 := agent.Spec.Catalog.VPCVNIs[vpc1Name]
 		if vni1 == 0 {
 			return errors.Errorf("VNI for VPC %s not found", vpc1Name)
 		}
@@ -1553,7 +1555,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if vni1/100 >= 40000 { // 50k is reserved for external-related in import vpc route map
 			return errors.Errorf("VNI for VPC %s is too large", vpc1Name)
 		}
-		vni2 := agent.Spec.VNIs[vpc2Name]
+		vni2 := agent.Spec.Catalog.VPCVNIs[vpc2Name]
 		if vni2 == 0 {
 			return errors.Errorf("VNI for VPC %s not found", vpc2Name)
 		}
@@ -1582,8 +1584,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		vrf1Name := vpcVrfName(vpc1Name)
 		vrf2Name := vpcVrfName(vpc2Name)
 
-		vpc1Attached := attachedVPCs[vpc1Name] || agent.Spec.MCLAGAttachedVPCs[vpc1Name]
-		vpc2Attached := attachedVPCs[vpc2Name] || agent.Spec.MCLAGAttachedVPCs[vpc2Name]
+		vpc1Attached := agent.Spec.AttachedVPCs[vpc1Name]
+		vpc2Attached := agent.Spec.AttachedVPCs[vpc2Name]
 
 		if !vpc1Attached || !vpc2Attached { // one or both VPCs aren't attached - no loopback workaround needed
 			remote := !vpc1Attached && !vpc2Attached // both VPCs aren't attached - remote peering
@@ -1618,7 +1620,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 		} else if peering.Remote == "" { // both VPCs are attached - loopback workaround needed
-			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, "vpc@"+peeringName)
+			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForVPC(peeringName))
 			if err != nil {
 				return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
 			}
@@ -1695,8 +1697,8 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName, subnetName 
 	if agent.IsSpineLeaf() {
 		spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
 
-		subnetVNI := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
-		if subnetVNI == 0 {
+		subnetVNI, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+		if subnetVNI == 0 || !ok {
 			return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
 		}
 		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
@@ -1763,8 +1765,8 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Errorf("VPC %s subnet %s not found for external peering %s", vpcName, subnetName, name)
 			}
 
-			vni, exists := agent.Spec.VNIs[fmt.Sprintf("%s/%s", vpcName, subnetName)]
-			if !exists {
+			vni, exists := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+			if vni == 0 || !exists {
 				return errors.Errorf("VNI for VPC %s subnet %s not found for external peering %s", vpcName, subnetName, name)
 			}
 
@@ -1782,7 +1784,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if !attachedVPCs[vpcName] {
 			prefixes := map[uint32]*dozer.SpecPrefixListEntry{}
 			for _, prefix := range peering.Permit.External.Prefixes {
-				idx := agent.Spec.ExternalPeeringPrefixIDs[prefix.Prefix]
+				idx := agent.Spec.Catalog.ExternalPeeringPrefixIDs[prefix.Prefix]
 				if idx == 0 {
 					return errors.Errorf("no external peering prefix id for prefix %s in peering %s", prefix.Prefix, name)
 				}
@@ -1814,7 +1816,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Result: dozer.SpecRouteMapResultReject,
 			}
 
-			idx := agent.Spec.ExternalSeqs[externalName]
+			idx := agent.Spec.Catalog.ExternalIDs[externalName]
 			if idx == 0 {
 				return errors.Errorf("no external seq for external %s", externalName)
 			}
@@ -1836,7 +1838,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[ipnsVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[ipnsVrf] = &dozer.SpecVRFBGPImportVRF{}
 		} else {
-			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, "ext@"+name)
+			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForExt(name))
 			if err != nil {
 				return errors.Wrapf(err, "failed to plan loopback workaround for external peering %s", name)
 			}
@@ -1896,26 +1898,26 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, peeringName string) (string, string, string, string, error) {
-	vlan := agent.Spec.VPCLoopbackVLANs[peeringName]
+func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, loWReq string) (string, string, string, string, error) {
+	vlan := agent.Spec.Catalog.LoopbackWorkaroundVLANs[loWReq]
 	if vlan == 0 {
-		return "", "", "", "", errors.Errorf("workaround VLAN for peering %s not found", peeringName)
+		return "", "", "", "", errors.Errorf("workaround VLAN for peering %s not found", loWReq)
 	}
 
-	link := agent.Spec.VPCLoopbackLinks[peeringName]
+	link := agent.Spec.Catalog.LooopbackWorkaroundLinks[loWReq]
 	if link == "" {
-		return "", "", "", "", errors.Errorf("workaround link for peering %s not found", peeringName)
+		return "", "", "", "", errors.Errorf("workaround link for peering %s not found", loWReq)
 	}
 
 	ports := strings.Split(link, "--")
 	if len(ports) != 2 {
-		return "", "", "", "", errors.Errorf("workaround link for peering %s is invalid", peeringName)
+		return "", "", "", "", errors.Errorf("workaround link for peering %s is invalid", loWReq)
 	}
 	if spec.Interfaces[ports[0]] == nil {
-		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[0], peeringName)
+		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[0], loWReq)
 	}
 	if spec.Interfaces[ports[1]] == nil {
-		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[1], peeringName)
+		return "", "", "", "", errors.Errorf("workaround link port %s for peering %s not found", ports[1], loWReq)
 	}
 
 	ip1, ip2, err := vpcWorkaroundIPs(agent, vlan)
@@ -2089,7 +2091,7 @@ func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 		return "", errors.Wrapf(err, "failed to parse base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
 	}
 
-	vni, exists := agent.Spec.VNIs[vpc]
+	vni, exists := agent.Spec.Catalog.VPCVNIs[vpc]
 	if !exists {
 		return "", errors.Errorf("VNI for VPC %s not found", vpc)
 	}

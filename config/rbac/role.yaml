@@ -37,6 +37,18 @@ rules:
 - apiGroups:
   - agent.githedgehog.com
   resources:
+  - catalogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - agent.githedgehog.com
+  resources:
   - controlagents
   verbs:
   - create

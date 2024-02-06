@@ -9,6 +9,7 @@ processor:
     - "ApplyStatusUpdate"
     - "ServerProfile"
     - "SwitchProfile"
+    - "Catalog"
 
   # RE2 regular expressions describing type fields that should be excluded from the generated documentation.
   ignoreFields:
