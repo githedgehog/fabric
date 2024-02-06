@@ -20,7 +20,7 @@ type Fabric struct {
 	AgentRepo             string               `json:"agentRepo,omitempty"`
 	AgentRepoCA           string               `json:"agentRepoCA,omitempty"`
 	VPCIRBVLANRanges      []meta.VLANRange     `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges  []meta.VLANRange     `json:"vpcPeeringVLANRange,omitempty"`
+	VPCPeeringVLANRanges  []meta.VLANRange     `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
 	VPCPeeringDisabled    bool                 `json:"vpcPeeringDisabled,omitempty"`
 	ReservedSubnets       []string             `json:"reservedSubnets,omitempty"`
 	Users                 []agentapi.UserCreds `json:"users,omitempty"`

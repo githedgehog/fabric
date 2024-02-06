@@ -18,12 +18,12 @@ package vpc
 
 import (
 	"context"
-	"sync"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,16 +41,17 @@ const (
 // VPCReconciler reconciles a VPC object
 type VPCReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	Cfg       *config.Fabric
-	vniAssign sync.Mutex
+	Scheme  *runtime.Scheme
+	Cfg     *config.Fabric
+	LibMngr *librarian.Manager
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, libMngr *librarian.Manager) error {
 	r := &VPCReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Cfg:    cfg,
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Cfg:     cfg,
+		LibMngr: libMngr,
 	}
 
 	// TODO only enqueue related VPCs
@@ -93,8 +94,14 @@ func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, obj client.Object) []
 //+kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets/finalizers,verbs=update
 
+//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
+
 func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
+
+	if err := r.LibMngr.UpdateVPCs(ctx, r.Client); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error updating vpcs catalog")
+	}
 
 	err := r.updateISCDHCPConfig(ctx)
 	if err != nil {
@@ -120,97 +127,7 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp subnets")
 	}
 
-	if err := r.ensureVNIs(ctx, vpc); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error ensuring vpc vnis")
-	}
-
 	l.Info("vpc reconciled")
 
 	return ctrl.Result{}, nil
-}
-
-func (r *VPCReconciler) ensureVNIs(ctx context.Context, vpc *vpcapi.VPC) error {
-	l := log.FromContext(ctx)
-
-	if vpc.Status.VNI == 0 {
-		l.Info("VPC VNI not set, assigning next free", "vpc", vpc.Name)
-
-		r.vniAssign.Lock()
-		defer r.vniAssign.Unlock()
-
-		vpcs := &vpcapi.VPCList{}
-		err := r.List(ctx, vpcs) // we have to query all vpcs to find next free vni
-		if err != nil {
-			return errors.Wrapf(err, "error listing vpcs")
-		}
-
-		used := map[uint32]bool{}
-		for _, other := range vpcs.Items {
-			if other.Status.VNI == 0 {
-				continue
-			}
-			if other.Status.VNI/VPC_VNI_OFFSET < 1 {
-				continue
-			}
-			if other.Status.VNI%VPC_VNI_OFFSET != 0 {
-				continue
-			}
-
-			used[other.Status.VNI] = true
-		}
-
-		ok := false
-		for id := uint32(1) * VPC_VNI_OFFSET; id < VPC_VNI_MAX; id += VPC_VNI_OFFSET {
-			if !used[id] {
-				vpc.Status.VNI = id
-				l.Info("VPC VNI assigned", "vpc", vpc.Name, "vni", vpc.Status.VNI)
-				ok = true
-				break
-			}
-		}
-		if !ok {
-			return errors.Errorf("no free vni for vpc %s", vpc.Name)
-		}
-	}
-
-	if vpc.Status.SubnetVNIs != nil {
-		for subnet, vni := range vpc.Status.SubnetVNIs {
-			if _, exists := vpc.Spec.Subnets[subnet]; !exists {
-				delete(vpc.Status.SubnetVNIs, subnet)
-			}
-			if vni <= vpc.Status.VNI || vni >= vpc.Status.VNI+VPC_VNI_OFFSET {
-				delete(vpc.Status.SubnetVNIs, subnet)
-			}
-		}
-	} else {
-		vpc.Status.SubnetVNIs = map[string]uint32{}
-	}
-
-	used := map[uint32]bool{}
-	for _, vni := range vpc.Status.SubnetVNIs {
-		used[vni] = true
-	}
-
-	for subnet := range vpc.Spec.Subnets {
-		if vpc.Status.SubnetVNIs[subnet] != 0 {
-			continue
-		}
-
-		ok := false
-		for id := vpc.Status.VNI + 1; id < vpc.Status.VNI+VPC_VNI_OFFSET; id++ {
-			if !used[id] {
-				vpc.Status.SubnetVNIs[subnet] = id
-				used[id] = true
-				l.Info("VPC Subnet VNI assigned", "vpc", vpc.Name, "subnet", subnet, "vni", id)
-				ok = true
-				break
-			}
-		}
-
-		if !ok {
-			return errors.Errorf("no free vni for subnet %s", subnet)
-		}
-	}
-
-	return errors.Wrapf(r.Status().Update(ctx, vpc), "error updating vpc status %s", vpc.Name)
 }

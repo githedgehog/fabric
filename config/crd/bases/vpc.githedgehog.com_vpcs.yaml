@@ -108,19 +108,6 @@ spec:
             type: object
           status:
             description: Status is the observed state of the VPC
-            properties:
-              subnetVNIs:
-                additionalProperties:
-                  format: int32
-                  type: integer
-                description: SubnetVNIs is the map of subnet names to the global Fabric-level
-                  VNIs allocated for the VPC subnets
-                type: object
-              vni:
-                description: VNI is the global Fabric-level VNI allocated for the
-                  VPC
-                format: int32
-                type: integer
             type: object
         type: object
     served: true

@@ -93,6 +93,75 @@ spec:
           spec:
             description: Spec is the desired state of the Agent
             properties:
+              attachedVPCs:
+                additionalProperties:
+                  type: boolean
+                type: object
+              catalog:
+                description: CatalogSpec defines the desired state of Catalog
+                properties:
+                  connectionIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: ConnectionSystemIDs stores connection name -> ID,
+                      globally unique for the fabric
+                    type: object
+                  externalIDs:
+                    additionalProperties:
+                      type: integer
+                    description: ExternalIDs stores external name -> ID, unique per
+                      switch
+                    type: object
+                  externalPeeringPrefixIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: ExternalPeeringPrefixIDs stores external peering
+                      prefix -> ID, unique per switch
+                    type: object
+                  irbVLANs:
+                    additionalProperties:
+                      type: integer
+                    description: IRBVLANs stores VPC name -> IRB VLAN ID, unique per
+                      redundancy group (or switch)
+                    type: object
+                  loopbackWorkaroundLinks:
+                    additionalProperties:
+                      type: string
+                    description: LoopbackWorkaroundLinks stores loopback workaround
+                      "request" name (vpc@<vpc-peering> or ext@<external-peering>)
+                      -> loopback link name (<port1--port2>), unique per switch
+                    type: object
+                  loopbackWorkaroundVLANs:
+                    additionalProperties:
+                      type: integer
+                    description: LoopbackWorkaroundVLANs stores loopback workaround
+                      "request" -> VLAN ID, unique per switch
+                    type: object
+                  portChannelIDs:
+                    additionalProperties:
+                      type: integer
+                    description: PortChannelIDs stores Connection name -> PortChannel
+                      ID, unique per redundancy group (or switch)
+                    type: object
+                  vpcSubnetVNIs:
+                    additionalProperties:
+                      additionalProperties:
+                        format: int32
+                        type: integer
+                      type: object
+                    description: VPCSubnetVNIs stores VPC name -> subnet name -> VPC
+                      Subnet VNI, globally unique for the fabric
+                    type: object
+                  vpcVNIs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: VPCVNIs stores VPC name -> VPC VNI, globally unique
+                      for the fabric
+                    type: object
+                type: object
               config:
                 properties:
                   baseVPCCommunity:
@@ -119,11 +188,6 @@ spec:
               configuredVPCSubnets:
                 additionalProperties:
                   type: boolean
-                type: object
-              connSystemIDs:
-                additionalProperties:
-                  format: int32
-                  type: integer
                 type: object
               connections:
                 additionalProperties:
@@ -610,11 +674,6 @@ spec:
                       type: object
                   type: object
                 type: object
-              externalPeeringPrefixIDs:
-                additionalProperties:
-                  format: int32
-                  type: integer
-                type: object
               externalPeerings:
                 additionalProperties:
                   description: ExternalPeeringSpec defines the desired state of ExternalPeering
@@ -673,10 +732,6 @@ spec:
                       type: object
                   type: object
                 type: object
-              externalSeqs:
-                additionalProperties:
-                  type: integer
-                type: object
               externals:
                 additionalProperties:
                   description: ExternalSpec describes IPv4 namespace External belongs
@@ -711,18 +766,6 @@ spec:
                       minItems: 1
                       type: array
                   type: object
-                type: object
-              irbVLANs:
-                additionalProperties:
-                  type: integer
-                type: object
-              mclagAttachedVPCs:
-                additionalProperties:
-                  type: boolean
-                type: object
-              portChannels:
-                additionalProperties:
-                  type: integer
                 type: object
               powerReset:
                 type: string
@@ -1021,11 +1064,6 @@ spec:
                       type: array
                   type: object
                 type: object
-              vnis:
-                additionalProperties:
-                  format: int32
-                  type: integer
-                type: object
               vpcAttachments:
                 additionalProperties:
                   description: VPCAttachmentSpec defines the desired state of VPCAttachment
@@ -1039,14 +1077,6 @@ spec:
                         to, such as "vpc-1/default"
                       type: string
                   type: object
-                type: object
-              vpcLoopbackLinks:
-                additionalProperties:
-                  type: string
-                type: object
-              vpcLoopbackVLANs:
-                additionalProperties:
-                  type: integer
                 type: object
               vpcPeers:
                 additionalProperties:

@@ -21,9 +21,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log/slog"
-	"maps"
-	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -36,6 +33,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -60,14 +58,16 @@ type AgentReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Cfg     *config.Fabric
+	LibMngr *librarian.Manager
 	Version string
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, version string) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, libMngr *librarian.Manager, version string) error {
 	r := &AgentReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
+		LibMngr: libMngr,
 		Version: version,
 	}
 
@@ -166,6 +166,8 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj client.Obj
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
+
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
@@ -202,14 +204,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	conns := map[string]wiringapi.ConnectionSpec{}
-	connSystemIDs := map[string]uint32{}
 	for _, conn := range connList.Items {
-		if conn.Spec.ESLAG != nil && conn.Status.SystemID == 0 {
-			return ctrl.Result{}, errors.Errorf("connection %s is ESLAG but doesn't have system ID", conn.Name)
-		}
-
 		conns[conn.Name] = conn.Spec
-		connSystemIDs[conn.Name] = conn.Status.SystemID
 	}
 
 	neighborSwitches := map[string]bool{}
@@ -272,26 +268,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	eslagPeers := []*agentapi.Agent{}
-	if sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeESLAG {
-		for _, other := range switchList.Items {
-			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
-				ag := &agentapi.Agent{}
-				err = r.Get(ctx, types.NamespacedName{Namespace: other.Namespace, Name: other.Name}, ag)
-				if err != nil && !apierrors.IsNotFound(err) {
-					return ctrl.Result{}, errors.Wrapf(err, "error getting eslag peer agent")
-				}
-
-				eslagPeers = append(eslagPeers, ag)
-			}
-		}
-	}
-
 	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]vpcapi.VPCAttachmentSpec{}
 	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
 	attachedVPCs := map[string]bool{}
-	mclagAttachedVPCs := map[string]bool{} // TODO remove?
 	attachList := &vpcapi.VPCAttachmentList{}
 	err = r.List(ctx, attachList, client.InNamespace(sw.Namespace))
 	if err != nil {
@@ -303,18 +283,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		if conn {
 			attaches[attach.Name] = attach.Spec
-			attachedVPCs[attach.Spec.VPCName()] = true
 		}
 
 		// whatever vpc subnet that got configured on our mclag peer should be configured on us too
 		if conn || mclagConn {
+			attachedVPCs[attach.Spec.VPCName()] = true
 			configuredSubnets[attach.Spec.Subnet] = true
-			mclagAttachedVPCs[attach.Spec.VPCName()] = true
 		}
 	}
-
-	// we handle VPCs attached to our MCLAG peer like our attached VPCs in most cases
-	maps.Copy(attachedVPCs, mclagAttachedVPCs)
 
 	vpcs := map[string]vpcapi.VPCSpec{}
 	vpcList := &vpcapi.VPCList{}
@@ -323,7 +299,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
 	}
 	for _, vpc := range vpcList.Items {
-		ok := attachedVPCs[vpc.Name] || mclagAttachedVPCs[vpc.Name]
+		ok := attachedVPCs[vpc.Name]
 		for subnetName := range vpc.Spec.Subnets {
 			if configuredSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
 				ok = true
@@ -418,31 +394,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	vnis := map[string]uint32{}
-
-	for _, vpc := range vpcList.Items {
-		if _, exists := vpcs[vpc.Name]; !exists {
-			continue
-		}
-
-		subnetVNIs := true
-		for subnetName := range vpc.Spec.Subnets {
-			if _, exists := vpc.Status.SubnetVNIs[subnetName]; !exists {
-				subnetVNIs = false
-				break
-			}
-		}
-		if vpc.Status.VNI == 0 || !subnetVNIs {
-			return ctrl.Result{}, errors.Errorf("vpc %s doesn't have vni or subnet vnis", vpc.Name)
-		}
-
-		vnis[vpc.Name] = vpc.Status.VNI
-
-		for subnetName := range vpc.Spec.Subnets {
-			vnis[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] = vpc.Status.SubnetVNIs[subnetName]
-		}
-	}
-
 	ipv4NamespaceList := &vpcapi.IPv4NamespaceList{}
 	err = r.List(ctx, ipv4NamespaceList, client.InNamespace(sw.Namespace))
 	if err != nil {
@@ -469,6 +420,122 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		vlanNamespaces[ns.Name] = ns.Spec
 	}
 
+	usedVPCs := map[string]bool{}
+	for name := range vpcs {
+		usedVPCs[name] = true
+	}
+
+	portChanConns := map[string]bool{}
+	for name, conn := range conns {
+		if conn.Bundled == nil && conn.MCLAG == nil && conn.ESLAG == nil {
+			continue
+		}
+
+		portChanConns[name] = true
+	}
+
+	rgPeers := []string{}
+	if sw.Spec.Redundancy.Group != string(meta.RedundancyTypeNone) {
+		for _, other := range switchList.Items {
+			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
+				if sw.Spec.Redundancy.Type != other.Spec.Redundancy.Type {
+					return ctrl.Result{}, errors.Errorf("switch %s and %s have different redundancy types but in the redundancy same group", sw.Name, other.Name)
+				}
+
+				rgPeers = append(rgPeers, other.Name)
+			}
+		}
+	}
+
+	for _, rgPeerName := range rgPeers {
+		connList := &wiringapi.ConnectionList{}
+		err = r.List(ctx, connList, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(rgPeerName))
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting rg peer switch %s connections", rgPeerName)
+		}
+
+		for _, conn := range connList.Items {
+			if conn.Spec.Bundled == nil && conn.Spec.MCLAG == nil && conn.Spec.ESLAG == nil {
+				continue
+			}
+
+			portChanConns[conn.Name] = true
+		}
+	}
+
+	idConns := map[string]bool{}
+	for name, conn := range conns {
+		if conn.ESLAG == nil {
+			continue
+		}
+
+		idConns[name] = true
+	}
+
+	cat := &agentapi.CatalogSpec{}
+
+	err = r.LibMngr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
+	}
+
+	loWorkaroundLinks := []string{}
+	for name, conn := range conns {
+		if conn.VPCLoopback == nil {
+			continue
+		}
+
+		for linkID, link := range conn.VPCLoopback.Links {
+			ports := []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()}
+			sort.Strings(ports)
+
+			if len(ports) != 2 {
+				return ctrl.Result{}, errors.Errorf("invalid vpc loopback %s link %d", name, linkID)
+			}
+
+			loRef := fmt.Sprintf("%s--%s", ports[0], ports[1])
+			loWorkaroundLinks = append(loWorkaroundLinks, loRef)
+		}
+	}
+
+	loWorkaroundReqs := map[string]bool{}
+	for name, peering := range peerings {
+		vpc1, vpc2, err := peering.VPCs()
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
+		}
+
+		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+			continue
+		}
+
+		loWorkaroundReqs[librarian.LoWReqForVPC(name)] = true
+	}
+	for name, peering := range externalPeerings {
+		if !attachedVPCs[peering.Permit.VPC.Name] {
+			continue
+		}
+
+		loWorkaroundReqs[librarian.LoWReqForExt(name)] = true
+	}
+
+	externalsReq := map[string]bool{}
+	for name := range externals {
+		externalsReq[name] = true
+	}
+
+	externalPeeringPrefixReq := map[string]bool{}
+	for _, peering := range externalPeerings {
+		for _, prefix := range peering.Permit.External.Prefixes {
+			externalPeeringPrefixReq[prefix.Prefix] = true
+		}
+	}
+
+	err = r.LibMngr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, externalPeeringPrefixReq)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Annotations = sw.Annotations
@@ -479,7 +546,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.Switch = sw.Spec
 		agent.Spec.Switches = switches
 		agent.Spec.Connections = conns
-		agent.Spec.ConnSystemIDs = connSystemIDs
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
 		agent.Spec.VPCPeerings = peerings
@@ -489,13 +555,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.ExternalAttachments = externalAttaches
 		agent.Spec.ExternalPeerings = externalPeerings
 		agent.Spec.ConfiguredVPCSubnets = configuredSubnets
-		agent.Spec.MCLAGAttachedVPCs = mclagAttachedVPCs
-		agent.Spec.VNIs = vnis
+		agent.Spec.AttachedVPCs = attachedVPCs
 		agent.Spec.Users = r.Cfg.Users
 
 		agent.Spec.Version.Default = r.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
+
+		agent.Spec.Catalog = *cat
 
 		agent.Spec.StatusUpdates = statusUpdates
 
@@ -513,89 +580,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		} else if r.Cfg.FabricMode == config.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
-
-		agent.Spec.PortChannels, err = r.calculatePortChannels(ctx, agent, mclagPeer, conns)
-		if err != nil {
-			return errors.Wrapf(err, "error calculating port channels")
-		}
-
-		agent.Spec.IRBVLANs, err = r.calculateIRBVLANs(ctx, agent, vpcs, eslagPeers)
-		if err != nil {
-			return errors.Wrapf(err, "error calculating IRB VLANs")
-		}
-
-		agent.Spec.VPCLoopbackLinks, err = r.calculateVPCLoopbackLinkAllocation(ctx, agent, conns, peerings, externalPeerings, attachedVPCs)
-		if err != nil {
-			return errors.Wrapf(err, "error calculating vpc loopback allocation")
-		}
-
-		agent.Spec.VPCLoopbackVLANs, err = r.calculateVPCLoopbackVLANAllocation(ctx, agent, peerings, externalPeerings, attachedVPCs)
-		if err != nil {
-			return errors.Wrapf(err, "error calculating vpc loopback vlan allocation")
-		}
-
-		externalSeqs := map[string]uint16{}
-		takenSeqs := map[uint16]bool{}
-		for name := range externals {
-			if agent.Spec.ExternalSeqs[name] == 0 {
-				continue
-			}
-
-			externalSeqs[name] = agent.Spec.ExternalSeqs[name]
-			takenSeqs[externalSeqs[name]] = true
-		}
-		for name := range externals {
-			if externalSeqs[name] != 0 {
-				continue
-			}
-
-			for idx := 10; idx <= 65535; idx++ {
-				if !takenSeqs[uint16(idx)] {
-					externalSeqs[name] = uint16(idx)
-					takenSeqs[uint16(idx)] = true
-					break
-				}
-			}
-
-			if externalSeqs[name] == 0 {
-				return errors.Errorf("error calculating external seqs for %s", name)
-			}
-		}
-		agent.Spec.ExternalSeqs = externalSeqs
-
-		externalPeeringPrefixIDs := map[string]uint32{}
-		taken := map[uint32]bool{}
-		for _, peering := range externalPeerings {
-			for _, prefix := range peering.Permit.External.Prefixes {
-				val := agent.Spec.ExternalPeeringPrefixIDs[prefix.Prefix]
-				if val == 0 {
-					continue
-				}
-
-				externalPeeringPrefixIDs[prefix.Prefix] = val
-				taken[val] = true
-			}
-		}
-		for _, peering := range externalPeerings {
-			for _, prefix := range peering.Permit.External.Prefixes {
-				if externalPeeringPrefixIDs[prefix.Prefix] != 0 {
-					continue
-				}
-
-				for idx := uint32(10); idx <= 4294967295; idx++ {
-					if !taken[idx] {
-						externalPeeringPrefixIDs[prefix.Prefix] = idx
-						taken[idx] = true
-						break
-					}
-				}
-
-				if externalPeeringPrefixIDs[prefix.Prefix] == 0 {
-					return errors.Errorf("error calculating external peering prefix ids for %s", prefix.Prefix)
-				}
-			}
-		}
-		agent.Spec.ExternalPeeringPrefixIDs = externalPeeringPrefixIDs
 
 		return nil
 	})
@@ -701,419 +685,6 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav
 	}
 
 	return nil, nil
-}
-
-func (r *AgentReconciler) calculatePortChannels(ctx context.Context, agent, peer *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec) (map[string]uint16, error) {
-	l := log.FromContext(ctx)
-
-	portChannels := map[string]uint16{}
-
-	taken := make([]bool, PORT_CHAN_MAX-PORT_CHAN_MIN+1)
-	for connName, connSpec := range conns {
-		if connSpec.MCLAG != nil {
-			if peer == nil {
-				slog.Warn("MCLAG connection has no peer", "conn", connName, "switch", agent.Name)
-				continue
-			}
-
-			pc1 := agent.Spec.PortChannels[connName]
-			pc2 := peer.Spec.PortChannels[connName]
-
-			if pc1 == 0 && pc2 == 0 {
-				continue
-			}
-
-			if pc1 != 0 && pc2 != 0 && pc1 != pc2 {
-				return nil, errors.Errorf("port channel mismatch for conn %s on %s and %s", connName, agent.Name, peer.Name)
-			}
-
-			if pc1 != 0 {
-				if pc1 < PORT_CHAN_MIN || pc1 > PORT_CHAN_MAX {
-					return nil, errors.Errorf("port channel %d for conn %s on %s is out of range %d..%d", portChannels[connName], connName, agent.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
-				}
-				if taken[pc1-PORT_CHAN_MIN] {
-					return nil, errors.Errorf("port channel %d for conn %s assigned on %s is already taken", pc2, connName, agent.Name)
-				}
-
-				portChannels[connName] = pc1
-			}
-			if pc2 != 0 {
-				if pc2 < PORT_CHAN_MIN || pc2 > PORT_CHAN_MAX {
-					return nil, errors.Errorf("port channel %d for conn %s on peer %s is out of range %d..%d", portChannels[connName], connName, peer.Name, PORT_CHAN_MIN, PORT_CHAN_MAX)
-				}
-				if taken[pc2-PORT_CHAN_MIN] {
-					return nil, errors.Errorf("port channel %d for conn %s assigned on peer %s is already taken", pc2, connName, peer.Name)
-				}
-
-				portChannels[connName] = pc2
-			}
-
-			taken[portChannels[connName]-PORT_CHAN_MIN] = true
-		} else if connSpec.Bundled != nil || connSpec.ESLAG != nil {
-			pc := agent.Spec.PortChannels[connName]
-			if pc == 0 {
-				continue
-			}
-
-			if taken[pc-PORT_CHAN_MIN] {
-				return nil, errors.Errorf("port channel %d for conn %s on %s is already taken", portChannels[connName], connName, agent.Name)
-			}
-			portChannels[connName] = pc
-
-			taken[pc-PORT_CHAN_MIN] = true
-		}
-	}
-
-	if peer != nil {
-		// mark all port channels on the peer as taken so we don't assign them to other connections
-		for _, pc := range peer.Spec.PortChannels {
-			if pc == 0 {
-				continue
-			}
-
-			taken[pc-PORT_CHAN_MIN] = true
-		}
-	}
-
-	for connName, connSpec := range conns {
-		if connSpec.MCLAG != nil || connSpec.Bundled != nil || connSpec.ESLAG != nil {
-			if portChannels[connName] != 0 {
-				continue
-			}
-
-			// TODO optimize by storing last taken port channel
-			for i := PORT_CHAN_MIN; i <= PORT_CHAN_MAX; i++ {
-				if !taken[i-PORT_CHAN_MIN] {
-					portChannels[connName] = uint16(i)
-					taken[i-PORT_CHAN_MIN] = true
-
-					l.Info("assigned port channel", "conn", connName, "portChannel", portChannels[connName])
-					break
-				}
-			}
-
-			if portChannels[connName] == 0 {
-				return nil, errors.Errorf("no port channel available for conn %s on %s", connName, agent.Name)
-			}
-		}
-	}
-
-	return portChannels, nil
-}
-
-func (r *AgentReconciler) calculateIRBVLANs(ctx context.Context, agent *agentapi.Agent, vpcs map[string]vpcapi.VPCSpec, eslagPeers []*agentapi.Agent) (map[string]uint16, error) {
-	l := log.FromContext(ctx)
-
-	irbVLANs := map[string]uint16{}
-	taken := map[uint16]bool{}
-
-	for _, eslagPeer := range eslagPeers {
-		if eslagPeer.Spec.IRBVLANs == nil {
-			eslagPeer.Spec.IRBVLANs = map[string]uint16{}
-		}
-	}
-
-	for vpc, vlan := range agent.Spec.IRBVLANs {
-		if vlan < 1 {
-			continue
-		}
-
-		for _, eslagPeer := range eslagPeers {
-			if eslagPeer.Spec.IRBVLANs[vpc] > 0 && eslagPeer.Spec.IRBVLANs[vpc] != vlan {
-				return nil, errors.Errorf("irb vlan mismatch for vpc %s on %s and %s that are in a eslag redundancy group", vpc, agent.Name, eslagPeer.Name)
-			}
-		}
-
-		// TODO check it's still in the reserved ranges
-
-		if _, exist := vpcs[vpc]; !exist {
-			continue
-		}
-
-		irbVLANs[vpc] = vlan
-		taken[vlan] = true
-	}
-
-	for _, eslagPeer := range eslagPeers {
-		for vpc, vlan := range eslagPeer.Spec.IRBVLANs {
-			if vlan < 1 {
-				continue
-			}
-
-			if _, exist := vpcs[vpc]; !exist {
-				continue
-			}
-
-			irbVLANs[vpc] = vlan
-			taken[vlan] = true
-		}
-	}
-
-	for vpcName := range vpcs {
-		if irbVLANs[vpcName] > 0 {
-			continue
-		}
-
-		// TODO optimize by storing last taken vlan
-	loop:
-		for _, vlanRange := range r.Cfg.VPCIRBVLANRanges {
-			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
-				if !taken[vlan] {
-					irbVLANs[vpcName] = vlan
-					taken[vlan] = true
-					l.Info("assigned IRB VLAN", "vpc", vpcName, "vlan", irbVLANs[vpcName])
-					break loop
-				}
-			}
-		}
-
-		if irbVLANs[vpcName] == 0 {
-			return nil, errors.Errorf("no IRB VLAN available for vpc %s", vpcName)
-		}
-	}
-
-	return irbVLANs, nil
-}
-
-func (r *AgentReconciler) calculateVPCLoopbackLinkAllocation(ctx context.Context, agent *agentapi.Agent, conns map[string]wiringapi.ConnectionSpec, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]string, error) {
-	l := log.FromContext(ctx)
-
-	loopbackMapping := map[string]string{}
-
-	vpcLoopbacks := map[string]bool{}
-	loopbackUsage := map[string]int{}
-	for connName, conn := range conns {
-		if conn.VPCLoopback == nil {
-			continue
-		}
-
-		for linkID, link := range conn.VPCLoopback.Links {
-			ports := []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()}
-			sort.Strings(ports)
-
-			if len(ports) != 2 {
-				return nil, errors.Errorf("invalid vpc loopback link %s %d", connName, linkID)
-			}
-
-			loRef := fmt.Sprintf("%s--%s", ports[0], ports[1])
-			vpcLoopbacks[loRef] = true
-			loopbackUsage[loRef] = 0
-		}
-	}
-
-	for peeringHack, loopback := range agent.Spec.VPCLoopbackLinks {
-		if !vpcLoopbacks[loopback] {
-			continue
-		}
-
-		if strings.HasPrefix(peeringHack, "vpc@") {
-			if peeringSpec, exists := peerings[strings.TrimPrefix(peeringHack, "vpc@")]; !exists {
-				continue
-			} else {
-				if peeringSpec.Remote != "" {
-					continue
-				}
-
-				vpc1, vpc2, err := peeringSpec.VPCs()
-				if err != nil {
-					return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peeringHack)
-				}
-
-				if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
-					continue
-				}
-			}
-		} else if strings.HasPrefix(peeringHack, "ext@") {
-			if peeringSpec, exists := externalPeerings[strings.TrimPrefix(peeringHack, "ext@")]; !exists {
-				continue
-			} else {
-				if _, exists := attachedVPCs[peeringSpec.Permit.VPC.Name]; !exists {
-					continue
-				}
-			}
-		}
-
-		loopbackMapping[peeringHack] = loopback
-		loopbackUsage[loopback] += 1
-	}
-
-	for peeringName, peering := range peerings {
-		if peering.Remote != "" {
-			continue
-		}
-
-		if _, exists := loopbackMapping["vpc@"+peeringName]; exists {
-			continue
-		}
-
-		vpc1, vpc2, err := peering.VPCs()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peering)
-		}
-
-		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
-			continue
-		}
-
-		minLoUsage := math.MaxInt
-		minLo := ""
-
-		for loopback, usage := range loopbackUsage {
-			if usage < minLoUsage {
-				minLoUsage = usage
-				minLo = loopback
-			}
-		}
-
-		if minLo == "" {
-			return nil, errors.Errorf("no vpc loopback available for vpc peering %s", peeringName)
-		}
-
-		loopbackMapping["vpc@"+peeringName] = minLo
-		loopbackUsage[minLo] += 1
-		l.Info("assigned vpc loopback link", "vpcPeering", peeringName, "link", minLo)
-	}
-
-	for peeringName, peering := range externalPeerings {
-		if _, exists := loopbackMapping["ext@"+peeringName]; exists {
-			continue
-		}
-
-		if _, exists := attachedVPCs[peering.Permit.VPC.Name]; !exists {
-			continue
-		}
-
-		minLoUsage := math.MaxInt
-		minLo := ""
-
-		for loopback, usage := range loopbackUsage {
-			if usage < minLoUsage {
-				minLoUsage = usage
-				minLo = loopback
-			}
-		}
-
-		if minLo == "" {
-			return nil, errors.Errorf("no vpc loopback available for external peering %s", peeringName)
-		}
-
-		loopbackMapping["ext@"+peeringName] = minLo
-		loopbackUsage[minLo] += 1
-		l.Info("assigned vpc loopback link", "externalPeering", peeringName, "link", minLo)
-	}
-
-	return loopbackMapping, nil
-}
-
-// TODO merge with IRB vlan allocation
-func (r *AgentReconciler) calculateVPCLoopbackVLANAllocation(ctx context.Context, agent *agentapi.Agent, peerings map[string]vpcapi.VPCPeeringSpec, externalPeerings map[string]vpcapi.ExternalPeeringSpec, attachedVPCs map[string]bool) (map[string]uint16, error) {
-	l := log.FromContext(ctx)
-
-	vlans := map[string]uint16{}
-	taken := map[uint16]bool{}
-
-	for peeringHack, vlan := range agent.Spec.VPCLoopbackVLANs {
-		if vlan < 1 {
-			continue
-		}
-
-		// TODO check that it still belongs to reserved ranges
-
-		if strings.HasPrefix(peeringHack, "vpc@") {
-			if peerSpec, exist := peerings[strings.TrimPrefix(peeringHack, "vpc@")]; !exist {
-				continue
-			} else {
-				if peerSpec.Remote != "" {
-					continue
-				}
-
-				vpc1, vpc2, err := peerSpec.VPCs()
-				if err != nil {
-					return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peeringHack)
-				}
-
-				if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
-					continue
-				}
-			}
-		} else if strings.HasPrefix(peeringHack, "ext@") {
-			if peeringSpec, exists := externalPeerings[strings.TrimPrefix(peeringHack, "ext@")]; !exists {
-				continue
-			} else {
-				if _, exists := attachedVPCs[peeringSpec.Permit.VPC.Name]; !exists {
-					continue
-				}
-			}
-		}
-
-		vlans[peeringHack] = vlan
-		taken[vlan] = true
-	}
-
-	for peeringName, peering := range peerings {
-		if peering.Remote != "" {
-			continue
-		}
-
-		if vlans["vpc@"+peeringName] > 0 {
-			continue
-		}
-
-		vpc1, vpc2, err := peering.VPCs()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting vpcs for peering %s", peeringName)
-		}
-
-		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
-			continue
-		}
-
-		// TODO optimize by storing last taken vlan
-	vpcLoop:
-		for _, vlanRange := range r.Cfg.VPCPeeringVLANRanges {
-			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
-				if !taken[vlan] {
-					vlans["vpc@"+peeringName] = vlan
-					taken[vlan] = true
-					l.Info("assigned vpc loopback vlan", "vpcPeering", peeringName, "vlan", vlans["vpc@"+peeringName])
-					break vpcLoop
-				}
-			}
-		}
-
-		if vlans["vpc@"+peeringName] == 0 {
-			return nil, errors.Errorf("no peering VLAN available for peer %s", peeringName)
-		}
-	}
-
-	for peeringName, peering := range externalPeerings {
-		if vlans["ext@"+peeringName] > 0 {
-			continue
-		}
-
-		if _, exists := attachedVPCs[peering.Permit.VPC.Name]; !exists {
-			continue
-		}
-
-		// TODO optimize by storing last taken vlan
-	extLoop:
-		for _, vlanRange := range r.Cfg.VPCPeeringVLANRanges {
-			for vlan := vlanRange.From; vlan <= vlanRange.To; vlan++ {
-				if !taken[vlan] {
-					vlans["ext@"+peeringName] = vlan
-					taken[vlan] = true
-					l.Info("assigned vpc loopback vlan", "externalPeering", peeringName, "vlan", vlans["ext@"+peeringName])
-					break extLoop
-				}
-			}
-		}
-
-		if vlans["ext@"+peeringName] == 0 {
-			return nil, errors.Errorf("no peering VLAN available for peer %s", peeringName)
-		}
-	}
-
-	return vlans, nil
 }
 
 const (

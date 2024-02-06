@@ -624,10 +624,6 @@ VPCStatus defines the observed state of VPC
 _Appears in:_
 - [VPC](#vpc)
 
-| Field | Description |
-| --- | --- |
-| `vni` _integer_ | VNI is the global Fabric-level VNI allocated for the VPC |
-| `subnetVNIs` _object (keys:string, values:integer)_ | SubnetVNIs is the map of subnet names to the global Fabric-level VNIs allocated for the VPC subnets |
 
 
 #### VPCSubnet
@@ -987,9 +983,6 @@ ConnectionStatus defines the observed state of Connection
 _Appears in:_
 - [Connection](#connection)
 
-| Field | Description |
-| --- | --- |
-| `systemID` _integer_ |  |
 
 
 #### FabricLink

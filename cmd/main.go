@@ -31,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -45,6 +46,7 @@ import (
 	controlagentcontroller "go.githedgehog.com/fabric/pkg/ctrl/controlagent"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/config"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
 	externalWebhool "go.githedgehog.com/fabric/pkg/webhook/external"
 	externalAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/externalattachment"
@@ -125,13 +127,24 @@ func main() {
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
 		// LeaderElectionReleaseOnCancel: true,
+
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&agentv1alpha2.Catalog{},
+				},
+				Unstructured: false,
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr, cfg, version); err != nil {
+	libMngr := librarian.NewManager(cfg)
+
+	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr, cfg, libMngr, version); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
 	}
@@ -139,11 +152,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlAgent")
 		os.Exit(1)
 	}
-	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr, cfg, libMngr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VPC")
 		os.Exit(1)
 	}
-	if err = connectioncontroller.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = connectioncontroller.SetupWithManager(cfgBasedir, mgr, cfg, libMngr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Connection")
 		os.Exit(1)
 	}
