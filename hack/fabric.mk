@@ -135,4 +135,5 @@ dev-patch:
 
 .PHONY: dev
 dev:
-	VERSION=$(VERSION)-$(shell date +%s) make dev-push dev-patch
+	VERSION=$(VERSION)-$(TIME) make dev-push dev-patch
+	echo "Deployed version: $(VERSION)-$(TIME)"
