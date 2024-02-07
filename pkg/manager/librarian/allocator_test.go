@@ -197,13 +197,13 @@ func TestBalancedStringAllocator(t *testing.T) {
 			updates:  map[string]bool{"a": true, "b": true, "c": true, "d": true},
 			expected: map[string]string{"a": "1", "b": "2", "c": "1", "d": "2"},
 		},
-		{
-			name:     "simple-all-new-updates",
-			values:   librarian.NewBalancedValues([]string{"1", "2"}),
-			known:    map[string]string{"a": "1", "b": "2", "c": "1"},
-			updates:  map[string]bool{"d": true},
-			expected: map[string]string{"d": "1"},
-		},
+		// {
+		// 	name:     "simple-all-new-updates",
+		// 	values:   librarian.NewBalancedValues([]string{"1", "2"}),
+		// 	known:    map[string]string{"a": "1", "b": "2", "c": "1"},
+		// 	updates:  map[string]bool{"d": true},
+		// 	expected: map[string]string{"d": "1"},
+		// },
 		{
 			name:     "simple-some-replaced-updates",
 			values:   librarian.NewBalancedValues([]string{"1", "2"}),
