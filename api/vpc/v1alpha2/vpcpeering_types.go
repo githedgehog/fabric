@@ -142,14 +142,6 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		}
 	}
 
-	// TODO remove when subnet filtering is supported
-	if len(peering.Spec.Permit) != 1 {
-		return nil, errors.Errorf("permit must have exactly 1 entry")
-	}
-	if len(peering.Spec.Permit[0][vpc1].Subnets) != 0 || len(peering.Spec.Permit[0][vpc2].Subnets) != 0 {
-		return nil, errors.Errorf("subnets are not supported yet")
-	}
-
 	// TODO validate overlaps in subnets
 
 	if client != nil {
