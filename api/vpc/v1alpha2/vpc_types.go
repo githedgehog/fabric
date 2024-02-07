@@ -283,7 +283,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 	}
 
 	if client != nil {
-		// TODO Can we rely on Validation webhook for croll VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
+		// TODO Can we rely on Validation webhook for cross VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 
 		ipNs := &IPv4Namespace{}
 		err := client.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
@@ -360,6 +360,31 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 				for _, subnet := range subnets {
 					if subnet.Contains(otherNet.IP) {
 						return nil, errors.Errorf("subnet %s overlaps with subnet %s of VPC %s", subnet.String(), otherSubnet.Subnet, other.Name)
+					}
+				}
+			}
+		}
+
+		vpcs = &VPCList{}
+		err = client.List(ctx, vpcs, map[string]string{
+			LabelVLANNS: vpc.Spec.VLANNamespace,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
+		}
+
+		for _, other := range vpcs.Items {
+			if other.Name == vpc.Name {
+				continue
+			}
+			if other.Spec.VLANNamespace != vpc.Spec.VLANNamespace {
+				continue
+			}
+
+			for _, otherSubnet := range other.Spec.Subnets {
+				for _, subnet := range vpc.Spec.Subnets {
+					if subnet.VLAN == otherSubnet.VLAN {
+						return nil, errors.Errorf("vlan %s is already used by other VPC", subnet.VLAN)
 					}
 				}
 			}
