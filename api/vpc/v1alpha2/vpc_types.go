@@ -175,6 +175,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 	}
 
 	subnets := []*net.IPNet{}
+	vlans := map[string]bool{}
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
 		if subnetCfg.Subnet == "" {
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
@@ -194,6 +195,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		if subnetCfg.VLAN == "" {
 			return nil, errors.Errorf("subnet %s: vlan is required", subnetName)
 		}
+		vlans[subnetCfg.VLAN] = true
 
 		subnets = append(subnets, ipNet)
 
@@ -251,6 +253,10 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 				return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
 			}
 		}
+	}
+
+	if len(vlans) != len(vpc.Spec.Subnets) {
+		return nil, errors.Errorf("duplicate subnet VLANs")
 	}
 
 	if err := iputil.VerifyNoOverlap(subnets); err != nil {
