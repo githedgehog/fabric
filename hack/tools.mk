@@ -110,7 +110,7 @@ envtest-k8s: envtest ## Download envtest assets if necessary.
 # TODO: Install specific version
 KUBEVIOUS_INSTALL_SCRIPT ?= "https://get.kubevious.io/cli.sh"
 .PHONY: kubevious
-kubevious: $(KUBEVIOUS) ## Download kustomize locally if necessary.
+kubevious: $(KUBEVIOUS) kustomize ## Download kustomize locally if necessary.
 $(KUBEVIOUS): $(LOCALBIN)
 	test -s $(LOCALBIN)/kubevious || { curl -Ss $(KUBEVIOUS_INSTALL_SCRIPT) | bash -s -- $(LOCALBIN); }
 
