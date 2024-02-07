@@ -46,13 +46,6 @@ spec:
                   type: integer
                 description: ExternalIDs stores external name -> ID, unique per switch
                 type: object
-              externalPeeringPrefixIDs:
-                additionalProperties:
-                  format: int32
-                  type: integer
-                description: ExternalPeeringPrefixIDs stores external peering prefix
-                  -> ID, unique per switch
-                type: object
               irbVLANs:
                 additionalProperties:
                   type: integer
@@ -77,6 +70,12 @@ spec:
                   type: integer
                 description: PortChannelIDs stores Connection name -> PortChannel
                   ID, unique per redundancy group (or switch)
+                type: object
+              subnetIDs:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                description: SubnetIDs stores subnet -> ID, unique per switch
                 type: object
               vpcSubnetVNIs:
                 additionalProperties:

@@ -259,7 +259,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube client.Cli
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube client.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, externalPeeringPrefixes map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube client.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, subnets map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -302,11 +302,11 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube client.Client, ret 
 
 	{
 		a := Allocator[uint32]{
-			Values: NewNextFreeValueFromRanges([][2]uint32{{10, 4294967295}}, 1),
+			Values: NewNextFreeValueFromRanges([][2]uint32{{100, 64999}}, 1),
 		}
-		cat.Spec.ExternalPeeringPrefixIDs, err = a.Allocate(cat.Spec.ExternalPeeringPrefixIDs, externalPeeringPrefixes)
+		cat.Spec.SubnetIDs, err = a.Allocate(cat.Spec.SubnetIDs, subnets)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate external peering prefix IDs for %s", key)
+			return errors.Wrapf(err, "failed to allocate subnet IDs for %s", key)
 		}
 	}
 
@@ -329,9 +329,9 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube client.Client, ret 
 		}
 	}
 
-	ret.ExternalPeeringPrefixIDs = cat.Spec.ExternalPeeringPrefixIDs
-	for prefix := range externalPeeringPrefixes {
-		if _, exists := ret.ExternalPeeringPrefixIDs[prefix]; !exists {
+	ret.SubnetIDs = cat.Spec.SubnetIDs
+	for prefix := range subnets {
+		if _, exists := ret.SubnetIDs[prefix]; !exists {
 			return errors.Errorf("failed to find external peering prefix ID for %s", prefix)
 		}
 	}

@@ -524,14 +524,19 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		externalsReq[name] = true
 	}
 
-	externalPeeringPrefixReq := map[string]bool{}
+	subnetsReq := map[string]bool{}
+	for _, vpc := range vpcs {
+		for _, subnet := range vpc.Subnets {
+			subnetsReq[subnet.Subnet] = true
+		}
+	}
 	for _, peering := range externalPeerings {
 		for _, prefix := range peering.Permit.External.Prefixes {
-			externalPeeringPrefixReq[prefix.Prefix] = true
+			subnetsReq[prefix.Prefix] = true
 		}
 	}
 
-	err = r.LibMngr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, externalPeeringPrefixReq)
+	err = r.LibMngr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
