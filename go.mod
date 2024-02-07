@@ -26,7 +26,7 @@ require (
 	github.com/samber/slog-multi v1.0.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.27.1
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
