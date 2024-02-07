@@ -36,7 +36,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: oldstable
           cache: true
 
       - name: Cache dev tools
@@ -70,7 +70,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: oldstable
           cache: true
 
       - name: Cache dev tools
@@ -119,7 +119,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: oldstable
           cache: true
 
       - name: Cache dev tools
@@ -166,7 +166,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: oldstable
           cache: true
 
       - name: Cache dev tools
@@ -204,7 +204,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: oldstable
           cache: true
 
       - name: Cache dev tools
