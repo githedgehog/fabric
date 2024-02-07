@@ -90,17 +90,20 @@ func init() {
 
 func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 	vpcs := []string{}
-	for _, permit := range s.Permit {
+	for idx, permit := range s.Permit {
+		if len(permit) != 2 {
+			return "", "", errors.Errorf("each permit policy must have exactly 2 VPCs (idx %d)", idx)
+		}
+
 		for vpc := range permit {
-			if slices.Contains(vpcs, vpc) {
-				return "", "", errors.Errorf("vpc peering must have 2 unique VPCs")
+			if !slices.Contains(vpcs, vpc) {
+				vpcs = append(vpcs, vpc)
 			}
-			vpcs = append(vpcs, vpc)
 		}
 	}
 
 	if len(vpcs) != 2 {
-		return "", "", errors.Errorf("vpc peering must have exactly 2 VPCs")
+		return "", "", errors.Errorf("VPCPeering must have exactly 2 VPCs")
 	}
 
 	sort.Strings(vpcs)
@@ -131,7 +134,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		return nil, errors.Errorf("vpc peering is not allowed")
 	}
 
-	vpc1, vpc2, err := peering.Spec.VPCs()
+	vpc1Name, vpc2Name, err := peering.Spec.VPCs()
 	if err != nil {
 		return nil, err
 	}
@@ -142,13 +145,11 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		}
 	}
 
-	// TODO validate overlaps in subnets
-
 	if client != nil {
 		other := &VPCPeeringList{}
 		err := client.List(ctx, other, map[string]string{
-			ListLabelVPC(vpc1): ListLabelValue,
-			ListLabelVPC(vpc2): ListLabelValue,
+			ListLabelVPC(vpc1Name): ListLabelValue,
+			ListLabelVPC(vpc2Name): ListLabelValue,
 		})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to list VPC peerings") // TODO replace with some internal error to not expose to the user
@@ -156,7 +157,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 
 		ipv4Namespaces := []string{}
 		vlanNamespaces := []string{}
-		for _, vpcName := range []string{vpc1, vpc2} {
+		for _, vpcName := range []string{vpc1Name, vpc2Name} {
 			vpc := &VPC{}
 			err := client.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: peering.Namespace}, vpc)
 			if err != nil {
@@ -194,6 +195,43 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 				}
 
 				return nil, errors.Wrapf(err, "failed to list switch groups") // TODO replace with some internal error to not expose to the user
+			}
+		}
+
+		vpc1 := &VPC{}
+		err = client.Get(ctx, types.NamespacedName{Name: vpc1Name, Namespace: peering.Namespace}, vpc1)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("VPC %s not found", vpc1Name)
+			}
+
+			return nil, errors.Wrapf(err, "failed to get VPC %s", vpc1Name) // TODO replace with some internal error to not expose to the user
+		}
+
+		vpc2 := &VPC{}
+		err = client.Get(ctx, types.NamespacedName{Name: vpc2Name, Namespace: peering.Namespace}, vpc2)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("VPC %s not found", vpc2Name)
+			}
+
+			return nil, errors.Wrapf(err, "failed to get VPC %s", vpc2Name) // TODO replace with some internal error to not expose to the user
+		}
+
+		for _, permit := range peering.Spec.Permit {
+			for vpcName, vpcPeer := range permit {
+				vpc := vpc1
+				if vpcName == vpc2Name {
+					vpc = vpc2
+				} else if vpcName != vpc1Name {
+					return nil, errors.Errorf("unexpected VPC %s in permit", vpcName)
+				}
+
+				for _, subnet := range vpcPeer.Subnets {
+					if vpc.Spec.Subnets == nil || vpc.Spec.Subnets[subnet] == nil {
+						return nil, errors.Errorf("subnet %s not found in VPC %s", subnet, vpcName)
+					}
+				}
 			}
 		}
 	}
