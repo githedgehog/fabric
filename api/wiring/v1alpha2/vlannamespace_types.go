@@ -70,6 +70,16 @@ func init() {
 	SchemeBuilder.Register(&VLANNamespace{}, &VLANNamespaceList{})
 }
 
+func (ns *VLANNamespaceSpec) Contains(vlan uint16) bool {
+	for _, r := range ns.Ranges {
+		if vlan >= r.From && vlan <= r.To {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (ns *VLANNamespaceSpec) Labels() map[string]string {
 	// TODO
 	return map[string]string{}

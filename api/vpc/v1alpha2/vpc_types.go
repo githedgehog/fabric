@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"context"
 	"net"
+	"strconv"
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
@@ -269,6 +270,15 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
 		}
 
+		vlanNs := &wiringapi.VLANNamespace{}
+		err = client.Get(ctx, types.NamespacedName{Name: vpc.Spec.VLANNamespace, Namespace: vpc.Namespace}, vlanNs)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("VLANNamespace %s not found", vpc.Spec.VLANNamespace)
+			}
+			return nil, errors.Wrapf(err, "failed to get VLANNamespace %s", vpc.Spec.VLANNamespace) // TODO replace with some internal error to not expose to the user
+		}
+
 		for subnetName, subnetCfg := range vpc.Spec.Subnets {
 			_, vpcSubnet, err := net.ParseCIDR(subnetCfg.Subnet)
 			if err != nil {
@@ -290,6 +300,14 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 
 			if !ok {
 				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to the IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
+			}
+
+			vlanRaw, err := strconv.ParseUint(subnetCfg.VLAN, 10, 16)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse subnet %s (%s) VLAN %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN)
+			}
+			if !vlanNs.Spec.Contains(uint16(vlanRaw)) {
+				return nil, errors.Errorf("vpc subnet %s (%s) vlan %s doesn't belong to the VLANNamespace %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN, vpc.Spec.VLANNamespace)
 			}
 		}
 
