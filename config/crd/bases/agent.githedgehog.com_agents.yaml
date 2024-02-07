@@ -1110,10 +1110,27 @@ spec:
                   description: VPCSpec defines the desired state of VPC. At least
                     one subnet is required.
                   properties:
+                    defaultIsolated:
+                      description: DefaultIsolated sets default bahivour for isolated
+                        mode for the subnets (disabled by default)
+                      type: boolean
+                    defaultRestricted:
+                      description: DefaultRestricted sets default bahivour for restricted
+                        mode for the subnets (disabled by default)
+                      type: boolean
                     ipv4Namespace:
                       description: IPv4Namespace is the name of the IPv4Namespace
-                        this VPC belongs to
+                        this VPC belongs to (if not specified, "default" is used)
                       type: string
+                    permit:
+                      description: Permit defines a list of the access policies between
+                        the subnets within the VPC - each policy is a list of subnets
+                        that have access to each other
+                      items:
+                        items:
+                          type: string
+                        type: array
+                      type: array
                     subnets:
                       additionalProperties:
                         description: VPCSubnet defines the VPC subnet configuration
@@ -1143,6 +1160,16 @@ spec:
                                   specified, DHCP server will be disabled
                                 type: string
                             type: object
+                          isolated:
+                            description: Isolated is the flag to enable isolated mode
+                              for the subnet which means no access to and from the
+                              other subnets within the VPC
+                            type: boolean
+                          restricted:
+                            description: Restricted is the flag to enable restricted
+                              mode for the subnet which means no access between hosts
+                              within the subnet itself
+                            type: boolean
                           subnet:
                             description: Subnet is the subnet CIDR block, such as
                               "10.0.0.0/24", should belong to the IPv4Namespace and
@@ -1158,7 +1185,7 @@ spec:
                       type: object
                     vlanNamespace:
                       description: VLANNamespace is the name of the VLANNamespace
-                        this VPC belongs to
+                        this VPC belongs to (if not specified, "default" is used)
                       type: string
                   type: object
                 type: object

@@ -40,10 +40,16 @@ import (
 type VPCSpec struct {
 	// Subnets is the list of VPC subnets to configure
 	Subnets map[string]*VPCSubnet `json:"subnets,omitempty"`
-	// IPv4Namespace is the name of the IPv4Namespace this VPC belongs to
+	// IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used)
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
-	// VLANNamespace is the name of the VLANNamespace this VPC belongs to
+	// VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used)
 	VLANNamespace string `json:"vlanNamespace,omitempty"`
+	// DefaultIsolated sets default bahivour for isolated mode for the subnets (disabled by default)
+	DefaultIsolated bool `json:"defaultIsolated,omitempty"`
+	// DefaultRestricted sets default bahivour for restricted mode for the subnets (disabled by default)
+	DefaultRestricted bool `json:"defaultRestricted,omitempty"`
+	// Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other
+	Permit [][]string `json:"permit,omitempty"`
 }
 
 // VPCSubnet defines the VPC subnet configuration
@@ -54,6 +60,10 @@ type VPCSubnet struct {
 	DHCP VPCDHCP `json:"dhcp,omitempty"`
 	// VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace
 	VLAN string `json:"vlan,omitempty"`
+	// Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC
+	Isolated *bool `json:"isolated,omitempty"`
+	// Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself
+	Restricted *bool `json:"restricted,omitempty"`
 }
 
 // VPCDHCP defines the on-demand DHCP configuration for the subnet
@@ -108,6 +118,22 @@ type VPCList struct {
 
 func init() {
 	SchemeBuilder.Register(&VPC{}, &VPCList{})
+}
+
+func (vpc *VPCSpec) IsSubnetIsolated(subnetName string) bool {
+	if subnet, ok := vpc.Subnets[subnetName]; ok && subnet.Isolated != nil {
+		return *subnet.Isolated
+	}
+
+	return vpc.DefaultIsolated
+}
+
+func (vpc *VPCSpec) IsSubnetRestricted(subnetName string) bool {
+	if subnet, ok := vpc.Subnets[subnetName]; ok && subnet.Restricted != nil {
+		return *subnet.Restricted
+	}
+
+	return vpc.DefaultRestricted
 }
 
 func (vpc *VPC) Default() {
