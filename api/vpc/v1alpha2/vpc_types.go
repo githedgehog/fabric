@@ -257,8 +257,26 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		return nil, errors.Wrapf(err, "failed to verify no overlap subnets")
 	}
 
+	for permitIdx, permit := range vpc.Spec.Permit {
+		if len(permit) < 2 {
+			return nil, errors.Errorf("each permit policy must have at least 2 subnets in it")
+		}
+
+		subnets := map[string]bool{}
+		for _, subnetName := range permit {
+			if _, ok := vpc.Spec.Subnets[subnetName]; !ok {
+				return nil, errors.Errorf("permit policy #%d: subnet %s not found", permitIdx, subnetName)
+			}
+
+			subnets[subnetName] = true
+		}
+
+		if len(subnets) != len(permit) {
+			return nil, errors.Errorf("permit policy #%d: duplicate subnets", permitIdx)
+		}
+	}
+
 	if client != nil {
-		// TODO check VLANs
 		// TODO Can we rely on Validation webhook for croll VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 
 		ipNs := &IPv4Namespace{}
