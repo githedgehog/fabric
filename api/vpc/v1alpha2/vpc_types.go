@@ -48,7 +48,9 @@ type VPCSpec struct {
 	DefaultIsolated bool `json:"defaultIsolated,omitempty"`
 	// DefaultRestricted sets default bahivour for restricted mode for the subnets (disabled by default)
 	DefaultRestricted bool `json:"defaultRestricted,omitempty"`
-	// Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other
+	// Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.
+	// It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked
+	// as isolated it's required to have it in a permit list to have access to other subnets.
 	Permit [][]string `json:"permit,omitempty"`
 }
 

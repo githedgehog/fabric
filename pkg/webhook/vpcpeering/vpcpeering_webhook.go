@@ -3,11 +3,9 @@ package vpcpeering
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,11 +65,11 @@ func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, obj runtime.Obje
 
 func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	newPeering := newObj.(*vpcapi.VPCPeering)
-	oldPeering := oldObj.(*vpcapi.VPCPeering)
+	// oldPeering := oldObj.(*vpcapi.VPCPeering)
 
-	if !equality.Semantic.DeepEqual(oldPeering.Spec.Permit, newPeering.Spec.Permit) {
-		return nil, errors.Errorf("vpc peering permit list is immutable")
-	}
+	// if !equality.Semantic.DeepEqual(oldPeering.Spec.Permit, newPeering.Spec.Permit) {
+	// 	return nil, errors.Errorf("vpc peering permit list is immutable")
+	// }
 
 	warns, err := newPeering.Validate(ctx, w.Validation, w.Cfg.VPCPeeringDisabled)
 	if err != nil {

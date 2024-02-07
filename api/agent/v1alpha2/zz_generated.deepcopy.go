@@ -446,8 +446,8 @@ func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 			(*out)[key] = val
 		}
 	}
-	if in.ExternalPeeringPrefixIDs != nil {
-		in, out := &in.ExternalPeeringPrefixIDs, &out.ExternalPeeringPrefixIDs
+	if in.SubnetIDs != nil {
+		in, out := &in.SubnetIDs, &out.SubnetIDs
 		*out = make(map[string]uint32, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

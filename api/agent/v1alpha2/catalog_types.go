@@ -48,8 +48,8 @@ type CatalogSpec struct {
 	LoopbackWorkaroundVLANs map[string]uint16 `json:"loopbackWorkaroundVLANs,omitempty"`
 	// ExternalIDs stores external name -> ID, unique per switch
 	ExternalIDs map[string]uint16 `json:"externalIDs,omitempty"`
-	// ExternalPeeringPrefixIDs stores external peering prefix -> ID, unique per switch
-	ExternalPeeringPrefixIDs map[string]uint32 `json:"externalPeeringPrefixIDs,omitempty"`
+	// SubnetIDs stores subnet -> ID, unique per switch
+	SubnetIDs map[string]uint32 `json:"subnetIDs,omitempty"`
 }
 
 // CatalogStatus defines the observed state of Catalog

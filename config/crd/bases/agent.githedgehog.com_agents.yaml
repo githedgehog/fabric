@@ -113,13 +113,6 @@ spec:
                     description: ExternalIDs stores external name -> ID, unique per
                       switch
                     type: object
-                  externalPeeringPrefixIDs:
-                    additionalProperties:
-                      format: int32
-                      type: integer
-                    description: ExternalPeeringPrefixIDs stores external peering
-                      prefix -> ID, unique per switch
-                    type: object
                   irbVLANs:
                     additionalProperties:
                       type: integer
@@ -144,6 +137,12 @@ spec:
                       type: integer
                     description: PortChannelIDs stores Connection name -> PortChannel
                       ID, unique per redundancy group (or switch)
+                    type: object
+                  subnetIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: SubnetIDs stores subnet -> ID, unique per switch
                     type: object
                   vpcSubnetVNIs:
                     additionalProperties:
@@ -1125,7 +1124,11 @@ spec:
                     permit:
                       description: Permit defines a list of the access policies between
                         the subnets within the VPC - each policy is a list of subnets
-                        that have access to each other
+                        that have access to each other. It's applied on top of the
+                        subnet isolation flag and if subnet isn't isolated it's not
+                        required to have it in a permit list while if vpc is marked
+                        as isolated it's required to have it in a permit list to have
+                        access to other subnets.
                       items:
                         items:
                           type: string
