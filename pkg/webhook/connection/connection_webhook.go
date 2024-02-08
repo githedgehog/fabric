@@ -4,11 +4,14 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -54,6 +57,22 @@ func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) err
 	return nil
 }
 
+// validateStaticExternal checks that the static external connection is valid and it's located in a webhook to avoid circular dependency with vpcapi
+func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, client validation.Client, conn *wiringapi.Connection) error {
+	if conn.Spec.StaticExternal != nil && conn.Spec.StaticExternal.WithinVPC != "" {
+		vpc := &vpcapi.VPC{}
+		err := client.Get(ctx, types.NamespacedName{Name: conn.Spec.StaticExternal.WithinVPC, Namespace: conn.Namespace}, vpc) // TODO namespace could be different?
+		if apierrors.IsNotFound(err) {
+			return errors.Errorf("vpc %s not found", conn.Spec.StaticExternal.WithinVPC)
+		}
+		if err != nil {
+			return errors.Wrapf(err, "failed to get vpc %s", conn.Spec.StaticExternal.WithinVPC) // TODO replace with some internal error to not expose to the user
+		}
+	}
+
+	return nil
+}
+
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	conn := obj.(*wiringapi.Connection)
 
@@ -66,7 +85,7 @@ func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Obje
 		return warns, err
 	}
 
-	return warns, nil
+	return warns, w.validateStaticExternal(ctx, w.Validation, conn)
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
@@ -90,7 +109,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 		}
 	}
 
-	return warns, nil
+	return warns, w.validateStaticExternal(ctx, w.Validation, newConn)
 }
 
 func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {

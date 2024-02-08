@@ -231,6 +231,8 @@ type ConnStaticExternalLink struct {
 type ConnStaticExternal struct {
 	// Link is the static external connection link
 	Link ConnStaticExternalLink `json:"link,omitempty"`
+	// WithinVPC is the optional VPC name to provision the static external connection within the VPC VRF instead of default one to make resource available to the specific VPC
+	WithinVPC string `json:"withinVPC,omitempty"`
 }
 
 // ConnectionSpec defines the desired state of Connection

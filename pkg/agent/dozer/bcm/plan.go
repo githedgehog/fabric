@@ -46,7 +46,6 @@ const (
 	ANYCAST_MAC                                = "00:00:00:11:11:11"
 	ROUTE_MAP_MAX_STATEMENT                    = 65535
 	ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE        = "evpn-default-remote-block"
-	ROUTE_MAP_REJECT_VPC_LOOPBACK              = "reject-vpc-loopback"
 	PREFIX_LIST_ANY                            = "any-prefix"
 	PREFIX_LIST_VPC_LOOPBACK                   = "vpc-loopback-prefix"
 	NO_COMMUNITY                               = "no-community"
@@ -160,11 +159,6 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		return nil, errors.Wrap(err, "failed to plan external connections")
 	}
 
-	err = planStaticExternals(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan static external connections")
-	}
-
 	err = planServerConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan server connections")
@@ -198,6 +192,11 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 	err = planExternalPeerings(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan external peerings")
+	}
+
+	err = planStaticExternals(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan static external connections")
 	}
 
 	spec.Normalize()
@@ -783,17 +782,75 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		ifName := cfg.LocalPortName()
 		if cfg.VLAN != 0 {
-			ifName = fmt.Sprintf("%s.%d", strings.ReplaceAll(cfg.LocalPortName(), "Ethernet", "Eth"), cfg.VLAN)
+			ifName = fmt.Sprintf("%s.%d", cfg.LocalPortName(), cfg.VLAN)
 		}
 
+		vrfName := VRF_DEFAULT
+		if conn.StaticExternal.WithinVPC != "" {
+			vrfName = vpcVrfName(conn.StaticExternal.WithinVPC)
+
+			if spec.VRFs[vrfName] == nil {
+				return errors.Errorf("vpc %s vrf %s not found for static external %s", conn.StaticExternal.WithinVPC, vrfName, connName)
+			}
+			if spec.VRFs[vrfName].Interfaces == nil {
+				spec.VRFs[vrfName].Interfaces = map[string]*dozer.SpecVRFInterface{}
+			}
+
+			spec.VRFs[vrfName].Interfaces[ifName] = &dozer.SpecVRFInterface{}
+		}
+
+		if cfg.VLAN != 0 {
+			ifName = strings.ReplaceAll(ifName, "Ethernet", "Eth")
+		}
+
+		subnets := []string{ipNet.String()}
+
 		for _, subnet := range cfg.Subnets {
-			spec.VRFs[VRF_DEFAULT].StaticRoutes[subnet] = &dozer.SpecVRFStaticRoute{
+			spec.VRFs[vrfName].StaticRoutes[subnet] = &dozer.SpecVRFStaticRoute{
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
 						IP:        cfg.NextHop,
 						Interface: stringPtr(ifName),
 					},
 				},
+			}
+
+			subnets = append(subnets, subnet)
+		}
+
+		if conn.StaticExternal.WithinVPC != "" {
+			vpcName := conn.StaticExternal.WithinVPC
+			prefixList := spec.PrefixLists[vpcStaticExtSubnetsPrefixListName(vpcName)]
+			if prefixList == nil {
+				return errors.Errorf("prefix list %s not found for static external %s", vpcStaticExtSubnetsPrefixListName(vpcName), connName)
+			}
+
+			for _, subnet := range subnets {
+				subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
+				// TODO dedup
+				if subnetID == 0 {
+					return errors.Errorf("no subnet id found for static ext subnet %s", subnet)
+				}
+				if subnetID < 100 {
+					return errors.Errorf("subnet id for static ext subnet %s is too small", subnet)
+				}
+				if subnetID >= 65000 {
+					return errors.Errorf("subnet id for static ext subnet %s is too large", subnet)
+				}
+
+				_, ipNet, err := net.ParseCIDR(subnet)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse static external subnet %s", subnet)
+				}
+				prefixLen, _ := ipNet.Mask.Size()
+
+				prefixList.Prefixes[subnetID] = &dozer.SpecPrefixListEntry{
+					Prefix: dozer.SpecPrefixListPrefix{
+						Prefix: subnet,
+						Le:     uint8(prefixLen),
+					},
+					Action: dozer.SpecPrefixListActionPermit,
+				}
 			}
 		}
 	}
@@ -1173,17 +1230,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	spec.RouteMaps[ROUTE_MAP_REJECT_VPC_LOOPBACK] = &dozer.SpecRouteMap{
-		Statements: map[string]*dozer.SpecRouteMapStatement{
-			"1": {
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
-				},
-				Result: dozer.SpecRouteMapResultReject,
-			},
-		},
-	}
-
 	spec.CommunityLists[NO_COMMUNITY] = &dozer.SpecCommunityList{
 		Members: []string{"REGEX:^$"},
 	}
@@ -1240,6 +1286,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Action: dozer.SpecPrefixListActionPermit,
 				},
 			},
+		}
+
+		spec.PrefixLists[vpcStaticExtSubnetsPrefixListName(vpcName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
 
 		for subnetName, subnet := range vpc.Subnets {
@@ -1317,8 +1367,32 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					SetCommunities: []string{vpcComm},
 					Result:         dozer.SpecRouteMapResultAccept,
 				},
+				"6": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: stringPtr(vpcStaticExtSubnetsPrefixListName(vpcName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
 				"10": {
 					Result: dozer.SpecRouteMapResultReject,
+				},
+			},
+		}
+
+		vpcRedistributeStaticRouteMap := vpcRedistributeStaticRouteMapName(vpcName)
+		spec.RouteMaps[vpcRedistributeStaticRouteMap] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"1": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
+					},
+					Result: dozer.SpecRouteMapResultReject,
+				},
+				"5": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: stringPtr(vpcStaticExtSubnetsPrefixListName(vpcName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
 				},
 			},
 		}
@@ -1350,7 +1424,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				ImportPolicies: []string{stampVPCRouteMap},
 			},
 			dozer.SpecVRFBGPTableConnectionStatic: {
-				ImportPolicies: []string{ROUTE_MAP_REJECT_VPC_LOOPBACK},
+				ImportPolicies: []string{vpcRedistributeStaticRouteMap},
 			},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
@@ -2267,12 +2341,20 @@ func vpcNotSubnetsPrefixListName(vpc string) string {
 	return fmt.Sprintf("vpc-not-subnets--%s", vpc)
 }
 
+func vpcStaticExtSubnetsPrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-static-ext-subnets--%s", vpc)
+}
+
 func ipnsEgressAccessList(ipns string) string {
 	return fmt.Sprintf("ipns-egress--%s", ipns)
 }
 
 func stampVPCRouteMapName(vpc string) string {
 	return fmt.Sprintf("stamp-vpc--%s", vpc)
+}
+
+func vpcRedistributeStaticRouteMapName(vpc string) string {
+	return fmt.Sprintf("vpc-redistribute-static--%s", vpc)
 }
 
 func ipnsSubnetsPrefixListName(ipns string) string {
