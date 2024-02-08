@@ -566,20 +566,25 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		attachedExternals[attach.External] = true
 	}
 
-	spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS] = &dozer.SpecCommunityList{
-		Members: []string{},
-	}
+	if agent.IsSpineLeaf() {
+		spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS] = &dozer.SpecCommunityList{
+			Members: []string{},
+		}
 
-	spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", ROUTE_MAP_MAX_STATEMENT-10)] = &dozer.SpecRouteMapStatement{
-		Conditions: dozer.SpecRouteMapConditions{
-			MatchCommunityList: stringPtr(BGP_COMM_LIST_ALL_EXTERNALS),
-		},
-		SetLocalPreference: uint32Ptr(500),
-		Result:             dozer.SpecRouteMapResultAccept,
+		spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", ROUTE_MAP_MAX_STATEMENT-10)] = &dozer.SpecRouteMapStatement{
+			Conditions: dozer.SpecRouteMapConditions{
+				MatchCommunityList: stringPtr(BGP_COMM_LIST_ALL_EXTERNALS),
+			},
+			SetLocalPreference: uint32Ptr(500),
+			Result:             dozer.SpecRouteMapResultAccept,
+		}
 	}
 
 	for externalName, external := range agent.Spec.Externals {
-		spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members = append(spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members, external.InboundCommunity)
+		if agent.IsSpineLeaf() && !slices.Contains(spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members, external.InboundCommunity) {
+			spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members = append(spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members, external.InboundCommunity)
+		}
+
 		if !attachedExternals[externalName] {
 			continue
 		}
