@@ -50,6 +50,7 @@ const (
 	PREFIX_LIST_VPC_LOOPBACK                   = "vpc-loopback-prefix"
 	NO_COMMUNITY                               = "no-community"
 	LST_GROUP_SPINELINK                        = "spinelink"
+	BGP_COMM_LIST_ALL_EXTERNALS                = "all-externals"
 )
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -560,7 +561,29 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	}
 
+	attachedExternals := map[string]bool{}
+	for _, attach := range agent.Spec.ExternalAttachments {
+		attachedExternals[attach.External] = true
+	}
+
+	spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS] = &dozer.SpecCommunityList{
+		Members: []string{},
+	}
+
+	spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", ROUTE_MAP_MAX_STATEMENT-10)] = &dozer.SpecRouteMapStatement{
+		Conditions: dozer.SpecRouteMapConditions{
+			MatchCommunityList: stringPtr(BGP_COMM_LIST_ALL_EXTERNALS),
+		},
+		SetLocalPreference: uint32Ptr(500),
+		Result:             dozer.SpecRouteMapResultAccept,
+	}
+
 	for externalName, external := range agent.Spec.Externals {
+		spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members = append(spec.CommunityLists[BGP_COMM_LIST_ALL_EXTERNALS].Members, external.InboundCommunity)
+		if !attachedExternals[externalName] {
+			continue
+		}
+
 		ipnsVrfName := ipnsVrfName(external.IPv4Namespace)
 
 		externalCommsCommList := ipNsExtCommsCommListName(external.IPv4Namespace)
