@@ -553,6 +553,12 @@ spec:
                                   type: integer
                               type: object
                           type: object
+                        withinVPC:
+                          description: WithinVPC is the optional VPC name to provision
+                            the static external connection within the VPC VRF instead
+                            of default one to make resource available to the specific
+                            VPC
+                          type: string
                       type: object
                     unbundled:
                       description: Unbundled defines the unbundled connection (no

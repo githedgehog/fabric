@@ -875,6 +875,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `link` _[ConnStaticExternalLink](#connstaticexternallink)_ | Link is the static external connection link |
+| `withinVPC` _string_ | WithinVPC is the optional VPC name to provision the static external connection within the VPC VRF instead of default one to make resource available to the specific VPC |
 
 
 #### ConnStaticExternalLink

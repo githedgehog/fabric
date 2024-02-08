@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"slices"
 	"sort"
 	"strings"
@@ -292,6 +293,18 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
+	staticExtVPCs := map[string]bool{}
+	for _, conn := range conns {
+		if conn.StaticExternal == nil {
+			continue
+		}
+		if conn.StaticExternal.WithinVPC == "" {
+			continue
+		}
+
+		staticExtVPCs[conn.StaticExternal.WithinVPC] = true
+	}
+
 	vpcs := map[string]vpcapi.VPCSpec{}
 	vpcList := &vpcapi.VPCList{}
 	err = r.List(ctx, vpcList, client.InNamespace(sw.Namespace))
@@ -299,7 +312,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
 	}
 	for _, vpc := range vpcList.Items {
-		ok := attachedVPCs[vpc.Name]
+		ok := attachedVPCs[vpc.Name] || staticExtVPCs[vpc.Name]
 		for subnetName := range vpc.Spec.Subnets {
 			if configuredSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
 				ok = true
@@ -533,6 +546,25 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	for _, peering := range externalPeerings {
 		for _, prefix := range peering.Permit.External.Prefixes {
 			subnetsReq[prefix.Prefix] = true
+		}
+	}
+	for connName, conn := range conns {
+		if conn.StaticExternal == nil {
+			continue
+		}
+		if conn.StaticExternal.WithinVPC == "" {
+			continue
+		}
+
+		_, ipNet, err := net.ParseCIDR(conn.StaticExternal.Link.Switch.IP)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error parsing static external conn %s ip %s", connName, conn.StaticExternal.Link.Switch.IP)
+		}
+
+		subnetsReq[ipNet.String()] = true
+
+		for _, subnet := range conn.StaticExternal.Link.Switch.Subnets {
+			subnetsReq[subnet] = true
 		}
 	}
 
