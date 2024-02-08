@@ -563,8 +563,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for externalName, external := range agent.Spec.Externals {
 		ipnsVrfName := ipnsVrfName(external.IPv4Namespace)
 
-		externalCommsCommList := externalCommsCommListName(external.IPv4Namespace)
-		externalCommsRouteMap := externalCommsRouteMapName(external.IPv4Namespace)
+		externalCommsCommList := ipNsExtCommsCommListName(external.IPv4Namespace)
+		externalCommsRouteMap := ipNsExternalCommsRouteMapName(external.IPv4Namespace)
 
 		if _, exists := spec.CommunityLists[externalCommsCommList]; !exists {
 			spec.CommunityLists[externalCommsCommList] = &dozer.SpecCommunityList{
@@ -640,12 +640,12 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		commList := inboundCommListName(externalName)
+		commList := extInboundCommListName(externalName)
 		spec.CommunityLists[commList] = &dozer.SpecCommunityList{
 			Members: []string{external.InboundCommunity},
 		}
 
-		spec.RouteMaps[inboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
+		spec.RouteMaps[extInboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"5": {
 					Conditions: dozer.SpecRouteMapConditions{
@@ -665,12 +665,12 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		prefList := outboundPrefixList(externalName)
+		prefList := extOutboundPrefixList(externalName)
 		spec.PrefixLists[prefList] = &dozer.SpecPrefixList{
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
 
-		spec.RouteMaps[outboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
+		spec.RouteMaps[extOutboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
@@ -732,8 +732,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Description:               stringPtr(fmt.Sprintf("External attach %s", name)),
 			RemoteAS:                  uint32Ptr(attach.Neighbor.ASN),
 			IPv4Unicast:               boolPtr(true),
-			IPv4UnicastImportPolicies: []string{inboundRouteMapName(attach.External)},
-			IPv4UnicastExportPolicies: []string{outboundRouteMapName(attach.External)},
+			IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
+			IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 		}
 
 		spec.ACLInterfaces[subIfaceName] = &dozer.SpecACLInterface{
@@ -1316,7 +1316,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		importVrfRouteMap := importVrfRouteMapName(vpcName)
+		importVrfRouteMap := vpcExtImportVrfRouteMapName(vpcName)
 		if _, exists := spec.RouteMaps[importVrfRouteMap]; !exists {
 			spec.RouteMaps[importVrfRouteMap] = &dozer.SpecRouteMap{
 				Statements: map[string]*dozer.SpecRouteMapStatement{
@@ -1351,8 +1351,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to get community for VPC %s", vpcName)
 		}
 
-		stampVPCRouteMap := stampVPCRouteMapName(vpcName)
-		spec.RouteMaps[stampVPCRouteMap] = &dozer.SpecRouteMap{
+		vpcRedistributeConnectedRouteMap := vpcRedistributeConnectedRouteMapName(vpcName)
+		spec.RouteMaps[vpcRedistributeConnectedRouteMap] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"1": {
 					Conditions: dozer.SpecRouteMapConditions{
@@ -1421,7 +1421,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
 			dozer.SpecVRFBGPTableConnectionConnected: {
-				ImportPolicies: []string{stampVPCRouteMap},
+				ImportPolicies: []string{vpcRedistributeConnectedRouteMap},
 			},
 			dozer.SpecVRFBGPTableConnectionStatic: {
 				ImportPolicies: []string{vpcRedistributeStaticRouteMap},
@@ -1640,14 +1640,14 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("VNI for VPC %s is too large", vpc2Name)
 		}
 
-		spec.RouteMaps[importVrfRouteMapName(vpc1Name)].Statements[fmt.Sprintf("%d", 10000+vni2/100)] = &dozer.SpecRouteMapStatement{
+		spec.RouteMaps[vpcExtImportVrfRouteMapName(vpc1Name)].Statements[fmt.Sprintf("%d", 10000+vni2/100)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchPrefixList: stringPtr(vpcNotSubnetsPrefixListName(vpc2Name)),
 				MatchSourceVRF:  stringPtr(vpcVrfName(vpc2Name)),
 			},
 			Result: dozer.SpecRouteMapResultReject,
 		}
-		spec.RouteMaps[importVrfRouteMapName(vpc2Name)].Statements[fmt.Sprintf("%d", 10000+vni1/100)] = &dozer.SpecRouteMapStatement{
+		spec.RouteMaps[vpcExtImportVrfRouteMapName(vpc2Name)].Statements[fmt.Sprintf("%d", 10000+vni1/100)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchPrefixList: stringPtr(vpcNotSubnetsPrefixListName(vpc1Name)),
 				MatchSourceVRF:  stringPtr(vpcVrfName(vpc1Name)),
@@ -2042,7 +2042,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Errorf("VNI for VPC %s subnet %s not found for external peering %s", vpcName, subnetName, name)
 			}
 
-			spec.PrefixLists[outboundPrefixList(externalName)].Prefixes[vni] = &dozer.SpecPrefixListEntry{
+			spec.PrefixLists[extOutboundPrefixList(externalName)].Prefixes[vni] = &dozer.SpecPrefixListEntry{
 				Prefix: dozer.SpecPrefixListPrefix{
 					Prefix: subnet.Subnet,
 				},
@@ -2074,12 +2074,12 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 
-			importVrfPrefixList := importVrfPrefixListName(vpcName, externalName)
+			importVrfPrefixList := vpcExtImportVrfPrefixListName(vpcName, externalName)
 			spec.PrefixLists[importVrfPrefixList] = &dozer.SpecPrefixList{
 				Prefixes: prefixes,
 			}
 
-			importVrfRouteMap := importVrfRouteMapName(vpcName)
+			importVrfRouteMap := vpcExtImportVrfRouteMapName(vpcName)
 			spec.RouteMaps[importVrfRouteMap].Statements["5"] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchPrefixList: stringPtr(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
@@ -2100,7 +2100,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
-					MatchCommunityList: stringPtr(inboundCommListName(externalName)),
+					MatchCommunityList: stringPtr(extInboundCommListName(externalName)),
 					MatchPrefixList:    stringPtr(importVrfPrefixList),
 				},
 				SetLocalPreference: uint32Ptr(500),
@@ -2293,35 +2293,35 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	return nil
 }
 
-func inboundCommListName(external string) string {
+func extInboundCommListName(external string) string {
 	return fmt.Sprintf("ext-inbound--%s", external)
 }
 
-func inboundRouteMapName(external string) string {
+func extInboundRouteMapName(external string) string {
 	return fmt.Sprintf("ext-inbound--%s", external)
 }
 
-func outboundPrefixList(external string) string {
+func extOutboundPrefixList(external string) string {
 	return fmt.Sprintf("ext-outbound--%s", external)
 }
 
-func outboundRouteMapName(external string) string {
+func extOutboundRouteMapName(external string) string {
 	return fmt.Sprintf("ext-outbound--%s", external)
 }
 
-func externalCommsCommListName(ipns string) string {
+func ipNsExtCommsCommListName(ipns string) string {
 	return fmt.Sprintf("ipns-ext-communities--%s", ipns)
 }
 
-func externalCommsRouteMapName(ipns string) string {
+func ipNsExternalCommsRouteMapName(ipns string) string {
 	return fmt.Sprintf("ipns-ext-communities--%s", ipns)
 }
 
-func importVrfPrefixListName(vpc, ext string) string {
+func vpcExtImportVrfPrefixListName(vpc, ext string) string {
 	return fmt.Sprintf("import-vrf--%s--%s", vpc, ext)
 }
 
-func importVrfRouteMapName(vpc string) string {
+func vpcExtImportVrfRouteMapName(vpc string) string {
 	return fmt.Sprintf("import-vrf--%s", vpc)
 }
 
@@ -2349,8 +2349,8 @@ func ipnsEgressAccessList(ipns string) string {
 	return fmt.Sprintf("ipns-egress--%s", ipns)
 }
 
-func stampVPCRouteMapName(vpc string) string {
-	return fmt.Sprintf("stamp-vpc--%s", vpc)
+func vpcRedistributeConnectedRouteMapName(vpc string) string {
+	return fmt.Sprintf("vpc-redistribute-connected--%s", vpc)
 }
 
 func vpcRedistributeStaticRouteMapName(vpc string) string {

@@ -73,15 +73,15 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		spec.CommunityLists[inboundCommListName(ipnsVrf)] = &dozer.SpecCommunityList{
+		spec.CommunityLists[extInboundCommListName(ipnsVrf)] = &dozer.SpecCommunityList{
 			Members: []string{externalConfig.CommunityIn},
 		}
 
-		spec.RouteMaps[inboundRouteMapName(ipnsVrf)] = &dozer.SpecRouteMap{
+		spec.RouteMaps[extInboundRouteMapName(ipnsVrf)] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: stringPtr(inboundCommListName(ipnsVrf)),
+						MatchCommunityList: stringPtr(extInboundCommListName(ipnsVrf)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -91,7 +91,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		spec.RouteMaps[outboundRouteMapName(ipnsVrf)] = &dozer.SpecRouteMap{
+		spec.RouteMaps[extOutboundRouteMapName(ipnsVrf)] = &dozer.SpecRouteMap{
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"10": {
 					SetCommunities: []string{externalConfig.CommunityOut},
@@ -139,8 +139,8 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Description:               stringPtr(fmt.Sprintf("External attach %s", externalConfig.VRF)),
 			RemoteAS:                  uint32Ptr(uint32(asnVal)),
 			IPv4Unicast:               boolPtr(true),
-			IPv4UnicastImportPolicies: []string{inboundRouteMapName(ipnsVrf)},
-			IPv4UnicastExportPolicies: []string{outboundRouteMapName(ipnsVrf)},
+			IPv4UnicastImportPolicies: []string{extInboundRouteMapName(ipnsVrf)},
+			IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(ipnsVrf)},
 		}
 		spec.VRFs[ipnsVrf].TableConnections = map[string]*dozer.SpecVRFTableConnection{
 			dozer.SpecVRFBGPTableConnectionConnected: {},
