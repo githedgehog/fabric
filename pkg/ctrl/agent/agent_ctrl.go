@@ -365,17 +365,17 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	externals := map[string]vpcapi.ExternalSpec{}
+	externalsToConfig := map[string]vpcapi.ExternalSpec{}
 	externalList := &vpcapi.ExternalList{}
 	err = r.List(ctx, externalList, client.InNamespace(sw.Namespace))
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error listing externals")
 	}
 	for _, ext := range externalList.Items {
-		if !attachedExternals[ext.Name] {
-			continue
-		}
-
 		externals[ext.Name] = ext.Spec
+		if attachedExternals[ext.Name] {
+			externalsToConfig[ext.Name] = ext.Spec
+		}
 	}
 
 	externalPeerings := map[string]vpcapi.ExternalPeeringSpec{}
@@ -385,7 +385,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error listing external peerings")
 	}
 	for _, peering := range externalPeeringList.Items {
-		if _, exists := externals[peering.Spec.Permit.External.Name]; !exists {
+		if _, exists := externalsToConfig[peering.Spec.Permit.External.Name]; !exists {
 			continue
 		}
 
@@ -533,7 +533,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	externalsReq := map[string]bool{}
-	for name := range externals {
+	for name := range externalsToConfig {
 		externalsReq[name] = true
 	}
 
