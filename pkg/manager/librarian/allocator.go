@@ -83,6 +83,10 @@ func NewNextFreeValueFromVLANRanges(ranges []meta.VLANRange) *NextFreeValueFromR
 }
 
 func (v *NextFreeValueFromRanges[Value]) Add(val Value) bool {
+	if v.taken[val] {
+		return false
+	}
+
 	valid := false
 	for _, r := range v.ranges {
 		if r[0] <= val && val <= r[1] && (val-r[0])%v.inc == 0 {
