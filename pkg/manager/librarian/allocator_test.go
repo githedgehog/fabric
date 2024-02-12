@@ -83,11 +83,11 @@ func TestNextFreeUin16Allocator(t *testing.T) {
 			expected: map[string]uint16{"a": 100, "b": 200, "c": 300},
 		},
 		{
-			name:    "simple-big-inc-out-of-range",
-			values:  librarian.NewNextFreeValueFromRanges([][2]uint16{{100, 600}}, 100),
-			known:   map[string]uint16{"a": 1, "b": 200},
-			updates: map[string]bool{"a": true, "b": true, "c": true},
-			err:     true,
+			name:     "simple-big-inc-out-of-range",
+			values:   librarian.NewNextFreeValueFromRanges([][2]uint16{{100, 600}}, 100),
+			known:    map[string]uint16{"a": 100, "b": 101, "c": 300, "d": 301},
+			updates:  map[string]bool{"a": true, "b": true, "c": true},
+			expected: map[string]uint16{"a": 100, "b": 200, "c": 300},
 		},
 		{
 			name:     "vlan-some-new-updates",
@@ -212,11 +212,11 @@ func TestBalancedStringAllocator(t *testing.T) {
 			expected: map[string]string{"a": "1", "c": "1", "d": "2"},
 		},
 		{
-			name:    "simple-out-of-range-1",
-			values:  librarian.NewBalancedValues([]string{"1", "2"}),
-			known:   map[string]string{"a": "1", "b": "2", "c": "3"},
-			updates: map[string]bool{"a": true, "b": true, "c": true},
-			err:     true,
+			name:     "simple-out-of-range-1",
+			values:   librarian.NewBalancedValues([]string{"1", "2"}),
+			known:    map[string]string{"a": "1", "b": "1", "c": "3"},
+			updates:  map[string]bool{"a": true, "b": true, "c": true},
+			expected: map[string]string{"a": "1", "b": "1", "c": "2"},
 		},
 		{
 			name:     "simple-out-of-range-2",

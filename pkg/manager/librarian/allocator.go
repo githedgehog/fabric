@@ -9,7 +9,7 @@ import (
 )
 
 type Values[Value comparable] interface {
-	Add(Value) error
+	Add(Value) bool
 	Remove(Value)
 	Next() (Value, error)
 }
@@ -23,9 +23,8 @@ func (a *Allocator[Value]) Allocate(known map[string]Value, updates map[string]b
 
 	for key, val := range known {
 		if updates[key] {
-			updated[key] = val
-			if err := a.Values.Add(val); err != nil {
-				return nil, errors.Errorf("failed to reuse value for %s", key)
+			if a.Values.Add(val) {
+				updated[key] = val
 			}
 		} else {
 			a.Values.Remove(val)
@@ -83,21 +82,20 @@ func NewNextFreeValueFromVLANRanges(ranges []meta.VLANRange) *NextFreeValueFromR
 	}
 }
 
-func (v *NextFreeValueFromRanges[Value]) Add(val Value) error {
+func (v *NextFreeValueFromRanges[Value]) Add(val Value) bool {
 	valid := false
 	for _, r := range v.ranges {
-		if r[0] <= val && val <= r[1] {
+		if r[0] <= val && val <= r[1] && (val-r[0])%v.inc == 0 {
 			valid = true
 			break
 		}
 	}
-	if !valid {
-		return errors.Errorf("value %d is not in any of the ranges", val)
+
+	if valid {
+		v.taken[val] = true
 	}
 
-	v.taken[val] = true
-
-	return nil
+	return valid
 }
 
 func (v *NextFreeValueFromRanges[Value]) Remove(val Value) {
@@ -141,14 +139,14 @@ func NewBalancedValues[Value comparable](vals []Value) *BalancedValues[Value] {
 	}
 }
 
-func (v *BalancedValues[Value]) Add(val Value) error {
+func (v *BalancedValues[Value]) Add(val Value) bool {
 	if _, ok := v.usage[val]; !ok {
-		return errors.Errorf("value %v is not in the list", val)
+		return false
 	}
 
 	v.usage[val]++
 
-	return nil
+	return true
 }
 
 func (v *BalancedValues[Value]) Remove(val Value) {
