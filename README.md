@@ -1,4 +1,7 @@
 # fabric
+
+README isn't up-to-date.
+
 // TODO(user): Add simple overview of use/purpose
 
 ## Description
