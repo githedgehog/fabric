@@ -42,7 +42,7 @@ var (
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1alpha2,name=mipv4namespace.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1alpha2-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1alpha2,name=vipv4namespace.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1alpha2-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1alpha2,name=vipv4namespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("ipv4namespace-webhook")
 
@@ -77,9 +77,27 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldObj runtim
 }
 
 func (w *IPv4NamespaceWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
-	// TODO prevent deleting IPv4Namespace that are in use
+	ipns := obj.(*vpcapi.IPv4Namespace)
 
-	// ns := obj.(*vpcapi.IPv4Namespace)
+	vpcs := &vpcapi.VPCList{}
+	if err := w.Client.List(ctx, vpcs, client.MatchingLabels{
+		vpcapi.LabelIPv4NS: ipns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
+	}
+	if len(vpcs.Items) > 0 {
+		return nil, errors.Errorf("IPv4Namespace has VPCs")
+	}
+
+	externals := &vpcapi.ExternalList{}
+	if err := w.Client.List(ctx, externals, client.MatchingLabels{
+		vpcapi.LabelIPv4NS: ipns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing externals") // TODO hide internal error
+	}
+	if len(externals.Items) > 0 {
+		return nil, errors.Errorf("IPv4Namespace has externals")
+	}
 
 	return nil, nil
 }

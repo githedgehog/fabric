@@ -3,6 +3,7 @@ package external
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
@@ -40,7 +41,7 @@ var (
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-external,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update,versions=v1alpha2,name=mexternal.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1alpha2-external,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update,versions=v1alpha2,name=vexternal.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1alpha2-external,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update;delete,versions=v1alpha2,name=vexternal.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("external-webhook")
 
@@ -80,5 +81,27 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Obj
 }
 
 func (w *ExternalWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	ext := obj.(*vpcapi.External)
+
+	extAttachments := &vpcapi.ExternalAttachmentList{}
+	if err := w.Client.List(ctx, extAttachments, client.MatchingLabels{
+		vpcapi.LabelExternal: ext.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+	}
+	if len(extAttachments.Items) > 0 {
+		return nil, errors.Errorf("external has attachments")
+	}
+
+	extPeerings := &vpcapi.ExternalPeeringList{}
+	if err := w.Client.List(ctx, extPeerings, client.MatchingLabels{
+		vpcapi.LabelExternal: ext.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error
+	}
+	if len(extPeerings.Items) > 0 {
+		return nil, errors.Errorf("external has peerings")
+	}
+
 	return nil, nil
 }

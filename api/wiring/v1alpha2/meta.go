@@ -26,6 +26,7 @@ var (
 	LabelSwitches             = LabelName("switches")
 	LabelServers              = LabelName("servers")
 	LabelGroups               = LabelName("groups")
+	LabelVPC                  = LabelName("vpc")
 	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
@@ -54,6 +55,10 @@ func ListLabelSwitch(switchName string) string {
 
 func ListLabelRack(rackName string) string {
 	return ListLabel(ConnectionLabelTypeRack, rackName)
+}
+
+func ListLabelVLANNamespace(vlanNamespace string) string {
+	return ListLabel("vlanns", vlanNamespace)
 }
 
 func MatchingLabelsForListLabelServer(serverName string) client.MatchingLabels {

@@ -458,6 +458,10 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[LabelConnectionType] = CONNECTION_STATIC_EXTERNAL
 	}
 
+	if c.StaticExternal != nil && c.StaticExternal.WithinVPC != "" {
+		labels[LabelVPC] = c.StaticExternal.WithinVPC
+	}
+
 	return labels
 }
 
@@ -808,8 +812,6 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 			}
 		}
 	}
-
-	// TODO validate that snat pool is in the nat subnet and unique per conn type=nat
 
 	return nil, nil
 }

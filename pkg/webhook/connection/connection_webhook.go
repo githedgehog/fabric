@@ -45,7 +45,7 @@ var (
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1alpha2,name=mconnection.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1alpha2,name=vconnection.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update;delete,versions=v1alpha2,name=vconnection.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("connection-webhook")
 
@@ -103,9 +103,9 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 		return warns, err
 	}
 
-	if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil {
+	if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
 		if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
-			return nil, errors.Errorf("connection spec is immutable")
+			return nil, errors.Errorf("server-facing Connection spec is immutable")
 		}
 	}
 
@@ -113,12 +113,26 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 }
 
 func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
-	// TODO prevent deleting connections that are in use
-
 	conn := obj.(*wiringapi.Connection)
 
-	if conn.Spec.Management != nil {
-		return nil, errors.New("cannot delete management connection")
+	vpcAttachments := &vpcapi.VPCAttachmentList{}
+	if err := w.Client.List(ctx, vpcAttachments, client.MatchingLabels{
+		wiringapi.LabelConnection: conn.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing vpc attachments") // TODO hide internal error
+	}
+	if len(vpcAttachments.Items) > 0 {
+		return nil, errors.Errorf("connection has attachments")
+	}
+
+	extAttachments := &vpcapi.ExternalAttachmentList{}
+	if err := w.Client.List(ctx, extAttachments, client.MatchingLabels{
+		wiringapi.LabelConnection: conn.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+	}
+	if len(extAttachments.Items) > 0 {
+		return nil, errors.Errorf("connection has external attachments")
 	}
 
 	return nil, nil

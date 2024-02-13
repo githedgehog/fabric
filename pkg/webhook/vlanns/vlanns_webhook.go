@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/validation"
@@ -42,7 +43,7 @@ var (
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-vlannamespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update,versions=v1alpha2,name=mvlannamespace.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-vlannamespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update,versions=v1alpha2,name=vvlannamespace.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-vlannamespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update;delete,versions=v1alpha2,name=vvlannamespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vlannamespace-webhook")
 
@@ -77,9 +78,27 @@ func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, oldObj runtim
 }
 
 func (w *VLANNamespaceWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
-	// TODO prevent deleting VLANNamespace that are in use
+	ns := obj.(*wiringapi.VLANNamespace)
 
-	// ns := obj.(*wiringapi.VLANNamespace)
+	switches := &wiringapi.SwitchList{}
+	if err := w.Client.List(ctx, switches, client.MatchingLabels{
+		wiringapi.ListLabelVLANNamespace(ns.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing switches") // TODO hide internal error
+	}
+	if len(switches.Items) > 0 {
+		return nil, errors.Errorf("VLANNamespace has switches")
+	}
+
+	vpcs := &vpcapi.VPCList{}
+	if err := w.Client.List(ctx, vpcs, client.MatchingLabels{
+		vpcapi.LabelVLANNS: ns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
+	}
+	if len(vpcs.Items) > 0 {
+		return nil, errors.Errorf("VLANNamespace has VPCs")
+	}
 
 	return nil, nil
 }

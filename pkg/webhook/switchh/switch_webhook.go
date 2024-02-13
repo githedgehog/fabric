@@ -42,7 +42,7 @@ var (
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-switch,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update,versions=v1alpha2,name=mswitch.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-switch,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update,versions=v1alpha2,name=vswitch.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-switch,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update;delete,versions=v1alpha2,name=vswitch.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("switch-webhook")
 
@@ -82,7 +82,17 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Objec
 }
 
 func (w *SwitchWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
-	// TODO prevent deleting switches that are in use
+	sw := obj.(*wiringapi.Switch)
+
+	conns := &wiringapi.ConnectionList{}
+	if err := w.Client.List(ctx, conns, client.MatchingLabels{
+		wiringapi.ListLabelSwitch(sw.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing connections") // TODO hide internal error
+	}
+	if len(conns.Items) > 0 {
+		return nil, errors.Errorf("switch has connections")
+	}
 
 	return nil, nil
 }
