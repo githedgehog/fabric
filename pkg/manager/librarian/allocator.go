@@ -10,7 +10,6 @@ import (
 
 type Values[Value comparable] interface {
 	Add(Value) bool
-	Remove(Value)
 	Next() (Value, error)
 }
 
@@ -22,12 +21,8 @@ func (a *Allocator[Value]) Allocate(known map[string]Value, updates map[string]b
 	updated := map[string]Value{}
 
 	for key, val := range known {
-		if updates[key] {
-			if a.Values.Add(val) {
-				updated[key] = val
-			}
-		} else {
-			a.Values.Remove(val)
+		if updates[key] && a.Values.Add(val) {
+			updated[key] = val
 		}
 	}
 
@@ -102,10 +97,6 @@ func (v *NextFreeValueFromRanges[Value]) Add(val Value) bool {
 	return valid
 }
 
-func (v *NextFreeValueFromRanges[Value]) Remove(val Value) {
-	delete(v.taken, val)
-}
-
 func (v *NextFreeValueFromRanges[Value]) Next() (Value, error) {
 	for rangeIdx := v.fromRangeIdx; rangeIdx < len(v.ranges); rangeIdx++ {
 		if v.fromValue < v.ranges[rangeIdx][0] {
@@ -151,16 +142,6 @@ func (v *BalancedValues[Value]) Add(val Value) bool {
 	v.usage[val]++
 
 	return true
-}
-
-func (v *BalancedValues[Value]) Remove(val Value) {
-	if _, ok := v.usage[val]; !ok {
-		return
-	}
-
-	if v.usage[val] > 0 {
-		v.usage[val]--
-	}
 }
 
 func (v *BalancedValues[Value]) Next() (Value, error) {

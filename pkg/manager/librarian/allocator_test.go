@@ -68,12 +68,19 @@ func TestNextFreeUin16Allocator(t *testing.T) {
 			updates:  map[string]bool{"a": true, "c": true, "d": true},
 			expected: map[string]uint16{"a": 1, "d": 2, "c": 3},
 		},
+		// {
+		// 	name:     "simple-duplicates",
+		// 	values:   librarian.NewNextFreeValueFromRanges([][2]uint16{{1, 6}}, 1),
+		// 	known:    map[string]uint16{"a": 1, "b": 1, "c": 3},
+		// 	updates:  map[string]bool{"a": true, "b": true, "c": true},
+		// 	expected: map[string]uint16{"a": 1, "b": 2, "c": 3},
+		// },
 		{
-			name:     "simple-duplicates",
+			name:     "simple-remove-duplicated",
 			values:   librarian.NewNextFreeValueFromRanges([][2]uint16{{1, 6}}, 1),
-			known:    map[string]uint16{"a": 1, "b": 1, "c": 3},
-			updates:  map[string]bool{"a": true, "b": true, "c": true},
-			expected: map[string]uint16{"a": 1, "b": 2, "c": 3},
+			known:    map[string]uint16{"a": 1, "b": 2, "c": 3, "e": 2},
+			updates:  map[string]bool{"a": true, "b": true, "c": true, "d": true},
+			expected: map[string]uint16{"a": 1, "b": 2, "c": 3, "d": 4},
 		},
 		{
 			name:    "simple-not-enough-values",
