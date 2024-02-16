@@ -9,31 +9,37 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/api/meta"
 	"sigs.k8s.io/yaml"
 )
 
+type UserCreds struct {
+	Name     string   `json:"name,omitempty"`
+	Password string   `json:"password,omitempty"`
+	Role     string   `json:"role,omitempty"`
+	SSHKeys  []string `json:"sshKeys,omitempty"`
+}
+
 type Fabric struct {
-	ControlVIP            string               `json:"controlVIP,omitempty"`
-	APIServer             string               `json:"apiServer,omitempty"`
-	AgentRepo             string               `json:"agentRepo,omitempty"`
-	AgentRepoCA           string               `json:"agentRepoCA,omitempty"`
-	VPCIRBVLANRanges      []meta.VLANRange     `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges  []meta.VLANRange     `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
-	VPCPeeringDisabled    bool                 `json:"vpcPeeringDisabled,omitempty"`
-	ReservedSubnets       []string             `json:"reservedSubnets,omitempty"`
-	Users                 []agentapi.UserCreds `json:"users,omitempty"`
-	DHCPMode              DHCPMode             `json:"dhcpMode,omitempty"`
-	DHCPDConfigMap        string               `json:"dhcpdConfigMap,omitempty"`
-	DHCPDConfigKey        string               `json:"dhcpdConfigKey,omitempty"`
-	FabricMode            FabricMode           `json:"fabricMode,omitempty"`
-	BaseVPCCommunity      string               `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet     string               `json:"vpcLoopbackSubnet,omitempty"`
-	FabricMTU             uint16               `json:"fabricMTU,omitempty"`
-	ServerFacingMTUOffset uint16               `json:"serverFacingMTUOffset,omitempty"`
-	ESLAGMACBase          string               `json:"eslagMACBase,omitempty"`
-	ESLAGESIPrefix        string               `json:"eslagESIPrefix,omitempty"`
+	ControlVIP            string           `json:"controlVIP,omitempty"`
+	APIServer             string           `json:"apiServer,omitempty"`
+	AgentRepo             string           `json:"agentRepo,omitempty"`
+	AgentRepoCA           string           `json:"agentRepoCA,omitempty"`
+	VPCIRBVLANRanges      []meta.VLANRange `json:"vpcIRBVLANRange,omitempty"`
+	VPCPeeringVLANRanges  []meta.VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	VPCPeeringDisabled    bool             `json:"vpcPeeringDisabled,omitempty"`
+	ReservedSubnets       []string         `json:"reservedSubnets,omitempty"`
+	Users                 []UserCreds      `json:"users,omitempty"`
+	DHCPMode              DHCPMode         `json:"dhcpMode,omitempty"`
+	DHCPDConfigMap        string           `json:"dhcpdConfigMap,omitempty"`
+	DHCPDConfigKey        string           `json:"dhcpdConfigKey,omitempty"`
+	FabricMode            FabricMode       `json:"fabricMode,omitempty"`
+	BaseVPCCommunity      string           `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet     string           `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU             uint16           `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset uint16           `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase          string           `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix        string           `json:"eslagESIPrefix,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }

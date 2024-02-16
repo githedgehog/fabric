@@ -573,6 +573,16 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
 
+	userCreds := []agentapi.UserCreds{}
+	for _, user := range r.Cfg.Users {
+		userCreds = append(userCreds, agentapi.UserCreds{
+			Name:     user.Name,
+			Password: user.Password,
+			Role:     user.Role,
+			SSHKeys:  user.SSHKeys,
+		})
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Annotations = sw.Annotations
@@ -593,7 +603,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		agent.Spec.ExternalPeerings = externalPeerings
 		agent.Spec.ConfiguredVPCSubnets = configuredSubnets
 		agent.Spec.AttachedVPCs = attachedVPCs
-		agent.Spec.Users = r.Cfg.Users
+		agent.Spec.Users = userCreds
 
 		agent.Spec.Version.Default = r.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
