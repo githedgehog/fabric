@@ -3,6 +3,7 @@ package wiring
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -28,9 +30,16 @@ type Data struct {
 	VLANNamespace      *Store[*wiringapi.VLANNamespace]
 	External           *Store[*vpcapi.External]
 	ExternalAttachment *Store[*vpcapi.ExternalAttachment]
+
+	Native *NativeData
 }
 
 func New(objs ...metav1.Object) (*Data, error) {
+	native, err := NewNativeData()
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating native data")
+	}
+
 	data := &Data{
 		Rack:               NewStore[*wiringapi.Rack](),
 		SwitchGroup:        NewStore[*wiringapi.SwitchGroup](),
@@ -43,6 +52,8 @@ func New(objs ...metav1.Object) (*Data, error) {
 		VLANNamespace:      NewStore[*wiringapi.VLANNamespace](),
 		External:           NewStore[*vpcapi.External](),
 		ExternalAttachment: NewStore[*vpcapi.ExternalAttachment](),
+
+		Native: native,
 	}
 
 	return data, data.Add(objs...)
@@ -80,6 +91,10 @@ func (d *Data) Add(objs ...metav1.Object) error {
 
 		if err != nil {
 			return errors.Wrap(err, "error adding object")
+		}
+
+		if err := d.Native.Create(context.TODO(), obj.(client.Object)); err != nil {
+			return errors.Wrap(err, "error creating object")
 		}
 	}
 

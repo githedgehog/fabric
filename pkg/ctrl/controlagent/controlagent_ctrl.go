@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,11 +29,11 @@ import (
 type ControlAgentReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
-	Cfg     *config.Fabric
+	Cfg     *meta.FabricConfig
 	Version string
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, version string) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, version string) error {
 	r := &ControlAgentReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),

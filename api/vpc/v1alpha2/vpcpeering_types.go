@@ -22,11 +22,12 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -88,6 +89,8 @@ func init() {
 	SchemeBuilder.Register(&VPCPeering{}, &VPCPeeringList{})
 }
 
+var _ meta.Object = (*VPCPeering)(nil)
+
 func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 	vpcs := []string{}
 	for idx, permit := range s.Permit {
@@ -112,6 +115,8 @@ func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 }
 
 func (peering *VPCPeering) Default() {
+	meta.DefaultObjectMetadata(peering)
+
 	if peering.Labels == nil {
 		peering.Labels = map[string]string{}
 	}
@@ -129,8 +134,12 @@ func (peering *VPCPeering) Default() {
 	peering.Labels[LabelVPC2] = vpc2
 }
 
-func (peering *VPCPeering) Validate(ctx context.Context, client validation.Client, vpcPeeringDisabled bool) (admission.Warnings, error) {
-	if vpcPeeringDisabled {
+func (peering *VPCPeering) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(peering); err != nil {
+		return nil, err
+	}
+
+	if fabricCfg.VPCPeeringDisabled {
 		return nil, errors.Errorf("vpc peering is not allowed")
 	}
 
@@ -145,9 +154,9 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		}
 	}
 
-	if client != nil {
+	if kube != nil {
 		other := &VPCPeeringList{}
-		err := client.List(ctx, other, map[string]string{
+		err := kube.List(ctx, other, client.MatchingLabels{
 			ListLabelVPC(vpc1Name): ListLabelValue,
 			ListLabelVPC(vpc2Name): ListLabelValue,
 		})
@@ -159,7 +168,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		vlanNamespaces := []string{}
 		for _, vpcName := range []string{vpc1Name, vpc2Name} {
 			vpc := &VPC{}
-			err := client.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: peering.Namespace}, vpc)
+			err := kube.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: peering.Namespace}, vpc)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return nil, errors.Errorf("vpc %s not found", vpcName)
@@ -188,7 +197,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 
 		if peering.Spec.Remote != "" {
 			switchGroup := &wiringapi.SwitchGroup{}
-			err := client.Get(ctx, types.NamespacedName{Name: peering.Spec.Remote, Namespace: peering.Namespace}, switchGroup)
+			err := kube.Get(ctx, types.NamespacedName{Name: peering.Spec.Remote, Namespace: peering.Namespace}, switchGroup)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return nil, errors.Errorf("switch group %s not found", peering.Spec.Remote)
@@ -199,7 +208,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		}
 
 		vpc1 := &VPC{}
-		err = client.Get(ctx, types.NamespacedName{Name: vpc1Name, Namespace: peering.Namespace}, vpc1)
+		err = kube.Get(ctx, types.NamespacedName{Name: vpc1Name, Namespace: peering.Namespace}, vpc1)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("VPC %s not found", vpc1Name)
@@ -209,7 +218,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, client validation.Clien
 		}
 
 		vpc2 := &VPC{}
-		err = client.Get(ctx, types.NamespacedName{Name: vpc2Name, Namespace: peering.Namespace}, vpc2)
+		err = kube.Get(ctx, types.NamespacedName{Name: vpc2Name, Namespace: peering.Namespace}, vpc2)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("VPC %s not found", vpc2Name)

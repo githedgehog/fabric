@@ -20,9 +20,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,11 +42,11 @@ const (
 type VPCReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
-	Cfg     *config.Fabric
+	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, libMngr *librarian.Manager) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
 	r := &VPCReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),

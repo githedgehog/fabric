@@ -10,7 +10,6 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,11 +30,11 @@ const (
 )
 
 type Manager struct {
-	cfg   *config.Fabric
+	cfg   *meta.FabricConfig
 	mutex sync.RWMutex
 }
 
-func NewManager(cfg *config.Fabric) *Manager {
+func NewManager(cfg *meta.FabricConfig) *Manager {
 	return &Manager{
 		cfg: cfg,
 	}

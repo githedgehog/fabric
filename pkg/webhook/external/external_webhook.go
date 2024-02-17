@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,15 +15,15 @@ import (
 type ExternalWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Validation validation.Client
-	Cfg        *config.Fabric
+	KubeClient client.Reader
+	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &ExternalWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
@@ -56,7 +55,7 @@ func (w *ExternalWebhook) Default(ctx context.Context, obj runtime.Object) error
 func (w *ExternalWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	external := obj.(*vpcapi.External)
 
-	warns, err := external.Validate(ctx, w.Validation)
+	warns, err := external.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
@@ -72,7 +71,7 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Obj
 	// 	return nil, errors.Errorf("external spec is immutable")
 	// }
 
-	warns, err := newExternal.Validate(ctx, w.Validation)
+	warns, err := newExternal.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}

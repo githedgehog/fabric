@@ -39,7 +39,7 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 	}
 
 	ext.Default()
-	warnings, err := ext.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
+	warnings, err := ext.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -140,7 +140,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 	}
 
 	extPeering.Default()
-	warnings, err := extPeering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
+	warnings, err := extPeering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")

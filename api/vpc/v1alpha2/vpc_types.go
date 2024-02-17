@@ -22,12 +22,13 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -123,6 +124,8 @@ func init() {
 	SchemeBuilder.Register(&VPC{}, &VPCList{})
 }
 
+var _ meta.Object = (*VPC)(nil)
+
 func (vpc *VPCSpec) IsSubnetIsolated(subnetName string) bool {
 	if subnet, ok := vpc.Subnets[subnetName]; ok && subnet.Isolated != nil {
 		return *subnet.Isolated
@@ -140,6 +143,8 @@ func (vpc *VPCSpec) IsSubnetRestricted(subnetName string) bool {
 }
 
 func (vpc *VPC) Default() {
+	meta.DefaultObjectMetadata(vpc)
+
 	if vpc.Spec.IPv4Namespace == "" {
 		vpc.Spec.IPv4Namespace = "default"
 	}
@@ -157,7 +162,11 @@ func (vpc *VPC) Default() {
 	vpc.Labels[LabelVLANNS] = vpc.Spec.VLANNamespace
 }
 
-func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reservedSubnets []*net.IPNet, multiNSDHCP bool) (admission.Warnings, error) {
+func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(vpc); err != nil {
+		return nil, err
+	}
+
 	if len(vpc.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
@@ -186,9 +195,11 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 			return nil, errors.Wrapf(err, "subnet %s: failed to parse subnet %s", subnetName, subnetCfg.Subnet)
 		}
 
-		for _, reserved := range reservedSubnets {
-			if reserved.Contains(ipNet.IP) {
-				return nil, errors.Errorf("subnet %s: subnet %s is reserved", subnetName, subnetCfg.Subnet)
+		if fabricCfg != nil {
+			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
+				if reserved.Contains(ipNet.IP) {
+					return nil, errors.Errorf("subnet %s: subnet %s is reserved", subnetName, subnetCfg.Subnet)
+				}
 			}
 		}
 
@@ -211,7 +222,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		}
 
 		if subnetCfg.DHCP.Enable {
-			if !multiNSDHCP {
+			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
 				if vpc.Spec.IPv4Namespace != "default" {
 					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default IPv4Namespace in the current Fabric config", subnetName)
 				}
@@ -282,11 +293,11 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		}
 	}
 
-	if client != nil {
+	if kube != nil {
 		// TODO Can we rely on Validation webhook for cross VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 
 		ipNs := &IPv4Namespace{}
-		err := client.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
+		err := kube.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", vpc.Spec.IPv4Namespace)
@@ -295,7 +306,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		}
 
 		vlanNs := &wiringapi.VLANNamespace{}
-		err = client.Get(ctx, types.NamespacedName{Name: vpc.Spec.VLANNamespace, Namespace: vpc.Namespace}, vlanNs)
+		err = kube.Get(ctx, types.NamespacedName{Name: vpc.Spec.VLANNamespace, Namespace: vpc.Namespace}, vlanNs)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("VLANNamespace %s not found", vpc.Spec.VLANNamespace)
@@ -336,7 +347,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		}
 
 		vpcs := &VPCList{}
-		err = client.List(ctx, vpcs, map[string]string{
+		err = kube.List(ctx, vpcs, client.MatchingLabels{
 			LabelIPv4NS: vpc.Spec.IPv4Namespace,
 		})
 		if err != nil {
@@ -366,7 +377,7 @@ func (vpc *VPC) Validate(ctx context.Context, client validation.Client, reserved
 		}
 
 		vpcs = &VPCList{}
-		err = client.List(ctx, vpcs, map[string]string{
+		err = kube.List(ctx, vpcs, client.MatchingLabels{
 			LabelVLANNS: vpc.Spec.VLANNamespace,
 		})
 		if err != nil {

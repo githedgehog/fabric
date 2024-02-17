@@ -3,8 +3,8 @@ package vpcattachment
 import (
 	"context"
 
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -14,14 +14,16 @@ import (
 type VPCAttachmentWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Validation validation.Client
+	KubeClient client.Reader
+	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &VPCAttachmentWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		KubeClient: mgr.GetClient(),
+		Cfg:        cfg,
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -52,7 +54,7 @@ func (w *VPCAttachmentWebhook) Default(ctx context.Context, obj runtime.Object) 
 func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	attach := obj.(*vpcapi.VPCAttachment)
 
-	warns, err := attach.Validate(ctx, w.Validation)
+	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
@@ -68,7 +70,7 @@ func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldObj runtim
 	// 	return nil, errors.Errorf("vpc attachment is immutable")
 	// }
 
-	warns, err := newAttach.Validate(ctx, w.Validation)
+	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}

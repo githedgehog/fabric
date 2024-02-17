@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,15 +19,15 @@ import (
 type ConnectionWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Validation validation.Client
-	Cfg        *config.Fabric
+	KubeClient client.Reader
+	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &ConnectionWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
@@ -58,10 +57,10 @@ func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) err
 }
 
 // validateStaticExternal checks that the static external connection is valid and it's located in a webhook to avoid circular dependency with vpcapi
-func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, client validation.Client, conn *wiringapi.Connection) error {
+func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube client.Reader, conn *wiringapi.Connection) error {
 	if conn.Spec.StaticExternal != nil && conn.Spec.StaticExternal.WithinVPC != "" {
 		vpc := &vpcapi.VPC{}
-		err := client.Get(ctx, types.NamespacedName{Name: conn.Spec.StaticExternal.WithinVPC, Namespace: conn.Namespace}, vpc) // TODO namespace could be different?
+		err := kube.Get(ctx, types.NamespacedName{Name: conn.Spec.StaticExternal.WithinVPC, Namespace: conn.Namespace}, vpc) // TODO namespace could be different?
 		if apierrors.IsNotFound(err) {
 			return errors.Errorf("vpc %s not found", conn.Spec.StaticExternal.WithinVPC)
 		}
@@ -76,16 +75,12 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, client v
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	conn := obj.(*wiringapi.Connection)
 
-	warns, err := conn.Validate(ctx, w.Validation,
-		w.Cfg.FabricMTU,
-		w.Cfg.ServerFacingMTUOffset,
-		w.Cfg.ParsedReservedSubnets(),
-		w.Cfg.FabricMode == config.FabricModeSpineLeaf)
+	warns, err := conn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
 
-	return warns, w.validateStaticExternal(ctx, w.Validation, conn)
+	return warns, w.validateStaticExternal(ctx, w.KubeClient, conn)
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
@@ -94,11 +89,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	oldConn := oldObj.(*wiringapi.Connection)
 	newConn := newObj.(*wiringapi.Connection)
 
-	warns, err := newConn.Validate(ctx, w.Validation,
-		w.Cfg.FabricMTU,
-		w.Cfg.ServerFacingMTUOffset,
-		w.Cfg.ParsedReservedSubnets(),
-		w.Cfg.FabricMode == config.FabricModeSpineLeaf)
+	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
@@ -109,7 +100,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 		}
 	}
 
-	return warns, w.validateStaticExternal(ctx, w.Validation, newConn)
+	return warns, w.validateStaticExternal(ctx, w.KubeClient, newConn)
 }
 
 func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {

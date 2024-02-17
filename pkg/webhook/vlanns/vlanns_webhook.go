@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -18,15 +17,15 @@ import (
 type VLANNamespaceWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Validation validation.Client
-	Cfg        *config.Fabric
+	KubeClient client.Reader
+	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &VLANNamespaceWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
@@ -58,7 +57,7 @@ func (w *VLANNamespaceWebhook) Default(ctx context.Context, obj runtime.Object) 
 func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	ns := obj.(*wiringapi.VLANNamespace)
 
-	warns, err := ns.Validate(ctx, w.Validation, w.Cfg.VPCIRBVLANRanges)
+	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}

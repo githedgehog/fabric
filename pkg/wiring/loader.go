@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -120,53 +121,61 @@ func Load(r io.Reader, data *Data) error {
 		if err != nil {
 			return errors.Wrap(err, "error decoding object")
 		}
-
-		switch typed := obj.(type) {
-		case *wiringapi.Rack:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.SwitchGroup:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.Switch:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.Server:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.Connection:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.SwitchProfile:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.ServerProfile:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *vpcapi.IPv4Namespace:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *wiringapi.VLANNamespace:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *vpcapi.External:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
-		case *vpcapi.ExternalAttachment:
-			if err := data.Add(typed); err != nil {
-				return err
-			}
+		metaObj, ok := obj.(metav1.Object)
+		if !ok {
+			return errors.Errorf("object %#v is not a metav1.Object", obj)
 		}
+
+		if err := data.Add(metaObj); err != nil {
+			return err
+		}
+
+		// switch typed := obj.(type) {
+		// case *wiringapi.Rack:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.SwitchGroup:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.Switch:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.Server:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.Connection:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.SwitchProfile:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.ServerProfile:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *vpcapi.IPv4Namespace:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *wiringapi.VLANNamespace:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *vpcapi.External:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// case *vpcapi.ExternalAttachment:
+		// 	if err := data.Add(typed); err != nil {
+		// 		return err
+		// 	}
+		// }
 	}
 
 	return nil

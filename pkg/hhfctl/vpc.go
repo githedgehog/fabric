@@ -43,7 +43,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	}
 
 	vpc.Default()
-	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil, true)
+	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -104,7 +104,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 	}
 
 	attach.Default()
-	warnings, err := attach.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
+	warnings, err := attach.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")
@@ -170,7 +170,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	}
 
 	peering.Default()
-	warnings, err := peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, false)
+	warnings, err := peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 		return errors.Errorf("validation failed")

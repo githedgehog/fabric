@@ -33,7 +33,6 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -58,12 +57,12 @@ const (
 type AgentReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
-	Cfg     *config.Fabric
+	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
 	Version string
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric, libMngr *librarian.Manager, version string) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, version string) error {
 	r := &AgentReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
@@ -622,9 +621,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			ESLAGMACBase:          r.Cfg.ESLAGMACBase,
 			ESLAGESIPrefix:        r.Cfg.ESLAGESIPrefix,
 		}
-		if r.Cfg.FabricMode == config.FabricModeCollapsedCore {
+		if r.Cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
-		} else if r.Cfg.FabricMode == config.FabricModeSpineLeaf {
+		} else if r.Cfg.FabricMode == meta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
 

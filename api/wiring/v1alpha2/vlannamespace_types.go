@@ -21,9 +21,9 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -70,6 +70,8 @@ func init() {
 	SchemeBuilder.Register(&VLANNamespace{}, &VLANNamespaceList{})
 }
 
+var _ meta.Object = (*VLANNamespace)(nil)
+
 func (ns *VLANNamespaceSpec) Contains(vlan uint16) bool {
 	for _, r := range ns.Ranges {
 		if vlan >= r.From && vlan <= r.To {
@@ -86,6 +88,8 @@ func (ns *VLANNamespaceSpec) Labels() map[string]string {
 }
 
 func (ns *VLANNamespace) Default() {
+	meta.DefaultObjectMetadata(ns)
+
 	if ns.Labels == nil {
 		ns.Labels = map[string]string{}
 	}
@@ -99,13 +103,19 @@ func (ns *VLANNamespace) Default() {
 	}
 }
 
-func (ns *VLANNamespace) Validate(ctx context.Context, client validation.Client, reservedVLANs []meta.VLANRange) (admission.Warnings, error) {
+func (ns *VLANNamespace) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(ns); err != nil {
+		return nil, err
+	}
+
 	if _, err := meta.NormalizedVLANRanges(ns.Spec.Ranges); err != nil {
 		return nil, errors.Wrapf(err, "invalid ranges")
 	}
 
-	if err := meta.CheckVLANRangesOverlap(append(reservedVLANs, ns.Spec.Ranges...)); err != nil {
-		return nil, errors.Wrapf(err, "ranges overlap with Fabric reserved VLANs")
+	if fabricCfg != nil {
+		if err := meta.CheckVLANRangesOverlap(append(fabricCfg.VPCIRBVLANRanges, ns.Spec.Ranges...)); err != nil {
+			return nil, errors.Wrapf(err, "ranges overlap with Fabric reserved VLANs")
+		}
 	}
 
 	return nil, nil

@@ -39,13 +39,13 @@ import (
 
 	agentv1alpha2 "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	dhcpv1alpha2 "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcv1alpha2 "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringv1alpha2 "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
 	connectioncontroller "go.githedgehog.com/fabric/pkg/ctrl/connection"
 	controlagentcontroller "go.githedgehog.com/fabric/pkg/ctrl/controlagent"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
-	"go.githedgehog.com/fabric/pkg/manager/config"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
 	externalWebhool "go.githedgehog.com/fabric/pkg/webhook/external"
@@ -97,7 +97,7 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	cfgBasedir := "/etc/hedgehog/fabric" // TODO config?
-	cfg, err := config.Load(cfgBasedir)
+	cfg, err := meta.LoadFabricConfig(cfgBasedir)
 	if err != nil {
 		setupLog.Error(err, "unable to load config")
 		os.Exit(1)
@@ -165,7 +165,7 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
 		os.Exit(1)
 	}
-	if err = serverWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = serverWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Server")
 		os.Exit(1)
 	}
@@ -177,7 +177,7 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPC")
 		os.Exit(1)
 	}
-	if err = vpcAttachmentWebhook.SetupWithManager(cfgBasedir, mgr); err != nil {
+	if err = vpcAttachmentWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCAttachment")
 		os.Exit(1)
 	}

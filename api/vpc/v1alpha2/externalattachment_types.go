@@ -20,11 +20,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -96,7 +97,11 @@ func init() {
 	SchemeBuilder.Register(&ExternalAttachment{}, &ExternalAttachmentList{})
 }
 
+var _ meta.Object = (*ExternalAttachment)(nil)
+
 func (attach *ExternalAttachment) Default() {
+	meta.DefaultObjectMetadata(attach)
+
 	if attach.Labels == nil {
 		attach.Labels = map[string]string{}
 	}
@@ -107,7 +112,11 @@ func (attach *ExternalAttachment) Default() {
 	attach.Labels[LabelExternal] = attach.Spec.External
 }
 
-func (attach *ExternalAttachment) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(attach); err != nil {
+		return nil, err
+	}
+
 	if attach.Spec.External == "" {
 		return nil, errors.Errorf("external is required")
 	}
@@ -127,9 +136,9 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, client validatio
 		return nil, errors.Errorf("neighbor.ip is required")
 	}
 
-	if client != nil {
+	if kube != nil {
 		ext := &External{}
-		if err := client.Get(ctx, types.NamespacedName{Name: attach.Spec.External, Namespace: attach.Namespace}, ext); err != nil {
+		if err := kube.Get(ctx, types.NamespacedName{Name: attach.Spec.External, Namespace: attach.Namespace}, ext); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("external %s not found", attach.Spec.External)
 			}
@@ -138,7 +147,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, client validatio
 		}
 
 		conn := &wiringapi.Connection{}
-		if err := client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn); err != nil {
+		if err := kube.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 			}

@@ -25,10 +25,10 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -157,7 +157,11 @@ func init() {
 	SchemeBuilder.Register(&Switch{}, &SwitchList{})
 }
 
+var _ meta.Object = (*Switch)(nil)
+
 func (sw *Switch) Default() {
+	meta.DefaultObjectMetadata(sw)
+
 	if sw.Labels == nil {
 		sw.Labels = map[string]string{}
 	}
@@ -201,7 +205,11 @@ func (sw *Switch) Default() {
 	sort.Strings(sw.Spec.VLANNamespaces)
 }
 
-func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineLeaf bool) (admission.Warnings, error) {
+func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(sw); err != nil {
+		return nil, err
+	}
+
 	// TODO validate port group speeds against switch profile
 
 	if len(sw.Spec.VLANNamespaces) == 0 {
@@ -216,7 +224,7 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineL
 	if sw.Spec.ProtocolIP == "" {
 		return nil, errors.Errorf("protocol IP is required")
 	}
-	if sw.Spec.Role.IsLeaf() && spineLeaf && sw.Spec.VTEPIP == "" {
+	if sw.Spec.Role.IsLeaf() && fabricCfg != nil && fabricCfg.FabricMode == meta.FabricModeSpineLeaf && sw.Spec.VTEPIP == "" {
 		return nil, errors.Errorf("VTEP IP is required for leaf switches in spine-leaf mode")
 	}
 	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
@@ -233,9 +241,9 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineL
 		return nil, errors.Errorf("redundancy type specified without group")
 	}
 
-	if client != nil {
+	if kube != nil {
 		namespaces := &VLANNamespaceList{}
-		err := client.List(ctx, namespaces, map[string]string{})
+		err := kube.List(ctx, namespaces)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get VLAN namespaces") // TODO replace with some internal error to not expose to the user
 		}
@@ -261,7 +269,7 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineL
 		}
 
 		switches := &SwitchList{}
-		err = client.List(ctx, switches, map[string]string{
+		err = kube.List(ctx, switches, client.MatchingLabels{
 			LabelLocation: sw.Labels[LabelLocation],
 		})
 		if err != nil {
@@ -282,7 +290,7 @@ func (sw *Switch) Validate(ctx context.Context, client validation.Client, spineL
 			}
 
 			sg := &SwitchGroup{}
-			err = client.Get(ctx, types.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
+			err = kube.Get(ctx, types.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return nil, errors.Errorf("switch group %s does not exist", group)

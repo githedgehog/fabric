@@ -22,12 +22,13 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -74,6 +75,8 @@ func init() {
 	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
 }
 
+var _ meta.Object = (*VPCAttachment)(nil)
+
 func (s *VPCAttachmentSpec) VPCName() string {
 	return strings.SplitN(s.Subnet, "/", 2)[0]
 }
@@ -99,6 +102,8 @@ func (s *VPCAttachmentSpec) Labels() map[string]string {
 }
 
 func (attach *VPCAttachment) Default() {
+	meta.DefaultObjectMetadata(attach)
+
 	parts := strings.SplitN(attach.Spec.Subnet, "/", 2)
 	if len(parts[0]) == 0 {
 		return // it'll be handled in validation stage
@@ -116,7 +121,11 @@ func (attach *VPCAttachment) Default() {
 	maps.Copy(attach.Labels, attach.Spec.Labels())
 }
 
-func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(attach); err != nil {
+		return nil, err
+	}
+
 	if attach.Spec.Subnet == "" {
 		return nil, errors.Errorf("subnet is required")
 	}
@@ -133,9 +142,9 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 		return nil, errors.Errorf("connection is required")
 	}
 
-	if client != nil {
+	if kube != nil {
 		vpc := &VPC{}
-		err := client.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
+		err := kube.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
 		if apierrors.IsNotFound(err) {
 			return nil, errors.Errorf("vpc %s not found", vpcName)
 		}
@@ -147,7 +156,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 		}
 
 		conn := &wiringapi.Connection{}
-		err = client.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn)
+		err = kube.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn)
 		if apierrors.IsNotFound(err) {
 			return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 		}
@@ -171,7 +180,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 
 		for _, switchName := range switchNames {
 			sw := &wiringapi.Switch{}
-			err = client.Get(ctx, types.NamespacedName{Name: switchName, Namespace: attach.Namespace}, sw)
+			err = kube.Get(ctx, types.NamespacedName{Name: switchName, Namespace: attach.Namespace}, sw)
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch %s used in connection not found", switchName)
 			}
@@ -185,7 +194,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, client validation.Cli
 		}
 
 		attaches := &VPCAttachmentList{}
-		err = client.List(ctx, attaches, map[string]string{
+		err = kube.List(ctx, attaches, client.MatchingLabels{
 			wiringapi.LabelConnection: attach.Spec.Connection,
 		})
 		if err != nil {

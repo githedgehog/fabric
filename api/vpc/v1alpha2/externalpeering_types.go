@@ -21,11 +21,12 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -106,7 +107,11 @@ func init() {
 	SchemeBuilder.Register(&ExternalPeering{}, &ExternalPeeringList{})
 }
 
+var _ meta.Object = (*ExternalPeering)(nil)
+
 func (peering *ExternalPeering) Default() {
+	meta.DefaultObjectMetadata(peering)
+
 	if peering.Labels == nil {
 		peering.Labels = map[string]string{}
 	}
@@ -122,7 +127,11 @@ func (peering *ExternalPeering) Default() {
 	})
 }
 
-func (peering *ExternalPeering) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+func (peering *ExternalPeering) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(peering); err != nil {
+		return nil, err
+	}
+
 	if peering.Spec.Permit.VPC.Name == "" {
 		return nil, errors.Errorf("vpc.name is required")
 	}
@@ -147,9 +156,9 @@ func (peering *ExternalPeering) Validate(ctx context.Context, client validation.
 		// TODO add more validation for prefix/ge/le
 	}
 
-	if client != nil {
+	if kube != nil {
 		vpc := &VPC{}
-		if err := client.Get(ctx, types.NamespacedName{Name: peering.Spec.Permit.VPC.Name, Namespace: peering.Namespace}, vpc); err != nil {
+		if err := kube.Get(ctx, types.NamespacedName{Name: peering.Spec.Permit.VPC.Name, Namespace: peering.Namespace}, vpc); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("vpc %s not found", peering.Spec.Permit.VPC.Name)
 			}
@@ -158,7 +167,7 @@ func (peering *ExternalPeering) Validate(ctx context.Context, client validation.
 		}
 
 		ext := &External{}
-		if err := client.Get(ctx, types.NamespacedName{Name: peering.Spec.Permit.External.Name, Namespace: peering.Namespace}, ext); err != nil {
+		if err := kube.Get(ctx, types.NamespacedName{Name: peering.Spec.Permit.External.Name, Namespace: peering.Namespace}, ext); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("external %s not found", peering.Spec.Permit.External.Name)
 			}

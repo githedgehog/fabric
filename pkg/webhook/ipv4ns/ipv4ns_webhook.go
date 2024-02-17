@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -17,15 +16,15 @@ import (
 type IPv4NamespaceWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Validation validation.Client
-	Cfg        *config.Fabric
+	KubeClient client.Reader
+	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &IPv4NamespaceWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
@@ -57,7 +56,7 @@ func (w *IPv4NamespaceWebhook) Default(ctx context.Context, obj runtime.Object) 
 func (w *IPv4NamespaceWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	ns := obj.(*vpcapi.IPv4Namespace)
 
-	warns, err := ns.Validate(ctx, w.Validation, w.Cfg.ParsedReservedSubnets())
+	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}

@@ -20,11 +20,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -77,7 +78,11 @@ func init() {
 	SchemeBuilder.Register(&External{}, &ExternalList{})
 }
 
+var _ meta.Object = (*External)(nil)
+
 func (external *External) Default() {
+	meta.DefaultObjectMetadata(external)
+
 	if external.Spec.IPv4Namespace == "" {
 		external.Spec.IPv4Namespace = "default"
 	}
@@ -91,7 +96,11 @@ func (external *External) Default() {
 	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
 }
 
-func (external *External) Validate(ctx context.Context, client validation.Client) (admission.Warnings, error) {
+func (external *External) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(external); err != nil {
+		return nil, err
+	}
+
 	if external.Spec.IPv4Namespace == "" {
 		return nil, errors.Errorf("IPv4Namespace is required")
 	}
@@ -104,9 +113,9 @@ func (external *External) Validate(ctx context.Context, client validation.Client
 
 	// TODO validate communities
 
-	if client != nil {
+	if kube != nil {
 		ipNs := &IPv4Namespace{}
-		err := client.Get(ctx, types.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
+		err := kube.Get(ctx, types.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", external.Spec.IPv4Namespace)

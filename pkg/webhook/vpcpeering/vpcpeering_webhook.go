@@ -3,9 +3,8 @@ package vpcpeering
 import (
 	"context"
 
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/config"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,15 +14,15 @@ import (
 type VPCPeeringWebhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Validation validation.Client
-	Cfg        *config.Fabric
+	KubeClient client.Reader
+	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *config.Fabric) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &VPCPeeringWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		Validation: validation.WithCtrlRuntime(mgr.GetClient()),
+		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
@@ -55,7 +54,7 @@ func (w *VPCPeeringWebhook) Default(ctx context.Context, obj runtime.Object) err
 func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	peering := obj.(*vpcapi.VPCPeering)
 
-	warns, err := peering.Validate(ctx, w.Validation, w.Cfg.VPCPeeringDisabled)
+	warns, err := peering.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
@@ -71,7 +70,7 @@ func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	// 	return nil, errors.Errorf("vpc peering permit list is immutable")
 	// }
 
-	warns, err := newPeering.Validate(ctx, w.Validation, w.Cfg.VPCPeeringDisabled)
+	warns, err := newPeering.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}

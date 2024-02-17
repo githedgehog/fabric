@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,12 +15,14 @@ import (
 type ServerWebhook struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Cfg    *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager) error {
+func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &ServerWebhook{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Cfg:    cfg,
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -50,7 +53,7 @@ func (w *ServerWebhook) Default(ctx context.Context, obj runtime.Object) error {
 func (w *ServerWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	server := obj.(*wiringapi.Server)
 
-	warns, err := server.Validate()
+	warns, err := server.Validate(ctx, w.Client, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
@@ -61,7 +64,7 @@ func (w *ServerWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) 
 func (w *ServerWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	newServer := newObj.(*wiringapi.Server)
 
-	warns, err := newServer.Validate()
+	warns, err := newServer.Validate(ctx, w.Client, w.Cfg)
 	if err != nil {
 		return warns, err
 	}

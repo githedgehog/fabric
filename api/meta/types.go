@@ -1,6 +1,7 @@
-package config
+package meta
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"os"
@@ -9,9 +10,23 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
-	"go.githedgehog.com/fabric/api/meta"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
+
+type Defaultable interface {
+	Default()
+}
+
+type Validatable interface {
+	Validate(ctx context.Context, kube client.Reader, fabricCfg *FabricConfig) (admission.Warnings, error)
+}
+
+type Object interface {
+	Defaultable
+	Validatable
+}
 
 type UserCreds struct {
 	Name     string   `json:"name,omitempty"`
@@ -20,26 +35,26 @@ type UserCreds struct {
 	SSHKeys  []string `json:"sshKeys,omitempty"`
 }
 
-type Fabric struct {
-	ControlVIP            string           `json:"controlVIP,omitempty"`
-	APIServer             string           `json:"apiServer,omitempty"`
-	AgentRepo             string           `json:"agentRepo,omitempty"`
-	AgentRepoCA           string           `json:"agentRepoCA,omitempty"`
-	VPCIRBVLANRanges      []meta.VLANRange `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges  []meta.VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
-	VPCPeeringDisabled    bool             `json:"vpcPeeringDisabled,omitempty"`
-	ReservedSubnets       []string         `json:"reservedSubnets,omitempty"`
-	Users                 []UserCreds      `json:"users,omitempty"`
-	DHCPMode              DHCPMode         `json:"dhcpMode,omitempty"`
-	DHCPDConfigMap        string           `json:"dhcpdConfigMap,omitempty"`
-	DHCPDConfigKey        string           `json:"dhcpdConfigKey,omitempty"`
-	FabricMode            FabricMode       `json:"fabricMode,omitempty"`
-	BaseVPCCommunity      string           `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet     string           `json:"vpcLoopbackSubnet,omitempty"`
-	FabricMTU             uint16           `json:"fabricMTU,omitempty"`
-	ServerFacingMTUOffset uint16           `json:"serverFacingMTUOffset,omitempty"`
-	ESLAGMACBase          string           `json:"eslagMACBase,omitempty"`
-	ESLAGESIPrefix        string           `json:"eslagESIPrefix,omitempty"`
+type FabricConfig struct {
+	ControlVIP            string      `json:"controlVIP,omitempty"`
+	APIServer             string      `json:"apiServer,omitempty"`
+	AgentRepo             string      `json:"agentRepo,omitempty"`
+	AgentRepoCA           string      `json:"agentRepoCA,omitempty"`
+	VPCIRBVLANRanges      []VLANRange `json:"vpcIRBVLANRange,omitempty"`
+	VPCPeeringVLANRanges  []VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	VPCPeeringDisabled    bool        `json:"vpcPeeringDisabled,omitempty"`
+	ReservedSubnets       []string    `json:"reservedSubnets,omitempty"`
+	Users                 []UserCreds `json:"users,omitempty"`
+	DHCPMode              DHCPMode    `json:"dhcpMode,omitempty"`
+	DHCPDConfigMap        string      `json:"dhcpdConfigMap,omitempty"`
+	DHCPDConfigKey        string      `json:"dhcpdConfigKey,omitempty"`
+	FabricMode            FabricMode  `json:"fabricMode,omitempty"`
+	BaseVPCCommunity      string      `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet     string      `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU             uint16      `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset uint16      `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase          string      `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix        string      `json:"eslagESIPrefix,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -72,14 +87,18 @@ func (m DHCPMode) IsMultiNSDHCP() bool {
 	return m == DHCPModeHedgehog
 }
 
-func Load(basedir string) (*Fabric, error) {
+func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
+	return cfg.reservedSubnets
+}
+
+func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	path := filepath.Join(basedir, "config.yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading config %s", path)
 	}
 
-	cfg := &Fabric{}
+	cfg := &FabricConfig{}
 	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error unmarshalling config %s", path)
@@ -99,7 +118,7 @@ func Load(basedir string) (*Fabric, error) {
 		return nil, errors.Errorf("config: agentRepoCA is required")
 	}
 
-	if r, err := meta.NormalizedVLANRanges(cfg.VPCIRBVLANRanges); err != nil {
+	if r, err := NormalizedVLANRanges(cfg.VPCIRBVLANRanges); err != nil {
 		return nil, errors.Wrapf(err, "config: vpcIRBVLANRange is invalid")
 	} else {
 		if len(r) == 0 {
@@ -109,7 +128,7 @@ func Load(basedir string) (*Fabric, error) {
 		// TODO check total ranges size and expose as limit for API validation
 	}
 
-	if r, err := meta.NormalizedVLANRanges(cfg.VPCPeeringVLANRanges); err != nil {
+	if r, err := NormalizedVLANRanges(cfg.VPCPeeringVLANRanges); err != nil {
 		return nil, errors.Wrapf(err, "config: vpcPeeringVLANRange is invalid")
 	} else {
 		if len(r) == 0 {
@@ -206,8 +225,4 @@ func Load(basedir string) (*Fabric, error) {
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))
 
 	return cfg, nil
-}
-
-func (cfg *Fabric) ParsedReservedSubnets() []*net.IPNet {
-	return cfg.reservedSubnets
 }

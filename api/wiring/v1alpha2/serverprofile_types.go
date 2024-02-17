@@ -17,7 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
+	"go.githedgehog.com/fabric/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -65,4 +70,18 @@ type ServerProfileList struct {
 
 func init() {
 	SchemeBuilder.Register(&ServerProfile{}, &ServerProfileList{})
+}
+
+var _ meta.Object = (*ServerProfile)(nil)
+
+func (sp *ServerProfile) Default() {
+	meta.DefaultObjectMetadata(sp)
+}
+
+func (sp *ServerProfile) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(sp); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }

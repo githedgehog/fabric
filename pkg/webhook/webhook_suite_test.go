@@ -124,7 +124,7 @@ var _ = BeforeSuite(func() {
 	err = connection.SetupWithManager("", mgr, nil) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
-	err = server.SetupWithManager("", mgr) // TODO cfgBasedir
+	err = server.SetupWithManager("", mgr, nil) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
 	err = switchh.SetupWithManager("", mgr, nil) // TODO cfgBasedir
@@ -133,7 +133,7 @@ var _ = BeforeSuite(func() {
 	err = vpc.SetupWithManager("", mgr, nil) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
-	err = vpcattachment.SetupWithManager("", mgr) // TODO cfgBasedir
+	err = vpcattachment.SetupWithManager("", mgr, nil) // TODO cfgBasedir
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:webhook

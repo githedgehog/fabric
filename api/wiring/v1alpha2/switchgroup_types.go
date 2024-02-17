@@ -17,7 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
+	"go.githedgehog.com/fabric/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -56,4 +61,18 @@ type SwitchGroupList struct {
 
 func init() {
 	SchemeBuilder.Register(&SwitchGroup{}, &SwitchGroupList{})
+}
+
+var _ meta.Object = (*SwitchGroup)(nil)
+
+func (sg *SwitchGroup) Default() {
+	meta.DefaultObjectMetadata(sg)
+}
+
+func (sg *SwitchGroup) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(sg); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }

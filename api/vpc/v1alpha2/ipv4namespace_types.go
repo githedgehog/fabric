@@ -22,11 +22,12 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -75,12 +76,16 @@ func init() {
 	SchemeBuilder.Register(&IPv4Namespace{}, &IPv4NamespaceList{})
 }
 
+var _ meta.Object = (*IPv4Namespace)(nil)
+
 func (ns *IPv4NamespaceSpec) Labels() map[string]string {
 	// TODO
 	return map[string]string{}
 }
 
 func (ns *IPv4Namespace) Default() {
+	meta.DefaultObjectMetadata(ns)
+
 	if ns.Labels == nil {
 		ns.Labels = map[string]string{}
 	}
@@ -92,7 +97,11 @@ func (ns *IPv4Namespace) Default() {
 	sort.Strings(ns.Spec.Subnets)
 }
 
-func (ns *IPv4Namespace) Validate(ctx context.Context, client validation.Client, resrvedSubnets []*net.IPNet) (admission.Warnings, error) {
+func (ns *IPv4Namespace) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(ns); err != nil {
+		return nil, err
+	}
+
 	if len(ns.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
 	}
@@ -111,7 +120,9 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, client validation.Client,
 		return nil, errors.Wrapf(err, "subnets overlap")
 	}
 
-	subnets = append(subnets, resrvedSubnets...)
+	if fabricCfg != nil {
+		subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
+	}
 
 	return nil, errors.Wrapf(iputil.VerifyNoOverlap(subnets), "subnets overlap with reserved subnets")
 }

@@ -17,8 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
+	"go.githedgehog.com/fabric/api/meta"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -79,6 +83,8 @@ func init() {
 	SchemeBuilder.Register(&Server{}, &ServerList{})
 }
 
+var _ meta.Object = (*Server)(nil)
+
 func (s *Server) IsControl() bool {
 	return s.Spec.Type == ServerTypeControl
 }
@@ -90,6 +96,8 @@ func (s *ServerSpec) Labels() map[string]string {
 }
 
 func (server *Server) Default() {
+	meta.DefaultObjectMetadata(server)
+
 	if server.Labels == nil {
 		server.Labels = map[string]string{}
 	}
@@ -99,6 +107,10 @@ func (server *Server) Default() {
 	maps.Copy(server.Labels, server.Spec.Labels())
 }
 
-func (server *Server) Validate() (admission.Warnings, error) {
+func (server *Server) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(server); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }

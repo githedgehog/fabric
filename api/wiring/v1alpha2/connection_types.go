@@ -25,12 +25,12 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	"go.githedgehog.com/fabric/pkg/manager/validation"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -295,6 +295,8 @@ type ConnectionList struct {
 func init() {
 	SchemeBuilder.Register(&Connection{}, &ConnectionList{})
 }
+
+var _ meta.Object = (*Connection)(nil)
 
 func NewBasePortName(name string) BasePortName {
 	return BasePortName{
@@ -667,6 +669,8 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 }
 
 func (conn *Connection) Default() {
+	meta.DefaultObjectMetadata(conn)
+
 	if conn.Labels == nil {
 		conn.Labels = map[string]string{}
 	}
@@ -690,12 +694,18 @@ func (conn *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFaci
 	return nil
 }
 
-func (conn *Connection) Validate(ctx context.Context, client validation.Client, fabricMTU uint16, serverFacingMTUOffset uint16, resrvedSubnets []*net.IPNet, eslagAllowed bool) (admission.Warnings, error) {
+func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(conn); err != nil {
+		return nil, err
+	}
+
 	// TODO validate local port names against server/switch profiles
 	// TODO validate used port names across all connections
 
-	if err := conn.Spec.ValidateServerFacingMTU(fabricMTU, serverFacingMTUOffset); err != nil {
-		return nil, err
+	if fabricCfg != nil {
+		if err := conn.Spec.ValidateServerFacingMTU(fabricCfg.FabricMTU, fabricCfg.ServerFacingMTUOffset); err != nil {
+			return nil, err
+		}
 	}
 
 	switches, servers, _, _, err := conn.Spec.Endpoints()
@@ -734,26 +744,26 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 			return nil, errors.Wrapf(err, "subnets overlap")
 		}
 
-		subnets = append(subnets, resrvedSubnets...)
+		if fabricCfg != nil {
+			subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
+		}
 
 		if err := iputil.VerifyNoOverlap(subnets); err != nil {
 			return nil, errors.Wrapf(err, "subnets overlap with reserved subnets")
 		}
 	}
 
-	if conn.Spec.ESLAG != nil {
-		if !eslagAllowed {
-			return nil, errors.Errorf("eslag connection is not allowed in current fabric configuration")
-		}
+	if conn.Spec.ESLAG != nil && fabricCfg != nil && fabricCfg.FabricMode != meta.FabricModeSpineLeaf {
+		return nil, errors.Errorf("eslag connection is not allowed in current fabric configuration")
 	}
 
-	if client != nil {
+	if kube != nil {
 		rGroup := ""
 		rType := meta.RedundancyTypeNone
 
 		for _, switchName := range switches {
 			sw := &Switch{}
-			err := client.Get(ctx, types.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
+			err := kube.Get(ctx, types.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch %s not found", switchName)
 			}
@@ -803,7 +813,7 @@ func (conn *Connection) Validate(ctx context.Context, client validation.Client, 
 		}
 
 		for _, serverName := range servers {
-			err := client.Get(ctx, types.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
+			err := kube.Get(ctx, types.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("server %s not found", serverName)
 			}
