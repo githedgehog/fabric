@@ -163,7 +163,6 @@ type SpecVRFBGPIPv4Unicast struct {
 
 type SpecVRFBGPL2VPNEVPN struct {
 	Enabled                       bool     `json:"enable,omitempty"`
-	DefaultOriginateIPv4          *bool    `json:"defaultOriginateIPv4,omitempty"`
 	AdvertiseAllVNI               *bool    `json:"advertiseAllVnis,omitempty"`
 	AdvertiseIPv4Unicast          *bool    `json:"advertiseIPv4Unicast,omitempty"`
 	AdvertiseIPv4UnicastRouteMaps []string `json:"advertiseIPv4UnicastRouteMaps,omitempty"`
@@ -182,6 +181,7 @@ type SpecVRFBGPNeighbor struct {
 	IPv4UnicastExportPolicies []string `json:"ipv4UnicastExportPolicies,omitempty"`
 	L2VPNEVPN                 *bool    `json:"l2vpnEvpn,omitempty"`
 	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
+	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
 }
 
 const (

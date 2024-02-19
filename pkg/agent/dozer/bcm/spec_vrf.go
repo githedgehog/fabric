@@ -294,12 +294,6 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 						AdvertiseDefaultGw: value.L2VPNEVPN.AdvertiseDefaultGw,
 					},
 					// TODO extract as we'll not be able to replace it
-					DefaultOriginate: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_DefaultOriginate{
-						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_DefaultOriginate_Config{
-							Ipv4: value.L2VPNEVPN.DefaultOriginateIPv4,
-						},
-					},
-					// TODO extract as we'll not be able to replace it
 					RouteAdvertise: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise{
 						RouteAdvertiseList: routeAdvertise,
 					},
@@ -356,6 +350,15 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			}
 		}
 
+		var l2VPNEVPNAllowOwnAS *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs
+		if value.L2VPNEVPNAllowOwnAS != nil {
+			l2VPNEVPNAllowOwnAS = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs{
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs_Config{
+					Enabled: value.L2VPNEVPNAllowOwnAS,
+				},
+			}
+		}
+
 		var l2ApplyPolicy *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy
 		if value.L2VPNEVPNImportPolicies != nil {
 			l2ApplyPolicy = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_ApplyPolicy{
@@ -393,6 +396,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 									Enabled:     value.L2VPNEVPN,
 								},
 								ApplyPolicy: l2ApplyPolicy,
+								AllowOwnAs:  l2VPNEVPNAllowOwnAS,
 							},
 						},
 					},
@@ -676,9 +680,6 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 									bgp.L2VPNEVPN.AdvertiseAllVNI = l2vpnEVPN.Config.AdvertiseAllVni
 									bgp.L2VPNEVPN.AdvertiseDefaultGw = l2vpnEVPN.Config.AdvertiseDefaultGw
 								}
-								if l2vpnEVPN.DefaultOriginate != nil && l2vpnEVPN.DefaultOriginate.Config != nil {
-									bgp.L2VPNEVPN.DefaultOriginateIPv4 = l2vpnEVPN.DefaultOriginate.Config.Ipv4
-								}
 								if l2vpnEVPN.RouteAdvertise != nil {
 									for _, route := range l2vpnEVPN.RouteAdvertise.RouteAdvertiseList {
 										if route.Config != nil && route.Config.AdvertiseAfiSafi == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST {
@@ -703,6 +704,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						var ipv4ExportPolicies []string
 						var l2vpnEVPN *bool
 						var l2ImportPolicies []string
+						var l2VPNEVPNAllowOwnAS *bool
 						if neighbor.AfiSafis != nil && neighbor.AfiSafis.AfiSafi != nil {
 							ocIPv4Unicast := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
 							if ocIPv4Unicast != nil && ocIPv4Unicast.Config != nil {
@@ -720,6 +722,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 								}
 								if ocL2VPNEVPN.ApplyPolicy != nil && ocL2VPNEVPN.ApplyPolicy.Config != nil {
 									l2ImportPolicies = ocL2VPNEVPN.ApplyPolicy.Config.ImportPolicy
+								}
+								if ocL2VPNEVPN.AllowOwnAs != nil && ocL2VPNEVPN.AllowOwnAs.Config != nil {
+									l2VPNEVPNAllowOwnAS = ocL2VPNEVPN.AllowOwnAs.Config.Enabled
 								}
 							}
 						}
@@ -741,6 +746,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							IPv4UnicastExportPolicies: ipv4ExportPolicies,
 							L2VPNEVPN:                 l2vpnEVPN,
 							L2VPNEVPNImportPolicies:   l2ImportPolicies,
+							L2VPNEVPNAllowOwnAS:       l2VPNEVPNAllowOwnAS,
 						}
 					}
 				}

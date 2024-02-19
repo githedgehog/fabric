@@ -483,6 +483,8 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 					IPv4Unicast:             boolPtr(true),
 					L2VPNEVPN:               boolPtr(true),
 					L2VPNEVPNImportPolicies: []string{ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE},
+					// TODO: We might later specify dedicated neighbors for this.
+					L2VPNEVPNAllowOwnAS: boolPtr(true),
 				}
 			}
 		}
@@ -1707,9 +1709,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			if remote {
-				spec.VRFs[vrf1Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
-				spec.VRFs[vrf2Name].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
-
 				spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", uint(vni1/100))] = &dozer.SpecRouteMapStatement{
 					Conditions: dozer.SpecRouteMapConditions{
 						MatchEVPNVNI:          uint32Ptr(vni1),
@@ -2149,8 +2148,6 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.ACLInterfaces[sub1] = &dozer.SpecACLInterface{
 				Egress: stringPtr(ipnsEgressAccessList(external.IPv4Namespace)),
 			}
-
-			spec.VRFs[vpcVrf].BGP.L2VPNEVPN.DefaultOriginateIPv4 = boolPtr(true)
 
 			for _, subnetName := range peering.Permit.VPC.Subnets {
 				subnet, exists := vpc.Subnets[subnetName]
