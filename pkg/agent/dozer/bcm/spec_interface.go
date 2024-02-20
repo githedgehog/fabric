@@ -324,10 +324,24 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 }
 
 var specInterfaceEthernetSwitchedEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary: "Interface %s Ethernet Switched",
+	Summary: "Interface %s Switched VLAN",
 	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
 	Getter: func(name string, value *dozer.SpecInterface) any {
 		return []any{value.TrunkVLANs, value.AccessVLAN}
+	},
+	MutateActual: func(name string, actual *dozer.SpecInterface) *dozer.SpecInterface {
+		if actual != nil && len(actual.TrunkVLANs) == 0 && actual.AccessVLAN == nil {
+			return nil
+		}
+
+		return actual
+	},
+	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+		if desired != nil && len(desired.TrunkVLANs) == 0 && desired.AccessVLAN == nil {
+			return nil
+		}
+
+		return desired
 	},
 	Path:         "/ethernet/switched-vlan/config",
 	UpdateWeight: ActionWeightInterfaceEthernetSwitchedUpdate,
@@ -367,10 +381,24 @@ var specInterfaceNATZoneEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInte
 }
 
 var specInterfacesPortChannelEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary: "PortChannel %s",
+	Summary: "PortChannel %s Switched VLAN",
 	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPortChannel(name) },
 	Getter: func(name string, value *dozer.SpecInterface) any {
 		return []any{value.TrunkVLANs, value.AccessVLAN}
+	},
+	MutateActual: func(name string, actual *dozer.SpecInterface) *dozer.SpecInterface {
+		if actual != nil && len(actual.TrunkVLANs) == 0 && actual.AccessVLAN == nil {
+			return nil
+		}
+
+		return actual
+	},
+	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+		if desired != nil && len(desired.TrunkVLANs) == 0 && desired.AccessVLAN == nil {
+			return nil
+		}
+
+		return desired
 	},
 	Path:         "/aggregation/switched-vlan/config",
 	UpdateWeight: ActionWeightInterfacePortChannelUpdate,
