@@ -13,6 +13,7 @@ import (
 )
 
 func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
+
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
@@ -26,9 +27,9 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		}
 		routes, err := netlink.RouteGet(req.GatewayIPAddr)
 		if err != nil {
-			log.Debugf("Error getting route %v", err)
 			return errors.Wrapf(err, "handleDiscover4: failed to get route")
 		}
+
 		subnet.Lock()
 		defer subnet.Unlock()
 		if reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]; ok {
@@ -52,7 +53,6 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		resp.Options.Update(dhcpv4.OptSubnetMask(ipnet.Mask))
 		resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 		resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
-
 		subnet.allocations.allocation[req.ClientHWAddr.String()] = &ipreservation{
 			address:    ipnet,
 			MacAddress: req.ClientHWAddr.String(),
@@ -79,6 +79,8 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 }
 
 func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
+	log.Debug("Entering handleRequest4")
+	defer log.Debug("Leave handleRequest4")
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
@@ -90,7 +92,6 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		if err != nil {
 			log.Errorf("Error getting route %v", err)
 		}
-		log.Debugf("Received request from %s:%s serverip %s Req Summary %s", vrfName, circuitID, req.ServerIPAddr, req.Summary())
 		subnet, err := getSubnetInfo(string(vrfName), string(circuitID))
 		if err != nil {
 			return errors.Wrapf(err, "handleRequest4: failed to get subnet info")
@@ -164,8 +165,8 @@ func handleDecline4(req, resp *dhcpv4.DHCPv4) error {
 		}
 		delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
 		updateBackend4(subnet.dhcpSubnet)
-
 	}
+
 	return nil
 }
 
@@ -192,7 +193,6 @@ func handleRelease4(req, resp *dhcpv4.DHCPv4) error {
 		}
 		delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
 		updateBackend4(subnet.dhcpSubnet)
-
 	}
 	return nil
 }
@@ -208,14 +208,17 @@ func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) {
 }
 
 func handleExpiredLeases() {
-	pluginHdl.dhcpSubnets.Lock()
-	defer pluginHdl.dhcpSubnets.Unlock()
+
 	// wake up every 2 min and try looking for expired leases
 	// This is a long loop we migh want to break this so we don't spend too much time here
-	ticker := time.NewTicker(120 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
+			if pluginHdl.dhcpSubnets == nil {
+				continue
+			}
+			pluginHdl.dhcpSubnets.Lock()
 			for _, v := range pluginHdl.dhcpSubnets.subnets {
 				for hwmacaddress, reservation := range v.allocations.allocation {
 					if time.Now().After(reservation.expiry) {
@@ -226,6 +229,7 @@ func handleExpiredLeases() {
 				}
 				updateBackend4(v.dhcpSubnet)
 			}
+			pluginHdl.dhcpSubnets.Unlock()
 		}
 	}
 

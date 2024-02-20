@@ -96,7 +96,11 @@ func (d *Service) Run(ctx context.Context) error {
 		time.Sleep(1 * time.Second)
 		os.Exit(2)
 	}()
-
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		handleExpiredLeases()
+	}()
 	wg.Wait()
 
 	return nil
