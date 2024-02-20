@@ -93,6 +93,7 @@ func (d *Data) Add(objs ...metav1.Object) error {
 			return errors.Wrap(err, "error adding object")
 		}
 
+		obj.SetResourceVersion("")
 		if err := d.Native.Create(context.TODO(), obj.(client.Object)); err != nil {
 			return errors.Wrap(err, "error creating object")
 		}
