@@ -79,8 +79,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 }
 
 func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
-	log.Debug("Entering handleRequest4")
-	defer log.Debug("Leave handleRequest4")
+
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
@@ -211,7 +210,7 @@ func handleExpiredLeases() {
 
 	// wake up every 2 min and try looking for expired leases
 	// This is a long loop we migh want to break this so we don't spend too much time here
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(120 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
