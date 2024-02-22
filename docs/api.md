@@ -350,8 +350,6 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `prefix` _string_ | Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for default route |
-| `ge` _integer_ | Ge is the minimum prefix length to permit from the External to the VPC, e.g. 24 for /24 |
-| `le` _integer_ | Le is the maximum prefix length to permit from the External to the VPC, e.g. 32 for /32 |
 
 
 #### ExternalPeeringSpecVPC

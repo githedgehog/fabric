@@ -2094,8 +2094,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				prefixes[idx] = &dozer.SpecPrefixListEntry{
 					Prefix: dozer.SpecPrefixListPrefix{
 						Prefix: prefix.Prefix,
-						Ge:     prefix.Ge,
-						Le:     prefix.Le,
+						Le:     32,
 					},
 					Action: dozer.SpecPrefixListActionPermit,
 				}

@@ -702,16 +702,6 @@ spec:
                                 description: ExternalPeeringSpecPrefix defines the
                                   prefix to permit from the External to the VPC
                                 properties:
-                                  ge:
-                                    description: Ge is the minimum prefix length to
-                                      permit from the External to the VPC, e.g. 24
-                                      for /24
-                                    type: integer
-                                  le:
-                                    description: Le is the maximum prefix length to
-                                      permit from the External to the VPC, e.g. 32
-                                      for /32
-                                    type: integer
                                   prefix:
                                     description: Prefix is the subnet to permit from
                                       the External to the VPC, e.g. 0.0.0.0/0 for

@@ -66,10 +66,11 @@ type ExternalPeeringSpecExternal struct {
 type ExternalPeeringSpecPrefix struct {
 	// Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for default route
 	Prefix string `json:"prefix,omitempty"`
+	// Temporary removing LE and GE from the spec.
 	// Ge is the minimum prefix length to permit from the External to the VPC, e.g. 24 for /24
-	Ge uint8 `json:"ge,omitempty"`
+	// Ge uint8 `json:"ge,omitempty"`
 	// Le is the maximum prefix length to permit from the External to the VPC, e.g. 32 for /32
-	Le uint8 `json:"le,omitempty"`
+	// Le uint8 `json:"le,omitempty"`
 }
 
 // ExternalPeeringStatus defines the observed state of ExternalPeering
@@ -143,7 +144,7 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube client.Reader
 		if permit.Prefix == "" {
 			return nil, errors.Errorf("external.prefixes.prefix is required")
 		}
-		if permit.Ge > permit.Le {
+		/*if permit.Ge > permit.Le {
 			return nil, errors.Errorf("external.prefixes.ge must be <= external.prefixes.le")
 		}
 		if permit.Ge > 32 {
@@ -151,7 +152,7 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube client.Reader
 		}
 		if permit.Le > 32 {
 			return nil, errors.Errorf("external.prefixes.le must be <= 32")
-		}
+		}*/
 
 		// TODO add more validation for prefix/ge/le
 	}
