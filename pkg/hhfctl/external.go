@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
@@ -98,8 +96,9 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 		},
 	}
 
-	for _, rawPrefix := range options.ExternalPrefixes {
-		le, ge := 0, 0
+	for _, prefix := range options.ExternalPrefixes {
+		// Temporarty remove le/ge
+		/*le, ge := 0, 0
 
 		prefixParts := strings.Split(rawPrefix, "_")
 		if len(prefixParts) > 3 {
@@ -131,6 +130,9 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 			Prefix: prefix,
 			Le:     uint8(le),
 			Ge:     uint8(ge),
+		})*/
+		extPeering.Spec.Permit.External.Prefixes = append(extPeering.Spec.Permit.External.Prefixes, vpcapi.ExternalPeeringSpecPrefix{
+			Prefix: prefix,
 		})
 	}
 
