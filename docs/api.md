@@ -349,7 +349,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `prefix` _string_ | Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for default route |
+| `prefix` _string_ | Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for any route including default route. It matches any prefix length less than or equal to 32 effectively permitting all prefixes within the specified one. |
 
 
 #### ExternalPeeringSpecVPC
