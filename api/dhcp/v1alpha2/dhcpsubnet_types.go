@@ -38,6 +38,8 @@ type DHCPSubnetSpec struct {
 	VRF string `json:"vrf"`
 	// VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch
 	CircuitID string `json:"circuitID"`
+	// PXE IP to identify the pxe server to use to boot hosts connected to this segment.
+	PxeURL string `json:"pxeURL"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet

@@ -3,6 +3,7 @@ package dhcpd
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
@@ -15,6 +16,7 @@ import (
 func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
+
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 		if len(vrfName) > 1 {
@@ -31,7 +33,10 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		}
 
 		subnet.Lock()
-		defer subnet.Unlock()
+		defer func() {
+			addPxeInfo(req, resp, subnet)
+			subnet.Unlock()
+		}()
 		if reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]; ok {
 			// We have a reservation for this populate the response and send back
 			resp.YourIPAddr = reservation.address.IP
@@ -232,4 +237,34 @@ func handleExpiredLeases() {
 		}
 	}
 
+}
+
+func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
+
+	relayAgentInfo := req.RelayAgentInfo()
+	if relayAgentInfo == nil {
+		return
+	}
+	circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
+	vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
+	// Add TFTP server Option Name
+	if len(subnet.dhcpSubnet.Spec.PxeURL) <= 0 {
+		log.Errorf("Client Requested pxe but it is not configured circuitID %s vrfName %s macAddress %s", circuitID, vrfName, req.ClientHWAddr.String())
+	}
+	u, err := url.Parse(subnet.dhcpSubnet.Spec.PxeURL)
+	if err != nil {
+		log.Errorf("Invalid Pxe URL %s: %v", subnet.dhcpSubnet.Spec.PxeURL, err)
+	}
+	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {
+		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
+	}
+	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
+		resp.Options.Update(dhcpv4.OptBootFileName(u.Path))
+		switch u.Scheme {
+		case "http", "https", "ftp":
+			resp.Options.Update(dhcpv4.OptBootFileName(u.String()))
+		default:
+			resp.Options.Update(dhcpv4.OptBootFileName(u.Path))
+		}
+	}
 }
