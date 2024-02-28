@@ -129,6 +129,8 @@ type ConnMCLAG struct {
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
+	// Fallback is the optional flag that used to idicate one of the links in LACP port channel to be used as a fallback link
+	Fallback bool `json:"fallback,omitempty"`
 }
 
 // ConnESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
@@ -138,6 +140,8 @@ type ConnESLAG struct {
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, eslag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
+	// Fallback is the optional flag that used to idicate one of the links in LACP port channel to be used as a fallback link
+	Fallback bool `json:"fallback,omitempty"`
 }
 
 // SwitchToSwitchLink defines the switch-to-switch link

@@ -894,12 +894,14 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		connType := ""
 		var mtu *uint16
 		var links []wiringapi.ServerToSwitchLink
+		var fallback bool
 
 		if conn.MCLAG != nil {
 			connType = "MCLAG"
 			if conn.MCLAG.MTU != 0 {
 				mtu = uint16Ptr(conn.MCLAG.MTU)
 			}
+			fallback = conn.MCLAG.Fallback
 			links = conn.MCLAG.Links
 		} else if conn.Bundled != nil {
 			connType = "Bundled"
@@ -912,6 +914,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if conn.ESLAG.MTU != 0 {
 				mtu = uint16Ptr(conn.ESLAG.MTU)
 			}
+			fallback = conn.ESLAG.Fallback
 			links = conn.ESLAG.Links
 		} else {
 			continue
@@ -950,6 +953,9 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
 					DomainID: MCLAG_DOMAIN_ID,
 				}
+				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
+					Fallback: boolPtr(fallback),
+				}
 			} else if connType == "ESLAG" {
 				mac, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
 				if err != nil {
@@ -967,9 +973,9 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				binary.BigEndian.PutUint64(newMACVal, macVal)
 
 				mac = newMACVal[2:]
-
 				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
 					SystemMAC: stringPtr(mac.String()),
+					Fallback:  boolPtr(fallback),
 				}
 
 				esi := strings.ReplaceAll(agent.Spec.Config.ESLAGESIPrefix+mac.String(), ":", "")
