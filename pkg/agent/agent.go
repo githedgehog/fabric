@@ -157,7 +157,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			case <-ctx.Done():
 				slog.Info("Context done, exiting")
 				return nil
-			case <-time.After(30 * time.Second):
+			case <-time.After(15 * time.Second):
 				slog.Debug("Sending heartbeat")
 
 				nosInfo, err := svc.processor.Info(ctx)
