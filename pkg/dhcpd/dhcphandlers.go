@@ -248,7 +248,8 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 	vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 	// Add TFTP server Option Name
-	if len(subnet.dhcpSubnet.Spec.PXEURL) <= 0 { // PxeURL is not specified return early with an error message
+	if len(subnet.dhcpSubnet.Spec.PXEURL) <= 0 &&
+		(req.IsOptionRequested(dhcpv4.OptionTFTPServerName) || req.IsOptionRequested(dhcpv4.OptionBootfileName)) { // PxeURL is not specified return early with an error message
 		log.Errorf("Client Requested pxe but it is not configured circuitID %s vrfName %s macAddress %s", circuitID, vrfName, req.ClientHWAddr.String())
 		return
 	}
