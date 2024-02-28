@@ -367,6 +367,7 @@ type SpecSuppressVLANNeigh struct{}
 
 type SpecPortChannelConfig struct {
 	SystemMAC *string `json:"systemMAC,omitempty"`
+	Fallback  *bool   `json:"fallback,omitempty"`
 }
 
 type SpecLSTGroup struct {

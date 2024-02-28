@@ -235,6 +235,11 @@ spec:
                       description: ESLAG defines the ESLAG connection (port channel,
                         single server to 2-4 switches with multiple links)
                       properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            idicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
                         links:
                           description: Links is the list of server-to-switch links
                           items:
@@ -399,6 +404,11 @@ spec:
                       description: MCLAG defines the MCLAG connection (port channel,
                         single server to pair of switches with multiple links)
                       properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            idicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
                         links:
                           description: Links is the list of server-to-switch links
                           items:
