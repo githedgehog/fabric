@@ -38,7 +38,7 @@ type DHCPSubnetSpec struct {
 	VRF string `json:"vrf"`
 	// VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch
 	CircuitID string `json:"circuitID"`
-	// PXE IP to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or https or a tftp server tftp://10.10.10.99/bootfilename. http query strings are not supported
+	// PXE IP (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
 	PXEURL string `json:"pxeURL"`
 }
 

@@ -83,10 +83,9 @@ spec:
                 description: Gateway, such as 10.10.10.1
                 type: string
               pxeURL:
-                description: PXE IP to identify the pxe server to use to boot hosts
-                  connected to this segment such as http://10.10.10.99/bootfilename
-                  or https or a tftp server tftp://10.10.10.99/bootfilename. http
-                  query strings are not supported
+                description: PXE IP (optional) to identify the pxe server to use to
+                  boot hosts connected to this segment such as http://10.10.10.99/bootfilename
+                  or tftp://10.10.10.99/bootfilename, http query strings are not supported
                 type: string
               startIP:
                 description: Start IP from the CIDRBlock to allocate IPs, such as
