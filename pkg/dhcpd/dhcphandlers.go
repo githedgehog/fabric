@@ -14,7 +14,6 @@ import (
 )
 
 func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
-
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
@@ -84,7 +83,6 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 }
 
 func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
-
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
@@ -212,7 +210,6 @@ func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) {
 }
 
 func handleExpiredLeases() {
-
 	// wake up every 2 min and try looking for expired leases
 	// This is a long loop we migh want to break this so we don't spend too much time here
 	ticker := time.NewTicker(120 * time.Second)
@@ -236,11 +233,9 @@ func handleExpiredLeases() {
 			pluginHdl.dhcpSubnets.Unlock()
 		}
 	}
-
 }
 
 func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
-
 	relayAgentInfo := req.RelayAgentInfo()
 	if relayAgentInfo == nil {
 		return
@@ -256,6 +251,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	u, err := url.Parse(subnet.dhcpSubnet.Spec.PXEURL)
 	if err != nil {
 		log.Errorf("Invalid Pxe URL %s: %v", subnet.dhcpSubnet.Spec.PXEURL, err)
+		return
 	}
 	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {
 		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
