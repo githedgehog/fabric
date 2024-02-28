@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -125,17 +124,6 @@ func Load(r io.Reader, data *Data) error {
 		metaObj, ok := obj.(metav1.Object)
 		if !ok {
 			return errors.Errorf("object %#v is not a metav1.Object", obj)
-		}
-
-		group := obj.GetObjectKind().GroupVersionKind().Group
-		if group != wiringapi.GroupVersion.Group && group != vpcapi.GroupVersion.Group {
-			return errors.Errorf("object has unknown or unsupported group %s", group)
-		}
-
-		if fabricObj, ok := obj.(meta.Object); !ok {
-			return errors.Errorf("object %#v is not a Fabric Object", obj)
-		} else {
-			fabricObj.Default()
 		}
 
 		if err := data.Add(metaObj); err != nil {
