@@ -40,6 +40,8 @@ type VPCAttachmentSpec struct {
 	Subnet string `json:"subnet,omitempty"`
 	// Connection is the name of the connection to attach to the VPC
 	Connection string `json:"connection,omitempty"`
+	// NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet
+	NativeVLAN bool `json:"nativeVLAN,omitempty"`
 }
 
 // VPCAttachmentStatus defines the observed state of VPCAttachment
@@ -50,6 +52,7 @@ type VPCAttachmentStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcattach
 // +kubebuilder:printcolumn:name="VPCSUBNET",type=string,JSONPath=`.spec.subnet`,priority=0
 // +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0
+// +kubebuilder:printcolumn:name="NativeVLAN",type=string,JSONPath=`.spec.nativeVLAN`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCAttachment is the Schema for the vpcattachments API
 type VPCAttachment struct {
@@ -94,11 +97,17 @@ func (s *VPCAttachmentSpec) SubnetName() string {
 }
 
 func (s *VPCAttachmentSpec) Labels() map[string]string {
-	return map[string]string{
+	labels := map[string]string{
 		LabelVPC:                  s.VPCName(),
 		LabelSubnet:               s.SubnetName(),
 		wiringapi.LabelConnection: s.Connection,
 	}
+
+	if s.NativeVLAN {
+		labels[LabelNativeVLAN] = LabelNativeVLANValue
+	}
+
+	return labels
 }
 
 func (attach *VPCAttachment) Default() {
@@ -202,8 +211,16 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, f
 		}
 
 		for _, other := range attaches.Items {
-			if other.Name == attach.Name {
-				return nil, errors.Errorf("connection %s already attached to vpc %s", attach.Spec.Connection, vpcName)
+			if other.Name == attach.Name || other.Spec.Connection != attach.Spec.Connection {
+				continue
+			}
+
+			if other.Spec.Subnet == attach.Spec.Subnet {
+				return nil, errors.Errorf("connection %s already attached to vpc subnet %s", attach.Spec.Connection, attach.Spec.Subnet)
+			}
+
+			if attach.Spec.NativeVLAN && other.Spec.NativeVLAN {
+				return nil, errors.Errorf("connection %s already attached with native VLAN", attach.Spec.Connection)
 			}
 		}
 	}

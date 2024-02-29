@@ -1549,8 +1549,18 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		for _, iface := range ifaces {
-			if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN) {
-				spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN)
+			if attach.NativeVLAN {
+				// TODO dedup
+				vlan, err := strconv.ParseUint(subnet.VLAN, 10, 16)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
+				}
+
+				spec.Interfaces[iface].AccessVLAN = uint16Ptr(uint16(vlan))
+			} else {
+				if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN) {
+					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN)
+				}
 			}
 		}
 	}

@@ -498,6 +498,7 @@ _Appears in:_
 | --- | --- |
 | `subnet` _string_ | Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default" |
 | `connection` _string_ | Connection is the name of the connection to attach to the VPC |
+| `nativeVLAN` _boolean_ | NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet |
 
 
 #### VPCAttachmentStatus

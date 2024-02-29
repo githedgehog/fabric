@@ -1074,6 +1074,10 @@ spec:
                       description: Connection is the name of the connection to attach
                         to the VPC
                       type: string
+                    nativeVLAN:
+                      description: NativeVLAN is the flag to indicate if the native
+                        VLAN should be used for attaching the VPC subnet
+                      type: boolean
                     subnet:
                       description: Subnet is the full name of the VPC subnet to attach
                         to, such as "vpc-1/default"
