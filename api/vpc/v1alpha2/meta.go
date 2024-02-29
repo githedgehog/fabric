@@ -1,15 +1,17 @@
 package v1alpha2
 
 var (
-	LabelPrefix    = "fabric.githedgehog.com/"
-	LabelVPC       = LabelName("vpc")
-	LabelVPC1      = LabelName("vpc1")
-	LabelVPC2      = LabelName("vpc2")
-	LabelSubnet    = LabelName("subnet")
-	LabelIPv4NS    = LabelName("ipv4ns")
-	LabelVLANNS    = LabelName("vlanns")
-	LabelExternal  = LabelName("external")
-	ListLabelValue = "true"
+	LabelPrefix          = "fabric.githedgehog.com/"
+	LabelVPC             = LabelName("vpc")
+	LabelVPC1            = LabelName("vpc1")
+	LabelVPC2            = LabelName("vpc2")
+	LabelSubnet          = LabelName("subnet")
+	LabelIPv4NS          = LabelName("ipv4ns")
+	LabelVLANNS          = LabelName("vlanns")
+	LabelExternal        = LabelName("external")
+	LabelNativeVLAN      = LabelName("nativevlan")
+	LabelNativeVLANValue = "true"
+	ListLabelValue       = "true"
 )
 
 func LabelName(name string) string {

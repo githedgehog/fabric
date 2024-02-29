@@ -150,6 +150,7 @@ _Appears in:_
 | `endIP` _string_ | End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99 |
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |
 | `circuitID` _string_ | VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch |
+| `pxeURL` _string_ | PXE IP (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |
 
 
 #### DHCPSubnetStatus
@@ -497,6 +498,7 @@ _Appears in:_
 | --- | --- |
 | `subnet` _string_ | Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default" |
 | `connection` _string_ | Connection is the name of the connection to attach to the VPC |
+| `nativeVLAN` _boolean_ | NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet |
 
 
 #### VPCAttachmentStatus

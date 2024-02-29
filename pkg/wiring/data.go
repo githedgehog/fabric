@@ -9,11 +9,13 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -60,31 +62,50 @@ func New(objs ...metav1.Object) (*Data, error) {
 }
 
 func (d *Data) Add(objs ...metav1.Object) error {
+	return d.addOrUpdate(false, objs...)
+}
+
+func (d *Data) Update(objs ...metav1.Object) error {
+	return d.addOrUpdate(true, objs...)
+}
+
+func (d *Data) addOrUpdate(update bool, objs ...metav1.Object) error {
 	for _, obj := range objs {
+		group := obj.(runtime.Object).GetObjectKind().GroupVersionKind().Group
+		if group != wiringapi.GroupVersion.Group && group != vpcapi.GroupVersion.Group {
+			return errors.Errorf("object has unknown or unsupported group %s", group)
+		}
+
+		if fabricObj, ok := obj.(meta.Object); !ok {
+			return errors.Errorf("object %#v is not a Fabric Object", obj)
+		} else {
+			fabricObj.Default()
+		}
+
 		var err error
 		switch typed := obj.(type) {
 		case *wiringapi.Rack:
-			err = d.Rack.Add(typed)
+			err = d.Rack.Add(update, typed)
 		case *wiringapi.SwitchGroup:
-			err = d.SwitchGroup.Add(typed)
+			err = d.SwitchGroup.Add(update, typed)
 		case *wiringapi.Switch:
-			err = d.Switch.Add(typed)
+			err = d.Switch.Add(update, typed)
 		case *wiringapi.Server:
-			err = d.Server.Add(typed)
+			err = d.Server.Add(update, typed)
 		case *wiringapi.Connection:
-			err = d.Connection.Add(typed)
+			err = d.Connection.Add(update, typed)
 		case *wiringapi.SwitchProfile:
-			err = d.SwitchProfile.Add(typed)
+			err = d.SwitchProfile.Add(update, typed)
 		case *wiringapi.ServerProfile:
-			err = d.ServerProfile.Add(typed)
+			err = d.ServerProfile.Add(update, typed)
 		case *vpcapi.IPv4Namespace:
-			err = d.IPv4Namespaces.Add(typed)
+			err = d.IPv4Namespaces.Add(update, typed)
 		case *wiringapi.VLANNamespace:
-			err = d.VLANNamespace.Add(typed)
+			err = d.VLANNamespace.Add(update, typed)
 		case *vpcapi.External:
-			err = d.External.Add(typed)
+			err = d.External.Add(update, typed)
 		case *vpcapi.ExternalAttachment:
-			err = d.ExternalAttachment.Add(typed)
+			err = d.ExternalAttachment.Add(update, typed)
 		default:
 			return errors.Errorf("unrecognized obj type")
 		}
@@ -93,9 +114,18 @@ func (d *Data) Add(objs ...metav1.Object) error {
 			return errors.Wrap(err, "error adding object")
 		}
 
-		obj.SetResourceVersion("")
-		if err := d.Native.Create(context.TODO(), obj.(client.Object)); err != nil {
-			return errors.Wrap(err, "error creating object")
+		if !update {
+			obj.SetResourceVersion("")
+			if err := d.Native.Create(context.TODO(), obj.(client.Object)); err != nil {
+				return errors.Wrap(err, "error creating object")
+			}
+		} else {
+			clientObj := obj.(client.Object)
+			key := client.ObjectKeyFromObject(clientObj)
+
+			if err := d.Native.Update(context.TODO(), clientObj); err != nil {
+				return errors.Wrapf(err, "error updating object: %s", key.String())
+			}
 		}
 	}
 
@@ -112,9 +142,9 @@ func NewStore[T metav1.Object]() *Store[T] {
 	}
 }
 
-func (s *Store[T]) Add(item T) error {
-	if _, exists := s.m[item.GetName()]; exists {
-		return errors.Errorf("duplicate item %s", item.GetName())
+func (s *Store[T]) Add(update bool, item T) error {
+	if _, exists := s.m[item.GetName()]; !update && exists {
+		return errors.Errorf("item already exists %s", item.GetName())
 	}
 
 	s.m[item.GetName()] = item
@@ -288,6 +318,11 @@ func marshal(obj metav1.Object, separator bool, w io.Writer) error {
 	if err != nil {
 		return errors.Wrap(err, "error writing title")
 	}
+
+	rv := obj.GetResourceVersion()
+	defer obj.SetResourceVersion(rv)
+
+	obj.SetResourceVersion("")
 
 	buf, err := yaml.Marshal(obj)
 	if err != nil {

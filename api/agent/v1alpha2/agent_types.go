@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"sort"
+
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +39,7 @@ type AgentSpec struct {
 	Users                []UserCreds                              `json:"users,omitempty"`
 	Switch               wiringapi.SwitchSpec                     `json:"switch,omitempty"`
 	Switches             map[string]wiringapi.SwitchSpec          `json:"switches,omitempty"`
+	RedundancyGroupPeers []string                                 `json:"redundancyGroupPeers,omitempty"`
 	Connections          map[string]wiringapi.ConnectionSpec      `json:"connections,omitempty"`
 	VPCs                 map[string]vpcapi.VPCSpec                `json:"vpcs,omitempty"`
 	VPCAttachments       map[string]vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
@@ -216,4 +220,16 @@ func init() {
 // TODO replace with real profile, temp hack
 func (s *AgentSpec) IsVS() bool {
 	return s.Switch.Profile == "vs"
+}
+
+func (a *Agent) IsFirstInRedundancyGroup() bool {
+	red := a.Spec.Switch.Redundancy
+	if red.Type == meta.RedundancyTypeNone || len(a.Spec.RedundancyGroupPeers) == 0 {
+		return true
+	}
+
+	rg := append(a.Spec.RedundancyGroupPeers, a.Name)
+	sort.Strings(rg)
+
+	return rg[0] == a.Name
 }

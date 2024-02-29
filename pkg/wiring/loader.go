@@ -129,53 +129,6 @@ func Load(r io.Reader, data *Data) error {
 		if err := data.Add(metaObj); err != nil {
 			return err
 		}
-
-		// switch typed := obj.(type) {
-		// case *wiringapi.Rack:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.SwitchGroup:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.Switch:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.Server:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.Connection:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.SwitchProfile:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.ServerProfile:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *vpcapi.IPv4Namespace:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *wiringapi.VLANNamespace:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *vpcapi.External:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// case *vpcapi.ExternalAttachment:
-		// 	if err := data.Add(typed); err != nil {
-		// 		return err
-		// 	}
-		// }
 	}
 
 	return nil

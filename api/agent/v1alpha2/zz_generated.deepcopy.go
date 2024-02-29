@@ -107,6 +107,11 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.RedundancyGroupPeers != nil {
+		in, out := &in.RedundancyGroupPeers, &out.RedundancyGroupPeers
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Connections != nil {
 		in, out := &in.Connections, &out.Connections
 		*out = make(map[string]wiringv1alpha2.ConnectionSpec, len(*in))
