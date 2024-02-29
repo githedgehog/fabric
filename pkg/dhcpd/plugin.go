@@ -75,6 +75,11 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						// Sync existing allocations from backend
 						allocation := make(map[string]*ipreservation, len(event.Subnet.Status.Allocated))
 						for k, v := range event.Subnet.Status.Allocated {
+							if _, err := pool.AllocateIP(net.IPNet{IP: net.ParseIP(v.IP), Mask: cidr.Mask}); err != nil {
+								log.Errorf("Failed to allocate IP %s with error %s", v.IP, err)
+								continue
+							}
+
 							allocation[k] = &ipreservation{
 								address:    net.IPNet{IP: net.ParseIP(v.IP), Mask: cidr.Mask},
 								MacAddress: k,
@@ -82,7 +87,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 								Hostname:   v.Hostname,
 								state:      committed,
 							}
-							pool.AllocateIP(net.IPNet{IP: net.ParseIP(v.IP), Mask: cidr.Mask})
+
 						}
 						log.Infof("Received Add event for subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)
 						// Create a new managed subnet.
