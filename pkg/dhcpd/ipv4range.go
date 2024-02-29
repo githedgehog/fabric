@@ -84,8 +84,10 @@ func (r *ipv4range) AllocateIP(ip net.IPNet) (net.IPNet, error) {
 
 	r.Lock()
 	defer r.Unlock()
+	offset, err := r.toOffset(ip.IP.To4())
 	// first try to get the exact ip
-	if !r.bitmap.Test(uint(binary.BigEndian.Uint32(ip.IP.To4()))) {
+	if !r.bitmap.Test(offset) {
+		r.bitmap.Set(offset) // it's available so set it
 		return net.IPNet{
 			IP:   r.toIP(uint32(binary.BigEndian.Uint32(ip.IP.To4()))),
 			Mask: mask,
