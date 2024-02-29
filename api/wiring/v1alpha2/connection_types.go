@@ -708,7 +708,7 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 		}
 	}
 
-	switches, servers, _, _, err := conn.Spec.Endpoints()
+	switches, servers, ports, _, err := conn.Spec.Endpoints()
 	if err != nil {
 		return nil, err
 	}
@@ -819,6 +819,33 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get server %s", serverName) // TODO replace with some internal error to not expose to the user
+			}
+		}
+
+		connPorts := map[string]bool{}
+		for _, port := range ports {
+			connPorts[port] = true
+		}
+
+		conns := &ConnectionList{}
+		if err := kube.List(ctx, conns, &client.ListOptions{Namespace: conn.Namespace}); err != nil { // TODO namespace could be different?
+			return nil, errors.Wrapf(err, "failed to list connections")
+		}
+
+		for _, other := range conns.Items {
+			if other.Name == conn.Name {
+				continue
+			}
+
+			_, _, ports, _, err := other.Spec.Endpoints()
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get endpoints for connection %s", other.Name)
+			}
+
+			for _, port := range ports {
+				if connPorts[port] {
+					return nil, errors.Errorf("port %s is already used by other connection", port)
+				}
 			}
 		}
 	}
