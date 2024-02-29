@@ -769,6 +769,10 @@ spec:
                 type: string
               reboot:
                 type: string
+              redundancyGroupPeers:
+                items:
+                  type: string
+                type: array
               reinstall:
                 type: string
               role:

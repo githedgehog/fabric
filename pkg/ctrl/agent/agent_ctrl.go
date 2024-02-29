@@ -591,6 +591,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		agent.Spec.Switch = sw.Spec
 		agent.Spec.Switches = switches
+		agent.Spec.RedundancyGroupPeers = rgPeers
 		agent.Spec.Connections = conns
 		agent.Spec.VPCs = vpcs
 		agent.Spec.VPCAttachments = attaches
@@ -766,7 +767,6 @@ users:
   user:
     token: {{ .Token }}
 `)
-
 	if err != nil {
 		panic(err)
 	}
