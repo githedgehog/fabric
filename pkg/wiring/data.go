@@ -319,6 +319,11 @@ func marshal(obj metav1.Object, separator bool, w io.Writer) error {
 		return errors.Wrap(err, "error writing title")
 	}
 
+	rv := obj.GetResourceVersion()
+	defer obj.SetResourceVersion(rv)
+
+	obj.SetResourceVersion("")
+
 	buf, err := yaml.Marshal(obj)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling into yaml")
