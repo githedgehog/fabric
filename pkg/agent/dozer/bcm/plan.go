@@ -894,14 +894,14 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		connType := ""
 		var mtu *uint16
 		var links []wiringapi.ServerToSwitchLink
-		var fallback bool
+		fallback := agent.IsFirstInRedundancyGroup()
 
 		if conn.MCLAG != nil {
 			connType = "MCLAG"
 			if conn.MCLAG.MTU != 0 {
 				mtu = uint16Ptr(conn.MCLAG.MTU)
 			}
-			fallback = conn.MCLAG.Fallback
+			fallback = fallback && conn.MCLAG.Fallback
 			links = conn.MCLAG.Links
 		} else if conn.Bundled != nil {
 			connType = "Bundled"
@@ -914,7 +914,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if conn.ESLAG.MTU != 0 {
 				mtu = uint16Ptr(conn.ESLAG.MTU)
 			}
-			fallback = conn.ESLAG.Fallback
+			fallback = fallback && conn.ESLAG.Fallback
 			links = conn.ESLAG.Links
 		} else {
 			continue
