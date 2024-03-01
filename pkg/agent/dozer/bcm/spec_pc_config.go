@@ -16,17 +16,43 @@ var specPortChannelConfigsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPort
 }
 
 var specPortChannelConfigEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
-	Summary:      "PortChannel Config %s",
-	Path:         "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]",
+	Summary: "PortChannel Config %s",
+	CustomHandler: func(basePath string, key string, actual, desired *dozer.SpecPortChannelConfig, actions *ActionQueue) error {
+		if desired.SystemMAC != nil {
+			if err := specPortChannelConfigSystemMACEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
+				return errors.Wrap(err, "failed to handle system mac")
+			}
+		}
+
+		if err := specPortChannelConfigFallbackEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle fallback")
+		}
+
+		return nil
+	},
+}
+
+var specPortChannelConfigSystemMACEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
+	Summary:      "PortChannel System MAC %s",
+	Path:         "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/system_mac",
 	UpdateWeight: ActionWeightPortChannelConfigUpdate,
 	DeleteWeight: ActionWeightPortChannelConfigDelete,
 	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
-		ret := &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{}
-		if value.SystemMAC != nil {
-			ret.SystemMac = value.SystemMAC
-		}
-		ret.Fallback = value.Fallback
-		return ret, nil
+		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
+			SystemMac: value.SystemMAC,
+		}, nil
+	},
+}
+
+var specPortChannelConfigFallbackEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
+	Summary:      "PortChannel Fallback %s",
+	Path:         "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/fallback",
+	UpdateWeight: ActionWeightPortChannelConfigUpdate,
+	DeleteWeight: ActionWeightPortChannelConfigDelete,
+	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
+		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
+			Fallback: value.Fallback,
+		}, nil
 	},
 }
 
