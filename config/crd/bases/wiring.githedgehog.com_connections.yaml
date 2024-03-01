@@ -94,7 +94,7 @@ spec:
                   server to 2-4 switches with multiple links)
                 properties:
                   fallback:
-                    description: Fallback is the optional flag that used to idicate
+                    description: Fallback is the optional flag that used to indicate
                       one of the links in LACP port channel to be used as a fallback
                       link
                     type: boolean
@@ -250,7 +250,7 @@ spec:
                   server to pair of switches with multiple links)
                 properties:
                   fallback:
-                    description: Fallback is the optional flag that used to idicate
+                    description: Fallback is the optional flag that used to indicate
                       one of the links in LACP port channel to be used as a fallback
                       link
                     type: boolean

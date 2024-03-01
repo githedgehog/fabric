@@ -237,7 +237,7 @@ spec:
                       properties:
                         fallback:
                           description: Fallback is the optional flag that used to
-                            idicate one of the links in LACP port channel to be used
+                            indicate one of the links in LACP port channel to be used
                             as a fallback link
                           type: boolean
                         links:
@@ -406,7 +406,7 @@ spec:
                       properties:
                         fallback:
                           description: Fallback is the optional flag that used to
-                            idicate one of the links in LACP port channel to be used
+                            indicate one of the links in LACP port channel to be used
                             as a fallback link
                           type: boolean
                         links:
