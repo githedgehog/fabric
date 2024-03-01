@@ -18,10 +18,8 @@ var specPortChannelConfigsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPort
 var specPortChannelConfigEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
 	Summary: "PortChannel Config %s",
 	CustomHandler: func(basePath string, key string, actual, desired *dozer.SpecPortChannelConfig, actions *ActionQueue) error {
-		if desired.SystemMAC != nil {
-			if err := specPortChannelConfigSystemMACEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
-				return errors.Wrap(err, "failed to handle system mac")
-			}
+		if err := specPortChannelConfigSystemMACEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle system mac")
 		}
 
 		if err := specPortChannelConfigFallbackEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
@@ -33,10 +31,13 @@ var specPortChannelConfigEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPor
 }
 
 var specPortChannelConfigSystemMACEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
-	Summary:      "PortChannel System MAC %s",
-	Path:         "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/system_mac",
-	UpdateWeight: ActionWeightPortChannelConfigUpdate,
-	DeleteWeight: ActionWeightPortChannelConfigDelete,
+	Summary: "PortChannel System MAC %s",
+	Path:    "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/system_mac",
+	Getter: func(key string, value *dozer.SpecPortChannelConfig) any {
+		return value.SystemMAC
+	},
+	UpdateWeight: ActionWeightPortChannelConfigMACUpdate,
+	DeleteWeight: ActionWeightPortChannelConfigMACDelete,
 	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
 			SystemMac: value.SystemMAC,
@@ -45,10 +46,13 @@ var specPortChannelConfigSystemMACEnforcer = &DefaultValueEnforcer[string, *doze
 }
 
 var specPortChannelConfigFallbackEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
-	Summary:      "PortChannel Fallback %s",
-	Path:         "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/fallback",
-	UpdateWeight: ActionWeightPortChannelConfigUpdate,
-	DeleteWeight: ActionWeightPortChannelConfigDelete,
+	Summary: "PortChannel Fallback %s",
+	Path:    "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/fallback",
+	Getter: func(key string, value *dozer.SpecPortChannelConfig) any {
+		return value.Fallback
+	},
+	UpdateWeight: ActionWeightPortChannelConfigFallbackUpdate,
+	DeleteWeight: ActionWeightPortChannelConfigFallbackDelete,
 	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
 			Fallback: value.Fallback,
@@ -79,6 +83,9 @@ func unmarshalActualPortChannelConfigs(ocVal *oc.SonicPortchannel_SonicPortchann
 	}
 
 	for name, portChannel := range ocVal.PORTCHANNEL.PORTCHANNEL_LIST {
+		if portChannel == nil || portChannel.SystemMac == nil && portChannel.Fallback == nil {
+			continue
+		}
 
 		portChannelConfigs[name] = &dozer.SpecPortChannelConfig{
 			SystemMAC: portChannel.SystemMac,
