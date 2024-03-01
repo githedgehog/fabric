@@ -77,7 +77,8 @@ const (
 	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
-	ActionWeightPortChannelConfigUpdate
+	ActionWeightPortChannelConfigMACUpdate
+	ActionWeightPortChannelConfigFallbackUpdate
 
 	ActionWeightInterfaceSubinterfaceIPsDelete
 	ActionWeightVRFInterfaceDelete
@@ -167,7 +168,8 @@ const (
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
 
-	ActionWeightPortChannelConfigDelete
+	ActionWeightPortChannelConfigMACDelete
+	ActionWeightPortChannelConfigFallbackDelete
 	ActionWeightInterfaceEthernetSwitchedAccessDelete
 	ActionWeightInterfaceEthernetSwitchedTrunkDelete
 	ActionWeightInterfaceEthernetBaseDelete
