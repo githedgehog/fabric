@@ -419,6 +419,32 @@ func (c *ConnectionSpec) GenerateName() string {
 	return "<invalid>" // TODO replace with error?
 }
 
+func (c *ConnectionSpec) Type() string {
+	if c.Unbundled != nil {
+		return CONNECTION_TYPE_UNBUNDLED
+	} else if c.Bundled != nil {
+		return CONNECTION_TYPE_BUNDLED
+	} else if c.Management != nil {
+		return CONNECTION_TYPE_MANAGEMENT
+	} else if c.MCLAGDomain != nil {
+		return CONNECTION_TYPE_MCLAGDOMAIN
+	} else if c.MCLAG != nil {
+		return CONNECTION_TYPE_MCLAG
+	} else if c.ESLAG != nil {
+		return CONNECTION_TYPE_ESLAG
+	} else if c.Fabric != nil {
+		return CONNECTION_TYPE_FABRIC
+	} else if c.VPCLoopback != nil {
+		return CONNECTION_TYPE_VPC_LOOPBACK
+	} else if c.External != nil {
+		return CONNECTION_EXTERNAL
+	} else if c.StaticExternal != nil {
+		return CONNECTION_STATIC_EXTERNAL
+	}
+
+	return "<invalid>"
+}
+
 func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	labels := map[string]string{}
 
@@ -438,27 +464,7 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[ListLabelServer(serverName)] = ListLabelValue
 	}
 
-	if c.Unbundled != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_UNBUNDLED
-	} else if c.Bundled != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_BUNDLED
-	} else if c.Management != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_MANAGEMENT
-	} else if c.MCLAGDomain != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
-	} else if c.MCLAG != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
-	} else if c.ESLAG != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_ESLAG
-	} else if c.Fabric != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
-	} else if c.VPCLoopback != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_VPC_LOOPBACK
-	} else if c.External != nil {
-		labels[LabelConnectionType] = CONNECTION_EXTERNAL
-	} else if c.StaticExternal != nil {
-		labels[LabelConnectionType] = CONNECTION_STATIC_EXTERNAL
-	}
+	labels[LabelConnectionType] = c.Type()
 
 	if c.StaticExternal != nil && c.StaticExternal.WithinVPC != "" {
 		labels[LabelVPC] = c.StaticExternal.WithinVPC

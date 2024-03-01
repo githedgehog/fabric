@@ -7,7 +7,6 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -89,16 +88,20 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	oldConn := oldObj.(*wiringapi.Connection)
 	newConn := newObj.(*wiringapi.Connection)
 
+	if oldConn.Spec.Type() != newConn.Spec.Type() {
+		return nil, errors.Errorf("connection type is immutable")
+	}
+
 	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
 
-	if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
-		if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
-			return nil, errors.Errorf("server-facing Connection spec is immutable")
-		}
-	}
+	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
+	// 	if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
+	// 		return nil, errors.Errorf("server-facing Connection spec is immutable")
+	// 	}
+	// }
 
 	return warns, w.validateStaticExternal(ctx, w.KubeClient, newConn)
 }
