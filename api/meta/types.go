@@ -99,7 +99,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	}
 
 	cfg := &FabricConfig{}
-	err = yaml.Unmarshal(data, cfg)
+	err = yaml.UnmarshalStrict(data, cfg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error unmarshalling config %s", path)
 	}

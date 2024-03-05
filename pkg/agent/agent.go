@@ -506,7 +506,7 @@ func (s *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 	}
 
 	config := &agentapi.Agent{}
-	err = yaml.Unmarshal(data, config)
+	err = yaml.UnmarshalStrict(data, config)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", s.configFilePath())
 	}
