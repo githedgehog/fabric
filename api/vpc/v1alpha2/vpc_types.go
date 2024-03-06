@@ -76,9 +76,9 @@ type VPCDHCP struct {
 	Relay string `json:"relay,omitempty"`
 	// Enable enables DHCP server for the subnet
 	Enable bool `json:"enable,omitempty"`
-	// Range is the DHCP range for the subnet if DHCP server is enabled
+	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled
 	Range *VPCDHCPRange `json:"range,omitempty"`
-	// PXEURL is the URL for the PXE server if DHCP server is enabled
+	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
 	PXEURL string `json:"pxeURL,omitempty"`
 }
 

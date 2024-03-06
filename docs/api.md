@@ -150,7 +150,7 @@ _Appears in:_
 | `endIP` _string_ | End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99 |
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |
 | `circuitID` _string_ | VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch |
-| `pxeURL` _string_ | PXE IP (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |
+| `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |
 
 
 #### DHCPSubnetStatus
@@ -525,8 +525,8 @@ _Appears in:_
 | --- | --- |
 | `relay` _string_ | Relay is the DHCP relay IP address, if specified, DHCP server will be disabled |
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |
-| `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range is the DHCP range for the subnet if DHCP server is enabled |
-| `pxeURL` _string_ | PXEURL is the URL for the PXE server if DHCP server is enabled |
+| `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled |
+| `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |
 
 
 #### VPCDHCPRange

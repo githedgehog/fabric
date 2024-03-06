@@ -1163,12 +1163,14 @@ spec:
                                 description: Enable enables DHCP server for the subnet
                                 type: boolean
                               pxeURL:
-                                description: PXEURL is the URL for the PXE server
-                                  if DHCP server is enabled
+                                description: PXEURL (optional) to identify the pxe
+                                  server to use to boot hosts connected to this segment
+                                  such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename,
+                                  http query strings are not supported
                                 type: string
                               range:
-                                description: Range is the DHCP range for the subnet
-                                  if DHCP server is enabled
+                                description: Range (optional) is the DHCP range for
+                                  the subnet if DHCP server is enabled
                                 properties:
                                   end:
                                     description: End is the end IP address of the
