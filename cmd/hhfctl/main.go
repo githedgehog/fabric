@@ -140,6 +140,7 @@ func main() {
 								VLAN:   cCtx.String("vlan"),
 								DHCP: vpcapi.VPCDHCP{
 									Enable: cCtx.Bool("dhcp"),
+									PXEURL: cCtx.String("dhcp-pxe-url"),
 									Range: &vpcapi.VPCDHCPRange{
 										Start: cCtx.String("dhcp-range-start"),
 										End:   cCtx.String("dhcp-range-end"),

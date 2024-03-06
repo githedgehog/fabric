@@ -526,6 +526,7 @@ _Appears in:_
 | `relay` _string_ | Relay is the DHCP relay IP address, if specified, DHCP server will be disabled |
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range is the DHCP range for the subnet if DHCP server is enabled |
+| `pxeURL` _string_ | PXEURL is the URL for the PXE server if DHCP server is enabled |
 
 
 #### VPCDHCPRange
