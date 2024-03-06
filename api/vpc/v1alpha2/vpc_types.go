@@ -78,6 +78,8 @@ type VPCDHCP struct {
 	Enable bool `json:"enable,omitempty"`
 	// Range is the DHCP range for the subnet if DHCP server is enabled
 	Range *VPCDHCPRange `json:"range,omitempty"`
+	// PXEURL is the URL for the PXE server if DHCP server is enabled
+	PXEURL string `json:"pxeURL,omitempty"`
 }
 
 // VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled

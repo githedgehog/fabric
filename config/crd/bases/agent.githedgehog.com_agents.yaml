@@ -1162,6 +1162,10 @@ spec:
                               enable:
                                 description: Enable enables DHCP server for the subnet
                                 type: boolean
+                              pxeURL:
+                                description: PXEURL is the URL for the PXE server
+                                  if DHCP server is enabled
+                                type: string
                               range:
                                 description: Range is the DHCP range for the subnet
                                   if DHCP server is enabled

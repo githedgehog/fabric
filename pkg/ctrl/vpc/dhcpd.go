@@ -218,6 +218,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				EndIP:     end,
 				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
 				CircuitID: fmt.Sprintf("Vlan%s", subnet.VLAN), // TODO move to utils
+				PXEURL:    subnet.DHCP.PXEURL,
 			}
 
 			return nil
