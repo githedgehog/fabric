@@ -38,9 +38,16 @@ var specACLEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
 }
 
 var specACLBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
-	Summary:      "ACL %s base",
-	Path:         "/acl/acl-sets/acl-set[name=%s][type=ACL_IPV4]",
-	CreatePath:   "/acl/acl-sets/acl-set",
+	Summary:    "ACL %s base",
+	Path:       "/acl/acl-sets/acl-set[name=%s][type=ACL_IPV4]",
+	CreatePath: "/acl/acl-sets/acl-set",
+	MutateDesired: func(key string, desired *dozer.SpecACL) *dozer.SpecACL {
+		if desired != nil && desired.Description == nil {
+			desired.Description = ygot.String(key) // workaround to avoid skipping creation of the ACLs with empty description
+		}
+
+		return desired
+	},
 	Getter:       func(name string, value *dozer.SpecACL) any { return value.Description },
 	UpdateWeight: ActionWeightACLBaseUpdate,
 	DeleteWeight: ActionWeightACLBaseDelete,

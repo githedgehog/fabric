@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -283,6 +284,28 @@ type DefaultValueEnforcer[Key comparable, Value dozer.SpecPart] struct {
 	RecreateOnUpdate bool
 }
 
+func (h *DefaultValueEnforcer[Key, Value]) processValue(key Key, value Value) any {
+	var ret any = value
+
+	if value.IsNil() {
+		ret = nil
+	} else {
+		if h.Getter != nil {
+			ret = h.Getter(key, value)
+		}
+
+		if ret != nil {
+			if reflect.ValueOf(ret).Kind() == reflect.Ptr && reflect.ValueOf(ret).IsNil() {
+				ret = nil
+			}
+		} else {
+			ret = nil
+		}
+	}
+
+	return ret
+}
+
 func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actual, desired Value, actions *ActionQueue) error {
 	if h.MutateActual != nil {
 		actual = h.MutateActual(key, actual)
@@ -291,17 +314,8 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 		desired = h.MutateDesired(key, desired)
 	}
 
-	var actualVal any = actual
-	var desiredVal any = desired
-
-	if h.Getter != nil {
-		if !actual.IsNil() {
-			actualVal = h.Getter(key, actual)
-		}
-		if !desired.IsNil() {
-			desiredVal = h.Getter(key, desired)
-		}
-	}
+	actualVal := h.processValue(key, actual)
+	desiredVal := h.processValue(key, desired)
 
 	if equality.Semantic.DeepEqual(actualVal, desiredVal) {
 		return nil
