@@ -4,6 +4,7 @@ const (
 	VIRTUAL_EDGE_ANNOTATION = "virtual-edge.hhfab.fabric.githedgehog.com/external-cfg"
 )
 
+// +kubebuilder:skip
 type VirtualEdgeConfig struct {
 	ASN          string `json:"ASN"`
 	VRF          string `json:"VRF"`

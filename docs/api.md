@@ -88,6 +88,8 @@ _Appears in:_
 
 
 
+
+
 ## dhcp.githedgehog.com/v1alpha2
 
 Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group. It is the primarely internal API
