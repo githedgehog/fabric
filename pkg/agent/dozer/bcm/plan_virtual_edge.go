@@ -1,3 +1,17 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package bcm
 
 import (
@@ -11,35 +25,20 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 )
 
-const (
-	VIRTUAL_EDGE_ANNOTATION = "virtual-edge.hhfab.fabric.githedgehog.com/external-cfg"
-)
-
-type ExternalConfig struct {
-	ASN          string `json:"ASN"`
-	VRF          string `json:"VRF"`
-	CommunityIn  string `json:"CommunityIn"`
-	CommunityOut string `json:"CommunityOut"`
-	NeighborIP   string `json:"NeighborIP"`
-	IfName       string `json:"ifName"`
-	IfVlan       string `json:"ifVlan"`
-	IfIP         string `json:"ifIP"`
-}
-
 func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 	annotations := agent.GetAnnotations()
 	if annotations == nil {
 		return errors.Errorf("no annotation")
 	}
 
-	cfgMap := map[string]ExternalConfig{}
-	edgeAnnotation := annotations[VIRTUAL_EDGE_ANNOTATION]
+	cfgMap := map[string]agentapi.VirtualEdgeConfig{}
+	edgeAnnotation := annotations[agentapi.VIRTUAL_EDGE_ANNOTATION]
 	if edgeAnnotation == "" {
 		return nil
 	}
 	err := json.Unmarshal([]byte(edgeAnnotation), &cfgMap)
 	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshal annotation %s", VIRTUAL_EDGE_ANNOTATION)
+		return errors.Wrapf(err, "failed to unmarshal annotation %s", agentapi.VIRTUAL_EDGE_ANNOTATION)
 	}
 
 	for _, externalConfig := range cfgMap {

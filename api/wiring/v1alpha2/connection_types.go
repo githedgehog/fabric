@@ -1,18 +1,16 @@
-/*
-Copyright 2023 Hedgehog.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package v1alpha2
 
@@ -129,6 +127,8 @@ type ConnMCLAG struct {
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
+	// Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link
+	Fallback bool `json:"fallback,omitempty"`
 }
 
 // ConnESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
@@ -138,6 +138,8 @@ type ConnESLAG struct {
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, eslag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
+	// Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link
+	Fallback bool `json:"fallback,omitempty"`
 }
 
 // SwitchToSwitchLink defines the switch-to-switch link
@@ -419,6 +421,32 @@ func (c *ConnectionSpec) GenerateName() string {
 	return "<invalid>" // TODO replace with error?
 }
 
+func (c *ConnectionSpec) Type() string {
+	if c.Unbundled != nil {
+		return CONNECTION_TYPE_UNBUNDLED
+	} else if c.Bundled != nil {
+		return CONNECTION_TYPE_BUNDLED
+	} else if c.Management != nil {
+		return CONNECTION_TYPE_MANAGEMENT
+	} else if c.MCLAGDomain != nil {
+		return CONNECTION_TYPE_MCLAGDOMAIN
+	} else if c.MCLAG != nil {
+		return CONNECTION_TYPE_MCLAG
+	} else if c.ESLAG != nil {
+		return CONNECTION_TYPE_ESLAG
+	} else if c.Fabric != nil {
+		return CONNECTION_TYPE_FABRIC
+	} else if c.VPCLoopback != nil {
+		return CONNECTION_TYPE_VPC_LOOPBACK
+	} else if c.External != nil {
+		return CONNECTION_EXTERNAL
+	} else if c.StaticExternal != nil {
+		return CONNECTION_STATIC_EXTERNAL
+	}
+
+	return "<invalid>"
+}
+
 func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 	labels := map[string]string{}
 
@@ -438,27 +466,7 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[ListLabelServer(serverName)] = ListLabelValue
 	}
 
-	if c.Unbundled != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_UNBUNDLED
-	} else if c.Bundled != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_BUNDLED
-	} else if c.Management != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_MANAGEMENT
-	} else if c.MCLAGDomain != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAGDOMAIN
-	} else if c.MCLAG != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_MCLAG
-	} else if c.ESLAG != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_ESLAG
-	} else if c.Fabric != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_FABRIC
-	} else if c.VPCLoopback != nil {
-		labels[LabelConnectionType] = CONNECTION_TYPE_VPC_LOOPBACK
-	} else if c.External != nil {
-		labels[LabelConnectionType] = CONNECTION_EXTERNAL
-	} else if c.StaticExternal != nil {
-		labels[LabelConnectionType] = CONNECTION_STATIC_EXTERNAL
-	}
+	labels[LabelConnectionType] = c.Type()
 
 	if c.StaticExternal != nil && c.StaticExternal.WithinVPC != "" {
 		labels[LabelVPC] = c.StaticExternal.WithinVPC

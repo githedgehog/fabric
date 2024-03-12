@@ -1,3 +1,17 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package connection
 
 import (
@@ -7,7 +21,6 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -89,16 +102,20 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	oldConn := oldObj.(*wiringapi.Connection)
 	newConn := newObj.(*wiringapi.Connection)
 
+	if oldConn.Spec.Type() != newConn.Spec.Type() {
+		return nil, errors.Errorf("connection type is immutable")
+	}
+
 	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, err
 	}
 
-	if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
-		if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
-			return nil, errors.Errorf("server-facing Connection spec is immutable")
-		}
-	}
+	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
+	// 	if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
+	// 		return nil, errors.Errorf("server-facing Connection spec is immutable")
+	// 	}
+	// }
 
 	return warns, w.validateStaticExternal(ctx, w.KubeClient, newConn)
 }

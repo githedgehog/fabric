@@ -66,6 +66,7 @@ HELM ?= $(LOCALBIN)/helm
 HELMIFY ?= $(LOCALBIN)/helmify
 ORAS ?= $(LOCALBIN)/oras
 GCOV2LCOV ?= $(LOCALBIN)/gcov2lcov
+ADDLICENSE ?= $(LOCALBIN)/addlicense
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.1
@@ -79,7 +80,7 @@ ORAS_VERSION ?= v1.0.1
 GCOV2LCOV_VERSION ?= v1.0.6
 
 .PHONY: tools
-tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint helm helmify oras ## Prepare all tools
+tools: kustomize controller-gen envtest envtest-k8s kubevious crd-ref-docs actionlint helm helmify oras gcov2lcov addlicense ## Prepare all tools
 
 # TODO: Enable back version check when it'll start returning version instead of (devel)
 .PHONY: kustomize
@@ -144,3 +145,8 @@ $(ORAS): $(LOCALBIN)
 gcov2lcov: $(GCOV2LCOV) ## Download gcov2lcov locally if necessary.
 $(GCOV2LCOV): $(LOCALBIN)
 	test -s $(LOCALBIN)/gcov2lcov || GOBIN=$(LOCALBIN) go install github.com/jandelgado/gcov2lcov@$(GCOV2LCOV_VERSION)
+
+.PHONY: addlicense
+addlicense: $(ADDLICENSE) ## Download addlicense locally if necessary.
+$(ADDLICENSE): $(LOCALBIN)
+	test -s $(LOCALBIN)/addlicense || GOBIN=$(LOCALBIN) go install github.com/google/addlicense@latest

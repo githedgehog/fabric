@@ -1,18 +1,16 @@
-/*
-Copyright 2023 Hedgehog.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package v1alpha2
 
@@ -76,8 +74,10 @@ type VPCDHCP struct {
 	Relay string `json:"relay,omitempty"`
 	// Enable enables DHCP server for the subnet
 	Enable bool `json:"enable,omitempty"`
-	// Range is the DHCP range for the subnet if DHCP server is enabled
+	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled
 	Range *VPCDHCPRange `json:"range,omitempty"`
+	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
+	PXEURL string `json:"pxeURL,omitempty"`
 }
 
 // VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled

@@ -83,7 +83,7 @@ spec:
                 description: Gateway, such as 10.10.10.1
                 type: string
               pxeURL:
-                description: PXE IP (optional) to identify the pxe server to use to
+                description: PXEURL (optional) to identify the pxe server to use to
                   boot hosts connected to this segment such as http://10.10.10.99/bootfilename
                   or tftp://10.10.10.99/bootfilename, http query strings are not supported
                 type: string

@@ -235,6 +235,11 @@ spec:
                       description: ESLAG defines the ESLAG connection (port channel,
                         single server to 2-4 switches with multiple links)
                       properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            indicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
                         links:
                           description: Links is the list of server-to-switch links
                           items:
@@ -399,6 +404,11 @@ spec:
                       description: MCLAG defines the MCLAG connection (port channel,
                         single server to pair of switches with multiple links)
                       properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            indicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
                         links:
                           description: Links is the list of server-to-switch links
                           items:
@@ -1152,9 +1162,15 @@ spec:
                               enable:
                                 description: Enable enables DHCP server for the subnet
                                 type: boolean
+                              pxeURL:
+                                description: PXEURL (optional) to identify the pxe
+                                  server to use to boot hosts connected to this segment
+                                  such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename,
+                                  http query strings are not supported
+                                type: string
                               range:
-                                description: Range is the DHCP range for the subnet
-                                  if DHCP server is enabled
+                                description: Range (optional) is the DHCP range for
+                                  the subnet if DHCP server is enabled
                                 properties:
                                   end:
                                     description: End is the end IP address of the

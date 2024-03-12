@@ -1,3 +1,17 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wiring
 
 import (
@@ -11,6 +25,11 @@ import (
 )
 
 func ValidateFabric(ctx context.Context, kube client.Client, fabricCfg *meta.FabricConfig) error {
+	if fabricCfg == nil {
+		return errors.Errorf("fabric config is required")
+	}
+
+	// TODO auto iterate through all types to validate
 	// for k, v := range kube.Scheme().AllKnownTypes() {
 	// 	if !strings.Contains(k.Group, "githedgehog.com") {
 	// 		continue
@@ -19,23 +38,6 @@ func ValidateFabric(ctx context.Context, kube client.Client, fabricCfg *meta.Fab
 	// 		continue
 	// 	}
 	// }
-
-	if fabricCfg == nil {
-		// TODO remove hardcode
-		fabricCfg = &meta.FabricConfig{
-			ControlVIP:            "172.30.1.1/24",
-			VPCIRBVLANRanges:      []meta.VLANRange{{From: 3000, To: 3999}},
-			VPCPeeringVLANRanges:  []meta.VLANRange{{From: 100, To: 999}},
-			VPCPeeringDisabled:    false,
-			ReservedSubnets:       []string{"172.28.0.0/24", "172.29.0.0/24", "172.30.0.0/24", "172.31.0.0/24"},
-			DHCPMode:              meta.DHCPModeHedgehog,
-			FabricMode:            meta.FabricModeSpineLeaf,
-			FabricMTU:             9100,
-			ServerFacingMTUOffset: 64,
-		}
-	}
-
-	// TODO auto iterate through all types to validate
 
 	rackList := &wiringapi.RackList{}
 	if err := kube.List(ctx, rackList); err != nil {
@@ -215,6 +217,28 @@ func ValidateFabric(ctx context.Context, kube client.Client, fabricCfg *meta.Fab
 		if _, err := extPeering.Validate(ctx, kube, fabricCfg); err != nil {
 			return errors.Wrapf(err, "error validating external peering %s", extPeering.Name)
 		}
+	}
+
+	// Some Fabric-wide validation
+
+	if len(swList.Items) == 0 {
+		return errors.Errorf("no switches found")
+	}
+
+	if len(serverList.Items) == 0 {
+		return errors.Errorf("no servers found")
+	}
+	controls := 0
+	for _, server := range serverList.Items {
+		if server.IsControl() {
+			controls++
+		}
+	}
+	if controls == 0 {
+		return errors.Errorf("no controllers found")
+	}
+	if controls > 1 {
+		return errors.Errorf("multiple controllers not supported")
 	}
 
 	return nil

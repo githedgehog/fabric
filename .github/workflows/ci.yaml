@@ -1,0 +1,232 @@
+name: CI
+
+concurrency:
+  group: ci-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
+  schedule:
+    - cron: "0 10 * * *" # ~2am PST
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        required: false
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  ORG: githedgehog
+
+jobs:
+  cache-tools:
+    runs-on: ubuntu-latest # It should be faster than running in hour DC
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: oldstable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v4
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Prepare all dev tools
+        run: |
+          make tools
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  test:
+    runs-on: lab
+    needs:
+      - cache-tools
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # with:
+        #   fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: oldstable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v4
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running make
+      - name: Make all (autogeneration) and fail on dirty
+        run: |
+          make generate manifests lint docs
+          git status --short
+          git diff --quiet
+
+      - name: Run tests
+        run: |
+          make test
+
+    #   - name: Run linters
+    #     run: |
+    #       make lint lint-helm
+
+    #   - name: Dump samples (prettier)
+    #     run: |
+    #       make prettier
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  kind-test-api:
+    runs-on: lab
+    needs:
+      - cache-tools
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: oldstable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v4
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.9.0
+        with:
+          cluster_name: kind
+
+      - name: Install CRDs
+        run: |
+          kind export kubeconfig --name kind
+          make api-chart-install
+          sleep 10
+          kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
+          kubectl get crd | grep hedgehog
+
+    #   - name: Deploy samples
+    #     run: |
+    #       make deploy-samples
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  build:
+    runs-on: lab
+    needs:
+      - cache-tools
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: oldstable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v4
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Build all
+        run: |
+          make build
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  publish:
+    runs-on: lab
+    if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
+    needs:
+      - cache-tools
+      - test
+      - kind-test-api
+      - build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: oldstable
+          cache: true
+
+      - name: Cache dev tools
+        uses: actions/cache@v4
+        with:
+          path: bin
+          key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Images, Helm charts and Bins on release
+        run: |
+          OCI_REPO=ghcr.io/githedgehog/fabric make push
+
+      - name: Setup tmate session for debug
+        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true

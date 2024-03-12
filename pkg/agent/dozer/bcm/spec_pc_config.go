@@ -1,3 +1,17 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package bcm
 
 import (
@@ -16,13 +30,46 @@ var specPortChannelConfigsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPort
 }
 
 var specPortChannelConfigEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
-	Summary:      "PortChannel Config %s",
-	Path:         "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/system_mac",
-	UpdateWeight: ActionWeightPortChannelConfigUpdate,
-	DeleteWeight: ActionWeightPortChannelConfigDelete,
+	Summary: "PortChannel Config %s",
+	CustomHandler: func(basePath string, key string, actual, desired *dozer.SpecPortChannelConfig, actions *ActionQueue) error {
+		if err := specPortChannelConfigSystemMACEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle system mac")
+		}
+
+		if err := specPortChannelConfigFallbackEnforcer.Handle(basePath, key, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle fallback")
+		}
+
+		return nil
+	},
+}
+
+var specPortChannelConfigSystemMACEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
+	Summary: "PortChannel System MAC %s",
+	Path:    "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/system_mac",
+	Getter: func(key string, value *dozer.SpecPortChannelConfig) any {
+		return value.SystemMAC
+	},
+	UpdateWeight: ActionWeightPortChannelConfigMACUpdate,
+	DeleteWeight: ActionWeightPortChannelConfigMACDelete,
 	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
 			SystemMac: value.SystemMAC,
+		}, nil
+	},
+}
+
+var specPortChannelConfigFallbackEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
+	Summary: "PortChannel Fallback %s",
+	Path:    "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/fallback",
+	Getter: func(key string, value *dozer.SpecPortChannelConfig) any {
+		return value.Fallback
+	},
+	UpdateWeight: ActionWeightPortChannelConfigFallbackUpdate,
+	DeleteWeight: ActionWeightPortChannelConfigFallbackDelete,
+	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
+		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
+			Fallback: value.Fallback,
 		}, nil
 	},
 }
@@ -50,12 +97,13 @@ func unmarshalActualPortChannelConfigs(ocVal *oc.SonicPortchannel_SonicPortchann
 	}
 
 	for name, portChannel := range ocVal.PORTCHANNEL.PORTCHANNEL_LIST {
-		if portChannel.SystemMac == nil {
+		if portChannel == nil || portChannel.SystemMac == nil && portChannel.Fallback == nil {
 			continue
 		}
 
 		portChannelConfigs[name] = &dozer.SpecPortChannelConfig{
 			SystemMAC: portChannel.SystemMac,
+			Fallback:  portChannel.Fallback,
 		}
 	}
 

@@ -1,9 +1,24 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package bcm
 
 import (
 	"cmp"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -77,7 +92,8 @@ const (
 	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
-	ActionWeightPortChannelConfigUpdate
+	ActionWeightPortChannelConfigMACUpdate
+	ActionWeightPortChannelConfigFallbackUpdate
 
 	ActionWeightInterfaceSubinterfaceIPsDelete
 	ActionWeightVRFInterfaceDelete
@@ -167,7 +183,8 @@ const (
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
 
-	ActionWeightPortChannelConfigDelete
+	ActionWeightPortChannelConfigMACDelete
+	ActionWeightPortChannelConfigFallbackDelete
 	ActionWeightInterfaceEthernetSwitchedAccessDelete
 	ActionWeightInterfaceEthernetSwitchedTrunkDelete
 	ActionWeightInterfaceEthernetBaseDelete
@@ -281,6 +298,28 @@ type DefaultValueEnforcer[Key comparable, Value dozer.SpecPart] struct {
 	RecreateOnUpdate bool
 }
 
+func (h *DefaultValueEnforcer[Key, Value]) processValue(key Key, value Value) any {
+	var ret any = value
+
+	if value.IsNil() {
+		ret = nil
+	} else {
+		if h.Getter != nil {
+			ret = h.Getter(key, value)
+		}
+
+		if ret != nil {
+			if reflect.ValueOf(ret).Kind() == reflect.Ptr && reflect.ValueOf(ret).IsNil() {
+				ret = nil
+			}
+		} else {
+			ret = nil
+		}
+	}
+
+	return ret
+}
+
 func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actual, desired Value, actions *ActionQueue) error {
 	if h.MutateActual != nil {
 		actual = h.MutateActual(key, actual)
@@ -289,17 +328,8 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 		desired = h.MutateDesired(key, desired)
 	}
 
-	var actualVal any = actual
-	var desiredVal any = desired
-
-	if h.Getter != nil {
-		if !actual.IsNil() {
-			actualVal = h.Getter(key, actual)
-		}
-		if !desired.IsNil() {
-			desiredVal = h.Getter(key, desired)
-		}
-	}
+	actualVal := h.processValue(key, actual)
+	desiredVal := h.processValue(key, desired)
 
 	if equality.Semantic.DeepEqual(actualVal, desiredVal) {
 		return nil
