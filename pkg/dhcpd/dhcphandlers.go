@@ -113,7 +113,10 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			return errors.Wrapf(err, "handleRequest4: failed to get subnet info")
 		}
 		subnet.Lock()
-		defer subnet.Unlock()
+		defer func() {
+			addPxeInfo(req, resp, subnet)
+			subnet.Unlock()
+		}()
 		reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
 		if ok {
 			reservation.state = committed
