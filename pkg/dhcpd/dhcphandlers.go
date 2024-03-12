@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
@@ -115,7 +116,10 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			return errors.Wrapf(err, "handleRequest4: failed to get subnet info")
 		}
 		subnet.Lock()
-		defer subnet.Unlock()
+		defer func() {
+			addPxeInfo(req, resp, subnet)
+			subnet.Unlock()
+		}()
 		reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
 		if ok {
 			reservation.state = committed
@@ -285,12 +289,12 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
 	}
 	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
-		resp.Options.Update(dhcpv4.OptBootFileName(u.Path))
 		switch u.Scheme {
 		case "http", "https", "ftp":
 			resp.Options.Update(dhcpv4.OptBootFileName(u.String()))
 		default:
-			resp.Options.Update(dhcpv4.OptBootFileName(u.Path))
+			resp.Options.Update(dhcpv4.OptBootFileName(strings.TrimPrefix(u.Path, "/")))
+			resp.Options.Update(dhcpv4.OptServerIdentifier(net.ParseIP(u.Host)))
 		}
 	}
 }
