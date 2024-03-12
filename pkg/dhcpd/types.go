@@ -62,14 +62,6 @@ type ipallocations struct {
 	allocation map[string]*ipreservation
 }
 
-type updateBackend struct {
-	IP         string
-	MacAddress string
-	Expiry     time.Time
-	Hostname   string
-	Vrf        string
-	circuitID  string
-}
 type pluginState struct {
 	dhcpSubnets *DHCPSubnets
 	svcHdl      *Service
