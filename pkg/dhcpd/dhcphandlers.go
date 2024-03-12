@@ -275,7 +275,6 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
 	}
 	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
-		resp.Options.Update(dhcpv4.OptBootFileName(u.Path))
 		switch u.Scheme {
 		case "http", "https", "ftp":
 			resp.Options.Update(dhcpv4.OptBootFileName(u.String()))
