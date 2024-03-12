@@ -280,6 +280,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 			resp.Options.Update(dhcpv4.OptBootFileName(u.String()))
 		default:
 			resp.Options.Update(dhcpv4.OptBootFileName(strings.TrimPrefix(u.Path, "/")))
+			resp.Options.Update(dhcpv4.OptServerIdentifier(net.ParseIP(u.Host)))
 		}
 	}
 }
