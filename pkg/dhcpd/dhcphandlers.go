@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
@@ -279,7 +280,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 		case "http", "https", "ftp":
 			resp.Options.Update(dhcpv4.OptBootFileName(u.String()))
 		default:
-			resp.Options.Update(dhcpv4.OptBootFileName(u.Path))
+			resp.Options.Update(dhcpv4.OptBootFileName(strings.TrimPrefix(u.Path, "/")))
 		}
 	}
 }
