@@ -19,6 +19,7 @@ package dhcpd
 
 import (
 	"encoding/binary"
+	"errors"
 	"net"
 
 	"github.com/coredhcp/coredhcp/handler"
@@ -205,6 +206,9 @@ func updateBackend4(dhcpsubnet *dhcpapi.DHCPSubnet) error {
 	// Do i need entire dhcpsubnet object or only status
 	// Locks for subnet are already held by the caller
 	// ignore error for time being
+	if pluginHdl.svcHdl == nil {
+		return errors.New("SvcHdl is not initialized")
+	}
 	if err := pluginHdl.svcHdl.updateStatus(*dhcpsubnet); err != nil {
 		log.Errorf("Update to dhcpsubnet failed: %v", err)
 	}

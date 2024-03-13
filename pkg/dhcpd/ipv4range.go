@@ -39,9 +39,6 @@ func NewIPv4Range(start, end, gateway net.IP, count uint32, prefixLen uint32) (*
 	if start.To4() == nil || end.To4() == nil {
 		return nil, fmt.Errorf("invalid IPv4 addresses given to create the range: [%s,%s]", start, end)
 	}
-	if count <= 0 {
-		return nil, errors.New("count must be positive")
-	}
 	if binary.BigEndian.Uint32(start.To4()) > binary.BigEndian.Uint32(end.To4()) {
 		return nil, errors.New("no IPs in the given range to allocate")
 	}
@@ -106,7 +103,7 @@ func (r *ipv4range) AllocateIP(ip net.IPNet) (net.IPNet, error) {
 	if !r.bitmap.Test(offset) {
 		r.bitmap.Set(offset) // it's available so set it
 		return net.IPNet{
-			IP:   r.toIP(uint32(binary.BigEndian.Uint32(ip.IP.To4()))),
+			IP:   r.toIP(uint32(offset)),
 			Mask: mask,
 		}, nil
 	}
@@ -134,6 +131,9 @@ func (r *ipv4range) allocate() (net.IPNet, error) {
 func (r *ipv4range) Free(ip net.IPNet) error {
 	r.Lock()
 	defer r.Unlock()
+	if ip.IP == nil {
+		return errors.New("Zero ip address")
+	}
 	offset, err := r.toOffset(ip.IP.To4())
 	if err != nil {
 		return fmt.Errorf("invalid ip address %s: %v", ip.IP.String(), err)
@@ -142,7 +142,6 @@ func (r *ipv4range) Free(ip net.IPNet) error {
 		return errors.New("ip address is not allocated in this range")
 	}
 
-	log.Printf("Freeing IP %s", ip.IP)
 	r.bitmap.Clear(uint(offset)) // IP released
 	return nil
 }
@@ -157,6 +156,7 @@ func (r *ipv4range) toIP(offset uint32) net.IP {
 }
 
 func (r *ipv4range) toOffset(ip net.IP) (uint, error) {
+
 	ipaddr := binary.BigEndian.Uint32(ip.To4())
 	if ipaddr < r.Start || ipaddr > r.End {
 		return 0, errors.New("IP address out of range")
