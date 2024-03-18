@@ -38,8 +38,16 @@ type Validatable interface {
 }
 
 type Object interface {
+	client.Object
+
 	Defaultable
 	Validatable
+}
+
+type ObjectList interface {
+	client.ObjectList
+	
+	GetItems() []Object
 }
 
 type UserCreds struct {
