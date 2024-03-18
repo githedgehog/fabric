@@ -186,6 +186,25 @@ jobs:
         with:
           limit-access-to-actor: true
 
+  fossa:
+    runs-on: lab
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Run FOSSA Scan"
+        uses: fossas/fossa-action@main
+        with:
+          api-key: ${{secrets.FOSSA_API_KEY}}
+
+      - name: "Run FOSSA Test"
+        uses: fossas/fossa-action@main
+        with:
+          api-key: ${{secrets.FOSSA_API_KEY}}
+          run-tests: true
+
   publish:
     runs-on: lab
     if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
@@ -194,6 +213,7 @@ jobs:
       - test
       - kind-test-api
       - build
+      - fossa
 
     steps:
       - name: Checkout repository
