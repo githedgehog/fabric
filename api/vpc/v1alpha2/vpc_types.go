@@ -124,7 +124,19 @@ func init() {
 	SchemeBuilder.Register(&VPC{}, &VPCList{})
 }
 
-var _ meta.Object = (*VPC)(nil)
+var (
+	_ meta.Object     = (*VPC)(nil)
+	_ meta.ObjectList = (*VPCList)(nil)
+)
+
+func (vpcList *VPCList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(vpcList.Items))
+	for i := range vpcList.Items {
+		items[i] = &vpcList.Items[i]
+	}
+
+	return items
+}
 
 func (vpc *VPCSpec) IsSubnetIsolated(subnetName string) bool {
 	if subnet, ok := vpc.Subnets[subnetName]; ok && subnet.Isolated != nil {
