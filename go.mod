@@ -2,8 +2,6 @@ module go.githedgehog.com/fabric
 
 go 1.21.1
 
-toolchain go1.21.5
-
 require (
 	github.com/0x5a17ed/uefi v0.6.1
 	github.com/apparentlymart/go-cidr v1.1.0
@@ -19,7 +17,6 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/gnmic v0.32.0
-	github.com/openconfig/goyang v1.4.5
 	github.com/openconfig/ygot v0.29.18
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
@@ -28,6 +25,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/vishvananda/netlink v1.1.0
+	go.githedgehog.com/fabric-bcm-ygot v0.1.0-4.2.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.29.1
@@ -166,6 +164,7 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/openconfig/goyang v1.4.5 // indirect
 	github.com/openconfig/grpctunnel v0.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc6 // indirect

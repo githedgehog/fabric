@@ -971,6 +971,8 @@ github.com/zealic/xignore v0.3.3/go.mod h1:lhS8V7fuSOtJOKsvKI7WfsZE276/7AYEqokv3
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 go.etcd.io/bbolt v1.3.8 h1:xs88BrvEv273UsB79e0hcVrlUWmS0a8upikMFhSyAtA=
 go.etcd.io/bbolt v1.3.8/go.mod h1:N9Mkw9X8x5fupy0IKsmuqVtoGDyxsaDlbk4Rd05IAQw=
+go.githedgehog.com/fabric-bcm-ygot v0.1.0-4.2.0 h1:6Gw5biRQxL7TPT55U03GufJtlV6iH/pHsj8J5evS6JE=
+go.githedgehog.com/fabric-bcm-ygot v0.1.0-4.2.0/go.mod h1:P/rTRtJedD3Pw72xgXYLPZAP8RpK2YmUR15qHGHxQWE=
 go.opencensus.io v0.15.0/go.mod h1:UffZAU+4sDEINUGP/B7UfBBkq4fqLu9zXAX7ke6CHW0=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=

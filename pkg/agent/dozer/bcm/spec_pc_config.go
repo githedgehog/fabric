@@ -19,9 +19,9 @@ import (
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
 )
 
 var specPortChannelConfigsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPortChannelConfig]{

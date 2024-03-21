@@ -17,7 +17,7 @@ package bcm
 import (
 	"strings"
 
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 

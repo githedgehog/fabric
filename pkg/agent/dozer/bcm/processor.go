@@ -27,10 +27,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/openconfig/gnmic/api"
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 )
 
