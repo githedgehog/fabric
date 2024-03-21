@@ -102,7 +102,7 @@ _Appears in:_
 
 ## dhcp.githedgehog.com/v1alpha2
 
-Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group. It is the primarely internal API
+Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group. It is the primary internal API
 group for the intended Hedgehog DHCP server configuration and storing leases as well as making them available to the
 end user through API. Not intended to be modified by the user.
 
@@ -134,7 +134,7 @@ _Appears in:_
 
 
 DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
-primarely internal API group, but it makes allocated IPs / leases information available to the end user through API.
+primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
 Not intended to be modified by the user.
 
 
@@ -1158,7 +1158,7 @@ _Appears in:_
 
 
 
-Location defines the geopraphical position of the device in a datacenter
+Location defines the geographical position of the device in a datacenter
 
 
 
@@ -1214,7 +1214,7 @@ Rack is the Schema for the racks API
 
 
 
-RackPosition defines the geopraphical position of the rack in a datacenter
+RackPosition defines the geographical position of the rack in a datacenter
 
 
 

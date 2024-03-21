@@ -87,7 +87,7 @@ func MatchingLabelsForListLabelSwitch(switchName string) client.MatchingLabels {
 	}
 }
 
-// Location defines the geopraphical position of the device in a datacenter
+// Location defines the geographical position of the device in a datacenter
 type Location struct {
 	Location string `json:"location,omitempty"`
 	Aisle    string `json:"aisle,omitempty"`
