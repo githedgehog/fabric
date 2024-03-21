@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
+
 package dhcpd
 
 import (
@@ -38,36 +40,37 @@ func Test_handleDiscover4(t *testing.T) {
 	}{
 		{
 			name: "Test a DHCP request with no relayAgentInfo",
-			args: args{req: func() *dhcpv4.DHCPv4 {
-				if pluginHdl == nil {
-					pluginHdl = &pluginState{
-						dhcpSubnets: &DHCPSubnets{
-							subnets: map[string]*ManagedSubnet{},
-						},
-						//svcHdl: svc,
+			args: args{
+				req: func() *dhcpv4.DHCPv4 {
+					if pluginHdl == nil {
+						pluginHdl = &pluginState{
+							dhcpSubnets: &DHCPSubnets{
+								subnets: map[string]*ManagedSubnet{},
+							},
+							// svcHdl: svc,
+						}
 					}
-				}
-				pool, _ := NewIPv4Range(
-					net.ParseIP("10.10.1.10"),
-					net.ParseIP("10.10.1.240"),
-					net.ParseIP("10.10.1.1"),
-					binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
-					uint32(24),
-				)
-				pluginHdl.dhcpSubnets.subnets["VrfV12"+"Vlan2000"] = &ManagedSubnet{
-					dhcpSubnet: &v1alpha2.DHCPSubnet{
-						Spec: v1alpha2.DHCPSubnetSpec{},
-					},
-					pool: pool,
-					allocations: &ipallocations{
-						allocation: make(map[string]*ipreservation),
-					},
-				}
-				hardwareAddress, _ := net.ParseMAC("00:00:00:00:00:01")
-				req, _ := dhcpv4.NewDiscovery(hardwareAddress)
+					pool, _ := NewIPv4Range(
+						net.ParseIP("10.10.1.10"),
+						net.ParseIP("10.10.1.240"),
+						net.ParseIP("10.10.1.1"),
+						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
+						uint32(24),
+					)
+					pluginHdl.dhcpSubnets.subnets["VrfV12"+"Vlan2000"] = &ManagedSubnet{
+						dhcpSubnet: &v1alpha2.DHCPSubnet{
+							Spec: v1alpha2.DHCPSubnetSpec{},
+						},
+						pool: pool,
+						allocations: &ipallocations{
+							allocation: make(map[string]*ipreservation),
+						},
+					}
+					hardwareAddress, _ := net.ParseMAC("00:00:00:00:00:01")
+					req, _ := dhcpv4.NewDiscovery(hardwareAddress)
 
-				return req
-			}(),
+					return req
+				}(),
 				resp: func() *dhcpv4.DHCPv4 {
 					hardwareAddress, _ := net.ParseMAC("00:00:00:00:00:01")
 					req, _ := dhcpv4.NewDiscovery(hardwareAddress, dhcpv4.WithGeneric(dhcpv4.OptionRelayAgentInformation, []byte{
@@ -76,10 +79,10 @@ func Test_handleDiscover4(t *testing.T) {
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
 					return resp
-				}()},
+				}(),
+			},
 			wantErr: false,
 			expectedState: func() bool {
-
 				return true
 			},
 		},
@@ -92,7 +95,7 @@ func Test_handleDiscover4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -148,7 +151,7 @@ func Test_handleDiscover4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					// pool, _ := NewIPv4Range(
@@ -199,7 +202,7 @@ func Test_handleDiscover4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -216,7 +219,7 @@ func Test_handleDiscover4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:01": &ipreservation{
+								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -284,7 +287,7 @@ func Test_handleRequest4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -304,7 +307,7 @@ func Test_handleRequest4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:01": &ipreservation{
+								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -361,7 +364,7 @@ func Test_handleRequest4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -381,7 +384,7 @@ func Test_handleRequest4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:01": &ipreservation{
+								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -438,7 +441,7 @@ func Test_handleRequest4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -458,7 +461,7 @@ func Test_handleRequest4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:01": &ipreservation{
+								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -504,7 +507,7 @@ func Test_handleRequest4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -527,7 +530,7 @@ func Test_handleRequest4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:01": &ipreservation{
+								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -621,7 +624,7 @@ func Test_handleDecline4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -641,7 +644,7 @@ func Test_handleDecline4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:04": &ipreservation{
+								"00:00:00:00:00:04": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:04",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -653,7 +656,6 @@ func Test_handleDecline4(t *testing.T) {
 					}
 
 					return decline
-
 				}(),
 				resp: &dhcpv4.DHCPv4{},
 			},
@@ -688,7 +690,7 @@ func Test_handleDecline4(t *testing.T) {
 							dhcpSubnets: &DHCPSubnets{
 								subnets: map[string]*ManagedSubnet{},
 							},
-							//svcHdl: svc,
+							// svcHdl: svc,
 						}
 					}
 					pool, _ := NewIPv4Range(
@@ -708,7 +710,7 @@ func Test_handleDecline4(t *testing.T) {
 						pool: pool,
 						allocations: &ipallocations{
 							allocation: map[string]*ipreservation{
-								"00:00:00:00:00:04": &ipreservation{
+								"00:00:00:00:00:04": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
 									MacAddress: "00:00:00:00:00:04",
 									expiry:     time.Now().Add(time.Hour * 1),
@@ -720,7 +722,6 @@ func Test_handleDecline4(t *testing.T) {
 					}
 
 					return decline
-
 				}(),
 				resp: &dhcpv4.DHCPv4{},
 			},
