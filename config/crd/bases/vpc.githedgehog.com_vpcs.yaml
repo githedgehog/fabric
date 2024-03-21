@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: vpcs.vpc.githedgehog.com
 spec:
   group: vpc.githedgehog.com
@@ -38,19 +38,24 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: VPC is Virtual Private Cloud, similar to the public cloud VPC
-          it provides an isolated private network for the resources with support for
-          multiple subnets each with user-provided VLANs and on-demand DHCP.
+        description: |-
+          VPC is Virtual Private Cloud, similar to the public cloud VPC it provides an isolated private network for the
+          resources with support for multiple subnets each with user-provided VLANs and on-demand DHCP.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -70,12 +75,10 @@ spec:
                   belongs to (if not specified, "default" is used)
                 type: string
               permit:
-                description: Permit defines a list of the access policies between
-                  the subnets within the VPC - each policy is a list of subnets that
-                  have access to each other. It's applied on top of the subnet isolation
-                  flag and if subnet isn't isolated it's not required to have it in
-                  a permit list while if vpc is marked as isolated it's required to
-                  have it in a permit list to have access to other subnets.
+                description: |-
+                  Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.
+                  It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked
+                  as isolated it's required to have it in a permit list to have access to other subnets.
                 items:
                   items:
                     type: string

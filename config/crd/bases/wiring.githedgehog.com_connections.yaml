@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: connections.wiring.githedgehog.com
 spec:
   group: wiring.githedgehog.com
@@ -30,22 +30,26 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: Connection object represents a logical and physical connections
-          between any devices in the Fabric (Switch, Server and External objects).
-          It's needed to define all physical and logical connections between the devices
-          in the Wiring Diagram. Connection type is defined by the top-level field
-          in the ConnectionSpec. Exactly one of them could be used in a single Connection
-          object.
+        description: |-
+          Connection object represents a logical and physical connections between any devices in the Fabric (Switch, Server
+          and External objects). It's needed to define all physical and logical connections between the devices in the Wiring
+          Diagram. Connection type is defined by the top-level field in the ConnectionSpec. Exactly one of them could be used
+          in a single Connection object.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -66,20 +70,18 @@ spec:
                           description: Server is the server side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         switch:
                           description: Switch is the switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object
@@ -108,20 +110,18 @@ spec:
                           description: Server is the server side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         switch:
                           description: Switch is the switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object
@@ -144,10 +144,9 @@ spec:
                           port
                         properties:
                           port:
-                            description: Port defines the full name of the switch
-                              port in the format of "device/port", such as "spine-1/Ethernet1".
-                              SONiC port name is used as a port name and switch name
-                              should be same as the name of the Switch object.
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                             type: string
                         type: object
                     type: object
@@ -170,10 +169,9 @@ spec:
                               pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                               type: string
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         spine:
@@ -185,10 +183,9 @@ spec:
                               pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                               type: string
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object
@@ -211,16 +208,14 @@ spec:
                             pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
                             type: string
                           mac:
-                            description: MAC is an optional MAC address of the control
-                              node port for the management link, if specified will
-                              be used to create a "virtual" link with the connection
-                              names on the control node
+                            description: |-
+                              MAC is an optional MAC address of the control node port for the management link, if specified will be used to
+                              create a "virtual" link with the connection names on the control node
                             type: string
                           port:
-                            description: Port defines the full name of the switch
-                              port in the format of "device/port", such as "spine-1/Ethernet1".
-                              SONiC port name is used as a port name and switch name
-                              should be same as the name of the Switch object.
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                             type: string
                         type: object
                       switch:
@@ -237,10 +232,9 @@ spec:
                               used by the IPv6 Link Local discovery
                             type: string
                           port:
-                            description: Port defines the full name of the switch
-                              port in the format of "device/port", such as "spine-1/Ethernet1".
-                              SONiC port name is used as a port name and switch name
-                              should be same as the name of the Switch object.
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                             type: string
                         type: object
                     type: object
@@ -264,20 +258,18 @@ spec:
                           description: Server is the server side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         switch:
                           description: Switch is the switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object
@@ -303,28 +295,26 @@ spec:
                           description: Switch1 is the first switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         switch2:
                           description: Switch2 is the second switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object
                     minItems: 1
                     type: array
                   sessionLinks:
-                    description: SessionLinks is the list of session links between
-                      the switches, used only to pass MCLAG control plane and BGP
+                    description: |-
+                      SessionLinks is the list of session links between the switches, used only to pass MCLAG control plane and BGP
                       traffic between switches
                     items:
                       description: SwitchToSwitchLink defines the switch-to-switch
@@ -334,20 +324,18 @@ spec:
                           description: Switch1 is the first switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         switch2:
                           description: Switch2 is the second switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object
@@ -376,10 +364,9 @@ spec:
                             pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
                             type: string
                           port:
-                            description: Port defines the full name of the switch
-                              port in the format of "device/port", such as "spine-1/Ethernet1".
-                              SONiC port name is used as a port name and switch name
-                              should be same as the name of the Switch object.
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                             type: string
                           subnets:
                             description: Subnets is the list of subnets that will
@@ -410,20 +397,18 @@ spec:
                         description: Server is the server side of the connection
                         properties:
                           port:
-                            description: Port defines the full name of the switch
-                              port in the format of "device/port", such as "spine-1/Ethernet1".
-                              SONiC port name is used as a port name and switch name
-                              should be same as the name of the Switch object.
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                             type: string
                         type: object
                       switch:
                         description: Switch is the switch side of the connection
                         properties:
                           port:
-                            description: Port defines the full name of the switch
-                              port in the format of "device/port", such as "spine-1/Ethernet1".
-                              SONiC port name is used as a port name and switch name
-                              should be same as the name of the Switch object.
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                             type: string
                         type: object
                     type: object
@@ -446,20 +431,18 @@ spec:
                           description: Switch1 is the first switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                         switch2:
                           description: Switch2 is the second switch side of the connection
                           properties:
                             port:
-                              description: Port defines the full name of the switch
-                                port in the format of "device/port", such as "spine-1/Ethernet1".
-                                SONiC port name is used as a port name and switch
-                                name should be same as the name of the Switch object.
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
                       type: object

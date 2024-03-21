@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: externals.vpc.githedgehog.com
 spec:
   group: vpc.githedgehog.com
@@ -36,21 +36,25 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: External object represents an external system connected to the
-          Fabric and available to the specific IPv4Namespace. Users can do external
-          peering with the external system by specifying the name of the External
-          Object without need to worry about the details of how external system is
-          attached to the Fabric.
+        description: |-
+          External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
+          Users can do external peering with the external system by specifying the name of the External Object without need to
+          worry about the details of how external system is attached to the Fabric.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object

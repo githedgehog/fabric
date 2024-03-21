@@ -70,12 +70,12 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.1
-CONTROLLER_TOOLS_VERSION ?= v0.12.0
-ENVTEST_K8S_VERSION = 1.27.1 # Version of kubebuilder assets to be downloaded by envtest binary
+CONTROLLER_TOOLS_VERSION ?= v0.14.0
+ENVTEST_K8S_VERSION = 1.29.1 # Version of kubebuilder assets to be downloaded by envtest binary
 ACTIONLINT_VERSION ?= v1.6.25
-CRD_REF_DOCS_VERSION ?= v0.0.10
-HELM_VERSION ?= v3.12.3
-HELMIFY_VERSION ?= v0.4.5
+CRD_REF_DOCS_VERSION ?= v0.0.12
+HELM_VERSION ?= v3.14.3
+HELMIFY_VERSION ?= v0.4.11
 ORAS_VERSION ?= v1.0.1
 GCOV2LCOV_VERSION ?= v1.0.6
 
