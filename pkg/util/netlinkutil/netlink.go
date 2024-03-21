@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux
-// +build !linux
+//go:build linux
 
-package dhcpd
+package netlinkutil
 
-import "context"
+import (
+	"net"
 
-func (d *Service) runCoreDHCP(ctx context.Context) error {
-	panic("unimplemented")
+	"github.com/vishvananda/netlink"
+)
+
+func RouteGet(destination net.IP) ([]netlink.Route, error) {
+	return netlink.RouteGet(destination)
 }

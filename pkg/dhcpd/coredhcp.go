@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build linux
-// +build linux
 
 package dhcpd
 
@@ -51,7 +50,7 @@ func (d *Service) runCoreDHCP(ctx context.Context) error {
 	if _, err := os.Stat(d.Config); errors.Is(err, os.ErrNotExist) {
 		d.Config = "/etc/coredhcp.conf"
 
-		if err := os.WriteFile(d.Config, []byte(defaultConfig), 0644); err != nil {
+		if err := os.WriteFile(d.Config, []byte(defaultConfig), 0o644); err != nil {
 			return errors.Wrapf(err, "failed to write default config")
 		}
 	}

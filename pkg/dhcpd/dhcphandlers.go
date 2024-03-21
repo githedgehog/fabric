@@ -23,8 +23,8 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
-	"github.com/vishvananda/netlink"
 	"go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/netlinkutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,7 +41,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		if err != nil {
 			return errors.Wrapf(err, "handleDiscover4: failed to get subnet info")
 		}
-		routes, err := netlink.RouteGet(req.GatewayIPAddr)
+		routes, err := netlinkutil.RouteGet(req.GatewayIPAddr)
 		if err != nil {
 			return errors.Wrapf(err, "handleDiscover4: failed to get route")
 		}
@@ -107,7 +107,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		if len(vrfName) > 1 {
 			vrfName = vrfName[1:]
 		}
-		routes, err := netlink.RouteGet(req.GatewayIPAddr)
+		routes, err := netlinkutil.RouteGet(req.GatewayIPAddr)
 		if err != nil {
 			log.Errorf("Error getting route %v", err)
 		}
@@ -266,7 +266,6 @@ func handleExpiredLeases() {
 }
 
 func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
-
 	relayAgentInfo := req.RelayAgentInfo()
 	if relayAgentInfo == nil || subnet.dhcpSubnet == nil {
 		return

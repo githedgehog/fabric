@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux
-// +build linux
-
 package dhcpd
 
 import (
@@ -26,11 +23,12 @@ import (
 	"github.com/coredhcp/coredhcp/logger"
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
-	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var pluginHdl *pluginState
-var log = logger.GetLogger("plugins/dhcpd")
+var (
+	pluginHdl *pluginState
+	log       = logger.GetLogger("plugins/dhcpd")
+)
 
 func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 	return func(args ...string) (handler.Handler4, error) {
@@ -54,7 +52,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 								event.Subnet.Spec.CIDRBlock != val.dhcpSubnet.Spec.CIDRBlock ||
 								event.Subnet.Spec.EndIP != val.dhcpSubnet.Spec.EndIP { //
 								// seems like things have changed since we last synced We delete what we have cached and remove our cached copy and process the add event here
-								for mac, _ := range val.allocations.allocation {
+								for mac := range val.allocations.allocation {
 									delete(val.allocations.allocation, mac)
 								}
 
@@ -159,7 +157,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						// delete the mapping
 						// Does this mean the dhcp status object is gone or do i need to do something else here?
 						// Delete all reservations
-						for mac, _ := range val.allocations.allocation {
+						for mac := range val.allocations.allocation {
 							delete(val.allocations.allocation, mac)
 						}
 
@@ -167,7 +165,6 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						pluginHdl.dhcpSubnets.Unlock()
 					}
 				}
-
 			}
 		}()
 
