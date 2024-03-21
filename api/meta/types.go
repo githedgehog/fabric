@@ -46,7 +46,7 @@ type Object interface {
 
 type ObjectList interface {
 	client.ObjectList
-	
+
 	GetItems() []Object
 }
 
