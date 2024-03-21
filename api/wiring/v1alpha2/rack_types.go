@@ -25,7 +25,7 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RackPosition defines the geopraphical position of the rack in a datacenter
+// RackPosition defines the geographical position of the rack in a datacenter
 type RackPosition struct {
 	Location string `json:"location,omitempty"`
 	Aisle    string `json:"aisle,omitempty"`

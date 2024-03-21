@@ -51,7 +51,7 @@ spec:
                 format: int32
                 type: integer
               position:
-                description: RackPosition defines the geopraphical position of the
+                description: RackPosition defines the geographical position of the
                   rack in a datacenter
                 properties:
                   aisle:

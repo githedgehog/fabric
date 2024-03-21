@@ -68,7 +68,7 @@ type DHCPAllocated struct {
 // +kubebuilder:printcolumn:name="CircuitID",type=string,JSONPath=`.spec.circuitID`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
-// primarely internal API group, but it makes allocated IPs / leases information available to the end user through API.
+// primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
 // Not intended to be modified by the user.
 type DHCPSubnet struct {
 	metav1.TypeMeta   `json:",inline"`
