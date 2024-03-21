@@ -29,6 +29,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specZTPEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
@@ -65,7 +66,7 @@ func unmarshalOCZTPConfig(ocVal *oc.OpenconfigZtp_Ztp_Config) (*bool, error) {
 	}
 
 	if ocVal.AdminMode == nil {
-		return ygot.Bool(false), nil
+		return pointer.To(false), nil
 	}
 
 	return ocVal.AdminMode, nil
@@ -136,9 +137,9 @@ var specPortGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortGroup]{
 		return &oc.OpenconfigPortGroup_PortGroups{
 			PortGroup: map[string]*oc.OpenconfigPortGroup_PortGroups_PortGroup{
 				id: {
-					Id: ygot.String(id),
+					Id: pointer.To(id),
 					Config: &oc.OpenconfigPortGroup_PortGroups_PortGroup_Config{
-						Id:    ygot.String(id),
+						Id:    pointer.To(id),
 						Speed: speed,
 					},
 				},
@@ -223,10 +224,10 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 
 		return &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group{
 			Config: &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config{
-				Index:         ygot.Uint8(1),
-				NumBreakouts:  ygot.Uint8(num),
+				Index:         pointer.To(uint8(1)),
+				NumBreakouts:  pointer.To(num),
 				BreakoutSpeed: speed,
-				// NumPhysicalChannels: ygot.Uint8(0), // TODO check if it's really needed
+				// NumPhysicalChannels: pointer.To(0), // TODO check if it's really needed
 			},
 		}, nil
 	},
@@ -278,17 +279,17 @@ var specUserEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUser]{
 	Marshal: func(name string, value *dozer.SpecUser) (ygot.ValidatedGoStruct, error) {
 		var passwd, passwdHash *string
 		if len(value.Password) == 63 && strings.HasPrefix(value.Password, "$5$") {
-			passwdHash = ygot.String(value.Password)
+			passwdHash = pointer.To(value.Password)
 		} else {
-			passwd = ygot.String(value.Password)
+			passwd = pointer.To(value.Password)
 		}
 
 		return &oc.OpenconfigSystem_System_Aaa_Authentication_Users{
 			User: map[string]*oc.OpenconfigSystem_System_Aaa_Authentication_Users_User{
 				name: {
-					Username: ygot.String(name),
+					Username: pointer.To(name),
 					Config: &oc.OpenconfigSystem_System_Aaa_Authentication_Users_User_Config{
-						Username:       ygot.String(name),
+						Username:       pointer.To(name),
 						Password:       passwd,
 						PasswordHashed: passwdHash,
 						Role:           oc.UnionString(value.Role),

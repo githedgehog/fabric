@@ -24,6 +24,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specDHCPRelaysEnforcer = &DefaultMapEnforcer[string, *dozer.SpecDHCPRelay]{
@@ -50,7 +51,7 @@ var specDHCPRelayEnforcer = &DefaultValueEnforcer[string, *dozer.SpecDHCPRelay]{
 		return &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces{
 			Interface: map[string]*oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface{
 				name: {
-					Id: ygot.String(name),
+					Id: pointer.To(name),
 					AgentInformationOption: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_AgentInformationOption{
 						Config: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_AgentInformationOption_Config{
 							LinkSelect: linkSelect,

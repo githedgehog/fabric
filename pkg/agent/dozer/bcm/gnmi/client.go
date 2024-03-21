@@ -31,6 +31,7 @@ import (
 	"github.com/openconfig/ygot/ytypes"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 const (
@@ -119,10 +120,10 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 	user := &oc.OpenconfigSystem_System_Aaa_Authentication_Users{
 		User: map[string]*oc.OpenconfigSystem_System_Aaa_Authentication_Users_User{
 			username: {
-				Username: ygot.String(username),
+				Username: pointer.To(username),
 				Config: &oc.OpenconfigSystem_System_Aaa_Authentication_Users_User_Config{
-					Username: ygot.String(username),
-					Password: ygot.String(agentPassword),
+					Username: pointer.To(username),
+					Password: pointer.To(agentPassword),
 					Role:     oc.UnionString("admin"),
 				},
 			},

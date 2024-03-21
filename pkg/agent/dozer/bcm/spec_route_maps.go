@@ -25,6 +25,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specRouteMapsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecRouteMap]{
@@ -59,9 +60,9 @@ var specRouteMapBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions{
 			PolicyDefinition: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Config{
-						Name: ygot.String(name),
+						Name: pointer.To(name),
 					},
 				},
 			},
@@ -128,7 +129,7 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 				conditions.BgpConditions.MatchEvpnSet.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchEvpnSet_Config{}
 			}
 
-			conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route = ygot.Bool(true)
+			conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route = pointer.To(true)
 		}
 		if statement.Conditions.MatchEVPNVNI != nil {
 			if conditions.BgpConditions == nil {
@@ -202,9 +203,9 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 
 		statements := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{}
 		statements.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
-			Name: ygot.String(seq),
+			Name: pointer.To(seq),
 			Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Config{
-				Name: ygot.String(seq),
+				Name: pointer.To(seq),
 			},
 			Conditions: conditions,
 			Actions: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions{
@@ -253,7 +254,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			conditions := dozer.SpecRouteMapConditions{}
 			if statement.Conditions != nil {
 				if statement.Conditions.Config != nil && statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
-					conditions.DirectlyConnected = ygot.Bool(true)
+					conditions.DirectlyConnected = pointer.To(true)
 				}
 				if statement.Conditions.MatchPrefixSet != nil && statement.Conditions.MatchPrefixSet.Config != nil && statement.Conditions.MatchPrefixSet.Config.PrefixSet != nil {
 					conditions.MatchPrefixList = statement.Conditions.MatchPrefixSet.Config.PrefixSet

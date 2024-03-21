@@ -26,6 +26,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 const (
@@ -128,8 +129,8 @@ var specInterfaceBasePortChannelsEnforcer = &DefaultValueEnforcer[string, *dozer
 	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if (isManagement(name) || isPhysical(name)) && desired == nil {
 			return &dozer.SpecInterface{
-				Enabled:     ygot.Bool(false),
-				Description: ygot.String(INTERFACE_DISABLED_DESCRIPTION),
+				Enabled:     pointer.To(false),
+				Description: pointer.To(INTERFACE_DISABLED_DESCRIPTION),
 			}
 		}
 		return desired
@@ -151,8 +152,8 @@ var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfa
 	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if (isManagement(name) || isPhysical(name)) && desired == nil {
 			return &dozer.SpecInterface{
-				Enabled:     ygot.Bool(false),
-				Description: ygot.String(INTERFACE_DISABLED_DESCRIPTION),
+				Enabled:     pointer.To(false),
+				Description: pointer.To(INTERFACE_DISABLED_DESCRIPTION),
 			}
 		}
 		return desired
@@ -162,9 +163,9 @@ var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfa
 
 var marshalSpecInterfaceBaseEnforcer = func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 	val := &oc.OpenconfigInterfaces_Interfaces_Interface{
-		Name: ygot.String(name),
+		Name: pointer.To(name),
 		Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Config{
-			Name:        ygot.String(name),
+			Name:        pointer.To(name),
 			Description: value.Description,
 			Enabled:     value.Enabled,
 			Mtu:         value.MTU, // TODO we'll not be able to unset it as we can't use replace
@@ -181,7 +182,7 @@ var marshalSpecInterfaceBaseEnforcer = func(name string, value *dozer.SpecInterf
 		val.RoutedVlan = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan{
 			Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{
-					Enabled: ygot.Bool(true),
+					Enabled: pointer.To(true),
 				},
 			},
 		}
@@ -210,11 +211,11 @@ var specInterfaceVLANIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInter
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses{
 			Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address{
 				name: {
-					Ip: ygot.String(name),
+					Ip: pointer.To(name),
 					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Addresses_Address_Config{
-						Ip:           ygot.String(name),
+						Ip:           pointer.To(name),
 						PrefixLength: value.PrefixLen,
-						Secondary:    ygot.Bool(false),
+						Secondary:    pointer.To(false),
 					},
 				},
 			},
@@ -265,9 +266,9 @@ var specInterfaceSubinterfaceBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces{
 			Subinterface: map[uint32]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface{
 				idx: {
-					Index: ygot.Uint32(idx),
+					Index: pointer.To(idx),
 					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Config{
-						Index: ygot.Uint32(idx),
+						Index: pointer.To(idx),
 					},
 					Vlan: vlan,
 					Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4{
@@ -300,11 +301,11 @@ var specInterfaceSubinterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.S
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses{
 			Address: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address{
 				ip: {
-					Ip: ygot.String(ip),
+					Ip: pointer.To(ip),
 					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address_Config{
-						Ip:           ygot.String(ip),
+						Ip:           pointer.To(ip),
 						PrefixLength: value.PrefixLen,
-						Secondary:    ygot.Bool(false),
+						Secondary:    pointer.To(false),
 					},
 				},
 			},
@@ -596,9 +597,9 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 						if err != nil {
 							return nil, errors.Wrapf(err, "can't parse %s", vlanID)
 						}
-						vlan = ygot.Uint16(uint16(vlanVal))
+						vlan = pointer.To(uint16(vlanVal))
 					} else if numVal, ok := vlanID.(oc.UnionUint16); ok {
-						vlan = ygot.Uint16(uint16(numVal))
+						vlan = pointer.To(uint16(numVal))
 					} else {
 						return nil, errors.Errorf("unknown vlan id type %v for %s.%d", vlanID, name, id)
 					}

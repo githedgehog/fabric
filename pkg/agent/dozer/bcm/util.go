@@ -17,8 +17,8 @@ package bcm
 import (
 	"strings"
 
-	"github.com/openconfig/ygot/ygot"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *string {
@@ -32,7 +32,7 @@ func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *stri
 	speed = strings.TrimPrefix(speed, "SPEED_")
 	speed = strings.TrimSuffix(speed, "B")
 
-	return ygot.String(speed)
+	return pointer.To(speed)
 }
 
 func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, bool) {

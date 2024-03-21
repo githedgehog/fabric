@@ -24,6 +24,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specACLsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecACL]{
@@ -57,7 +58,7 @@ var specACLBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
 	CreatePath: "/acl/acl-sets/acl-set",
 	MutateDesired: func(key string, desired *dozer.SpecACL) *dozer.SpecACL {
 		if desired != nil && desired.Description == nil {
-			desired.Description = ygot.String(key) // workaround to avoid skipping creation of the ACLs with empty description
+			desired.Description = pointer.To(key) // workaround to avoid skipping creation of the ACLs with empty description
 		}
 
 		return desired
@@ -72,10 +73,10 @@ var specACLBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
 					Type: oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 					Name: name,
 				}: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Type: oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 					Config: &oc.OpenconfigAcl_Acl_AclSets_AclSet_Config{
-						Name:        ygot.String(name),
+						Name:        pointer.To(name),
 						Type:        oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 						Description: value.Description,
 					},
@@ -133,9 +134,9 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 		return &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries{
 			AclEntry: map[uint32]*oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries_AclEntry{
 				seq: {
-					SequenceId: ygot.Uint32(seq),
+					SequenceId: pointer.To(seq),
 					Config: &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries_AclEntry_Config{
-						SequenceId:  ygot.Uint32(seq),
+						SequenceId:  pointer.To(seq),
 						Description: value.Description,
 					},
 					Actions: &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries_AclEntry_Actions{
@@ -210,13 +211,13 @@ var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInter
 		return &oc.OpenconfigAcl_Acl_Interfaces{
 			Interface: map[string]*oc.OpenconfigAcl_Acl_Interfaces_Interface{
 				name: {
-					Id: ygot.String(name),
+					Id: pointer.To(name),
 					Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_Config{
-						Id: ygot.String(name),
+						Id: pointer.To(name),
 					},
 					InterfaceRef: &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef{
 						Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef_Config{
-							Interface: ygot.String(name),
+							Interface: pointer.To(name),
 						},
 					},
 					IngressAclSets: ingressAclSets,
@@ -279,12 +280,12 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 				if entry.Transport != nil && entry.Transport.Config != nil {
 					if entry.Transport.Config.SourcePort != nil {
 						if union, ok := entry.Transport.Config.SourcePort.(oc.UnionUint16); ok {
-							sourcePort = ygot.Uint16(uint16(union))
+							sourcePort = pointer.To(uint16(union))
 						}
 					}
 					if entry.Transport.Config.DestinationPort != nil {
 						if union, ok := entry.Transport.Config.DestinationPort.(oc.UnionUint16); ok {
-							destinationPort = ygot.Uint16(uint16(union))
+							destinationPort = pointer.To(uint16(union))
 						}
 					}
 				}

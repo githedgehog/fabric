@@ -22,6 +22,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specLSTGroupsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecLSTGroup]{
@@ -39,9 +40,9 @@ var specLSTGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTGroup]{
 		return &oc.OpenconfigLstExt_Lst_LstGroups{
 			LstGroup: map[string]*oc.OpenconfigLstExt_Lst_LstGroups_LstGroup{
 				name: {
-					Name: stringPtr(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigLstExt_Lst_LstGroups_LstGroup_Config{
-						Name:                stringPtr(name),
+						Name:                pointer.To(name),
 						AllEvpnEsDownstream: value.AllEVPNESDownstream,
 						Timeout:             value.Timeout,
 					},
@@ -101,9 +102,9 @@ var specLSTInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTInter
 		groups := map[string]*oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups_UpstreamGroup{}
 		for _, group := range value.Groups {
 			groups[group] = &oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups_UpstreamGroup{
-				GroupName: stringPtr(group),
+				GroupName: pointer.To(group),
 				Config: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups_UpstreamGroup_Config{
-					GroupName: stringPtr(group),
+					GroupName: pointer.To(group),
 				},
 			}
 		}
@@ -111,13 +112,13 @@ var specLSTInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTInter
 		return &oc.OpenconfigLstExt_Lst_Interfaces{
 			Interface: map[string]*oc.OpenconfigLstExt_Lst_Interfaces_Interface{
 				id: {
-					Id: stringPtr(id),
+					Id: pointer.To(id),
 					Config: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_Config{
-						Id: stringPtr(id),
+						Id: pointer.To(id),
 					},
 					InterfaceRef: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_InterfaceRef{
 						Config: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_InterfaceRef_Config{
-							Interface: stringPtr(id),
+							Interface: pointer.To(id),
 						},
 					},
 					UpstreamGroups: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups{

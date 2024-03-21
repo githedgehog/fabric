@@ -24,6 +24,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specMCLAGDomainsEnforcer = &DefaultMapEnforcer[uint32, *dozer.SpecMCLAGDomain]{
@@ -41,12 +42,12 @@ var specMCLAGDomainEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecMCLAGDoma
 			MclagDomain: map[uint32]*oc.OpenconfigMclag_Mclag_MclagDomains_MclagDomain{
 				id: {
 					Config: &oc.OpenconfigMclag_Mclag_MclagDomains_MclagDomain_Config{
-						DomainId:      ygot.Uint32(id),
-						SourceAddress: ygot.String(strings.SplitN(value.SourceIP, "/", 2)[0]), // TODO is it good enough?
-						PeerAddress:   ygot.String(strings.SplitN(value.PeerIP, "/", 2)[0]),
-						PeerLink:      ygot.String(value.PeerLink),
+						DomainId:      pointer.To(id),
+						SourceAddress: pointer.To(strings.SplitN(value.SourceIP, "/", 2)[0]), // TODO is it good enough?
+						PeerAddress:   pointer.To(strings.SplitN(value.PeerIP, "/", 2)[0]),
+						PeerLink:      pointer.To(value.PeerLink),
 					},
-					DomainId: ygot.Uint32(id),
+					DomainId: pointer.To(id),
 				},
 			},
 		}, nil
@@ -67,9 +68,9 @@ var specMCLAGInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecMCLAGI
 		return &oc.OpenconfigMclag_Mclag_Interfaces{
 			Interface: map[string]*oc.OpenconfigMclag_Mclag_Interfaces_Interface{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigMclag_Mclag_Interfaces_Interface_Config{
-						MclagDomainId: ygot.Uint32(value.DomainID),
+						MclagDomainId: pointer.To(value.DomainID),
 					},
 				},
 			},

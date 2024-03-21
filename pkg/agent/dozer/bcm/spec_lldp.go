@@ -22,6 +22,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specLLDPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLLDP]{
@@ -87,7 +88,7 @@ var specLLDPInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLLDPInt
 		return &oc.OpenconfigLldp_Lldp_Interfaces{
 			Interface: map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Config{
 						Enabled:               value.Enabled,
 						ManagementAddressIpv4: value.ManagementIPv4,

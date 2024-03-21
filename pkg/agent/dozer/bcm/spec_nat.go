@@ -25,6 +25,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specNATsEnforcer = &DefaultMapEnforcer[uint32, *dozer.SpecNAT]{
@@ -69,7 +70,7 @@ var specNATBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecNAT]{
 	MutateDesired: func(id uint32, desired *dozer.SpecNAT) *dozer.SpecNAT {
 		if id == 0 && desired == nil {
 			desired = &dozer.SpecNAT{
-				Enable: ygot.Bool(false),
+				Enable: pointer.To(false),
 			}
 		}
 
@@ -81,9 +82,9 @@ var specNATBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecNAT]{
 		return &oc.OpenconfigNat_Nat_Instances{
 			Instance: map[uint32]*oc.OpenconfigNat_Nat_Instances_Instance{
 				id: {
-					Id: ygot.Uint32(id),
+					Id: pointer.To(id),
 					Config: &oc.OpenconfigNat_Nat_Instances_Instance_Config{
-						Id:     ygot.Uint32(id),
+						Id:     pointer.To(id),
 						Enable: value.Enable,
 					},
 				},
@@ -106,9 +107,9 @@ var specNATPoolEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNATPool]{
 		return &oc.OpenconfigNat_Nat_Instances_Instance_NatPool{
 			NatPoolEntry: map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatPool_NatPoolEntry{
 				name: {
-					PoolName: ygot.String(name),
+					PoolName: pointer.To(name),
 					Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatPool_NatPoolEntry_Config{
-						PoolName: ygot.String(name),
+						PoolName: pointer.To(name),
 						NatIp:    value.Range,
 					},
 				},
@@ -138,9 +139,9 @@ var specNATBindingEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNATBinding
 		return &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding{
 			NatAclPoolBindingEntry: map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatAclPoolBinding_NatAclPoolBindingEntry_Config{
-						Name:    ygot.String(name),
+						Name:    pointer.To(name),
 						NatPool: value.Pool,
 						Type:    natType,
 					},
@@ -171,9 +172,9 @@ var specNATEntryEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNATEntry]{
 		return &oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable{
 			NatMappingEntry: map[string]*oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable_NatMappingEntry{
 				externalIP: {
-					ExternalAddress: ygot.String(externalIP),
+					ExternalAddress: pointer.To(externalIP),
 					Config: &oc.OpenconfigNat_Nat_Instances_Instance_NatMappingTable_NatMappingEntry_Config{
-						ExternalAddress: ygot.String(externalIP),
+						ExternalAddress: pointer.To(externalIP),
 						InternalAddress: value.InternalAddress,
 						Type:            natType,
 					},

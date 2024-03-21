@@ -32,6 +32,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 const (
@@ -69,8 +70,8 @@ const (
 
 func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
 	spec := &dozer.Spec{
-		ZTP:             boolPtr(false),
-		Hostname:        stringPtr(agent.Name),
+		ZTP:             pointer.To(false),
+		Hostname:        pointer.To(agent.Name),
 		LLDP:            &dozer.SpecLLDP{},
 		LLDPInterfaces:  map[string]*dozer.SpecLLDPInterface{},
 		NTP:             &dozer.SpecNTP{},
@@ -83,7 +84,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 		Users:           map[string]*dozer.SpecUser{},
 		VRFs: map[string]*dozer.SpecVRF{
 			VRF_DEFAULT: { // default VRF is always present
-				Enabled:          boolPtr(true),
+				Enabled:          pointer.To(true),
 				Interfaces:       map[string]*dozer.SpecVRFInterface{},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
@@ -109,7 +110,7 @@ func (p *broadcomProcessor) PlanDesiredState(ctx context.Context, agent *agentap
 
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
 		spec.PortGroups[name] = &dozer.SpecPortGroup{
-			Speed: stringPtr(speed),
+			Speed: pointer.To(speed),
 		}
 	}
 
@@ -255,14 +256,14 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 	prefixLen, _ := ipNet.Mask.Size()
 
 	spec.Interfaces[controlIface] = &dozer.SpecInterface{
-		Description: stringPtr("Control interface direct"),
-		Enabled:     boolPtr(true),
+		Description: pointer.To("Control interface direct"),
+		Enabled:     pointer.To(true),
 		Speed:       getPortSpeed(agent, controlIface),
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
-						PrefixLen: uint8Ptr(uint8(prefixLen)),
+						PrefixLen: pointer.To(uint8(prefixLen)),
 					},
 				},
 			},
@@ -280,7 +281,7 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 			NextHops: []dozer.SpecVRFStaticRouteNextHop{
 				{
 					IP:        ip.String(),
-					Interface: stringPtr(controlIface),
+					Interface: pointer.To(controlIface),
 				},
 			},
 		}
@@ -291,10 +292,10 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.LLDP = &dozer.SpecLLDP{
-		Enabled:           boolPtr(true),
-		HelloTimer:        uint64Ptr(5), // TODO make configurable?
-		SystemName:        stringPtr(agent.Name),
-		SystemDescription: stringPtr(fmt.Sprintf("Hedgehog: [control_vip=%s]", agent.Spec.Config.ControlVIP)),
+		Enabled:           pointer.To(true),
+		HelloTimer:        pointer.To(uint64(5)), // TODO make configurable?
+		SystemName:        pointer.To(agent.Name),
+		SystemDescription: pointer.To(fmt.Sprintf("Hedgehog: [control_vip=%s]", agent.Spec.Config.ControlVIP)),
 	}
 
 	if !agent.IsSpineLeaf() {
@@ -325,8 +326,8 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				if mgmtIP != "" && iface != "" {
 					spec.LLDPInterfaces[iface] = &dozer.SpecLLDPInterface{
-						Enabled:        boolPtr(true),
-						ManagementIPv4: stringPtr(mgmtIP),
+						Enabled:        pointer.To(true),
+						ManagementIPv4: pointer.To(mgmtIP),
 					}
 				}
 			}
@@ -345,7 +346,7 @@ func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	addr, _ := strings.CutSuffix(agent.Spec.Config.ControlVIP, "/32")
 
 	spec.NTPServers[addr] = &dozer.SpecNTPServer{
-		Prefer: boolPtr(true),
+		Prefer: pointer.To(true),
 	}
 
 	return nil
@@ -359,13 +360,13 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	ipPrefixLen, _ := ipNet.Mask.Size()
 
 	spec.Interfaces[LO_SWITCH] = &dozer.SpecInterface{
-		Enabled:     boolPtr(true),
-		Description: stringPtr("Switch loopback"),
+		Enabled:     pointer.To(true),
+		Description: pointer.To("Switch loopback"),
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
-						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+						PrefixLen: pointer.To(uint8(ipPrefixLen)),
 					},
 				},
 			},
@@ -379,13 +380,13 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	ipPrefixLen, _ = ipNet.Mask.Size()
 
 	spec.Interfaces[LO_PROTO] = &dozer.SpecInterface{
-		Enabled:     boolPtr(true),
-		Description: stringPtr("Protocol loopback"),
+		Enabled:     pointer.To(true),
+		Description: pointer.To("Protocol loopback"),
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
-						PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+						PrefixLen: pointer.To(uint8(ipPrefixLen)),
 					},
 				},
 			},
@@ -400,13 +401,13 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 		ipPrefixLen, _ = ipNet.Mask.Size()
 
 		spec.Interfaces[LO_VTEP] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr("VTEP loopback"),
+			Enabled:     pointer.To(true),
+			Description: pointer.To("VTEP loopback"),
 			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 				0: {
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+							PrefixLen: pointer.To(uint8(ipPrefixLen)),
 						},
 					},
 				},
@@ -468,14 +469,14 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			ipPrefixLen, _ := ipNet.Mask.Size()
 
 			spec.Interfaces[port] = &dozer.SpecInterface{
-				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
+				Enabled:     pointer.To(true),
+				Description: pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
 				Speed:       getPortSpeed(agent, port),
 				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 					0: {
 						IPs: map[string]*dozer.SpecInterfaceIP{
 							ip.String(): {
-								PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+								PrefixLen: pointer.To(uint8(ipPrefixLen)),
 							},
 						},
 					},
@@ -491,14 +492,14 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 
 				spec.VRFs[VRF_DEFAULT].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
-					Enabled:                 boolPtr(true),
-					Description:             stringPtr(fmt.Sprintf("Fabric %s %s", remote, connName)),
-					RemoteAS:                uint32Ptr(peerSw.ASN),
-					IPv4Unicast:             boolPtr(true),
-					L2VPNEVPN:               boolPtr(true),
+					Enabled:                 pointer.To(true),
+					Description:             pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
+					RemoteAS:                pointer.To(peerSw.ASN),
+					IPv4Unicast:             pointer.To(true),
+					L2VPNEVPN:               pointer.To(true),
 					L2VPNEVPNImportPolicies: []string{ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE},
 					// TODO: We might later specify dedicated neighbors for this.
-					L2VPNEVPNAllowOwnAS: boolPtr(true),
+					L2VPNEVPNAllowOwnAS: pointer.To(true),
 				}
 			}
 		}
@@ -520,8 +521,8 @@ func planVPCLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			for portID, port := range []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()} {
 				spec.Interfaces[port] = &dozer.SpecInterface{
-					Enabled:       boolPtr(true),
-					Description:   stringPtr(fmt.Sprintf("VPC loopback %d.%d %s", linkID, portID, connName)),
+					Enabled:       pointer.To(true),
+					Description:   pointer.To(fmt.Sprintf("VPC loopback %d.%d %s", linkID, portID, connName)),
 					Speed:         getPortSpeed(agent, port),
 					Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 				}
@@ -553,8 +554,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		port := conn.External.Link.Switch.LocalPortName()
 
 		spec.Interfaces[port] = &dozer.SpecInterface{
-			Enabled:       boolPtr(true),
-			Description:   stringPtr(fmt.Sprintf("External %s", connName)),
+			Enabled:       pointer.To(true),
+			Description:   pointer.To(fmt.Sprintf("External %s", connName)),
 			Speed:         getPortSpeed(agent, port),
 			Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
 		}
@@ -589,9 +590,9 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", ROUTE_MAP_MAX_STATEMENT-10)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
-				MatchCommunityList: stringPtr(BGP_COMM_LIST_ALL_EXTERNALS),
+				MatchCommunityList: pointer.To(BGP_COMM_LIST_ALL_EXTERNALS),
 			},
-			SetLocalPreference: uint32Ptr(500),
+			SetLocalPreference: pointer.To(uint32(500)),
 			Result:             dozer.SpecRouteMapResultAccept,
 		}
 	}
@@ -621,7 +622,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: stringPtr(externalCommsCommList),
+						MatchCommunityList: pointer.To(externalCommsCommList),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -646,7 +647,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		seq := uint32(10)
 		for _, subnet := range ipns.Subnets {
 			spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)].Entries[seq] = &dozer.SpecACLEntry{
-				DestinationAddress: stringPtr(subnet),
+				DestinationAddress: pointer.To(subnet),
 				Action:             dozer.SpecACLEntryActionDrop,
 			}
 			seq += 10
@@ -659,25 +660,25 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			spec.VRFs[ipnsVrfName] = &dozer.SpecVRF{
-				Enabled: boolPtr(true),
-				// Description:      stringPtr(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
-				AnycastMAC:       stringPtr(ANYCAST_MAC),
+				Enabled: pointer.To(true),
+				// Description:      pointer.To(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
+				AnycastMAC:       pointer.To(ANYCAST_MAC),
 				Interfaces:       map[string]*dozer.SpecVRFInterface{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
 				BGP: &dozer.SpecVRFBGP{
-					AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-					RouterID:           stringPtr(protocolIP.String()),
-					NetworkImportCheck: boolPtr(true),
+					AS:                 pointer.To(agent.Spec.Switch.ASN),
+					RouterID:           pointer.To(protocolIP.String()),
+					NetworkImportCheck: pointer.To(true),
 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 						Enabled:    true,
-						MaxPaths:   uint32Ptr(getMaxPaths(agent)),
+						MaxPaths:   pointer.To(getMaxPaths(agent)),
 						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 					},
 					L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 						Enabled:            agent.IsSpineLeaf(),
-						AdvertiseDefaultGw: boolPtr(true),
+						AdvertiseDefaultGw: pointer.To(true),
 					},
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 				},
@@ -693,13 +694,13 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"5": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+						MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: stringPtr(commList),
+						MatchCommunityList: pointer.To(commList),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -718,7 +719,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(prefList),
+						MatchPrefixList: pointer.To(prefList),
 					},
 					SetCommunities: []string{external.OutboundCommunity},
 					Result:         dozer.SpecRouteMapResultAccept,
@@ -747,7 +748,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		port := conn.External.Link.Switch.LocalPortName()
 		var vlan *uint16
 		if attach.Switch.VLAN != 0 {
-			vlan = uint16Ptr(uint16(attach.Switch.VLAN))
+			vlan = pointer.To(uint16(attach.Switch.VLAN))
 		}
 
 		ip, ipNet, err := net.ParseCIDR(attach.Switch.IP)
@@ -760,7 +761,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			VLAN: vlan,
 			IPs: map[string]*dozer.SpecInterfaceIP{
 				ip.String(): {
-					PrefixLen: uint8Ptr(uint8(prefixLength)),
+					PrefixLen: pointer.To(uint8(prefixLength)),
 				},
 			},
 		}
@@ -772,16 +773,16 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		spec.VRFs[ipnsVrfName].Interfaces[subIfaceName] = &dozer.SpecVRFInterface{}
 
 		spec.VRFs[ipnsVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
-			Enabled:                   boolPtr(true),
-			Description:               stringPtr(fmt.Sprintf("External attach %s", name)),
-			RemoteAS:                  uint32Ptr(attach.Neighbor.ASN),
-			IPv4Unicast:               boolPtr(true),
+			Enabled:                   pointer.To(true),
+			Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
+			RemoteAS:                  pointer.To(attach.Neighbor.ASN),
+			IPv4Unicast:               pointer.To(true),
 			IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
 			IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 		}
 
 		spec.ACLInterfaces[subIfaceName] = &dozer.SpecACLInterface{
-			Egress: stringPtr(ipnsEgressAccessList(ipns)),
+			Egress: pointer.To(ipnsEgressAccessList(ipns)),
 		}
 	}
 
@@ -806,18 +807,18 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		var vlan *uint16
 		if cfg.VLAN != 0 {
-			vlan = uint16Ptr(cfg.VLAN)
+			vlan = pointer.To(cfg.VLAN)
 		}
 
 		spec.Interfaces[cfg.LocalPortName()] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("StaticExt %s", connName)),
+			Enabled:     pointer.To(true),
+			Description: pointer.To(fmt.Sprintf("StaticExt %s", connName)),
 			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 				uint32(cfg.VLAN): {
 					VLAN: vlan,
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: uint8Ptr(uint8(ipPrefixLen)),
+							PrefixLen: pointer.To(uint8(ipPrefixLen)),
 						},
 					},
 				},
@@ -854,7 +855,7 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
 						IP:        cfg.NextHop,
-						Interface: stringPtr(ifName),
+						Interface: pointer.To(ifName),
 					},
 				},
 			}
@@ -913,20 +914,20 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if conn.MCLAG != nil {
 			connType = "MCLAG"
 			if conn.MCLAG.MTU != 0 {
-				mtu = uint16Ptr(conn.MCLAG.MTU)
+				mtu = pointer.To(conn.MCLAG.MTU)
 			}
 			fallback = fallback && conn.MCLAG.Fallback
 			links = conn.MCLAG.Links
 		} else if conn.Bundled != nil {
 			connType = "Bundled"
 			if conn.Bundled.MTU != 0 {
-				mtu = uint16Ptr(conn.Bundled.MTU)
+				mtu = pointer.To(conn.Bundled.MTU)
 			}
 			links = conn.Bundled.Links
 		} else if conn.ESLAG != nil {
 			connType = "ESLAG"
 			if conn.ESLAG.MTU != 0 {
-				mtu = uint16Ptr(conn.ESLAG.MTU)
+				mtu = pointer.To(conn.ESLAG.MTU)
 			}
 			fallback = fallback && conn.ESLAG.Fallback
 			links = conn.ESLAG.Links
@@ -936,7 +937,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		// TODO remove when we have a way to configure MTU for port channels reliably
 		// if mtu == nil {
-		mtu = uint16Ptr(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
+		mtu = pointer.To(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
 		//}
 
 		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
@@ -956,8 +957,8 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			connPortChannelName := portChannelName(portChan)
 			connPortChannel := &dozer.SpecInterface{
-				Enabled:     boolPtr(true),
-				Description: stringPtr(fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), connName)),
+				Enabled:     pointer.To(true),
+				Description: pointer.To(fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), connName)),
 				TrunkVLANs:  []string{},
 				MTU:         mtu,
 			}
@@ -968,7 +969,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 					DomainID: MCLAG_DOMAIN_ID,
 				}
 				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
-					Fallback: boolPtr(fallback),
+					Fallback: pointer.To(fallback),
 				}
 			} else if connType == "ESLAG" {
 				mac, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
@@ -988,8 +989,8 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				mac = newMACVal[2:]
 				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
-					SystemMAC: stringPtr(mac.String()),
-					Fallback:  boolPtr(fallback),
+					SystemMAC: pointer.To(mac.String()),
+					Fallback:  pointer.To(fallback),
 				}
 
 				esi := strings.ReplaceAll(agent.Spec.Config.ESLAGESIPrefix+mac.String(), ":", "")
@@ -1014,11 +1015,11 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		var mtu *uint16
 		if conn.Unbundled.MTU != 0 {
-			mtu = uint16Ptr(conn.Unbundled.MTU)
+			mtu = pointer.To(conn.Unbundled.MTU)
 		}
 
 		if mtu == nil {
-			mtu = uint16Ptr(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
+			mtu = pointer.To(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
 		}
 
 		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
@@ -1032,8 +1033,8 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		swPort := conn.Unbundled.Link.Switch
 
 		spec.Interfaces[swPort.LocalPortName()] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), connName)),
+			Enabled:     pointer.To(true),
+			Description: pointer.To(fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), connName)),
 			Speed:       getPortSpeed(agent, swPort.LocalPortName()),
 			TrunkVLANs:  []string{},
 			MTU:         mtu,
@@ -1049,19 +1050,19 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 	}
 
-	spec.VRFs[VRF_DEFAULT].AnycastMAC = stringPtr(ANYCAST_MAC)
+	spec.VRFs[VRF_DEFAULT].AnycastMAC = pointer.To(ANYCAST_MAC)
 	spec.VRFs[VRF_DEFAULT].BGP = &dozer.SpecVRFBGP{
-		AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-		RouterID:           stringPtr(ip.String()),
-		NetworkImportCheck: boolPtr(true), // default
+		AS:                 pointer.To(agent.Spec.Switch.ASN),
+		RouterID:           pointer.To(ip.String()),
+		NetworkImportCheck: pointer.To(true), // default
 		Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
 		IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 			Enabled:  true,
-			MaxPaths: uint32Ptr(getMaxPaths(agent)),
+			MaxPaths: pointer.To(getMaxPaths(agent)),
 		},
 		L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 			Enabled:         agent.IsSpineLeaf(),
-			AdvertiseAllVNI: boolPtr(true),
+			AdvertiseAllVNI: pointer.To(true),
 		},
 	}
 	spec.VRFs[VRF_DEFAULT].TableConnections = map[string]*dozer.SpecVRFTableConnection{
@@ -1084,14 +1085,14 @@ func planVXLAN(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	spec.VXLANTunnels = map[string]*dozer.SpecVXLANTunnel{
 		VTEP_FABRIC: {
-			SourceIP:        stringPtr(ip.String()),
-			SourceInterface: stringPtr(LO_VTEP),
+			SourceIP:        pointer.To(ip.String()),
+			SourceInterface: pointer.To(LO_VTEP),
 		},
 	}
 
 	spec.VXLANEVPNNVOs = map[string]*dozer.SpecVXLANEVPNNVO{
 		EVPN_NVO: {
-			SourceVTEP: stringPtr(VTEP_FABRIC),
+			SourceVTEP: pointer.To(VTEP_FABRIC),
 		},
 	}
 
@@ -1150,8 +1151,8 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	mclagPeerPortChannelName := portChannelName(MCLAG_PEER_LINK_PORT_CHANNEL_ID)
 	mclagPeerPortChannel := &dozer.SpecInterface{
-		Description: stringPtr(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
-		Enabled:     boolPtr(true),
+		Description: pointer.To(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
+		Enabled:     pointer.To(true),
 		TrunkVLANs:  []string{MCLAG_PEER_LINK_TRUNK_VLAN_RANGE},
 	}
 	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
@@ -1165,13 +1166,13 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 	mclagSessionPortChannelName := portChannelName(MCLAG_SESSION_LINK_PORT_CHANNEL_ID)
 	mclagSessionPortChannel := &dozer.SpecInterface{
-		Description: stringPtr(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
-		Enabled:     boolPtr(true),
+		Description: pointer.To(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
+		Enabled:     pointer.To(true),
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					sourceIP: {
-						PrefixLen: uint8Ptr(MCLAG_SESSION_IP_PREFIX_LEN),
+						PrefixLen: pointer.To(uint8(MCLAG_SESSION_IP_PREFIX_LEN)),
 					},
 				},
 			},
@@ -1193,10 +1194,10 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	}
 
 	spec.VRFs[VRF_DEFAULT].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
-		Enabled:     boolPtr(true),
-		Description: stringPtr(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
-		PeerType:    stringPtr(dozer.SpecVRFBGPNeighborPeerTypeInternal),
-		IPv4Unicast: boolPtr(true),
+		Enabled:     pointer.To(true),
+		Description: pointer.To(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
+		PeerType:    pointer.To(dozer.SpecVRFBGPNeighborPeerTypeInternal),
+		IPv4Unicast: pointer.To(true),
 	}
 
 	return sourceIP == MCLAG_SESSION_IP_1, nil
@@ -1204,8 +1205,8 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 
 func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.VRFs[VRF_DEFAULT].EVPNMH = dozer.SpecVRFEVPNMH{
-		MACHoldtime:  uint32Ptr(60),
-		StartupDelay: uint32Ptr(60),
+		MACHoldtime:  pointer.To(uint32(60)),
+		StartupDelay: pointer.To(uint32(60)),
 	}
 
 	if !agent.Spec.Role.IsLeaf() {
@@ -1213,8 +1214,8 @@ func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	spec.LSTGroups[LST_GROUP_SPINELINK] = &dozer.SpecLSTGroup{
-		AllEVPNESDownstream: boolPtr(true),
-		Timeout:             uint16Ptr(180),
+		AllEVPNESDownstream: pointer.To(true),
+		Timeout:             pointer.To(uint16(180)),
 	}
 
 	for _, conn := range agent.Spec.Connections {
@@ -1294,8 +1295,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		irbIface := vlanName(irbVLAN)
 		spec.Interfaces[irbIface] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("VPC %s IRB", vpcName)),
+			Enabled:     pointer.To(true),
+			Description: pointer.To(fmt.Sprintf("VPC %s IRB", vpcName)),
 		}
 
 		if spec.VRFs[vrfName] == nil {
@@ -1372,20 +1373,20 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Statements: map[string]*dozer.SpecRouteMapStatement{
 					"1": {
 						Conditions: dozer.SpecRouteMapConditions{
-							MatchNextHopPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
+							MatchNextHopPrefixList: pointer.To(PREFIX_LIST_VPC_LOOPBACK),
 						},
 						Result: dozer.SpecRouteMapResultReject,
 					},
 					"50000": {
 						Conditions: dozer.SpecRouteMapConditions{
-							MatchCommunityList: stringPtr(vpcPeersCommList),
+							MatchCommunityList: pointer.To(vpcPeersCommList),
 						},
 						Result: dozer.SpecRouteMapResultAccept,
 					},
 					"50001": {
 						Conditions: dozer.SpecRouteMapConditions{
-							MatchCommunityList: stringPtr(NO_COMMUNITY),
-							MatchPrefixList:    stringPtr(vpcPeersPrefixListName(vpcName)),
+							MatchCommunityList: pointer.To(NO_COMMUNITY),
+							MatchPrefixList:    pointer.To(vpcPeersPrefixListName(vpcName)),
 						},
 						Result: dozer.SpecRouteMapResultAccept,
 					},
@@ -1406,20 +1407,20 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"1": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
+						MatchPrefixList: pointer.To(PREFIX_LIST_VPC_LOOPBACK),
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
 				"5": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(vpcSubnetsPrefixListName(vpcName)),
+						MatchPrefixList: pointer.To(vpcSubnetsPrefixListName(vpcName)),
 					},
 					SetCommunities: []string{vpcComm},
 					Result:         dozer.SpecRouteMapResultAccept,
 				},
 				"6": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(vpcStaticExtSubnetsPrefixListName(vpcName)),
+						MatchPrefixList: pointer.To(vpcStaticExtSubnetsPrefixListName(vpcName)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -1434,13 +1435,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"1": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(PREFIX_LIST_VPC_LOOPBACK),
+						MatchPrefixList: pointer.To(PREFIX_LIST_VPC_LOOPBACK),
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
 				"5": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: stringPtr(vpcStaticExtSubnetsPrefixListName(vpcName)),
+						MatchPrefixList: pointer.To(vpcStaticExtSubnetsPrefixListName(vpcName)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -1452,21 +1453,21 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 		}
 
-		spec.VRFs[vrfName].Enabled = boolPtr(true)
-		spec.VRFs[vrfName].AnycastMAC = stringPtr(ANYCAST_MAC)
+		spec.VRFs[vrfName].Enabled = pointer.To(true)
+		spec.VRFs[vrfName].AnycastMAC = pointer.To(ANYCAST_MAC)
 		spec.VRFs[vrfName].BGP = &dozer.SpecVRFBGP{
-			AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-			RouterID:           stringPtr(protocolIP.String()),
-			NetworkImportCheck: boolPtr(true),
+			AS:                 pointer.To(agent.Spec.Switch.ASN),
+			RouterID:           pointer.To(protocolIP.String()),
+			NetworkImportCheck: pointer.To(true),
 			IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 				Enabled:      true,
-				MaxPaths:     uint32Ptr(getMaxPaths(agent)),
-				ImportPolicy: stringPtr(importVrfRouteMap),
+				MaxPaths:     pointer.To(getMaxPaths(agent)),
+				ImportPolicy: pointer.To(importVrfRouteMap),
 				ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 				Enabled:              agent.IsSpineLeaf(),
-				AdvertiseIPv4Unicast: boolPtr(true),
+				AdvertiseIPv4Unicast: pointer.To(true),
 			},
 		}
 		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
@@ -1487,12 +1488,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Errorf("VNI for VPC %s not found", vpcName)
 			}
 			spec.VRFVNIMap[vrfName] = &dozer.SpecVRFVNIEntry{
-				VNI: uint32Ptr(vpcVNI),
+				VNI: pointer.To(vpcVNI),
 			}
 			spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", vpcVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
-				VTEP: stringPtr(VTEP_FABRIC),
-				VNI:  uint32Ptr(vpcVNI),
-				VLAN: uint16Ptr(irbVLAN),
+				VTEP: pointer.To(VTEP_FABRIC),
+				VNI:  pointer.To(vpcVNI),
+				VLAN: pointer.To(irbVLAN),
 			}
 		}
 	}
@@ -1576,7 +1577,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
 				}
 
-				spec.Interfaces[iface].AccessVLAN = uint16Ptr(uint16(vlan))
+				spec.Interfaces[iface].AccessVLAN = pointer.To(uint16(vlan))
 			} else {
 				if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN) {
 					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN)
@@ -1702,15 +1703,15 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		spec.RouteMaps[vpcExtImportVrfRouteMapName(vpc1Name)].Statements[fmt.Sprintf("%d", 10000+vni2/100)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
-				MatchPrefixList: stringPtr(vpcNotSubnetsPrefixListName(vpc2Name)),
-				MatchSourceVRF:  stringPtr(vpcVrfName(vpc2Name)),
+				MatchPrefixList: pointer.To(vpcNotSubnetsPrefixListName(vpc2Name)),
+				MatchSourceVRF:  pointer.To(vpcVrfName(vpc2Name)),
 			},
 			Result: dozer.SpecRouteMapResultReject,
 		}
 		spec.RouteMaps[vpcExtImportVrfRouteMapName(vpc2Name)].Statements[fmt.Sprintf("%d", 10000+vni1/100)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
-				MatchPrefixList: stringPtr(vpcNotSubnetsPrefixListName(vpc1Name)),
-				MatchSourceVRF:  stringPtr(vpcVrfName(vpc1Name)),
+				MatchPrefixList: pointer.To(vpcNotSubnetsPrefixListName(vpc1Name)),
+				MatchSourceVRF:  pointer.To(vpcVrfName(vpc1Name)),
 			},
 			Result: dozer.SpecRouteMapResultReject,
 		}
@@ -1741,15 +1742,15 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if remote {
 				spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", uint(vni1/100))] = &dozer.SpecRouteMapStatement{
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchEVPNVNI:          uint32Ptr(vni1),
-						MatchEVPNDefaultRoute: boolPtr(true),
+						MatchEVPNVNI:          pointer.To(vni1),
+						MatchEVPNDefaultRoute: pointer.To(true),
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				}
 				spec.RouteMaps[ROUTE_MAP_BLOCK_EVPN_DEFAULT_REMOTE].Statements[fmt.Sprintf("%d", uint(vni2/100))] = &dozer.SpecRouteMapStatement{
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchEVPNVNI:          uint32Ptr(vni2),
-						MatchEVPNDefaultRoute: boolPtr(true),
+						MatchEVPNVNI:          pointer.To(vni2),
+						MatchEVPNDefaultRoute: pointer.To(true),
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				}
@@ -1775,7 +1776,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip1,
-							Interface: stringPtr(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
+							Interface: pointer.To(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
 						},
 					},
 				}
@@ -1792,7 +1793,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip2,
-							Interface: stringPtr(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
+							Interface: pointer.To(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
 						},
 					},
 				}
@@ -1849,8 +1850,8 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 
 	subnetIface := vlanName(subnetVLAN)
 	spec.Interfaces[subnetIface] = &dozer.SpecInterface{
-		Enabled:     boolPtr(true),
-		Description: stringPtr(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
+		Enabled:     pointer.To(true),
+		Description: pointer.To(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
 		VLANAnycastGateway: []string{
 			fmt.Sprintf("%s/%d", subnetCIDR.Gateway.String(), prefixLen),
 		},
@@ -1860,7 +1861,7 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 
 	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)
 	spec.ACLInterfaces[subnetIface] = &dozer.SpecACLInterface{
-		Ingress: stringPtr(vpcFilteringACL),
+		Ingress: pointer.To(vpcFilteringACL),
 	}
 
 	spec.ACLs[vpcFilteringACL], err = buildVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
@@ -1876,9 +1877,9 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 			return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
 		}
 		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
-			VTEP: stringPtr(VTEP_FABRIC),
-			VNI:  uint32Ptr(subnetVNI),
-			VLAN: uint16Ptr(subnetVLAN),
+			VTEP: pointer.To(VTEP_FABRIC),
+			VNI:  pointer.To(subnetVNI),
+			VLAN: pointer.To(subnetVLAN),
 		}
 	}
 
@@ -1898,7 +1899,7 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 		}
 
 		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
-			SourceInterface: stringPtr(LO_SWITCH),
+			SourceInterface: pointer.To(LO_SWITCH),
 			RelayAddress:    []string{dhcpRelayIP.String()},
 			LinkSelect:      true,
 			VRFSelect:       true,
@@ -1919,7 +1920,7 @@ func buildVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCS
 
 	if vpc.IsSubnetRestricted(subnetName) {
 		acl.Entries[1] = &dozer.SpecACLEntry{
-			DestinationAddress: stringPtr(subnet.Subnet),
+			DestinationAddress: pointer.To(subnet.Subnet),
 			Action:             dozer.SpecACLEntryActionDrop,
 		}
 	}
@@ -1967,7 +1968,7 @@ func buildVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCS
 		}
 
 		acl.Entries[subnetID] = &dozer.SpecACLEntry{
-			DestinationAddress: stringPtr(subnet),
+			DestinationAddress: pointer.To(subnet),
 			Action:             dozer.SpecACLEntryActionDrop,
 		}
 	}
@@ -2053,7 +2054,7 @@ func addVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, v
 			aclName := vpcFilteringAccessListName(vpc1Name, vpc1SubnetName)
 			if spec.ACLs[aclName] != nil {
 				spec.ACLs[aclName].Entries[subnetID] = &dozer.SpecACLEntry{
-					DestinationAddress: stringPtr(vpc2Subnet.Subnet),
+					DestinationAddress: pointer.To(vpc2Subnet.Subnet),
 					Action:             dozer.SpecACLEntryActionDrop,
 				}
 			}
@@ -2138,8 +2139,8 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			importVrfRouteMap := vpcExtImportVrfRouteMapName(vpcName)
 			spec.RouteMaps[importVrfRouteMap].Statements["5"] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
-					MatchPrefixList: stringPtr(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
-					MatchSourceVRF:  stringPtr(ipnsVrfName(vpc.IPv4Namespace)),
+					MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
+					MatchSourceVRF:  pointer.To(ipnsVrfName(vpc.IPv4Namespace)),
 				},
 				Result: dozer.SpecRouteMapResultReject,
 			}
@@ -2156,10 +2157,10 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
-					MatchCommunityList: stringPtr(extInboundCommListName(externalName)),
-					MatchPrefixList:    stringPtr(importVrfPrefixList),
+					MatchCommunityList: pointer.To(extInboundCommListName(externalName)),
+					MatchPrefixList:    pointer.To(importVrfPrefixList),
 				},
-				SetLocalPreference: uint32Ptr(500),
+				SetLocalPreference: pointer.To(uint32(500)),
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 
@@ -2175,7 +2176,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[ipnsVrf].Interfaces[sub2] = &dozer.SpecVRFInterface{}
 
 			spec.ACLInterfaces[sub1] = &dozer.SpecACLInterface{
-				Egress: stringPtr(ipnsEgressAccessList(external.IPv4Namespace)),
+				Egress: pointer.To(ipnsEgressAccessList(external.IPv4Namespace)),
 			}
 
 			for _, subnetName := range peering.Permit.VPC.Subnets {
@@ -2194,7 +2195,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip1,
-							Interface: stringPtr(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
+							Interface: pointer.To(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
 						},
 					},
 				}
@@ -2213,7 +2214,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip2,
-							Interface: stringPtr(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
+							Interface: pointer.To(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
 						},
 					},
 				}
@@ -2255,7 +2256,7 @@ func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, loWReq stri
 		VLAN: &vlan,
 		IPs: map[string]*dozer.SpecInterfaceIP{
 			ip1: {
-				PrefixLen: uint8Ptr(31),
+				PrefixLen: pointer.To(uint8(31)),
 			},
 		},
 	}
@@ -2336,8 +2337,8 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	}
 
 	physicalIface := &dozer.SpecInterface{
-		Description: stringPtr(description),
-		Enabled:     boolPtr(true),
+		Description: pointer.To(description),
+		Enabled:     pointer.To(true),
 		Speed:       getPortSpeed(agent, name),
 		PortChannel: &portChannel,
 		MTU:         mtu,
@@ -2444,15 +2445,3 @@ func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 
 	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
 }
-
-func stringPtr(s string) *string { return &s }
-
-func uint8Ptr(u uint8) *uint8 { return &u }
-
-func uint16Ptr(u uint16) *uint16 { return &u }
-
-func uint32Ptr(u uint32) *uint32 { return &u }
-
-func uint64Ptr(u uint64) *uint64 { return &u }
-
-func boolPtr(b bool) *bool { return &b }

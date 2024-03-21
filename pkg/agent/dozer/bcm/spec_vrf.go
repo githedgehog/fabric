@@ -25,6 +25,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"golang.org/x/exp/maps"
 )
 
@@ -95,9 +96,9 @@ var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 		return &oc.OpenconfigNetworkInstance_NetworkInstances{
 			NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Config{
-						Name:        ygot.String(name),
+						Name:        pointer.To(name),
 						Enabled:     value.Enabled,
 						Description: value.Description,
 					},
@@ -146,12 +147,12 @@ var specVRFEVPNEthernetSegmentEnforcer = &DefaultValueEnforcer[string, *dozer.Sp
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EthernetSegments{
 			EthernetSegment: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EthernetSegments_EthernetSegment{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EthernetSegments_EthernetSegment_Config{
-						Name:      stringPtr(name),
+						Name:      pointer.To(name),
 						EsiType:   oc.OpenconfigEvpn_EsiType_TYPE_0_OPERATOR_CONFIGURED,
 						Esi:       oc.UnionString(value.ESI),
-						Interface: stringPtr(name),
+						Interface: pointer.To(name),
 					},
 				},
 			},
@@ -192,9 +193,9 @@ var specVRFInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFInter
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces{
 			Interface: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface{
 				iface: {
-					Id: ygot.String(iface),
+					Id: pointer.To(iface),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface_Config{
-						Id: ygot.String(iface),
+						Id: pointer.To(iface),
 					},
 				},
 			},
@@ -385,9 +386,9 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
 				name: {
-					NeighborAddress: ygot.String(name),
+					NeighborAddress: pointer.To(name),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
-						NeighborAddress: ygot.String(name),
+						NeighborAddress: pointer.To(name),
 						Enabled:         value.Enabled,
 						Description:     value.Description,
 						PeerAs:          value.RemoteAS,
@@ -434,9 +435,9 @@ var specVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig{
 			Network: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network{
 				prefix: {
-					Prefix: ygot.String(prefix),
+					Prefix: pointer.To(prefix),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network_Config{
-						Prefix: ygot.String(prefix),
+						Prefix: pointer.To(prefix),
 					},
 				},
 			},
@@ -571,9 +572,9 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 
 			index := fmt.Sprintf("%s_%s", *nextHop.Interface, nextHop.IP)
 			nextHops[index] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{
-				Index: ygot.String(index),
+				Index: pointer.To(index),
 				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_Config{
-					Index:   ygot.String(index),
+					Index:   pointer.To(index),
 					NextHop: oc.UnionString(nextHop.IP),
 				},
 				InterfaceRef: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef{
@@ -587,9 +588,9 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes{
 			Static: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static{
 				prefix: {
-					Prefix: ygot.String(prefix),
+					Prefix: pointer.To(prefix),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_Config{
-						Prefix: ygot.String(prefix),
+						Prefix: pointer.To(prefix),
 					},
 					NextHops: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops{
 						NextHop: nextHops,
@@ -697,7 +698,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 								if l2vpnEVPN.RouteAdvertise != nil {
 									for _, route := range l2vpnEVPN.RouteAdvertise.RouteAdvertiseList {
 										if route.Config != nil && route.Config.AdvertiseAfiSafi == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST {
-											bgp.L2VPNEVPN.AdvertiseIPv4Unicast = ygot.Bool(true)
+											bgp.L2VPNEVPN.AdvertiseIPv4Unicast = pointer.To(true)
 											bgp.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = route.Config.RouteMap
 											break
 										}
@@ -745,9 +746,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 						var peerType *string
 						if neighbor.Config.PeerType == oc.OpenconfigBgp_PeerType_INTERNAL {
-							peerType = ygot.String(dozer.SpecVRFBGPNeighborPeerTypeInternal)
+							peerType = pointer.To(dozer.SpecVRFBGPNeighborPeerTypeInternal)
 						} else if neighbor.Config.PeerType == oc.OpenconfigBgp_PeerType_EXTERNAL {
-							peerType = ygot.String(dozer.SpecVRFBGPNeighborPeerTypeExternal)
+							peerType = pointer.To(dozer.SpecVRFBGPNeighborPeerTypeExternal)
 						}
 
 						bgp.Neighbors[neighborName] = &dozer.SpecVRFBGPNeighbor{
@@ -868,7 +869,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 		enabled := ocVRF.Config.Enabled
 		if enabled == nil {
-			enabled = ygot.Bool(true)
+			enabled = pointer.To(true)
 		}
 
 		if !bgpOk {

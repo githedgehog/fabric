@@ -27,6 +27,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi/oc"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specPrefixListsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPrefixList]{
@@ -62,9 +63,9 @@ var specPrefixListBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefix
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets{
 			PrefixSet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet{
 				name: {
-					Name: ygot.String(name),
+					Name: pointer.To(name),
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config{
-						Name: ygot.String(name),
+						Name: pointer.To(name),
 						Mode: oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_Config_Mode_IPV4,
 					},
 				},
@@ -135,13 +136,13 @@ var specPrefixListEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecPrefi
 					IpPrefix:        entry.Prefix.Prefix,
 					MasklengthRange: maskLenRange,
 				}: {
-					SequenceNumber:  ygot.Uint32(seq),
-					IpPrefix:        ygot.String(entry.Prefix.Prefix),
-					MasklengthRange: ygot.String(maskLenRange),
+					SequenceNumber:  pointer.To(seq),
+					IpPrefix:        pointer.To(entry.Prefix.Prefix),
+					MasklengthRange: pointer.To(maskLenRange),
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet_ExtendedPrefixes_ExtendedPrefix_Config{
-						SequenceNumber:  ygot.Uint32(seq),
-						IpPrefix:        ygot.String(entry.Prefix.Prefix),
-						MasklengthRange: ygot.String(maskLenRange),
+						SequenceNumber:  pointer.To(seq),
+						IpPrefix:        pointer.To(entry.Prefix.Prefix),
+						MasklengthRange: pointer.To(maskLenRange),
 						Action:          action,
 					},
 				},

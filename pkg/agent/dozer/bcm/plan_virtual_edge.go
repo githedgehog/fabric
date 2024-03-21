@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
@@ -51,19 +52,19 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			spec.VRFs[ipnsVrf] = &dozer.SpecVRF{
-				Enabled: boolPtr(true),
-				// Description:      stringPtr(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
-				AnycastMAC:       stringPtr(ANYCAST_MAC),
+				Enabled: pointer.To(true),
+				// Description:      pointer.To(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
+				AnycastMAC:       pointer.To(ANYCAST_MAC),
 				Interfaces:       map[string]*dozer.SpecVRFInterface{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
 				BGP: &dozer.SpecVRFBGP{
-					AS:                 uint32Ptr(agent.Spec.Switch.ASN),
-					RouterID:           stringPtr(protocolIP.String()),
-					NetworkImportCheck: boolPtr(true),
+					AS:                 pointer.To(agent.Spec.Switch.ASN),
+					RouterID:           pointer.To(protocolIP.String()),
+					NetworkImportCheck: pointer.To(true),
 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 						Enabled:    true,
-						MaxPaths:   uint32Ptr(getMaxPaths(agent)),
+						MaxPaths:   pointer.To(getMaxPaths(agent)),
 						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 					},
@@ -80,7 +81,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Statements: map[string]*dozer.SpecRouteMapStatement{
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: stringPtr(extInboundCommListName(ipnsVrf)),
+						MatchCommunityList: pointer.To(extInboundCommListName(ipnsVrf)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -107,7 +108,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to parse external attach switch vlan %s", externalConfig.IfVlan)
 		}
 
-		vlan := uint16Ptr(uint16(vlanVal))
+		vlan := pointer.To(uint16(vlanVal))
 		ip, ipNet, err := net.ParseCIDR(externalConfig.IfIP)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse external attach switch ip %s", externalConfig.IfIP)
@@ -115,14 +116,14 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 		prefixLength, _ := ipNet.Mask.Size()
 
 		spec.Interfaces[externalConfig.IfName] = &dozer.SpecInterface{
-			Enabled:     boolPtr(true),
-			Description: stringPtr(fmt.Sprintf("Virtual External %s", externalConfig.VRF)),
+			Enabled:     pointer.To(true),
+			Description: pointer.To(fmt.Sprintf("Virtual External %s", externalConfig.VRF)),
 			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 				uint32(vlanVal): {
 					VLAN: vlan,
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: uint8Ptr(uint8(prefixLength)),
+							PrefixLen: pointer.To(uint8(prefixLength)),
 						},
 					},
 				},
@@ -134,10 +135,10 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		spec.VRFs[ipnsVrf].Interfaces[subIfaceName] = &dozer.SpecVRFInterface{}
 		spec.VRFs[ipnsVrf].BGP.Neighbors[externalConfig.NeighborIP] = &dozer.SpecVRFBGPNeighbor{
-			Enabled:                   boolPtr(true),
-			Description:               stringPtr(fmt.Sprintf("External attach %s", externalConfig.VRF)),
-			RemoteAS:                  uint32Ptr(uint32(asnVal)),
-			IPv4Unicast:               boolPtr(true),
+			Enabled:                   pointer.To(true),
+			Description:               pointer.To(fmt.Sprintf("External attach %s", externalConfig.VRF)),
+			RemoteAS:                  pointer.To(uint32(asnVal)),
+			IPv4Unicast:               pointer.To(true),
 			IPv4UnicastImportPolicies: []string{extInboundRouteMapName(ipnsVrf)},
 			IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(ipnsVrf)},
 		}
