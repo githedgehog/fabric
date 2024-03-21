@@ -76,7 +76,19 @@ func init() {
 	SchemeBuilder.Register(&External{}, &ExternalList{})
 }
 
-var _ meta.Object = (*External)(nil)
+var (
+	_ meta.Object     = (*External)(nil)
+	_ meta.ObjectList = (*ExternalList)(nil)
+)
+
+func (extList *ExternalList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(extList.Items))
+	for i := range extList.Items {
+		items[i] = &extList.Items[i]
+	}
+
+	return items
+}
 
 func (external *External) Default() {
 	meta.DefaultObjectMetadata(external)

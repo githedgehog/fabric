@@ -70,7 +70,19 @@ func init() {
 	SchemeBuilder.Register(&ServerProfile{}, &ServerProfileList{})
 }
 
-var _ meta.Object = (*ServerProfile)(nil)
+var (
+	_ meta.Object     = (*ServerProfile)(nil)
+	_ meta.ObjectList = (*ServerProfileList)(nil)
+)
+
+func (spList *ServerProfileList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(spList.Items))
+	for i := range spList.Items {
+		items[i] = &spList.Items[i]
+	}
+
+	return items
+}
 
 func (sp *ServerProfile) Default() {
 	meta.DefaultObjectMetadata(sp)

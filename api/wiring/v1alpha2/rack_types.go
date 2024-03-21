@@ -70,7 +70,19 @@ func init() {
 	SchemeBuilder.Register(&Rack{}, &RackList{})
 }
 
-var _ meta.Object = (*Rack)(nil)
+var (
+	_ meta.Object     = (*Rack)(nil)
+	_ meta.ObjectList = (*RackList)(nil)
+)
+
+func (rackList *RackList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(rackList.Items))
+	for i := range rackList.Items {
+		items[i] = &rackList.Items[i]
+	}
+
+	return items
+}
 
 func (rack *Rack) Default() {
 	meta.DefaultObjectMetadata(rack)

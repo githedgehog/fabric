@@ -76,7 +76,19 @@ func init() {
 	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
 }
 
-var _ meta.Object = (*VPCAttachment)(nil)
+var (
+	_ meta.Object     = (*VPCAttachment)(nil)
+	_ meta.ObjectList = (*VPCAttachmentList)(nil)
+)
+
+func (attachList *VPCAttachmentList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(attachList.Items))
+	for i := range attachList.Items {
+		items[i] = &attachList.Items[i]
+	}
+
+	return items
+}
 
 func (s *VPCAttachmentSpec) VPCName() string {
 	return strings.SplitN(s.Subnet, "/", 2)[0]

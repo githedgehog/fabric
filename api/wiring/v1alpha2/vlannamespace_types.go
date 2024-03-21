@@ -68,7 +68,19 @@ func init() {
 	SchemeBuilder.Register(&VLANNamespace{}, &VLANNamespaceList{})
 }
 
-var _ meta.Object = (*VLANNamespace)(nil)
+var (
+	_ meta.Object     = (*VLANNamespace)(nil)
+	_ meta.ObjectList = (*VLANNamespaceList)(nil)
+)
+
+func (nsList *VLANNamespaceList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(nsList.Items))
+	for i := range nsList.Items {
+		items[i] = &nsList.Items[i]
+	}
+
+	return items
+}
 
 func (ns *VLANNamespaceSpec) Contains(vlan uint16) bool {
 	for _, r := range ns.Ranges {

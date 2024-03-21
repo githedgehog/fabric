@@ -81,7 +81,19 @@ func init() {
 	SchemeBuilder.Register(&Server{}, &ServerList{})
 }
 
-var _ meta.Object = (*Server)(nil)
+var (
+	_ meta.Object     = (*Server)(nil)
+	_ meta.ObjectList = (*ServerList)(nil)
+)
+
+func (srvList *ServerList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(srvList.Items))
+	for i := range srvList.Items {
+		items[i] = &srvList.Items[i]
+	}
+
+	return items
+}
 
 func (s *Server) IsControl() bool {
 	return s.Spec.Type == ServerTypeControl

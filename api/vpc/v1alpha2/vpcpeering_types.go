@@ -87,7 +87,19 @@ func init() {
 	SchemeBuilder.Register(&VPCPeering{}, &VPCPeeringList{})
 }
 
-var _ meta.Object = (*VPCPeering)(nil)
+var (
+	_ meta.Object     = (*VPCPeering)(nil)
+	_ meta.ObjectList = (*VPCPeeringList)(nil)
+)
+
+func (peeringList *VPCPeeringList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(peeringList.Items))
+	for i := range peeringList.Items {
+		items[i] = &peeringList.Items[i]
+	}
+
+	return items
+}
 
 func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 	vpcs := []string{}

@@ -61,7 +61,19 @@ func init() {
 	SchemeBuilder.Register(&SwitchGroup{}, &SwitchGroupList{})
 }
 
-var _ meta.Object = (*SwitchGroup)(nil)
+var (
+	_ meta.Object     = (*SwitchGroup)(nil)
+	_ meta.ObjectList = (*SwitchGroupList)(nil)
+)
+
+func (sgList *SwitchGroupList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(sgList.Items))
+	for i := range sgList.Items {
+		items[i] = &sgList.Items[i]
+	}
+
+	return items
+}
 
 func (sg *SwitchGroup) Default() {
 	meta.DefaultObjectMetadata(sg)

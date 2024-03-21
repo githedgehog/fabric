@@ -107,7 +107,19 @@ func init() {
 	SchemeBuilder.Register(&ExternalPeering{}, &ExternalPeeringList{})
 }
 
-var _ meta.Object = (*ExternalPeering)(nil)
+var (
+	_ meta.Object     = (*ExternalPeering)(nil)
+	_ meta.ObjectList = (*ExternalPeeringList)(nil)
+)
+
+func (peeringList *ExternalPeeringList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(peeringList.Items))
+	for i := range peeringList.Items {
+		items[i] = &peeringList.Items[i]
+	}
+
+	return items
+}
 
 func (peering *ExternalPeering) Default() {
 	meta.DefaultObjectMetadata(peering)

@@ -73,7 +73,19 @@ func init() {
 	SchemeBuilder.Register(&SwitchProfile{}, &SwitchProfileList{})
 }
 
-var _ meta.Object = (*SwitchProfile)(nil)
+var (
+	_ meta.Object     = (*SwitchProfile)(nil)
+	_ meta.ObjectList = (*SwitchProfileList)(nil)
+)
+
+func (spList *SwitchProfileList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(spList.Items))
+	for i := range spList.Items {
+		items[i] = &spList.Items[i]
+	}
+
+	return items
+}
 
 func (sp *SwitchProfile) Default() {
 	meta.DefaultObjectMetadata(sp)

@@ -74,7 +74,19 @@ func init() {
 	SchemeBuilder.Register(&IPv4Namespace{}, &IPv4NamespaceList{})
 }
 
-var _ meta.Object = (*IPv4Namespace)(nil)
+var (
+	_ meta.Object     = (*IPv4Namespace)(nil)
+	_ meta.ObjectList = (*IPv4NamespaceList)(nil)
+)
+
+func (ipNsList *IPv4NamespaceList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(ipNsList.Items))
+	for i := range ipNsList.Items {
+		items[i] = &ipNsList.Items[i]
+	}
+
+	return items
+}
 
 func (ns *IPv4NamespaceSpec) Labels() map[string]string {
 	// TODO

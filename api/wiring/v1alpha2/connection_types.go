@@ -298,7 +298,19 @@ func init() {
 	SchemeBuilder.Register(&Connection{}, &ConnectionList{})
 }
 
-var _ meta.Object = (*Connection)(nil)
+var (
+	_ meta.Object     = (*Connection)(nil)
+	_ meta.ObjectList = (*ConnectionList)(nil)
+)
+
+func (connList *ConnectionList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(connList.Items))
+	for i := range connList.Items {
+		items[i] = &connList.Items[i]
+	}
+
+	return items
+}
 
 func NewBasePortName(name string) BasePortName {
 	return BasePortName{

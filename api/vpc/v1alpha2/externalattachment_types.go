@@ -95,7 +95,19 @@ func init() {
 	SchemeBuilder.Register(&ExternalAttachment{}, &ExternalAttachmentList{})
 }
 
-var _ meta.Object = (*ExternalAttachment)(nil)
+var (
+	_ meta.Object     = (*ExternalAttachment)(nil)
+	_ meta.ObjectList = (*ExternalAttachmentList)(nil)
+)
+
+func (extAttachList *ExternalAttachmentList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(extAttachList.Items))
+	for i := range extAttachList.Items {
+		items[i] = &extAttachList.Items[i]
+	}
+
+	return items
+}
 
 func (attach *ExternalAttachment) Default() {
 	meta.DefaultObjectMetadata(attach)
