@@ -117,7 +117,7 @@ fabric-dhcpd-chart-push-dev: fabric-dhcpd-chart-build
 dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev fabric-dhcpd-push-dev fabric-dhcpd-chart-push-dev
 
 .PHONY: build
-build: lint api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build fabric-dhcpd-build fabric-dhcpd-chart-build
+build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build fabric-dhcpd-build fabric-dhcpd-chart-build
 
 .PHONY: push
 push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push fabric-dhcpd-push fabric-dhcpd-chart-push
