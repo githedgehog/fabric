@@ -73,6 +73,11 @@ jobs:
           go-version: oldstable
           cache: true
 
+      - name: Go Lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+
       - name: Cache dev tools
         uses: actions/cache@v4
         with:
@@ -89,11 +94,6 @@ jobs:
       - name: Run tests
         run: |
           make test
-
-      - name: Go Lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
