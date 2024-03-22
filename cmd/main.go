@@ -142,64 +142,64 @@ func main() {
 
 	libMngr := librarian.NewManager(cfg)
 
-	if err = agentcontroller.SetupWithManager(cfgBasedir, mgr, cfg, libMngr, version); err != nil {
+	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, version); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
 	}
-	if err = controlagentcontroller.SetupWithManager(cfgBasedir, mgr, cfg, version); err != nil {
+	if err = controlagentcontroller.SetupWithManager(mgr, cfg, version); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlAgent")
 		os.Exit(1)
 	}
-	if err = vpccontroller.SetupWithManager(cfgBasedir, mgr, cfg, libMngr); err != nil {
+	if err = vpccontroller.SetupWithManager(mgr, cfg, libMngr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VPC")
 		os.Exit(1)
 	}
-	if err = connectioncontroller.SetupWithManager(cfgBasedir, mgr, cfg, libMngr); err != nil {
+	if err = connectioncontroller.SetupWithManager(mgr, cfg, libMngr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Connection")
 		os.Exit(1)
 	}
 
-	if err = connectionWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = connectionWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Connection")
 		os.Exit(1)
 	}
-	if err = serverWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = serverWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Server")
 		os.Exit(1)
 	}
-	if err = switchWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = switchWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Switch")
 		os.Exit(1)
 	}
-	if err = vpcWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = vpcWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPC")
 		os.Exit(1)
 	}
-	if err = vpcAttachmentWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = vpcAttachmentWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCAttachment")
 		os.Exit(1)
 	}
-	if err = vpcPeeringWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = vpcPeeringWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VPCPeering")
 		os.Exit(1)
 	}
-	if err = ipv4NamespaceWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = ipv4NamespaceWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "IPv4Namespace")
 		os.Exit(1)
 	}
-	if err = vlanNamespaceWebook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = vlanNamespaceWebook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "VLANNamespace")
 		os.Exit(1)
 	}
-	if err = externalWebhool.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = externalWebhool.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "External")
 		os.Exit(1)
 	}
-	if err = externalAttachmentWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = externalAttachmentWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ExternalAttachment")
 		os.Exit(1)
 	}
-	if err = externalPeeringWebhook.SetupWithManager(cfgBasedir, mgr, cfg); err != nil {
+	if err = externalPeeringWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ExternalPeering")
 		os.Exit(1)
 	}

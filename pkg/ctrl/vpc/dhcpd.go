@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	DHCP_SERVER_CONFIF_TMPL = `
+	DHCPServerConfigTempl = `
 default-lease-time 86400;
 max-lease-time 86400;
 
@@ -76,8 +76,8 @@ type dhcpdSubnet struct {
 	Router     string
 }
 
-func (r *VPCReconciler) updateISCDHCPConfig(ctx context.Context) error {
-	tmpl, err := template.New("dhcp-server-config").Parse(DHCP_SERVER_CONFIF_TMPL)
+func (r *Reconciler) updateISCDHCPConfig(ctx context.Context) error {
+	tmpl, err := template.New("dhcp-server-config").Parse(DHCPServerConfigTempl)
 	if err != nil {
 		return errors.Wrapf(err, "error parsing dhcp server config template")
 	}
@@ -100,7 +100,7 @@ func (r *VPCReconciler) updateISCDHCPConfig(ctx context.Context) error {
 
 	// Add management IPs
 	conns := &wiringapi.ConnectionList{}
-	err = r.List(ctx, conns, client.MatchingLabels{wiringapi.LabelConnectionType: wiringapi.CONNECTION_TYPE_MANAGEMENT})
+	err = r.List(ctx, conns, client.MatchingLabels{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeManagement})
 	if err != nil {
 		return errors.Wrapf(err, "error listing connections")
 	}
@@ -127,8 +127,7 @@ func (r *VPCReconciler) updateISCDHCPConfig(ctx context.Context) error {
 	}
 
 	for _, vpc := range vpcs.Items {
-		// TODO remove after switching to custom DHCP server
-		if vpc.Spec.IPv4Namespace != "default" || vpc.Spec.VLANNamespace != "default" {
+		if vpc.Spec.IPv4Namespace != vpcapi.DefaultIPv4Namespace || vpc.Spec.VLANNamespace != wiringapi.DefaultVLANNamespace {
 			continue
 		}
 
@@ -188,7 +187,7 @@ func (r *VPCReconciler) updateISCDHCPConfig(ctx context.Context) error {
 	return nil
 }
 
-func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
+func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
 	err := r.deleteDHCPSubnets(ctx, client.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, vpc.Spec.Subnets)
 	if err != nil {
 		return errors.Wrapf(err, "error deleting obsolete dhcp subnets")
@@ -245,7 +244,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 	return nil
 }
 
-func (r *VPCReconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
+func (r *Reconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
 	dhcpSubnets := &dhcpapi.DHCPSubnetList{}
 	err := r.List(ctx, dhcpSubnets, client.MatchingLabels{vpcapi.LabelVPC: vpcKey.Name})
 	if err != nil {
@@ -263,7 +262,7 @@ func (r *VPCReconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.Obj
 			continue
 		}
 
-		err = r.Delete(ctx, &subnet)
+		err = r.Delete(ctx, &subnet) //nolint:gosec
 		if client.IgnoreNotFound(err) != nil {
 			return errors.Wrapf(err, "error deleting dhcp subnet %s", subnet.Name)
 		}

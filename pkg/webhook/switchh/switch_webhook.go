@@ -27,31 +27,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type SwitchWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &SwitchWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.Switch{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup switch webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*SwitchWebhook)(nil)
-	_ admission.CustomValidator = (*SwitchWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-switch,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update,versions=v1alpha2,name=mswitch.kb.io,admissionReviewVersions=v1
@@ -59,7 +59,7 @@ var (
 
 // var log = ctrl.Log.WithName("switch-webhook")
 
-func (w *SwitchWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	sw := obj.(*wiringapi.Switch)
 
 	sw.Default()
@@ -67,18 +67,18 @@ func (w *SwitchWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
-func (w *SwitchWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	sw := obj.(*wiringapi.Switch)
 
 	warns, err := sw.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "error validating switch")
 	}
 
 	return warns, nil
 }
 
-func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	oldSw := oldObj.(*wiringapi.Switch)
 	newSw := newObj.(*wiringapi.Switch)
 
@@ -88,13 +88,13 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Objec
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "error validating switch")
 	}
 
 	return nil, nil
 }
 
-func (w *SwitchWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	sw := obj.(*wiringapi.Switch)
 
 	conns := &wiringapi.ConnectionList{}

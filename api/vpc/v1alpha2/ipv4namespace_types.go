@@ -107,9 +107,9 @@ func (ns *IPv4Namespace) Default() {
 	sort.Strings(ns.Spec.Subnets)
 }
 
-func (ns *IPv4Namespace) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (ns *IPv4Namespace) Validate(_ context.Context, _ client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if len(ns.Name) > 11 {

@@ -17,6 +17,7 @@ package externalattachment
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,31 +26,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type ExternalAttachmentWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &ExternalAttachmentWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.ExternalAttachment{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup external attachment webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*ExternalAttachmentWebhook)(nil)
-	_ admission.CustomValidator = (*ExternalAttachmentWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-externalattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externalattachments,verbs=create;update,versions=v1alpha2,name=mexternalattachment.kb.io,admissionReviewVersions=v1
@@ -57,7 +58,7 @@ var (
 
 // var log = ctrl.Log.WithName("externalattachment-webhook")
 
-func (w *ExternalAttachmentWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	attach := obj.(*vpcapi.ExternalAttachment)
 
 	attach.Default()
@@ -65,18 +66,18 @@ func (w *ExternalAttachmentWebhook) Default(ctx context.Context, obj runtime.Obj
 	return nil
 }
 
-func (w *ExternalAttachmentWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	attach := obj.(*vpcapi.ExternalAttachment)
 
 	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate external attachment")
 	}
 
 	return warns, nil
 }
 
-func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	newAttach := newObj.(*vpcapi.ExternalAttachment)
 	// oldAttach := oldObj.(*vpcapi.ExternalAttachment)
 
@@ -86,12 +87,12 @@ func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldObj r
 
 	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate external attachment")
 	}
 
 	return warns, nil
 }
 
-func (w *ExternalAttachmentWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

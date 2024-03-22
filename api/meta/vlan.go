@@ -30,6 +30,7 @@ func SortVLANRanges(ranges []VLANRange) {
 		if ranges[i].From == ranges[j].From {
 			return ranges[i].To < ranges[j].To
 		}
+
 		return ranges[i].From < ranges[j].From
 	})
 }

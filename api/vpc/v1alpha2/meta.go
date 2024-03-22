@@ -14,6 +14,8 @@
 
 package v1alpha2
 
+const DefaultIPv4Namespace = "default"
+
 var (
 	LabelPrefix          = "fabric.githedgehog.com/"
 	LabelVPC             = LabelName("vpc")

@@ -146,7 +146,7 @@ func (peering *VPCPeering) Default() {
 
 func (peering *VPCPeering) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if fabricCfg.VPCPeeringDisabled {

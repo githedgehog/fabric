@@ -40,35 +40,35 @@ import (
 )
 
 // AgentReconciler reconciles a Agent object
-type ControlAgentReconciler struct {
+type Reconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Cfg     *meta.FabricConfig
 	Version string
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, version string) error {
-	r := &ControlAgentReconciler{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, version string) error {
+	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
 		Version: version,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
 		Named("control-agent").
 		For(&wiringapi.Server{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByConnectionServerListLabels)).
-		Complete(r)
+		Complete(r), "failed to setup control agent controller")
 }
 
-func (r *ControlAgentReconciler) enqueueByConnectionServerListLabels(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueByConnectionServerListLabels(_ context.Context, obj client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
 
 	// we only need to rebuild control agent if it's a management connection
-	if labels[wiringapi.LabelConnectionType] != wiringapi.CONNECTION_TYPE_MANAGEMENT {
+	if labels[wiringapi.LabelConnectionType] != wiringapi.ConnectionTypeManagement {
 		return res
 	}
 
@@ -105,7 +105,7 @@ func (r *ControlAgentReconciler) enqueueByConnectionServerListLabels(ctx context
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
-func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	server := &wiringapi.Server{}
@@ -114,6 +114,7 @@ func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, errors.Wrapf(err, "error getting server")
 	}
 
@@ -142,7 +143,7 @@ func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, errors.Wrapf(err, "error building networkd config")
 	}
 
-	hosts, err := r.buildHosts(server.Name, switchList.Items)
+	hosts, err := r.buildHosts(switchList.Items)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "error building hosts config")
 	}
@@ -167,7 +168,7 @@ func (r *ControlAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringapi.ConnectionList, switches map[string]wiringapi.Switch) (map[string]string, error) {
+func (r *Reconciler) buildNetworkd(serverName string, conns *wiringapi.ConnectionList, switches map[string]wiringapi.Switch) (map[string]string, error) {
 	networkd := map[string]string{}
 	var err error
 
@@ -258,7 +259,7 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 				})
 			}
 			nextHops = append(nextHops, networkdNextHop{
-				Id:      nextHop,
+				ID:      nextHop,
 				Gateway: gateway,
 			})
 		}
@@ -283,7 +284,7 @@ func (r *ControlAgentReconciler) buildNetworkd(serverName string, conns *wiringa
 	return networkd, nil
 }
 
-func (r *ControlAgentReconciler) buildHosts(serverName string, switches []wiringapi.Switch) (map[string]string, error) {
+func (r *Reconciler) buildHosts(switches []wiringapi.Switch) (map[string]string, error) {
 	hosts := map[string]string{}
 
 	for _, sw := range switches {
@@ -337,7 +338,7 @@ type networkdRoute struct {
 }
 
 type networkdNextHop struct {
-	Id      uint32
+	ID      uint32
 	Gateway string
 }
 
@@ -382,7 +383,7 @@ MUDURL={{ .MUDURL }}
 
 {{ range .NextHops }}
 [NextHop]
-Id={{ .Id }}
+Id={{ .ID }}
 Gateway={{ .Gateway }}
 {{ end }}
 `

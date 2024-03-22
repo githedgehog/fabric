@@ -217,7 +217,7 @@ func (sw *Switch) Default() {
 
 func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sw); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	// TODO validate port group speeds against switch profile
@@ -266,6 +266,7 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 				if ns == other.Name {
 					found = true
 					ranges = append(ranges, other.Spec.Ranges...)
+
 					break
 				}
 			}
@@ -305,6 +306,7 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 				if apierrors.IsNotFound(err) {
 					return nil, errors.Errorf("switch group %s does not exist", group)
 				}
+
 				return nil, errors.Wrapf(err, "failed to get switch group %s", group) // TODO replace with some internal error to not expose to the user
 			}
 		}

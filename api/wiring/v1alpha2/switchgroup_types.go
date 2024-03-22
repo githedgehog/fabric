@@ -17,6 +17,7 @@ package v1alpha2
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,9 +80,9 @@ func (sg *SwitchGroup) Default() {
 	meta.DefaultObjectMetadata(sg)
 }
 
-func (sg *SwitchGroup) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (sg *SwitchGroup) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sg); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	return nil, nil

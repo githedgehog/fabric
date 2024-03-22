@@ -17,6 +17,7 @@ package externalpeering
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,31 +26,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type ExternalPeeringWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &ExternalPeeringWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.ExternalPeering{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup external peering webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*ExternalPeeringWebhook)(nil)
-	_ admission.CustomValidator = (*ExternalPeeringWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-externalpeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externalpeerings,verbs=create;update,versions=v1alpha2,name=mexternalpeering.kb.io,admissionReviewVersions=v1
@@ -57,7 +58,7 @@ var (
 
 // var log = ctrl.Log.WithName("externalpeering-webhook")
 
-func (w *ExternalPeeringWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	peering := obj.(*vpcapi.ExternalPeering)
 
 	peering.Default()
@@ -65,18 +66,18 @@ func (w *ExternalPeeringWebhook) Default(ctx context.Context, obj runtime.Object
 	return nil
 }
 
-func (w *ExternalPeeringWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	peering := obj.(*vpcapi.ExternalPeering)
 
 	warns, err := peering.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate external peering")
 	}
 
 	return warns, nil
 }
 
-func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	newPeering := newObj.(*vpcapi.ExternalPeering)
 	// oldPeering := oldObj.(*vpcapi.ExternalPeering)
 
@@ -86,12 +87,12 @@ func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldObj runt
 
 	warns, err := newPeering.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate external peering")
 	}
 
 	return warns, nil
 }
 
-func (w *ExternalPeeringWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

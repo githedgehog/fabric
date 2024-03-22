@@ -142,7 +142,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 
 	if r, err := NormalizedVLANRanges(cfg.VPCIRBVLANRanges); err != nil {
 		return nil, errors.Wrapf(err, "config: vpcIRBVLANRange is invalid")
-	} else {
+	} else { //nolint:revive
 		if len(r) == 0 {
 			return nil, errors.Errorf("config: vpcIRBVLANRange is required")
 		}
@@ -152,7 +152,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 
 	if r, err := NormalizedVLANRanges(cfg.VPCPeeringVLANRanges); err != nil {
 		return nil, errors.Wrapf(err, "config: vpcPeeringVLANRange is invalid")
-	} else {
+	} else { //nolint:revive
 		if len(r) == 0 {
 			return nil, errors.Errorf("config: vpcPeeringVLANRange is required")
 		}
@@ -185,7 +185,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	if cfg.FabricMode == "" {
 		return nil, errors.Errorf("config: fabricMode is required")
 	}
-	if !slices.Contains(FabricModes, FabricMode(cfg.FabricMode)) {
+	if !slices.Contains(FabricModes, cfg.FabricMode) {
 		return nil, errors.Errorf("config: fabricMode must be one of %v", FabricModes)
 	}
 
@@ -220,7 +220,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	if cfg.DHCPMode == "" {
 		return nil, errors.Errorf("config: dhcp is required")
 	}
-	if !slices.Contains(DHCPModes, DHCPMode(cfg.DHCPMode)) {
+	if !slices.Contains(DHCPModes, cfg.DHCPMode) {
 		return nil, errors.Errorf("config: dhcp must be one of %v", DHCPModes)
 	}
 
@@ -238,7 +238,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 			return nil, errors.Errorf("config: eslagESIPrefix is required")
 		}
 		if len(cfg.ESLAGESIPrefix) != 12 {
-			return nil, errors.Errorf("config: eslagESIPrefix should be a valid 12 hex long prefix, e.g. 00:f2:00:00:")
+			return nil, errors.Errorf("config: eslagESIPrefix should be a valid 12 hex long prefix, e.g. '00:f2:00:00:'")
 		}
 	}
 

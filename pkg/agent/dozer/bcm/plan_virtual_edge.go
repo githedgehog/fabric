@@ -33,13 +33,13 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	cfgMap := map[string]agentapi.VirtualEdgeConfig{}
-	edgeAnnotation := annotations[agentapi.VIRTUAL_EDGE_ANNOTATION]
+	edgeAnnotation := annotations[agentapi.VirtualEdgeConfigAnnotation]
 	if edgeAnnotation == "" {
 		return nil
 	}
 	err := json.Unmarshal([]byte(edgeAnnotation), &cfgMap)
 	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshal annotation %s", agentapi.VIRTUAL_EDGE_ANNOTATION)
+		return errors.Wrapf(err, "failed to unmarshal annotation %s", agentapi.VirtualEdgeConfigAnnotation)
 	}
 
 	for _, externalConfig := range cfgMap {

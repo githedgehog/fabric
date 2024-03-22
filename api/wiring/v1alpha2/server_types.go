@@ -17,6 +17,7 @@ package v1alpha2
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,13 +96,13 @@ func (srvList *ServerList) GetItems() []meta.Object {
 	return items
 }
 
-func (s *Server) IsControl() bool {
-	return s.Spec.Type == ServerTypeControl
+func (server *Server) IsControl() bool {
+	return server.Spec.Type == ServerTypeControl
 }
 
-func (s *ServerSpec) Labels() map[string]string {
+func (serverSpec *ServerSpec) Labels() map[string]string {
 	return map[string]string{
-		LabelServerType: string(s.Type),
+		LabelServerType: string(serverSpec.Type),
 	}
 }
 
@@ -117,9 +118,9 @@ func (server *Server) Default() {
 	maps.Copy(server.Labels, server.Spec.Labels())
 }
 
-func (server *Server) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (server *Server) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(server); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	return nil, nil
