@@ -27,31 +27,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type VPCWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &VPCWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.VPC{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup vpc webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*VPCWebhook)(nil)
-	_ admission.CustomValidator = (*VPCWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1alpha2,name=mvpc.kb.io,admissionReviewVersions=v1
@@ -59,7 +59,7 @@ var (
 
 // var log = ctrl.Log.WithName("vpc-webhook")
 
-func (w *VPCWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	vpc := obj.(*vpcapi.VPC)
 
 	vpc.Default()
@@ -67,24 +67,24 @@ func (w *VPCWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
-func (w *VPCWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	vpc := obj.(*vpcapi.VPC)
 
 	warns, err := vpc.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate vpc")
 	}
 
 	return warns, nil
 }
 
-func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	// oldVPC := oldObj.(*vpcapi.VPC)
 	newVPC := newObj.(*vpcapi.VPC)
 
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate vpc")
 	}
 
 	// TODO check that you can only add subnets, or edit/remove unused ones
@@ -103,7 +103,7 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, 
 	return nil, nil
 }
 
-func (w *VPCWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	vpc := obj.(*vpcapi.VPC)
 
 	vpcAttachments := &vpcapi.VPCAttachmentList{}

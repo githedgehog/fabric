@@ -84,5 +84,6 @@ func (c *CatalogSpec) GetVPCSubnetVNI(vpc, subnet string) (uint32, bool) {
 	}
 
 	vni, exists := c.VPCSubnetVNIs[vpc][subnet]
+
 	return vni, exists
 }

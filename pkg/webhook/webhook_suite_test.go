@@ -24,8 +24,9 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //nolint:revive
+	. "github.com/onsi/gomega"    //nolint:revive
+	"github.com/pkg/errors"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	//+kubebuilder:scaffold:imports
@@ -119,19 +120,19 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = connection.SetupWithManager("", mgr, nil) // TODO cfgBasedir
+	err = connection.SetupWithManager(mgr, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = server.SetupWithManager("", mgr, nil) // TODO cfgBasedir
+	err = server.SetupWithManager(mgr, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = switchh.SetupWithManager("", mgr, nil) // TODO cfgBasedir
+	err = switchh.SetupWithManager(mgr, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = vpc.SetupWithManager("", mgr, nil) // TODO cfgBasedir
+	err = vpc.SetupWithManager(mgr, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = vpcattachment.SetupWithManager("", mgr, nil) // TODO cfgBasedir
+	err = vpcattachment.SetupWithManager(mgr, nil)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:webhook
@@ -146,12 +147,12 @@ var _ = BeforeSuite(func() {
 	dialer := &net.Dialer{Timeout: time.Second}
 	addrPort := fmt.Sprintf("%s:%d", webhookInstallOptions.LocalServingHost, webhookInstallOptions.LocalServingPort)
 	Eventually(func() error {
-		conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true})
+		conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to dial %s", addrPort)
 		}
 		conn.Close()
-		return nil
+		return nil //nolint: nlreturn
 	}).Should(Succeed())
 })
 

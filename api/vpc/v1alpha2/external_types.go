@@ -94,7 +94,7 @@ func (external *External) Default() {
 	meta.DefaultObjectMetadata(external)
 
 	if external.Spec.IPv4Namespace == "" {
-		external.Spec.IPv4Namespace = "default"
+		external.Spec.IPv4Namespace = DefaultIPv4Namespace
 	}
 
 	if external.Labels == nil {
@@ -106,9 +106,9 @@ func (external *External) Default() {
 	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
 }
 
-func (external *External) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (external *External) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(external); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if external.Spec.IPv4Namespace == "" {
@@ -130,6 +130,7 @@ func (external *External) Validate(ctx context.Context, kube client.Reader, fabr
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", external.Spec.IPv4Namespace)
 			}
+
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", external.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
 		}
 	}

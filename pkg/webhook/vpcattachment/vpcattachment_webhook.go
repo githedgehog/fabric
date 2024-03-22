@@ -17,6 +17,7 @@ package vpcattachment
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,31 +26,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type VPCAttachmentWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &VPCAttachmentWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.VPCAttachment{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup vpc attachment webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*VPCAttachmentWebhook)(nil)
-	_ admission.CustomValidator = (*VPCAttachmentWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-vpcattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update,versions=v1alpha2,name=mvpcattachment.kb.io,admissionReviewVersions=v1
@@ -57,7 +58,7 @@ var (
 
 // var log = ctrl.Log.WithName("vpcattachment-webhook")
 
-func (w *VPCAttachmentWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	attach := obj.(*vpcapi.VPCAttachment)
 
 	attach.Default()
@@ -65,18 +66,18 @@ func (w *VPCAttachmentWebhook) Default(ctx context.Context, obj runtime.Object) 
 	return nil
 }
 
-func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	attach := obj.(*vpcapi.VPCAttachment)
 
 	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate vpc attachment")
 	}
 
 	return warns, nil
 }
 
-func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	newAttach := newObj.(*vpcapi.VPCAttachment)
 	// oldAttach := oldObj.(*vpcapi.VPCAttachment)
 
@@ -86,12 +87,12 @@ func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldObj runtim
 
 	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate vpc attachment")
 	}
 
 	return warns, nil
 }
 
-func (w *VPCAttachmentWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

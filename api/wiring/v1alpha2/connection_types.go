@@ -33,17 +33,19 @@ import (
 )
 
 const (
-	CONNECTION_TYPE_UNBUNDLED    = "unbundled"
-	CONNECTION_TYPE_BUNDLED      = "bundled"
-	CONNECTION_TYPE_MANAGEMENT   = "management" // TODO rename to control?
-	CONNECTION_TYPE_MCLAG        = "mclag"
-	CONNECTION_TYPE_MCLAGDOMAIN  = "mclag-domain"
-	CONNECTION_TYPE_ESLAG        = "eslag"
-	CONNECTION_TYPE_FABRIC       = "fabric"
-	CONNECTION_TYPE_VPC_LOOPBACK = "vpc-loopback"
-	CONNECTION_EXTERNAL          = "external"
-	CONNECTION_STATIC_EXTERNAL   = "static-external"
+	ConnectionTypeUnbundled      = "unbundled"
+	ConnectionTypeBundled        = "bundled"
+	ConnectionTypeManagement     = "management" // TODO rename to control?
+	ConnectionTypeMCLAG          = "mclag"
+	ConnectionTypeMCLAGDomain    = "mclag-domain"
+	ConnectionTypeESLAG          = "eslag"
+	ConnectionTypeFabric         = "fabric"
+	ConnectionTypeVPCLoopback    = "vpc-loopback"
+	ConnectionTypeExternal       = "external"
+	ConnectionTypeStaticExternal = "static-external"
 )
+
+const INVALID = "<invalid>"
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -335,7 +337,7 @@ func (pn *BasePortName) PortName() string {
 }
 
 func SplitPortName(name string) []string {
-	return strings.SplitN(name, PORT_NAME_SEPARATOR, 2)
+	return strings.SplitN(name, PortNameSeparator, 2)
 }
 
 func (pn *BasePortName) LocalPortName() string {
@@ -346,123 +348,123 @@ func (pn *BasePortName) DeviceName() string {
 	return SplitPortName(pn.Port)[0]
 }
 
-func (c *ConnectionSpec) GenerateName() string {
-	if c != nil {
+func (connSpec *ConnectionSpec) GenerateName() string {
+	if connSpec != nil {
 		role := ""
 		left := ""
 		right := []string{}
 
-		if c.Unbundled != nil {
+		if connSpec.Unbundled != nil {
 			role = "unbundled"
-			left = c.Unbundled.Link.Server.DeviceName()
-			right = []string{c.Unbundled.Link.Switch.DeviceName()}
-		} else if c.Bundled != nil {
+			left = connSpec.Unbundled.Link.Server.DeviceName()
+			right = []string{connSpec.Unbundled.Link.Switch.DeviceName()}
+		} else if connSpec.Bundled != nil {
 			role = "bundled"
-			left = c.Bundled.Links[0].Server.DeviceName()
-			right = []string{c.Bundled.Links[0].Switch.DeviceName()}
-			for _, link := range c.Bundled.Links {
+			left = connSpec.Bundled.Links[0].Server.DeviceName()
+			right = []string{connSpec.Bundled.Links[0].Switch.DeviceName()}
+			for _, link := range connSpec.Bundled.Links {
 				// check we have the same server in each link // TODO add validation
 				if link.Server.DeviceName() != left {
-					return "<invalid>" // TODO replace with error?
+					return INVALID // TODO replace with error?
 				}
 				if link.Switch.DeviceName() != right[0] {
-					return "<invalid>" // TODO replace with error?
+					return INVALID // TODO replace with error?
 				}
 			}
-		} else if c.Management != nil {
+		} else if connSpec.Management != nil {
 			role = "mgmt"
-			left = c.Management.Link.Server.DeviceName()
-			right = []string{c.Management.Link.Switch.DeviceName()}
-		} else if c.MCLAGDomain != nil {
+			left = connSpec.Management.Link.Server.DeviceName()
+			right = []string{connSpec.Management.Link.Switch.DeviceName()}
+		} else if connSpec.MCLAGDomain != nil {
 			role = "mclag-domain"
-			left = c.MCLAGDomain.PeerLinks[0].Switch1.DeviceName() // TODO check session links?
-			right = []string{c.MCLAGDomain.PeerLinks[0].Switch2.DeviceName()}
-			for _, link := range c.MCLAGDomain.PeerLinks {
+			left = connSpec.MCLAGDomain.PeerLinks[0].Switch1.DeviceName() // TODO check session links?
+			right = []string{connSpec.MCLAGDomain.PeerLinks[0].Switch2.DeviceName()}
+			for _, link := range connSpec.MCLAGDomain.PeerLinks {
 				// check that we have the same switches on both ends in each link // TODO add validation
 				if link.Switch1.DeviceName() != left {
-					return "<invalid>" // TODO replace with error?
+					return INVALID // TODO replace with error?
 				}
 				if link.Switch2.DeviceName() != right[0] {
-					return "<invalid>" // TODO replace with error?
+					return INVALID // TODO replace with error?
 				}
 			}
-		} else if c.MCLAG != nil {
+		} else if connSpec.MCLAG != nil {
 			role = "mclag"
-			left = c.MCLAG.Links[0].Server.DeviceName()
-			for _, link := range c.MCLAG.Links {
+			left = connSpec.MCLAG.Links[0].Server.DeviceName()
+			for _, link := range connSpec.MCLAG.Links {
 				// check we have the same server in each link // TODO add validation
 				if link.Server.DeviceName() != left {
-					return "<invalid>" // TODO replace with error?
+					return INVALID // TODO replace with error?
 				}
 				right = append(right, link.Switch.DeviceName())
 			}
-		} else if c.ESLAG != nil {
+		} else if connSpec.ESLAG != nil {
 			role = "eslag"
-			left = c.ESLAG.Links[0].Server.DeviceName()
-			for _, link := range c.ESLAG.Links {
+			left = connSpec.ESLAG.Links[0].Server.DeviceName()
+			for _, link := range connSpec.ESLAG.Links {
 				// check we have the same server in each link // TODO add validation
 				if link.Server.DeviceName() != left {
-					return "<invalid>" // TODO replace with error?
+					return INVALID // TODO replace with error?
 				}
 				right = append(right, link.Switch.DeviceName())
 			}
-		} else if c.Fabric != nil {
+		} else if connSpec.Fabric != nil {
 			role = "fabric"
-			left = c.Fabric.Links[0].Spine.DeviceName()
-			right = []string{c.Fabric.Links[0].Leaf.DeviceName()}
-		} else if c.VPCLoopback != nil {
+			left = connSpec.Fabric.Links[0].Spine.DeviceName()
+			right = []string{connSpec.Fabric.Links[0].Leaf.DeviceName()}
+		} else if connSpec.VPCLoopback != nil {
 			role = "vpc-loopback"
-			left = c.VPCLoopback.Links[0].Switch1.DeviceName()
-		} else if c.External != nil {
+			left = connSpec.VPCLoopback.Links[0].Switch1.DeviceName()
+		} else if connSpec.External != nil {
 			role = "external"
-			left = c.External.Link.Switch.DeviceName()
-		} else if c.StaticExternal != nil {
+			left = connSpec.External.Link.Switch.DeviceName()
+		} else if connSpec.StaticExternal != nil {
 			role = "static-external"
-			left = c.StaticExternal.Link.Switch.DeviceName()
+			left = connSpec.StaticExternal.Link.Switch.DeviceName()
 		}
 
 		if left != "" && role != "" {
 			if len(right) > 0 {
 				return fmt.Sprintf("%s--%s--%s", left, role, strings.Join(right, "--"))
-			} else {
-				return fmt.Sprintf("%s--%s", left, role)
 			}
+
+			return fmt.Sprintf("%s--%s", left, role)
 		}
 	}
 
-	return "<invalid>" // TODO replace with error?
+	return INVALID // TODO replace with error?
 }
 
-func (c *ConnectionSpec) Type() string {
-	if c.Unbundled != nil {
-		return CONNECTION_TYPE_UNBUNDLED
-	} else if c.Bundled != nil {
-		return CONNECTION_TYPE_BUNDLED
-	} else if c.Management != nil {
-		return CONNECTION_TYPE_MANAGEMENT
-	} else if c.MCLAGDomain != nil {
-		return CONNECTION_TYPE_MCLAGDOMAIN
-	} else if c.MCLAG != nil {
-		return CONNECTION_TYPE_MCLAG
-	} else if c.ESLAG != nil {
-		return CONNECTION_TYPE_ESLAG
-	} else if c.Fabric != nil {
-		return CONNECTION_TYPE_FABRIC
-	} else if c.VPCLoopback != nil {
-		return CONNECTION_TYPE_VPC_LOOPBACK
-	} else if c.External != nil {
-		return CONNECTION_EXTERNAL
-	} else if c.StaticExternal != nil {
-		return CONNECTION_STATIC_EXTERNAL
+func (connSpec *ConnectionSpec) Type() string {
+	if connSpec.Unbundled != nil {
+		return ConnectionTypeUnbundled
+	} else if connSpec.Bundled != nil {
+		return ConnectionTypeBundled
+	} else if connSpec.Management != nil {
+		return ConnectionTypeManagement
+	} else if connSpec.MCLAGDomain != nil {
+		return ConnectionTypeMCLAGDomain
+	} else if connSpec.MCLAG != nil {
+		return ConnectionTypeMCLAG
+	} else if connSpec.ESLAG != nil {
+		return ConnectionTypeESLAG
+	} else if connSpec.Fabric != nil {
+		return ConnectionTypeFabric
+	} else if connSpec.VPCLoopback != nil {
+		return ConnectionTypeVPCLoopback
+	} else if connSpec.External != nil {
+		return ConnectionTypeExternal
+	} else if connSpec.StaticExternal != nil {
+		return ConnectionTypeStaticExternal
 	}
 
-	return "<invalid>"
+	return INVALID
 }
 
-func (c *ConnectionSpec) ConnectionLabels() map[string]string {
+func (connSpec *ConnectionSpec) ConnectionLabels() map[string]string {
 	labels := map[string]string{}
 
-	switches, servers, _, _, err := c.Endpoints()
+	switches, servers, _, _, err := connSpec.Endpoints()
 	// if error, we don't need to set labels
 	if err != nil {
 		return labels
@@ -478,30 +480,30 @@ func (c *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[ListLabelServer(serverName)] = ListLabelValue
 	}
 
-	labels[LabelConnectionType] = c.Type()
+	labels[LabelConnectionType] = connSpec.Type()
 
-	if c.StaticExternal != nil && c.StaticExternal.WithinVPC != "" {
-		labels[LabelVPC] = c.StaticExternal.WithinVPC
+	if connSpec.StaticExternal != nil && connSpec.StaticExternal.WithinVPC != "" {
+		labels[LabelVPC] = connSpec.StaticExternal.WithinVPC
 	}
 
 	return labels
 }
 
-func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]string, error) {
+func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]string, error) {
 	switches := map[string]struct{}{}
 	servers := map[string]struct{}{}
 	ports := map[string]struct{}{}
 	links := map[string]string{}
 
 	nonNills := 0
-	if s.Unbundled != nil {
+	if connSpec.Unbundled != nil {
 		nonNills++
 
-		switches[s.Unbundled.Link.Switch.DeviceName()] = struct{}{}
-		servers[s.Unbundled.Link.Server.DeviceName()] = struct{}{}
-		ports[s.Unbundled.Link.Switch.PortName()] = struct{}{}
-		ports[s.Unbundled.Link.Server.PortName()] = struct{}{}
-		links[s.Unbundled.Link.Switch.PortName()] = s.Unbundled.Link.Server.PortName()
+		switches[connSpec.Unbundled.Link.Switch.DeviceName()] = struct{}{}
+		servers[connSpec.Unbundled.Link.Server.DeviceName()] = struct{}{}
+		ports[connSpec.Unbundled.Link.Switch.PortName()] = struct{}{}
+		ports[connSpec.Unbundled.Link.Server.PortName()] = struct{}{}
+		links[connSpec.Unbundled.Link.Switch.PortName()] = connSpec.Unbundled.Link.Server.PortName()
 
 		if len(switches) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one switch must be used for unbundled connection")
@@ -512,10 +514,10 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(ports) != 2 {
 			return nil, nil, nil, nil, errors.Errorf("two unique ports must be used for unbundled connection")
 		}
-	} else if s.Bundled != nil {
+	} else if connSpec.Bundled != nil {
 		nonNills++
 
-		for _, link := range s.Bundled.Links {
+		for _, link := range connSpec.Bundled.Links {
 			switches[link.Switch.DeviceName()] = struct{}{}
 			servers[link.Server.DeviceName()] = struct{}{}
 			ports[link.Switch.PortName()] = struct{}{}
@@ -529,17 +531,17 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(servers) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one server must be used for bundled connection")
 		}
-		if len(ports) != 2*len(s.Bundled.Links) {
+		if len(ports) != 2*len(connSpec.Bundled.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
 		}
-	} else if s.Management != nil {
+	} else if connSpec.Management != nil {
 		nonNills++
 
-		switches[s.Management.Link.Switch.DeviceName()] = struct{}{}
-		servers[s.Management.Link.Server.DeviceName()] = struct{}{}
-		ports[s.Management.Link.Switch.PortName()] = struct{}{}
-		ports[s.Management.Link.Server.PortName()] = struct{}{}
-		links[s.Management.Link.Switch.PortName()] = s.Management.Link.Server.PortName()
+		switches[connSpec.Management.Link.Switch.DeviceName()] = struct{}{}
+		servers[connSpec.Management.Link.Server.DeviceName()] = struct{}{}
+		ports[connSpec.Management.Link.Switch.PortName()] = struct{}{}
+		ports[connSpec.Management.Link.Server.PortName()] = struct{}{}
+		links[connSpec.Management.Link.Switch.PortName()] = connSpec.Management.Link.Server.PortName()
 
 		if len(switches) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one switch must be used for management connection")
@@ -550,17 +552,17 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(ports) != 2 {
 			return nil, nil, nil, nil, errors.Errorf("two unique ports must be used for management connection")
 		}
-	} else if s.MCLAGDomain != nil {
+	} else if connSpec.MCLAGDomain != nil {
 		nonNills++
 
-		for _, link := range s.MCLAGDomain.PeerLinks {
+		for _, link := range connSpec.MCLAGDomain.PeerLinks {
 			switches[link.Switch1.DeviceName()] = struct{}{}
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
 			ports[link.Switch2.PortName()] = struct{}{}
 			links[link.Switch1.PortName()] = link.Switch2.PortName()
 		}
-		for _, link := range s.MCLAGDomain.SessionLinks {
+		for _, link := range connSpec.MCLAGDomain.SessionLinks {
 			switches[link.Switch1.DeviceName()] = struct{}{}
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
@@ -568,22 +570,22 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 			links[link.Switch1.PortName()] = link.Switch2.PortName()
 		}
 
-		if len(s.MCLAGDomain.PeerLinks) < 1 {
+		if len(connSpec.MCLAGDomain.PeerLinks) < 1 {
 			return nil, nil, nil, nil, errors.Errorf("at least one peer link must be used for mclag domain connection")
 		}
-		if len(s.MCLAGDomain.SessionLinks) < 1 {
+		if len(connSpec.MCLAGDomain.SessionLinks) < 1 {
 			return nil, nil, nil, nil, errors.Errorf("at least one session link must be used for mclag domain connection")
 		}
 		if len(switches) != 2 {
 			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mclag domain connection")
 		}
-		if len(ports) != 2*(len(s.MCLAGDomain.PeerLinks)+len(s.MCLAGDomain.SessionLinks)) {
+		if len(ports) != 2*(len(connSpec.MCLAGDomain.PeerLinks)+len(connSpec.MCLAGDomain.SessionLinks)) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag domain connection")
 		}
-	} else if s.MCLAG != nil {
+	} else if connSpec.MCLAG != nil {
 		nonNills++
 
-		for _, link := range s.MCLAG.Links {
+		for _, link := range connSpec.MCLAG.Links {
 			switches[link.Switch.DeviceName()] = struct{}{}
 			servers[link.Server.DeviceName()] = struct{}{}
 			ports[link.Switch.PortName()] = struct{}{}
@@ -597,13 +599,13 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(servers) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one server must be used for mclag connection")
 		}
-		if len(ports) != 2*len(s.MCLAG.Links) {
+		if len(ports) != 2*len(connSpec.MCLAG.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
-	} else if s.ESLAG != nil {
+	} else if connSpec.ESLAG != nil {
 		nonNills++
 
-		for _, link := range s.ESLAG.Links {
+		for _, link := range connSpec.ESLAG.Links {
 			switches[link.Switch.DeviceName()] = struct{}{}
 			servers[link.Server.DeviceName()] = struct{}{}
 			ports[link.Switch.PortName()] = struct{}{}
@@ -620,13 +622,13 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(servers) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one server must be used for eslag connection")
 		}
-		if len(ports) != 2*len(s.ESLAG.Links) {
+		if len(ports) != 2*len(connSpec.ESLAG.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for eslag connection")
 		}
-	} else if s.Fabric != nil {
+	} else if connSpec.Fabric != nil {
 		nonNills++
 
-		for _, link := range s.Fabric.Links {
+		for _, link := range connSpec.Fabric.Links {
 			switches[link.Spine.DeviceName()] = struct{}{}
 			switches[link.Leaf.DeviceName()] = struct{}{}
 			ports[link.Spine.PortName()] = struct{}{}
@@ -637,13 +639,13 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(switches) != 2 {
 			return nil, nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
 		}
-		if len(ports) != 2*len(s.Fabric.Links) {
+		if len(ports) != 2*len(connSpec.Fabric.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
-	} else if s.VPCLoopback != nil {
+	} else if connSpec.VPCLoopback != nil {
 		nonNills++
 
-		for _, link := range s.VPCLoopback.Links {
+		for _, link := range connSpec.VPCLoopback.Links {
 			switches[link.Switch1.DeviceName()] = struct{}{}
 			switches[link.Switch2.DeviceName()] = struct{}{}
 			ports[link.Switch1.PortName()] = struct{}{}
@@ -654,19 +656,19 @@ func (s *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]s
 		if len(switches) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
 		}
-		if len(ports) != 2*len(s.VPCLoopback.Links) {
+		if len(ports) != 2*len(connSpec.VPCLoopback.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
-	} else if s.External != nil {
+	} else if connSpec.External != nil {
 		nonNills++
 
-		switches[s.External.Link.Switch.DeviceName()] = struct{}{}
-		ports[s.External.Link.Switch.PortName()] = struct{}{}
-	} else if s.StaticExternal != nil {
+		switches[connSpec.External.Link.Switch.DeviceName()] = struct{}{}
+		ports[connSpec.External.Link.Switch.PortName()] = struct{}{}
+	} else if connSpec.StaticExternal != nil {
 		nonNills++
 
-		switches[s.StaticExternal.Link.Switch.DeviceName()] = struct{}{}
-		ports[s.StaticExternal.Link.Switch.PortName()] = struct{}{}
+		switches[connSpec.StaticExternal.Link.Switch.DeviceName()] = struct{}{}
+		ports[connSpec.StaticExternal.Link.Switch.PortName()] = struct{}{}
 	}
 
 	if nonNills != 1 {
@@ -700,15 +702,15 @@ func (conn *Connection) Default() {
 	maps.Copy(conn.Labels, conn.Spec.ConnectionLabels())
 }
 
-func (conn *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {
-	if conn.Unbundled != nil && conn.Unbundled.MTU > fabricMTU-serverFacingMTUOffset {
-		return errors.Errorf("unbundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", conn.Unbundled.MTU, fabricMTU, serverFacingMTUOffset)
+func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {
+	if connSpec.Unbundled != nil && connSpec.Unbundled.MTU > fabricMTU-serverFacingMTUOffset {
+		return errors.Errorf("unbundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.Unbundled.MTU, fabricMTU, serverFacingMTUOffset)
 	}
-	if conn.Bundled != nil && conn.Bundled.MTU > fabricMTU-serverFacingMTUOffset {
-		return errors.Errorf("bundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", conn.Bundled.MTU, fabricMTU, serverFacingMTUOffset)
+	if connSpec.Bundled != nil && connSpec.Bundled.MTU > fabricMTU-serverFacingMTUOffset {
+		return errors.Errorf("bundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.Bundled.MTU, fabricMTU, serverFacingMTUOffset)
 	}
-	if conn.MCLAG != nil && conn.MCLAG.MTU > fabricMTU-serverFacingMTUOffset {
-		return errors.Errorf("mclag connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", conn.MCLAG.MTU, fabricMTU, serverFacingMTUOffset)
+	if connSpec.MCLAG != nil && connSpec.MCLAG.MTU > fabricMTU-serverFacingMTUOffset {
+		return errors.Errorf("mclag connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.MCLAG.MTU, fabricMTU, serverFacingMTUOffset)
 	}
 
 	return nil
@@ -716,7 +718,7 @@ func (conn *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFaci
 
 func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(conn); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	// TODO validate local port names against server/switch profiles

@@ -140,9 +140,9 @@ func (attach *VPCAttachment) Default() {
 	maps.Copy(attach.Labels, attach.Spec.Labels())
 }
 
-func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if attach.Spec.Subnet == "" {

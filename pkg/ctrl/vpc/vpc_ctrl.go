@@ -32,20 +32,20 @@ import (
 )
 
 const (
-	VPC_VNI_OFFSET = 100
-	VPC_VNI_MAX    = (16_777_215 - VPC_VNI_OFFSET) / VPC_VNI_OFFSET * VPC_VNI_OFFSET
+	VPCVNIOffset = 100
+	VPCVNIMax    = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
 )
 
-// VPCReconciler reconciles a VPC object
-type VPCReconciler struct {
+// Reconciler reconciles a VPC object
+type Reconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
-	r := &VPCReconciler{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
@@ -53,20 +53,21 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfi
 	}
 
 	// TODO only enqueue related VPCs
-	return ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
 		For(&vpcapi.VPC{}).
 		// It's enough to trigger just a single VPC update in this case as it'll update DHCP config for all VPCs
 		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOneVPC)).
-		Complete(r)
+		Complete(r), "failed to setup vpc controller")
 }
 
-func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueOneVPC(ctx context.Context, _ client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	vpcs := &vpcapi.VPCList{}
 	err := r.List(ctx, vpcs, client.Limit(1))
 	if err != nil {
 		log.FromContext(ctx).Error(err, "error listing vpcs")
+
 		return res
 	}
 	if len(vpcs.Items) > 0 {
@@ -94,7 +95,7 @@ func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, obj client.Object) []
 
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
-func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	if err := r.LibMngr.UpdateVPCs(ctx, r.Client); err != nil {
@@ -115,8 +116,10 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			if err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "error deleting dhcp subnets for removed vpc")
 			}
+
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
 	}
 

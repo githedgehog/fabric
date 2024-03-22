@@ -27,31 +27,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type IPv4NamespaceWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &IPv4NamespaceWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.IPv4Namespace{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup ipv4namespace webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*IPv4NamespaceWebhook)(nil)
-	_ admission.CustomValidator = (*IPv4NamespaceWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1alpha2,name=mipv4namespace.kb.io,admissionReviewVersions=v1
@@ -59,7 +59,7 @@ var (
 
 // var log = ctrl.Log.WithName("ipv4namespace-webhook")
 
-func (w *IPv4NamespaceWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	ns := obj.(*vpcapi.IPv4Namespace)
 
 	ns.Default()
@@ -67,18 +67,18 @@ func (w *IPv4NamespaceWebhook) Default(ctx context.Context, obj runtime.Object) 
 	return nil
 }
 
-func (w *IPv4NamespaceWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	ns := obj.(*vpcapi.IPv4Namespace)
 
 	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate ipv4namespace")
 	}
 
 	return warns, nil
 }
 
-func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(_ context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	oldNs := oldObj.(*vpcapi.IPv4Namespace)
 	newNs := newObj.(*vpcapi.IPv4Namespace)
 
@@ -89,7 +89,7 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldObj runtim
 	return nil, nil
 }
 
-func (w *IPv4NamespaceWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	ipns := obj.(*vpcapi.IPv4Namespace)
 
 	vpcs := &vpcapi.VPCList{}

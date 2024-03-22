@@ -28,31 +28,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type VLANNamespaceWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &VLANNamespaceWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.VLANNamespace{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup vlannamespace webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*VLANNamespaceWebhook)(nil)
-	_ admission.CustomValidator = (*VLANNamespaceWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-vlannamespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update,versions=v1alpha2,name=mvlannamespace.kb.io,admissionReviewVersions=v1
@@ -60,7 +60,7 @@ var (
 
 // var log = ctrl.Log.WithName("vlannamespace-webhook")
 
-func (w *VLANNamespaceWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	ns := obj.(*wiringapi.VLANNamespace)
 
 	ns.Default()
@@ -68,18 +68,18 @@ func (w *VLANNamespaceWebhook) Default(ctx context.Context, obj runtime.Object) 
 	return nil
 }
 
-func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	ns := obj.(*wiringapi.VLANNamespace)
 
 	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "failed to validate vlannamespace")
 	}
 
 	return nil, nil
 }
 
-func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(_ context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	oldNs := oldObj.(*wiringapi.VLANNamespace)
 	newNs := newObj.(*wiringapi.VLANNamespace)
 
@@ -90,7 +90,7 @@ func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, oldObj runtim
 	return nil, nil
 }
 
-func (w *VLANNamespaceWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	ns := obj.(*wiringapi.VLANNamespace)
 
 	switches := &wiringapi.SwitchList{}

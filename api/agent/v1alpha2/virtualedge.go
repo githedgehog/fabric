@@ -15,7 +15,7 @@
 package v1alpha2
 
 const (
-	VIRTUAL_EDGE_ANNOTATION = "virtual-edge.hhfab.fabric.githedgehog.com/external-cfg"
+	VirtualEdgeConfigAnnotation = "virtual-edge.hhfab.fabric.githedgehog.com/external-cfg"
 )
 
 // +kubebuilder:skip

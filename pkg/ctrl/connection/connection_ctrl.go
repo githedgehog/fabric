@@ -28,25 +28,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type ConnectionReconciler struct {
+type Reconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
-	r := &ConnectionReconciler{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
 		LibMngr: libMngr,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
 		Named("connection").
 		For(&wiringapi.Connection{}).
-		Complete(r)
+		Complete(r), "failed to setup connection controller")
 }
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
@@ -54,7 +54,7 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfi
 
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
-func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	if err := r.LibMngr.UpdateConnections(ctx, r.Client); err != nil {
@@ -67,6 +67,7 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, errors.Wrapf(err, "error getting connection")
 	}
 

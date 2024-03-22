@@ -107,7 +107,7 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube client.Client) err
 
 	connList := &wiringapi.ConnectionList{}
 	if err := kube.List(ctx, connList, client.MatchingLabels{
-		wiringapi.LabelConnectionType: wiringapi.CONNECTION_TYPE_ESLAG,
+		wiringapi.LabelConnectionType: wiringapi.ConnectionTypeESLAG,
 	}); err != nil {
 		return errors.Wrapf(err, "error listing ESLAG connections")
 	}

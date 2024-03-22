@@ -47,12 +47,12 @@ import (
 )
 
 const (
-	PORT_CHAN_MIN = 100
-	PORT_CHAN_MAX = 199
+	PortChanMin = 100
+	PortChanMax = 199
 )
 
-// AgentReconciler reconciles a Agent object
-type AgentReconciler struct {
+// Reconciler reconciles a Agent object
+type Reconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
 	Cfg     *meta.FabricConfig
@@ -60,8 +60,8 @@ type AgentReconciler struct {
 	Version string
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, version string) error {
-	r := &AgentReconciler{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, version string) error {
+	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
@@ -70,7 +70,7 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfi
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
-	return ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
@@ -79,10 +79,10 @@ func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfi
 		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
-		Complete(r)
+		Complete(r), "failed to setup agent controller")
 }
 
-func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
@@ -107,13 +107,14 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(ctx context.Context, obj cli
 	return res
 }
 
-func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
 	err := r.List(ctx, sws, client.InNamespace(obj.GetNamespace()))
 	if err != nil {
 		log.FromContext(ctx).Error(err, "error listing switches to reconcile all")
+
 		return res
 	}
 
@@ -171,7 +172,7 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj client.Obj
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
-func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	sw := &wiringapi.Switch{}
@@ -180,6 +181,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
 
@@ -313,6 +315,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		for subnetName := range vpc.Spec.Subnets {
 			if configuredSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
 				ok = true
+
 				break
 			}
 		}
@@ -637,7 +640,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return ctrl.Result{}, nil
 }
 
-func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.ObjectMeta) (*ctrl.Result, error) {
+func (r *Reconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.ObjectMeta) (*ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	sa := &corev1.ServiceAccount{ObjectMeta: agentMeta}
@@ -709,6 +712,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav
 	if len(tokenSecret.Data) < 3 {
 		// TODO is it the best we can do? or should we do few in-place retries?
 		l.Info("requeue to wait for service account token")
+
 		return &ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -729,7 +733,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, agentMeta metav
 		return nil, errors.Wrapf(err, "error creating kubeconfig secret")
 	}
 
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 const (
@@ -770,7 +774,7 @@ users:
 	}
 }
 
-func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
+func (r *Reconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	buf := &bytes.Buffer{}
 	err := genKubeconfigTmpl.Execute(buf, genKubeconfigTmplCfg{
 		Server: r.Cfg.APIServer,
@@ -778,7 +782,7 @@ func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 		Token:  string(secret.Data[corev1.ServiceAccountTokenKey]),
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "error executing kubeconfig template")
 	}
 
 	return buf.String(), nil

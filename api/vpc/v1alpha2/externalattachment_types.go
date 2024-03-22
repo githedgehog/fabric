@@ -122,9 +122,9 @@ func (attach *ExternalAttachment) Default() {
 	attach.Labels[LabelExternal] = attach.Spec.External
 }
 
-func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if attach.Spec.External == "" {

@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	PORT_NAME_SEPARATOR = "/"
+	PortNameSeparator    = "/"
+	DefaultVLANNamespace = "default"
 )
 
 var (
@@ -155,6 +156,7 @@ func (l *Location) GenerateUUID() (string, string) {
 
 	// and return a version 5 UUID based on the URL namespace with it
 	us := u.String()
+
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(us)).String(), us
 }
 

@@ -26,29 +26,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type ServerWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Cfg    *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &ServerWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Cfg:    cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.Server{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup server webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*ServerWebhook)(nil)
-	_ admission.CustomValidator = (*ServerWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-server,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update,versions=v1alpha2,name=mserver.kb.io,admissionReviewVersions=v1
@@ -56,7 +56,7 @@ var (
 
 // var log = ctrl.Log.WithName("server-webhook")
 
-func (w *ServerWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	server := obj.(*wiringapi.Server)
 
 	server.Default()
@@ -64,29 +64,29 @@ func (w *ServerWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
-func (w *ServerWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	server := obj.(*wiringapi.Server)
 
 	warns, err := server.Validate(ctx, w.Client, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "error validating server")
 	}
 
 	return warns, nil
 }
 
-func (w *ServerWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	newServer := newObj.(*wiringapi.Server)
 
 	warns, err := newServer.Validate(ctx, w.Client, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "error validating server")
 	}
 
 	return warns, nil
 }
 
-func (w *ServerWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	server := obj.(*wiringapi.Server)
 
 	conns := &wiringapi.ConnectionList{}

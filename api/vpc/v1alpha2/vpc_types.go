@@ -158,10 +158,10 @@ func (vpc *VPC) Default() {
 	meta.DefaultObjectMetadata(vpc)
 
 	if vpc.Spec.IPv4Namespace == "" {
-		vpc.Spec.IPv4Namespace = "default"
+		vpc.Spec.IPv4Namespace = DefaultIPv4Namespace
 	}
 	if vpc.Spec.VLANNamespace == "" {
-		vpc.Spec.VLANNamespace = "default"
+		vpc.Spec.VLANNamespace = wiringapi.DefaultVLANNamespace
 	}
 
 	if vpc.Labels == nil {
@@ -176,7 +176,7 @@ func (vpc *VPC) Default() {
 
 func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(vpc); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if len(vpc.Name) > 11 {
@@ -235,10 +235,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 
 		if subnetCfg.DHCP.Enable {
 			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
-				if vpc.Spec.IPv4Namespace != "default" {
+				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
 					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default IPv4Namespace in the current Fabric config", subnetName)
 				}
-				if vpc.Spec.VLANNamespace != "default" {
+				if vpc.Spec.VLANNamespace != wiringapi.DefaultVLANNamespace {
 					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default VLANNamespace in the current Fabric config", subnetName)
 				}
 			}
@@ -314,6 +314,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", vpc.Spec.IPv4Namespace)
 			}
+
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
 		}
 
@@ -323,6 +324,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			if apierrors.IsNotFound(err) {
 				return nil, errors.Errorf("VLANNamespace %s not found", vpc.Spec.VLANNamespace)
 			}
+
 			return nil, errors.Wrapf(err, "failed to get VLANNamespace %s", vpc.Spec.VLANNamespace) // TODO replace with some internal error to not expose to the user
 		}
 
@@ -341,6 +343,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 
 				if ipNsSubnet.Contains(vpcSubnet.IP) {
 					ok = true
+
 					break
 				}
 			}

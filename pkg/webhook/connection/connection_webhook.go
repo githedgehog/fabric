@@ -29,31 +29,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-type ConnectionWebhook struct {
+type Webhook struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient client.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(cfgBasedir string, mgr ctrl.Manager, cfg *meta.FabricConfig) error {
-	w := &ConnectionWebhook{
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: mgr.GetClient(),
 		Cfg:        cfg,
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.Connection{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete()
+		Complete(), "failed to setup connection webhook")
 }
 
 var (
-	_ admission.CustomDefaulter = (*ConnectionWebhook)(nil)
-	_ admission.CustomValidator = (*ConnectionWebhook)(nil)
+	_ admission.CustomDefaulter = (*Webhook)(nil)
+	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1alpha2,name=mconnection.kb.io,admissionReviewVersions=v1
@@ -61,7 +61,7 @@ var (
 
 // var log = ctrl.Log.WithName("connection-webhook")
 
-func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 	conn := obj.(*wiringapi.Connection)
 
 	conn.Default()
@@ -70,7 +70,7 @@ func (w *ConnectionWebhook) Default(ctx context.Context, obj runtime.Object) err
 }
 
 // validateStaticExternal checks that the static external connection is valid and it's located in a webhook to avoid circular dependency with vpcapi
-func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube client.Reader, conn *wiringapi.Connection) error {
+func (w *Webhook) validateStaticExternal(ctx context.Context, kube client.Reader, conn *wiringapi.Connection) error {
 	if conn.Spec.StaticExternal != nil && conn.Spec.StaticExternal.WithinVPC != "" {
 		vpc := &vpcapi.VPC{}
 		err := kube.Get(ctx, types.NamespacedName{Name: conn.Spec.StaticExternal.WithinVPC, Namespace: conn.Namespace}, vpc) // TODO namespace could be different?
@@ -85,18 +85,18 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube cli
 	return nil
 }
 
-func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	conn := obj.(*wiringapi.Connection)
 
 	warns, err := conn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "error validating connection")
 	}
 
 	return warns, w.validateStaticExternal(ctx, w.KubeClient, conn)
 }
 
-func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
 	// TODO some connections or their parts should be immutable
 
 	oldConn := oldObj.(*wiringapi.Connection)
@@ -108,7 +108,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 
 	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, err
+		return warns, errors.Wrapf(err, "error validating connection")
 	}
 
 	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
@@ -120,7 +120,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldObj runtime.O
 	return warns, w.validateStaticExternal(ctx, w.KubeClient, newConn)
 }
 
-func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	conn := obj.(*wiringapi.Connection)
 
 	vpcAttachments := &vpcapi.VPCAttachmentList{}

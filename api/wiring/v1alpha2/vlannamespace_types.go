@@ -113,9 +113,9 @@ func (ns *VLANNamespace) Default() {
 	}
 }
 
-func (ns *VLANNamespace) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (ns *VLANNamespace) Validate(_ context.Context, _ client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
 	if _, err := meta.NormalizedVLANRanges(ns.Spec.Ranges); err != nil {
