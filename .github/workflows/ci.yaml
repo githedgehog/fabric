@@ -77,6 +77,9 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+          # unfortunately the package cache is creating lots of errors/warnings right now
+          # for details: https://github.com/golangci/golangci-lint-action/issues/677
+          skip-pkg-cache: true
 
       - name: Cache dev tools
         uses: actions/cache@v4
