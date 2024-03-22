@@ -34,8 +34,9 @@ test: manifests generate fmt vet envtest gcov2lcov ## Run tests.
 	$(GCOV2LCOV) -infile cover.out -outfile lcov.info
 
 .PHONY: lint
-lint: addlicense ## Run linters
+lint: addlicense golangci-lint ## Run linters
 	$(ADDLICENSE) -c Hedgehog -ignore ".github/**" -ignore "config/**" -y 2023 .
+	$(GOLANGCI_LINT) run ./...
 
 ##@ Build
 
