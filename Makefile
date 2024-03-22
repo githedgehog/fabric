@@ -33,9 +33,12 @@ test: manifests generate fmt vet envtest gcov2lcov ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(TESTS) -coverprofile cover.out
 	$(GCOV2LCOV) -infile cover.out -outfile lcov.info
 
-.PHONY: lint
-lint: addlicense golangci-lint ## Run linters
+.PHONY: lint-lic
+lint-lic: addlicense ## Run addlicense to check if all files have the license header.
 	$(ADDLICENSE) -c Hedgehog -ignore ".github/**" -ignore "config/**" -y 2023 .
+
+.PHONY: lint
+lint: lint-lic golangci-lint ## Run linters
 	$(GOLANGCI_LINT) run ./...
 
 ##@ Build
