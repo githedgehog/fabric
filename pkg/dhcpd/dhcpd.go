@@ -40,13 +40,14 @@ func init() {
 func kubeClient() (client.WithWatch, error) {
 	k8scfg, err := ctrl.GetConfig()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error getting kube config")
 	}
+
 	client, err := client.NewWithWatch(k8scfg, client.Options{
 		Scheme: scheme,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error creating kube client")
 	}
 
 	return client, nil
@@ -82,7 +83,7 @@ func (d *Service) Run(ctx context.Context) error {
 	d.kubeUpdates = make(chan Event, 100)
 	d.updateStatus = func(d dhcpapi.DHCPSubnet) error {
 		// TODO download latest obj and try to update its status
-		return kube.Status().Update(ctx, &d)
+		return errors.Wrapf(kube.Status().Update(ctx, &d), "failed to update status")
 	}
 
 	wg := sync.WaitGroup{}
@@ -127,8 +128,8 @@ func (d *Service) runKubeWatcher(ctx context.Context, kube client.WithWatch) err
 	for {
 		if watcher == nil {
 			slog.Info("Starting K8s watcher")
-			if watcher, err = kube.Watch(context.TODO(), &dhcpapi.DHCPSubnetList{}, client.InNamespace("default")); err != nil { // TODO ns
-				return err
+			if watcher, err = kube.Watch(ctx, &dhcpapi.DHCPSubnetList{}, client.InNamespace("default")); err != nil { // TODO ns
+				return errors.Wrapf(err, "failed to start watcher")
 			}
 			defer watcher.Stop()
 		}
@@ -140,17 +141,20 @@ func (d *Service) runKubeWatcher(ctx context.Context, kube client.WithWatch) err
 			if !ok {
 				slog.Warn("K8s watch channel closed, restarting watcher")
 				watcher = nil
+
 				continue
 			}
 
 			if event.Object == nil {
 				slog.Warn("Received nil object from K8s, restarting watcher")
 				watcher = nil
+
 				continue
 			}
 
 			if event.Type == watch.Bookmark {
 				slog.Info("Received watch event, ignoring", "event", event.Type)
+
 				continue
 			}
 
@@ -161,6 +165,7 @@ func (d *Service) runKubeWatcher(ctx context.Context, kube client.WithWatch) err
 				}
 
 				watcher = nil
+
 				continue
 			}
 

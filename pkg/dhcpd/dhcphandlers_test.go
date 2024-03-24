@@ -50,7 +50,7 @@ func Test_handleDiscover4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.240"),
 						net.ParseIP("10.10.1.1"),
@@ -98,7 +98,7 @@ func Test_handleDiscover4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.240"),
 						net.ParseIP("10.10.1.1"),
@@ -154,7 +154,7 @@ func Test_handleDiscover4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					// pool, _ := NewIPv4Range(
+					// pool, _ := newIPv4Range(
 					// 	net.ParseIP("10.10.1.10"),
 					// 	net.ParseIP("10.10.1.240"),
 					// 	net.ParseIP("10.10.1.1"),
@@ -205,7 +205,7 @@ func Test_handleDiscover4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.240"),
 						net.ParseIP("10.10.1.1"),
@@ -221,9 +221,9 @@ func Test_handleDiscover4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:01",
+									macAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},
@@ -290,7 +290,7 @@ func Test_handleRequest4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.240"),
 						net.ParseIP("10.10.1.1"),
@@ -309,9 +309,9 @@ func Test_handleRequest4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:01",
+									macAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},
@@ -367,7 +367,7 @@ func Test_handleRequest4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.240"),
 						net.ParseIP("10.10.1.1"),
@@ -386,9 +386,9 @@ func Test_handleRequest4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:01",
+									macAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},
@@ -444,7 +444,7 @@ func Test_handleRequest4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.240"),
 						net.ParseIP("10.10.1.1"),
@@ -463,9 +463,9 @@ func Test_handleRequest4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:01",
+									macAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},
@@ -510,7 +510,7 @@ func Test_handleRequest4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.12"),
 						net.ParseIP("10.10.1.1"),
@@ -532,9 +532,9 @@ func Test_handleRequest4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:01": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:01",
+									macAddress: "00:00:00:00:00:01",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},
@@ -627,7 +627,7 @@ func Test_handleDecline4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.12"),
 						net.ParseIP("10.10.1.1"),
@@ -646,9 +646,9 @@ func Test_handleDecline4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:04": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:04",
+									macAddress: "00:00:00:00:00:04",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},
@@ -693,7 +693,7 @@ func Test_handleDecline4(t *testing.T) {
 							// svcHdl: svc,
 						}
 					}
-					pool, _ := NewIPv4Range(
+					pool, _ := newIPv4Range(
 						net.ParseIP("10.10.1.10"),
 						net.ParseIP("10.10.1.12"),
 						net.ParseIP("10.10.1.1"),
@@ -712,9 +712,9 @@ func Test_handleDecline4(t *testing.T) {
 							allocation: map[string]*ipreservation{
 								"00:00:00:00:00:04": {
 									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
-									MacAddress: "00:00:00:00:00:04",
+									macAddress: "00:00:00:00:00:04",
 									expiry:     time.Now().Add(time.Hour * 1),
-									Hostname:   "testhost",
+									hostname:   "testhost",
 									state:      committed,
 								},
 							},

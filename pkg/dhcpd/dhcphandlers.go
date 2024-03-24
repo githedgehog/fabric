@@ -15,7 +15,6 @@
 package dhcpd
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -28,9 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
+func handleDiscover4(req, resp *dhcpv4.DHCPv4) error { //nolint:unused
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
-
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 		if len(vrfName) > 1 {
@@ -60,6 +58,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 
 			resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
+
 			return nil
 		}
 		// This is not  a know reservation
@@ -74,10 +73,10 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
 		subnet.allocations.allocation[req.ClientHWAddr.String()] = &ipreservation{
 			address:    ipnet,
-			MacAddress: req.ClientHWAddr.String(),
+			macAddress: req.ClientHWAddr.String(),
 			expiry:     time.Now().Add(leaseTime),
 			state:      pending,
-			Hostname:   req.HostName(),
+			hostname:   req.HostName(),
 		}
 		time.AfterFunc(pendingDiscoverTimeout, func() {
 			subnet.Lock()
@@ -94,14 +93,13 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 				}
 			}
 		})
-
 	}
+
 	return nil
 }
 
-func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
+func handleRequest4(req, resp *dhcpv4.DHCPv4) error { //nolint:unused
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
-
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 		if len(vrfName) > 1 {
@@ -132,11 +130,12 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1alpha2.DHCPAllocated{
 				IP:       reservation.address.IP.String(),
 				Expiry:   metav1.NewTime(reservation.expiry),
-				Hostname: reservation.Hostname,
+				Hostname: reservation.hostname,
 			}
 			if err := updateBackend4(subnet.dhcpSubnet); err != nil {
 				log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
 			}
+
 			return nil
 		}
 		ipnet, err := subnet.pool.Allocate()
@@ -150,10 +149,10 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
 		subnet.allocations.allocation[req.ClientHWAddr.String()] = &ipreservation{
 			address:    ipnet,
-			MacAddress: req.ClientHWAddr.String(),
+			macAddress: req.ClientHWAddr.String(),
 			expiry:     time.Now().Add(leaseTime),
 			state:      committed,
-			Hostname:   req.HostName(),
+			hostname:   req.HostName(),
 		}
 		subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1alpha2.DHCPAllocated{
 			IP:       ipnet.IP.String(),
@@ -163,43 +162,12 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		if err := updateBackend4(subnet.dhcpSubnet); err != nil {
 			log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), ipnet.String())
 		}
-
-	}
-	return nil
-}
-
-func handleDecline4(req, resp *dhcpv4.DHCPv4) error {
-	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
-		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
-		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
-		if len(vrfName) > 1 {
-			vrfName = vrfName[1:]
-		}
-		subnet, err := getSubnetInfo(string(vrfName), string(circuitID))
-		if err != nil {
-			return errors.Wrapf(err, "handleDiscover4: failed to get subnet info")
-		}
-		subnet.Lock()
-		defer subnet.Unlock()
-		reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
-		if !ok {
-			log.Debugf("No reservation found for mac %s ip %s", req.ClientHWAddr.String(), req.ClientIPAddr.String())
-		}
-		delete(subnet.allocations.allocation, req.ClientHWAddr.String())
-		if err := subnet.pool.Free(reservation.address); err != nil {
-			log.Errorf("IP address %s could not be released", reservation.address.String())
-		}
-		delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
-		if err := updateBackend4(subnet.dhcpSubnet); err != nil {
-			log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
-		}
-
 	}
 
 	return nil
 }
 
-func handleRelease4(req, resp *dhcpv4.DHCPv4) error {
+func handleDecline4(req, _ /* resp */ *dhcpv4.DHCPv4) error { //nolint:unused
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
@@ -225,16 +193,48 @@ func handleRelease4(req, resp *dhcpv4.DHCPv4) error {
 			log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
 		}
 	}
+
 	return nil
 }
 
-func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) {
+func handleRelease4(req, _ /* resp */ *dhcpv4.DHCPv4) error { //nolint:unused
+	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
+		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
+		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
+		if len(vrfName) > 1 {
+			vrfName = vrfName[1:]
+		}
+		subnet, err := getSubnetInfo(string(vrfName), string(circuitID))
+		if err != nil {
+			return errors.Wrapf(err, "handleDiscover4: failed to get subnet info")
+		}
+		subnet.Lock()
+		defer subnet.Unlock()
+		reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
+		if !ok {
+			log.Debugf("No reservation found for mac %s ip %s", req.ClientHWAddr.String(), req.ClientIPAddr.String())
+		}
+		delete(subnet.allocations.allocation, req.ClientHWAddr.String())
+		if err := subnet.pool.Free(reservation.address); err != nil {
+			log.Errorf("IP address %s could not be released", reservation.address.String())
+		}
+		delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
+		if err := updateBackend4(subnet.dhcpSubnet); err != nil {
+			log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
+		}
+	}
+
+	return nil
+}
+
+func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) { //nolint:unused
 	pluginHdl.dhcpSubnets.Lock()
 	defer pluginHdl.dhcpSubnets.Unlock()
-	subnet, ok := pluginHdl.dhcpSubnets.subnets[string(vrfName)+string(circuitID)]
+	subnet, ok := pluginHdl.dhcpSubnets.subnets[vrfName+circuitID]
 	if !ok {
-		return nil, fmt.Errorf("No subnet found for vrf %s and circuitID %s", vrfName, circuitID)
+		return nil, errors.Errorf("No subnet found for vrf %s and circuitID %s", vrfName, circuitID)
 	}
+
 	return subnet, nil
 }
 
@@ -243,7 +243,6 @@ func handleExpiredLeases() {
 	// This is a long loop we migh want to break this so we don't spend too much time here
 	ticker := time.NewTicker(120 * time.Second)
 	for range ticker.C {
-
 		if pluginHdl.dhcpSubnets == nil {
 			continue
 		}
@@ -261,11 +260,10 @@ func handleExpiredLeases() {
 			}
 		}
 		pluginHdl.dhcpSubnets.Unlock()
-
 	}
 }
 
-func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
+func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) { //nolint:unused
 	relayAgentInfo := req.RelayAgentInfo()
 	if relayAgentInfo == nil || subnet.dhcpSubnet == nil {
 		return
@@ -277,11 +275,13 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	if len(subnet.dhcpSubnet.Spec.PXEURL) <= 0 &&
 		(req.IsOptionRequested(dhcpv4.OptionTFTPServerName) || req.IsOptionRequested(dhcpv4.OptionBootfileName)) { // PxeURL is not specified return early with an error message
 		log.Errorf("Client Requested pxe but it is not configured circuitID %s vrfName %s macAddress %s", circuitID, vrfName, req.ClientHWAddr.String())
+
 		return
 	}
 	u, err := url.Parse(subnet.dhcpSubnet.Spec.PXEURL)
 	if err != nil {
 		log.Errorf("Invalid Pxe URL %s: %v", subnet.dhcpSubnet.Spec.PXEURL, err)
+
 		return
 	}
 	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {

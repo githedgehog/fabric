@@ -151,9 +151,10 @@ func TestNewIPv4Range(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewIPv4Range(tt.args.start, tt.args.end, tt.args.gateway, tt.args.count, tt.args.prefixLen)
+			got, err := newIPv4Range(tt.args.start, tt.args.end, tt.args.gateway, tt.args.count, tt.args.prefixLen)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewIPv4Range() error = %v, wantErr %v", err, tt.wantErr)
+
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
@@ -208,11 +209,12 @@ func Test_ipv4range_AllocateIP(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
 					ip := binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4())
 					offset := ip - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4())
 					bt.Set(uint(offset))
+
 					return bt
 				}(),
 			},
@@ -231,8 +233,9 @@ func Test_ipv4range_AllocateIP(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
+
 					return bt
 				}(),
 			},
@@ -251,7 +254,7 @@ func Test_ipv4range_AllocateIP(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
 					ip := binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4())
 					offset := ip - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4())
@@ -259,6 +262,7 @@ func Test_ipv4range_AllocateIP(t *testing.T) {
 					bt.Set(0)
 					bt.Set(1)
 					bt.Set(3)
+
 					return bt
 				}(),
 			},
@@ -282,6 +286,7 @@ func Test_ipv4range_AllocateIP(t *testing.T) {
 			got, err := r.AllocateIP(tt.args.ip)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ipv4range.AllocateIP() error = %v, wantErr %v", err, tt.wantErr)
+
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
@@ -318,11 +323,12 @@ func Test_ipv4range_Free(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
 					ip := binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4())
 					offset := ip - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4())
 					bt.Set(uint(offset))
+
 					return bt
 				}(),
 			},
@@ -340,11 +346,12 @@ func Test_ipv4range_Free(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
 					ip := binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4())
 					offset := ip - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4())
 					bt.Set(uint(offset))
+
 					return bt
 				}(),
 			},
@@ -362,11 +369,12 @@ func Test_ipv4range_Free(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
 					ip := binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4())
 					offset := ip - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4())
 					bt.Set(uint(offset))
+
 					return bt
 				}(),
 			},
@@ -384,11 +392,12 @@ func Test_ipv4range_Free(t *testing.T) {
 				Count:   4,
 				Mask:    net.CIDRMask(24, 32),
 				bitmap: func() *bitset.BitSet {
-					//Reserve the bit in the bitmap
+					// Reserve the bit in the bitmap
 					bt := bitset.New(uint(binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4()) - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4()) + 1))
 					ip := binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 4).To4())
 					offset := ip - binary.BigEndian.Uint32(net.IPv4(1, 1, 1, 2).To4())
 					bt.Set(uint(offset))
+
 					return bt
 				}(),
 			},
