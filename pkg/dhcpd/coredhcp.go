@@ -37,7 +37,7 @@ server4:
     - hhdhcp: ""
 `
 
-func (d *Service) runCoreDHCP(ctx context.Context) error {
+func (d *Service) runCoreDHCP(_ context.Context) error {
 	log := logger.GetLogger("main")
 	if d.Verbose {
 		log.Logger.SetLevel(logrus.DebugLevel)

@@ -18,6 +18,6 @@ package dhcpd
 
 import "context"
 
-func (d *Service) runCoreDHCP(ctx context.Context) error {
+func (d *Service) runCoreDHCP(_ context.Context) error {
 	panic("unimplemented")
 }

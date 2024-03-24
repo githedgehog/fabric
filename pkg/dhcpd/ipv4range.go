@@ -16,12 +16,11 @@ package dhcpd
 
 import (
 	"encoding/binary"
-	"errors"
-	"fmt"
 	"net"
 	"sync"
 
 	"github.com/bits-and-blooms/bitset"
+	"github.com/pkg/errors"
 )
 
 // This is a range of IP Addresses that is managed as a unit.
@@ -35,9 +34,9 @@ type ipv4range struct {
 	sync.RWMutex
 }
 
-func NewIPv4Range(start, end, gateway net.IP, count uint32, prefixLen uint32) (*ipv4range, error) {
+func newIPv4Range(start, end, gateway net.IP, count uint32, prefixLen uint32) (*ipv4range, error) {
 	if start.To4() == nil || end.To4() == nil {
-		return nil, fmt.Errorf("invalid IPv4 addresses given to create the range: [%s,%s]", start, end)
+		return nil, errors.Errorf("invalid IPv4 addresses given to create the range: [%s,%s]", start, end)
 	}
 	if binary.BigEndian.Uint32(start.To4()) > binary.BigEndian.Uint32(end.To4()) {
 		return nil, errors.New("no IPs in the given range to allocate")
@@ -62,8 +61,9 @@ func NewIPv4Range(start, end, gateway net.IP, count uint32, prefixLen uint32) (*
 		r.bitmap.Set(offset) // Reserve the gateway IP
 	}
 
-	if r.End-r.Start+1 != uint32(count) {
+	if r.End-r.Start+1 != count {
 		log.Errorf("Count %d,range %d", count, r.End-r.Start+1)
+
 		return nil, errors.New("count does not match range")
 	}
 
@@ -75,6 +75,7 @@ func (r *ipv4range) GatewayIP() net.IP {
 	defer r.RUnlock()
 	val := make(net.IP, net.IPv4len)
 	binary.BigEndian.PutUint32(val, r.gateway)
+
 	return val
 }
 
@@ -82,6 +83,7 @@ func (r *ipv4range) GatewayIP() net.IP {
 func (r *ipv4range) Allocate() (net.IPNet, error) {
 	r.Lock()
 	defer r.Unlock()
+
 	return r.allocate()
 }
 
@@ -102,6 +104,7 @@ func (r *ipv4range) AllocateIP(ip net.IPNet) (net.IPNet, error) {
 	// first try to get the exact ip
 	if !r.bitmap.Test(offset) {
 		r.bitmap.Set(offset) // it's available so set it
+
 		return net.IPNet{
 			IP:   r.toIP(uint32(offset)),
 			Mask: mask,
@@ -121,6 +124,7 @@ func (r *ipv4range) allocate() (net.IPNet, error) {
 
 	next = avail
 	r.bitmap.Set(next)
+
 	return net.IPNet{
 		IP:   r.toIP(uint32(next)),
 		Mask: r.Mask,
@@ -136,13 +140,14 @@ func (r *ipv4range) Free(ip net.IPNet) error {
 	}
 	offset, err := r.toOffset(ip.IP.To4())
 	if err != nil {
-		return fmt.Errorf("invalid ip address %s: %v", ip.IP.String(), err)
+		return errors.Wrapf(err, "invalid ip address %s", ip.IP.String())
 	}
 	if !r.bitmap.Test(offset) {
 		return errors.New("ip address is not allocated in this range")
 	}
 
-	r.bitmap.Clear(uint(offset)) // IP released
+	r.bitmap.Clear(offset) // IP released
+
 	return nil
 }
 
@@ -151,12 +156,12 @@ func (r *ipv4range) toIP(offset uint32) net.IP {
 		return net.IPv4zero
 	}
 	ip := make(net.IP, net.IPv4len)
-	binary.BigEndian.PutUint32(ip, uint32(r.Start)+offset)
+	binary.BigEndian.PutUint32(ip, r.Start+offset)
+
 	return ip
 }
 
 func (r *ipv4range) toOffset(ip net.IP) (uint, error) {
-
 	ipaddr := binary.BigEndian.Uint32(ip.To4())
 	if ipaddr < r.Start || ipaddr > r.End {
 		return 0, errors.New("IP address out of range")

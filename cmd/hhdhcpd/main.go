@@ -26,13 +26,14 @@ import (
 
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	"github.com/pkg/errors"
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/dhcpd"
 )
 
 const (
-	DEFAULT_BASEDIR = "/etc/hedgehog/"
+	DefaultBasedir = "/etc/hedgehog/"
 )
 
 //go:embed motd.txt
@@ -61,9 +62,9 @@ func setupLogger(verbose bool, printMotd bool) error {
 	slog.SetDefault(logger)
 
 	if printMotd {
-		_, err := logConsole.Write([]byte(motd))
+		_, err := logConsole.Write(motd)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to write motd")
 		}
 	}
 
@@ -115,14 +116,14 @@ func main() {
 					verboseFlag,
 					configPathFlag,
 				},
-				Before: func(cCtx *cli.Context) error {
+				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
 				},
-				Action: func(cCtx *cli.Context) error {
-					return (&dhcpd.Service{
+				Action: func(_ *cli.Context) error {
+					return errors.Wrapf((&dhcpd.Service{
 						Verbose: verbose,
 						Config:  configPath,
-					}).Run(ctx)
+					}).Run(ctx), "failed to run dhcp server")
 				},
 			},
 		},
