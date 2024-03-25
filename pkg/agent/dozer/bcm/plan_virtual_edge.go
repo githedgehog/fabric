@@ -54,7 +54,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[ipnsVrf] = &dozer.SpecVRF{
 				Enabled: pointer.To(true),
 				// Description:      pointer.To(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
-				AnycastMAC:       pointer.To(ANYCAST_MAC),
+				AnycastMAC:       pointer.To(AnycastMAC),
 				Interfaces:       map[string]*dozer.SpecVRFInterface{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
@@ -146,7 +146,6 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			dozer.SpecVRFBGPTableConnectionConnected: {},
 			dozer.SpecVRFBGPTableConnectionStatic:    {},
 		}
-
 	}
 
 	return nil

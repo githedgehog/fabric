@@ -24,7 +24,7 @@ import (
 
 var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	Summary: "Spec",
-	CustomHandler: func(basePath string, key string, actual, desired *dozer.Spec, actions *ActionQueue) error {
+	CustomHandler: func(basePath string, _ string, actual, desired *dozer.Spec, actions *ActionQueue) error {
 		if actual == nil {
 			actual = &dozer.Spec{}
 		}

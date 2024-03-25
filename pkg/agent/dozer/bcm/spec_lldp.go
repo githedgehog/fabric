@@ -29,7 +29,7 @@ var specLLDPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLLDP]{
 	Summary: "LLDP",
 	Path:    "/lldp/config",
 	Weight:  ActionWeightLLDP,
-	Marshal: func(name string, value *dozer.SpecLLDP) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecLLDP) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigLldp_Lldp{
 			Config: &oc.OpenconfigLldp_Lldp_Config{
 				Enabled:           value.Enabled,
@@ -56,7 +56,7 @@ func loadActualLLDP(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 	return nil
 }
 
-func unmarshalActualLLDP(ocVal *oc.OpenconfigLldp_Lldp) (*dozer.SpecLLDP, error) {
+func unmarshalActualLLDP(ocVal *oc.OpenconfigLldp_Lldp) (*dozer.SpecLLDP, error) { //nolint:unparam
 	lldp := &dozer.SpecLLDP{}
 
 	if ocVal == nil {
@@ -115,7 +115,7 @@ func loadActualLLDPInterfaces(ctx context.Context, client *gnmi.Client, spec *do
 	return nil
 }
 
-func unmarshalActualLLDPInterfaces(ocVal *oc.OpenconfigLldp_Lldp_Interfaces) (map[string]*dozer.SpecLLDPInterface, error) {
+func unmarshalActualLLDPInterfaces(ocVal *oc.OpenconfigLldp_Lldp_Interfaces) (map[string]*dozer.SpecLLDPInterface, error) { //nolint:unparam
 	lldpInterfaces := map[string]*dozer.SpecLLDPInterface{}
 
 	if ocVal == nil {

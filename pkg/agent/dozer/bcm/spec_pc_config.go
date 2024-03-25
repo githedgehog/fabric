@@ -47,12 +47,12 @@ var specPortChannelConfigEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPor
 var specPortChannelConfigSystemMACEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
 	Summary: "PortChannel System MAC %s",
 	Path:    "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/system_mac",
-	Getter: func(key string, value *dozer.SpecPortChannelConfig) any {
+	Getter: func(_ string, value *dozer.SpecPortChannelConfig) any {
 		return value.SystemMAC
 	},
 	UpdateWeight: ActionWeightPortChannelConfigMACUpdate,
 	DeleteWeight: ActionWeightPortChannelConfigMACDelete,
-	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
 			SystemMac: value.SystemMAC,
 		}, nil
@@ -62,12 +62,12 @@ var specPortChannelConfigSystemMACEnforcer = &DefaultValueEnforcer[string, *doze
 var specPortChannelConfigFallbackEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortChannelConfig]{
 	Summary: "PortChannel Fallback %s",
 	Path:    "/sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=%s]/fallback",
-	Getter: func(key string, value *dozer.SpecPortChannelConfig) any {
+	Getter: func(_ string, value *dozer.SpecPortChannelConfig) any {
 		return value.Fallback
 	},
 	UpdateWeight: ActionWeightPortChannelConfigFallbackUpdate,
 	DeleteWeight: ActionWeightPortChannelConfigFallbackDelete,
-	Marshal: func(key string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecPortChannelConfig) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicPortchannel_SonicPortchannel_PORTCHANNEL_PORTCHANNEL_LIST{
 			Fallback: value.Fallback,
 		}, nil
@@ -89,7 +89,7 @@ func loadActualPortChannelConfigs(ctx context.Context, client *gnmi.Client, spec
 	return nil
 }
 
-func unmarshalActualPortChannelConfigs(ocVal *oc.SonicPortchannel_SonicPortchannel) (map[string]*dozer.SpecPortChannelConfig, error) {
+func unmarshalActualPortChannelConfigs(ocVal *oc.SonicPortchannel_SonicPortchannel) (map[string]*dozer.SpecPortChannelConfig, error) { //nolint:unparam
 	portChannelConfigs := map[string]*dozer.SpecPortChannelConfig{}
 
 	if ocVal == nil || ocVal.PORTCHANNEL == nil {

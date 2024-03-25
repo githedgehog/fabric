@@ -35,16 +35,16 @@ import (
 )
 
 const (
-	JSON_IETF       = "json_ietf"
-	TARGET          = "sonic"
-	DEFAULT_ADDRESS = "127.0.0.1:8080"
-	PASSWORD_FILE   = "agent-passwd"
-	AGENT_USER      = "hhagent"
+	JSONIETFEncoding  = "json_ietf"
+	Target            = "sonic"
+	DefaultAddress    = "127.0.0.1:8080"
+	AgentUser         = "hhagent"
+	AgentPasswordFile = "agent-passwd"
 )
 
 var (
-	DEFAULT_USERS     = []string{"admin"}
-	DEFAULT_PASSWORDS = []string{"YourPaSsWoRd"}
+	DefaultUsers     = []string{"admin"}
+	DefaultPasswords = []string{"YourPaSsWoRd"}
 )
 
 type Client struct {
@@ -52,7 +52,7 @@ type Client struct {
 }
 
 func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool) (*Client, error) {
-	_, err := os.Stat(filepath.Join(basedir, PASSWORD_FILE))
+	_, err := os.Stat(filepath.Join(basedir, AgentPasswordFile))
 	if err != nil {
 		if os.IsNotExist(err) {
 			if skipAgentUserCreation {
@@ -65,7 +65,7 @@ func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create new agent user")
 			}
-			err = os.WriteFile(filepath.Join(basedir, PASSWORD_FILE), password, 0o600)
+			err = os.WriteFile(filepath.Join(basedir, AgentPasswordFile), password, 0o600)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot write password file")
 			}
@@ -77,12 +77,12 @@ func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool)
 	}
 
 	// let's just read it to make sure password file is good
-	password, err := os.ReadFile(filepath.Join(basedir, PASSWORD_FILE))
+	password, err := os.ReadFile(filepath.Join(basedir, AgentPasswordFile))
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read password file")
 	}
 
-	return New(ctx, DEFAULT_ADDRESS, AGENT_USER, string(password))
+	return New(ctx, DefaultAddress, AgentUser, string(password))
 }
 
 func New(ctx context.Context, address, username, password string) (*Client, error) {
@@ -103,7 +103,7 @@ func New(ctx context.Context, address, username, password string) (*Client, erro
 
 func (c *Client) Close() error {
 	if c != nil && c.tg != nil {
-		return c.tg.Close()
+		return errors.Wrapf(c.tg.Close(), "cannot close gnmi client")
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 	}
 
 	// TODO move it to lib of smth
-	username := AGENT_USER
+	username := AgentUser
 	user := &oc.OpenconfigSystem_System_Aaa_Authentication_Users{
 		User: map[string]*oc.OpenconfigSystem_System_Aaa_Authentication_Users_User{
 			username: {
@@ -135,18 +135,19 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 	}
 
 	path := fmt.Sprintf("/openconfig-system:system/aaa/authentication/users/user[username=%s]", username)
-	req, err := api.NewSetRequest(api.Update(api.Path(path), api.Value(data, JSON_IETF)))
+	req, err := api.NewSetRequest(api.Update(api.Path(path), api.Value(data, JSONIETFEncoding)))
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create gnmi set request for user %s", username)
 	}
 
 	var lastError error
-	for _, user := range DEFAULT_USERS {
-		for _, password := range DEFAULT_PASSWORDS {
-			defC, err := New(ctx, DEFAULT_ADDRESS, user, password)
+	for _, user := range DefaultUsers {
+		for _, password := range DefaultPasswords {
+			defC, err := New(ctx, DefaultAddress, user, password)
 			if err != nil {
 				lastError = errors.Wrapf(err, "cannot init client with %s", user)
 				slog.Debug("cannot init client", "user", user, "err", err)
+
 				continue
 			}
 			defer defC.Close()
@@ -155,6 +156,7 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 			if err != nil {
 				lastError = errors.Wrapf(err, "cannot set user %s with gnmi", username)
 				slog.Debug("cannot set user with gnmi", "user", username, "err", err)
+
 				continue
 			}
 
@@ -167,7 +169,7 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 
 func createGNMIClient(ctx context.Context, address, username, password string) (*target.Target, error) {
 	tg, err := api.NewTarget(
-		api.Name(TARGET),
+		api.Name(Target),
 		api.Address(address),
 		api.Username(username),
 		api.Password(password),
@@ -196,7 +198,7 @@ func (c *Client) Set(ctx context.Context, req *gnmi.SetRequest) error {
 }
 
 func (c *Client) Get(ctx context.Context, path string, dest ygot.ValidatedGoStruct, options ...api.GNMIOption) error {
-	getReq, err := api.NewGetRequest(append(options, api.Encoding(JSON_IETF), api.Path(path))...)
+	getReq, err := api.NewGetRequest(append(options, api.Encoding(JSONIETFEncoding), api.Path(path))...)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create get request for: %s", path)
 	}
@@ -215,7 +217,7 @@ func (c *Client) Get(ctx context.Context, path string, dest ygot.ValidatedGoStru
 }
 
 func (c *Client) GetWithOpts(ctx context.Context, path string, dest ygot.ValidatedGoStruct, extract bool, options ...api.GNMIOption) error {
-	getReq, err := api.NewGetRequest(append(options, api.Encoding(JSON_IETF), api.Path(path))...)
+	getReq, err := api.NewGetRequest(append(options, api.Encoding(JSONIETFEncoding), api.Path(path))...)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create get request for: %s", path)
 	}
@@ -269,13 +271,13 @@ func UnmarshalWithOpts(data []byte, dest ygot.ValidatedGoStruct, opts ...ytypes.
 	if hasExtractOpt(opts) {
 		container := dest.ΛBelongingModule() + ":" + schema.Name
 		if val, exists := jsonTree[container]; exists {
-			return ytypes.Unmarshal(schema, dest, val, opts...)
-		} else {
-			return errors.Errorf("can't extract from container %s", container)
+			return errors.Wrapf(ytypes.Unmarshal(schema, dest, val, opts...), "error extracting from container %s", container)
 		}
+
+		return errors.Errorf("can't extract from container %s", container)
 	}
 
-	return ytypes.Unmarshal(schema, dest, jsonTree, opts...)
+	return errors.Wrapf(ytypes.Unmarshal(schema, dest, jsonTree, opts...), "error unmarshaling for type %s", typeName)
 }
 
 func hasExtractOpt(opts []ytypes.UnmarshalOpt) bool {
@@ -284,6 +286,7 @@ func hasExtractOpt(opts []ytypes.UnmarshalOpt) bool {
 			return true
 		}
 	}
+
 	return false
 }
 

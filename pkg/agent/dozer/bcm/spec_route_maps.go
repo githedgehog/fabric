@@ -56,7 +56,7 @@ var specRouteMapBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap
 	Summary:      "Route Maps Base %s",
 	UpdateWeight: ActionWeightRouteMapUpdate,
 	DeleteWeight: ActionWeightRouteMapDelete,
-	Marshal: func(name string, value *dozer.SpecRouteMap) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(name string, _ *dozer.SpecRouteMap) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions{
 			PolicyDefinition: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition{
 				name: {
@@ -202,7 +202,7 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 		}
 
 		statements := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{}
-		statements.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
+		err := statements.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
 			Name: pointer.To(seq),
 			Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Config{
 				Name: pointer.To(seq),
@@ -215,6 +215,9 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 				},
 			},
 		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to append statement")
+		}
 
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements{
 			Statement: statements,
@@ -295,10 +298,12 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 					if setComm.Config != nil && setComm.Inline != nil && setComm.Inline.Config != nil {
 						if setComm.Config.Method != oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config_Method_INLINE {
 							slog.Warn("unsupported community set method", "route map", name, "method", setComm.Config.Method)
+
 							continue
 						}
 						if setComm.Config.Options != oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD {
 							slog.Warn("unsupported community set options", "route map", name, "options", setComm.Config.Options)
+
 							continue
 						}
 

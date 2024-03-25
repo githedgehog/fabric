@@ -18,28 +18,30 @@ import (
 	"bytes"
 	"crypto/rand"
 	"math/big"
+
+	"github.com/pkg/errors"
 )
 
 const (
-	PASSWD_LOWER   = "abcdefghijklmnopqrstuvwxyz"
-	PASSWD_UPPER   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	PASSWD_DIGITS  = "0123456789"
-	PASSWD_SYMBOLS = "~!@#$%^&*()_+`-={}|[]\\:\"<>?,./"
-	PASSWD_LENGTH  = 32
+	PasswdLower   = "abcdefghijklmnopqrstuvwxyz"
+	PasswdUpper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	PasswdDigits  = "0123456789"
+	PasswdSymbols = "~!@#$%^&*()_+`-={}|[]\\:\"<>?,./"
+	PasswdLength  = 32
 )
 
-var PASSWD_ALPHABET = PASSWD_LOWER + PASSWD_UPPER + PASSWD_DIGITS + PASSWD_SYMBOLS
+var PasswdAlphabet = PasswdLower + PasswdUpper + PasswdDigits + PasswdSymbols
 
 func RandomPassword() (string, error) {
 	var res bytes.Buffer
-	for idx := 0; idx < PASSWD_LENGTH; idx++ {
-		r, err := rand.Int(rand.Reader, big.NewInt(int64(len(PASSWD_ALPHABET))))
+	for idx := 0; idx < PasswdLength; idx++ {
+		r, err := rand.Int(rand.Reader, big.NewInt(int64(len(PasswdAlphabet))))
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "failed to generate random password")
 		}
-		err = res.WriteByte(PASSWD_ALPHABET[r.Int64()])
+		err = res.WriteByte(PasswdAlphabet[r.Int64()])
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "failed to generate random password")
 		}
 	}
 

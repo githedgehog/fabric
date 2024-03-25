@@ -85,7 +85,7 @@ func loadActualDHCPRelays(ctx context.Context, client *gnmi.Client, spec *dozer.
 	return nil
 }
 
-func unmarshalOCDHCPRelays(ocVal *oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces) (map[string]*dozer.SpecDHCPRelay, error) {
+func unmarshalOCDHCPRelays(ocVal *oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces) (map[string]*dozer.SpecDHCPRelay, error) { //nolint:unparam
 	relays := map[string]*dozer.SpecDHCPRelay{}
 
 	if ocVal == nil {

@@ -34,19 +34,19 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 )
 
-type broadcomProcessor struct {
+type BroadcomProcessor struct {
 	client *gnmi.Client
 }
 
-var _ dozer.Processor = &broadcomProcessor{}
+var _ dozer.Processor = &BroadcomProcessor{}
 
-func Processor(client *gnmi.Client) *broadcomProcessor {
-	return &broadcomProcessor{
+func Processor(client *gnmi.Client) *BroadcomProcessor {
+	return &BroadcomProcessor{
 		client: client,
 	}
 }
 
-func (p *broadcomProcessor) WaitReady(ctx context.Context) error {
+func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 	// TODO think about better timeout handling
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
@@ -56,7 +56,7 @@ func (p *broadcomProcessor) WaitReady(ctx context.Context) error {
 
 		buf := &bytes.Buffer{}
 		// TODO figure out how to call gNMI actions(rpcs?) from agent
-		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AGENT_USER)
+		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AgentUser) //nolint:gosec
 		cmd.Stdout = io.MultiWriter(buf, os.Stdout)
 		cmd.Stderr = os.Stdout
 		err := cmd.Run()
@@ -83,7 +83,7 @@ func (p *broadcomProcessor) WaitReady(ctx context.Context) error {
 	return nil
 }
 
-func (p *broadcomProcessor) Reboot(ctx context.Context, force bool) error {
+func (p *BroadcomProcessor) Reboot(ctx context.Context, _ /* force */ bool) error {
 	cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
 	err := cmd.Run()
 	if err != nil {
@@ -100,7 +100,7 @@ func (p *broadcomProcessor) Reboot(ctx context.Context, force bool) error {
 	return errors.Wrap(cmd.Run(), "failed to reboot")
 }
 
-func (p *broadcomProcessor) Reinstall(ctx context.Context) error {
+func (p *BroadcomProcessor) Reinstall(ctx context.Context) error {
 	err := uefiutil.MakeONIEDefaultBootEntryAndCleanup()
 	if err != nil {
 		return errors.Wrapf(err, "failed to make ONIE default boot entry")
@@ -109,7 +109,7 @@ func (p *broadcomProcessor) Reinstall(ctx context.Context) error {
 	return p.Reboot(ctx, true)
 }
 
-func (p *broadcomProcessor) FactoryReset(ctx context.Context) error {
+func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
 	// TODO use sonic-cli for it and then switch to GNOI
 	// write erase boot
 
@@ -127,7 +127,7 @@ func (p *broadcomProcessor) FactoryReset(ctx context.Context) error {
 	panic("unimplemented")
 }
 
-func (p *broadcomProcessor) LoadActualState(ctx context.Context) (*dozer.Spec, error) {
+func (p *BroadcomProcessor) LoadActualState(ctx context.Context) (*dozer.Spec, error) {
 	spec := &dozer.Spec{}
 
 	if err := loadActualSpec(ctx, p.client, spec); err != nil {
@@ -139,7 +139,7 @@ func (p *broadcomProcessor) LoadActualState(ctx context.Context) (*dozer.Spec, e
 	return spec, nil
 }
 
-func (p *broadcomProcessor) CalculateActions(ctx context.Context, actual, desired *dozer.Spec) ([]dozer.Action, error) {
+func (p *BroadcomProcessor) CalculateActions(_ context.Context, actual, desired *dozer.Spec) ([]dozer.Action, error) {
 	if reflect.DeepEqual(actual, desired) {
 		return []dozer.Action{}, nil
 	}
@@ -155,7 +155,7 @@ func (p *broadcomProcessor) CalculateActions(ctx context.Context, actual, desire
 	return actions.actions, nil
 }
 
-func (p *broadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Action) ([]string, error) {
+func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Action) ([]string, error) {
 	for idx, action := range actions {
 		act := action.(*Action)
 
@@ -180,9 +180,9 @@ func (p *broadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 
 			options := []api.GNMIOption{}
 			if act.Type == ActionTypeUpdate {
-				options = append(options, api.Update(api.Path(act.Path), api.Value(ocData, gnmi.JSON_IETF)))
+				options = append(options, api.Update(api.Path(act.Path), api.Value(ocData, gnmi.JSONIETFEncoding)))
 			} else if act.Type == ActionTypeReplace {
-				options = append(options, api.Replace(api.Path(act.Path), api.Value(ocData, gnmi.JSON_IETF)))
+				options = append(options, api.Replace(api.Path(act.Path), api.Value(ocData, gnmi.JSONIETFEncoding)))
 			} else if act.Type == ActionTypeDelete {
 				options = append(options, api.Delete(act.Path))
 			} else {
@@ -206,7 +206,7 @@ func (p *broadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 	return nil, nil
 }
 
-func (p *broadcomProcessor) Info(ctx context.Context) (*agentapi.NOSInfo, error) {
+func (p *BroadcomProcessor) Info(ctx context.Context) (*agentapi.NOSInfo, error) {
 	ocInfo := &oc.OpenconfigPlatform_Components_Component_SoftwareModule{}
 	err := p.client.GetWithOpts(ctx, "/openconfig-platform:components/component[name=SoftwareModule]/software-module", ocInfo, true)
 	if err != nil {
@@ -218,7 +218,9 @@ func (p *broadcomProcessor) Info(ctx context.Context) (*agentapi.NOSInfo, error)
 	if ocInfo.State == nil {
 		return nil, errors.Errorf("no state in NOS info")
 	}
-	err = mapstructure.Decode(ocInfo.State, info)
+
+	// TODO consider more safe way to convert
+	err = mapstructure.Decode(ocInfo.State, info) //nolint:musttag
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot convert NOS info")
 	}
