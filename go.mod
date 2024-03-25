@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.31.1
-	github.com/openconfig/gnmi v0.10.0
+	github.com/openconfig/gnmi v0.11.0
 	github.com/openconfig/gnmic v0.32.0
 	github.com/openconfig/ygot v0.29.18
 	github.com/pkg/errors v0.9.1
