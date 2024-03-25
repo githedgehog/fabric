@@ -17,7 +17,7 @@ package common
 import (
 	"context"
 	"crypto/tls"
-	_ "embed"
+	"crypto/x509"
 	"log/slog"
 	"net/http"
 	"os"
@@ -49,6 +49,7 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 
 	if dryRun {
 		slog.Info("Dry run, not upgrading")
+
 		return false, nil
 	}
 
@@ -71,15 +72,17 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 		return false, errors.Wrapf(err, "error creating oras remote repo %s", version.Repo)
 	}
 
+	rootCAs := x509.NewCertPool()
+	if !rootCAs.AppendCertsFromPEM([]byte(version.CA)) {
+		return false, errors.New("failed to append CA cert to rootCAs")
+	}
+
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
 	baseTransport.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: false,
+		RootCAs:            rootCAs,
 	}
-	// TODO load CA
-	// config.RootCAs, err = crypto.LoadCertPool(opts.CACertFilePath)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
 
 	repo.Client = &auth.Client{
 		Client: &http.Client{
@@ -87,7 +90,7 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 		},
 	}
 
-	_, err = oras.Copy(context.Background(), repo, desiredVersion, fs, desiredVersion, oras.CopyOptions{
+	_, err = oras.Copy(ctx, repo, desiredVersion, fs, desiredVersion, oras.CopyOptions{
 		CopyGraphOptions: oras.CopyGraphOptions{
 			Concurrency: 2,
 		},
