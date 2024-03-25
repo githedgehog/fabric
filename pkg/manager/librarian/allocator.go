@@ -48,11 +48,12 @@ func (a *Allocator[Value]) Allocate(known map[string]Value, updates map[string]b
 			continue
 		}
 
-		if val, err := a.Values.Next(); err != nil {
+		val, err := a.Values.Next()
+		if err != nil {
 			return nil, errors.Errorf("failed to allocate value for %s", key)
-		} else {
-			updated[key] = val
 		}
+
+		updated[key] = val
 	}
 
 	return updated, nil
@@ -100,6 +101,7 @@ func (v *NextFreeValueFromRanges[Value]) Add(val Value) bool {
 	for _, r := range v.ranges {
 		if r[0] <= val && val <= r[1] && (val-r[0])%v.inc == 0 {
 			valid = true
+
 			break
 		}
 	}
@@ -121,6 +123,7 @@ func (v *NextFreeValueFromRanges[Value]) Next() (Value, error) {
 			if !v.taken[value] {
 				v.fromRangeIdx = rangeIdx
 				v.fromValue = value + v.inc
+
 				return value, nil
 			}
 		}
