@@ -21,3 +21,7 @@ import "context"
 func (d *Service) runCoreDHCP(_ context.Context) error {
 	panic("unimplemented")
 }
+
+func (d *Service) handleExpiredLeases() {
+	panic("unimplemented")
+}

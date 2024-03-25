@@ -114,7 +114,8 @@ func (d *Service) Run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		handleExpiredLeases()
+
+		d.handleExpiredLeases()
 	}()
 	wg.Wait()
 

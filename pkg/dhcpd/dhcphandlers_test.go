@@ -27,6 +27,13 @@ import (
 	"go.githedgehog.com/fabric/api/dhcp/v1alpha2"
 )
 
+const (
+	VrfV12   = "VrfV12"
+	VrfV15   = "VrfV15"
+	VrfV16   = "VrfV16"
+	Vlan2000 = "Vlan2000"
+)
+
 func Test_handleDiscover4(t *testing.T) {
 	type args struct {
 		req  *dhcpv4.DHCPv4
@@ -57,7 +64,7 @@ func Test_handleDiscover4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV12"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets[VrfV12+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 						},
@@ -78,6 +85,7 @@ func Test_handleDiscover4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '2',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
@@ -105,7 +113,7 @@ func Test_handleDiscover4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV13"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets["VrfV13"+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 						},
@@ -129,16 +137,18 @@ func Test_handleDiscover4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '3',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
 			wantErr: false,
 			expectedState: func() bool {
-				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV13"+"Vlan2000"]; ok {
+				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV13"+Vlan2000]; ok {
 					if len(val.allocations.allocation) == 1 {
 						return true
 					}
 				}
+
 				return false
 			},
 		},
@@ -161,7 +171,7 @@ func Test_handleDiscover4(t *testing.T) {
 					// 	binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 					// 	uint32(24),
 					// )
-					// pluginHdl.dhcpSubnets.subnets["VrfV14"+"Vlan2000"] = &ManagedSubnet{
+					// pluginHdl.dhcpSubnets.subnets["VrfV14"+Vlan2000] = &ManagedSubnet{
 					// 	dhcpSubnet: &v1alpha2.DHCPSubnet{
 					// 		Spec: v1alpha2.DHCPSubnetSpec{},
 					// 	},
@@ -185,6 +195,7 @@ func Test_handleDiscover4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '4',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
@@ -212,7 +223,7 @@ func Test_handleDiscover4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV15"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets[VrfV15+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 						},
@@ -244,16 +255,18 @@ func Test_handleDiscover4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '5',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
 			wantErr: false,
 			expectedState: func() bool {
-				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV15"+"Vlan2000"]; ok {
+				if val, ok := pluginHdl.dhcpSubnets.subnets[VrfV15+Vlan2000]; ok {
 					if len(val.allocations.allocation) == 1 {
 						return true
 					}
 				}
+
 				return false
 			},
 		},
@@ -297,7 +310,7 @@ func Test_handleRequest4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV16"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 							Status: v1alpha2.DHCPSubnetStatus{
@@ -336,12 +349,13 @@ func Test_handleRequest4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '5',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
 			wantErr: false,
 			expectedState: func() bool {
-				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV15"+"Vlan2000"]; ok {
+				if val, ok := pluginHdl.dhcpSubnets.subnets[VrfV15+Vlan2000]; ok {
 					res, ok := val.allocations.allocation["00:00:00:00:00:01"]
 					if !ok {
 						return false
@@ -352,6 +366,7 @@ func Test_handleRequest4(t *testing.T) {
 
 					return true
 				}
+
 				return false
 			},
 		},
@@ -374,7 +389,7 @@ func Test_handleRequest4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV16"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 							Status: v1alpha2.DHCPSubnetStatus{
@@ -413,12 +428,13 @@ func Test_handleRequest4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '6',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
 			wantErr: false,
 			expectedState: func() bool {
-				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV16"+"Vlan2000"]; ok {
+				if val, ok := pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000]; ok {
 					res, ok := val.allocations.allocation["00:00:00:00:00:02"]
 					if !ok {
 						return false
@@ -429,6 +445,7 @@ func Test_handleRequest4(t *testing.T) {
 
 					return true
 				}
+
 				return false
 			},
 		},
@@ -451,7 +468,7 @@ func Test_handleRequest4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.240").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV16"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 							Status: v1alpha2.DHCPSubnetStatus{
@@ -490,6 +507,7 @@ func Test_handleRequest4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '7',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
@@ -517,10 +535,16 @@ func Test_handleRequest4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.12").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pool.Allocate()
-					pool.Allocate()
-					pool.Allocate()
-					pluginHdl.dhcpSubnets.subnets["VrfV18"+"Vlan2000"] = &ManagedSubnet{
+					if _, err := pool.Allocate(); err != nil {
+						return nil
+					}
+					if _, err := pool.Allocate(); err != nil {
+						return nil
+					}
+					if _, err := pool.Allocate(); err != nil {
+						return nil
+					}
+					pluginHdl.dhcpSubnets.subnets["VrfV18"+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 							Status: v1alpha2.DHCPSubnetStatus{
@@ -560,6 +584,7 @@ func Test_handleRequest4(t *testing.T) {
 						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '8',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
+
 					return resp
 				}(),
 			},
@@ -634,7 +659,7 @@ func Test_handleDecline4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.12").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV19"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets["VrfV19"+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 							Status: v1alpha2.DHCPSubnetStatus{
@@ -661,7 +686,7 @@ func Test_handleDecline4(t *testing.T) {
 			},
 			wantErr: false,
 			expectedState: func() bool {
-				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV19"+"Vlan2000"]; ok {
+				if val, ok := pluginHdl.dhcpSubnets.subnets["VrfV19"+Vlan2000]; ok {
 					if _, ok1 := val.allocations.allocation["00:00:00:00:00:04"]; ok1 {
 						return false
 					}
@@ -670,6 +695,7 @@ func Test_handleDecline4(t *testing.T) {
 						return false
 					}
 				}
+
 				return true
 			},
 		},
@@ -700,7 +726,7 @@ func Test_handleDecline4(t *testing.T) {
 						binary.BigEndian.Uint32(net.ParseIP("10.10.1.12").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
 						uint32(24),
 					)
-					pluginHdl.dhcpSubnets.subnets["VrfV20"+"Vlan2000"] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets["VrfV20"+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &v1alpha2.DHCPSubnet{
 							Spec: v1alpha2.DHCPSubnetSpec{},
 							Status: v1alpha2.DHCPSubnetStatus{
@@ -775,14 +801,15 @@ func Test_getSubnetInfo(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(ttt *testing.T) {
 			got, err := getSubnetInfo(tt.args.vrfName, tt.args.circuitID)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getSubnetInfo() error = %v, wantErr %v", err, tt.wantErr)
+				ttt.Errorf("getSubnetInfo() error = %v, wantErr %v", err, tt.wantErr)
+
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getSubnetInfo() = %v, want %v", got, tt.want)
+				ttt.Errorf("getSubnetInfo() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -795,7 +822,7 @@ func Test_handleExpiredLeases(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			handleExpiredLeases()
 		})
 	}
@@ -814,7 +841,7 @@ func Test_addPxeInfo(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			addPxeInfo(tt.args.req, tt.args.resp, tt.args.subnet)
 		})
 	}
