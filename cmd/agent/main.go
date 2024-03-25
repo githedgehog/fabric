@@ -27,6 +27,7 @@ import (
 
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	"github.com/pkg/errors"
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/agent"
@@ -37,9 +38,9 @@ import (
 )
 
 const (
-	DEFAULT_BASEDIR            = "/etc/sonic/hedgehog/"
-	DEFAULT_BIN_PATH           = "/opt/hedgehog/bin/agent"
-	DEFAULT_AGENT_SERVICE_USER = "root"
+	DefaultBasedir          = "/etc/sonic/hedgehog/"
+	DefaultBinPath          = "/opt/hedgehog/bin/agent"
+	DefaultAgentServiceUser = "root"
 )
 
 //go:embed motd.txt
@@ -83,9 +84,9 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 	slog.SetDefault(logger)
 
 	if printMotd {
-		_, err := logConsole.Write([]byte(motd))
+		_, err := logConsole.Write(motd)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to write motd")
 		}
 	}
 
@@ -117,7 +118,7 @@ func main() {
 		Name:        "basedir",
 		Usage:       "base directory for the agent files",
 		Destination: &basedir,
-		Value:       DEFAULT_BASEDIR,
+		Value:       DefaultBasedir,
 	}
 
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
@@ -136,16 +137,21 @@ func main() {
 					verboseFlag,
 					basedirFlag,
 				},
-				Before: func(cCtx *cli.Context) error {
+				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true, true)
 				},
-				Action: func(cCtx *cli.Context) error {
-					return (&agent.Service{
+				Action: func(_ *cli.Context) error {
+					return errors.Wrapf((&agent.Service{
 						Basedir: basedir,
 						Version: version,
 					}).Run(ctx, func() (*gnmi.Client, error) {
-						return gnmi.NewInSONiC(ctx, basedir, false)
-					})
+						client, err := gnmi.NewInSONiC(ctx, basedir, false)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to create GNMI client")
+						}
+
+						return client, nil
+					}), "failed to run agent")
 				},
 			},
 			{
@@ -185,7 +191,7 @@ func main() {
 						Value:   "YourPaSsWoRd",
 					},
 				},
-				Before: func(cCtx *cli.Context) error {
+				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, false, true)
 				},
 				Action: func(cCtx *cli.Context) error {
@@ -193,23 +199,33 @@ func main() {
 
 					getGNMIClient := func() (*gnmi.Client, error) {
 						if cCtx.Bool("gnmi-direct") {
-							return gnmi.New(ctx,
+							client, err := gnmi.New(ctx,
 								cCtx.String("gnmi-server"),
 								cCtx.String("gnmi-username"),
 								cCtx.String("gnmi-password"))
+							if err != nil {
+								return nil, errors.Wrapf(err, "failed to create GNMI client")
+							}
+
+							return client, nil
 						}
 
-						return gnmi.NewInSONiC(ctx, basedir, true)
+						client, err := gnmi.NewInSONiC(ctx, basedir, true)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to create GNMI client")
+						}
+
+						return client, nil
 					}
 
-					return (&agent.Service{
+					return errors.Wrapf((&agent.Service{
 						Basedir:         basedir,
 						Version:         version,
 						DryRun:          cCtx.Bool("dry-run"),
 						SkipControlLink: cCtx.Bool("skip-contol-link"),
 						ApplyOnce:       cCtx.Bool("apply-once"),
 						SkipActions:     true,
-					}).Run(ctx, getGNMIClient)
+					}).Run(ctx, getGNMIClient), "failed to apply config")
 				},
 			},
 			{
@@ -226,7 +242,7 @@ func main() {
 								Aliases: []string{
 									"agent-path",
 								},
-								Value: DEFAULT_BIN_PATH,
+								Value: DefaultBinPath,
 								Usage: "path to the agent binary",
 							},
 							&cli.StringFlag{
@@ -234,7 +250,7 @@ func main() {
 								Aliases: []string{
 									"agent-user",
 								},
-								Value: DEFAULT_AGENT_SERVICE_USER,
+								Value: DefaultAgentServiceUser,
 								Usage: "user to run agent",
 							},
 							&cli.BoolFlag{
@@ -249,7 +265,7 @@ func main() {
 								Control: cCtx.Bool("control"),
 							})
 							if err != nil {
-								return err
+								return errors.Wrapf(err, "failed to generate systemd unit")
 							}
 
 							fmt.Println(unit)
@@ -270,7 +286,7 @@ func main() {
 						Aliases: []string{
 							"agent-path",
 						},
-						Value: DEFAULT_BIN_PATH,
+						Value: DefaultBinPath,
 						Usage: "path to the agent binary",
 					},
 					&cli.StringFlag{
@@ -278,7 +294,7 @@ func main() {
 						Aliases: []string{
 							"agent-user",
 						},
-						Value: DEFAULT_AGENT_SERVICE_USER,
+						Value: DefaultAgentServiceUser,
 						Usage: "user to run agent",
 					},
 					&cli.BoolFlag{
@@ -286,15 +302,15 @@ func main() {
 						Usage: "install control agent systemd-unit",
 					},
 				},
-				Before: func(cCtx *cli.Context) error {
+				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true, false)
 				},
 				Action: func(cCtx *cli.Context) error {
-					return systemd.Install(systemd.UnitConfig{
+					return errors.Wrapf(systemd.Install(systemd.UnitConfig{
 						BinPath: cCtx.String("bin-path"),
 						User:    cCtx.String("user"),
 						Control: cCtx.Bool("control"),
-					})
+					}), "failed to install systemd unit")
 				},
 			},
 			{
@@ -312,13 +328,13 @@ func main() {
 							verboseFlag,
 							basedirFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose, true, true)
 						},
-						Action: func(cCtx *cli.Context) error {
-							return (&control.Service{
+						Action: func(_ *cli.Context) error {
+							return errors.Wrapf((&control.Service{
 								Version: version,
-							}).Run(ctx)
+							}).Run(ctx), "failed to run control agent")
 						},
 					},
 					{
@@ -332,15 +348,15 @@ func main() {
 								Value: true,
 							},
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose, false, true)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return (&control.Service{
+							return errors.Wrapf((&control.Service{
 								Version:   version,
 								ApplyOnce: true,
 								DryRun:    cCtx.Bool("dry-run"),
-							}).Run(ctx)
+							}).Run(ctx), "failed to apply control agent config")
 						},
 					},
 				},

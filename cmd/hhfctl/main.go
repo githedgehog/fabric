@@ -23,6 +23,7 @@ import (
 
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
@@ -77,7 +78,7 @@ func main() {
 		Usage:       "assume yes",
 		Destination: &yes,
 	}
-	yesCheck := func(cCtx *cli.Context) error {
+	yesCheck := func(_ *cli.Context) error {
 		if !yes {
 			return cli.Exit("Potentially dangerous operation. Please confirm with --yes if you're sure.", 1)
 		}
@@ -144,11 +145,11 @@ func main() {
 							},
 							printYamlFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
+							return errors.Wrapf(hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
 								VLAN:   cCtx.String("vlan"),
@@ -160,7 +161,7 @@ func main() {
 										End:   cCtx.String("dhcp-range-end"),
 									},
 								},
-							})
+							}), "failed to create vpc")
 						},
 					},
 					{
@@ -183,15 +184,15 @@ func main() {
 							},
 							printYamlFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCAttach(ctx, printYaml, &hhfctl.VPCAttachOptions{
+							return errors.Wrapf(hhfctl.VPCAttach(ctx, printYaml, &hhfctl.VPCAttachOptions{
 								Name:       name,
 								VPCSubnet:  cCtx.String("vpc-subnet"),
 								Connection: cCtx.String("connection"),
-							})
+							}), "failed to attach connection to vpc")
 						},
 					},
 					{
@@ -212,15 +213,15 @@ func main() {
 							},
 							printYamlFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
+							return errors.Wrapf(hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
 								Name:   name,
 								VPCs:   cCtx.StringSlice("vpc"),
 								Remote: cCtx.String("remote"),
-							})
+							}), "failed to peer vpcs")
 						},
 					},
 				},
@@ -241,14 +242,15 @@ func main() {
 							nameFlag,
 							yesFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
 								return err
 							}
-							return hhfctl.SwitchReboot(ctx, yes, name)
+
+							return errors.Wrapf(hhfctl.SwitchReboot(ctx, yes, name), "failed to reboot switch")
 						},
 					},
 					{
@@ -259,14 +261,15 @@ func main() {
 							nameFlag,
 							yesFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
 								return err
 							}
-							return hhfctl.SwitchPowerReset(ctx, yes, name)
+
+							return errors.Wrapf(hhfctl.SwitchPowerReset(ctx, yes, name), "failed to power reset switch")
 						},
 					},
 					{
@@ -277,14 +280,15 @@ func main() {
 							nameFlag,
 							yesFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
 								return err
 							}
-							return hhfctl.SwitchReinstall(ctx, yes, name)
+
+							return errors.Wrapf(hhfctl.SwitchReinstall(ctx, yes, name), "failed to reinstall switch")
 						},
 					},
 					{
@@ -300,14 +304,15 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
 								return err
 							}
-							return hhfctl.SwitchForceAgentVersion(ctx, yes, name, cCtx.String("version"))
+
+							return errors.Wrapf(hhfctl.SwitchForceAgentVersion(ctx, yes, name, cCtx.String("version")), "failed to force agent version on the switch")
 						},
 					},
 				},
@@ -326,13 +331,13 @@ func main() {
 						Flags: []cli.Flag{
 							verboseFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.ConnectionGet(ctx, &hhfctl.ConnectionGetOptions{
+							return errors.Wrapf(hhfctl.ConnectionGet(ctx, &hhfctl.ConnectionGetOptions{
 								Type: cCtx.Args().First(),
-							})
+							}), "failed to get connections")
 						},
 					},
 				},
@@ -353,13 +358,13 @@ func main() {
 							nameFlag,
 							printYamlFlag,
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							return hhfctl.SwitchGroupCreate(ctx, printYaml, &hhfctl.SwitchGroupCreateOptions{
+						Action: func(_ *cli.Context) error {
+							return errors.Wrapf(hhfctl.SwitchGroupCreate(ctx, printYaml, &hhfctl.SwitchGroupCreateOptions{
 								Name: name,
-							})
+							}), "failed to create SwitchGroup")
 						},
 					},
 				},
@@ -395,16 +400,16 @@ func main() {
 								Usage:   "outbound community",
 							},
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.ExternalCreate(ctx, printYaml, &hhfctl.ExternalCreateOptions{
+							return errors.Wrapf(hhfctl.ExternalCreate(ctx, printYaml, &hhfctl.ExternalCreateOptions{
 								Name:              name,
 								IPv4Namespace:     cCtx.String("ipv4-namespace"),
 								InboundCommunity:  cCtx.String("inbound-community"),
 								OutboundCommunity: cCtx.String("outbound-community"),
-							})
+							}), "failed to create External")
 						},
 					},
 					{
@@ -437,16 +442,16 @@ func main() {
 								Value:   cli.NewStringSlice("0.0.0.0/0_le32"),
 							},
 						},
-						Before: func(cCtx *cli.Context) error {
+						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							return hhfctl.ExternalPeering(ctx, printYaml, &hhfctl.ExternalPeeringOptions{
+							return errors.Wrapf(hhfctl.ExternalPeering(ctx, printYaml, &hhfctl.ExternalPeeringOptions{
 								VPC:              cCtx.String("vpc"),
 								VPCSubnets:       cCtx.StringSlice("vpc-subnet"),
 								External:         cCtx.String("external"),
 								ExternalPrefixes: cCtx.StringSlice("external-prefix"),
-							})
+							}), "failed to enable peering between external and vpc")
 						},
 					},
 				},
