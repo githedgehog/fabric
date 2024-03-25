@@ -29,7 +29,7 @@ var specNTPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNTP]{
 	Summary: "NTP",
 	Path:    "/system/ntp/config",
 	Weight:  ActionWeightNTP,
-	Marshal: func(name string, value *dozer.SpecNTP) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecNTP) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigSystem_System_Ntp{
 			Config: &oc.OpenconfigSystem_System_Ntp_Config{
 				SourceInterface: value.SourceInterface,
@@ -77,7 +77,7 @@ func loadActualNTP(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) e
 	return nil
 }
 
-func unmarshalOCNTP(ocVal *oc.OpenconfigSystem_System_Ntp) (*dozer.SpecNTP, error) {
+func unmarshalOCNTP(ocVal *oc.OpenconfigSystem_System_Ntp) (*dozer.SpecNTP, error) { //nolint:unparam
 	if ocVal == nil || ocVal.Config == nil {
 		return &dozer.SpecNTP{}, nil
 	}
@@ -101,7 +101,7 @@ func loadActualNTPServers(ctx context.Context, client *gnmi.Client, spec *dozer.
 	return nil
 }
 
-func unmarshalOCNTPServers(ocVal *oc.OpenconfigSystem_System_Ntp) (map[string]*dozer.SpecNTPServer, error) {
+func unmarshalOCNTPServers(ocVal *oc.OpenconfigSystem_System_Ntp) (map[string]*dozer.SpecNTPServer, error) { //nolint:unparam
 	if ocVal == nil || ocVal.Servers == nil {
 		return map[string]*dozer.SpecNTPServer{}, nil
 	}

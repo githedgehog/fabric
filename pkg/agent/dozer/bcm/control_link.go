@@ -23,12 +23,16 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 )
 
+const (
+	managementPort = "Management0"
+)
+
 type route struct {
 	dst []*net.IPNet
 	gw  net.IP
 }
 
-func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agentapi.Agent) error {
+func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi.Agent) error {
 	if agent == nil {
 		return errors.New("no agent config")
 	}
@@ -48,19 +52,20 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 	for _, spec := range agent.Spec.Connections {
 		if spec.Management != nil {
 			dev = spec.Management.Link.Switch.LocalPortName()
-			if dev != "Management0" {
+			if dev != managementPort {
 				continue
 			}
 
 			switchIP = spec.Management.Link.Switch.IP
 			controlIP = spec.Management.Link.Server.IP
 			exists = true
+
 			break
 		}
 	}
 
 	// it's not a directly connected switch or front panel used
-	if !exists || dev != "Management0" {
+	if !exists || dev != managementPort {
 		return nil
 	}
 	if dev == "" {
@@ -74,7 +79,7 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 	}
 
 	// it's temp till we can properly configure it through GNMI
-	if dev == "Management0" {
+	if dev == managementPort {
 		dev = "eth0"
 	}
 	if dev != "eth0" {
@@ -100,6 +105,7 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 	for _, a := range addrs {
 		if a.Equal(*addr) {
 			exists = true
+
 			break
 		}
 	}
@@ -133,6 +139,7 @@ func (p *broadcomProcessor) EnsureControlLink(ctx context.Context, agent *agenta
 				}
 				if existingRoute.Dst.IP.Equal(dst.IP) && existingRoute.Dst.Mask.String() == dst.Mask.String() {
 					exists = true
+
 					break
 				}
 			}

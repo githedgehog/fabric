@@ -67,7 +67,7 @@ func loadActualLSTGroups(ctx context.Context, client *gnmi.Client, spec *dozer.S
 	return nil
 }
 
-func unmarshalActualLSTGroups(ocVal *oc.OpenconfigLstExt_Lst_LstGroups) (map[string]*dozer.SpecLSTGroup, error) {
+func unmarshalActualLSTGroups(ocVal *oc.OpenconfigLstExt_Lst_LstGroups) (map[string]*dozer.SpecLSTGroup, error) { //nolint:unparam
 	lstGroups := map[string]*dozer.SpecLSTGroup{}
 
 	if ocVal == nil {
@@ -145,7 +145,7 @@ func loadActualLSTInterfaces(ctx context.Context, client *gnmi.Client, spec *doz
 	return nil
 }
 
-func unmarshalActualLSTInterfaces(ocVal *oc.OpenconfigLstExt_Lst_Interfaces) (map[string]*dozer.SpecLSTInterface, error) {
+func unmarshalActualLSTInterfaces(ocVal *oc.OpenconfigLstExt_Lst_Interfaces) (map[string]*dozer.SpecLSTInterface, error) { //nolint:unparam
 	lstIfaces := map[string]*dozer.SpecLSTInterface{}
 
 	if ocVal == nil {

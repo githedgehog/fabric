@@ -63,7 +63,7 @@ var specACLBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
 
 		return desired
 	},
-	Getter:       func(name string, value *dozer.SpecACL) any { return value.Description },
+	Getter:       func(_ string, value *dozer.SpecACL) any { return value.Description },
 	UpdateWeight: ActionWeightACLBaseUpdate,
 	DeleteWeight: ActionWeightACLBaseDelete,
 	Marshal: func(name string, value *dozer.SpecACL) (ygot.ValidatedGoStruct, error) {
@@ -112,11 +112,11 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 		}
 
 		var protocol oc.E_OpenconfigPacketMatchTypes_IP_PROTOCOL
-		switch value.Protocol {
+		switch value.Protocol { //nolint:exhaustive
 		case "":
 			// just unset
 		case dozer.SpecACLEntryProtocolUDP:
-			protocol = oc.E_OpenconfigPacketMatchTypes_IP_PROTOCOL(oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_UDP)
+			protocol = oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_UDP
 		default:
 			return nil, errors.Errorf("unknown ACL Entry protocol: %s", value.Protocol)
 		}
@@ -170,9 +170,9 @@ var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInter
 	UpdateWeight: ActionWeightACLInterfaceUpdate,
 	DeleteWeight: ActionWeightACLInterfaceDelete,
 	Marshal: func(name string, value *dozer.SpecACLInterface) (ygot.ValidatedGoStruct, error) {
-		var ingressAclSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets
+		var ingressACLSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets
 		if value.Ingress != nil {
-			ingressAclSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
+			ingressACLSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
 				IngressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet{
 					{
 						SetName: *value.Ingress,
@@ -189,9 +189,9 @@ var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInter
 			}
 		}
 
-		var egressAclSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets
+		var egressACLSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets
 		if value.Egress != nil {
-			egressAclSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets{
+			egressACLSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets{
 				EgressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet{
 					{
 						SetName: *value.Egress,
@@ -220,8 +220,8 @@ var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInter
 							Interface: pointer.To(name),
 						},
 					},
-					IngressAclSets: ingressAclSets,
-					EgressAclSets:  egressAclSets,
+					IngressAclSets: ingressACLSets,
+					EgressAclSets:  egressACLSets,
 				},
 			},
 		}, nil
@@ -243,7 +243,7 @@ func loadActualACLs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 	return nil
 }
 
-func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, error) {
+func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, error) { //nolint:unparam
 	acls := map[string]*dozer.SpecACL{}
 
 	if ocVal == nil || ocVal.AclSets == nil {
@@ -333,7 +333,7 @@ func loadActualACLInterfaces(ctx context.Context, client *gnmi.Client, spec *doz
 	return nil
 }
 
-func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACLInterface, error) {
+func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACLInterface, error) { //nolint:unparam
 	interfaces := map[string]*dozer.SpecACLInterface{}
 
 	if ocVal == nil || ocVal.Interfaces == nil {

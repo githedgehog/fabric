@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	KUBECONFIG_FILE = "/etc/rancher/k3s/k3s.yaml"
-	NETWORK_FILES   = "/etc/systemd/network"
+	KubeconfigFile = "/etc/rancher/k3s/k3s.yaml"
+	NetworkFiles   = "/etc/systemd/network"
 )
 
 type Service struct {
@@ -70,11 +70,13 @@ func (svc *Service) Run(ctx context.Context) error {
 
 	if svc.DryRun {
 		slog.Info("Dry run, exiting")
+
 		return nil
 	}
 
 	if svc.ApplyOnce {
 		slog.Info("Applying config once")
+
 		return errors.Wrapf(svc.process(ctx, agent), "failed to apply once")
 	}
 
@@ -99,11 +101,11 @@ func (svc *Service) Run(ctx context.Context) error {
 
 	slog.Info("Starting watch for config changes in K8s")
 
-	watcher, err := kube.Watch(context.TODO(), &agentapi.ControlAgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
+	watcher, err := kube.Watch(ctx, &agentapi.ControlAgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
 		"metadata.name": hostname,
 	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to watch control agent config in k8s")
 	}
 	defer watcher.Stop()
 
@@ -117,6 +119,7 @@ func (svc *Service) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			slog.Info("Context done, exiting")
+
 			return nil
 		case <-time.After(30 * time.Second):
 			slog.Debug("Sending heartbeat")
@@ -143,6 +146,7 @@ func (svc *Service) Run(ctx context.Context) error {
 			// TODO handle bookmarks and delete events
 			if event.Type == watch.Deleted || event.Type == watch.Bookmark {
 				slog.Info("Received watch event, ignoring", "event", event.Type)
+
 				continue
 			}
 			if event.Type == watch.Error {
@@ -207,7 +211,7 @@ func (svc *Service) processKubeUpdate(ctx context.Context, kube client.Client, a
 
 	err = kube.Status().Update(ctx, agent)
 	if err != nil {
-		return err // TODO gracefully handle case if resourceVersion changed
+		return errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
 	}
 
 	*currentGen = agent.Generation
@@ -227,7 +231,7 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 	}
 
 	slog.Debug("Recreating networkd config")
-	files, err := filepath.Glob(filepath.Join(NETWORK_FILES, "00-hh-*"))
+	files, err := filepath.Glob(filepath.Join(NetworkFiles, "00-hh-*"))
 	if err != nil {
 		return errors.Wrapf(err, "failed to list network files")
 	}
@@ -237,7 +241,7 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 		}
 	}
 	for name, content := range agent.Spec.Networkd {
-		err = os.WriteFile(filepath.Join(NETWORK_FILES, name), []byte(content), 0o644)
+		err = os.WriteFile(filepath.Join(NetworkFiles, name), []byte(content), 0o644) //nolint:gosec
 		if err != nil {
 			return errors.Wrapf(err, "failed to write network file %s", name)
 		}
@@ -272,7 +276,7 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 		hosts.WriteString(fmt.Sprintf("%s %s # hedgehog\n", ip, hostname))
 	}
 
-	err = os.WriteFile("/etc/hosts", hosts.Bytes(), 0o644)
+	err = os.WriteFile("/etc/hosts", hosts.Bytes(), 0o644) //nolint:gosec
 	if err != nil {
 		return errors.Wrapf(err, "failed to write /etc/hosts")
 	}
@@ -284,11 +288,11 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 
 func (svc *Service) kubeClient() (client.WithWatch, error) {
 	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: KUBECONFIG_FILE},
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: KubeconfigFile},
 		nil,
 	).ClientConfig()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load kubeconfig from %s", KUBECONFIG_FILE)
+		return nil, errors.Wrapf(err, "failed to load kubeconfig from %s", KubeconfigFile)
 	}
 
 	scheme := runtime.NewScheme()

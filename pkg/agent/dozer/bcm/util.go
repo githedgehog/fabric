@@ -50,6 +50,7 @@ func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, b
 		if name.Name == speed {
 			res = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
 			ok = true
+
 			break
 		}
 	}

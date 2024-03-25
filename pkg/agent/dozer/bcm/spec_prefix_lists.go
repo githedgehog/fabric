@@ -59,7 +59,7 @@ var specPrefixListBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefix
 	Summary:      "Prefix List Base %s",
 	UpdateWeight: ActionWeightPrefixListUpdate,
 	DeleteWeight: ActionWeightPrefixListDelete,
-	Marshal: func(name string, value *dozer.SpecPrefixList) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(name string, _ *dozer.SpecPrefixList) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets{
 			PrefixSet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_PrefixSets_PrefixSet{
 				name: {

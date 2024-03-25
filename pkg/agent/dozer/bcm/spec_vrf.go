@@ -87,7 +87,7 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 
 var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 	Summary: "VRF %s base",
-	Getter: func(name string, value *dozer.SpecVRF) any {
+	Getter: func(_ string, value *dozer.SpecVRF) any {
 		return []any{value.Enabled, value.Description}
 	},
 	UpdateWeight: ActionWeightVRFBaseUpdate,
@@ -110,10 +110,10 @@ var specVRFBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 
 var specVRFEVPNMHEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 	Summary: "VRF %s EVPNMH",
-	Getter: func(name string, value *dozer.SpecVRF) any {
+	Getter: func(_ string, value *dozer.SpecVRF) any {
 		return []any{value.EVPNMH}
 	},
-	MutateActual: func(key string, actual *dozer.SpecVRF) *dozer.SpecVRF {
+	MutateActual: func(_ string, actual *dozer.SpecVRF) *dozer.SpecVRF {
 		if actual != nil && actual.EVPNMH.StartupDelay == nil && actual.EVPNMH.MACHoldtime == nil {
 			return nil
 		}
@@ -123,7 +123,7 @@ var specVRFEVPNMHEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 	Path:         "/evpn/evpn-mh/config",
 	UpdateWeight: ActionWeightVRFEVPNMHUpdate,
 	DeleteWeight: ActionWeightVRFEVPNMHDelete,
-	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EvpnMh{
 			Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Evpn_EvpnMh_Config{
 				MacHoldtime:  value.EVPNMH.MACHoldtime,
@@ -162,14 +162,14 @@ var specVRFEVPNEthernetSegmentEnforcer = &DefaultValueEnforcer[string, *dozer.Sp
 
 var specVRFSAGEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 	Summary: "VRF %s SAG",
-	Getter: func(name string, value *dozer.SpecVRF) any {
+	Getter: func(_ string, value *dozer.SpecVRF) any {
 		return []any{value.AnycastMAC}
 	},
 	Path:         "/global-sag/config",
 	SkipDelete:   true, // TODO check if it's ok
 	UpdateWeight: ActionWeightVRFSAGUpdate,
 	DeleteWeight: ActionWeightVRFSAGDelete,
-	Marshal: func(name string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecVRF) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag{
 			Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_GlobalSag_Config{
 				AnycastMac: value.AnycastMAC,
@@ -189,7 +189,7 @@ var specVRFInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFInter
 	Path:         "/interfaces/interface[id=%s]",
 	UpdateWeight: ActionWeightVRFInterfaceUpdate,
 	DeleteWeight: ActionWeightVRFInterfaceDelete,
-	Marshal: func(iface string, value *dozer.SpecVRFInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(iface string, _ *dozer.SpecVRFInterface) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces{
 			Interface: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Interfaces_Interface{
 				iface: {
@@ -236,7 +236,7 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	},
 }
 
-var specVRFBGPBaseEnforcerGetter = func(name string, value *dozer.SpecVRFBGP) any {
+var specVRFBGPBaseEnforcerGetter = func(_ string, value *dozer.SpecVRFBGP) any {
 	return []any{
 		value.AS, value.RouterID, value.NetworkImportCheck,
 		// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if current approach is ok
@@ -253,7 +253,7 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Getter:       specVRFBGPBaseEnforcerGetter,
 	UpdateWeight: ActionWeightVRFBGPBaseUpdate,
 	DeleteWeight: ActionWeightVRFBGPBaseDelete,
-	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
 		afiSafi := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{}
 		if value.IPv4Unicast.Enabled {
 			ipv4Unicast := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
@@ -395,7 +395,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						PeerType:        peerType,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
-						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{
+						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{ //nolint:exhaustive
 							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
 								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 								Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Config{
@@ -431,7 +431,7 @@ var specVRFBGPNetworkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGPN
 	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=%s]",
 	UpdateWeight: ActionWeightVRFBGPNetworkUpdate,
 	DeleteWeight: ActionWeightVRFBGPNetworkDelete,
-	Marshal: func(prefix string, value *dozer.SpecVRFBGPNetwork) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(prefix string, _ *dozer.SpecVRFBGPNetwork) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig{
 			Network: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_NetworkConfig_Network{
 				prefix: {
@@ -450,14 +450,14 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
 		return []any{specVRFBGPBaseEnforcerGetter(name, value), value.IPv4Unicast.ImportVRFs} // TODO check if it helps
 	},
-	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+	MutateDesired: func(_ string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
 		if desired != nil && len(desired.IPv4Unicast.ImportVRFs) == 0 {
 			return nil
 		}
 
 		return desired
 	},
-	MutateActual: func(key string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+	MutateActual: func(_ string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
 		if actual != nil && len(actual.IPv4Unicast.ImportVRFs) == 0 {
 			return nil
 		}
@@ -467,7 +467,7 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name",
 	UpdateWeight: ActionWeightVRFBGPImportVRFUpdate,
 	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
-	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
 		imports := maps.Keys(value.IPv4Unicast.ImportVRFs)
 		sort.Strings(imports)
 
@@ -482,14 +482,14 @@ var specVRFImportPolicyEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBG
 	Getter: func(name string, value *dozer.SpecVRFBGP) any {
 		return []any{specVRFBGPBaseEnforcerGetter(name, value), value.IPv4Unicast.ImportPolicy} // TODO check if it helps
 	},
-	MutateDesired: func(key string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+	MutateDesired: func(_ string, desired *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
 		if desired != nil && desired.IPv4Unicast.ImportPolicy == nil {
 			return nil
 		}
 
 		return desired
 	},
-	MutateActual: func(key string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
+	MutateActual: func(_ string, actual *dozer.SpecVRFBGP) *dozer.SpecVRFBGP {
 		if actual != nil && actual.IPv4Unicast.ImportPolicy == nil {
 			return nil
 		}
@@ -499,7 +499,7 @@ var specVRFImportPolicyEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBG
 	Path:         "/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name",
 	UpdateWeight: ActionWeightVRFBGPImportVRFPolicyUpdate,
 	DeleteWeight: ActionWeightVRFBGPImportVRFPolicyDelete,
-	Marshal: func(name string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
 			PolicyName: value.IPv4Unicast.ImportPolicy,
 		}, nil
@@ -700,6 +700,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 										if route.Config != nil && route.Config.AdvertiseAfiSafi == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST {
 											bgp.L2VPNEVPN.AdvertiseIPv4Unicast = pointer.To(true)
 											bgp.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = route.Config.RouteMap
+
 											break
 										}
 									}
@@ -856,12 +857,13 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						continue
 					}
 
-					if esi, ok := ocES.Config.Esi.(oc.UnionString); !ok {
+					esi, ok := ocES.Config.Esi.(oc.UnionString)
+					if !ok {
 						return nil, errors.Errorf("invalid ESI %v for %s", ocES.Config.Esi, name)
-					} else {
-						es[name] = &dozer.SpecVRFEthernetSegment{
-							ESI: string(esi),
-						}
+					}
+
+					es[name] = &dozer.SpecVRFEthernetSegment{
+						ESI: string(esi),
 					}
 				}
 			}

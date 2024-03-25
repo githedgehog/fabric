@@ -30,27 +30,27 @@ import (
 )
 
 const (
-	INTERFACE_PREFIX_MANAGEMENT    = "Management"
-	INTERFACE_PREFIX_PHYSICAL      = "Ethernet"
-	INTERFACE_PREFIX_VLAN          = "Vlan"
-	INTERFACE_PREFIX_PORT_CHANNEL  = "PortChannel"
-	INTERFACE_DISABLED_DESCRIPTION = "Disabled by Fabric"
+	IfacePrefixManagement    = "Management"
+	IfacePrefixPhysical      = "Ethernet"
+	IfacePrefixVLAN          = "Vlan"
+	IfacePrefixPortChannel   = "PortChannel"
+	IfaceDisabledDescription = "Disabled by Fabric"
 )
 
 func isManagement(name string) bool {
-	return strings.HasPrefix(name, INTERFACE_PREFIX_MANAGEMENT)
+	return strings.HasPrefix(name, IfacePrefixManagement)
 }
 
 func isPhysical(name string) bool {
-	return strings.HasPrefix(name, INTERFACE_PREFIX_PHYSICAL)
+	return strings.HasPrefix(name, IfacePrefixPhysical)
 }
 
 func isVLAN(name string) bool {
-	return strings.HasPrefix(name, INTERFACE_PREFIX_VLAN)
+	return strings.HasPrefix(name, IfacePrefixVLAN)
 }
 
 func isPortChannel(name string) bool {
-	return strings.HasPrefix(name, INTERFACE_PREFIX_PORT_CHANNEL)
+	return strings.HasPrefix(name, IfacePrefixPortChannel)
 }
 
 var specInterfacesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterface]{
@@ -116,10 +116,10 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 }
 
 var specInterfaceBasePortChannelsEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Getter: func(key string, value *dozer.SpecInterface) any {
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.Description, value.Enabled, value.MTU}
 	},
-	Skip: func(key string, actual, desired *dozer.SpecInterface) bool {
+	Skip: func(key string, _, _ *dozer.SpecInterface) bool {
 		return !isPortChannel(key)
 	},
 	Summary:      "Interface %s Base PortChannels",
@@ -130,19 +130,20 @@ var specInterfaceBasePortChannelsEnforcer = &DefaultValueEnforcer[string, *dozer
 		if (isManagement(name) || isPhysical(name)) && desired == nil {
 			return &dozer.SpecInterface{
 				Enabled:     pointer.To(false),
-				Description: pointer.To(INTERFACE_DISABLED_DESCRIPTION),
+				Description: pointer.To(IfaceDisabledDescription),
 			}
 		}
+
 		return desired
 	},
 	Marshal: marshalSpecInterfaceBaseEnforcer,
 }
 
 var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Getter: func(key string, value *dozer.SpecInterface) any {
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.Description, value.Enabled, value.MTU}
 	},
-	Skip: func(key string, actual, desired *dozer.SpecInterface) bool {
+	Skip: func(key string, _, _ *dozer.SpecInterface) bool {
 		return isPortChannel(key)
 	},
 	Summary:      "Interface %s Base",
@@ -153,9 +154,10 @@ var specInterfaceBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfa
 		if (isManagement(name) || isPhysical(name)) && desired == nil {
 			return &dozer.SpecInterface{
 				Enabled:     pointer.To(false),
-				Description: pointer.To(INTERFACE_DISABLED_DESCRIPTION),
+				Description: pointer.To(IfaceDisabledDescription),
 			}
 		}
+
 		return desired
 	},
 	Marshal: marshalSpecInterfaceBaseEnforcer,
@@ -315,8 +317,8 @@ var specInterfaceSubinterfaceIPEnforcer = &DefaultValueEnforcer[string, *dozer.S
 
 var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "Interface %s Ethernet Base", // TODO better summary
-	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
-	Getter: func(name string, value *dozer.SpecInterface) any {
+	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.PortChannel, value.Speed} //, value.TrunkVLANs, value.AccessVLAN}
 	},
 	Path:      "/ethernet",
@@ -324,7 +326,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	// TODO do we need recreate on update so we can remove from the port channel? and than SwitchedEnforcer will need to be triggered too
 	UpdateWeight: ActionWeightInterfaceEthernetBaseUpdate,
 	DeleteWeight: ActionWeightInterfaceEthernetBaseDelete,
-	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 
 		if value.Speed != nil {
@@ -348,18 +350,18 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 
 var specInterfaceEthernetSwitchedAccessEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "Interface %s Switched Access VLAN",
-	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
-	Getter: func(name string, value *dozer.SpecInterface) any {
+	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.AccessVLAN}
 	},
-	MutateActual: func(name string, actual *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateActual: func(_ string, actual *dozer.SpecInterface) *dozer.SpecInterface {
 		if actual != nil && actual.AccessVLAN == nil {
 			return nil
 		}
 
 		return actual
 	},
-	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateDesired: func(_ string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if desired != nil && desired.AccessVLAN == nil {
 			return nil
 		}
@@ -369,7 +371,7 @@ var specInterfaceEthernetSwitchedAccessEnforcer = &DefaultValueEnforcer[string, 
 	Path:         "/ethernet/switched-vlan/config/access-vlan",
 	UpdateWeight: ActionWeightInterfaceEthernetSwitchedAccessUpdate,
 	DeleteWeight: ActionWeightInterfaceEthernetSwitchedAccessDelete,
-	Marshal: func(key string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_SwitchedVlan_Config{
 			AccessVlan: value.AccessVLAN,
 		}, nil
@@ -378,18 +380,18 @@ var specInterfaceEthernetSwitchedAccessEnforcer = &DefaultValueEnforcer[string, 
 
 var specInterfaceEthernetSwitchedTrunkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "Interface %s Switched Trunk VLANs",
-	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPhysical(name) },
-	Getter: func(name string, value *dozer.SpecInterface) any {
+	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.TrunkVLANs}
 	},
-	MutateActual: func(name string, actual *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateActual: func(_ string, actual *dozer.SpecInterface) *dozer.SpecInterface {
 		if actual != nil && len(actual.TrunkVLANs) == 0 {
 			return nil
 		}
 
 		return actual
 	},
-	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateDesired: func(_ string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if desired != nil && len(desired.TrunkVLANs) == 0 {
 			return nil
 		}
@@ -399,7 +401,7 @@ var specInterfaceEthernetSwitchedTrunkEnforcer = &DefaultValueEnforcer[string, *
 	Path:         "/ethernet/switched-vlan/config/trunk-vlans",
 	UpdateWeight: ActionWeightInterfaceEthernetSwitchedTrunkUpdate,
 	DeleteWeight: ActionWeightInterfaceEthernetSwitchedTrunkDelete,
-	Marshal: func(key string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		trunkVLANs, err := marshalEthernetTrunkVLANs(value)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
@@ -413,12 +415,12 @@ var specInterfaceEthernetSwitchedTrunkEnforcer = &DefaultValueEnforcer[string, *
 
 var specInterfaceNATZoneEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary:      "Interface %s NAT zone",
-	Getter:       func(name string, value *dozer.SpecInterface) any { return value.NATZone },
+	Getter:       func(_ string, value *dozer.SpecInterface) any { return value.NATZone },
 	Path:         "/nat-zone",
 	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceNATZoneUpdate,
 	DeleteWeight: ActionWeightInterfaceNATZoneDelete,
-	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			NatZone: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone_Config{
@@ -431,18 +433,18 @@ var specInterfaceNATZoneEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInte
 
 var specInterfacesPortChannelSwitchedAccessEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "PortChannel %s Switched Access VLAN",
-	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPortChannel(name) },
-	Getter: func(name string, value *dozer.SpecInterface) any {
+	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPortChannel(name) },
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.AccessVLAN}
 	},
-	MutateActual: func(name string, actual *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateActual: func(_ string, actual *dozer.SpecInterface) *dozer.SpecInterface {
 		if actual != nil && actual.AccessVLAN == nil {
 			return nil
 		}
 
 		return actual
 	},
-	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateDesired: func(_ string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if desired != nil && desired.AccessVLAN == nil {
 			return nil
 		}
@@ -452,7 +454,7 @@ var specInterfacesPortChannelSwitchedAccessEnforcer = &DefaultValueEnforcer[stri
 	Path:         "/aggregation/switched-vlan/config/access-vlan",
 	UpdateWeight: ActionWeightInterfacePortChannelSwitchedAccessUpdate,
 	DeleteWeight: ActionWeightInterfacePortChannelSwitchedAccessDelete,
-	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_Aggregation_SwitchedVlan_Config{
 			AccessVlan: value.AccessVLAN,
 		}, nil
@@ -461,18 +463,18 @@ var specInterfacesPortChannelSwitchedAccessEnforcer = &DefaultValueEnforcer[stri
 
 var specInterfacesPortChannelSwitchedTrunkEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "PortChannel %s Switched Trunk VLANs",
-	Skip:    func(name string, actual, desired *dozer.SpecInterface) bool { return !isPortChannel(name) },
-	Getter: func(name string, value *dozer.SpecInterface) any {
+	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPortChannel(name) },
+	Getter: func(_ string, value *dozer.SpecInterface) any {
 		return []any{value.TrunkVLANs}
 	},
-	MutateActual: func(name string, actual *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateActual: func(_ string, actual *dozer.SpecInterface) *dozer.SpecInterface {
 		if actual != nil && len(actual.TrunkVLANs) == 0 {
 			return nil
 		}
 
 		return actual
 	},
-	MutateDesired: func(name string, desired *dozer.SpecInterface) *dozer.SpecInterface {
+	MutateDesired: func(_ string, desired *dozer.SpecInterface) *dozer.SpecInterface {
 		if desired != nil && len(desired.TrunkVLANs) == 0 {
 			return nil
 		}
@@ -482,7 +484,7 @@ var specInterfacesPortChannelSwitchedTrunkEnforcer = &DefaultValueEnforcer[strin
 	Path:         "/aggregation/switched-vlan/config/trunk-vlans",
 	UpdateWeight: ActionWeightInterfacePortChannelSwitchedTrunkUpdate,
 	DeleteWeight: ActionWeightInterfacePortChannelSwitchedTrunkDelete,
-	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		trunkVLANs, err := marshalPortChannelTrunkVLANs(value)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to marshal trunk VLANs")
@@ -496,13 +498,13 @@ var specInterfacesPortChannelSwitchedTrunkEnforcer = &DefaultValueEnforcer[strin
 
 var specInterfaceVLANAnycastGatewayEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary:      "Interface %s VLAN Anycast Gateway",
-	Skip:         func(name string, actual, desired *dozer.SpecInterface) bool { return !isVLAN(name) },
-	Getter:       func(name string, value *dozer.SpecInterface) any { return value.VLANAnycastGateway },
+	Skip:         func(name string, _, _ *dozer.SpecInterface) bool { return !isVLAN(name) },
+	Getter:       func(_ string, value *dozer.SpecInterface) any { return value.VLANAnycastGateway },
 	Path:         "/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway",
 	SkipDelete:   true, // TODO check if it's ok
 	UpdateWeight: ActionWeightInterfaceVLANAnycastGatewayUpdate,
 	DeleteWeight: ActionWeightInterfaceVLANAnycastGatewayDelete,
-	Marshal: func(name string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_SagIpv4_Config{
 			StaticAnycastGateway: value.VLANAnycastGateway,
 		}, nil

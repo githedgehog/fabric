@@ -102,7 +102,7 @@ func loadActualMCLAGs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec
 	return nil
 }
 
-func unmarshalOCMCLAGDomains(ocVal *oc.OpenconfigMclag_Mclag_MclagDomains) (map[uint32]*dozer.SpecMCLAGDomain, error) {
+func unmarshalOCMCLAGDomains(ocVal *oc.OpenconfigMclag_Mclag_MclagDomains) (map[uint32]*dozer.SpecMCLAGDomain, error) { //nolint:unparam
 	mclag := map[uint32]*dozer.SpecMCLAGDomain{}
 
 	if ocVal == nil {
@@ -121,7 +121,7 @@ func unmarshalOCMCLAGDomains(ocVal *oc.OpenconfigMclag_Mclag_MclagDomains) (map[
 	return mclag, nil
 }
 
-func unmarshalOCMCLAGInterfaces(ocVal *oc.OpenconfigMclag_Mclag_Interfaces) (map[string]*dozer.SpecMCLAGInterface, error) {
+func unmarshalOCMCLAGInterfaces(ocVal *oc.OpenconfigMclag_Mclag_Interfaces) (map[string]*dozer.SpecMCLAGInterface, error) { //nolint:unparam
 	members := map[string]*dozer.SpecMCLAGInterface{}
 
 	if ocVal == nil {

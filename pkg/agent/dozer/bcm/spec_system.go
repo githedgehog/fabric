@@ -35,9 +35,9 @@ import (
 var specZTPEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	Summary: "ZTP",
 	Path:    "/ztp/config",
-	Getter:  func(key string, value *dozer.Spec) any { return value.ZTP },
+	Getter:  func(_ string, value *dozer.Spec) any { return value.ZTP },
 	Weight:  ActionWeightSystemZTP,
-	Marshal: func(key string, value *dozer.Spec) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.Spec) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigZtp_Ztp{
 			Config: &oc.OpenconfigZtp_Ztp_Config{
 				AdminMode: value.ZTP,
@@ -75,9 +75,9 @@ func unmarshalOCZTPConfig(ocVal *oc.OpenconfigZtp_Ztp_Config) (*bool, error) {
 var specHostnameEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	Summary: "Hostname",
 	Path:    "/system/config",
-	Getter:  func(key string, value *dozer.Spec) any { return value.Hostname },
+	Getter:  func(_ string, value *dozer.Spec) any { return value.Hostname },
 	Weight:  ActionWeightSystemHostname,
-	Marshal: func(key string, value *dozer.Spec) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.Spec) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigSystem_System{
 			Config: &oc.OpenconfigSystem_System_Config{
 				Hostname: value.Hostname,
@@ -117,7 +117,7 @@ var specPortGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortGroup]{
 	Summary: "Port group %s",
 	Path:    "/port-groups/port-group[id=%s]",
 	Weight:  ActionWeightPortGroup,
-	MutateDesired: func(key string, desired *dozer.SpecPortGroup) *dozer.SpecPortGroup {
+	MutateDesired: func(_ string, desired *dozer.SpecPortGroup) *dozer.SpecPortGroup {
 		if desired == nil {
 			return &dozer.SpecPortGroup{}
 		}
@@ -164,7 +164,7 @@ func loadActualPortGroups(ctx context.Context, client *gnmi.Client, spec *dozer.
 	return nil
 }
 
-func unmarshalOCPortGroups(ocVal *oc.OpenconfigPortGroup_PortGroups) (map[string]*dozer.SpecPortGroup, error) {
+func unmarshalOCPortGroups(ocVal *oc.OpenconfigPortGroup_PortGroups) (map[string]*dozer.SpecPortGroup, error) { //nolint:unparam
 	portGroups := map[string]*dozer.SpecPortGroup{}
 
 	if ocVal == nil {
@@ -201,7 +201,7 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 	Path:       "/components/component[name=%s]/port/breakout-mode/groups/group[index=1]/config",
 	Weight:     ActionWeightPortBreakout,
 	SkipDelete: true,
-	Marshal: func(id string, value *dozer.SpecPortBreakout) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ string, value *dozer.SpecPortBreakout) (ygot.ValidatedGoStruct, error) {
 		parts := strings.Split(value.Mode, "x")
 		if len(parts) != 2 {
 			return nil, errors.Errorf("invalid breakout mode %s, incorrect number of parts separated by 'x'", value.Mode)
@@ -247,7 +247,7 @@ func loadActualPortBreakouts(ctx context.Context, client *gnmi.Client, spec *doz
 	return nil
 }
 
-func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (map[string]*dozer.SpecPortBreakout, error) {
+func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (map[string]*dozer.SpecPortBreakout, error) { //nolint:unparam
 	portBreakouts := map[string]*dozer.SpecPortBreakout{}
 
 	if ocVal == nil || ocVal.BREAKOUT_CFG == nil {
@@ -307,7 +307,7 @@ var specUsersAuthorizedKeysEnforcer = &DefaultMapEnforcer[string, *dozer.SpecUse
 
 var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUser]{
 	Summary: "User %s authorized keys",
-	CustomHandler: func(basePath, name string, _, user *dozer.SpecUser, actions *ActionQueue) error {
+	CustomHandler: func(_, name string, _, user *dozer.SpecUser, actions *ActionQueue) error {
 		if user != nil {
 			if err := actions.Add(&Action{
 				ASummary: fmt.Sprintf("User %s authorized keys", name),
@@ -338,7 +338,7 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 						return errors.Wrapf(err, "failed to chown ssh dir %s", sshDir)
 					}
 
-					err = os.WriteFile(filepath.Join(sshDir, "authorized_keys"), []byte(
+					err = os.WriteFile(filepath.Join(sshDir, "authorized_keys"), []byte( //nolint:gosec
 						strings.Join(append([]string{
 							"# Hedgehog Agent managed keys, do not edit manually",
 						}, user.AuthorizedKeys...), "\n")+"\n",
@@ -377,7 +377,7 @@ func loadActualUsers(ctx context.Context, client *gnmi.Client, spec *dozer.Spec)
 	return nil
 }
 
-func unmarshalOCUsers(ocVal *oc.OpenconfigSystem_System_Aaa_Authentication_Users) (map[string]*dozer.SpecUser, error) {
+func unmarshalOCUsers(ocVal *oc.OpenconfigSystem_System_Aaa_Authentication_Users) (map[string]*dozer.SpecUser, error) { //nolint:unparam
 	users := map[string]*dozer.SpecUser{}
 
 	if ocVal == nil {
@@ -385,7 +385,7 @@ func unmarshalOCUsers(ocVal *oc.OpenconfigSystem_System_Aaa_Authentication_Users
 	}
 
 	for name, user := range ocVal.User {
-		if name == gnmi.AGENT_USER {
+		if name == gnmi.AgentUser {
 			continue
 		}
 		if user.Config == nil || user.Config.Role == nil {

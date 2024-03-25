@@ -66,7 +66,7 @@ var specNATEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecNAT]{
 
 var specNATBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecNAT]{
 	Summary: "NAT %d base",
-	Getter:  func(id uint32, value *dozer.SpecNAT) any { return value.Enable },
+	Getter:  func(_ uint32, value *dozer.SpecNAT) any { return value.Enable },
 	MutateDesired: func(id uint32, desired *dozer.SpecNAT) *dozer.SpecNAT {
 		if id == 0 && desired == nil {
 			desired = &dozer.SpecNAT{
@@ -200,7 +200,7 @@ func loadActualNATs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 	return nil
 }
 
-func unmarshalOCNATInstances(ocVal *oc.OpenconfigNat_Nat_Instances) (map[uint32]*dozer.SpecNAT, error) {
+func unmarshalOCNATInstances(ocVal *oc.OpenconfigNat_Nat_Instances) (map[uint32]*dozer.SpecNAT, error) { //nolint:unparam
 	instances := map[uint32]*dozer.SpecNAT{}
 
 	if ocVal == nil {

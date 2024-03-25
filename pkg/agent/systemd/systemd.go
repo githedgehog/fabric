@@ -79,13 +79,13 @@ func Generate(cfg UnitConfig) (string, error) {
 
 	t, err := template.New("unit").Parse(tmpl)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to parse template")
 	}
 
 	unit := bytes.NewBuffer(nil)
 	err = t.Execute(unit, cfg)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to execute template")
 	}
 
 	return unit.String(), nil
@@ -101,7 +101,7 @@ func Install(cfg UnitConfig) error {
 		return errors.Wrapf(err, "failed to generate %s", unit)
 	}
 
-	err = os.WriteFile("/etc/systemd/system/"+unit, []byte(unitContent), 0o644)
+	err = os.WriteFile("/etc/systemd/system/"+unit, []byte(unitContent), 0o644) //nolint:gosec
 	if err != nil {
 		return errors.Wrapf(err, "failed to write unit %s", unit)
 	}

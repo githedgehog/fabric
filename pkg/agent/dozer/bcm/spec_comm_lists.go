@@ -91,10 +91,12 @@ func unmarshalOCCommunityLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_D
 
 		if ocList.Config.MatchSetOptions != oc.OpenconfigRoutingPolicy_MatchSetOptionsType_ANY {
 			slog.Warn("unsupported community list match set options", "name", name, "match_set_options", ocList.Config.MatchSetOptions)
+
 			continue
 		}
 		if ocList.Config.Action != oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT {
 			slog.Warn("unsupported community list action", "name", name, "action", ocList.Config.Action)
+
 			continue
 		}
 

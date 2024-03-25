@@ -213,7 +213,7 @@ func loadActualVRFVNIMap(ctx context.Context, client *gnmi.Client, spec *dozer.S
 	return nil
 }
 
-func unmarshalActualVRFVNIMap(ocVal *oc.SonicVrf_SonicVrf_VRF) (map[string]*dozer.SpecVRFVNIEntry, error) {
+func unmarshalActualVRFVNIMap(ocVal *oc.SonicVrf_SonicVrf_VRF) (map[string]*dozer.SpecVRFVNIEntry, error) { //nolint:unparam
 	vrfVnis := map[string]*dozer.SpecVRFVNIEntry{}
 
 	if ocVal == nil {
@@ -243,7 +243,7 @@ var specSuppressVLANNeighEnforcer = &DefaultValueEnforcer[string, *dozer.SpecSup
 	Path:         "/sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST[name=%s]",
 	UpdateWeight: ActionWeightSuppressVLANNeighUpdate,
 	DeleteWeight: ActionWeightSuppressVLANNeighDelete,
-	Marshal: func(name string, value *dozer.SpecSuppressVLANNeigh) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(name string, _ *dozer.SpecSuppressVLANNeigh) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH{
 			SUPPRESS_VLAN_NEIGH_LIST: map[string]*oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH_SUPPRESS_VLAN_NEIGH_LIST{
 				name: {
@@ -270,7 +270,7 @@ func loadActualSuppressVLANNeighs(ctx context.Context, client *gnmi.Client, spec
 	return nil
 }
 
-func unmarshalActualSuppressVLANNeighs(ocVal *oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH) (map[string]*dozer.SpecSuppressVLANNeigh, error) {
+func unmarshalActualSuppressVLANNeighs(ocVal *oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH) (map[string]*dozer.SpecSuppressVLANNeigh, error) { //nolint:unparam
 	suppressVLANNeighs := map[string]*dozer.SpecSuppressVLANNeigh{}
 
 	if ocVal == nil {

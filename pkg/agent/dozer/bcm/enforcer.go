@@ -372,6 +372,7 @@ func (h *DefaultValueEnforcer[Key, Value]) Handle(basePath string, key Key, actu
 	if desired.IsNil() || !actual.IsNil() && h.RecreateOnUpdate {
 		if h.SkipDelete {
 			slog.Debug("Skipping delete", "summary", summary, "key", key)
+
 			return nil
 		}
 
@@ -440,6 +441,7 @@ func SafeSprintf(format string, key any) string {
 	if !strings.Contains(format, "%") { // TODO replace with better check and check type
 		return format
 	}
+
 	return fmt.Sprintf(format, key)
 }
 

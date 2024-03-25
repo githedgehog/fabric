@@ -43,8 +43,8 @@ import (
 )
 
 const (
-	CONF_FILE       = "agent-config.yaml"
-	KUBECONFIG_FILE = "agent-kubeconfig"
+	ConfigFile     = "agent-config.yaml"
+	KubeconfigFile = "agent-kubeconfig"
 )
 
 //go:embed motd.txt
@@ -98,10 +98,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	if svc.DryRun {
 		slog.Warn("Dry run, exiting")
+
 		return nil
 	}
 
-	err = os.WriteFile("/etc/motd", motd, 0o644)
+	err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
 	if err != nil {
 		slog.Warn("Failed to write motd", "err", err)
 	}
@@ -152,11 +153,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
 		}
 
-		watcher, err := kube.Watch(context.TODO(), &agentapi.AgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
+		watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
 			"metadata.name": svc.name,
 		})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to watch agent config in k8s")
 		}
 		defer watcher.Stop()
 
@@ -170,6 +171,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			select {
 			case <-ctx.Done():
 				slog.Info("Context done, exiting")
+
 				return nil
 			case <-time.After(15 * time.Second):
 				slog.Debug("Sending heartbeat")
@@ -201,6 +203,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				// TODO handle bookmarks and delete events
 				if event.Type == watch.Deleted || event.Type == watch.Bookmark {
 					slog.Info("Received watch event, ignoring", "event", event.Type)
+
 					continue
 				}
 				if event.Type == watch.Error {
@@ -227,7 +230,7 @@ func (svc *Service) setInstallAndRunIDs() error {
 	installID, err := os.ReadFile(installIDFile)
 	if os.IsNotExist(err) {
 		newInstallID := uuid.New().String()
-		err = os.WriteFile(installIDFile, []byte(newInstallID), 0o640)
+		err = os.WriteFile(installIDFile, []byte(newInstallID), 0o644) //nolint:gosec
 		if err != nil {
 			return errors.Wrapf(err, "failed to write install ID file %q", installIDFile)
 		}
@@ -239,6 +242,7 @@ func (svc *Service) setInstallAndRunIDs() error {
 	}
 
 	slog.Info("IDs ready", "install", svc.installID, "run", svc.runID)
+
 	return nil
 }
 
@@ -295,7 +299,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		return errors.Wrapf(err, "failed to marshal desired spec")
 	}
 
-	err = os.WriteFile(filepath.Join(svc.Basedir, "last-desired.yaml"), desiredData, 0o644)
+	err = os.WriteFile(filepath.Join(svc.Basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
 	if err != nil {
 		return errors.Wrapf(err, "failed to write desired spec")
 	}
@@ -305,7 +309,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		return errors.Wrapf(err, "failed to marshal actual spec")
 	}
 
-	err = os.WriteFile(filepath.Join(svc.Basedir, "last-actual.yaml"), actualData, 0o644)
+	err = os.WriteFile(filepath.Join(svc.Basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
 	if err != nil {
 		return errors.Wrapf(err, "failed to write actual spec")
 	}
@@ -328,6 +332,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	if svc.DryRun {
 		slog.Warn("Dry run, exiting")
+
 		return nil
 	}
 
@@ -404,7 +409,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 
 	err = kube.Status().Update(ctx, agent)
 	if err != nil {
-		return err // TODO gracefully handle case if resourceVersion changed
+		return errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
 	}
 
 	*currentGen = agent.Generation
@@ -419,15 +424,15 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		if !svc.SkipActions {
 			slog.Info("Power resetting")
 
-			if file, err := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0o200); err != nil {
+			file, err := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0o200)
+			if err != nil {
 				return errors.Wrapf(err, "error opening /proc/sysrq-trigger")
-			} else {
-				defer file.Close()
+			}
+			defer file.Close()
 
-				if _, err := file.WriteString("b"); err != nil {
-					if !os.IsExist(err) {
-						return errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
-					}
+			if _, err := file.WriteString("b"); err != nil {
+				if !os.IsExist(err) {
+					return errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
 				}
 			}
 		}
@@ -484,7 +489,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 }
 
 func (svc *Service) kubeClient() (client.WithWatch, error) {
-	kubeconfigPath := filepath.Join(svc.Basedir, KUBECONFIG_FILE)
+	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
 	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
 		nil,
@@ -509,27 +514,27 @@ func (svc *Service) kubeClient() (client.WithWatch, error) {
 	return kubeClient, nil
 }
 
-func (s *Service) configFilePath() string {
-	return filepath.Join(s.Basedir, CONF_FILE)
+func (svc *Service) configFilePath() string {
+	return filepath.Join(svc.Basedir, ConfigFile)
 }
 
-func (s *Service) loadConfigFromFile() (*agentapi.Agent, error) {
-	data, err := os.ReadFile(s.configFilePath())
+func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
+	data, err := os.ReadFile(svc.configFilePath())
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read config file %s", s.configFilePath())
+		return nil, errors.Wrapf(err, "failed to read config file %s", svc.configFilePath())
 	}
 
 	config := &agentapi.Agent{}
 	err = yaml.UnmarshalStrict(data, config)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", s.configFilePath())
+		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", svc.configFilePath())
 	}
-	s.name = config.Name
+	svc.name = config.Name
 
 	return config, nil
 }
 
-func (s *Service) saveConfigToFile(agent *agentapi.Agent) error {
+func (svc *Service) saveConfigToFile(agent *agentapi.Agent) error {
 	if agent == nil {
 		return errors.New("no config to save")
 	}
@@ -539,9 +544,9 @@ func (s *Service) saveConfigToFile(agent *agentapi.Agent) error {
 		return errors.Wrapf(err, "failed to marshal config")
 	}
 
-	err = os.WriteFile(s.configFilePath(), data, 0o640)
+	err = os.WriteFile(svc.configFilePath(), data, 0o644) //nolint:gosec
 	if err != nil {
-		return errors.Wrapf(err, "failed to write config file %s", s.configFilePath())
+		return errors.Wrapf(err, "failed to write config file %s", svc.configFilePath())
 	}
 
 	return nil
