@@ -30,17 +30,17 @@ import (
 )
 
 const (
-	NS                = "default" // think about more than default namespace support
-	CAT_CONNS         = "connections"
-	CAT_VPCs          = "vpcs"
-	CAT_SW_PREFIX     = "switch."
-	CAT_RG_PREFIX     = "redundancy."
-	VPC_VNI_OFFSET    = 100
-	VPC_VNI_MAX       = (16_777_215 - VPC_VNI_OFFSET) / VPC_VNI_OFFSET * VPC_VNI_OFFSET
-	PORT_CHAN_MIN     = 1
-	PORT_CHAN_MAX     = 249
-	LO_REQ_PREFIX_VPC = "vpc@"
-	LO_REQ_PREFIX_EXT = "ext@"
+	Namespace                = "default" // think about more than default namespace support
+	CatConns                 = "connections"
+	CatVPCs                  = "vpcs"
+	CatSwitchPrefix          = "switch."
+	CatRedGroupPrefix        = "redundancy."
+	VPCVNIOffset             = 100
+	VPCVNIMax                = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+	PortChannelMin           = 1
+	PortChannelMax           = 249
+	LoWorkaroundReqPrefixVPC = "vpc@"
+	LoWorkaroundReqPrefixExt = "ext@"
 )
 
 type Manager struct {
@@ -56,12 +56,13 @@ func NewManager(cfg *meta.FabricConfig) *Manager {
 
 func (m *Manager) getCatalog(ctx context.Context, kube client.Client, key string) (*agentapi.Catalog, error) {
 	cat := &agentapi.Catalog{}
-	if err := kube.Get(ctx, types.NamespacedName{Name: key, Namespace: NS}, cat); client.IgnoreNotFound(err) != nil {
+	err := kube.Get(ctx, types.NamespacedName{Name: key, Namespace: Namespace}, cat)
+	if client.IgnoreNotFound(err) != nil {
 		return nil, errors.Wrapf(err, "failed to get catalog %s", key)
-	} else {
-		cat.Name = key
-		cat.Namespace = NS
 	}
+
+	cat.Name = key
+	cat.Namespace = Namespace
 
 	if cat.Spec.ConnectionIDs == nil {
 		cat.Spec.ConnectionIDs = map[string]uint32{}
@@ -100,7 +101,7 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube client.Client) err
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	cat, err := m.getCatalog(ctx, kube, CAT_CONNS)
+	cat, err := m.getCatalog(ctx, kube, CatConns)
 	if err != nil {
 		return err
 	}
@@ -125,14 +126,14 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube client.Client) err
 		return errors.Wrapf(err, "failed to allocate connection IDs")
 	}
 
-	return m.saveCatalog(ctx, kube, CAT_CONNS, cat)
+	return m.saveCatalog(ctx, kube, CatConns, cat)
 }
 
 func (m *Manager) UpdateVPCs(ctx context.Context, kube client.Client) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	cat, err := m.getCatalog(ctx, kube, CAT_VPCs)
+	cat, err := m.getCatalog(ctx, kube, CatVPCs)
 	if err != nil {
 		return err
 	}
@@ -148,7 +149,7 @@ func (m *Manager) UpdateVPCs(ctx context.Context, kube client.Client) error {
 	}
 
 	a := &Allocator[uint32]{
-		Values: NewNextFreeValueFromRanges([][2]uint32{{VPC_VNI_OFFSET, VPC_VNI_MAX}}, VPC_VNI_OFFSET),
+		Values: NewNextFreeValueFromRanges([][2]uint32{{VPCVNIOffset, VPCVNIMax}}, VPCVNIOffset),
 	}
 	cat.Spec.VPCVNIs, err = a.Allocate(cat.Spec.VPCVNIs, vpcs)
 	if err != nil {
@@ -163,7 +164,7 @@ func (m *Manager) UpdateVPCs(ctx context.Context, kube client.Client) error {
 
 		vpcVNI := cat.Spec.VPCVNIs[vpc.Name]
 		a := &Allocator[uint32]{
-			Values: NewNextFreeValueFromRanges([][2]uint32{{vpcVNI + 1, vpcVNI + VPC_VNI_OFFSET - 1}}, 1),
+			Values: NewNextFreeValueFromRanges([][2]uint32{{vpcVNI + 1, vpcVNI + VPCVNIOffset - 1}}, 1),
 		}
 		cat.Spec.VPCSubnetVNIs[vpc.Name], err = a.Allocate(cat.Spec.VPCSubnetVNIs[vpc.Name], subnets)
 		if err != nil {
@@ -171,7 +172,7 @@ func (m *Manager) UpdateVPCs(ctx context.Context, kube client.Client) error {
 		}
 	}
 
-	return m.saveCatalog(ctx, kube, CAT_VPCs, cat)
+	return m.saveCatalog(ctx, kube, CatVPCs, cat)
 }
 
 func (m *Manager) getRedundancyGroupKey(swName string, redundancy wiringapi.SwitchRedundancy) string {
@@ -179,11 +180,11 @@ func (m *Manager) getRedundancyGroupKey(swName string, redundancy wiringapi.Swit
 		return m.getSwitchKey(swName)
 	}
 
-	return CAT_RG_PREFIX + redundancy.Group
+	return CatRedGroupPrefix + redundancy.Group
 }
 
 func (m *Manager) getSwitchKey(swName string) string {
-	return CAT_SW_PREFIX + swName
+	return CatSwitchPrefix + swName
 }
 
 func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube client.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool) error {
@@ -209,7 +210,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube client.Cli
 
 	{
 		a := &Allocator[uint16]{
-			Values: NewNextFreeValueFromRanges([][2]uint16{{PORT_CHAN_MIN, PORT_CHAN_MAX}}, 1),
+			Values: NewNextFreeValueFromRanges([][2]uint16{{PortChannelMin, PortChannelMax}}, 1),
 		}
 		cat.Spec.PortChannelIDs, err = a.Allocate(cat.Spec.PortChannelIDs, portChanConns)
 		if err != nil {
@@ -221,14 +222,14 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube client.Cli
 		return errors.Errorf("failed to save catalog %s", key)
 	}
 
-	connsCat, err := m.getCatalog(ctx, kube, CAT_CONNS)
+	connsCat, err := m.getCatalog(ctx, kube, CatConns)
 	if err != nil {
-		return errors.Errorf("failed to get connections catalog %s", CAT_CONNS)
+		return errors.Errorf("failed to get connections catalog %s", CatConns)
 	}
 
-	vpcsCat, err := m.getCatalog(ctx, kube, CAT_VPCs)
+	vpcsCat, err := m.getCatalog(ctx, kube, CatVPCs)
 	if err != nil {
-		return errors.Errorf("failed to get VPCs catalog %s", CAT_VPCs)
+		return errors.Errorf("failed to get VPCs catalog %s", CatVPCs)
 	}
 
 	ret.ConnectionIDs = map[string]uint32{}
@@ -353,9 +354,9 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube client.Client, ret 
 }
 
 func LoWReqForVPC(vpcPeeringName string) string {
-	return LO_REQ_PREFIX_VPC + vpcPeeringName
+	return LoWorkaroundReqPrefixVPC + vpcPeeringName
 }
 
 func LoWReqForExt(extPeeringName string) string {
-	return LO_REQ_PREFIX_EXT + extPeeringName
+	return LoWorkaroundReqPrefixExt + extPeeringName
 }
