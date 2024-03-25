@@ -15,6 +15,7 @@
 package hhfctl
 
 import (
+	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
@@ -35,13 +36,13 @@ func init() {
 func kubeClient() (client.WithWatch, error) {
 	k8scfg, err := ctrl.GetConfig()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get k8s config")
 	}
 	client, err := client.NewWithWatch(k8scfg, client.Options{
 		Scheme: scheme,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create k8s client")
 	}
 
 	return client, nil

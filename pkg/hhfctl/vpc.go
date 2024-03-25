@@ -60,6 +60,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
+
 		return errors.Errorf("validation failed")
 	}
 	if warnings != nil {
@@ -121,6 +122,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 	warnings, err := attach.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
+
 		return errors.Errorf("validation failed")
 	}
 	if warnings != nil {
@@ -187,6 +189,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	warnings, err := peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
+
 		return errors.Errorf("validation failed")
 	}
 	if warnings != nil {

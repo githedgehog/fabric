@@ -32,7 +32,7 @@ func getAgent(ctx context.Context, kube client.WithWatch, name string) (*agentap
 	return agent, nil
 }
 
-func SwitchReboot(ctx context.Context, yes bool, name string) error {
+func SwitchReboot(ctx context.Context, name string) error {
 	kube, err := kubeClient()
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
@@ -56,7 +56,7 @@ func SwitchReboot(ctx context.Context, yes bool, name string) error {
 	return nil
 }
 
-func SwitchPowerReset(ctx context.Context, yes bool, name string) error {
+func SwitchPowerReset(ctx context.Context, name string) error {
 	kube, err := kubeClient()
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
@@ -80,7 +80,7 @@ func SwitchPowerReset(ctx context.Context, yes bool, name string) error {
 	return nil
 }
 
-func SwitchReinstall(ctx context.Context, yes bool, name string) error {
+func SwitchReinstall(ctx context.Context, name string) error {
 	kube, err := kubeClient()
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
@@ -104,7 +104,7 @@ func SwitchReinstall(ctx context.Context, yes bool, name string) error {
 	return nil
 }
 
-func SwitchForceAgentVersion(ctx context.Context, yes bool, name string, version string) error {
+func SwitchForceAgentVersion(ctx context.Context, name string, version string) error {
 	kube, err := kubeClient()
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
@@ -119,10 +119,13 @@ func SwitchForceAgentVersion(ctx context.Context, yes bool, name string, version
 		return errors.Errorf("agent is not running")
 	}
 
+	agent.Spec.Version.Override = version
 	agent.Spec.Reboot = agent.Status.RunID
+
 	err = kube.Update(ctx, agent)
 	if err != nil {
 		return errors.Wrap(err, "cannot update agent")
 	}
+
 	return nil
 }

@@ -46,7 +46,7 @@ func ConnectionGet(ctx context.Context, options *ConnectionGetOptions) error {
 
 		if options.Type == "management" {
 			columns = []string{
-				"-o", "custom-columns=" +
+				"-o", "custom-columns=" + //nolint:goconst
 					"NAME:.metadata.name,GEN:.metadata.generation," +
 					"SERVERPORT:.spec.management.link.server.port," +
 					"SERVERIP:.spec.management.link.server.ip," +
@@ -88,5 +88,5 @@ func kubectl(ctx context.Context, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	return cmd.Run()
+	return errors.Wrapf(cmd.Run(), "failed to run kubectl")
 }
