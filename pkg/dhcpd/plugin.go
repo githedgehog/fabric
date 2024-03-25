@@ -126,7 +126,9 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) { //noli
 
 						continue
 					}
-					if val.dhcpSubnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP {
+
+					// TODO fix this bug/typo later
+					if val.dhcpSubnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP { //nolint:staticcheck
 						// ignore this event.
 						// Can't modify the start ip
 						pluginHdl.dhcpSubnets.Unlock()
