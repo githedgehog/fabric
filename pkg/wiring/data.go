@@ -90,11 +90,12 @@ func (d *Data) addOrUpdate(update bool, objs ...metav1.Object) error {
 			return errors.Errorf("object has unknown or unsupported group %s", group)
 		}
 
-		if fabricObj, ok := obj.(meta.Object); !ok {
+		fabricObj, ok := obj.(meta.Object)
+		if !ok {
 			return errors.Errorf("object %#v is not a Fabric Object", obj)
-		} else {
-			fabricObj.Default()
 		}
+
+		fabricObj.Default()
 
 		var err error
 		switch typed := obj.(type) {
@@ -184,6 +185,7 @@ func (s *Store[T]) Lookup(labels map[string]string) []T {
 		for lookupName, lookupValue := range labels {
 			if value, ok := obj.GetLabels()[lookupName]; !ok || lookupValue != value {
 				accepted = false
+
 				break
 			}
 		}

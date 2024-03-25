@@ -55,7 +55,6 @@ func LoadDataFrom(from string, data *Data) error {
 		if err != nil {
 			return err
 		}
-
 	}
 
 	if from == "-" {
@@ -107,7 +106,7 @@ func LoadDir(f fs.FS, root string, data *Data) error {
 		return nil
 	})
 
-	return err
+	return errors.Wrapf(err, "error walking dir %s", root)
 }
 
 func LoadFile(f fs.FS, path string, data *Data) error {
@@ -125,9 +124,10 @@ func Load(r io.Reader, data *Data) error {
 	for {
 		buf, err := multidocReader.Read()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
+
 			return errors.Wrap(err, "error multidoc-parsing")
 		}
 
