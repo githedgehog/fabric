@@ -33,7 +33,7 @@ type ParsedCIDR struct {
 func ParseCIDR(cidr string) (*ParsedCIDR, error) {
 	ip, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to parse cidr %s", cidr)
 	}
 
 	_, last, err := Range(cidr)

@@ -17,12 +17,12 @@
 package netlinkutil
 
 import (
-	"errors"
 	"net"
 
+	"github.com/pkg/errors"
 	"github.com/vishvananda/netlink"
 )
 
-func RouteGet(destination net.IP) ([]netlink.Route, error) {
+func RouteGet(_ net.IP) ([]netlink.Route, error) {
 	return nil, errors.New("netlink: not implemented")
 }
