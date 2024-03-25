@@ -50,7 +50,7 @@ func (d *Service) runCoreDHCP(_ context.Context) error {
 	if _, err := os.Stat(d.Config); errors.Is(err, os.ErrNotExist) {
 		d.Config = "/etc/coredhcp.conf"
 
-		if err := os.WriteFile(d.Config, []byte(defaultConfig), 0o644); err != nil {
+		if err := os.WriteFile(d.Config, []byte(defaultConfig), 0o600); err != nil {
 			return errors.Wrapf(err, "failed to write default config")
 		}
 	}
@@ -84,4 +84,8 @@ func (d *Service) runCoreDHCP(_ context.Context) error {
 	}
 
 	return nil
+}
+
+func (d *Service) handleExpiredLeases() {
+	handleExpiredLeases()
 }

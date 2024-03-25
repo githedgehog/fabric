@@ -23,5 +23,5 @@ import (
 )
 
 func RouteGet(destination net.IP) ([]netlink.Route, error) {
-	return netlink.RouteGet(destination)
+	return netlink.RouteGet(destination) //nolint:wrapcheck
 }

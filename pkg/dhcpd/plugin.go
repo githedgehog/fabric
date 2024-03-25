@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
+
 package dhcpd
 
 import (
@@ -30,7 +32,7 @@ var (
 	log       = logger.GetLogger("plugins/dhcpd")
 )
 
-func setup(svc *Service) func(args ...string) (handler.Handler4, error) { //nolint:unused
+func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 	return func(_ /* args */ ...string) (handler.Handler4, error) {
 		pluginHdl = &pluginState{
 			dhcpSubnets: &DHCPSubnets{
@@ -175,7 +177,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) { //noli
 	}
 }
 
-func handlerDHCP4(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) { //nolint:unused
+func handlerDHCP4(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
 	switch req.MessageType() { //nolint:exhaustive
 	case dhcpv4.MessageTypeDiscover:
 		if err := handleDiscover4(req, resp); err != nil {

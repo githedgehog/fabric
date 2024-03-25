@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
+
 package dhcpd
 
 import (
@@ -27,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func handleDiscover4(req, resp *dhcpv4.DHCPv4) error { //nolint:unused
+func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
@@ -98,7 +100,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error { //nolint:unused
 	return nil
 }
 
-func handleRequest4(req, resp *dhcpv4.DHCPv4) error { //nolint:unused
+func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
@@ -167,7 +169,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error { //nolint:unused
 	return nil
 }
 
-func handleDecline4(req, _ /* resp */ *dhcpv4.DHCPv4) error { //nolint:unused
+func handleDecline4(req, _ /* resp */ *dhcpv4.DHCPv4) error {
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
@@ -197,7 +199,7 @@ func handleDecline4(req, _ /* resp */ *dhcpv4.DHCPv4) error { //nolint:unused
 	return nil
 }
 
-func handleRelease4(req, _ /* resp */ *dhcpv4.DHCPv4) error { //nolint:unused
+func handleRelease4(req, _ /* resp */ *dhcpv4.DHCPv4) error {
 	if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 		circuitID := relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)
 		vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
@@ -227,7 +229,7 @@ func handleRelease4(req, _ /* resp */ *dhcpv4.DHCPv4) error { //nolint:unused
 	return nil
 }
 
-func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) { //nolint:unused
+func getSubnetInfo(vrfName string, circuitID string) (*ManagedSubnet, error) {
 	pluginHdl.dhcpSubnets.Lock()
 	defer pluginHdl.dhcpSubnets.Unlock()
 	subnet, ok := pluginHdl.dhcpSubnets.subnets[vrfName+circuitID]
@@ -263,7 +265,7 @@ func handleExpiredLeases() {
 	}
 }
 
-func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) { //nolint:unused
+func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	relayAgentInfo := req.RelayAgentInfo()
 	if relayAgentInfo == nil || subnet.dhcpSubnet == nil {
 		return
