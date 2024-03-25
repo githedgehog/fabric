@@ -250,7 +250,7 @@ func main() {
 								return err
 							}
 
-							return errors.Wrapf(hhfctl.SwitchReboot(ctx, yes, name), "failed to reboot switch")
+							return errors.Wrapf(hhfctl.SwitchReboot(ctx, name), "failed to reboot switch")
 						},
 					},
 					{
@@ -269,7 +269,7 @@ func main() {
 								return err
 							}
 
-							return errors.Wrapf(hhfctl.SwitchPowerReset(ctx, yes, name), "failed to power reset switch")
+							return errors.Wrapf(hhfctl.SwitchPowerReset(ctx, name), "failed to power reset switch")
 						},
 					},
 					{
@@ -288,7 +288,7 @@ func main() {
 								return err
 							}
 
-							return errors.Wrapf(hhfctl.SwitchReinstall(ctx, yes, name), "failed to reinstall switch")
+							return errors.Wrapf(hhfctl.SwitchReinstall(ctx, name), "failed to reinstall switch")
 						},
 					},
 					{
@@ -312,7 +312,7 @@ func main() {
 								return err
 							}
 
-							return errors.Wrapf(hhfctl.SwitchForceAgentVersion(ctx, yes, name, cCtx.String("version")), "failed to force agent version on the switch")
+							return errors.Wrapf(hhfctl.SwitchForceAgentVersion(ctx, name, cCtx.String("version")), "failed to force agent version on the switch")
 						},
 					},
 				},
