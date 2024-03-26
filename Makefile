@@ -39,7 +39,7 @@ lint-lic: addlicense ## Run addlicense to check if all files have the license he
 
 .PHONY: lint
 lint: lint-lic golangci-lint ## Run linters
-	$(GOLANGCI_LINT) run ./...
+	$(GOLANGCI_LINT) run --show-stats ./...
 
 ##@ Build
 
