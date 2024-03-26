@@ -45,6 +45,13 @@ const (
 	ConnectionTypeStaticExternal = "static-external"
 )
 
+var ConnectionTypesServerFacing = []string{
+	ConnectionTypeUnbundled,
+	ConnectionTypeBundled,
+	ConnectionTypeMCLAG,
+	ConnectionTypeESLAG,
+}
+
 const INVALID = "<invalid>"
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
