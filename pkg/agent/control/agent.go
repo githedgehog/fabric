@@ -29,11 +29,10 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/common"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -57,7 +56,7 @@ func (svc *Service) Run(ctx context.Context) error {
 
 	slog.Info("Starting control agent", "hostname", hostname, "version", svc.Version)
 
-	kube, err := svc.kubeClient()
+	kube, err := kubeutil.NewClient(KubeconfigFile, agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "failed to create kube client")
 	}
@@ -284,29 +283,4 @@ func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) e
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
 	return nil
-}
-
-func (svc *Service) kubeClient() (client.WithWatch, error) {
-	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: KubeconfigFile},
-		nil,
-	).ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load kubeconfig from %s", KubeconfigFile)
-	}
-
-	scheme := runtime.NewScheme()
-	err = agentapi.AddToScheme(scheme)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to add agent scheme")
-	}
-
-	kubeClient, err := client.NewWithWatch(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create kube client")
-	}
-
-	return kubeClient, nil
 }

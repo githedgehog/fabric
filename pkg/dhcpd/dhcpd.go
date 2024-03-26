@@ -22,36 +22,12 @@ import (
 	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"k8s.io/apimachinery/pkg/watch"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/pkg/errors"
 )
-
-var scheme = runtime.NewScheme()
-
-func init() {
-	utilruntime.Must(dhcpapi.AddToScheme(scheme))
-}
-
-func kubeClient() (client.WithWatch, error) {
-	k8scfg, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting kube config")
-	}
-
-	client, err := client.NewWithWatch(k8scfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating kube client")
-	}
-
-	return client, nil
-}
 
 type Service struct {
 	Verbose bool
@@ -75,7 +51,7 @@ const (
 )
 
 func (d *Service) Run(ctx context.Context) error {
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", dhcpapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

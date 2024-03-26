@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -33,7 +34,7 @@ func getAgent(ctx context.Context, kube client.WithWatch, name string) (*agentap
 }
 
 func SwitchReboot(ctx context.Context, name string) error {
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -57,7 +58,7 @@ func SwitchReboot(ctx context.Context, name string) error {
 }
 
 func SwitchPowerReset(ctx context.Context, name string) error {
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -81,7 +82,7 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 }
 
 func SwitchReinstall(ctx context.Context, name string) error {
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -105,7 +106,7 @@ func SwitchReinstall(ctx context.Context, name string) error {
 }
 
 func SwitchForceAgentVersion(ctx context.Context, name string, version string) error {
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

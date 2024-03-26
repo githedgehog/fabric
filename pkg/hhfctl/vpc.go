@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
@@ -51,7 +52,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 		},
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -113,7 +114,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 		},
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -180,7 +181,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		},
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -229,7 +230,7 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 		return errors.Errorf("vpc is required")
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -281,7 +282,7 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 		return errors.Errorf("at least one request is required")
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -45,7 +46,7 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 		},
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -151,7 +152,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 		})
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
