@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -38,7 +39,7 @@ func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroup
 		Spec: wiringapi.SwitchGroupSpec{},
 	}
 
-	kube, err := kubeClient()
+	kube, err := kubeutil.NewClient("", wiringapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

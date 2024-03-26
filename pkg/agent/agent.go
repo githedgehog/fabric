@@ -32,12 +32,11 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -115,9 +114,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 		slog.Info("Starting watch for config changes in K8s")
 
-		kube, err := svc.kubeClient()
+		kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
+		kube, err := kubeutil.NewClient(kubeconfigPath, agentapi.SchemeBuilder)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create K8s client")
 		}
 
 		currentGen := agent.Generation
@@ -486,32 +486,6 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	}
 
 	return nil
-}
-
-func (svc *Service) kubeClient() (client.WithWatch, error) {
-	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
-	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
-		nil,
-	).ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load kubeconfig from %s", kubeconfigPath)
-	}
-
-	scheme := runtime.NewScheme()
-	err = agentapi.AddToScheme(scheme)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to add agent scheme")
-	}
-
-	kubeClient, err := client.NewWithWatch(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create kube client")
-	}
-
-	return kubeClient, nil
 }
 
 func (svc *Service) configFilePath() string {
