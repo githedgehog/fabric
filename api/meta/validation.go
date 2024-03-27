@@ -18,6 +18,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,7 +26,7 @@ var nameChecker = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9](
 
 func DefaultObjectMetadata(obj client.Object) {
 	if obj.GetNamespace() == "" {
-		obj.SetNamespace("default")
+		obj.SetNamespace(metav1.NamespaceDefault)
 	}
 }
 
@@ -34,7 +35,7 @@ func ValidateObjectMetadata(obj client.Object) error {
 		return errors.Errorf("name does not match a lowercase RFC 1123 subdomain")
 	}
 
-	if obj.GetNamespace() != "default" {
+	if obj.GetNamespace() != metav1.NamespaceDefault {
 		return errors.Errorf("only default namespace is currently supported")
 	}
 

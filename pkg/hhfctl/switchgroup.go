@@ -34,7 +34,7 @@ func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroup
 	sg := &wiringapi.SwitchGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: "default", // TODO ns
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: wiringapi.SwitchGroupSpec{},
 	}

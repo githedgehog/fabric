@@ -39,7 +39,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	vpc := &vpcapi.VPC{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: "default", // TODO ns
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: vpcapi.VPCSpec{
 			Subnets: map[string]*vpcapi.VPCSubnet{
@@ -106,7 +106,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 	attach := &vpcapi.VPCAttachment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "default", // TODO ns
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: vpcapi.VPCAttachmentSpec{
 			Subnet:     options.VPCSubnet,
@@ -168,7 +168,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	peering := &vpcapi.VPCPeering{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "default", // TODO ns
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: vpcapi.VPCPeeringSpec{
 			Remote: options.Remote,
@@ -236,7 +236,7 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 	}
 
 	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: "default"}, vpc) // TODO ns
+	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: metav1.NamespaceDefault}, vpc)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
 	}
@@ -288,7 +288,7 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 	}
 
 	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: "default"}, vpc) // TODO ns
+	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: metav1.NamespaceDefault}, vpc)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
 	}

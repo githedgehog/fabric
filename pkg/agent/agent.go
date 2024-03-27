@@ -122,7 +122,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 		currentGen := agent.Generation
 
-		err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: "default"}, agent) // TODO ns
+		err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: metav1.NamespaceDefault}, agent)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get initial agent config from k8s")
 		}
@@ -153,7 +153,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
 		}
 
-		watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
+		watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
 			"metadata.name": svc.name,
 		})
 		if err != nil {

@@ -20,12 +20,13 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getAgent(ctx context.Context, kube client.WithWatch, name string) (*agentapi.Agent, error) {
 	agent := &agentapi.Agent{}
-	err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: "default"}, agent) // TODO ns
+	err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, agent)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get agent")
 	}
