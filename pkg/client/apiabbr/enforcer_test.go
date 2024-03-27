@@ -37,12 +37,14 @@ func TestEnforcer(t *testing.T) {
 	require.NoError(t, vpcapi.AddToScheme(scheme))
 
 	tests := []struct {
-		in              string
-		existingObjects testData
-		expectedObjects testData
+		in               string
+		ignoreNotDefined bool
+		existingObjects  testData
+		expectedObjects  testData
 	}{
 		{
-			in: "vpc-1 vpc-2:defI:defR:s=subnet-1=10.42.0.0/24,vlan=1042,dhcp vpc-1+vpc-2 vpc-1@server-1 vpc-2@server-1--eslag--switch-1 fallback:server-1--eslag--switch-1",
+			in:               "vpc-1 vpc-2:defI:defR:s=subnet-1=10.42.0.0/24,vlan=1042,dhcp vpc-1+vpc-2 vpc-1@server-1 vpc-2@server-1--eslag--switch-1 fallback:server-1--eslag--switch-1",
+			ignoreNotDefined: false,
 			existingObjects: testData{
 				"srv/server-1": wiringapi.ServerSpec{},
 				"conn/server-1--eslag--switch-1": wiringapi.ConnectionSpec{
@@ -54,6 +56,21 @@ func TestEnforcer(t *testing.T) {
 							},
 							{
 								Server: wiringapi.BasePortName{Port: "server-1/port-2"},
+								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
+							},
+						},
+					},
+				},
+				"conn/test-conn": wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Fallback: true,
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
+								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
+							},
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
 								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
 							},
 						},
@@ -75,6 +92,21 @@ func TestEnforcer(t *testing.T) {
 							},
 							{
 								Server: wiringapi.BasePortName{Port: "server-1/port-2"},
+								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
+							},
+						},
+					},
+				},
+				"conn/test-conn": wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Fallback: false,
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
+								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
+							},
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
 								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
 							},
 						},
@@ -105,11 +137,93 @@ func TestEnforcer(t *testing.T) {
 				"vpcpeer/vpc-1--vpc-2": vpcapi.VPCPeeringSpec{},
 			},
 		},
+		{
+			in:               "vpc-1 fallback:server-1--eslag--switch-1",
+			ignoreNotDefined: true,
+			existingObjects: testData{
+				"vpc/vpc-1": vpcapi.VPCSpec{
+					Subnets: map[string]*vpcapi.VPCSubnet{
+						"default": {
+							Subnet: "10.42.0.0/24",
+							VLAN:   "1024",
+						},
+					},
+				},
+				"vpc/keepme":       vpcapi.VPCSpec{},
+				"vpcattach/keepme": vpcapi.VPCAttachmentSpec{},
+				"vpcpeer/keepme":   vpcapi.VPCPeeringSpec{},
+				"conn/server-1--eslag--switch-1": wiringapi.ConnectionSpec{
+					ESLAG: &wiringapi.ConnESLAG{
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.BasePortName{Port: "server-1/port-1"},
+								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
+							},
+							{
+								Server: wiringapi.BasePortName{Port: "server-1/port-2"},
+								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
+							},
+						},
+					},
+				},
+				"conn/test-conn": wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Fallback: true,
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
+								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
+							},
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
+								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
+							},
+						},
+					},
+				},
+			},
+			expectedObjects: testData{
+				"vpc/vpc-1":        vpcapi.VPCSpec{},
+				"vpc/keepme":       vpcapi.VPCSpec{},
+				"vpcattach/keepme": vpcapi.VPCAttachmentSpec{},
+				"vpcpeer/keepme":   vpcapi.VPCPeeringSpec{},
+				"conn/server-1--eslag--switch-1": wiringapi.ConnectionSpec{
+					ESLAG: &wiringapi.ConnESLAG{
+						Fallback: true,
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.BasePortName{Port: "server-1/port-1"},
+								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
+							},
+							{
+								Server: wiringapi.BasePortName{Port: "server-1/port-2"},
+								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
+							},
+						},
+					},
+				},
+				"conn/test-conn": wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Fallback: true,
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
+								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
+							},
+							{
+								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
+								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			enf, err := apiabbr.NewEnforcer(true)
+			enf, err := apiabbr.NewEnforcer(tt.ignoreNotDefined)
 			require.NoError(t, err)
 			require.NotNil(t, enf)
 

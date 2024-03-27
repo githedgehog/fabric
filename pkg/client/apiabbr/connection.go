@@ -24,9 +24,10 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func newConnectionFallbackHandler() (*ObjectAbbrHandler[*wiringapi.Connection, *wiringapi.ConnectionList], error) {
+func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wiringapi.Connection, *wiringapi.ConnectionList], error) {
 	return (&ObjectAbbrHandler[*wiringapi.Connection, *wiringapi.ConnectionList]{
-		AbbrType: AbbrTypeConnectionFallback,
+		AbbrType:          AbbrTypeConnectionFallback,
+		CleanupNotDefined: false,
 		ParseObjectFn: func(name, _ string, _ AbbrParams) (*wiringapi.Connection, error) {
 			return &wiringapi.Connection{
 				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
@@ -38,6 +39,10 @@ func newConnectionFallbackHandler() (*ObjectAbbrHandler[*wiringapi.Connection, *
 			return list, kube.List(ctx, list)
 		},
 		PatchExistingFn: func(conn *wiringapi.Connection) bool {
+			if ignoreNotDefined {
+				return false
+			}
+
 			if conn.Spec.MCLAG != nil {
 				orig := conn.Spec.MCLAG.Fallback
 				conn.Spec.MCLAG.Fallback = false
