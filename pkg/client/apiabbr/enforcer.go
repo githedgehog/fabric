@@ -31,25 +31,25 @@ type Enforcer struct {
 	handlers []AbbrHandler
 }
 
-func NewEnforcer(cleanupNotDefined bool) (*Enforcer, error) {
+func NewEnforcer(ignoreNotDefined bool) (*Enforcer, error) {
 	e := &Enforcer{}
 
-	vpc, err := newVPCHandler(cleanupNotDefined)
+	vpc, err := newVPCHandler(ignoreNotDefined)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create VPC abbr handler")
 	}
 
-	vpcAttachment, err := newVPCAttachmentHandler(cleanupNotDefined)
+	vpcAttachment, err := newVPCAttachmentHandler(ignoreNotDefined)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create VPCAttachment abbr handler")
 	}
 
-	vpcPeering, err := newVPCPeeringHandler(cleanupNotDefined)
+	vpcPeering, err := newVPCPeeringHandler(ignoreNotDefined)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create VPCPeering abbr handler")
 	}
 
-	fallback, err := newConnectionFallbackHandler()
+	fallback, err := newConnectionFallbackHandler(ignoreNotDefined)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Connection fallback abbr handler")
 	}

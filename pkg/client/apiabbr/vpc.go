@@ -46,10 +46,10 @@ var (
 	}
 )
 
-func newVPCHandler(cleanupNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC, *vpcapi.VPCList], error) {
+func newVPCHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC, *vpcapi.VPCList], error) {
 	return (&ObjectAbbrHandler[*vpcapi.VPC, *vpcapi.VPCList]{
 		AbbrType:          AbbrTypeVPC,
-		CleanupNotDefined: cleanupNotDefined,
+		CleanupNotDefined: !ignoreNotDefined,
 		AcceptedParams:    VPCParams,
 		AcceptNoTypeFn: func(abbr string) bool {
 			return strings.HasPrefix(abbr, "vpc-") && !strings.Contains(abbr, VPCAttachmentAbbrSeparator) && !strings.Contains(abbr, VPCPeeringAbbrSeparator)
@@ -128,10 +128,10 @@ var (
 	}
 )
 
-func newVPCAttachmentHandler(cleanupNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPCAttachment, *vpcapi.VPCAttachmentList], error) {
+func newVPCAttachmentHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPCAttachment, *vpcapi.VPCAttachmentList], error) {
 	return (&ObjectAbbrHandler[*vpcapi.VPCAttachment, *vpcapi.VPCAttachmentList]{
 		AbbrType:          AbbrTypeVPCAttachment,
-		CleanupNotDefined: cleanupNotDefined,
+		CleanupNotDefined: !ignoreNotDefined,
 		AcceptedParams:    VPCAttachmentParams,
 		AcceptNoTypeFn:    func(abbr string) bool { return strings.Contains(abbr, "@") },
 		NameFn: func(abbr string) string {
@@ -216,10 +216,10 @@ var (
 	}
 )
 
-func newVPCPeeringHandler(cleanupNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPCPeering, *vpcapi.VPCPeeringList], error) {
+func newVPCPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPCPeering, *vpcapi.VPCPeeringList], error) {
 	return (&ObjectAbbrHandler[*vpcapi.VPCPeering, *vpcapi.VPCPeeringList]{
 		AbbrType:          AbbrTypeVPCPeering,
-		CleanupNotDefined: cleanupNotDefined,
+		CleanupNotDefined: !ignoreNotDefined,
 		AcceptedParams:    VPCPeeringParams,
 		AcceptNoTypeFn:    func(abbr string) bool { return strings.Contains(abbr, "+") },
 		NameFn: func(abbr string) string {
