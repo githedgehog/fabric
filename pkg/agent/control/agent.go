@@ -62,7 +62,7 @@ func (svc *Service) Run(ctx context.Context) error {
 	}
 
 	agent := &agentapi.ControlAgent{}
-	err = kube.Get(ctx, client.ObjectKey{Name: hostname, Namespace: "default"}, agent) // TODO ns
+	err = kube.Get(ctx, client.ObjectKey{Name: hostname, Namespace: metav1.NamespaceDefault}, agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get initial control agent config from k8s")
 	}
@@ -100,7 +100,7 @@ func (svc *Service) Run(ctx context.Context) error {
 
 	slog.Info("Starting watch for config changes in K8s")
 
-	watcher, err := kube.Watch(ctx, &agentapi.ControlAgentList{}, client.InNamespace("default"), client.MatchingFields{ // TODO ns
+	watcher, err := kube.Watch(ctx, &agentapi.ControlAgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
 		"metadata.name": hostname,
 	})
 	if err != nil {

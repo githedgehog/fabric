@@ -172,7 +172,7 @@ func (r *Reconciler) updateISCDHCPConfig(ctx context.Context) error {
 		return errors.Wrapf(err, "error executing dhcp server config template")
 	}
 
-	dhcpdConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: r.Cfg.DHCPDConfigMap, Namespace: "default"}} // TODO namespace
+	dhcpdConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: r.Cfg.DHCPDConfigMap, Namespace: metav1.NamespaceDefault}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcpdConfigMap, func() error {
 		dhcpdConfigMap.Data = map[string]string{
 			r.Cfg.DHCPDConfigKey: buf.String(),

@@ -37,7 +37,7 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 	ext := &vpcapi.External{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: "default", // TODO ns
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: vpcapi.ExternalSpec{
 			IPv4Namespace:     options.IPv4Namespace,
@@ -96,7 +96,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 	extPeering := &vpcapi.ExternalPeering{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", options.VPC, options.External),
-			Namespace: "default", // TODO ns
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: vpcapi.ExternalPeeringSpec{
 			Permit: vpcapi.ExternalPeeringSpecPermit{

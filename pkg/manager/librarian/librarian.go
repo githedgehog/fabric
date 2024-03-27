@@ -25,12 +25,13 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	Namespace                = "default" // think about more than default namespace support
+	Namespace                = metav1.NamespaceDefault
 	CatConns                 = "connections"
 	CatVPCs                  = "vpcs"
 	CatSwitchPrefix          = "switch."

@@ -21,12 +21,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/pkg/errors"
 )
 
 type Service struct {
@@ -105,7 +105,7 @@ func (d *Service) runKubeWatcher(ctx context.Context, kube client.WithWatch) err
 	for {
 		if watcher == nil {
 			slog.Info("Starting K8s watcher")
-			if watcher, err = kube.Watch(ctx, &dhcpapi.DHCPSubnetList{}, client.InNamespace("default")); err != nil { // TODO ns
+			if watcher, err = kube.Watch(ctx, &dhcpapi.DHCPSubnetList{}, client.InNamespace(metav1.NamespaceDefault)); err != nil {
 				return errors.Wrapf(err, "failed to start watcher")
 			}
 			defer watcher.Stop()
