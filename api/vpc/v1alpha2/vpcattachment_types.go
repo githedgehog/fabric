@@ -63,6 +63,8 @@ type VPCAttachment struct {
 	Status VPCAttachmentStatus `json:"status,omitempty"`
 }
 
+const KindVPCAttachment = "VPCAttachment"
+
 //+kubebuilder:object:root=true
 
 // VPCAttachmentList contains a list of VPCAttachment

@@ -74,6 +74,8 @@ type VPCPeering struct {
 	Status VPCPeeringStatus `json:"status,omitempty"`
 }
 
+const KindVPCPeering = "VPCPeering"
+
 //+kubebuilder:object:root=true
 
 // VPCPeeringList contains a list of VPCPeering

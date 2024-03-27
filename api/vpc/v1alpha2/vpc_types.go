@@ -111,6 +111,8 @@ type VPC struct {
 	Status VPCStatus `json:"status,omitempty"`
 }
 
+const KindVPC = "VPC"
+
 //+kubebuilder:object:root=true
 
 // VPCList contains a list of VPC
