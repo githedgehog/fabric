@@ -1241,9 +1241,6 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `numServers` _integer_ |  |  |  |
-| `hasControlNode` _boolean_ |  |  |  |
-| `hasConsoleServer` _boolean_ |  |  |  |
 | `position` _[RackPosition](#rackposition)_ |  |  |  |
 
 

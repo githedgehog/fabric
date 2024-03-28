@@ -35,10 +35,7 @@ type RackPosition struct {
 
 // RackSpec defines the properties of a rack which we are modelling
 type RackSpec struct {
-	NumServers       uint32       `json:"numServers,omitempty"`
-	HasControlNode   bool         `json:"hasControlNode,omitempty"`
-	HasConsoleServer bool         `json:"hasConsoleServer,omitempty"`
-	Position         RackPosition `json:"position,omitempty"`
+	Position RackPosition `json:"position,omitempty"`
 }
 
 // RackStatus defines the observed state of Rack

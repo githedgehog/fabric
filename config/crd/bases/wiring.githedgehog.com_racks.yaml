@@ -43,13 +43,6 @@ spec:
           spec:
             description: RackSpec defines the properties of a rack which we are modelling
             properties:
-              hasConsoleServer:
-                type: boolean
-              hasControlNode:
-                type: boolean
-              numServers:
-                format: int32
-                type: integer
               position:
                 description: RackPosition defines the geographical position of the
                   rack in a datacenter
