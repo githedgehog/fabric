@@ -24,13 +24,35 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+var (
+	FallbackParamDisable = []string{"disable"}
+
+	FallbackParams = [][]string{
+		FallbackParamDisable,
+	}
+)
+
 func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wiringapi.Connection, *wiringapi.ConnectionList], error) {
 	return (&ObjectAbbrHandler[*wiringapi.Connection, *wiringapi.ConnectionList]{
 		AbbrType:          AbbrTypeConnectionFallback,
 		CleanupNotDefined: false,
-		ParseObjectFn: func(name, _ string, _ AbbrParams) (*wiringapi.Connection, error) {
+		AcceptedParams:    FallbackParams,
+		ParseObjectFn: func(name, _ string, params AbbrParams) (*wiringapi.Connection, error) {
+			disableFallback, err := params.GetBool(FallbackParamDisable)
+			if err != nil {
+				return nil, err
+			}
+
 			return &wiringapi.Connection{
 				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				Spec: wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Fallback: !disableFallback,
+					},
+					ESLAG: &wiringapi.ConnESLAG{
+						Fallback: !disableFallback,
+					},
+				},
 			}, nil
 		},
 		ObjectListFn: func(ctx context.Context, kube client.Client) (*wiringapi.ConnectionList, error) {
@@ -64,9 +86,9 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 
 			return ctrlutil.CreateOrUpdate(ctx, kube, conn, func() error {
 				if conn.Spec.MCLAG != nil {
-					conn.Spec.MCLAG.Fallback = true
+					conn.Spec.MCLAG.Fallback = newObj.Spec.MCLAG.Fallback
 				} else if conn.Spec.ESLAG != nil {
-					conn.Spec.ESLAG.Fallback = true
+					conn.Spec.ESLAG.Fallback = newObj.Spec.ESLAG.Fallback
 				} else {
 					return errors.New("only existing MCLAG and ESLAG connections are supported for fallback enforcement")
 				}
