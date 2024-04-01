@@ -135,7 +135,7 @@ func newVPCAttachmentHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.
 		AcceptedParams:    VPCAttachmentParams,
 		AcceptNoTypeFn:    func(abbr string) bool { return strings.Contains(abbr, "@") },
 		NameFn: func(abbr string) string {
-			return strings.ReplaceAll(abbr, VPCAttachmentAbbrSeparator, "--")
+			return strings.ReplaceAll(strings.ReplaceAll(abbr, "/", "--"), VPCAttachmentAbbrSeparator, "--")
 		},
 		ParseObjectFn: func(name, abbr string, params AbbrParams) (*vpcapi.VPCAttachment, error) {
 			spec := vpcapi.VPCAttachmentSpec{}
@@ -143,6 +143,10 @@ func newVPCAttachmentHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.
 			parts := strings.Split(abbr, VPCAttachmentAbbrSeparator)
 			if len(parts) != 2 {
 				return nil, errors.New("VPCAttachment abbr should contain exactly vpc/subnet and connection (or server) name separated by " + VPCAttachmentAbbrSeparator)
+			}
+
+			if len(strings.Split(abbr, "/")) != 2 {
+				return nil, errors.New("VPCAttachment abbr should contain full vpc/subnet name")
 			}
 
 			spec.Subnet = parts[0]
