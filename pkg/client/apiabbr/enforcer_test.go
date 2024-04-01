@@ -43,7 +43,7 @@ func TestEnforcer(t *testing.T) {
 		expectedObjects  testData
 	}{
 		{
-			in:               "vpc-1 vpc-2:defI:defR:s=subnet-1=10.42.0.0/24,vlan=1042,dhcp vpc-1+vpc-2 vpc-1@server-1 vpc-2@server-1--eslag--switch-1 fallback:server-1--eslag--switch-1",
+			in:               "vpc-1 vpc-2:defI:defR:s=subnet-1=10.42.0.0/24,vlan=1042,dhcp vpc-1+vpc-2 vpc-1/subnet-1@server-1 vpc-2/default@server-1--eslag--switch-1 fallback:server-1--eslag--switch-1",
 			ignoreNotDefined: false,
 			existingObjects: testData{
 				"srv/server-1": wiringapi.ServerSpec{},
@@ -126,11 +126,11 @@ func TestEnforcer(t *testing.T) {
 						},
 					},
 				},
-				"vpcattach/vpc-1--server-1": vpcapi.VPCAttachmentSpec{
-					Subnet:     "vpc-1/default",
+				"vpcattach/vpc-1--subnet-1--server-1": vpcapi.VPCAttachmentSpec{
+					Subnet:     "vpc-1/subnet-1",
 					Connection: "server-1--eslag--switch-1",
 				},
-				"vpcattach/vpc-2--server-1--eslag--switch-1": vpcapi.VPCAttachmentSpec{
+				"vpcattach/vpc-2--default--server-1--eslag--switch-1": vpcapi.VPCAttachmentSpec{
 					Subnet:     "vpc-2/default",
 					Connection: "server-1--eslag--switch-1",
 				},
