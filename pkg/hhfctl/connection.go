@@ -46,7 +46,7 @@ func ConnectionGet(ctx context.Context, options *ConnectionGetOptions) error {
 
 		if options.Type == "management" {
 			columns = []string{
-				"-o", "custom-columns=" + //nolint:goconst
+				"-o", "custom-columns=" +
 					"NAME:.metadata.name,GEN:.metadata.generation," +
 					"SERVERPORT:.spec.management.link.server.port," +
 					"SERVERIP:.spec.management.link.server.ip," +
