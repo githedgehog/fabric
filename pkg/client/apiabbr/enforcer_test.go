@@ -7,7 +7,7 @@
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// distributed under the License is distributed on an "IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -43,7 +43,13 @@ func TestEnforcer(t *testing.T) {
 		expectedObjects  testData
 	}{
 		{
-			in:               "vpc-1 vpc-2:defI:defR:s=subnet-1=10.42.0.0/24,vlan=1042,dhcp vpc-1+vpc-2 vpc-1/subnet-1@server-1 vpc-2/default@server-1--eslag--switch-1 fallback:server-1--eslag--switch-1",
+			in: `
+			vpc-1 vpc-2:defI:defR:s=subnet-1=10.42.0.0/24,vlan=1042,dhcp
+			vpc-1/subnet-1@server-1 vpc-2/default@server-1--eslag--switch-1
+			vpc-1+vpc-2
+			vpc-1~ext-1:s=10.1.1.0/24,10.1.2.0/24:s=10.1.3.0/24:p=10.99.1.0/24,10.99.2.0/24
+			fallback:server-1--eslag--switch-1
+			`,
 			ignoreNotDefined: false,
 			existingObjects: testData{
 				"srv/server-1": wiringapi.ServerSpec{},
@@ -135,6 +141,21 @@ func TestEnforcer(t *testing.T) {
 					Connection: "server-1--eslag--switch-1",
 				},
 				"vpcpeer/vpc-1--vpc-2": vpcapi.VPCPeeringSpec{},
+				"extpeer/vpc-1--ext-1": vpcapi.ExternalPeeringSpec{
+					Permit: vpcapi.ExternalPeeringSpecPermit{
+						VPC: vpcapi.ExternalPeeringSpecVPC{
+							Name:    "vpc-1",
+							Subnets: []string{"10.1.1.0/24", "10.1.2.0/24", "10.1.3.0/24"},
+						},
+						External: vpcapi.ExternalPeeringSpecExternal{
+							Name: "ext-1",
+							Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+								{Prefix: "10.99.1.0/24"},
+								{Prefix: "10.99.2.0/24"},
+							},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -279,6 +300,7 @@ func TestEnforcer(t *testing.T) {
 				&vpcapi.VPCList{},
 				&vpcapi.VPCAttachmentList{},
 				&vpcapi.VPCPeeringList{},
+				&vpcapi.ExternalPeeringList{},
 			} {
 				if err := kube.List(context.Background(), list); err != nil {
 					t.Fatalf("failed to list %s: %v", list.GetObjectKind().GroupVersionKind().Kind, err)
@@ -369,6 +391,12 @@ func (d testData) toObjects(t *testing.T, logType string, logObj bool) []client.
 				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
 				Spec:       v.(vpcapi.VPCPeeringSpec),
 			})
+		case "extpeer":
+			objs = append(objs, &vpcapi.ExternalPeering{
+				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				Spec:       v.(vpcapi.ExternalPeeringSpec),
+			})
 		default:
 			t.Fatalf("unknown kind for %s object: %s", logType, k)
 		}
@@ -378,7 +406,7 @@ func (d testData) toObjects(t *testing.T, logType string, logObj bool) []client.
 		obj.(meta.Object).Default()
 
 		if logObj {
-			t.Logf("%s object: %s/%s: %#v", logType, obj.GetNamespace(), obj.GetName(), obj)
+			t.Logf("%s object: %s/%s: %#v", logType, obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName(), obj)
 		}
 	}
 

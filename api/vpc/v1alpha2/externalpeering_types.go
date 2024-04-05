@@ -94,6 +94,8 @@ type ExternalPeering struct {
 	Status ExternalPeeringStatus `json:"status,omitempty"`
 }
 
+const KindExternalPeering = "ExternalPeering"
+
 //+kubebuilder:object:root=true
 
 // ExternalPeeringList contains a list of ExternalPeering

@@ -52,7 +52,10 @@ func newVPCHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC, *vpca
 		CleanupNotDefined: !ignoreNotDefined,
 		AcceptedParams:    VPCParams,
 		AcceptNoTypeFn: func(abbr string) bool {
-			return strings.HasPrefix(abbr, "vpc-") && !strings.Contains(abbr, VPCAttachmentAbbrSeparator) && !strings.Contains(abbr, VPCPeeringAbbrSeparator)
+			return strings.HasPrefix(abbr, "vpc-") &&
+				!strings.Contains(abbr, VPCAttachmentAbbrSeparator) &&
+				!strings.Contains(abbr, VPCPeeringAbbrSeparator) &&
+				!strings.Contains(abbr, ExternalPeeringSeparator)
 		},
 		ParseObjectFn: func(name, _ string, params AbbrParams) (*vpcapi.VPC, error) {
 			spec := vpcapi.VPCSpec{
