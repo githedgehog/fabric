@@ -49,6 +49,11 @@ func NewEnforcer(ignoreNotDefined bool) (*Enforcer, error) {
 		return nil, errors.Wrapf(err, "failed to create VPCPeering abbr handler")
 	}
 
+	extPeering, err := newExternalPeeringHandler(ignoreNotDefined)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create ExternalPeering abbr handler")
+	}
+
 	fallback, err := newConnectionFallbackHandler(ignoreNotDefined)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Connection fallback abbr handler")
@@ -58,6 +63,7 @@ func NewEnforcer(ignoreNotDefined bool) (*Enforcer, error) {
 		vpc,
 		vpcAttachment,
 		vpcPeering,
+		extPeering,
 		fallback,
 	}
 
