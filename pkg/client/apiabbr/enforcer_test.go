@@ -140,7 +140,14 @@ func TestEnforcer(t *testing.T) {
 					Subnet:     "vpc-2/default",
 					Connection: "server-1--eslag--switch-1",
 				},
-				"vpcpeer/vpc-1--vpc-2": vpcapi.VPCPeeringSpec{},
+				"vpcpeer/vpc-1--vpc-2": vpcapi.VPCPeeringSpec{
+					Permit: []map[string]vpcapi.VPCPeer{
+						{
+							"vpc-1": {},
+							"vpc-2": {},
+						},
+					},
+				},
 				"extpeer/vpc-1--ext-1": vpcapi.ExternalPeeringSpec{
 					Permit: vpcapi.ExternalPeeringSpecPermit{
 						VPC: vpcapi.ExternalPeeringSpecVPC{

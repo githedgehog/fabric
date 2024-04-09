@@ -256,6 +256,15 @@ func newVPCPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC
 				spec.Permit = append(spec.Permit, permit)
 			}
 
+			if len(spec.Permit) == 0 {
+				spec.Permit = []map[string]vpcapi.VPCPeer{
+					{
+						vpcNames[0]: {},
+						vpcNames[1]: {},
+					},
+				}
+			}
+
 			return &vpcapi.VPCPeering{
 				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
 				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
