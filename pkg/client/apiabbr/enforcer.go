@@ -312,7 +312,7 @@ func (h *ObjectAbbrHandler[T, TList]) PreProcess(ctx context.Context, kube clien
 				return errors.Wrapf(err, "failed to delete object: %s/%s", kind, name)
 			}
 
-			slog.Info("object deleted", "kind", kind, "name", name)
+			slog.Debug("object deleted", "kind", kind, "name", name)
 		}
 	}
 
@@ -335,7 +335,7 @@ func (h *ObjectAbbrHandler[T, TList]) PostProcess(ctx context.Context, kube clie
 						return errors.Wrapf(err, "failed to patch object: %s/%s", kind, name)
 					}
 
-					slog.Info("patched existing object", "kind", kind, "name", name)
+					slog.Debug("patched existing object", "kind", kind, "name", name)
 				}
 			} else {
 				return errors.Errorf("object is not of expected type")
@@ -349,7 +349,7 @@ func (h *ObjectAbbrHandler[T, TList]) PostProcess(ctx context.Context, kube clie
 		if res, err := h.CreateOrUpdateFn(ctx, kube, obj); err != nil {
 			return errors.Wrapf(err, "failed to enforce object: %s/%s", kind, name)
 		} else if res != ctrlutil.OperationResultNone {
-			slog.Info("object "+string(res), "kind", kind, "name", name)
+			slog.Debug("object "+string(res), "kind", kind, "name", name)
 		}
 	}
 
