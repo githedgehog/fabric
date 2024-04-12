@@ -74,6 +74,10 @@ func (e *Enforcer) Load(lines ...string) error {
 	for _, line := range lines {
 		abbrs := strings.Fields(line)
 		for _, abbr := range abbrs {
+			if strings.HasPrefix(abbr, "#") {
+				continue
+			}
+
 			parts := strings.Split(abbr, ":")
 			if len(parts) < 1 {
 				return errors.Errorf("invalid abbr: %s", abbr)
