@@ -207,6 +207,10 @@ func (sw *Switch) Default() {
 		sw.Spec.Groups = append(sw.Spec.Groups, sw.Spec.Redundancy.Group)
 	}
 
+	for _, group := range sw.Spec.Groups {
+		sw.Labels[ListLabelSwitchGroup(group)] = ListLabelValue
+	}
+
 	for _, vlanNs := range sw.Spec.VLANNamespaces {
 		sw.Labels[ListLabelVLANNamespace(vlanNs)] = ListLabelValue
 	}

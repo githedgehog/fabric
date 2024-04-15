@@ -147,6 +147,27 @@ func IsSubnetReachableBetweenVPCs(ctx context.Context, kube client.Client, vpc1N
 	}
 
 	for _, vpcPeering := range vpcPeerings.Items {
+		if vpcPeering.Spec.Remote != "" {
+			if err := kube.Get(ctx, client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      vpcPeering.Spec.Remote,
+			}, &wiringapi.SwitchGroup{}); err != nil {
+				return false, errors.Wrapf(err, "failed to get switch group %s", vpcPeering.Spec.Remote)
+			}
+
+			switches := wiringapi.SwitchList{}
+			if err := kube.List(ctx, &switches,
+				client.InNamespace(metav1.NamespaceDefault),
+				wiringapi.MatchingLabelsForSwitchGroup(vpcPeering.Spec.Remote),
+			); err != nil {
+				return false, errors.Wrapf(err, "failed to list switches")
+			}
+
+			if len(switches.Items) == 0 {
+				return false, nil
+			}
+		}
+
 		for _, permit := range vpcPeering.Spec.Permit {
 			vpc1Permit, exist := permit[vpc1Name]
 			if !exist {
