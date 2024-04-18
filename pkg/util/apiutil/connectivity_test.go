@@ -30,70 +30,70 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var base = []meta.Object{
+	&wiringapi.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "source",
+		},
+	},
+	&wiringapi.Connection{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "source-conn",
+		},
+		Spec: wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{
+				Link: wiringapi.ServerToSwitchLink{
+					Server: wiringapi.NewBasePortName("source/port-1"),
+					Switch: wiringapi.NewBasePortName("switch/port-1"),
+				},
+			},
+		},
+	},
+	&wiringapi.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dest",
+		},
+	},
+	&wiringapi.Connection{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dest-conn",
+		},
+		Spec: wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{
+				Link: wiringapi.ServerToSwitchLink{
+					Server: wiringapi.NewBasePortName("dest/port-2"),
+					Switch: wiringapi.NewBasePortName("switch/port-2"),
+				},
+			},
+		},
+	},
+	&vpcapi.VPC{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vpc-1",
+		},
+		Spec: vpcapi.VPCSpec{
+			Subnets: map[string]*vpcapi.VPCSubnet{
+				"subnet-1": {},
+				"subnet-2": {},
+			},
+		},
+	},
+	&vpcapi.VPC{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vpc-2",
+		},
+		Spec: vpcapi.VPCSpec{
+			Subnets: map[string]*vpcapi.VPCSubnet{
+				"subnet-1": {},
+			},
+		},
+	},
+}
+
 func TestIsServerReachable(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	require.NoError(t, vpcapi.AddToScheme(scheme))
-
-	base := []meta.Object{
-		&wiringapi.Server{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "source",
-			},
-		},
-		&wiringapi.Connection{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "source-conn",
-			},
-			Spec: wiringapi.ConnectionSpec{
-				Unbundled: &wiringapi.ConnUnbundled{
-					Link: wiringapi.ServerToSwitchLink{
-						Server: wiringapi.NewBasePortName("source/port-1"),
-						Switch: wiringapi.NewBasePortName("switch/port-1"),
-					},
-				},
-			},
-		},
-		&wiringapi.Server{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "dest",
-			},
-		},
-		&wiringapi.Connection{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "dest-conn",
-			},
-			Spec: wiringapi.ConnectionSpec{
-				Unbundled: &wiringapi.ConnUnbundled{
-					Link: wiringapi.ServerToSwitchLink{
-						Server: wiringapi.NewBasePortName("dest/port-2"),
-						Switch: wiringapi.NewBasePortName("switch/port-2"),
-					},
-				},
-			},
-		},
-		&vpcapi.VPC{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "vpc-1",
-			},
-			Spec: vpcapi.VPCSpec{
-				Subnets: map[string]*vpcapi.VPCSubnet{
-					"subnet-1": {},
-					"subnet-2": {},
-				},
-			},
-		},
-		&vpcapi.VPC{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "vpc-2",
-			},
-			Spec: vpcapi.VPCSpec{
-				Subnets: map[string]*vpcapi.VPCSubnet{
-					"subnet-1": {},
-				},
-			},
-		},
-	}
 
 	tests := []struct {
 		name      string
@@ -569,6 +569,253 @@ func TestIsServerReachable(t *testing.T) {
 
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
 			reachable, err := apiutil.IsServerReachable(context.Background(), kube, tt.source, tt.dest)
+
+			if tt.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tt.reachable, reachable)
+		})
+	}
+}
+
+func TestIsExternalSubnetReachable(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+
+	tests := []struct {
+		name      string
+		existing  []meta.Object
+		source    string
+		dest      string
+		reachable bool
+		err       bool
+	}{
+		{
+			name: "simple-reachable",
+			existing: append(base,
+				&vpcapi.VPCAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "source-attach",
+					},
+					Spec: vpcapi.VPCAttachmentSpec{
+						Connection: "source-conn",
+						Subnet:     "vpc-1/subnet-1",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ext-1-attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						Connection: "ext",
+						External:   "ext-1",
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-1",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-1",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{
+										Prefix: "0.0.0.0/0",
+									},
+								},
+							},
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-1"},
+							},
+						},
+					},
+				},
+			),
+			source:    "source",
+			dest:      "0.0.0.0/0",
+			reachable: true,
+			err:       false,
+		},
+		{
+			name: "no-ext-attach",
+			existing: append(base,
+				&vpcapi.VPCAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "source-attach",
+					},
+					Spec: vpcapi.VPCAttachmentSpec{
+						Connection: "source-conn",
+						Subnet:     "vpc-1/subnet-1",
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-1",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-1",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{
+										Prefix: "0.0.0.0/0",
+									},
+								},
+							},
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-1"},
+							},
+						},
+					},
+				},
+			),
+			source:    "source",
+			dest:      "0.0.0.0/0",
+			reachable: false,
+			err:       false,
+		},
+		{
+			name: "no-ext-peering",
+			existing: append(base,
+				&vpcapi.VPCAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "source-attach",
+					},
+					Spec: vpcapi.VPCAttachmentSpec{
+						Connection: "source-conn",
+						Subnet:     "vpc-1/subnet-1",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ext-1-attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						Connection: "ext",
+						External:   "ext-1",
+					},
+				},
+			),
+			source:    "source",
+			dest:      "0.0.0.0/0",
+			reachable: false,
+			err:       false,
+		},
+		{
+			name: "ext-peering-wrong-subnet",
+			existing: append(base,
+				&vpcapi.VPCAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "source-attach",
+					},
+					Spec: vpcapi.VPCAttachmentSpec{
+						Connection: "source-conn",
+						Subnet:     "vpc-1/subnet-1",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ext-1-attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						Connection: "ext",
+						External:   "ext-1",
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-1",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-1",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{
+										Prefix: "0.0.0.0/0",
+									},
+								},
+							},
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-2"},
+							},
+						},
+					},
+				},
+			),
+			source:    "source",
+			dest:      "0.0.0.0/0",
+			reachable: false,
+			err:       false,
+		},
+		{
+			name: "ext-peering-wrong-prefix",
+			existing: append(base,
+				&vpcapi.VPCAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "source-attach",
+					},
+					Spec: vpcapi.VPCAttachmentSpec{
+						Connection: "source-conn",
+						Subnet:     "vpc-1/subnet-1",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ext-1-attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						Connection: "ext",
+						External:   "ext-1",
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-1",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-1",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{
+										Prefix: "0.0.0.0/24",
+									},
+								},
+							},
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-1"},
+							},
+						},
+					},
+				},
+			),
+			source:    "source",
+			dest:      "0.0.0.0/0",
+			reachable: false,
+			err:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rawObjs := make([]client.Object, len(tt.existing))
+			for idx, obj := range tt.existing {
+				obj.Default()
+				rawObjs[idx] = obj
+			}
+
+			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
+			reachable, err := apiutil.IsExternalSubnetReachable(context.Background(), kube, tt.source, tt.dest)
 
 			if tt.err {
 				require.Error(t, err)
