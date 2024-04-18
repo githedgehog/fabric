@@ -51,7 +51,7 @@ const (
 )
 
 func (d *Service) Run(ctx context.Context) error {
-	kube, err := kubeutil.NewClient("", dhcpapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", dhcpapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

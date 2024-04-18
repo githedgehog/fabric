@@ -52,7 +52,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 		},
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -114,7 +114,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 		},
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -181,7 +181,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		},
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -230,7 +230,7 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 		return errors.Errorf("vpc is required")
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -282,7 +282,7 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 		return errors.Errorf("at least one request is required")
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

@@ -56,7 +56,7 @@ func (svc *Service) Run(ctx context.Context) error {
 
 	slog.Info("Starting control agent", "hostname", hostname, "version", svc.Version)
 
-	kube, err := kubeutil.NewClient(KubeconfigFile, agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, KubeconfigFile, agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "failed to create kube client")
 	}

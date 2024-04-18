@@ -35,7 +35,7 @@ func getAgent(ctx context.Context, kube client.WithWatch, name string) (*agentap
 }
 
 func SwitchReboot(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -59,7 +59,7 @@ func SwitchReboot(ctx context.Context, name string) error {
 }
 
 func SwitchPowerReset(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -83,7 +83,7 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 }
 
 func SwitchReinstall(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -107,7 +107,7 @@ func SwitchReinstall(ctx context.Context, name string) error {
 }
 
 func SwitchForceAgentVersion(ctx context.Context, name string, version string) error {
-	kube, err := kubeutil.NewClient("", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

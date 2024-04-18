@@ -46,7 +46,7 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 		},
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -152,7 +152,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 		})
 	}
 
-	kube, err := kubeutil.NewClient("", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

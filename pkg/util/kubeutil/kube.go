@@ -15,16 +15,29 @@
 package kubeutil
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-func NewClient(kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+func NewClient(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+	return newClient(ctx, kubeconfigPath, false, schemeBuilders...)
+}
+
+func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+	return newClient(ctx, kubeconfigPath, true, schemeBuilders...)
+}
+
+// TODO cached version is minimal naive implementation with hanging go routine, need to be improved
+func newClient(ctx context.Context, kubeconfigPath string, cached bool, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
 	var cfg *rest.Config
 	var err error
 
@@ -48,8 +61,34 @@ func NewClient(kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client
 		}
 	}
 
+	var cacheOpts *client.CacheOptions
+	if cached {
+		clientCache, err := cache.New(cfg, cache.Options{
+			Scheme: scheme,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create kube controller runtime cache")
+		}
+
+		go func() {
+			if err := clientCache.Start(ctx); err != nil {
+				slog.Error("failed to start kube controller runtime cache", "err", err)
+				panic(err)
+			}
+		}()
+
+		if !clientCache.WaitForCacheSync(ctx) {
+			return nil, errors.New("failed to sync kube controller runtime cache")
+		}
+
+		cacheOpts = &client.CacheOptions{
+			Reader: clientCache,
+		}
+	}
+
 	kubeClient, err := client.NewWithWatch(cfg, client.Options{
 		Scheme: scheme,
+		Cache:  cacheOpts,
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create kube controller runtime client")

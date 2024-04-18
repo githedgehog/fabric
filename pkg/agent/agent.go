@@ -115,7 +115,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		slog.Info("Starting watch for config changes in K8s")
 
 		kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
-		kube, err := kubeutil.NewClient(kubeconfigPath, agentapi.SchemeBuilder)
+		kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.SchemeBuilder)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create K8s client")
 		}
