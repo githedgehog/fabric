@@ -32,6 +32,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
+	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -63,9 +64,22 @@ type Service struct {
 	name       string
 	installID  string
 	runID      string
+
+	reg *switchstate.Registry
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
+	svc.reg = switchstate.NewRegistry()
+
+	if !svc.ApplyOnce && !svc.DryRun {
+		go func() {
+			if err := svc.reg.ServeMetrics(); err != nil {
+				slog.Error("Failed to serve metrics", "err", err)
+				panic(err)
+			}
+		}()
+	}
+
 	if svc.Basedir == "" {
 		return errors.New("basedir is required")
 	}
@@ -142,11 +156,12 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			agent.Status.Conditions = []metav1.Condition{}
 		}
 
-		nosInfo, err := svc.processor.Info(ctx)
-		if err != nil {
-			return errors.Wrap(err, "failed to get initial NOS info")
+		if err := svc.processor.UpdateSwitchState(ctx, svc.reg); err != nil {
+			return errors.Wrapf(err, "failed to update switch state")
 		}
-		agent.Status.NOSInfo = *nosInfo
+		if st := svc.reg.GetSwitchState(); st != nil {
+			agent.Status.State = *st
+		}
 
 		err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
 		if err != nil {
@@ -176,11 +191,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			case <-time.After(15 * time.Second):
 				slog.Debug("Sending heartbeat")
 
-				nosInfo, err := svc.processor.Info(ctx)
-				if err != nil {
-					return errors.Wrapf(err, "failed to get heartbeat NOS info")
+				if err := svc.processor.UpdateSwitchState(ctx, svc.reg); err != nil {
+					return errors.Wrapf(err, "failed to update switch state")
 				}
-				agent.Status.NOSInfo = *nosInfo
+
 				agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
 				err = kube.Status().Update(ctx, agent)
@@ -264,13 +278,14 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		}
 	}
 
-	// Make sure we have NOS info
-	if agent.Status.NOSInfo.HwskuVersion == "" {
-		nosInfo, err := svc.processor.Info(ctx)
-		if err != nil {
-			return errors.Wrap(err, "failed to get starting NOS info")
+	// Make sure we have switch state
+	if agent.Status.State.NOS.HwskuVersion == "" {
+		if err := svc.processor.UpdateSwitchState(ctx, svc.reg); err != nil {
+			return errors.Wrapf(err, "failed to update switch state")
 		}
-		agent.Status.NOSInfo = *nosInfo
+		if st := svc.reg.GetSwitchState(); st != nil {
+			agent.Status.State = *st
+		}
 	}
 
 	desired, err := svc.processor.PlanDesiredState(ctx, agent)

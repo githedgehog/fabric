@@ -26,11 +26,11 @@ spec:
     - jsonPath: .spec.description
       name: Descr
       type: string
-    - jsonPath: .status.nosInfo.hwskuVersion
+    - jsonPath: .status.state.nos.hwskuVersion
       name: HWSKU
       priority: 1
       type: string
-    - jsonPath: .status.nosInfo.asicVersion
+    - jsonPath: .status.state.nos.asicVersion
       name: ASIC
       priority: 1
       type: string
@@ -50,7 +50,7 @@ spec:
     - jsonPath: .status.version
       name: Version
       type: string
-    - jsonPath: .status.nosInfo.softwareVersion
+    - jsonPath: .status.state.nos.softwareVersion
       name: Software
       priority: 1
       type: string
@@ -1271,63 +1271,344 @@ spec:
                 description: Time of the last heartbeat from the agent
                 format: date-time
                 type: string
-              nosInfo:
-                description: Information about the switch and NOS
-                properties:
-                  asicVersion:
-                    description: ASIC name, such as "broadcom" or "vs"
-                    type: string
-                  buildCommit:
-                    description: NOS build commit
-                    type: string
-                  buildDate:
-                    description: NOS build date
-                    type: string
-                  builtBy:
-                    description: NOS build user
-                    type: string
-                  configDbVersion:
-                    description: NOS config DB version, such as "version_4_2_1"
-                    type: string
-                  distributionVersion:
-                    description: Distribution version, such as "Debian 10.13"
-                    type: string
-                  hardwareVersion:
-                    description: Hardware version, such as "X01"
-                    type: string
-                  hwskuVersion:
-                    description: Hwsku version, such as "DellEMC-S5248f-P-25G-DPB"
-                    type: string
-                  kernelVersion:
-                    description: Kernel version, such as "5.10.0-21-amd64"
-                    type: string
-                  mfgName:
-                    description: Manufacturer name, such as "Dell EMC"
-                    type: string
-                  platformName:
-                    description: Platform name, such as "x86_64-dellemc_s5248f_c3538-r0"
-                    type: string
-                  productDescription:
-                    description: NOS product description, such as "Enterprise SONiC
-                      Distribution by Broadcom - Enterprise Base package"
-                    type: string
-                  productVersion:
-                    description: NOS product version, empty for Broadcom SONiC
-                    type: string
-                  serialNumber:
-                    description: Switch serial number
-                    type: string
-                  softwareVersion:
-                    description: NOS software version, such as "4.2.0-Enterprise_Base"
-                    type: string
-                  upTime:
-                    description: 'Switch uptime, such as "21:21:27 up 1 day, 23:26,
-                      0 users, load average: 1.92, 1.99, 2.00 "'
-                    type: string
-                type: object
               runID:
                 description: ID of the agent run, used to track NOS reboots
                 type: string
+              state:
+                description: Detailed switch state updated with each heartbeat
+                properties:
+                  bgpNeighbors:
+                    additionalProperties:
+                      additionalProperties:
+                        properties:
+                          connectionsDropped:
+                            format: int64
+                            type: integer
+                          enabled:
+                            type: boolean
+                          establishedTransitions:
+                            format: int64
+                            type: integer
+                          lastEstablished:
+                            format: date-time
+                            type: string
+                          lastRead:
+                            format: date-time
+                            type: string
+                          lastResetReason:
+                            type: string
+                          lastResetTime:
+                            format: date-time
+                            type: string
+                          lastWrite:
+                            format: date-time
+                            type: string
+                          localAS:
+                            format: int32
+                            type: integer
+                          messages:
+                            properties:
+                              received:
+                                properties:
+                                  capability:
+                                    format: int64
+                                    type: integer
+                                  keepalive:
+                                    format: int64
+                                    type: integer
+                                  notification:
+                                    format: int64
+                                    type: integer
+                                  open:
+                                    format: int64
+                                    type: integer
+                                  routeRefresh:
+                                    format: int64
+                                    type: integer
+                                  update:
+                                    format: int64
+                                    type: integer
+                                type: object
+                              sent:
+                                properties:
+                                  capability:
+                                    format: int64
+                                    type: integer
+                                  keepalive:
+                                    format: int64
+                                    type: integer
+                                  notification:
+                                    format: int64
+                                    type: integer
+                                  open:
+                                    format: int64
+                                    type: integer
+                                  routeRefresh:
+                                    format: int64
+                                    type: integer
+                                  update:
+                                    format: int64
+                                    type: integer
+                                type: object
+                            type: object
+                          peerAS:
+                            format: int32
+                            type: integer
+                          peerGroup:
+                            type: string
+                          peerPort:
+                            type: integer
+                          peerType:
+                            type: string
+                          prefixes:
+                            additionalProperties:
+                              properties:
+                                received:
+                                  format: int32
+                                  type: integer
+                                receivedPrePolicy:
+                                  format: int32
+                                  type: integer
+                                sent:
+                                  format: int32
+                                  type: integer
+                              type: object
+                            type: object
+                          remoteRouterID:
+                            type: string
+                          sessionState:
+                            type: string
+                          shutdownMessage:
+                            type: string
+                        type: object
+                      type: object
+                    description: State of all BGP neighbors (VRF -> neighbor address
+                      -> state)
+                    type: object
+                  breakouts:
+                    additionalProperties:
+                      properties:
+                        members:
+                          items:
+                            type: string
+                          type: array
+                        mode:
+                          type: string
+                        status:
+                          type: string
+                      type: object
+                    description: Breakout ports state (port -> breakout state)
+                    type: object
+                  interfaces:
+                    additionalProperties:
+                      properties:
+                        adminStatus:
+                          type: string
+                        counters:
+                          properties:
+                            inBitsPerSecond:
+                              type: number
+                            inDiscards:
+                              format: int64
+                              type: integer
+                            inErrors:
+                              format: int64
+                              type: integer
+                            inPktsPerSecond:
+                              type: number
+                            inUtilization:
+                              type: integer
+                            lastClear:
+                              format: date-time
+                              type: string
+                            outBitsPerSecond:
+                              type: number
+                            outDiscards:
+                              format: int64
+                              type: integer
+                            outErrors:
+                              format: int64
+                              type: integer
+                            outPktsPerSecond:
+                              type: number
+                            outUtilization:
+                              type: integer
+                          type: object
+                        enabled:
+                          type: boolean
+                        lastChanged:
+                          format: date-time
+                          type: string
+                        lldpNeighbors:
+                          items:
+                            properties:
+                              chassisID:
+                                type: string
+                              manufacturer:
+                                type: string
+                              model:
+                                type: string
+                              portDescription:
+                                type: string
+                              portID:
+                                type: string
+                              serialNumber:
+                                type: string
+                              systemDescription:
+                                type: string
+                              systemName:
+                                type: string
+                            type: object
+                          type: array
+                        mac:
+                          type: string
+                        operStatus:
+                          type: string
+                        transceiver:
+                          properties:
+                            cableClass:
+                              type: string
+                            cableLength:
+                              type: number
+                            connectorType:
+                              type: string
+                            description:
+                              type: string
+                            formFactor:
+                              type: string
+                            operStatus:
+                              type: string
+                            present:
+                              type: string
+                            serialNumber:
+                              type: string
+                            temperature:
+                              type: number
+                            vendor:
+                              type: string
+                            vendorOUI:
+                              type: string
+                            vendorPart:
+                              type: string
+                            vendorRev:
+                              type: string
+                            voltage:
+                              type: number
+                          type: object
+                      type: object
+                    description: Switch interfaces state (incl. physical, management
+                      and port channels)
+                    type: object
+                  nos:
+                    description: Information about the switch and NOS
+                    properties:
+                      asicVersion:
+                        description: ASIC name, such as "broadcom" or "vs"
+                        type: string
+                      buildCommit:
+                        description: NOS build commit
+                        type: string
+                      buildDate:
+                        description: NOS build date
+                        type: string
+                      builtBy:
+                        description: NOS build user
+                        type: string
+                      configDbVersion:
+                        description: NOS config DB version, such as "version_4_2_1"
+                        type: string
+                      distributionVersion:
+                        description: Distribution version, such as "Debian 10.13"
+                        type: string
+                      hardwareVersion:
+                        description: Hardware version, such as "X01"
+                        type: string
+                      hwskuVersion:
+                        description: Hwsku version, such as "DellEMC-S5248f-P-25G-DPB"
+                        type: string
+                      kernelVersion:
+                        description: Kernel version, such as "5.10.0-21-amd64"
+                        type: string
+                      mfgName:
+                        description: Manufacturer name, such as "Dell EMC"
+                        type: string
+                      platformName:
+                        description: Platform name, such as "x86_64-dellemc_s5248f_c3538-r0"
+                        type: string
+                      productDescription:
+                        description: NOS product description, such as "Enterprise
+                          SONiC Distribution by Broadcom - Enterprise Base package"
+                        type: string
+                      productVersion:
+                        description: NOS product version, empty for Broadcom SONiC
+                        type: string
+                      serialNumber:
+                        description: Switch serial number
+                        type: string
+                      softwareVersion:
+                        description: NOS software version, such as "4.2.0-Enterprise_Base"
+                        type: string
+                      uptime:
+                        description: 'Switch uptime, such as "21:21:27 up 1 day, 23:26,
+                          0 users, load average: 1.92, 1.99, 2.00 "'
+                        type: string
+                    type: object
+                  platform:
+                    description: State of the switch platform (fans, PSUs, sensors)
+                    properties:
+                      fans:
+                        additionalProperties:
+                          properties:
+                            direction:
+                              type: string
+                            presense:
+                              type: boolean
+                            speed:
+                              type: number
+                            status:
+                              type: boolean
+                          type: object
+                        type: object
+                      psus:
+                        additionalProperties:
+                          properties:
+                            inputCurrent:
+                              type: number
+                            inputPower:
+                              type: number
+                            inputVoltage:
+                              type: number
+                            outputCurrent:
+                              type: number
+                            outputPower:
+                              type: number
+                            outputVoltage:
+                              type: number
+                            presense:
+                              type: boolean
+                            status:
+                              type: boolean
+                          type: object
+                        type: object
+                      temperature:
+                        additionalProperties:
+                          properties:
+                            alarms:
+                              type: string
+                            criticalHighThreshold:
+                              type: number
+                            criticalLowThreshold:
+                              type: number
+                            highThreshold:
+                              type: number
+                            lowThreshold:
+                              type: number
+                            temperature:
+                              type: number
+                          type: object
+                        type: object
+                    type: object
+                type: object
               statusUpdates:
                 description: Status updates from the agent
                 items:

@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"sigs.k8s.io/yaml"
 )
 
@@ -32,7 +33,7 @@ type Processor interface {
 	PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*Spec, error)
 	CalculateActions(ctx context.Context, actual, desired *Spec) ([]Action, error)
 	ApplyActions(ctx context.Context, actions []Action) ([]string, error) // warnings
-	Info(ctx context.Context) (*agentapi.NOSInfo, error)
+	UpdateSwitchState(ctx context.Context, reg *switchstate.Registry) error
 	Reboot(ctx context.Context, force bool) error
 	Reinstall(ctx context.Context) error
 	FactoryReset(ctx context.Context) error

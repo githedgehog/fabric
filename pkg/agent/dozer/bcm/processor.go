@@ -24,11 +24,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/openconfig/gnmic/api"
 	"github.com/pkg/errors"
-	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
@@ -204,26 +201,4 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 	}
 
 	return nil, nil
-}
-
-func (p *BroadcomProcessor) Info(ctx context.Context) (*agentapi.NOSInfo, error) {
-	ocInfo := &oc.OpenconfigPlatform_Components_Component_SoftwareModule{}
-	err := p.client.GetWithOpts(ctx, "/openconfig-platform:components/component[name=SoftwareModule]/software-module", ocInfo, true)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get NOS info")
-	}
-
-	info := &agentapi.NOSInfo{}
-
-	if ocInfo.State == nil {
-		return nil, errors.Errorf("no state in NOS info")
-	}
-
-	// TODO consider more safe way to convert
-	err = mapstructure.Decode(ocInfo.State, info) //nolint:musttag
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot convert NOS info")
-	}
-
-	return info, nil
 }
