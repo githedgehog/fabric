@@ -17,6 +17,19 @@ for the switch and control node agents. Not intended to be modified by the user.
 
 
 
+#### AdminStatus
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+
+
 #### Agent
 
 
@@ -62,20 +75,258 @@ _Appears in:_
 | `lastAttemptGen` _integer_ | Generation of the last attempt to apply configuration |  |  |
 | `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
-| `nosInfo` _[NOSInfo](#nosinfo)_ | Information about the switch and NOS |  |  |
+| `state` _[SwitchState](#switchstate)_ | Detailed switch state updated with each heartbeat |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
 
 
-#### NOSInfo
+#### BGPMessages
 
 
 
-NOSInfo contains information about the switch and NOS received from the switch itself by the agent
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `received` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
+| `sent` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
+
+
+#### BGPMessagesCounters
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPMessages](#bgpmessages)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `capability` _integer_ |  |  |  |
+| `keepalive` _integer_ |  |  |  |
+| `notification` _integer_ |  |  |  |
+| `open` _integer_ |  |  |  |
+| `routeRefresh` _integer_ |  |  |  |
+| `update` _integer_ |  |  |  |
+
+
+#### BGPNeighborSessionState
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+
+
+#### BGPPeerType
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+
+
+#### OperStatus
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+
+
+#### SwitchState
+
+
+
+
 
 
 
 _Appears in:_
 - [AgentStatus](#agentstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nos` _[SwitchStateNOS](#switchstatenos)_ | Information about the switch and NOS |  |  |
+| `interfaces` _object (keys:string, values:[SwitchStateInterface](#switchstateinterface))_ | Switch interfaces state (incl. physical, management and port channels) |  |  |
+| `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
+| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#map[string]switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
+| `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
+
+
+#### SwitchStateBGPNeighbor
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `connectionsDropped` _integer_ |  |  |  |
+| `enabled` _boolean_ |  |  |  |
+| `establishedTransitions` _integer_ |  |  |  |
+| `lastEstablished` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastRead` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastResetReason` _string_ |  |  |  |
+| `lastResetTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastWrite` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `localAS` _integer_ |  |  |  |
+| `messages` _[BGPMessages](#bgpmessages)_ |  |  |  |
+| `peerAS` _integer_ |  |  |  |
+| `peerGroup` _string_ |  |  |  |
+| `peerPort` _integer_ |  |  |  |
+| `peerType` _[BGPPeerType](#bgppeertype)_ |  |  |  |
+| `remoteRouterID` _string_ |  |  |  |
+| `sessionState` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  |  |
+| `shutdownMessage` _string_ |  |  |  |
+| `prefixes` _object (keys:string, values:[SwitchStateBGPNeighborPrefixes](#switchstatebgpneighborprefixes))_ |  |  |  |
+
+
+#### SwitchStateBGPNeighborPrefixes
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `received` _integer_ |  |  |  |
+| `receivedPrePolicy` _integer_ |  |  |  |
+| `sent` _integer_ |  |  |  |
+
+
+#### SwitchStateBreakout
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `mode` _string_ |  |  |  |
+| `members` _string array_ |  |  |  |
+| `status` _string_ |  |  |  |
+
+
+#### SwitchStateInterface
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ |  |  |  |
+| `adminStatus` _[AdminStatus](#adminstatus)_ |  |  |  |
+| `operStatus` _[OperStatus](#operstatus)_ |  |  |  |
+| `mac` _string_ |  |  |  |
+| `lastChanged` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
+| `transceiver` _[SwitchStateTransceiver](#switchstatetransceiver)_ |  |  |  |
+| `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
+
+
+#### SwitchStateInterfaceCounters
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `inBitsPerSecond` _float_ |  |  |  |
+| `inDiscards` _integer_ |  |  |  |
+| `inErrors` _integer_ |  |  |  |
+| `inPktsPerSecond` _float_ |  |  |  |
+| `inUtilization` _integer_ |  |  |  |
+| `lastClear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `outBitsPerSecond` _float_ |  |  |  |
+| `outDiscards` _integer_ |  |  |  |
+| `outErrors` _integer_ |  |  |  |
+| `outPktsPerSecond` _float_ |  |  |  |
+| `outUtilization` _integer_ |  |  |  |
+
+
+#### SwitchStateLLDPNeighbor
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `chassisID` _string_ |  |  |  |
+| `systemName` _string_ |  |  |  |
+| `systemDescription` _string_ |  |  |  |
+| `portID` _string_ |  |  |  |
+| `portDescription` _string_ |  |  |  |
+| `manufacturer` _string_ |  |  |  |
+| `model` _string_ |  |  |  |
+| `serialNumber` _string_ |  |  |  |
+
+
+#### SwitchStateNOS
+
+
+
+SwitchStateNOS contains information about the switch and NOS received from the switch itself by the agent
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -94,7 +345,117 @@ _Appears in:_
 | `productVersion` _string_ | NOS product version, empty for Broadcom SONiC |  |  |
 | `serialNumber` _string_ | Switch serial number |  |  |
 | `softwareVersion` _string_ | NOS software version, such as "4.2.0-Enterprise_Base" |  |  |
-| `upTime` _string_ | Switch uptime, such as "21:21:27 up 1 day, 23:26, 0 users, load average: 1.92, 1.99, 2.00 " |  |  |
+| `uptime` _string_ | Switch uptime, such as "21:21:27 up 1 day, 23:26, 0 users, load average: 1.92, 1.99, 2.00 " |  |  |
+
+
+#### SwitchStatePlatform
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fans` _object (keys:string, values:[SwitchStatePlatformFan](#switchstateplatformfan))_ |  |  |  |
+| `psus` _object (keys:string, values:[SwitchStatePlatformPSU](#switchstateplatformpsu))_ |  |  |  |
+| `temperature` _object (keys:string, values:[SwitchStatePlatformTemperature](#switchstateplatformtemperature))_ |  |  |  |
+
+
+#### SwitchStatePlatformFan
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStatePlatform](#switchstateplatform)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `direction` _string_ |  |  |  |
+| `speed` _float_ |  |  |  |
+| `presense` _boolean_ |  |  |  |
+| `status` _boolean_ |  |  |  |
+
+
+#### SwitchStatePlatformPSU
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStatePlatform](#switchstateplatform)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `inputCurrent` _float_ |  |  |  |
+| `inputPower` _float_ |  |  |  |
+| `inputVoltage` _float_ |  |  |  |
+| `outputCurrent` _float_ |  |  |  |
+| `outputPower` _float_ |  |  |  |
+| `outputVoltage` _float_ |  |  |  |
+| `presense` _boolean_ |  |  |  |
+| `status` _boolean_ |  |  |  |
+
+
+#### SwitchStatePlatformTemperature
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStatePlatform](#switchstateplatform)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `temperature` _float_ |  |  |  |
+| `alarms` _string_ |  |  |  |
+| `highThreshold` _float_ |  |  |  |
+| `criticalHighThreshold` _float_ |  |  |  |
+| `lowThreshold` _float_ |  |  |  |
+| `criticalLowThreshold` _float_ |  |  |  |
+
+
+#### SwitchStateTransceiver
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `description` _string_ |  |  |  |
+| `cableClass` _string_ |  |  |  |
+| `formFactor` _string_ |  |  |  |
+| `connectorType` _string_ |  |  |  |
+| `present` _string_ |  |  |  |
+| `cableLength` _float_ |  |  |  |
+| `operStatus` _string_ |  |  |  |
+| `temperature` _float_ |  |  |  |
+| `voltage` _float_ |  |  |  |
+| `serialNumber` _string_ |  |  |  |
+| `vendor` _string_ |  |  |  |
+| `vendorPart` _string_ |  |  |  |
+| `vendorOUI` _string_ |  |  |  |
+| `vendorRev` _string_ |  |  |  |
 
 
 
