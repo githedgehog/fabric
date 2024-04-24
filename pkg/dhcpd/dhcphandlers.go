@@ -292,7 +292,9 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
 		switch u.Scheme {
 		case "http", "https", "ftp":
-			resp.Options.Update(dhcpv4.OptBootFileName(u.String()))
+			vendorClassIdentifer := req.Options.Get(dhcpv4.OptionClassIdentifier)
+			resp.BootFileName = u.String()
+			resp.Options.Update(dhcpv4.OptClassIdentifier(string(vendorClassIdentifer)))
 		default:
 			resp.Options.Update(dhcpv4.OptBootFileName(strings.TrimPrefix(u.Path, "/")))
 			resp.Options.Update(dhcpv4.OptServerIdentifier(net.ParseIP(u.Host)))
