@@ -248,9 +248,11 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 	if err := p.client.Get(ctx, "/transceiver-dom", dev); err != nil {
 		return errors.Wrapf(err, "failed to get transceiver-dom")
 	}
-	if dev.TransceiverDom == nil {
-		return errors.Errorf("transceiver-dom not found")
-	}
+
+	// TODO handle it better - no transceiver-dom on VS
+	// if dev.TransceiverDom == nil {
+	// 	return errors.Errorf("transceiver-dom not found")
+	// }
 
 	for transceiverName, transceiver := range dev.TransceiverDom.TransceiverDomInfo {
 		if !strings.HasPrefix(transceiverName, "Ethernet") {
