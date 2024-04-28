@@ -46,12 +46,21 @@ agent-push-dev: agent-build ## Push agent
 
 .PHONY: hhfctl-build
 hhfctl-build: ## Build hhfctl
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
+
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/linux-amd64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/linux-arm64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/darwin-amd64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 
 .PHONY: hhfctl-push
 hhfctl-push: hhfctl-build ## Push hhfctl
-	cd bin && oras push $(OCI_REPO)/hhfctl:$(VERSION) hhfctl
-	cd bin && oras push $(OCI_REPO)/hhfctl:latest hhfctl
+	cd bin && oras push $(OCI_REPO)/hhfctl:$(VERSION),latest hhfctl
+
+	cd bin/linux-amd64 && oras push $(OCI_REPO)/hhfctl-linux-amd64:$(VERSION),latest hhfctl
+	cd bin/linux-arm64 && oras push $(OCI_REPO)/hhfctl-linux-arm64:$(VERSION),latest hhfctl
+	cd bin/darwin-amd64 && oras push $(OCI_REPO)/hhfctl-darwin-amd64:$(VERSION),latest hhfctl
+	cd bin/darwin-arm64 && oras push $(OCI_REPO)/hhfctl-darwin-arm64:$(VERSION),latest hhfctl
 
 .PHONY: hhfctl-push-dev
 hhfctl-push-dev: hhfctl-build ## Push hhfctl
