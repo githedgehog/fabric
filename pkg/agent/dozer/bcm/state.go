@@ -739,8 +739,11 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, reg *swit
 	if err := p.client.Get(ctx, "/sonic-platform", dev); err != nil {
 		return errors.Wrapf(err, "failed to get sonic-platform")
 	}
+
+	// TODO handle it better - no transceiver-dom on VS
 	if dev.SonicPlatform == nil {
-		return errors.Errorf("sonic-platform not found")
+		// return errors.Errorf("sonic-platform not found")
+		return nil
 	}
 
 	if dev.SonicPlatform.FAN_INFO != nil {
