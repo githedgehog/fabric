@@ -46,6 +46,8 @@ type Registry struct {
 	BGPNeighborMetrics BGPNeighborMetrics
 	PlatformMetrics    PlatformMetrics
 	CriticalResources  CRMMetrics
+
+	AgentMetrics AgentMetrics
 }
 
 type InterfaceMetrics struct {
@@ -229,6 +231,15 @@ type CRMStatsMetrics struct {
 	NexthopGroupsUsed            prometheus.Gauge
 	SnatEntriesAvailable         prometheus.Gauge
 	SnatEntriesUsed              prometheus.Gauge
+}
+
+type AgentMetrics struct {
+	HeartbeatsTotal     prometheus.Counter
+	Generation          prometheus.Gauge
+	Version             *prometheus.GaugeVec
+	HeartbeatDuration   prometheus.Histogram
+	ConfigApplyDuration prometheus.Histogram
+	KubeApplyDuration   prometheus.Histogram
 }
 
 func NewRegistry() *Registry {
@@ -477,6 +488,53 @@ func NewRegistry() *Registry {
 				SnatEntriesAvailable:         newCRMStatsGaugeVec("critical_resource_snat_entries_available", "Number of available SNAT entries"),
 				SnatEntriesUsed:              newCRMStatsGaugeVec("critical_resource_snat_entries_used", "Number of used SNAT entries"),
 			},
+		},
+		AgentMetrics: AgentMetrics{
+			HeartbeatsTotal: autoreg.NewCounter(prometheus.CounterOpts{
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "agent_heartbeats_total",
+				Help:        "Number of agent heartbeats",
+				ConstLabels: labels,
+			}),
+			Generation: autoreg.NewGauge(prometheus.GaugeOpts{
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "agent_generation",
+				Help:        "Generation of the agent K8s object",
+				ConstLabels: labels,
+			}),
+			Version: autoreg.NewGaugeVec(prometheus.GaugeOpts{
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "agent_version",
+				Help:        "Version of the agent binary",
+				ConstLabels: labels,
+			}, []string{"version"}),
+			HeartbeatDuration: autoreg.NewHistogram(prometheus.HistogramOpts{ // TODO custom buckets
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "agent_heartbeat_duration_seconds",
+				Help:        "Duration of agent heartbeats",
+				ConstLabels: labels,
+				Buckets:     []float64{1, 2, 3, 5, 7, 10, 15},
+			}),
+			ConfigApplyDuration: autoreg.NewHistogram(prometheus.HistogramOpts{ // TODO custom buckets
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "agent_config_apply_duration_seconds",
+				Help:        "Duration of agent config applies",
+				ConstLabels: labels,
+				Buckets:     []float64{5, 10, 20, 30, 45, 60, 120, 300},
+			}),
+			KubeApplyDuration: autoreg.NewHistogram(prometheus.HistogramOpts{ // TODO custom buckets
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "agent_kube_apply_duration_seconds",
+				Help:        "Duration of agent config from kube applies",
+				ConstLabels: labels,
+				Buckets:     []float64{5, 10, 20, 30, 45, 60, 120, 300},
+			}),
 		},
 	}
 
