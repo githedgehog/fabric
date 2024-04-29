@@ -156,7 +156,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			agent.Status.Conditions = []metav1.Condition{}
 		}
 
-		if err := svc.processor.UpdateSwitchState(ctx, svc.reg); err != nil {
+		if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 			return errors.Wrapf(err, "failed to update switch state")
 		}
 		if st := svc.reg.GetSwitchState(); st != nil {
@@ -191,7 +191,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			case <-time.After(15 * time.Second):
 				slog.Debug("Sending heartbeat")
 
-				if err := svc.processor.UpdateSwitchState(ctx, svc.reg); err != nil {
+				if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 					return errors.Wrapf(err, "failed to update switch state")
 				}
 
@@ -280,7 +280,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	// Make sure we have switch state
 	if agent.Status.State.NOS.HwskuVersion == "" {
-		if err := svc.processor.UpdateSwitchState(ctx, svc.reg); err != nil {
+		if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 			return errors.Wrapf(err, "failed to update switch state")
 		}
 		if st := svc.reg.GetSwitchState(); st != nil {

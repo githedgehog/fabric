@@ -33,7 +33,7 @@ type Processor interface {
 	PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*Spec, error)
 	CalculateActions(ctx context.Context, actual, desired *Spec) ([]Action, error)
 	ApplyActions(ctx context.Context, actions []Action) ([]string, error) // warnings
-	UpdateSwitchState(ctx context.Context, reg *switchstate.Registry) error
+	UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error
 	Reboot(ctx context.Context, force bool) error
 	Reinstall(ctx context.Context) error
 	FactoryReset(ctx context.Context) error

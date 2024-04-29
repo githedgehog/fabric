@@ -35,7 +35,7 @@ const (
 	temperatureIgnore = "N/A"
 )
 
-func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, reg *switchstate.Registry) error {
+func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error {
 	start := time.Now()
 
 	swState := &agentapi.SwitchState{
@@ -53,7 +53,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, reg *switchst
 		return errors.Wrapf(err, "failed to update interface metrics")
 	}
 
-	if err := p.updateTransceiverMetrics(ctx, reg, swState); err != nil {
+	if err := p.updateTransceiverMetrics(ctx, agent, reg, swState); err != nil {
 		return errors.Wrapf(err, "failed to update transceiver metrics")
 	}
 
@@ -65,7 +65,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, reg *switchst
 		return errors.Wrapf(err, "failed to update bgp neighbor metrics")
 	}
 
-	if err := p.updatePlatformMetrics(ctx, reg, swState); err != nil {
+	if err := p.updatePlatformMetrics(ctx, agent, reg, swState); err != nil {
 		return errors.Wrapf(err, "failed to update platform metrics")
 	}
 
@@ -243,16 +243,18 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 	return nil
 }
 
-func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/transceiver-dom", dev); err != nil {
 		return errors.Wrapf(err, "failed to get transceiver-dom")
 	}
 
-	// TODO handle it better - no transceiver-dom on VS
 	if dev.TransceiverDom == nil {
-		// return errors.Errorf("transceiver-dom not found")
-		return nil
+		if agent.Spec.IsVS() {
+			return nil
+		}
+
+		return errors.Errorf("transceiver-dom not found")
 	}
 
 	for transceiverName, transceiver := range dev.TransceiverDom.TransceiverDomInfo {
@@ -734,16 +736,18 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 	return nil
 }
 
-func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/sonic-platform", dev); err != nil {
 		return errors.Wrapf(err, "failed to get sonic-platform")
 	}
 
-	// TODO handle it better - no transceiver-dom on VS
 	if dev.SonicPlatform == nil {
-		// return errors.Errorf("sonic-platform not found")
-		return nil
+		if agent.Spec.IsVS() {
+			return nil
+		}
+
+		return errors.Errorf("sonic-platform not found")
 	}
 
 	if dev.SonicPlatform.FAN_INFO != nil {
