@@ -45,6 +45,7 @@ type Registry struct {
 	TransceiverMetrics TransceiverMetrics
 	BGPNeighborMetrics BGPNeighborMetrics
 	PlatformMetrics    PlatformMetrics
+	CriticalResources  CRMMetrics
 }
 
 type InterfaceMetrics struct {
@@ -191,6 +192,45 @@ type PlatformTemperatureMetrics struct {
 	CriticalLowThreshold  *prometheus.GaugeVec
 }
 
+type CRMMetrics struct {
+	ACLStats CRMACLStatsMetrics
+	Stats    CRMStatsMetrics
+}
+
+type CRMACLStatsMetrics struct {
+	GroupsAvailable *prometheus.GaugeVec
+	GroupsUsed      *prometheus.GaugeVec
+	TablesAvailable *prometheus.GaugeVec
+	TablesUsed      *prometheus.GaugeVec
+}
+
+type CRMStatsMetrics struct {
+	DnatEntriesAvailable         prometheus.Gauge
+	DnatEntriesUsed              prometheus.Gauge
+	FdbEntriesAvailable          prometheus.Gauge
+	FdbEntriesUsed               prometheus.Gauge
+	IpmcEntriesAvailable         prometheus.Gauge
+	IpmcEntriesUsed              prometheus.Gauge
+	Ipv4NeighborsAvailable       prometheus.Gauge
+	Ipv4NeighborsUsed            prometheus.Gauge
+	Ipv4NexthopsAvailable        prometheus.Gauge
+	Ipv4NexthopsUsed             prometheus.Gauge
+	Ipv4RoutesAvailable          prometheus.Gauge
+	Ipv4RoutesUsed               prometheus.Gauge
+	Ipv6NeighborsAvailable       prometheus.Gauge
+	Ipv6NeighborsUsed            prometheus.Gauge
+	Ipv6NexthopsAvailable        prometheus.Gauge
+	Ipv6NexthopsUsed             prometheus.Gauge
+	Ipv6RoutesAvailable          prometheus.Gauge
+	Ipv6RoutesUsed               prometheus.Gauge
+	NexthopGroupMembersAvailable prometheus.Gauge
+	NexthopGroupMembersUsed      prometheus.Gauge
+	NexthopGroupsAvailable       prometheus.Gauge
+	NexthopGroupsUsed            prometheus.Gauge
+	SnatEntriesAvailable         prometheus.Gauge
+	SnatEntriesUsed              prometheus.Gauge
+}
+
 func NewRegistry() *Registry {
 	reg := prometheus.NewRegistry()
 	autoreg := promauto.With(reg)
@@ -245,6 +285,26 @@ func NewRegistry() *Registry {
 			Help:        help,
 			ConstLabels: labels,
 		}, []string{"name"})
+	}
+
+	newCRMACLStatsGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"direction", "type"})
+	}
+
+	newCRMStatsGaugeVec := func(name string, help string) prometheus.Gauge {
+		return autoreg.NewGauge(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		})
 	}
 
 	r := &Registry{
@@ -382,6 +442,40 @@ func NewRegistry() *Registry {
 				CriticalHighThreshold: newPlatformGaugeVec("platform_sensor_critical_high_threshold", "Sensor critical high threshold"),
 				LowThreshold:          newPlatformGaugeVec("platform_sensor_low_threshold", "Sensor low threshold"),
 				CriticalLowThreshold:  newPlatformGaugeVec("platform_sensor_critical_low_threshold", "Sensor critical low threshold"),
+			},
+		},
+		CriticalResources: CRMMetrics{
+			ACLStats: CRMACLStatsMetrics{
+				GroupsAvailable: newCRMACLStatsGaugeVec("critical_resource_acl_groups_available", "Number of available groups"),
+				GroupsUsed:      newCRMACLStatsGaugeVec("critical_resource_acl_groups_used", "Number of used groups"),
+				TablesAvailable: newCRMACLStatsGaugeVec("critical_resource_acl_tables_available", "Number of available tables"),
+				TablesUsed:      newCRMACLStatsGaugeVec("critical_resource_acl_tables_used", "Number of used tables"),
+			},
+			Stats: CRMStatsMetrics{
+				DnatEntriesAvailable:         newCRMStatsGaugeVec("critical_resource_dnat_entries_available", "Number of available DNAT entries"),
+				DnatEntriesUsed:              newCRMStatsGaugeVec("critical_resource_dnat_entries_used", "Number of used DNAT entries"),
+				FdbEntriesAvailable:          newCRMStatsGaugeVec("critical_resource_fdb_entries_available", "Number of available FDB entries"),
+				FdbEntriesUsed:               newCRMStatsGaugeVec("critical_resource_fdb_entries_used", "Number of used FDB entries"),
+				IpmcEntriesAvailable:         newCRMStatsGaugeVec("critical_resource_ipmc_entries_available", "Number of available IPMC entries"),
+				IpmcEntriesUsed:              newCRMStatsGaugeVec("critical_resource_ipmc_entries_used", "Number of used IPMC entries"),
+				Ipv4NeighborsAvailable:       newCRMStatsGaugeVec("critical_resource_ipv4_neighbors_available", "Number of available IPv4 neighbors"),
+				Ipv4NeighborsUsed:            newCRMStatsGaugeVec("critical_resource_ipv4_neighbors_used", "Number of used IPv4 neighbors"),
+				Ipv4NexthopsAvailable:        newCRMStatsGaugeVec("critical_resource_ipv4_nexthops_available", "Number of available IPv4 nexthops"),
+				Ipv4NexthopsUsed:             newCRMStatsGaugeVec("critical_resource_ipv4_nexthops_used", "Number of used IPv4 nexthops"),
+				Ipv4RoutesAvailable:          newCRMStatsGaugeVec("critical_resource_ipv4_routes_available", "Number of available IPv4 routes"),
+				Ipv4RoutesUsed:               newCRMStatsGaugeVec("critical_resource_ipv4_routes_used", "Number of used IPv4 routes"),
+				Ipv6NeighborsAvailable:       newCRMStatsGaugeVec("critical_resource_ipv6_neighbors_available", "Number of available IPv6 neighbors"),
+				Ipv6NeighborsUsed:            newCRMStatsGaugeVec("critical_resource_ipv6_neighbors_used", "Number of used IPv6 neighbors"),
+				Ipv6NexthopsAvailable:        newCRMStatsGaugeVec("critical_resource_ipv6_nexthops_available", "Number of available IPv6 nexthops"),
+				Ipv6NexthopsUsed:             newCRMStatsGaugeVec("critical_resource_ipv6_nexthops_used", "Number of used IPv6 nexthops"),
+				Ipv6RoutesAvailable:          newCRMStatsGaugeVec("critical_resource_ipv6_routes_available", "Number of available IPv6 routes"),
+				Ipv6RoutesUsed:               newCRMStatsGaugeVec("critical_resource_ipv6_routes_used", "Number of used IPv6 routes"),
+				NexthopGroupMembersAvailable: newCRMStatsGaugeVec("critical_resource_nexthop_group_members_available", "Number of available nexthop group members"),
+				NexthopGroupMembersUsed:      newCRMStatsGaugeVec("critical_resource_nexthop_group_members_used", "Number of used nexthop group members"),
+				NexthopGroupsAvailable:       newCRMStatsGaugeVec("critical_resource_nexthop_groups_available", "Number of available nexthop groups"),
+				NexthopGroupsUsed:            newCRMStatsGaugeVec("critical_resource_nexthop_groups_used", "Number of used nexthop groups"),
+				SnatEntriesAvailable:         newCRMStatsGaugeVec("critical_resource_snat_entries_available", "Number of available SNAT entries"),
+				SnatEntriesUsed:              newCRMStatsGaugeVec("critical_resource_snat_entries_used", "Number of used SNAT entries"),
 			},
 		},
 	}

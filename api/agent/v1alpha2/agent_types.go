@@ -146,6 +146,8 @@ type SwitchState struct {
 	BGPNeighbors map[string]map[string]SwitchStateBGPNeighbor `json:"bgpNeighbors,omitempty"`
 	// State of the switch platform (fans, PSUs, sensors)
 	Platform SwitchStatePlatform `json:"platform,omitempty"`
+	// State of the critical resources (ACLs, routes, etc.)
+	CriticalResources SwitchStateCRM `json:"criticalResources,omitempty"`
 }
 
 type SwitchStateInterface struct {
@@ -432,6 +434,58 @@ type SwitchStateNOS struct {
 	SoftwareVersion string `json:"softwareVersion,omitempty"`
 	// Switch uptime, such as "21:21:27 up 1 day, 23:26, 0 users, load average: 1.92, 1.99, 2.00 "
 	Uptime string `json:"uptime,omitempty"`
+}
+
+type SwitchStateCRM struct {
+	ACLStats SwitchStateCRMACLStats `json:"aclStats,omitempty"`
+	Stats    SwitchStateCRMStats    `json:"stats,omitempty"`
+}
+
+type SwitchStateCRMACLStats struct {
+	Egress  SwitchStateCRMACLInfo `json:"egress,omitempty"`
+	Ingress SwitchStateCRMACLInfo `json:"ingress,omitempty"`
+}
+
+type SwitchStateCRMACLInfo struct {
+	Lag    SwitchStateCRMACLDetails `json:"lag,omitempty"`
+	Port   SwitchStateCRMACLDetails `json:"port,omitempty"`
+	RIF    SwitchStateCRMACLDetails `json:"rif,omitempty"`
+	Switch SwitchStateCRMACLDetails `json:"switch,omitempty"`
+	VLAN   SwitchStateCRMACLDetails `json:"vlan,omitempty"`
+}
+
+type SwitchStateCRMACLDetails struct {
+	GroupsAvailable uint32 `json:"groupsAvailable,omitempty"`
+	GroupsUsed      uint32 `json:"groupsUsed,omitempty"`
+	TablesAvailable uint32 `json:"tablesAvailable,omitempty"`
+	TablesUsed      uint32 `json:"tablesUsed,omitempty"`
+}
+
+type SwitchStateCRMStats struct {
+	DnatEntriesAvailable         uint32 `json:"dnatEntriesAvailable,omitempty"`
+	DnatEntriesUsed              uint32 `json:"dnatEntriesUsed,omitempty"`
+	FdbEntriesAvailable          uint32 `json:"fdbEntriesAvailable,omitempty"`
+	FdbEntriesUsed               uint32 `json:"fdbEntriesUsed,omitempty"`
+	IpmcEntriesAvailable         uint32 `json:"ipmcEntriesAvailable,omitempty"`
+	IpmcEntriesUsed              uint32 `json:"ipmcEntriesUsed,omitempty"`
+	Ipv4NeighborsAvailable       uint32 `json:"ipv4NeighborsAvailable,omitempty"`
+	Ipv4NeighborsUsed            uint32 `json:"ipv4NeighborsUsed,omitempty"`
+	Ipv4NexthopsAvailable        uint32 `json:"ipv4NexthopsAvailable,omitempty"`
+	Ipv4NexthopsUsed             uint32 `json:"ipv4NexthopsUsed,omitempty"`
+	Ipv4RoutesAvailable          uint32 `json:"ipv4RoutesAvailable,omitempty"`
+	Ipv4RoutesUsed               uint32 `json:"ipv4RoutesUsed,omitempty"`
+	Ipv6NeighborsAvailable       uint32 `json:"ipv6NeighborsAvailable,omitempty"`
+	Ipv6NeighborsUsed            uint32 `json:"ipv6NeighborsUsed,omitempty"`
+	Ipv6NexthopsAvailable        uint32 `json:"ipv6NexthopsAvailable,omitempty"`
+	Ipv6NexthopsUsed             uint32 `json:"ipv6NexthopsUsed,omitempty"`
+	Ipv6RoutesAvailable          uint32 `json:"ipv6RoutesAvailable,omitempty"`
+	Ipv6RoutesUsed               uint32 `json:"ipv6RoutesUsed,omitempty"`
+	NexthopGroupMembersAvailable uint32 `json:"nexthopGroupMembersAvailable,omitempty"`
+	NexthopGroupMembersUsed      uint32 `json:"nexthopGroupMembersUsed,omitempty"`
+	NexthopGroupsAvailable       uint32 `json:"nexthopGroupsAvailable,omitempty"`
+	NexthopGroupsUsed            uint32 `json:"nexthopGroupsUsed,omitempty"`
+	SnatEntriesAvailable         uint32 `json:"snatEntriesAvailable,omitempty"`
+	SnatEntriesUsed              uint32 `json:"snatEntriesUsed,omitempty"`
 }
 
 // +kubebuilder:object:root=true

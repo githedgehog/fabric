@@ -1399,6 +1399,244 @@ spec:
                       type: object
                     description: Breakout ports state (port -> breakout state)
                     type: object
+                  criticalResources:
+                    description: State of the critical resources (ACLs, routes, etc.)
+                    properties:
+                      aclStats:
+                        properties:
+                          egress:
+                            properties:
+                              lag:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              port:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              rif:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              switch:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              vlan:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
+                          ingress:
+                            properties:
+                              lag:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              port:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              rif:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              switch:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              vlan:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
+                        type: object
+                      stats:
+                        properties:
+                          dnatEntriesAvailable:
+                            format: int32
+                            type: integer
+                          dnatEntriesUsed:
+                            format: int32
+                            type: integer
+                          fdbEntriesAvailable:
+                            format: int32
+                            type: integer
+                          fdbEntriesUsed:
+                            format: int32
+                            type: integer
+                          ipmcEntriesAvailable:
+                            format: int32
+                            type: integer
+                          ipmcEntriesUsed:
+                            format: int32
+                            type: integer
+                          ipv4NeighborsAvailable:
+                            format: int32
+                            type: integer
+                          ipv4NeighborsUsed:
+                            format: int32
+                            type: integer
+                          ipv4NexthopsAvailable:
+                            format: int32
+                            type: integer
+                          ipv4NexthopsUsed:
+                            format: int32
+                            type: integer
+                          ipv4RoutesAvailable:
+                            format: int32
+                            type: integer
+                          ipv4RoutesUsed:
+                            format: int32
+                            type: integer
+                          ipv6NeighborsAvailable:
+                            format: int32
+                            type: integer
+                          ipv6NeighborsUsed:
+                            format: int32
+                            type: integer
+                          ipv6NexthopsAvailable:
+                            format: int32
+                            type: integer
+                          ipv6NexthopsUsed:
+                            format: int32
+                            type: integer
+                          ipv6RoutesAvailable:
+                            format: int32
+                            type: integer
+                          ipv6RoutesUsed:
+                            format: int32
+                            type: integer
+                          nexthopGroupMembersAvailable:
+                            format: int32
+                            type: integer
+                          nexthopGroupMembersUsed:
+                            format: int32
+                            type: integer
+                          nexthopGroupsAvailable:
+                            format: int32
+                            type: integer
+                          nexthopGroupsUsed:
+                            format: int32
+                            type: integer
+                          snatEntriesAvailable:
+                            format: int32
+                            type: integer
+                          snatEntriesUsed:
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
                   interfaces:
                     additionalProperties:
                       properties:
