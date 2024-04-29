@@ -70,6 +70,7 @@ type Service struct {
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
+	svc.reg.AgentMetrics.Version.WithLabelValues(svc.Version).Set(1)
 
 	if !svc.ApplyOnce && !svc.DryRun {
 		go func() {
@@ -190,6 +191,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				return nil
 			case <-time.After(15 * time.Second):
 				slog.Debug("Sending heartbeat")
+				start := time.Now()
 
 				if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 					return errors.Wrapf(err, "failed to update switch state")
@@ -201,6 +203,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				if err != nil {
 					return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
 				}
+
+				svc.reg.AgentMetrics.HeartbeatDuration.Observe(time.Since(start).Seconds())
+				svc.reg.AgentMetrics.HeartbeatsTotal.Inc()
 			case event, ok := <-watcher.ResultChan():
 				// TODO check why channel gets closed
 				if !ok {
@@ -261,7 +266,10 @@ func (svc *Service) setInstallAndRunIDs() error {
 }
 
 func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
+	start := time.Now()
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 
 	if !svc.SkipControlLink {
 		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
@@ -361,16 +369,21 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		slog.Warn("Action warning: " + warning)
 	}
 
-	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
+
+	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
 	return nil
 }
 
 func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64) error {
+	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
+
 	if agent.Generation == *currentGen {
 		return nil
 	}
 
+	start := time.Now()
 	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
 
 	if agent.Status.Conditions == nil {
@@ -428,6 +441,8 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	}
 
 	*currentGen = agent.Generation
+
+	svc.reg.AgentMetrics.KubeApplyDuration.Observe(time.Since(start).Seconds())
 
 	return nil
 }
