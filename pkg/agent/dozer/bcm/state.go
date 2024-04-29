@@ -73,6 +73,10 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update component metrics")
 	}
 
+	if err := p.updateCRMMetrics(ctx, reg, swState); err != nil {
+		return errors.Wrapf(err, "failed to update crm metrics")
+	}
+
 	reg.SaveSwitchState(swState)
 
 	slog.Debug("Switch state updated", "took", time.Since(start))
@@ -741,7 +745,6 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 	if err := p.client.Get(ctx, "/sonic-platform", dev); err != nil {
 		return errors.Wrapf(err, "failed to get sonic-platform")
 	}
-
 	if dev.SonicPlatform == nil {
 		if agent.Spec.IsVS() {
 			return nil
@@ -1122,6 +1125,202 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 	return nil
 }
 
+func (p *BroadcomProcessor) updateCRMMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+	sys := &oc.OpenconfigSystem_System{}
+	if err := p.client.Get(ctx, "/system/crm", sys); err != nil {
+		return errors.Wrapf(err, "failed to get system crm")
+	}
+	if sys.Crm == nil {
+		return errors.Errorf("crm not found")
+	}
+
+	if sys.Crm.AclStatistics != nil {
+		if sys.Crm.AclStatistics.Egress != nil {
+			ocEgress := sys.Crm.AclStatistics.Egress
+
+			if ocEgress.Lag != nil && ocEgress.Lag.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("egress", "lag").Set(uint32ptrAsFloat64(ocEgress.Lag.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("egress", "lag").Set(uint32ptrAsFloat64(ocEgress.Lag.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("egress", "lag").Set(uint32ptrAsFloat64(ocEgress.Lag.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("egress", "lag").Set(uint32ptrAsFloat64(ocEgress.Lag.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Egress.Lag.GroupsAvailable = unptrUint32(ocEgress.Lag.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Egress.Lag.GroupsUsed = unptrUint32(ocEgress.Lag.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Egress.Lag.TablesAvailable = unptrUint32(ocEgress.Lag.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Egress.Lag.TablesUsed = unptrUint32(ocEgress.Lag.State.TablesUsed)
+			}
+
+			if ocEgress.Port != nil && ocEgress.Port.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("egress", "port").Set(uint32ptrAsFloat64(ocEgress.Port.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("egress", "port").Set(uint32ptrAsFloat64(ocEgress.Port.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("egress", "port").Set(uint32ptrAsFloat64(ocEgress.Port.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("egress", "port").Set(uint32ptrAsFloat64(ocEgress.Port.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Egress.Port.GroupsAvailable = unptrUint32(ocEgress.Port.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Egress.Port.GroupsUsed = unptrUint32(ocEgress.Port.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Egress.Port.TablesAvailable = unptrUint32(ocEgress.Port.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Egress.Port.TablesUsed = unptrUint32(ocEgress.Port.State.TablesUsed)
+			}
+
+			if ocEgress.Rif != nil && ocEgress.Rif.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("egress", "rif").Set(uint32ptrAsFloat64(ocEgress.Rif.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("egress", "rif").Set(uint32ptrAsFloat64(ocEgress.Rif.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("egress", "rif").Set(uint32ptrAsFloat64(ocEgress.Rif.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("egress", "rif").Set(uint32ptrAsFloat64(ocEgress.Rif.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Egress.RIF.GroupsAvailable = unptrUint32(ocEgress.Rif.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Egress.RIF.GroupsUsed = unptrUint32(ocEgress.Rif.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Egress.RIF.TablesAvailable = unptrUint32(ocEgress.Rif.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Egress.RIF.TablesUsed = unptrUint32(ocEgress.Rif.State.TablesUsed)
+			}
+
+			if ocEgress.Switch != nil && ocEgress.Switch.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("egress", "switch").Set(uint32ptrAsFloat64(ocEgress.Switch.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("egress", "switch").Set(uint32ptrAsFloat64(ocEgress.Switch.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("egress", "switch").Set(uint32ptrAsFloat64(ocEgress.Switch.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("egress", "switch").Set(uint32ptrAsFloat64(ocEgress.Switch.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Egress.Switch.GroupsAvailable = unptrUint32(ocEgress.Switch.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Egress.Switch.GroupsUsed = unptrUint32(ocEgress.Switch.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Egress.Switch.TablesAvailable = unptrUint32(ocEgress.Switch.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Egress.Switch.TablesUsed = unptrUint32(ocEgress.Switch.State.TablesUsed)
+			}
+
+			if ocEgress.Vlan != nil && ocEgress.Vlan.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("egress", "vlan").Set(uint32ptrAsFloat64(ocEgress.Vlan.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("egress", "vlan").Set(uint32ptrAsFloat64(ocEgress.Vlan.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("egress", "vlan").Set(uint32ptrAsFloat64(ocEgress.Vlan.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("egress", "vlan").Set(uint32ptrAsFloat64(ocEgress.Vlan.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Egress.VLAN.GroupsAvailable = unptrUint32(ocEgress.Vlan.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Egress.VLAN.GroupsUsed = unptrUint32(ocEgress.Vlan.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Egress.VLAN.TablesAvailable = unptrUint32(ocEgress.Vlan.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Egress.VLAN.TablesUsed = unptrUint32(ocEgress.Vlan.State.TablesUsed)
+			}
+		}
+
+		if sys.Crm.AclStatistics.Ingress != nil {
+			ocIngress := sys.Crm.AclStatistics.Ingress
+
+			if ocIngress.Lag != nil && ocIngress.Lag.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("ingress", "lag").Set(uint32ptrAsFloat64(ocIngress.Lag.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("ingress", "lag").Set(uint32ptrAsFloat64(ocIngress.Lag.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("ingress", "lag").Set(uint32ptrAsFloat64(ocIngress.Lag.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("ingress", "lag").Set(uint32ptrAsFloat64(ocIngress.Lag.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Ingress.Lag.GroupsAvailable = unptrUint32(ocIngress.Lag.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Ingress.Lag.GroupsUsed = unptrUint32(ocIngress.Lag.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Ingress.Lag.TablesAvailable = unptrUint32(ocIngress.Lag.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Ingress.Lag.TablesUsed = unptrUint32(ocIngress.Lag.State.TablesUsed)
+			}
+
+			if ocIngress.Port != nil && ocIngress.Port.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("ingress", "port").Set(uint32ptrAsFloat64(ocIngress.Port.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("ingress", "port").Set(uint32ptrAsFloat64(ocIngress.Port.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("ingress", "port").Set(uint32ptrAsFloat64(ocIngress.Port.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("ingress", "port").Set(uint32ptrAsFloat64(ocIngress.Port.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Ingress.Port.GroupsAvailable = unptrUint32(ocIngress.Port.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Ingress.Port.GroupsUsed = unptrUint32(ocIngress.Port.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Ingress.Port.TablesAvailable = unptrUint32(ocIngress.Port.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Ingress.Port.TablesUsed = unptrUint32(ocIngress.Port.State.TablesUsed)
+			}
+
+			if ocIngress.Rif != nil && ocIngress.Rif.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("ingress", "rif").Set(uint32ptrAsFloat64(ocIngress.Rif.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("ingress", "rif").Set(uint32ptrAsFloat64(ocIngress.Rif.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("ingress", "rif").Set(uint32ptrAsFloat64(ocIngress.Rif.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("ingress", "rif").Set(uint32ptrAsFloat64(ocIngress.Rif.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Ingress.RIF.GroupsAvailable = unptrUint32(ocIngress.Rif.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Ingress.RIF.GroupsUsed = unptrUint32(ocIngress.Rif.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Ingress.RIF.TablesAvailable = unptrUint32(ocIngress.Rif.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Ingress.RIF.TablesUsed = unptrUint32(ocIngress.Rif.State.TablesUsed)
+			}
+
+			if ocIngress.Switch != nil && ocIngress.Switch.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("ingress", "switch").Set(uint32ptrAsFloat64(ocIngress.Switch.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("ingress", "switch").Set(uint32ptrAsFloat64(ocIngress.Switch.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("ingress", "switch").Set(uint32ptrAsFloat64(ocIngress.Switch.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("ingress", "switch").Set(uint32ptrAsFloat64(ocIngress.Switch.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Ingress.Switch.GroupsAvailable = unptrUint32(ocIngress.Switch.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Ingress.Switch.GroupsUsed = unptrUint32(ocIngress.Switch.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Ingress.Switch.TablesAvailable = unptrUint32(ocIngress.Switch.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Ingress.Switch.TablesUsed = unptrUint32(ocIngress.Switch.State.TablesUsed)
+			}
+
+			if ocIngress.Vlan != nil && ocIngress.Vlan.State != nil {
+				reg.CriticalResources.ACLStats.GroupsAvailable.WithLabelValues("ingress", "vlan").Set(uint32ptrAsFloat64(ocIngress.Vlan.State.GroupsAvailable))
+				reg.CriticalResources.ACLStats.GroupsUsed.WithLabelValues("ingress", "vlan").Set(uint32ptrAsFloat64(ocIngress.Vlan.State.GroupsUsed))
+				reg.CriticalResources.ACLStats.TablesAvailable.WithLabelValues("ingress", "vlan").Set(uint32ptrAsFloat64(ocIngress.Vlan.State.TablesAvailable))
+				reg.CriticalResources.ACLStats.TablesUsed.WithLabelValues("ingress", "vlan").Set(uint32ptrAsFloat64(ocIngress.Vlan.State.TablesUsed))
+
+				swState.CriticalResources.ACLStats.Ingress.VLAN.GroupsAvailable = unptrUint32(ocIngress.Vlan.State.GroupsAvailable)
+				swState.CriticalResources.ACLStats.Ingress.VLAN.GroupsUsed = unptrUint32(ocIngress.Vlan.State.GroupsUsed)
+				swState.CriticalResources.ACLStats.Ingress.VLAN.TablesAvailable = unptrUint32(ocIngress.Vlan.State.TablesAvailable)
+				swState.CriticalResources.ACLStats.Ingress.VLAN.TablesUsed = unptrUint32(ocIngress.Vlan.State.TablesUsed)
+			}
+		}
+	}
+
+	if sys.Crm.Statistics != nil && sys.Crm.Statistics.State != nil {
+		ocStats := sys.Crm.Statistics.State
+
+		reg.CriticalResources.Stats.DnatEntriesAvailable.Set(uint32ptrAsFloat64(ocStats.DnatEntriesAvailable))
+		reg.CriticalResources.Stats.DnatEntriesUsed.Set(uint32ptrAsFloat64(ocStats.DnatEntriesUsed))
+		reg.CriticalResources.Stats.FdbEntriesAvailable.Set(uint32ptrAsFloat64(ocStats.FdbEntriesAvailable))
+		reg.CriticalResources.Stats.FdbEntriesUsed.Set(uint32ptrAsFloat64(ocStats.FdbEntriesUsed))
+		reg.CriticalResources.Stats.IpmcEntriesAvailable.Set(uint32ptrAsFloat64(ocStats.IpmcEntriesAvailable))
+		reg.CriticalResources.Stats.IpmcEntriesUsed.Set(uint32ptrAsFloat64(ocStats.IpmcEntriesUsed))
+		reg.CriticalResources.Stats.Ipv4NeighborsAvailable.Set(uint32ptrAsFloat64(ocStats.Ipv4NeighborsAvailable))
+		reg.CriticalResources.Stats.Ipv4NeighborsUsed.Set(uint32ptrAsFloat64(ocStats.Ipv4NeighborsUsed))
+		reg.CriticalResources.Stats.Ipv4NexthopsAvailable.Set(uint32ptrAsFloat64(ocStats.Ipv4NexthopsAvailable))
+		reg.CriticalResources.Stats.Ipv4NexthopsUsed.Set(uint32ptrAsFloat64(ocStats.Ipv4NexthopsUsed))
+		reg.CriticalResources.Stats.Ipv4RoutesAvailable.Set(uint32ptrAsFloat64(ocStats.Ipv4RoutesAvailable))
+		reg.CriticalResources.Stats.Ipv4RoutesUsed.Set(uint32ptrAsFloat64(ocStats.Ipv4RoutesUsed))
+		reg.CriticalResources.Stats.Ipv6NeighborsAvailable.Set(uint32ptrAsFloat64(ocStats.Ipv6NeighborsAvailable))
+		reg.CriticalResources.Stats.Ipv6NeighborsUsed.Set(uint32ptrAsFloat64(ocStats.Ipv6NeighborsUsed))
+		reg.CriticalResources.Stats.Ipv6NexthopsAvailable.Set(uint32ptrAsFloat64(ocStats.Ipv6NexthopsAvailable))
+		reg.CriticalResources.Stats.Ipv6NexthopsUsed.Set(uint32ptrAsFloat64(ocStats.Ipv6NexthopsUsed))
+		reg.CriticalResources.Stats.Ipv6RoutesAvailable.Set(uint32ptrAsFloat64(ocStats.Ipv6RoutesAvailable))
+		reg.CriticalResources.Stats.Ipv6RoutesUsed.Set(uint32ptrAsFloat64(ocStats.Ipv6RoutesUsed))
+		reg.CriticalResources.Stats.NexthopGroupMembersAvailable.Set(uint32ptrAsFloat64(ocStats.NexthopGroupMembersAvailable))
+		reg.CriticalResources.Stats.NexthopGroupMembersUsed.Set(uint32ptrAsFloat64(ocStats.NexthopGroupMembersUsed))
+		reg.CriticalResources.Stats.NexthopGroupsAvailable.Set(uint32ptrAsFloat64(ocStats.NexthopGroupsAvailable))
+		reg.CriticalResources.Stats.NexthopGroupsUsed.Set(uint32ptrAsFloat64(ocStats.NexthopGroupsUsed))
+		reg.CriticalResources.Stats.SnatEntriesAvailable.Set(uint32ptrAsFloat64(ocStats.SnatEntriesAvailable))
+		reg.CriticalResources.Stats.SnatEntriesUsed.Set(uint32ptrAsFloat64(ocStats.SnatEntriesUsed))
+
+		swState.CriticalResources.Stats.DnatEntriesAvailable = unptrUint32(ocStats.DnatEntriesAvailable)
+		swState.CriticalResources.Stats.DnatEntriesUsed = unptrUint32(ocStats.DnatEntriesUsed)
+		swState.CriticalResources.Stats.FdbEntriesAvailable = unptrUint32(ocStats.FdbEntriesAvailable)
+		swState.CriticalResources.Stats.FdbEntriesUsed = unptrUint32(ocStats.FdbEntriesUsed)
+		swState.CriticalResources.Stats.IpmcEntriesAvailable = unptrUint32(ocStats.IpmcEntriesAvailable)
+		swState.CriticalResources.Stats.IpmcEntriesUsed = unptrUint32(ocStats.IpmcEntriesUsed)
+		swState.CriticalResources.Stats.Ipv4NeighborsAvailable = unptrUint32(ocStats.Ipv4NeighborsAvailable)
+		swState.CriticalResources.Stats.Ipv4NeighborsUsed = unptrUint32(ocStats.Ipv4NeighborsUsed)
+		swState.CriticalResources.Stats.Ipv4NexthopsAvailable = unptrUint32(ocStats.Ipv4NexthopsAvailable)
+		swState.CriticalResources.Stats.Ipv4NexthopsUsed = unptrUint32(ocStats.Ipv4NexthopsUsed)
+		swState.CriticalResources.Stats.Ipv4RoutesAvailable = unptrUint32(ocStats.Ipv4RoutesAvailable)
+		swState.CriticalResources.Stats.Ipv4RoutesUsed = unptrUint32(ocStats.Ipv4RoutesUsed)
+		swState.CriticalResources.Stats.Ipv6NeighborsAvailable = unptrUint32(ocStats.Ipv6NeighborsAvailable)
+		swState.CriticalResources.Stats.Ipv6NeighborsUsed = unptrUint32(ocStats.Ipv6NeighborsUsed)
+		swState.CriticalResources.Stats.Ipv6NexthopsAvailable = unptrUint32(ocStats.Ipv6NexthopsAvailable)
+		swState.CriticalResources.Stats.Ipv6NexthopsUsed = unptrUint32(ocStats.Ipv6NexthopsUsed)
+		swState.CriticalResources.Stats.Ipv6RoutesAvailable = unptrUint32(ocStats.Ipv6RoutesAvailable)
+		swState.CriticalResources.Stats.Ipv6RoutesUsed = unptrUint32(ocStats.Ipv6RoutesUsed)
+		swState.CriticalResources.Stats.NexthopGroupMembersAvailable = unptrUint32(ocStats.NexthopGroupMembersAvailable)
+		swState.CriticalResources.Stats.NexthopGroupMembersUsed = unptrUint32(ocStats.NexthopGroupMembersUsed)
+		swState.CriticalResources.Stats.NexthopGroupsAvailable = unptrUint32(ocStats.NexthopGroupsAvailable)
+		swState.CriticalResources.Stats.NexthopGroupsUsed = unptrUint32(ocStats.NexthopGroupsUsed)
+		swState.CriticalResources.Stats.SnatEntriesAvailable = unptrUint32(ocStats.SnatEntriesAvailable)
+		swState.CriticalResources.Stats.SnatEntriesUsed = unptrUint32(ocStats.SnatEntriesUsed)
+	}
+
+	return nil
+}
+
 func boolToFloat64(b *bool) float64 {
 	if b != nil && *b {
 		return 1
@@ -1149,6 +1348,14 @@ func unptrUint32(u *uint32) uint32 {
 func unptrFloat64(f *float64) float64 {
 	if f != nil {
 		return *f
+	}
+
+	return 0
+}
+
+func uint32ptrAsFloat64(u *uint32) float64 {
+	if u != nil {
+		return float64(*u)
 	}
 
 	return 0

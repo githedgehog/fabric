@@ -174,6 +174,7 @@ _Appears in:_
 | `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
 | `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#map[string]switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
+| `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
 
 
 #### SwitchStateBGPNeighbor
@@ -243,6 +244,118 @@ _Appears in:_
 | `mode` _string_ |  |  |  |
 | `members` _string array_ |  |  |  |
 | `status` _string_ |  |  |  |
+
+
+#### SwitchStateCRM
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `aclStats` _[SwitchStateCRMACLStats](#switchstatecrmaclstats)_ |  |  |  |
+| `stats` _[SwitchStateCRMStats](#switchstatecrmstats)_ |  |  |  |
+
+
+#### SwitchStateCRMACLDetails
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRMACLInfo](#switchstatecrmaclinfo)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `groupsAvailable` _integer_ |  |  |  |
+| `groupsUsed` _integer_ |  |  |  |
+| `tablesAvailable` _integer_ |  |  |  |
+| `tablesUsed` _integer_ |  |  |  |
+
+
+#### SwitchStateCRMACLInfo
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRMACLStats](#switchstatecrmaclstats)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lag` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `port` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `rif` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `switch` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `vlan` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+
+
+#### SwitchStateCRMACLStats
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRM](#switchstatecrm)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `egress` _[SwitchStateCRMACLInfo](#switchstatecrmaclinfo)_ |  |  |  |
+| `ingress` _[SwitchStateCRMACLInfo](#switchstatecrmaclinfo)_ |  |  |  |
+
+
+#### SwitchStateCRMStats
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRM](#switchstatecrm)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `dnatEntriesAvailable` _integer_ |  |  |  |
+| `dnatEntriesUsed` _integer_ |  |  |  |
+| `fdbEntriesAvailable` _integer_ |  |  |  |
+| `fdbEntriesUsed` _integer_ |  |  |  |
+| `ipmcEntriesAvailable` _integer_ |  |  |  |
+| `ipmcEntriesUsed` _integer_ |  |  |  |
+| `ipv4NeighborsAvailable` _integer_ |  |  |  |
+| `ipv4NeighborsUsed` _integer_ |  |  |  |
+| `ipv4NexthopsAvailable` _integer_ |  |  |  |
+| `ipv4NexthopsUsed` _integer_ |  |  |  |
+| `ipv4RoutesAvailable` _integer_ |  |  |  |
+| `ipv4RoutesUsed` _integer_ |  |  |  |
+| `ipv6NeighborsAvailable` _integer_ |  |  |  |
+| `ipv6NeighborsUsed` _integer_ |  |  |  |
+| `ipv6NexthopsAvailable` _integer_ |  |  |  |
+| `ipv6NexthopsUsed` _integer_ |  |  |  |
+| `ipv6RoutesAvailable` _integer_ |  |  |  |
+| `ipv6RoutesUsed` _integer_ |  |  |  |
+| `nexthopGroupMembersAvailable` _integer_ |  |  |  |
+| `nexthopGroupMembersUsed` _integer_ |  |  |  |
+| `nexthopGroupsAvailable` _integer_ |  |  |  |
+| `nexthopGroupsUsed` _integer_ |  |  |  |
+| `snatEntriesAvailable` _integer_ |  |  |  |
+| `snatEntriesUsed` _integer_ |  |  |  |
 
 
 #### SwitchStateInterface
