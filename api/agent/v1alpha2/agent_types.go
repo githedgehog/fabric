@@ -156,6 +156,7 @@ type SwitchStateInterface struct {
 	OperStatus    OperStatus                    `json:"operStatus,omitempty"`
 	MAC           string                        `json:"mac,omitempty"`
 	LastChange    metav1.Time                   `json:"lastChanged,omitempty"`
+	Speed         string                        `json:"speed,omitempty"`
 	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
 	Transceiver   *SwitchStateTransceiver       `json:"transceiver,omitempty"`
 	LLDPNeighbors []SwitchStateLLDPNeighbor     `json:"lldpNeighbors,omitempty"`

@@ -241,6 +241,15 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			}
 		}
 
+		if iface.Ethernet != nil && iface.Ethernet.State != nil {
+			ethSt := iface.Ethernet.State
+
+			speed := UnmarshalPortSpeed(ethSt.PortSpeed)
+			if speed != nil {
+				ifState.Speed = *speed
+			}
+		}
+
 		swState.Interfaces[ifaceName] = ifState
 	}
 
