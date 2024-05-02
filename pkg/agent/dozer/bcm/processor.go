@@ -15,9 +15,7 @@
 package bcm
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -48,25 +46,26 @@ func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	for {
-		slog.Debug("Checking if system is ready")
+	// TODO seems like we don't really need to wait for system to become ready anymore
+	// for {
+	// 	slog.Debug("Checking if system is ready")
 
-		buf := &bytes.Buffer{}
-		// TODO figure out how to call gNMI actions(rpcs?) from agent
-		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AgentUser) //nolint:gosec
-		cmd.Stdout = io.MultiWriter(buf, os.Stdout)
-		cmd.Stderr = os.Stdout
-		err := cmd.Run()
-		if err != nil {
-			return errors.Wrap(err, "failed to run sonic-cli: show system status brief")
-		}
+	// 	buf := &bytes.Buffer{}
+	// 	// TODO figure out how to call gNMI actions(rpcs?) from agent
+	// 	cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AgentUser) //nolint:gosec
+	// 	cmd.Stdout = io.MultiWriter(buf, os.Stdout)
+	// 	cmd.Stderr = os.Stdout
+	// 	err := cmd.Run()
+	// 	if err != nil {
+	// 		return errors.Wrap(err, "failed to run sonic-cli: show system status brief")
+	// 	}
 
-		if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
-			break
-		}
+	// 	if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
+	// 		break
+	// 	}
 
-		time.Sleep(3 * time.Second)
-	}
+	// 	time.Sleep(3 * time.Second)
+	// }
 
 	// TODO replace with better handling
 	cmd := exec.CommandContext(ctx, "bash", "-c", "(sudo dmidecode -t system | grep 'QEMU') && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT) || true")
