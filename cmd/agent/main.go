@@ -71,6 +71,7 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 			MaxBackups: 4,
 			MaxAge:     30, // days
 			Compress:   true,
+			FileMode:   0o644,
 		}
 		// TODO do we need to close logFile?
 
