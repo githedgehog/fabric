@@ -2,6 +2,8 @@ module go.githedgehog.com/fabric
 
 go 1.21.1
 
+replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
+
 require (
 	github.com/0x5a17ed/uefi v0.6.1
 	github.com/apparentlymart/go-cidr v1.1.0
