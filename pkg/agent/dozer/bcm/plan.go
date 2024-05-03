@@ -1489,6 +1489,17 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				VLAN: pointer.To(irbVLAN),
 			}
 		}
+
+		for _, route := range vpc.StaticRoutes {
+			nextHops := []dozer.SpecVRFStaticRouteNextHop{}
+			for _, nextHop := range route.NextHops {
+				nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
+			}
+
+			spec.VRFs[vrfName].StaticRoutes[route.Prefix] = &dozer.SpecVRFStaticRoute{
+				NextHops: nextHops,
+			}
+		}
 	}
 
 	for attachName, attach := range agent.Spec.VPCAttachments {
