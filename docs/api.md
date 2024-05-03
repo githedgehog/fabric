@@ -376,6 +376,7 @@ _Appears in:_
 | `operStatus` _[OperStatus](#operstatus)_ |  |  |  |
 | `mac` _string_ |  |  |  |
 | `lastChanged` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `speed` _string_ |  |  |  |
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `transceiver` _[SwitchStateTransceiver](#switchstatetransceiver)_ |  |  |  |
 | `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
@@ -1181,6 +1182,24 @@ _Appears in:_
 | `defaultIsolated` _boolean_ | DefaultIsolated sets default bahivour for isolated mode for the subnets (disabled by default) |  |  |
 | `defaultRestricted` _boolean_ | DefaultRestricted sets default bahivour for restricted mode for the subnets (disabled by default) |  |  |
 | `permit` _string array array_ | Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.<br />It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked<br />as isolated it's required to have it in a permit list to have access to other subnets. |  |  |
+| `staticRoutes` _[VPCStaticRoute](#vpcstaticroute) array_ | StaticRoutes is the list of additional static routes for the VPC |  |  |
+
+
+#### VPCStaticRoute
+
+
+
+VPCStaticRoute defines the static route for the VPC
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefix` _string_ | Prefix for the static route (mandatory), e.g. 10.42.0.0/24 |  |  |
+| `nextHops` _string array_ | NextHops for the static route (at least one is required), e.g. 10.99.0.0 |  |  |
 
 
 #### VPCStatus
