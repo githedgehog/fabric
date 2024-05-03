@@ -511,15 +511,15 @@ func NewRegistry() *Registry {
 				Help:        "Version of the agent binary",
 				ConstLabels: labels,
 			}, []string{"version"}),
-			HeartbeatDuration: autoreg.NewHistogram(prometheus.HistogramOpts{ // TODO custom buckets
+			HeartbeatDuration: autoreg.NewHistogram(prometheus.HistogramOpts{
 				Namespace:   MetricNamespace,
 				Subsystem:   MetricSubsystem,
 				Name:        "agent_heartbeat_duration_seconds",
 				Help:        "Duration of agent heartbeats",
 				ConstLabels: labels,
-				Buckets:     []float64{1, 2, 3, 5, 7, 10, 15},
+				Buckets:     []float64{3, 5, 7, 10, 15},
 			}),
-			ConfigApplyDuration: autoreg.NewHistogram(prometheus.HistogramOpts{ // TODO custom buckets
+			ConfigApplyDuration: autoreg.NewHistogram(prometheus.HistogramOpts{
 				Namespace:   MetricNamespace,
 				Subsystem:   MetricSubsystem,
 				Name:        "agent_config_apply_duration_seconds",
@@ -527,7 +527,7 @@ func NewRegistry() *Registry {
 				ConstLabels: labels,
 				Buckets:     []float64{5, 10, 20, 30, 45, 60, 120, 300},
 			}),
-			KubeApplyDuration: autoreg.NewHistogram(prometheus.HistogramOpts{ // TODO custom buckets
+			KubeApplyDuration: autoreg.NewHistogram(prometheus.HistogramOpts{
 				Namespace:   MetricNamespace,
 				Subsystem:   MetricSubsystem,
 				Name:        "agent_kube_apply_duration_seconds",
@@ -555,23 +555,21 @@ func (r *Registry) SaveSwitchState(state *agentapi.SwitchState) {
 	r.state = state
 }
 
-func (r *Registry) ServeMetrics() error {
+func (r *Registry) ServeMetrics(port uint16) error {
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Heartbeat("/ping"))
 
 	router.Handle("/metrics", promhttp.HandlerFor(r.reg, promhttp.HandlerOpts{
 		Registry: r.reg,
-		// TODO Timeout: ,
-		// TODO ErrorLog: ,
+		Timeout:  10 * time.Second,
 	}))
 
 	server := &http.Server{
 		Handler:           router,
-		Addr:              fmt.Sprintf("127.0.0.1:%d", 2112), // TODO configurable
+		Addr:              fmt.Sprintf("127.0.0.1:%d", port),
 		ReadHeaderTimeout: 30 * time.Second,
-		// TODO any other timeouts?
 	}
 
-	return errors.Wrapf(server.ListenAndServe(), "failed to start metrics server")
+	return errors.Wrapf(server.ListenAndServe(), "failed to start metrics server at %s", server.Addr)
 }
