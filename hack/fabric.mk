@@ -121,15 +121,28 @@ fabric-dhcpd-chart-push: fabric-dhcpd-chart-build
 fabric-dhcpd-chart-push-dev: fabric-dhcpd-chart-build
 	$(HELM) push --insecure-skip-tls-verify config/helm/fabric-dhcpd-$(VERSION).tgz oci://$(OCI_REPO)/charts
 
+.PHONY: fabric-proxy-chart-build
+fabric-proxy-chart-build:
+	rm config/helm/fabric-proxy-*.tgz || true
+	$(HELM) package config/helm/fabric-proxy --destination config/helm --version $(VERSION)
+
+.PHONY: fabric-proxy-chart-push
+fabric-proxy-chart-push: fabric-proxy-chart-build
+	$(HELM) push config/helm/fabric-proxy-$(VERSION).tgz oci://$(OCI_REPO)/charts
+
+.PHONY: fabric-proxy-chart-push-dev
+fabric-proxy-chart-push-dev: fabric-proxy-chart-build
+	$(HELM) push --insecure-skip-tls-verify config/helm/fabric-proxy-$(VERSION).tgz oci://$(OCI_REPO)/charts
+
 
 .PHONY: dev-push
-dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev fabric-dhcpd-push-dev fabric-dhcpd-chart-push-dev
+dev-push: api-chart-push-dev fabric-image-push-dev fabric-chart-push-dev agent-push-dev hhfctl-push-dev fabric-dhcp-server-push-dev fabric-dhcp-server-chart-push-dev fabric-dhcpd-push-dev fabric-dhcpd-chart-push-dev fabric-proxy-chart-push-dev
 
 .PHONY: build
-build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build fabric-dhcpd-build fabric-dhcpd-chart-build
+build: api-chart-build fabric-image-build fabric-chart-build agent-build hhfctl-build fabric-dhcp-server-build fabric-dhcp-server-chart-build fabric-dhcpd-build fabric-dhcpd-chart-build fabric-proxy-chart-build
 
 .PHONY: push
-push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push fabric-dhcpd-push fabric-dhcpd-chart-push
+push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push fabric-dhcp-server-push fabric-dhcp-server-chart-push fabric-dhcpd-push fabric-dhcpd-chart-push fabric-proxy-chart-push
 
 # TODO set dhcp-server image version too (helm set)
 # if kubectl get helmchart/fabric-dhcp-server ; then helm upgrade --reuse-values --set image.tag="$(VERSION)" fabric-dhcp-server config/helm/fabric-dhcp-server-$(VERSION).tgz ; fi
