@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
@@ -68,13 +69,17 @@ type Service struct {
 	reg *switchstate.Registry
 }
 
+const (
+	exporterPort = 7042
+)
+
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
 	svc.reg.AgentMetrics.Version.WithLabelValues(svc.Version).Set(1)
 
 	if !svc.ApplyOnce && !svc.DryRun {
 		go func() {
-			if err := svc.reg.ServeMetrics(); err != nil {
+			if err := svc.reg.ServeMetrics(exporterPort); err != nil {
 				slog.Error("Failed to serve metrics", "err", err)
 				panic(err)
 			}
@@ -190,7 +195,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 				return nil
 			case <-time.After(15 * time.Second):
-				slog.Debug("Sending heartbeat")
+				slog.Debug("Sending heartbeat", "name", agent.Name)
 				start := time.Now()
 
 				if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
@@ -373,7 +378,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
-	return nil
+	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, exporterPort), "failed to ensure alloy installed")
 }
 
 func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64) error {
