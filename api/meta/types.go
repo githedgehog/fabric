@@ -77,6 +77,8 @@ type FabricConfig struct {
 	ServerFacingMTUOffset uint16      `json:"serverFacingMTUOffset,omitempty"`
 	ESLAGMACBase          string      `json:"eslagMACBase,omitempty"`
 	ESLAGESIPrefix        string      `json:"eslagESIPrefix,omitempty"`
+	AlloyRepo             string      `json:"alloyRepo,omitempty"`
+	AlloyVersion          string      `json:"alloyVersion,omitempty"`
 	Alloy                 AlloyConfig `json:"alloy,omitempty"`
 
 	reservedSubnets []*net.IPNet
@@ -241,6 +243,11 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 		if len(cfg.ESLAGESIPrefix) != 12 {
 			return nil, errors.Errorf("config: eslagESIPrefix should be a valid 12 hex long prefix, e.g. '00:f2:00:00:'")
 		}
+	}
+
+	cfg.Alloy.Default()
+	if err := cfg.Alloy.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "error validating alloy config")
 	}
 
 	// TODO validate format of all fields
