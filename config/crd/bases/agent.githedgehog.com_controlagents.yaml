@@ -86,6 +86,10 @@ spec:
                 type: object
               version:
                 properties:
+                  alloyRepo:
+                    type: string
+                  alloyVersion:
+                    type: string
                   ca:
                     type: string
                   default:

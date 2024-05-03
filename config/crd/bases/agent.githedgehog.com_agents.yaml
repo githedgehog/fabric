@@ -97,6 +97,77 @@ spec:
           spec:
             description: Spec is the desired state of the Agent
             properties:
+              alloy:
+                properties:
+                  agentScrapeIntervalSeconds:
+                    type: integer
+                  lokiTargets:
+                    additionalProperties:
+                      properties:
+                        basicAuth:
+                          properties:
+                            password:
+                              type: string
+                            username:
+                              type: string
+                          type: object
+                        bearerToken:
+                          type: string
+                        caPEM:
+                          type: string
+                        certPEM:
+                          type: string
+                        insecureSkipVerify:
+                          type: boolean
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        url:
+                          type: string
+                        useControlProxy:
+                          type: boolean
+                      type: object
+                    type: object
+                  prometheusTargets:
+                    additionalProperties:
+                      properties:
+                        basicAuth:
+                          properties:
+                            password:
+                              type: string
+                            username:
+                              type: string
+                          type: object
+                        bearerToken:
+                          type: string
+                        caPEM:
+                          type: string
+                        certPEM:
+                          type: string
+                        insecureSkipVerify:
+                          type: boolean
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        sendIntervalSeconds:
+                          type: integer
+                        url:
+                          type: string
+                        useControlProxy:
+                          type: boolean
+                      type: object
+                    type: object
+                  unixExporterCollectors:
+                    items:
+                      type: string
+                    type: array
+                  unixExporterEnabled:
+                    type: boolean
+                  unixScrapeIntervalSeconds:
+                    type: integer
+                type: object
               attachedVPCs:
                 additionalProperties:
                   type: boolean
@@ -1007,6 +1078,10 @@ spec:
                 type: array
               version:
                 properties:
+                  alloyRepo:
+                    type: string
+                  alloyVersion:
+                    type: string
                   ca:
                     type: string
                   default:
@@ -1108,6 +1183,25 @@ spec:
                         items:
                           type: string
                         type: array
+                      type: array
+                    staticRoutes:
+                      description: StaticRoutes is the list of additional static routes
+                        for the VPC
+                      items:
+                        description: VPCStaticRoute defines the static route for the
+                          VPC
+                        properties:
+                          nextHops:
+                            description: NextHops for the static route (at least one
+                              is required), e.g. 10.99.0.0
+                            items:
+                              type: string
+                            type: array
+                          prefix:
+                            description: Prefix for the static route (mandatory),
+                              e.g. 10.42.0.0/24
+                            type: string
+                        type: object
                       type: array
                     subnets:
                       additionalProperties:
@@ -1701,6 +1795,8 @@ spec:
                         mac:
                           type: string
                         operStatus:
+                          type: string
+                        speed:
                           type: string
                         transceiver:
                           properties:

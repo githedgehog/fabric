@@ -34,6 +34,7 @@ type AgentSpec struct {
 	Role                 wiringapi.SwitchRole                     `json:"role,omitempty"`
 	Description          string                                   `json:"description,omitempty"`
 	Config               AgentSpecConfig                          `json:"config,omitempty"`
+	Alloy                meta.AlloyConfig                         `json:"alloy,omitempty"`
 	Version              AgentVersion                             `json:"version,omitempty"`
 	Users                []UserCreds                              `json:"users,omitempty"`
 	Switch               wiringapi.SwitchSpec                     `json:"switch,omitempty"`
@@ -85,10 +86,12 @@ func (a *Agent) IsSpineLeaf() bool {
 }
 
 type AgentVersion struct {
-	Default  string `json:"default,omitempty"`
-	Override string `json:"override,omitempty"`
-	Repo     string `json:"repo,omitempty"`
-	CA       string `json:"ca,omitempty"`
+	Default      string `json:"default,omitempty"`
+	Override     string `json:"override,omitempty"`
+	Repo         string `json:"repo,omitempty"`
+	CA           string `json:"ca,omitempty"`
+	AlloyRepo    string `json:"alloyRepo,omitempty"`
+	AlloyVersion string `json:"alloyVersion,omitempty"`
 }
 
 type UserCreds struct {
