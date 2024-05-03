@@ -77,6 +77,7 @@ type FabricConfig struct {
 	ServerFacingMTUOffset uint16      `json:"serverFacingMTUOffset,omitempty"`
 	ESLAGMACBase          string      `json:"eslagMACBase,omitempty"`
 	ESLAGESIPrefix        string      `json:"eslagESIPrefix,omitempty"`
+	Alloy                 AlloyConfig `json:"alloy,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }

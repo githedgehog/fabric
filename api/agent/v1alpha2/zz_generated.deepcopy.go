@@ -88,6 +88,7 @@ func (in *AgentList) DeepCopyObject() runtime.Object {
 func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 	*out = *in
 	in.Config.DeepCopyInto(&out.Config)
+	in.Alloy.DeepCopyInto(&out.Alloy)
 	out.Version = in.Version
 	if in.Users != nil {
 		in, out := &in.Users, &out.Users
