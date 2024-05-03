@@ -609,6 +609,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.Version.Default = r.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
+		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
+		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
 
 		agent.Spec.Catalog = *cat
 
@@ -628,6 +630,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		} else if r.Cfg.FabricMode == meta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
+
+		agent.Spec.Alloy = r.Cfg.Alloy
 
 		return nil
 	})
