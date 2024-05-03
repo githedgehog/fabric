@@ -84,6 +84,23 @@ spec:
                     type: string
                   type: array
                 type: array
+              staticRoutes:
+                description: StaticRoutes is the list of additional static routes
+                  for the VPC
+                items:
+                  description: VPCStaticRoute defines the static route for the VPC
+                  properties:
+                    nextHops:
+                      description: NextHops for the static route (at least one is
+                        required), e.g. 10.99.0.0
+                      items:
+                        type: string
+                      type: array
+                    prefix:
+                      description: Prefix for the static route (mandatory), e.g. 10.42.0.0/24
+                      type: string
+                  type: object
+                type: array
               subnets:
                 additionalProperties:
                   description: VPCSubnet defines the VPC subnet configuration

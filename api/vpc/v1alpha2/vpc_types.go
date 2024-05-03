@@ -52,6 +52,8 @@ type VPCSpec struct {
 	// It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked
 	// as isolated it's required to have it in a permit list to have access to other subnets.
 	Permit [][]string `json:"permit,omitempty"`
+	// StaticRoutes is the list of additional static routes for the VPC
+	StaticRoutes []VPCStaticRoute `json:"staticRoutes,omitempty"`
 }
 
 // VPCSubnet defines the VPC subnet configuration
@@ -86,6 +88,14 @@ type VPCDHCPRange struct {
 	Start string `json:"start,omitempty"`
 	// End is the end IP address of the DHCP range
 	End string `json:"end,omitempty"`
+}
+
+// VPCStaticRoute defines the static route for the VPC
+type VPCStaticRoute struct {
+	// Prefix for the static route (mandatory), e.g. 10.42.0.0/24
+	Prefix string `json:"prefix,omitempty"`
+	// NextHops for the static route (at least one is required), e.g. 10.99.0.0
+	NextHops []string `json:"nextHops,omitempty"`
 }
 
 // VPCStatus defines the observed state of VPC
