@@ -566,22 +566,24 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 		nextHops := map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{}
 
 		for _, nextHop := range value.NextHops {
-			if nextHop.Interface == nil {
-				return nil, errors.Errorf("invalid next hop %v", nextHop)
+			index := nextHop.IP
+			var ifaceRef *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef
+			if nextHop.Interface != nil {
+				index = fmt.Sprintf("%s_%s", *nextHop.Interface, nextHop.IP)
+				ifaceRef = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef{
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef_Config{
+						Interface: nextHop.Interface,
+					},
+				}
 			}
 
-			index := fmt.Sprintf("%s_%s", *nextHop.Interface, nextHop.IP)
 			nextHops[index] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{
 				Index: pointer.To(index),
 				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_Config{
 					Index:   pointer.To(index),
 					NextHop: oc.UnionString(nextHop.IP),
 				},
-				InterfaceRef: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef{
-					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef_Config{
-						Interface: nextHop.Interface,
-					},
-				},
+				InterfaceRef: ifaceRef,
 			}
 		}
 
@@ -813,7 +815,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							}
 
 							var iface *string
-							if nextHop.InterfaceRef != nil || nextHop.InterfaceRef.Config != nil {
+							if nextHop.InterfaceRef != nil && nextHop.InterfaceRef.Config != nil {
 								iface = nextHop.InterfaceRef.Config.Interface
 							}
 
