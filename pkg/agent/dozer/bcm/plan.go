@@ -1490,14 +1490,16 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		for _, route := range vpc.StaticRoutes {
-			nextHops := []dozer.SpecVRFStaticRouteNextHop{}
-			for _, nextHop := range route.NextHops {
-				nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
-			}
+		if agent.Spec.AttachedVPCs[vpcName] {
+			for _, route := range vpc.StaticRoutes {
+				nextHops := []dozer.SpecVRFStaticRouteNextHop{}
+				for _, nextHop := range route.NextHops {
+					nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
+				}
 
-			spec.VRFs[vrfName].StaticRoutes[route.Prefix] = &dozer.SpecVRFStaticRoute{
-				NextHops: nextHops,
+				spec.VRFs[vrfName].StaticRoutes[route.Prefix] = &dozer.SpecVRFStaticRoute{
+					NextHops: nextHops,
+				}
 			}
 		}
 	}
