@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
@@ -55,26 +56,41 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 
 	slog.Info("Attempting to upgrade Agent")
 
-	path, err := os.MkdirTemp("/opt/hedgehog/bin", "agent-upgrade-*")
-	if err != nil {
-		return false, errors.Wrap(err, "failed to create temp dir")
-	}
-	defer os.RemoveAll(path)
+	return true, UpgradeBin(ctx, version.Repo, desiredVersion, version.CA, "/opt/hedgehog/bin", "agent", func(ctx context.Context, binPath string) error {
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
 
-	fs, err := file.New(path)
+		cmd := exec.CommandContext(ctx, binPath, testArgs...)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			slog.Warn("Failed to run new agent", "err", err, "output", string(output))
+		}
+
+		return errors.Wrap(err, "failed to run new agent")
+	})
+}
+
+func UpgradeBin(ctx context.Context, source, version, ca, target, name string, testFunc func(ctx context.Context, binPath string) error) error {
+	tmpPath, err := os.MkdirTemp(target, "bin-upgrade-*")
 	if err != nil {
-		return false, errors.Wrapf(err, "error creating oras file store in %s", path)
+		return errors.Wrap(err, "failed to create temp dir")
+	}
+	defer os.RemoveAll(tmpPath)
+
+	fs, err := file.New(tmpPath)
+	if err != nil {
+		return errors.Wrapf(err, "error creating oras file store in %s", tmpPath)
 	}
 	defer fs.Close()
 
-	repo, err := remote.NewRepository(version.Repo)
+	repo, err := remote.NewRepository(source)
 	if err != nil {
-		return false, errors.Wrapf(err, "error creating oras remote repo %s", version.Repo)
+		return errors.Wrapf(err, "error creating oras remote repo %s", source)
 	}
 
 	rootCAs := x509.NewCertPool()
-	if !rootCAs.AppendCertsFromPEM([]byte(version.CA)) {
-		return false, errors.New("failed to append CA cert to rootCAs")
+	if !rootCAs.AppendCertsFromPEM([]byte(ca)) {
+		return errors.New("failed to append CA cert to rootCAs")
 	}
 
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -90,33 +106,31 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 		},
 	}
 
-	_, err = oras.Copy(ctx, repo, desiredVersion, fs, desiredVersion, oras.CopyOptions{
+	_, err = oras.Copy(ctx, repo, version, fs, version, oras.CopyOptions{
 		CopyGraphOptions: oras.CopyGraphOptions{
 			Concurrency: 2,
 		},
 	})
 	if err != nil {
-		return false, errors.Wrapf(err, "error downloading new agent %s from %s", desiredVersion, version.Repo)
+		return errors.Wrapf(err, "error downloading new %s bin %s from %s", name, version, source)
 	}
 
-	agentPath := filepath.Join(path, "agent")
+	binPath := filepath.Join(tmpPath, name)
 
-	err = os.Chmod(agentPath, 0o755)
+	err = os.Chmod(binPath, 0o755)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to chmod new agent binary in %s", path)
+		return errors.Wrapf(err, "failed to chmod new %s bin in %s", name, tmpPath)
 	}
 
-	cmd := exec.CommandContext(ctx, agentPath, testArgs...)
-	err = cmd.Run()
+	if err := testFunc(ctx, binPath); err != nil {
+		return errors.Wrapf(err, "failed to test new %s bin in %s", name, tmpPath)
+	}
+
+	targetPath := filepath.Join(target, name)
+	err = os.Rename(binPath, targetPath)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to run new agent binary in %s", path)
+		return errors.Wrapf(err, "failed to move new bin to %s", targetPath)
 	}
 
-	// TODO const?
-	err = os.Rename(agentPath, "/opt/hedgehog/bin/agent")
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to move new agent binary from %s to /opt/hedgehog/bin/agent", path)
-	}
-
-	return true, nil
+	return nil
 }
