@@ -30,6 +30,7 @@ type AlloyConfig struct {
 	UnixScrapeIntervalSeconds  uint                             `json:"unixScrapeIntervalSeconds,omitempty"`
 	PrometheusTargets          map[string]AlloyPrometheusTarget `json:"prometheusTargets,omitempty"`
 	LokiTargets                map[string]AlloyLokiTarget       `json:"lokiTargets,omitempty"`
+	ControlProxyURL            string                           `json:"controlProxyURL,omitempty"`
 }
 
 type AlloyBasicAuth struct {

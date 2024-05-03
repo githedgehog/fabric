@@ -110,7 +110,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 		Hostname:          agent.Name,
 		PrometheusEnabled: len(agent.Spec.Alloy.PrometheusTargets) > 0,
 		LokiEnabled:       len(agent.Spec.Alloy.LokiTargets) > 0,
-		ProxyURL:          "http://172.30.1.1:3128", // TODO make configurable
+		ProxyURL:          agent.Spec.Alloy.ControlProxyURL,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "error executing config template")
