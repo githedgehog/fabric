@@ -62,16 +62,16 @@ spec:
             description: Spec is the desired state of the External
             properties:
               inboundCommunity:
-                description: InboundCommunity is the name of the inbound community
-                  to filter routes from the external system
+                description: InboundCommunity is the inbound community to filter routes
+                  from the external system (e.g. 65102:5000)
                 type: string
               ipv4Namespace:
                 description: IPv4Namespace is the name of the IPv4Namespace this External
                   belongs to
                 type: string
               outboundCommunity:
-                description: OutboundCommunity is the name of the outbound community
-                  that all outbound routes will be stamped with
+                description: OutboundCommunity is theoutbound community that all outbound
+                  routes will be stamped with (e.g. 50000:50001)
                 type: string
             type: object
           status:

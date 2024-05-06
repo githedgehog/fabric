@@ -918,8 +918,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this External belongs to |  |  |
-| `inboundCommunity` _string_ | InboundCommunity is the name of the inbound community to filter routes from the external system |  |  |
-| `outboundCommunity` _string_ | OutboundCommunity is the name of the outbound community that all outbound routes will be stamped with |  |  |
+| `inboundCommunity` _string_ | InboundCommunity is the inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
+| `outboundCommunity` _string_ | OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
 
 
 #### ExternalStatus
