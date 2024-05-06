@@ -19,7 +19,7 @@ require (
 	github.com/onsi/gomega v1.33.0
 	github.com/openconfig/gnmi v0.11.0
 	github.com/openconfig/gnmic v0.32.0
-	github.com/openconfig/ygot v0.29.18
+	github.com/openconfig/ygot v0.29.19
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.18.0
