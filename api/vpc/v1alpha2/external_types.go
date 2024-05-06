@@ -16,6 +16,7 @@ package v1alpha2
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -27,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+var communityCheck = regexp.MustCompile("^(6553[0-5]|655[0-2][0-9]|654[0-9]{2}|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|[0-9]):(6553[0-5]|655[0-2][0-9]|654[0-9]{2}|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|[0-9])$")
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
@@ -34,9 +37,9 @@ import (
 type ExternalSpec struct {
 	// IPv4Namespace is the name of the IPv4Namespace this External belongs to
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
-	// InboundCommunity is the name of the inbound community to filter routes from the external system
+	// InboundCommunity is the inbound community to filter routes from the external system (e.g. 65102:5000)
 	InboundCommunity string `json:"inboundCommunity,omitempty"`
-	// OutboundCommunity is the name of the outbound community that all outbound routes will be stamped with
+	// OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001)
 	OutboundCommunity string `json:"outboundCommunity,omitempty"`
 }
 
@@ -114,14 +117,22 @@ func (external *External) Validate(ctx context.Context, kube client.Reader, _ *m
 	if external.Spec.IPv4Namespace == "" {
 		return nil, errors.Errorf("IPv4Namespace is required")
 	}
+
 	if external.Spec.InboundCommunity == "" {
 		return nil, errors.Errorf("inboundCommunity is required")
 	}
+
 	if external.Spec.OutboundCommunity == "" {
 		return nil, errors.Errorf("outboundCommunity is required")
 	}
 
-	// TODO validate communities
+	if !communityCheck.MatchString(external.Spec.InboundCommunity) {
+		return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 50000:50001", external.Spec.InboundCommunity)
+	}
+
+	if !communityCheck.MatchString(external.Spec.OutboundCommunity) {
+		return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
+	}
 
 	if kube != nil {
 		ipNs := &IPv4Namespace{}
