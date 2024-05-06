@@ -807,8 +807,8 @@ github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70/go.mod h1:Om
 github.com/openconfig/grpctunnel v0.1.0 h1:EN99qtlExZczgQgp5ANnHRC/Rs62cAG+Tz2BQ5m/maM=
 github.com/openconfig/grpctunnel v0.1.0/go.mod h1:G04Pdu0pml98tdvXrvLaU+EBo3PxYfI9MYqpvdaEHLo=
 github.com/openconfig/ygot v0.6.0/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQSmIhqwAs=
-github.com/openconfig/ygot v0.29.18 h1:vgG2r7RVwaVDXgHtpsCNW+qdSGSdxqRxUfRN2rPCy7M=
-github.com/openconfig/ygot v0.29.18/go.mod h1:sp6roPPmVDcTCF2E3qTjILA+jzJMkZ9d6spC9KLMqpc=
+github.com/openconfig/ygot v0.29.19 h1:3bbAWbCBVjyjHgeROvT38LQ7pAxcjtm7C2vNVj/rvEE=
+github.com/openconfig/ygot v0.29.19/go.mod h1:8/FXt4tc5wSfYDEJbGGumxmxwJ55Xuv12oO/jCyEins=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0 h1:8SG7/vwALn54lVB/0yZ/MMwhFrPYtpEHQb2IpWsCzug=
