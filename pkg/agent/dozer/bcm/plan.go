@@ -212,70 +212,51 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 }
 
 func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
-	direct := false
-	controlIface := ""
-	controlIP := ""
-	otherIP := ""
 	for _, conn := range agent.Spec.Connections {
-		if conn.Management != nil {
-			direct = true
-			controlIface = conn.Management.Link.Switch.LocalPortName()
-			controlIP = conn.Management.Link.Switch.IP
-			otherIP = conn.Management.Link.Server.IP
-
-			break
+		if conn.Management == nil {
+			continue
 		}
-	}
 
-	if !direct {
-		return nil
-	}
+		controlIface := conn.Management.Link.Switch.LocalPortName()
+		controlIP := conn.Management.Link.Switch.IP
+		otherIP := conn.Management.Link.Server.IP
 
-	if controlIface == "" {
-		return errors.Errorf("no control interface found")
-	}
-	if controlIP == "" {
-		return errors.Errorf("no control IP found")
-	}
-	if otherIP == "" {
-		return errors.Errorf("no other IP found")
-	}
+		ip, ipNet, err := net.ParseCIDR(controlIP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse control IP %s", controlIP)
+		}
+		prefixLen, _ := ipNet.Mask.Size()
 
-	ip, ipNet, err := net.ParseCIDR(controlIP)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse control IP %s", controlIP)
-	}
-	prefixLen, _ := ipNet.Mask.Size()
-
-	spec.Interfaces[controlIface] = &dozer.SpecInterface{
-		Description: pointer.To("Control interface direct"),
-		Enabled:     pointer.To(true),
-		Speed:       getPortSpeed(agent, controlIface),
-		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-			0: {
-				IPs: map[string]*dozer.SpecInterfaceIP{
-					ip.String(): {
-						PrefixLen: pointer.To(uint8(prefixLen)),
+		spec.Interfaces[controlIface] = &dozer.SpecInterface{
+			Description: pointer.To("Control interface direct"),
+			Enabled:     pointer.To(true),
+			Speed:       getPortSpeed(agent, controlIface),
+			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+				0: {
+					IPs: map[string]*dozer.SpecInterfaceIP{
+						ip.String(): {
+							PrefixLen: pointer.To(uint8(prefixLen)),
+						},
 					},
 				},
 			},
-		},
-	}
-
-	if !strings.HasPrefix(controlIface, "Management") {
-		ip, _, err = net.ParseCIDR(otherIP)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse other IP %s", otherIP)
 		}
 
-		controlVIP := agent.Spec.Config.ControlVIP
-		spec.VRFs[VRFDefault].StaticRoutes[controlVIP] = &dozer.SpecVRFStaticRoute{
-			NextHops: []dozer.SpecVRFStaticRouteNextHop{
-				{
-					IP:        ip.String(),
-					Interface: pointer.To(controlIface),
+		if !strings.HasPrefix(controlIface, "Management") {
+			ip, _, err = net.ParseCIDR(otherIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse other IP %s", otherIP)
+			}
+
+			controlVIP := agent.Spec.Config.ControlVIP
+			spec.VRFs[VRFDefault].StaticRoutes[controlVIP] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        ip.String(),
+						Interface: pointer.To(controlIface),
+					},
 				},
-			},
+			}
 		}
 	}
 
