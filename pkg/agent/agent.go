@@ -168,6 +168,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		if st := svc.reg.GetSwitchState(); st != nil {
 			agent.Status.State = *st
 		}
+		agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
 		err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
 		if err != nil {
@@ -201,7 +202,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 					return errors.Wrapf(err, "failed to update switch state")
 				}
-
+				if st := svc.reg.GetSwitchState(); st != nil {
+					agent.Status.State = *st
+				}
 				agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
 				err = kube.Status().Update(ctx, agent)
@@ -299,6 +302,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		if st := svc.reg.GetSwitchState(); st != nil {
 			agent.Status.State = *st
 		}
+		agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 	}
 
 	desired, err := svc.processor.PlanDesiredState(ctx, agent)
