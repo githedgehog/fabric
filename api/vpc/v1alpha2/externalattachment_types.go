@@ -43,7 +43,7 @@ type ExternalAttachmentSpec struct {
 
 // ExternalAttachmentSwitch defines the switch port configuration for the external attachment
 type ExternalAttachmentSwitch struct {
-	// VLAN is the VLAN ID used for the subinterface on a switch port specified in the connection
+	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used
 	VLAN uint16 `json:"vlan,omitempty"`
 	// IP is the IP address of the subinterface on a switch port specified in the connection
 	IP string `json:"ip,omitempty"`
@@ -132,9 +132,6 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Read
 	}
 	if attach.Spec.Connection == "" {
 		return nil, errors.Errorf("connection is required")
-	}
-	if attach.Spec.Switch.VLAN == 0 {
-		return nil, errors.Errorf("switch.vlan is required")
 	}
 	if attach.Spec.Switch.IP == "" {
 		return nil, errors.Errorf("switch.ip is required")
