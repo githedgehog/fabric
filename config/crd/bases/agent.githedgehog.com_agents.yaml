@@ -719,8 +719,9 @@ spec:
                             a switch port specified in the connection
                           type: string
                         vlan:
-                          description: VLAN is the VLAN ID used for the subinterface
-                            on a switch port specified in the connection
+                          description: VLAN (optional) is the VLAN ID used for the
+                            subinterface on a switch port specified in the connection,
+                            set to 0 if no VLAN is used
                           type: integer
                       type: object
                   type: object

@@ -739,11 +739,14 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		subIfaceName := fmt.Sprintf("%s.%d", port, attach.Switch.VLAN)
+		ifaceName := port
+		if attach.Switch.VLAN != 0 {
+			ifaceName = fmt.Sprintf("%s.%d", port, attach.Switch.VLAN)
+		}
 
 		ipns := external.IPv4Namespace
 		ipnsVrfName := ipnsVrfName(ipns)
-		spec.VRFs[ipnsVrfName].Interfaces[subIfaceName] = &dozer.SpecVRFInterface{}
+		spec.VRFs[ipnsVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 
 		spec.VRFs[ipnsVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
@@ -754,7 +757,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 		}
 
-		spec.ACLInterfaces[subIfaceName] = &dozer.SpecACLInterface{
+		spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
 			Egress: pointer.To(ipnsEgressAccessList(ipns)),
 		}
 	}

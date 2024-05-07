@@ -784,7 +784,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `vlan` _integer_ | VLAN is the VLAN ID used for the subinterface on a switch port specified in the connection |  |  |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used |  |  |
 | `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection |  |  |
 
 
