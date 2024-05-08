@@ -94,6 +94,8 @@ spec:
                     type: string
                   default:
                     type: string
+                  nosVersion:
+                    type: string
                   override:
                     type: string
                   repo:

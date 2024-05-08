@@ -92,6 +92,7 @@ type AgentVersion struct {
 	CA           string `json:"ca,omitempty"`
 	AlloyRepo    string `json:"alloyRepo,omitempty"`
 	AlloyVersion string `json:"alloyVersion,omitempty"`
+	NOSVersion   string `json:"nosVersion,omitempty"`
 }
 
 type UserCreds struct {

@@ -611,6 +611,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
 		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
 		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
+		agent.Spec.Version.NOSVersion = "latest"
 
 		agent.Spec.Catalog = *cat
 
