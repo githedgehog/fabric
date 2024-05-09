@@ -185,6 +185,42 @@ func (vpc *VPC) Default() {
 
 	vpc.Labels[LabelIPv4NS] = vpc.Spec.IPv4Namespace
 	vpc.Labels[LabelVLANNS] = vpc.Spec.VLANNamespace
+
+	for _, subnet := range vpc.Spec.Subnets {
+		cidr, err := iputil.ParseCIDR(subnet.Subnet)
+		if err != nil {
+			continue
+		}
+
+		if subnet.Gateway == "" {
+			subnet.Gateway = cidr.Gateway.String()
+		}
+
+		if prefixLen, _ := cidr.Subnet.Mask.Size(); prefixLen > 30 {
+			continue
+		}
+
+		if !subnet.DHCP.Enable {
+			if subnet.DHCP.Range != nil && subnet.DHCP.Range.Start == "" && subnet.DHCP.Range.End == "" {
+				subnet.DHCP.Range = nil
+			}
+
+			continue
+		}
+
+		start := cidr.DHCPRangeStart.String()
+		end := cidr.DHCPRangeEnd.String()
+
+		if subnet.DHCP.Range == nil {
+			subnet.DHCP.Range = &VPCDHCPRange{}
+		}
+		if subnet.DHCP.Range.Start == "" {
+			subnet.DHCP.Range.Start = start
+		}
+		if subnet.DHCP.Range.End == "" {
+			subnet.DHCP.Range.End = end
+		}
+	}
 }
 
 func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
@@ -205,7 +241,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		return nil, errors.Errorf("at least one subnet is required")
 	}
 	if len(vpc.Spec.Subnets) > 20 {
-		return nil, errors.Errorf("too many subnets, max is 10")
+		return nil, errors.Errorf("too many subnets, max is 20")
 	}
 
 	subnets := []*net.IPNet{}
@@ -220,12 +256,25 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			return nil, errors.Wrapf(err, "subnet %s: failed to parse subnet %s", subnetName, subnetCfg.Subnet)
 		}
 
+		if prefixLen, _ := ipNet.Mask.Size(); prefixLen > 30 {
+			return nil, errors.Errorf("subnet %s: prefix length %d is too large, must be <= 30", subnetName, prefixLen)
+		}
+
 		if fabricCfg != nil {
 			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
 				if reserved.Contains(ipNet.IP) {
 					return nil, errors.Errorf("subnet %s: subnet %s is reserved", subnetName, subnetCfg.Subnet)
 				}
 			}
+		}
+
+		if subnetCfg.Gateway == "" {
+			return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
+		}
+
+		gateway := net.ParseIP(subnetCfg.Gateway)
+		if !ipNet.Contains(gateway) {
+			return nil, errors.Errorf("subnet %s: gateway %s is not in the subnet", subnetName, subnetCfg.Gateway)
 		}
 
 		if subnetCfg.VLAN == 0 {
@@ -246,6 +295,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			}
 		}
 
+		if subnetCfg.DHCP.PXEURL != "" && !subnetCfg.DHCP.Enable {
+			return nil, errors.Errorf("subnet %s: pxeURL is set but dhcp is disabled", subnetName)
+		}
+
 		if subnetCfg.DHCP.Enable {
 			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
 				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
@@ -256,34 +309,46 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 				}
 			}
 
-			if subnetCfg.DHCP.Range != nil {
-				if subnetCfg.DHCP.Range.Start != "" {
-					ip := net.ParseIP(subnetCfg.DHCP.Range.Start)
-					if ip == nil {
-						return nil, errors.Errorf("subnet %s: invalid dhcp range start %s", subnetName, subnetCfg.DHCP.Range.Start)
-					}
-					if ip.Equal(ipNet.IP) {
-						return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.Start)
-					}
-					if !ipNet.Contains(ip) {
-						return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
-					}
-				}
-				if subnetCfg.DHCP.Range.End != "" {
-					ip := net.ParseIP(subnetCfg.DHCP.Range.End)
-					if ip == nil {
-						return nil, errors.Errorf("subnet %s: invalid dhcp range end %s", subnetName, subnetCfg.DHCP.Range.End)
-					}
-					if ip.Equal(ipNet.IP) {
-						return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.End)
-					}
-					if !ipNet.Contains(ip) {
-						return nil, errors.Errorf("subnet %s: dhcp range end %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.End)
-					}
-				}
-
-				// TODO check start < end
+			if subnetCfg.DHCP.Range == nil {
+				return nil, errors.Errorf("subnet %s: dhcp range is required", subnetName)
 			}
+			if subnetCfg.DHCP.Range.Start == "" {
+				return nil, errors.Errorf("subnet %s: dhcp range start is required", subnetName)
+			}
+
+			ip := net.ParseIP(subnetCfg.DHCP.Range.Start)
+			if ip == nil {
+				return nil, errors.Errorf("subnet %s: invalid dhcp range start %s", subnetName, subnetCfg.DHCP.Range.Start)
+			}
+			if ip.Equal(ipNet.IP) {
+				return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.Start)
+			}
+			if ip.Equal(gateway) {
+				return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to gateway", subnetName, subnetCfg.DHCP.Range.Start)
+			}
+			if !ipNet.Contains(ip) {
+				return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
+			}
+
+			if subnetCfg.DHCP.Range.End == "" {
+				return nil, errors.Errorf("subnet %s: dhcp range end is required", subnetName)
+			}
+
+			ip = net.ParseIP(subnetCfg.DHCP.Range.End)
+			if ip == nil {
+				return nil, errors.Errorf("subnet %s: invalid dhcp range end %s", subnetName, subnetCfg.DHCP.Range.End)
+			}
+			if ip.Equal(ipNet.IP) {
+				return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.End)
+			}
+			if ip.Equal(gateway) {
+				return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to gateway", subnetName, subnetCfg.DHCP.Range.End)
+			}
+			if !ipNet.Contains(ip) {
+				return nil, errors.Errorf("subnet %s: dhcp range end %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.End)
+			}
+
+			// TODO check start < end
 		} else {
 			if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
 				return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")

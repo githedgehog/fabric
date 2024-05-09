@@ -1825,7 +1825,7 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 		Enabled:     pointer.To(true),
 		Description: pointer.To(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
 		VLANAnycastGateway: []string{
-			fmt.Sprintf("%s/%d", subnetCIDR.Gateway.String(), prefixLen),
+			fmt.Sprintf("%s/%d", subnet.Gateway, prefixLen),
 		},
 	}
 
