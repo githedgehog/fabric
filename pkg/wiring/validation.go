@@ -39,18 +39,6 @@ func ValidateFabric(ctx context.Context, kube client.Client, fabricCfg *meta.Fab
 	// 	}
 	// }
 
-	rackList := &wiringapi.RackList{}
-	if err := kube.List(ctx, rackList); err != nil {
-		return errors.Wrapf(err, "error listing racks")
-	}
-
-	for _, rack := range rackList.Items {
-		rack.Default()
-		if _, err := rack.Validate(ctx, kube, fabricCfg); err != nil {
-			return errors.Wrapf(err, "error validating rack %s", rack.Name)
-		}
-	}
-
 	sgGroupList := &wiringapi.SwitchGroupList{}
 	if err := kube.List(ctx, sgGroupList); err != nil {
 		return errors.Wrapf(err, "error listing switch groups")

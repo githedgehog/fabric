@@ -35,7 +35,6 @@ import (
 )
 
 type Data struct {
-	Rack               *Store[*wiringapi.Rack]
 	SwitchGroup        *Store[*wiringapi.SwitchGroup]
 	Switch             *Store[*wiringapi.Switch]
 	Server             *Store[*wiringapi.Server]
@@ -57,7 +56,6 @@ func New(objs ...metav1.Object) (*Data, error) {
 	}
 
 	data := &Data{
-		Rack:               NewStore[*wiringapi.Rack](),
 		SwitchGroup:        NewStore[*wiringapi.SwitchGroup](),
 		Switch:             NewStore[*wiringapi.Switch](),
 		Server:             NewStore[*wiringapi.Server](),
@@ -99,8 +97,6 @@ func (d *Data) addOrUpdate(update bool, objs ...metav1.Object) error {
 
 		var err error
 		switch typed := obj.(type) {
-		case *wiringapi.Rack:
-			err = d.Rack.Add(update, typed)
 		case *wiringapi.SwitchGroup:
 			err = d.SwitchGroup.Add(update, typed)
 		case *wiringapi.Switch:
@@ -233,14 +229,6 @@ func (d *Data) Write(ret io.Writer) error {
 
 	for _, ns := range d.IPv4Namespaces.All() {
 		err := marshal(ns, idx > 0, w)
-		if err != nil {
-			return err
-		}
-		idx++
-	}
-
-	for _, rack := range d.Rack.All() {
-		err := marshal(rack, idx > 0, w)
 		if err != nil {
 			return err
 		}

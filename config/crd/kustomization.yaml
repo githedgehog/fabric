@@ -17,7 +17,6 @@
 # It should be run by config/default
 resources:
   - bases/agent.githedgehog.com_agents.yaml
-  - bases/wiring.githedgehog.com_racks.yaml
   - bases/wiring.githedgehog.com_switches.yaml
   - bases/wiring.githedgehog.com_servers.yaml
   - bases/wiring.githedgehog.com_connections.yaml
@@ -41,7 +40,6 @@ patches:
   # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
   # patches here are for enabling the conversion webhook for each CRD
   #- path: patches/webhook_in_agents.yaml
-  #- path: patches/webhook_in_racks.yaml
   - path: patches/webhook_in_wiring_switches.yaml
   - path: patches/webhook_in_wiring_servers.yaml
   - path: patches/webhook_in_wiring_connections.yaml
@@ -63,7 +61,6 @@ patches:
   # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
   # patches here are for enabling the CA injection for each CRD
   #- path: patches/cainjection_in_agents.yaml
-  #- path: patches/cainjection_in_racks.yaml
   - path: patches/cainjection_in_wiring_switches.yaml
   - path: patches/cainjection_in_wiring_servers.yaml
   - path: patches/cainjection_in_wiring_connections.yaml

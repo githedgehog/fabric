@@ -31,7 +31,6 @@ const (
 var (
 	// TODO should it be same as group name? or just standard prefix for all APIs?
 	LabelPrefix               = "fabric.githedgehog.com/"
-	LabelRack                 = LabelName("rack")
 	LabelSwitch               = LabelName("switch")
 	LabelServer               = LabelName("server")
 	LabelServerType           = LabelName("server-type")
@@ -44,7 +43,6 @@ var (
 	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
-	ConnectionLabelTypeRack   = "rack"
 )
 
 func LabelName(name string) string {
@@ -65,10 +63,6 @@ func ListLabelServer(serverName string) string {
 
 func ListLabelSwitch(switchName string) string {
 	return ListLabel(ConnectionLabelTypeSwitch, switchName)
-}
-
-func ListLabelRack(rackName string) string {
-	return ListLabel(ConnectionLabelTypeRack, rackName)
 }
 
 func ListLabelVLANNamespace(vlanNamespace string) string {

@@ -1243,7 +1243,6 @@ the underlay definition including Switches, Server, wiring between them and etc.
 
 ### Resource Types
 - [Connection](#connection)
-- [Rack](#rack)
 - [Server](#server)
 - [Switch](#switch)
 - [SwitchGroup](#switchgroup)
@@ -1684,72 +1683,6 @@ _Appears in:_
 | `uuidSig` _string_ |  |  |  |
 
 
-#### Rack
-
-
-
-Rack is the Schema for the racks API
-
-
-
-
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
-| `kind` _string_ | `Rack` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `spec` _[RackSpec](#rackspec)_ |  |  |  |
-| `status` _[RackStatus](#rackstatus)_ |  |  |  |
-
-
-#### RackPosition
-
-
-
-RackPosition defines the geographical position of the rack in a datacenter
-
-
-
-_Appears in:_
-- [RackSpec](#rackspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `location` _string_ |  |  |  |
-| `aisle` _string_ |  |  |  |
-| `row` _string_ |  |  |  |
-
-
-#### RackSpec
-
-
-
-RackSpec defines the properties of a rack which we are modelling
-
-
-
-_Appears in:_
-- [Rack](#rack)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `position` _[RackPosition](#rackposition)_ |  |  |  |
-
-
-#### RackStatus
-
-
-
-RackStatus defines the observed state of Rack
-
-
-
-_Appears in:_
-- [Rack](#rack)
-
-
-
 #### Server
 
 
@@ -1858,10 +1791,6 @@ _Appears in:_
 
 
 Switch is the Schema for the switches API
-
-
-All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents name of the rack it
-belongs to.
 
 
 

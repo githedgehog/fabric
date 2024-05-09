@@ -124,12 +124,8 @@ type SwitchStatus struct {
 // +kubebuilder:printcolumn:name="LocationUUID",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/location`,priority=0
 // +kubebuilder:printcolumn:name="PortGroups",type=string,JSONPath=`.spec.portGroupSpeeds`,priority=1
 // +kubebuilder:printcolumn:name="Breakouts",type=string,JSONPath=`.spec.portBreakouts`,priority=1
-// +kubebuilder:printcolumn:name="Rack",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/rack`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Switch is the Schema for the switches API
-//
-// All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents name of the rack it
-// belongs to.
 type Switch struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

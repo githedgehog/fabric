@@ -41,22 +41,13 @@ spec:
       name: Breakouts
       priority: 1
       type: string
-    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/rack
-      name: Rack
-      priority: 1
-      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: |-
-          Switch is the Schema for the switches API
-
-
-          All switches should always have 1 labels defined: wiring.githedgehog.com/rack. It represents name of the rack it
-          belongs to.
+        description: Switch is the Schema for the switches API
         properties:
           apiVersion:
             description: |-
