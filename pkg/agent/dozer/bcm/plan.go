@@ -1561,16 +1561,11 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		for _, iface := range ifaces {
 			if attach.NativeVLAN {
-				// TODO dedup
-				vlan, err := strconv.ParseUint(subnet.VLAN, 10, 16)
-				if err != nil {
-					return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
-				}
-
-				spec.Interfaces[iface].AccessVLAN = pointer.To(uint16(vlan))
+				spec.Interfaces[iface].AccessVLAN = pointer.To(subnet.VLAN)
 			} else {
-				if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN) {
-					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, subnet.VLAN)
+				vlanStr := fmt.Sprintf("%d", subnet.VLAN)
+				if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, vlanStr) {
+					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, vlanStr)
 				}
 			}
 		}
@@ -1798,13 +1793,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				if len(acl.Entries) == 1 {
 					delete(spec.ACLs, aclName)
 
-					// TODO dedup
-					vlanRaw, err := strconv.ParseUint(subnet.VLAN, 10, 16)
-					if err != nil {
-						return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
-					}
-					subnetIface := vlanName(uint16(vlanRaw))
-
+					subnetIface := vlanName(subnet.VLAN)
 					if aclIface, ok := spec.ACLInterfaces[subnetIface]; ok {
 						if aclIface.Ingress != nil && *aclIface.Ingress == aclName {
 							aclIface.Ingress = nil
@@ -1825,19 +1814,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) error {
 	vrfName := vpcVrfName(vpcName)
 
-	vlanRaw, err := strconv.ParseUint(subnet.VLAN, 10, 16)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse subnet VLAN %s for VPC %s", subnet.VLAN, vpcName)
-	}
-	subnetVLAN := uint16(vlanRaw)
-
 	subnetCIDR, err := iputil.ParseCIDR(subnet.Subnet)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse subnet %s for VPC %s", subnet.Subnet, vpcName)
 	}
 	prefixLen, _ := subnetCIDR.Subnet.Mask.Size()
 
-	subnetIface := vlanName(subnetVLAN)
+	subnetIface := vlanName(subnet.VLAN)
 	spec.Interfaces[subnetIface] = &dozer.SpecInterface{
 		Enabled:     pointer.To(true),
 		Description: pointer.To(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
@@ -1868,7 +1851,7 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", subnetVNI, subnetIface)] = &dozer.SpecVXLANTunnelMap{
 			VTEP: pointer.To(VTEPFabric),
 			VNI:  pointer.To(subnetVNI),
-			VLAN: pointer.To(subnetVLAN),
+			VLAN: pointer.To(subnet.VLAN),
 		}
 	}
 

@@ -31,7 +31,7 @@ import (
 type VPCCreateOptions struct {
 	Name   string
 	Subnet string
-	VLAN   string
+	VLAN   uint16
 	DHCP   vpcapi.VPCDHCP
 }
 

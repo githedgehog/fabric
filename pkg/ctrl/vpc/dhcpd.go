@@ -70,7 +70,7 @@ type dhcpdSubnet struct {
 	Subnet     string
 	Mask       string
 	Empty      bool
-	VLAN       string
+	VLAN       uint16
 	RangeStart string
 	RangeEnd   string
 	Router     string
@@ -132,7 +132,7 @@ func (r *Reconciler) updateISCDHCPConfig(ctx context.Context) error {
 		}
 
 		for subnetName, subnet := range vpc.Spec.Subnets {
-			if !subnet.DHCP.Enable || subnet.VLAN == "" {
+			if !subnet.DHCP.Enable || subnet.VLAN == 0 {
 				continue
 			}
 
@@ -230,7 +230,7 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 				StartIP:   start,
 				EndIP:     end,
 				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
-				CircuitID: fmt.Sprintf("Vlan%s", subnet.VLAN), // TODO move to utils
+				CircuitID: fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
 				PXEURL:    subnet.DHCP.PXEURL,
 			}
 
