@@ -17,7 +17,6 @@ package v1alpha2
 import (
 	"context"
 	"net"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -60,10 +59,12 @@ type VPCSpec struct {
 type VPCSubnet struct {
 	// Subnet is the subnet CIDR block, such as "10.0.0.0/24", should belong to the IPv4Namespace and be unique within the namespace
 	Subnet string `json:"subnet,omitempty"`
+	// Gateway (optional) for the subnet, if not specified, the first IP (e.g. 10.0.0.1) in the subnet is used as the gateway
+	Gateway string `json:"gateway,omitempty"`
 	// DHCP is the on-demand DHCP configuration for the subnet
 	DHCP VPCDHCP `json:"dhcp,omitempty"`
 	// VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace
-	VLAN string `json:"vlan,omitempty"`
+	VLAN uint16 `json:"vlan,omitempty"`
 	// Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC
 	Isolated *bool `json:"isolated,omitempty"`
 	// Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself
@@ -208,7 +209,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 	}
 
 	subnets := []*net.IPNet{}
-	vlans := map[string]bool{}
+	vlans := map[uint16]bool{}
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
 		if subnetCfg.Subnet == "" {
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
@@ -227,7 +228,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			}
 		}
 
-		if subnetCfg.VLAN == "" {
+		if subnetCfg.VLAN == 0 {
 			return nil, errors.Errorf("subnet %s: vlan is required", subnetName)
 		}
 		vlans[subnetCfg.VLAN] = true
@@ -364,12 +365,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to the IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
 			}
 
-			vlanRaw, err := strconv.ParseUint(subnetCfg.VLAN, 10, 16)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse subnet %s (%s) VLAN %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN)
-			}
-			if !vlanNs.Spec.Contains(uint16(vlanRaw)) {
-				return nil, errors.Errorf("vpc subnet %s (%s) vlan %s doesn't belong to the VLANNamespace %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN, vpc.Spec.VLANNamespace)
+			if !vlanNs.Spec.Contains(subnetCfg.VLAN) {
+				return nil, errors.Errorf("vpc subnet %s (%s) vlan %d doesn't belong to the VLANNamespace %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN, vpc.Spec.VLANNamespace)
 			}
 		}
 
@@ -422,7 +419,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			for _, otherSubnet := range other.Spec.Subnets {
 				for _, subnet := range vpc.Spec.Subnets {
 					if subnet.VLAN == otherSubnet.VLAN {
-						return nil, errors.Errorf("vlan %s is already used by other VPC", subnet.VLAN)
+						return nil, errors.Errorf("vlan %d is already used by other VPC", subnet.VLAN)
 					}
 				}
 			}

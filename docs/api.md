@@ -1229,8 +1229,9 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `subnet` _string_ | Subnet is the subnet CIDR block, such as "10.0.0.0/24", should belong to the IPv4Namespace and be unique within the namespace |  |  |
+| `gateway` _string_ | Gateway (optional) for the subnet, if not specified, the first IP (e.g. 10.0.0.1) in the subnet is used as the gateway |  |  |
 | `dhcp` _[VPCDHCP](#vpcdhcp)_ | DHCP is the on-demand DHCP configuration for the subnet |  |  |
-| `vlan` _string_ | VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace |  |  |
+| `vlan` _integer_ | VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace |  |  |
 | `isolated` _boolean_ | Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC |  |  |
 | `restricted` _boolean_ | Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself |  |  |
 

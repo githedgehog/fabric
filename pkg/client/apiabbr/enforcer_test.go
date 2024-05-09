@@ -125,7 +125,7 @@ func TestEnforcer(t *testing.T) {
 					Subnets: map[string]*vpcapi.VPCSubnet{
 						"subnet-1": {
 							Subnet: "10.42.0.0/24",
-							VLAN:   "1042",
+							VLAN:   1042,
 							DHCP: vpcapi.VPCDHCP{
 								Enable: true,
 							},
@@ -173,7 +173,7 @@ func TestEnforcer(t *testing.T) {
 					Subnets: map[string]*vpcapi.VPCSubnet{
 						"default": {
 							Subnet: "10.42.0.0/24",
-							VLAN:   "1024",
+							VLAN:   1024,
 						},
 					},
 				},

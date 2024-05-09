@@ -48,7 +48,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 			},
 		},
 		{
@@ -56,7 +56,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "2222",
+				VLAN:   2222,
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -73,7 +73,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -82,7 +82,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -91,7 +91,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -100,7 +100,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -109,7 +109,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -118,7 +118,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
-				VLAN:     "1042",
+				VLAN:     1042,
 				Isolated: pointer.To(true),
 			},
 		},
@@ -127,7 +127,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 			},
 		},
 		{
@@ -135,7 +135,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 			},
 		},
 		{
@@ -143,7 +143,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 			},
 		},
 		{
@@ -151,7 +151,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:     "10.42.0.0/24",
-				VLAN:       "1042",
+				VLAN:       1042,
 				Restricted: pointer.To(true),
 			},
 		},
@@ -160,7 +160,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:     "10.42.0.0/24",
-				VLAN:       "1042",
+				VLAN:       1042,
 				Isolated:   pointer.To(true),
 				Restricted: pointer.To(true),
 			},
@@ -170,7 +170,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
 					Enable: true,
 				},
@@ -181,7 +181,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
 					Enable: true,
 					Range: &vpcapi.VPCDHCPRange{
@@ -195,7 +195,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
 					Enable: true,
 					Range: &vpcapi.VPCDHCPRange{
@@ -210,7 +210,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
 					Relay: "10.42.100.100",
 				},
@@ -221,7 +221,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
-				VLAN:   "1042",
+				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
 					PXEURL: "10.42.100.100",
 				},

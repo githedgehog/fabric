@@ -17,6 +17,7 @@ package apiabbr
 import (
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -314,7 +315,12 @@ func ParseVPCSubnet(in string) (string, *vpcapi.VPCSubnet, error) {
 			name = key
 			subnet.Subnet = value
 		} else if key == "vlan" {
-			subnet.VLAN = value
+			vlan, err := strconv.ParseUint(value, 10, 16)
+			if err != nil {
+				return "", nil, errors.Wrapf(err, "failed to parse VLAN: %s", value)
+			}
+
+			subnet.VLAN = uint16(vlan)
 		} else if key == "isolated" || key == "i" {
 			if trueVal {
 				subnet.Isolated = pointer.To(true)

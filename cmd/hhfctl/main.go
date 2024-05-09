@@ -152,7 +152,7 @@ func main() {
 							return errors.Wrapf(hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
-								VLAN:   cCtx.String("vlan"),
+								VLAN:   uint16(cCtx.Uint("vlan")),
 								DHCP: vpcapi.VPCDHCP{
 									Enable: cCtx.Bool("dhcp"),
 									PXEURL: cCtx.String("dhcp-pxe-url"),
