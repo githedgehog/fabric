@@ -132,7 +132,7 @@ func (r *Reconciler) updateISCDHCPConfig(ctx context.Context) error {
 		}
 
 		for subnetName, subnet := range vpc.Spec.Subnets {
-			if !subnet.DHCP.Enable || subnet.VLAN == 0 {
+			if !subnet.DHCP.Enable || subnet.VLAN == 0 || subnet.DHCP.Range == nil {
 				continue
 			}
 
@@ -141,27 +141,15 @@ func (r *Reconciler) updateISCDHCPConfig(ctx context.Context) error {
 				return errors.Wrapf(err, "error parsing vpc %s/%s subnet %s", vpc.Name, subnetName, subnet.Subnet)
 			}
 
-			start := cidr.DHCPRangeStart.String()
-			end := cidr.DHCPRangeEnd.String()
-
-			if subnet.DHCP.Range != nil {
-				if subnet.DHCP.Range.Start != "" {
-					start = subnet.DHCP.Range.Start
-				}
-				if subnet.DHCP.Range.End != "" {
-					end = subnet.DHCP.Range.End
-				}
-			}
-
 			// TODO add extra range validation
 
 			cfg.Subnets = append(cfg.Subnets, dhcpdSubnet{
 				Subnet:     cidr.Subnet.IP.String(),
 				Mask:       net.IP(cidr.Subnet.Mask).String(),
 				VLAN:       subnet.VLAN,
-				Router:     cidr.Gateway.String(),
-				RangeStart: start,
-				RangeEnd:   end,
+				Router:     subnet.Gateway,
+				RangeStart: subnet.DHCP.Range.Start,
+				RangeEnd:   subnet.DHCP.Range.End,
 			})
 		}
 	}
@@ -194,28 +182,9 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 	}
 
 	for subnetName, subnet := range vpc.Spec.Subnets {
-		if !subnet.DHCP.Enable {
+		if !subnet.DHCP.Enable || subnet.VLAN == 0 || subnet.DHCP.Range == nil {
 			continue
 		}
-
-		cidr, err := iputil.ParseCIDR(subnet.Subnet)
-		if err != nil {
-			return errors.Wrapf(err, "error parsing vpc %s/%s subnet %s", vpc.Name, subnetName, subnet.Subnet)
-		}
-
-		start := cidr.DHCPRangeStart.String()
-		end := cidr.DHCPRangeEnd.String()
-
-		if subnet.DHCP.Range != nil {
-			if subnet.DHCP.Range.Start != "" {
-				start = subnet.DHCP.Range.Start
-			}
-			if subnet.DHCP.Range.End != "" {
-				end = subnet.DHCP.Range.End
-			}
-		}
-
-		gateway := cidr.Gateway.String()
 
 		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
 		_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
@@ -226,9 +195,9 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
 				Subnet:    fmt.Sprintf("%s/%s", vpc.Name, subnetName),
 				CIDRBlock: subnet.Subnet,
-				Gateway:   gateway,
-				StartIP:   start,
-				EndIP:     end,
+				Gateway:   subnet.Gateway,
+				StartIP:   subnet.DHCP.Range.Start,
+				EndIP:     subnet.DHCP.Range.End,
 				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
 				CircuitID: fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
 				PXEURL:    subnet.DHCP.PXEURL,
