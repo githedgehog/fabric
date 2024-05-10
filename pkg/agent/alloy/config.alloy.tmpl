@@ -66,11 +66,13 @@ prometheus.scrape "alloy" {
 
 {{ if .UnixExporterEnabled }}
 prometheus.exporter.unix "host" {
+  {{ if .UnixExporterCollectors }}
   set_collectors = [
   {{ range .UnixExporterCollectors }}
     "{{ . }}",
   {{ end }}
   ]
+  {{ end }}
 }
 
 prometheus.scrape "unix" {
