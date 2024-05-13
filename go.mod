@@ -1,6 +1,7 @@
 module go.githedgehog.com/fabric
 
 go 1.21.1
+toolchain go1.22.2
 
 replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
 
@@ -32,7 +33,7 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.29.3
-	k8s.io/apimachinery v0.29.3
+	k8s.io/apimachinery v0.30.0
 	k8s.io/client-go v0.29.3
 	oras.land/oras-go/v2 v2.5.0
 	sigs.k8s.io/controller-runtime v0.17.2
@@ -236,8 +237,8 @@ require (
 	inet.af/netaddr v0.0.0-20220811202034-502d2d690317 // indirect
 	k8s.io/apiextensions-apiserver v0.29.0 // indirect
 	k8s.io/component-base v0.29.0 // indirect
-	k8s.io/klog/v2 v2.110.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
+	k8s.io/klog/v2 v2.120.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
