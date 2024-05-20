@@ -36,13 +36,16 @@ func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *stri
 }
 
 func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, bool) {
+	if speed == "2.5G" {
+		speed = "2500M"
+	}
+
 	if !strings.HasPrefix(speed, "SPEED_") {
 		speed = "SPEED_" + speed
 	}
 	if !strings.HasSuffix(speed, "B") {
 		speed = speed + "B"
 	}
-
 	res := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 
 	ok := false

@@ -2257,11 +2257,16 @@ func getPortSpeed(agent *agentapi.Agent, port string) *string {
 }
 
 func getMaxPaths(agent *agentapi.Agent) uint32 {
-	if agent.Spec.IsVS() || agent.Status.State.NOS.HwskuVersion == "Accton-AS4630-54NPE" { // TODO move to SwitchProfile
+	if agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.Config.MaxPathsEBGP > 0 {
+		return agent.Spec.SwitchProfile.Config.MaxPathsEBGP
+	}
+
+	// TODO move to SwitchProfile
+	if agent.Spec.IsVS() || agent.Status.State.NOS.HwskuVersion == "Accton-AS4630-54NPE" {
 		return 16
 	}
 
-	return 64
+	return agent.Spec.Config.DefaultMaxPathsEBGP
 }
 
 // TODO test

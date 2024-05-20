@@ -213,6 +213,8 @@ func (sw *Switch) Default() {
 
 	sort.Strings(sw.Spec.Groups)
 	sort.Strings(sw.Spec.VLANNamespaces)
+
+	sw.Labels[LabelProfile] = sw.Spec.Profile
 }
 
 func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {

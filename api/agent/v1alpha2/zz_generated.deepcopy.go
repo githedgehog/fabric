@@ -98,6 +98,11 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		}
 	}
 	in.Switch.DeepCopyInto(&out.Switch)
+	if in.SwitchProfile != nil {
+		in, out := &in.SwitchProfile, &out.SwitchProfile
+		*out = new(wiringv1alpha2.SwitchProfileSpec)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Switches != nil {
 		in, out := &in.Switches, &out.Switches
 		*out = make(map[string]wiringv1alpha2.SwitchSpec, len(*in))

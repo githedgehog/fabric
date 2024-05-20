@@ -16,6 +16,9 @@ package v1alpha2
 
 import (
 	"context"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -26,31 +29,78 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type SwitchProfileLimits struct {
-	VPC    int `json:"vpc,omitempty"`
-	Policy int `json:"policy,omitempty"`
+const (
+	ManagementPortPrefix        = "M"
+	ManagementPortNOSNamePrefix = "Management"
+	DataPortPrefix              = "E"
+	DataPortNOSNamePrefix       = "Ethernet"
+	ONIEPortNamePrefix          = "eth"
+)
+
+type SwitchProfileFeatures struct {
+	Subinterfaces bool `json:"subinterfaces,omitempty"`
+	VXLAN         bool `json:"vxlan,omitempty"`
+	ACLs          bool `json:"acls,omitempty"`
+}
+
+type SwitchProfileConfig struct {
+	MaxPathsEBGP uint32 `json:"maxPathsEBGP,omitempty"`
 }
 
 type SwitchProfilePort struct {
-	ID         int    `json:"id,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Management bool   `json:"management,omitempty"`
+	NOSName      string `json:"nos,omitempty"`
+	Label        string `json:"label,omitempty"`
+	Group        string `json:"group,omitempty"`
+	Profile      string `json:"profile,omitempty"`
+	Management   bool   `json:"management,omitempty"`
+	OniePortName string `json:"oniePortName,omitempty"`
+}
+
+type SwitchProfilePortGroup struct {
+	NOSName string `json:"nos,omitempty"`
+	Profile string `json:"profile,omitempty"`
+}
+
+type SwitchProfilePortProfileSpeed struct {
+	Default   string   `json:"default,omitempty"`
+	Supported []string `json:"supported,omitempty"`
+}
+
+type SwitchProfilePortProfileBreakout struct {
+	Default   string                                          `json:"default,omitempty"`
+	Supported map[string]SwitchProfilePortProfileBreakoutMode `json:"supported,omitempty"`
+}
+
+type SwitchProfilePortProfileBreakoutMode struct {
+	Offsets []string `json:"offsets,omitempty"`
+}
+
+type SwitchProfilePortProfile struct {
+	Speed    *SwitchProfilePortProfileSpeed    `json:"speed,omitempty"`
+	Breakout *SwitchProfilePortProfileBreakout `json:"breakout,omitempty"`
 }
 
 // SwitchProfileSpec defines the desired state of SwitchProfile
 type SwitchProfileSpec struct {
-	Limits SwitchProfileLimits `json:"limits,omitempty"`
-	Ports  []SwitchProfilePort `json:"ports,omitempty"`
+	DisplayName  string                              `json:"displayName,omitempty"`
+	OtherNames   []string                            `json:"otherNames,omitempty"`
+	Features     SwitchProfileFeatures               `json:"features,omitempty"`
+	Config       SwitchProfileConfig                 `json:"config,omitempty"`
+	Ports        map[string]SwitchProfilePort        `json:"ports,omitempty"`
+	PortGroups   map[string]SwitchProfilePortGroup   `json:"portGroups,omitempty"`
+	PortProfiles map[string]SwitchProfilePortProfile `json:"portProfiles,omitempty"`
 }
 
 // SwitchProfileStatus defines the observed state of SwitchProfile
 type SwitchProfileStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring
-
-// SwitchProfile is currently not used/implemented in the Fabric API
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sp
+// +kubebuilder:printcolumn:name="DisplayName",type=string,JSONPath=`.spec.displayName`,priority=0
+// +kubebuilder:printcolumn:name="OtherNames",type=string,JSONPath=`.spec.otherNames`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// SwitchProfile represents switch capabilities and configuration
 type SwitchProfile struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -97,5 +147,277 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
+	if sp.Spec.DisplayName == "" {
+		return nil, errors.Errorf("displayName is required")
+	}
+
+	if len(sp.Spec.OtherNames) > 5 {
+		return nil, errors.Errorf("otherNames must not exceed 5 items")
+	}
+	for curr, name := range sp.Spec.OtherNames {
+		if name == "" {
+			return nil, errors.Errorf("otherNames must not contain empty strings")
+		}
+
+		if idx := slices.Index(sp.Spec.OtherNames, name); idx != curr {
+			return nil, errors.Errorf("otherNames must not contain duplicates")
+		}
+	}
+
+	profiles := map[string]bool{}
+	groups := map[string]bool{}
+
+	for name, port := range sp.Spec.Ports {
+		if port.NOSName == "" {
+			return nil, errors.Errorf("port %q must have a NOS name", name)
+		}
+
+		if len(name) < 2 {
+			return nil, errors.Errorf("port %q name must have with at least two characters", name)
+		}
+
+		if port.Management {
+			if !strings.HasPrefix(name, ManagementPortPrefix) {
+				return nil, errors.Errorf("management port %q name must start with M", name)
+			}
+
+			if port, err := strconv.Atoi(name[1:]); err != nil || port <= 0 {
+				return nil, errors.Errorf("management port %q name must end with a positive integer", name)
+			}
+
+			if !strings.HasPrefix(port.NOSName, ManagementPortNOSNamePrefix) {
+				return nil, errors.Errorf("management port %q NOS name must start with Management", name)
+			}
+
+			if port, err := strconv.Atoi(port.NOSName[len(ManagementPortNOSNamePrefix):]); err != nil || port < 0 {
+				return nil, errors.Errorf("management port %q NOS name must end with a positive integer", name)
+			}
+
+			if port.OniePortName == "" {
+				return nil, errors.Errorf("management port %q must have an ONIE port name", name)
+			}
+
+			if !strings.HasPrefix(port.OniePortName, ONIEPortNamePrefix) {
+				return nil, errors.Errorf("management port %q ONIE port name must start with eth", name)
+			}
+
+			if port, err := strconv.Atoi(port.OniePortName[len(ONIEPortNamePrefix):]); err != nil || port < 0 {
+				return nil, errors.Errorf("management port %q ONIE port name must end with a zero or positive integer", name)
+			}
+
+			if port.Group != "" {
+				return nil, errors.Errorf("management port %q must not have a group", name)
+			}
+
+			if port.Profile != "" {
+				return nil, errors.Errorf("management port %q must not have a profile", name)
+			}
+
+			continue
+		}
+
+		if !strings.HasPrefix(name, DataPortPrefix) {
+			return nil, errors.Errorf("data port %q must start with E", name)
+		}
+
+		portParts := strings.Split(name[len(DataPortPrefix):], "/")
+		if len(portParts) != 2 {
+			return nil, errors.Errorf("data port %q name must have two segments separated by a slash (e.g. asic/port)", name)
+		}
+		if asic, err := strconv.Atoi(portParts[0]); err != nil || portParts[0] == "" || asic <= 0 {
+			return nil, errors.Errorf("data port %q name must contain a positive integer as the first segment (e.g. asic)", name)
+		}
+		if port, err := strconv.Atoi(portParts[1]); err != nil || portParts[1] == "" || port <= 0 {
+			return nil, errors.Errorf("data port %q name must contain a positive integer as the second segment (port)", name)
+		}
+
+		if !strings.HasPrefix(port.NOSName, DataPortNOSNamePrefix) {
+			return nil, errors.Errorf("data port %q NOS name must start with Ethernet", name)
+		}
+
+		if port, err := strconv.Atoi(port.NOSName[len(DataPortNOSNamePrefix):]); err != nil || port < 0 {
+			return nil, errors.Errorf("data port %q NOS name must end with a zero or positive integer", name)
+		}
+
+		if port.Label == "" {
+			return nil, errors.Errorf("port %q must have a label", name)
+		}
+
+		if port.Profile == "" && port.Group == "" {
+			return nil, errors.Errorf("port %q must have a profile or group", name)
+		}
+
+		if port.Profile != "" && port.Group != "" {
+			return nil, errors.Errorf("port %q must have either a profile or group, not both", name)
+		}
+
+		if port.Profile != "" {
+			if _, ok := sp.Spec.PortProfiles[port.Profile]; !ok {
+				return nil, errors.Errorf("port %q references non-existent profile %q", name, port.Profile)
+			}
+
+			profiles[port.Profile] = true
+		}
+
+		if port.Group != "" {
+			if _, ok := sp.Spec.PortGroups[port.Group]; !ok {
+				return nil, errors.Errorf("port %q references non-existent group %q", name, port.Group)
+			}
+
+			groups[port.Group] = true
+		}
+	}
+
+	for name, group := range sp.Spec.PortGroups {
+		if _, ok := groups[name]; !ok {
+			return nil, errors.Errorf("group %q is not referenced by any port", name)
+		}
+
+		if group.NOSName == "" {
+			return nil, errors.Errorf("group %q must have a NOS name", name)
+		}
+
+		if nosName, err := strconv.Atoi(group.NOSName); err != nil || nosName <= 0 {
+			return nil, errors.Errorf("group %q NOS name must be a positive integer", name)
+		}
+
+		if group.Profile == "" {
+			return nil, errors.Errorf("group %q must have a profile", name)
+		}
+
+		if _, ok := sp.Spec.PortProfiles[group.Profile]; !ok {
+			return nil, errors.Errorf("group %q references non-existent profile %q", name, group.Profile)
+		}
+
+		profiles[group.Profile] = true
+
+		if sp.Spec.PortProfiles[group.Profile].Speed == nil {
+			return nil, errors.Errorf("group %q references non-speed profile %q", name, group.Profile)
+		}
+	}
+
+	for name, profile := range sp.Spec.PortProfiles {
+		if _, ok := profiles[name]; !ok {
+			return nil, errors.Errorf("profile %q is not referenced by any port or group", name)
+		}
+
+		if profile.Speed == nil && profile.Breakout == nil {
+			return nil, errors.Errorf("profile %q must have a speed or breakout", name)
+		}
+
+		if profile.Speed != nil && profile.Breakout != nil {
+			return nil, errors.Errorf("profile %q must have either a speed or breakout, not both", name)
+		}
+
+		if profile.Speed != nil {
+			if profile.Speed.Default == "" {
+				return nil, errors.Errorf("profile %q must have a default speed", name)
+			}
+
+			if len(profile.Speed.Supported) == 0 {
+				return nil, errors.Errorf("profile %q must have supported speeds", name)
+			}
+
+			if !slices.Contains(profile.Speed.Supported, profile.Speed.Default) {
+				return nil, errors.Errorf("profile %q must have default speed in supported speeds", name)
+			}
+
+			for _, speed := range profile.Speed.Supported {
+				if speed == "" {
+					return nil, errors.Errorf("profile %q must have non-empty speeds", name)
+				}
+
+				if err := ValidatePortSpeed(speed); err != nil {
+					return nil, errors.Wrapf(err, "profile %q speed %q is invalid", name, speed)
+				}
+			}
+		}
+
+		if profile.Breakout != nil {
+			if profile.Breakout.Default == "" {
+				return nil, errors.Errorf("profile %q must have a default breakout", name)
+			}
+
+			if len(profile.Breakout.Supported) == 0 {
+				return nil, errors.Errorf("profile %q must have supported breakouts", name)
+			}
+
+			if _, ok := profile.Breakout.Supported[profile.Breakout.Default]; !ok {
+				return nil, errors.Errorf("profile %q must have default breakout in supported breakouts", name)
+			}
+
+			for mode, offsets := range profile.Breakout.Supported {
+				if len(offsets.Offsets) == 0 {
+					return nil, errors.Errorf("profile %q must have non-empty offsets for mode %q", name, mode)
+				}
+
+				if mode == "" {
+					return nil, errors.Errorf("profile %q must have non-empty modes", name)
+				}
+
+				if err := ValidatePortBreakoutMode(mode); err != nil {
+					return nil, errors.Wrapf(err, "profile %q breakout %q is invalid", name, mode)
+				}
+			}
+		}
+	}
+
 	return nil, nil
+}
+
+var allowedPortSpeeds = map[string]bool{
+	"1G":   true,
+	"2.5G": true,
+	"5G":   true,
+	"10G":  true,
+	"20G":  true,
+	"25G":  true,
+	"40G":  true,
+	"50G":  true,
+	"100G": true,
+	"200G": true,
+	"400G": true,
+}
+
+func ValidatePortSpeed(speed string) error {
+	if !strings.HasSuffix(speed, "G") {
+		return errors.Errorf("speed %q must have a G suffix", speed)
+	}
+
+	if !allowedPortSpeeds[speed] {
+		return errors.Errorf("speed %q is not allowed", speed)
+	}
+
+	return nil
+}
+
+var allowedPortBreakoutNumbers = map[string]bool{
+	"1": true,
+	"2": true,
+	"4": true,
+	"8": true,
+}
+
+func ValidatePortBreakoutMode(mode string) error {
+	parts := strings.Split(mode, "x")
+	if len(parts) != 2 {
+		return errors.Errorf("mode %q must have axactly one 'x' as a separator", mode)
+	}
+
+	number := parts[0]
+	speed := parts[1]
+
+	if number == "" {
+		return errors.Errorf("mode %q must have a number before 'x'", mode)
+	}
+
+	if speed == "" {
+		return errors.Errorf("mode %q must have a speed after 'x'", mode)
+	}
+
+	if !allowedPortBreakoutNumbers[number] {
+		return errors.Errorf("mode %q must have a valid number", mode)
+	}
+
+	return ValidatePortSpeed(speed)
 }

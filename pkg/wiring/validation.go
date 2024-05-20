@@ -21,6 +21,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,6 +39,15 @@ func ValidateFabric(ctx context.Context, kube client.Client, fabricCfg *meta.Fab
 	// 		continue
 	// 	}
 	// }
+
+	profiles := switchprofile.NewDefaultSwitchProfiles()
+	if err := profiles.RegisterAll(ctx, kube, &meta.FabricConfig{}); err != nil {
+		return errors.Wrapf(err, "error registering default switch profiles for proper validation")
+	}
+
+	if err := profiles.Enforce(ctx, kube, fabricCfg, false); err != nil {
+		return errors.Wrapf(err, "error enforcing default switch profiles for proper validation")
+	}
 
 	sgGroupList := &wiringapi.SwitchGroupList{}
 	if err := kube.List(ctx, sgGroupList); err != nil {

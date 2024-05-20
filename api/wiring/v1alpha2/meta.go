@@ -32,6 +32,7 @@ var (
 	// TODO should it be same as group name? or just standard prefix for all APIs?
 	LabelPrefix               = "fabric.githedgehog.com/"
 	LabelSwitch               = LabelName("switch")
+	LabelProfile              = LabelName("profile")
 	LabelServer               = LabelName("server")
 	LabelServerType           = LabelName("server-type")
 	LabelLocation             = LabelName("location")

@@ -73,6 +73,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
+		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
@@ -107,6 +108,31 @@ func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj client.Obj
 	return res
 }
 
+func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj client.Object) []reconcile.Request {
+	res := []reconcile.Request{}
+
+	sws := &wiringapi.SwitchList{}
+	err := r.List(ctx, sws, client.InNamespace(obj.GetNamespace()))
+	if err != nil {
+		log.FromContext(ctx).Error(err, "error listing switches to reconcile by profile")
+
+		return res
+	}
+
+	for _, sw := range sws.Items {
+		if sw.Spec.Profile != obj.GetName() {
+			continue
+		}
+
+		res = append(res, reconcile.Request{NamespacedName: types.NamespacedName{
+			Namespace: sw.Namespace,
+			Name:      sw.Name,
+		}})
+	}
+
+	return res
+}
+
 func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
@@ -134,6 +160,9 @@ func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) 
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups/status,verbs=get;update;patch
@@ -583,6 +612,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		})
 	}
 
+	var spSpec *wiringapi.SwitchProfileSpec
+
+	if sw.Spec.Profile != "" {
+		sp := &wiringapi.SwitchProfile{}
+		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: sw.Spec.Profile}, sp)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error getting switch profile")
+		}
+
+		spSpec = &sp.Spec
+		// TODO validate using current switch profile
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Annotations = sw.Annotations
@@ -591,6 +633,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.Description = sw.Spec.Description
 
 		agent.Spec.Switch = sw.Spec
+		agent.Spec.SwitchProfile = spSpec
 		agent.Spec.Switches = switches
 		agent.Spec.RedundancyGroupPeers = rgPeers
 		agent.Spec.Connections = conns
@@ -625,6 +668,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ServerFacingMTUOffset: r.Cfg.ServerFacingMTUOffset,
 			ESLAGMACBase:          r.Cfg.ESLAGMACBase,
 			ESLAGESIPrefix:        r.Cfg.ESLAGESIPrefix,
+			DefaultMaxPathsEBGP:   r.Cfg.DefaultMaxPathsEBGP,
 		}
 		if r.Cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}

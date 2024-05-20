@@ -50,6 +50,10 @@ type ObjectList interface {
 	GetItems() []Object
 }
 
+const (
+	SwitchProfileVS = "vs"
+)
+
 type UserCreds struct {
 	Name     string   `json:"name,omitempty"`
 	Password string   `json:"password,omitempty"`
@@ -58,28 +62,30 @@ type UserCreds struct {
 }
 
 type FabricConfig struct {
-	ControlVIP            string      `json:"controlVIP,omitempty"`
-	APIServer             string      `json:"apiServer,omitempty"`
-	AgentRepo             string      `json:"agentRepo,omitempty"`
-	AgentRepoCA           string      `json:"agentRepoCA,omitempty"`
-	VPCIRBVLANRanges      []VLANRange `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges  []VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
-	VPCPeeringDisabled    bool        `json:"vpcPeeringDisabled,omitempty"`
-	ReservedSubnets       []string    `json:"reservedSubnets,omitempty"`
-	Users                 []UserCreds `json:"users,omitempty"`
-	DHCPMode              DHCPMode    `json:"dhcpMode,omitempty"`
-	DHCPDConfigMap        string      `json:"dhcpdConfigMap,omitempty"`
-	DHCPDConfigKey        string      `json:"dhcpdConfigKey,omitempty"`
-	FabricMode            FabricMode  `json:"fabricMode,omitempty"`
-	BaseVPCCommunity      string      `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet     string      `json:"vpcLoopbackSubnet,omitempty"`
-	FabricMTU             uint16      `json:"fabricMTU,omitempty"`
-	ServerFacingMTUOffset uint16      `json:"serverFacingMTUOffset,omitempty"`
-	ESLAGMACBase          string      `json:"eslagMACBase,omitempty"`
-	ESLAGESIPrefix        string      `json:"eslagESIPrefix,omitempty"`
-	AlloyRepo             string      `json:"alloyRepo,omitempty"`
-	AlloyVersion          string      `json:"alloyVersion,omitempty"`
-	Alloy                 AlloyConfig `json:"alloy,omitempty"`
+	ControlVIP               string      `json:"controlVIP,omitempty"`
+	APIServer                string      `json:"apiServer,omitempty"`
+	AgentRepo                string      `json:"agentRepo,omitempty"`
+	AgentRepoCA              string      `json:"agentRepoCA,omitempty"`
+	VPCIRBVLANRanges         []VLANRange `json:"vpcIRBVLANRange,omitempty"`
+	VPCPeeringVLANRanges     []VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	VPCPeeringDisabled       bool        `json:"vpcPeeringDisabled,omitempty"`
+	ReservedSubnets          []string    `json:"reservedSubnets,omitempty"`
+	Users                    []UserCreds `json:"users,omitempty"`
+	DHCPMode                 DHCPMode    `json:"dhcpMode,omitempty"`
+	DHCPDConfigMap           string      `json:"dhcpdConfigMap,omitempty"`
+	DHCPDConfigKey           string      `json:"dhcpdConfigKey,omitempty"`
+	FabricMode               FabricMode  `json:"fabricMode,omitempty"`
+	BaseVPCCommunity         string      `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet        string      `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU                uint16      `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset    uint16      `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase             string      `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix           string      `json:"eslagESIPrefix,omitempty"`
+	AlloyRepo                string      `json:"alloyRepo,omitempty"`
+	AlloyVersion             string      `json:"alloyVersion,omitempty"`
+	Alloy                    AlloyConfig `json:"alloy,omitempty"`
+	DefaultMaxPathsEBGP      uint32      `json:"defaultMaxPathsEBGP,omitempty"`
+	AllowExtraSwitchProfiles bool        `json:"allowExtraSwitchProfiles,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -248,6 +254,10 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	cfg.Alloy.Default()
 	if err := cfg.Alloy.Validate(); err != nil {
 		return nil, errors.Wrapf(err, "error validating alloy config")
+	}
+
+	if cfg.DefaultMaxPathsEBGP == 0 {
+		return nil, errors.Errorf("config: defaultMaxPathsEBGP is required")
 	}
 
 	// TODO validate format of all fields
