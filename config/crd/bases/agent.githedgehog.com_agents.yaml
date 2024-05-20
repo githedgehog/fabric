@@ -246,6 +246,9 @@ spec:
                     type: object
                   controlVIP:
                     type: string
+                  defaultMaxPathsEBGP:
+                    format: int32
+                    type: integer
                   eslagESIPrefix:
                     type: string
                   eslagMACBase:
@@ -952,6 +955,85 @@ spec:
                   vtepIP:
                     description: VTEPIP is the VTEP IP of the switch
                     type: string
+                type: object
+              switchProfile:
+                description: SwitchProfileSpec defines the desired state of SwitchProfile
+                properties:
+                  config:
+                    properties:
+                      maxPathsEBGP:
+                        format: int32
+                        type: integer
+                    type: object
+                  displayName:
+                    type: string
+                  features:
+                    properties:
+                      acls:
+                        type: boolean
+                      subinterfaces:
+                        type: boolean
+                      vxlan:
+                        type: boolean
+                    type: object
+                  otherNames:
+                    items:
+                      type: string
+                    type: array
+                  portGroups:
+                    additionalProperties:
+                      properties:
+                        nos:
+                          type: string
+                        profile:
+                          type: string
+                      type: object
+                    type: object
+                  portProfiles:
+                    additionalProperties:
+                      properties:
+                        breakout:
+                          properties:
+                            default:
+                              type: string
+                            supported:
+                              additionalProperties:
+                                properties:
+                                  offsets:
+                                    items:
+                                      type: string
+                                    type: array
+                                type: object
+                              type: object
+                          type: object
+                        speed:
+                          properties:
+                            default:
+                              type: string
+                            supported:
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                      type: object
+                    type: object
+                  ports:
+                    additionalProperties:
+                      properties:
+                        group:
+                          type: string
+                        label:
+                          type: string
+                        management:
+                          type: boolean
+                        nos:
+                          type: string
+                        oniePortName:
+                          type: string
+                        profile:
+                          type: string
+                      type: object
+                    type: object
                 type: object
               switches:
                 additionalProperties:

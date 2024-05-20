@@ -361,6 +361,26 @@ rules:
 - apiGroups:
   - wiring.githedgehog.com
   resources:
+  - switchprofiles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switchprofiles/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
   - vlannamespaces
   verbs:
   - get

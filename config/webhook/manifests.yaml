@@ -150,6 +150,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-wiring-githedgehog-com-v1alpha2-switchprofile
+  failurePolicy: Fail
+  name: mswitchprofile.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - switchprofiles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-wiring-githedgehog-com-v1alpha2-vlannamespace
   failurePolicy: Fail
   name: mvlannamespace.kb.io
@@ -376,6 +396,27 @@ webhooks:
     - DELETE
     resources:
     - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1alpha2-switchprofile
+  failurePolicy: Fail
+  name: vswitchprofile.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - switchprofiles
   sideEffects: None
 - admissionReviewVersions:
   - v1

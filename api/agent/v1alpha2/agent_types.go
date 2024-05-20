@@ -38,6 +38,7 @@ type AgentSpec struct {
 	Version              AgentVersion                             `json:"version,omitempty"`
 	Users                []UserCreds                              `json:"users,omitempty"`
 	Switch               wiringapi.SwitchSpec                     `json:"switch,omitempty"`
+	SwitchProfile        *wiringapi.SwitchProfileSpec             `json:"switchProfile,omitempty"`
 	Switches             map[string]wiringapi.SwitchSpec          `json:"switches,omitempty"`
 	RedundancyGroupPeers []string                                 `json:"redundancyGroupPeers,omitempty"`
 	Connections          map[string]wiringapi.ConnectionSpec      `json:"connections,omitempty"`
@@ -71,6 +72,7 @@ type AgentSpecConfig struct {
 	ServerFacingMTUOffset uint16                        `json:"serverFacingMTUOffset,omitempty"`
 	ESLAGMACBase          string                        `json:"eslagMACBase,omitempty"`
 	ESLAGESIPrefix        string                        `json:"eslagESIPrefix,omitempty"`
+	DefaultMaxPathsEBGP   uint32                        `json:"defaultMaxPathsEBGP,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}
@@ -538,9 +540,8 @@ func init() {
 	SchemeBuilder.Register(&Agent{}, &AgentList{})
 }
 
-// TODO replace with real profile, temp hack
 func (s *AgentSpec) IsVS() bool {
-	return s.Switch.Profile == "vs"
+	return s.Switch.Profile == meta.SwitchProfileVS
 }
 
 func (a *Agent) IsFirstInRedundancyGroup() bool {

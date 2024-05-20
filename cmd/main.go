@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"flag"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,6 +45,7 @@ import (
 	agentcontroller "go.githedgehog.com/fabric/pkg/ctrl/agent"
 	connectioncontroller "go.githedgehog.com/fabric/pkg/ctrl/connection"
 	controlagentcontroller "go.githedgehog.com/fabric/pkg/ctrl/controlagent"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
@@ -52,6 +55,7 @@ import (
 	ipv4NamespaceWebhook "go.githedgehog.com/fabric/pkg/webhook/ipv4ns"
 	serverWebhook "go.githedgehog.com/fabric/pkg/webhook/server"
 	switchWebhook "go.githedgehog.com/fabric/pkg/webhook/switchh"
+	switchProfileWebhook "go.githedgehog.com/fabric/pkg/webhook/switchprofile"
 	vlanNamespaceWebook "go.githedgehog.com/fabric/pkg/webhook/vlanns"
 	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
 	vpcAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
@@ -142,6 +146,12 @@ func main() {
 
 	libMngr := librarian.NewManager(cfg)
 
+	profiles := switchprofile.NewDefaultSwitchProfiles()
+	if err := profiles.RegisterAll(context.TODO(), mgr.GetClient(), cfg); err != nil {
+		setupLog.Error(err, "unable to register default switch profiles")
+		os.Exit(1)
+	}
+
 	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, version); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
@@ -156,6 +166,10 @@ func main() {
 	}
 	if err = connectioncontroller.SetupWithManager(mgr, cfg, libMngr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Connection")
+		os.Exit(1)
+	}
+	if err = switchprofile.SetupWithManager(mgr, cfg, libMngr, profiles); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "SwitchProfile")
 		os.Exit(1)
 	}
 
@@ -201,6 +215,10 @@ func main() {
 	}
 	if err = externalPeeringWebhook.SetupWithManager(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ExternalPeering")
+		os.Exit(1)
+	}
+	if err = switchProfileWebhook.SetupWithManager(mgr, cfg, profiles); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "SwitchProfile")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

@@ -11,17 +11,29 @@ spec:
     categories:
     - hedgehog
     - wiring
+    - fabric
     kind: SwitchProfile
     listKind: SwitchProfileList
     plural: switchprofiles
+    shortNames:
+    - sp
     singular: switchprofile
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: DisplayName
+      type: string
+    - jsonPath: .spec.otherNames
+      name: OtherNames
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: SwitchProfile is currently not used/implemented in the Fabric
-          API
+        description: SwitchProfile represents switch capabilities and configuration
         properties:
           apiVersion:
             description: |-
@@ -43,24 +55,81 @@ spec:
           spec:
             description: SwitchProfileSpec defines the desired state of SwitchProfile
             properties:
-              limits:
+              config:
                 properties:
-                  policy:
-                    type: integer
-                  vpc:
+                  maxPathsEBGP:
+                    format: int32
                     type: integer
                 type: object
-              ports:
+              displayName:
+                type: string
+              features:
+                properties:
+                  acls:
+                    type: boolean
+                  subinterfaces:
+                    type: boolean
+                  vxlan:
+                    type: boolean
+                type: object
+              otherNames:
                 items:
+                  type: string
+                type: array
+              portGroups:
+                additionalProperties:
                   properties:
-                    id:
-                      type: integer
-                    management:
-                      type: boolean
-                    name:
+                    nos:
+                      type: string
+                    profile:
                       type: string
                   type: object
-                type: array
+                type: object
+              portProfiles:
+                additionalProperties:
+                  properties:
+                    breakout:
+                      properties:
+                        default:
+                          type: string
+                        supported:
+                          additionalProperties:
+                            properties:
+                              offsets:
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          type: object
+                      type: object
+                    speed:
+                      properties:
+                        default:
+                          type: string
+                        supported:
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                  type: object
+                type: object
+              ports:
+                additionalProperties:
+                  properties:
+                    group:
+                      type: string
+                    label:
+                      type: string
+                    management:
+                      type: boolean
+                    nos:
+                      type: string
+                    oniePortName:
+                      type: string
+                    profile:
+                      type: string
+                  type: object
+                type: object
             type: object
           status:
             description: SwitchProfileStatus defines the observed state of SwitchProfile
