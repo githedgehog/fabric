@@ -16,7 +16,7 @@ require (
 	github.com/lmittmann/tint v1.0.4
 	github.com/mattn/go-isatty v0.0.20
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	github.com/openconfig/gnmi v0.11.0
 	github.com/openconfig/gnmic v0.32.0
 	github.com/openconfig/ygot v0.29.19
