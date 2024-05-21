@@ -231,7 +231,7 @@ func (r *Reconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.Object
 			continue
 		}
 
-		err = r.Delete(ctx, &subnet) //nolint:gosec
+		err = r.Delete(ctx, &subnet)
 		if client.IgnoreNotFound(err) != nil {
 			return errors.Wrapf(err, "error deleting dhcp subnet %s", subnet.Name)
 		}

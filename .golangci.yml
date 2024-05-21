@@ -42,7 +42,7 @@ linters:
     - ginkgolinter
     - gocheckcompilerdirectives
     - goconst
-    - goerr113
+    - err113
     - gofmt
     - gosec
     - loggercheck
