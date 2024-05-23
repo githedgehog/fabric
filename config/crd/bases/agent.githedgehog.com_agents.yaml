@@ -960,79 +960,130 @@ spec:
                 description: SwitchProfileSpec defines the desired state of SwitchProfile
                 properties:
                   config:
+                    description: Config defines the switch-specific configuration
+                      options
                     properties:
                       maxPathsEBGP:
+                        description: MaxPathsIBGP defines the maximum number of IBGP
+                          paths to be configured
                         format: int32
                         type: integer
                     type: object
                   displayName:
+                    description: DisplayName defines the human-readable name of the
+                      switch
                     type: string
                   features:
+                    description: Features defines the features supported by the switch
                     properties:
                       acls:
+                        description: ACLs defines if switch supports ACLs
                         type: boolean
                       subinterfaces:
+                        description: Subinterfaces defines if switch supports subinterfaces
                         type: boolean
                       vxlan:
+                        description: VXLAN defines if switch supports VXLANs
                         type: boolean
                     type: object
                   otherNames:
+                    description: OtherNames defines alternative names for the switch
                     items:
                       type: string
                     type: array
                   portGroups:
                     additionalProperties:
+                      description: Defines a switch port group configuration
                       properties:
                         nos:
+                          description: NOSName defines how group is named in the NOS
                           type: string
                         profile:
+                          description: Profile defines the possible configuration
+                            profile for the group, could only have speed profile
                           type: string
                       type: object
+                    description: PortGroups defines the switch port group configuration
                     type: object
                   portProfiles:
                     additionalProperties:
+                      description: Defines a switch port profile configuration
                       properties:
                         breakout:
+                          description: Breakout defines the breakout configuration
+                            for the profile, exclusive with speed
                           properties:
                             default:
+                              description: Default defines the default breakout mode
+                                for the profile
                               type: string
                             supported:
                               additionalProperties:
+                                description: Defines a switch port profile breakout
+                                  mode configuration
                                 properties:
                                   offsets:
+                                    description: Offsets defines the breakout NOS
+                                      port name offset from the port NOS Name for
+                                      each breakout mode
                                     items:
                                       type: string
                                     type: array
                                 type: object
+                              description: Supported defines the supported breakout
+                                modes for the profile with the NOS name offsets
                               type: object
                           type: object
                         speed:
+                          description: Speed defines the speed configuration for the
+                            profile, exclusive with breakout
                           properties:
                             default:
+                              description: Default defines the default speed for the
+                                profile
                               type: string
                             supported:
+                              description: Supported defines the supported speeds
+                                for the profile
                               items:
                                 type: string
                               type: array
                           type: object
                       type: object
+                    description: PortProfiles defines the switch port profile configuration
                     type: object
                   ports:
                     additionalProperties:
+                      description: |-
+                        Defines a switch port configuration
+                        Only one of Profile or Group can be set
                       properties:
                         group:
+                          description: If port isn't directly manageable, group defines
+                            the group it belongs to, exclusive with profile
                           type: string
                         label:
+                          description: Label defines the physical port label you can
+                            see on the actual switch
                           type: string
                         management:
+                          description: Management defines if port is a management
+                            port, it's a special case and it can't have a group or
+                            profile
                           type: boolean
                         nos:
+                          description: NOSName defines how port is named in the NOS
                           type: string
                         oniePortName:
+                          description: OniePortName defines the ONIE port name for
+                            management ports only
                           type: string
                         profile:
+                          description: If port is directly configurable, profile defines
+                            the profile it belongs to, exclusive with group
                           type: string
                       type: object
+                    description: Ports defines the switch port configuration
                     type: object
                 type: object
               switches:

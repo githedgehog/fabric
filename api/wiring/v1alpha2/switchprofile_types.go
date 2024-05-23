@@ -37,57 +37,92 @@ const (
 	ONIEPortNamePrefix          = "eth"
 )
 
+// Defines features supported by a specific switch which is later used for roles and Fabric API features usage validation
 type SwitchProfileFeatures struct {
+	// Subinterfaces defines if switch supports subinterfaces
 	Subinterfaces bool `json:"subinterfaces,omitempty"`
-	VXLAN         bool `json:"vxlan,omitempty"`
-	ACLs          bool `json:"acls,omitempty"`
+	// VXLAN defines if switch supports VXLANs
+	VXLAN bool `json:"vxlan,omitempty"`
+	// ACLs defines if switch supports ACLs
+	ACLs bool `json:"acls,omitempty"`
 }
 
+// Defines switch-specific configuration options
 type SwitchProfileConfig struct {
+	// MaxPathsIBGP defines the maximum number of IBGP paths to be configured
 	MaxPathsEBGP uint32 `json:"maxPathsEBGP,omitempty"`
 }
 
+// Defines a switch port configuration
+// Only one of Profile or Group can be set
 type SwitchProfilePort struct {
-	NOSName      string `json:"nos,omitempty"`
-	Label        string `json:"label,omitempty"`
-	Group        string `json:"group,omitempty"`
-	Profile      string `json:"profile,omitempty"`
-	Management   bool   `json:"management,omitempty"`
+	// NOSName defines how port is named in the NOS
+	NOSName string `json:"nos,omitempty"`
+	// Label defines the physical port label you can see on the actual switch
+	Label string `json:"label,omitempty"`
+	// If port isn't directly manageable, group defines the group it belongs to, exclusive with profile
+	Group string `json:"group,omitempty"`
+	// If port is directly configurable, profile defines the profile it belongs to, exclusive with group
+	Profile string `json:"profile,omitempty"`
+	// Management defines if port is a management port, it's a special case and it can't have a group or profile
+	Management bool `json:"management,omitempty"`
+	// OniePortName defines the ONIE port name for management ports only
 	OniePortName string `json:"oniePortName,omitempty"`
 }
 
+// Defines a switch port group configuration
 type SwitchProfilePortGroup struct {
+	// NOSName defines how group is named in the NOS
 	NOSName string `json:"nos,omitempty"`
+	// Profile defines the possible configuration profile for the group, could only have speed profile
 	Profile string `json:"profile,omitempty"`
 }
 
+// Defines a switch port profile speed configuration
 type SwitchProfilePortProfileSpeed struct {
-	Default   string   `json:"default,omitempty"`
+	// Default defines the default speed for the profile
+	Default string `json:"default,omitempty"`
+	// Supported defines the supported speeds for the profile
 	Supported []string `json:"supported,omitempty"`
 }
 
+// Defines a switch port profile breakout configuration
 type SwitchProfilePortProfileBreakout struct {
-	Default   string                                          `json:"default,omitempty"`
+	// Default defines the default breakout mode for the profile
+	Default string `json:"default,omitempty"`
+	// Supported defines the supported breakout modes for the profile with the NOS name offsets
 	Supported map[string]SwitchProfilePortProfileBreakoutMode `json:"supported,omitempty"`
 }
 
+// Defines a switch port profile breakout mode configuration
 type SwitchProfilePortProfileBreakoutMode struct {
+	// Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode
 	Offsets []string `json:"offsets,omitempty"`
 }
 
+// Defines a switch port profile configuration
 type SwitchProfilePortProfile struct {
-	Speed    *SwitchProfilePortProfileSpeed    `json:"speed,omitempty"`
+	// Speed defines the speed configuration for the profile, exclusive with breakout
+	Speed *SwitchProfilePortProfileSpeed `json:"speed,omitempty"`
+	// Breakout defines the breakout configuration for the profile, exclusive with speed
 	Breakout *SwitchProfilePortProfileBreakout `json:"breakout,omitempty"`
 }
 
 // SwitchProfileSpec defines the desired state of SwitchProfile
 type SwitchProfileSpec struct {
-	DisplayName  string                              `json:"displayName,omitempty"`
-	OtherNames   []string                            `json:"otherNames,omitempty"`
-	Features     SwitchProfileFeatures               `json:"features,omitempty"`
-	Config       SwitchProfileConfig                 `json:"config,omitempty"`
-	Ports        map[string]SwitchProfilePort        `json:"ports,omitempty"`
-	PortGroups   map[string]SwitchProfilePortGroup   `json:"portGroups,omitempty"`
+	// DisplayName defines the human-readable name of the switch
+	DisplayName string `json:"displayName,omitempty"`
+	// OtherNames defines alternative names for the switch
+	OtherNames []string `json:"otherNames,omitempty"`
+	// Features defines the features supported by the switch
+	Features SwitchProfileFeatures `json:"features,omitempty"`
+	// Config defines the switch-specific configuration options
+	Config SwitchProfileConfig `json:"config,omitempty"`
+	// Ports defines the switch port configuration
+	Ports map[string]SwitchProfilePort `json:"ports,omitempty"`
+	// PortGroups defines the switch port group configuration
+	PortGroups map[string]SwitchProfilePortGroup `json:"portGroups,omitempty"`
+	// PortProfiles defines the switch port profile configuration
 	PortProfiles map[string]SwitchProfilePortProfile `json:"portProfiles,omitempty"`
 }
 
