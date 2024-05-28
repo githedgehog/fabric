@@ -31,6 +31,7 @@ import (
 var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	profileVS,
 	profileDellS5248FON,
+	profileDellS5232FON,
 }
 
 type Default struct {
