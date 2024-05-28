@@ -118,6 +118,7 @@ type SwitchStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sw
+// +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.profile`,priority=0
 // +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
 // +kubebuilder:printcolumn:name="Groups",type=string,JSONPath=`.spec.groups`,priority=0
@@ -222,8 +223,6 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
-	// TODO validate port group speeds against switch profile
-
 	if len(sw.Spec.VLANNamespaces) == 0 {
 		return nil, errors.Errorf("at least one VLAN namespace required")
 	}
@@ -241,6 +240,10 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 	}
 	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
 		return nil, errors.Errorf("VTEP IP is not allowed for spine switches")
+	}
+
+	if sw.Spec.Profile == "" {
+		return nil, errors.Errorf("profile is required")
 	}
 
 	if !slices.Contains(meta.RedundancyTypes, sw.Spec.Redundancy.Type) {
@@ -310,6 +313,76 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 				}
 
 				return nil, errors.Wrapf(err, "failed to get switch group %s", group) // TODO replace with some internal error to not expose to the user
+			}
+		}
+
+		sp := &SwitchProfile{}
+		err = kube.Get(ctx, types.NamespacedName{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("switch profile %s does not exist", sw.Spec.Profile)
+			}
+
+			return nil, errors.Wrapf(err, "failed to get switch profile %s", sw.Spec.Profile) // TODO replace with some internal error to not expose to the user
+		}
+
+		for name, speed := range sw.Spec.PortGroupSpeeds {
+			group, exists := sp.Spec.PortGroups[name]
+			if !exists {
+				return nil, errors.Errorf("port group %s not found in switch profile", name)
+			}
+
+			profile, exists := sp.Spec.PortProfiles[group.Profile]
+			if !exists {
+				return nil, errors.Errorf("port profile %s for group %s not found in switch profile", group.Profile, name)
+			}
+
+			if profile.Speed == nil {
+				return nil, errors.Errorf("port profile %s for group %s has no supported speeds", group.Profile, name)
+			}
+
+			if !slices.Contains(profile.Speed.Supported, speed) {
+				return nil, errors.Errorf("port group %s does not support specified speed %s", name, speed)
+			}
+		}
+
+		for name, speed := range sw.Spec.PortSpeeds {
+			port, exists := sp.Spec.Ports[name]
+			if !exists {
+				return nil, errors.Errorf("port %s not found in switch profile", name)
+			}
+
+			profile, exists := sp.Spec.PortProfiles[port.Profile]
+			if !exists {
+				return nil, errors.Errorf("port profile %s for port %s not found in switch profile", port.Profile, name)
+			}
+
+			if profile.Speed == nil {
+				return nil, errors.Errorf("port profile %s for port %s has no supported speeds", port.Profile, name)
+			}
+
+			if !slices.Contains(profile.Speed.Supported, speed) {
+				return nil, errors.Errorf("port %s does not support specified speed %s", name, speed)
+			}
+		}
+
+		for name, breakout := range sw.Spec.PortBreakouts {
+			port, exists := sp.Spec.Ports[name]
+			if !exists {
+				return nil, errors.Errorf("port %s not found in switch profile", name)
+			}
+
+			profile, exists := sp.Spec.PortProfiles[port.Profile]
+			if !exists {
+				return nil, errors.Errorf("port profile %s for port %s not found in switch profile", port.Profile, name)
+			}
+
+			if profile.Breakout == nil {
+				return nil, errors.Errorf("port profile %s for port %s has no supported breakouts", port.Profile, name)
+			}
+
+			if _, exists := profile.Breakout.Supported[breakout]; !exists {
+				return nil, errors.Errorf("port %s does not support specified breakout %s", name, breakout)
 			}
 		}
 	}
