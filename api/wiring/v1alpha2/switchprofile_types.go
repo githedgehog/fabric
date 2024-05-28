@@ -16,6 +16,7 @@ package v1alpha2
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -455,4 +456,64 @@ func ValidatePortBreakoutMode(mode string) error {
 	}
 
 	return ValidatePortSpeed(speed)
+}
+
+func (sp *SwitchProfileSpec) GetNOSPortMappingFor(sw *SwitchSpec) (map[string]string, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+	if sw == nil {
+		return nil, errors.Errorf("switch spec is nil")
+	}
+
+	ports := map[string]string{}
+
+	for portName, port := range sp.Ports {
+		if port.Management {
+			ports[portName] = port.NOSName
+
+			continue
+		}
+
+		if port.Profile != "" && sp.PortProfiles[port.Profile].Breakout != nil {
+			breakoutProfile := sp.PortProfiles[port.Profile].Breakout
+
+			swBreakout, ok := sw.PortBreakouts[portName]
+			if !ok {
+				swBreakout = breakoutProfile.Default
+			}
+
+			if breakoutMode, ok := breakoutProfile.Supported[swBreakout]; ok {
+				nosNameBaseStr, cut := strings.CutPrefix(port.NOSName, DataPortNOSNamePrefix)
+				if !cut {
+					return nil, errors.Errorf("port %q NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+				}
+				nosNameBase, err := strconv.Atoi(nosNameBaseStr)
+				if err != nil {
+					return nil, errors.Errorf("port %q NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
+				}
+
+				for breakoutIdx, offsetStr := range breakoutMode.Offsets {
+					offset, err := strconv.Atoi(offsetStr)
+					if err != nil {
+						return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, swBreakout, offsetStr)
+					}
+
+					nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
+
+					if breakoutIdx == 0 {
+						ports[portName] = nosName
+					}
+
+					ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName
+				}
+			} else {
+				return nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, swBreakout, port.Profile)
+			}
+		} else {
+			ports[portName] = port.NOSName
+		}
+	}
+
+	return ports, nil
 }
