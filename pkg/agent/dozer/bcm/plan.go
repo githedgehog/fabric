@@ -2261,11 +2261,6 @@ func getMaxPaths(agent *agentapi.Agent) uint32 {
 		return agent.Spec.SwitchProfile.Config.MaxPathsEBGP
 	}
 
-	// TODO move to SwitchProfile
-	if agent.Spec.IsVS() || agent.Status.State.NOS.HwskuVersion == "Accton-AS4630-54NPE" {
-		return 16
-	}
-
 	return agent.Spec.Config.DefaultMaxPathsEBGP
 }
 
