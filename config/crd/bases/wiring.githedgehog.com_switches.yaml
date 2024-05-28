@@ -21,6 +21,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.profile
+      name: Profile
+      type: string
     - jsonPath: .spec.role
       name: Role
       type: string
