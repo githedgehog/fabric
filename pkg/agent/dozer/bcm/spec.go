@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 )
@@ -152,7 +153,7 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	},
 }
 
-func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Client, spec *dozer.Spec) error {
 	if err := loadActualZTP(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load ztp")
 	}
@@ -189,7 +190,7 @@ func loadActualSpec(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) 
 		return errors.Wrapf(err, "failed to load users")
 	}
 
-	if err := loadActualInterfaces(ctx, client, spec); err != nil {
+	if err := loadActualInterfaces(ctx, agent, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load interfaces")
 	}
 
