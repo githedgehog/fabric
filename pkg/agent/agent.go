@@ -311,7 +311,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	}
 	slog.Debug("Desired state generated")
 
-	actual, err := svc.processor.LoadActualState(ctx)
+	actual, err := svc.processor.LoadActualState(ctx, agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load actual state")
 	}

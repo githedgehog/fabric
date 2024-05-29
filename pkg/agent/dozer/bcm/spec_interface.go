@@ -24,6 +24,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
@@ -511,13 +512,13 @@ var specInterfaceVLANAnycastGatewayEnforcer = &DefaultValueEnforcer[string, *doz
 	},
 }
 
-func loadActualInterfaces(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualInterfaces(ctx context.Context, agent *agentapi.Agent, client *gnmi.Client, spec *dozer.Spec) error {
 	ocInterfaces := &oc.OpenconfigInterfaces_Interfaces{}
 	err := client.Get(ctx, "/interfaces/interface", ocInterfaces, api.DataTypeCONFIG())
 	if err != nil {
 		return errors.Wrapf(err, "failed to read interfaces")
 	}
-	spec.Interfaces, err = unmarshalOCInterfaces(ocInterfaces)
+	spec.Interfaces, err = unmarshalOCInterfaces(agent, ocInterfaces)
 	if err != nil {
 		return errors.Wrapf(err, "failed to unmarshal interfaces")
 	}
@@ -525,11 +526,35 @@ func loadActualInterfaces(ctx context.Context, client *gnmi.Client, spec *dozer.
 	return nil
 }
 
-func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[string]*dozer.SpecInterface, error) {
+func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces_Interfaces) (map[string]*dozer.SpecInterface, error) {
 	interfaces := map[string]*dozer.SpecInterface{}
 
 	if ocVal == nil {
 		return interfaces, nil
+	}
+
+	sp := agent.Spec.SwitchProfile
+	if sp == nil {
+		return nil, errors.New("switch profile is not set")
+	}
+
+	skipSpeedPorts := map[string]bool{}
+	for _, port := range sp.Ports {
+		if port.Group != "" {
+			skipSpeedPorts[port.NOSName] = true
+		}
+	}
+
+	breakoutNames, err := sp.GetAllBreakoutNOSNames()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get all breakout NOS names")
+	}
+	for name, val := range breakoutNames {
+		if !val {
+			continue
+		}
+
+		skipSpeedPorts[name] = true
 	}
 
 	for name, ocIface := range ocVal.Interface {
@@ -649,7 +674,7 @@ func unmarshalOCInterfaces(ocVal *oc.OpenconfigInterfaces_Interfaces) (map[strin
 			if ocIface.Ethernet.Config != nil {
 				iface.PortChannel = ocIface.Ethernet.Config.AggregateId
 
-				if !isManagement(name) { // TODO support configuring speed on Mgmt interface
+				if !isManagement(name) && !skipSpeedPorts[name] { // TODO support configuring speed on Mgmt interface
 					iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
 				}
 			}

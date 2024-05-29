@@ -24,6 +24,7 @@ import (
 
 	"github.com/openconfig/gnmic/api"
 	"github.com/pkg/errors"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
@@ -123,10 +124,10 @@ func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
 	panic("unimplemented")
 }
 
-func (p *BroadcomProcessor) LoadActualState(ctx context.Context) (*dozer.Spec, error) {
+func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
 	spec := &dozer.Spec{}
 
-	if err := loadActualSpec(ctx, p.client, spec); err != nil {
+	if err := loadActualSpec(ctx, agent, p.client, spec); err != nil {
 		return nil, errors.Wrapf(err, "failed to load actual state")
 	}
 

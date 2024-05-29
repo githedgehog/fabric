@@ -29,7 +29,7 @@ import (
 type Processor interface {
 	EnsureControlLink(ctx context.Context, agent *agentapi.Agent) error
 	WaitReady(ctx context.Context) error
-	LoadActualState(ctx context.Context) (*Spec, error)
+	LoadActualState(ctx context.Context, agent *agentapi.Agent) (*Spec, error)
 	PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*Spec, error)
 	CalculateActions(ctx context.Context, actual, desired *Spec) ([]Action, error)
 	ApplyActions(ctx context.Context, actions []Action) ([]string, error) // warnings
