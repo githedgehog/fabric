@@ -831,10 +831,6 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[vrfName].Interfaces[ifName] = &dozer.SpecVRFInterface{}
 		}
 
-		if cfg.VLAN != 0 {
-			ifName = strings.ReplaceAll(ifName, "Ethernet", "Eth")
-		}
-
 		subnets := []string{ipNet.String()}
 
 		for _, subnet := range cfg.Subnets {
@@ -1752,7 +1748,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 						NextHops: []dozer.SpecVRFStaticRouteNextHop{
 							{
 								IP:        ip1,
-								Interface: pointer.To(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
+								Interface: pointer.To(sub2),
 							},
 						},
 					}
@@ -1769,7 +1765,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 						NextHops: []dozer.SpecVRFStaticRouteNextHop{
 							{
 								IP:        ip2,
-								Interface: pointer.To(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
+								Interface: pointer.To(sub1),
 							},
 						},
 					}
@@ -2178,7 +2174,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip1,
-							Interface: pointer.To(strings.ReplaceAll(sub2, "Ethernet", "Eth")),
+							Interface: pointer.To(sub2),
 						},
 					},
 				}
@@ -2197,7 +2193,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip2,
-							Interface: pointer.To(strings.ReplaceAll(sub1, "Ethernet", "Eth")),
+							Interface: pointer.To(sub1),
 						},
 					},
 				}
@@ -2438,76 +2434,112 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		return errors.Errorf("switch profile not found")
 	}
 
+	var err error
+
 	ports, err := sp.GetNOSPortMappingFor(&agent.Spec.Switch)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get NOS port mapping for switch")
 	}
 
+	newIfaces := map[string]*dozer.SpecInterface{}
 	for name, iface := range spec.Interfaces {
+		portName := name
 		if isHedgehogPortName(name) {
-			portName, err := getNOSPortName(ports, name)
+			portName, err = getNOSPortName(ports, name)
 			if err != nil {
 				return errors.Wrapf(err, "failed to translate port name for spec interfaces %s", name)
 			}
-
-			delete(spec.Interfaces, name)
-			spec.Interfaces[portName] = iface
 		}
-	}
 
+		newIfaces[portName] = iface
+	}
+	spec.Interfaces = newIfaces
+
+	newACLIfaces := map[string]*dozer.SpecACLInterface{}
 	for name, iface := range spec.ACLInterfaces {
+		portName := name
 		if isHedgehogPortName(name) {
-			portName, err := getNOSPortName(ports, name)
+			portName, err = getNOSPortName(ports, name)
 			if err != nil {
 				return errors.Wrapf(err, "failed to translate port name for ACL interfaces %s", name)
 			}
-
-			delete(spec.ACLInterfaces, name)
-			spec.ACLInterfaces[portName] = iface
 		}
-	}
 
+		newACLIfaces[portName] = iface
+	}
+	spec.ACLInterfaces = newACLIfaces
+
+	newLLDPIfaces := map[string]*dozer.SpecLLDPInterface{}
 	for name, iface := range spec.LLDPInterfaces {
+		portName := name
 		if isHedgehogPortName(name) {
-			portName, err := getNOSPortName(ports, name)
+			portName, err = getNOSPortName(ports, name)
 			if err != nil {
 				return errors.Wrapf(err, "failed to translate port name for LLDP interfaces %s", name)
 			}
-
-			delete(spec.LLDPInterfaces, name)
-			spec.LLDPInterfaces[portName] = iface
 		}
-	}
 
+		newLLDPIfaces[portName] = iface
+	}
+	spec.LLDPInterfaces = newLLDPIfaces
+
+	newPortGroups := map[string]*dozer.SpecPortGroup{}
 	for name, group := range spec.PortGroups {
 		groupProfile, exists := sp.PortGroups[name]
 		if !exists {
 			return errors.Errorf("port group %s not found in NOS port mapping", name)
 		}
 
-		delete(spec.PortGroups, name)
-		spec.PortGroups[groupProfile.NOSName] = group
+		newPortGroups[groupProfile.NOSName] = group
 	}
+	spec.PortGroups = newPortGroups
 
+	newPortBreakouts := map[string]*dozer.SpecPortBreakout{}
 	for name, breakout := range spec.PortBreakouts {
 		port, exists := sp.Ports[name]
 		if !exists {
 			return errors.Errorf("port %s not found in NOS port mapping", name)
 		}
 
-		delete(spec.PortBreakouts, name)
-		spec.PortBreakouts[port.NOSName] = breakout
+		newPortBreakouts[port.NOSName] = breakout
 	}
+	spec.PortBreakouts = newPortBreakouts
 
+	newLSTIfaces := map[string]*dozer.SpecLSTInterface{}
 	for name, iface := range spec.LSTInterfaces {
+		portName := name
 		if isHedgehogPortName(name) {
-			portName, err := getNOSPortName(ports, name)
+			portName, err = getNOSPortName(ports, name)
 			if err != nil {
 				return errors.Wrapf(err, "failed to translate port name for LST interfaces %s", name)
 			}
+		}
 
-			delete(spec.LSTInterfaces, name)
-			spec.LSTInterfaces[portName] = iface
+		newLSTIfaces[portName] = iface
+	}
+	spec.LSTInterfaces = newLSTIfaces
+
+	for vrfName, vrf := range spec.VRFs {
+		for routeName, route := range vrf.StaticRoutes {
+			for idx, nextHop := range route.NextHops {
+				if nextHop.Interface == nil {
+					continue
+				}
+
+				iface := *nextHop.Interface
+				if isHedgehogPortName(iface) {
+					portName, err := getNOSPortName(ports, iface)
+					if err != nil {
+						return errors.Wrapf(err, "failed to translate port name %s for next hop of %s in vrf %s", iface, routeName, vrfName)
+					}
+
+					if strings.Contains(portName, ".") {
+						portName = strings.ReplaceAll(portName, "Ethernet", "Eth")
+					}
+
+					route.NextHops[idx].Interface = &portName
+				}
+			}
 		}
 	}
 
