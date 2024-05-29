@@ -253,7 +253,7 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		if !strings.HasPrefix(controlIface, "Management") {
+		if !strings.HasPrefix(controlIface, "M") {
 			ip, _, err = net.ParseCIDR(otherIP)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse other IP %s", otherIP)
