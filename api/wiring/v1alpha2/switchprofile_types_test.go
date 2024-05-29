@@ -16,7 +16,6 @@ package v1alpha2_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -44,9 +43,9 @@ func TestGetNOSPortMappingFor(t *testing.T) {
 					"E1/4": {NOSName: "Ethernet12", Label: "4", Group: "2"},
 					"E1/5": {NOSName: "Ethernet16", Label: "5", Profile: "SFP28-25G"},
 					"E1/6": {NOSName: "Ethernet17", Label: "6", Profile: "SFP28-25G"},
-					"E1/7": {NOSName: "Ethernet20", Label: "7", Profile: "QSFP28-100G"},
-					"E1/8": {NOSName: "Ethernet24", Label: "8", Profile: "QSFP28-100G"},
-					"E1/9": {NOSName: "Ethernet28", Label: "8", Profile: "QSFP28-100G"},
+					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
+					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
+					"E1/9": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet28"},
 				},
 				PortGroups: map[string]wiringapi.SwitchProfilePortGroup{
 					"1": {
@@ -119,11 +118,15 @@ func TestGetNOSPortMappingFor(t *testing.T) {
 			}).Validate(context.Background(), nil, nil)
 			require.NoError(t, err)
 
-			got, gotErr := tt.sp.GetNOSPortMappingFor(tt.sw)
+			got, err := tt.sp.GetNOSPortMappingFor(tt.sw)
 
-			fmt.Printf("#%v\n", got)
+			if tt.err {
+				require.Error(t, err)
 
-			require.Equal(t, tt.err, gotErr != nil)
+				return
+			}
+
+			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
 		})
 	}
