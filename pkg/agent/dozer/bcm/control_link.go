@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	managementPort = "Management0"
+	managementPort = "M1"
 )
 
 type route struct {
