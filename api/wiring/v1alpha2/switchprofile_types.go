@@ -576,3 +576,49 @@ func (sp *SwitchProfileSpec) GetNOSPortMappingFor(sw *SwitchSpec) (map[string]st
 
 	return ports, nil
 }
+
+func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+
+	ports := map[string]bool{}
+
+	for portName, port := range sp.Ports {
+		if port.Profile == "" {
+			continue
+		}
+
+		profile, ok := sp.PortProfiles[port.Profile]
+		if !ok {
+			return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+		}
+
+		if profile.Breakout == nil {
+			continue
+		}
+
+		nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
+		if !cut {
+			return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+		}
+		nosNameBase, err := strconv.Atoi(nosNameBaseStr)
+		if err != nil {
+			return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
+		}
+
+		for _, breakoutMode := range profile.Breakout.Supported {
+			for _, offsetStr := range breakoutMode.Offsets {
+				offset, err := strconv.Atoi(offsetStr)
+				if err != nil {
+					return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, breakoutMode, offsetStr)
+				}
+
+				nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
+				ports[nosName] = true
+			}
+		}
+	}
+
+	return ports, nil
+}

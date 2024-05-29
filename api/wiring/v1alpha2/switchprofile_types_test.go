@@ -131,3 +131,103 @@ func TestGetNOSPortMappingFor(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAllBreakoutNOSNames(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		sp   *wiringapi.SwitchProfileSpec
+		want map[string]bool
+		err  bool
+	}{
+		{
+			name: "simple",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName: "Test",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
+					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{"0"}},
+								"1x40G":  {Offsets: []string{"0"}},
+								"2x50G":  {Offsets: []string{"0", "2"}},
+								"1x50G":  {Offsets: []string{"0"}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{"0"}},
+								"1x10G":  {Offsets: []string{"0"}},
+							},
+						},
+					},
+				},
+			},
+			want: map[string]bool{
+				"Ethernet20": true,
+				"Ethernet21": true,
+				"Ethernet22": true,
+				"Ethernet23": true,
+				"Ethernet24": true,
+				"Ethernet25": true,
+				"Ethernet26": true,
+				"Ethernet27": true,
+			},
+		},
+		{
+			name: "simple2",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName: "Test",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
+					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{"0"}},
+								"1x40G":  {Offsets: []string{"0"}},
+								"2x50G":  {Offsets: []string{"0", "2"}},
+								"1x50G":  {Offsets: []string{"0"}},
+								"1x25G":  {Offsets: []string{"0"}},
+								"1x10G":  {Offsets: []string{"0"}},
+							},
+						},
+					},
+				},
+			},
+			want: map[string]bool{
+				"Ethernet20": true,
+				"Ethernet22": true,
+				"Ethernet24": true,
+				"Ethernet26": true,
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := (&wiringapi.SwitchProfile{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: *tt.sp,
+			}).Validate(context.Background(), nil, nil)
+			require.NoError(t, err)
+
+			got, err := tt.sp.GetAllBreakoutNOSNames()
+
+			if tt.err {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
