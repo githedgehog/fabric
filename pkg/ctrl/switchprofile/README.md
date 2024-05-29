@@ -46,6 +46,9 @@ Port-group  Interface range            Valid speeds      Default Speed Current S
 For the breakouts. offsets need to be specified, it could be done by checking every breakout mode supported by the port
 and checking the list of the resulting interface names (using `show interface breakout`).
 
+In case of breakouts, `NOSName` is the actual name to enable breakout mode on the switch (e.g. `1/1` in SONiC), and the
+`BaseNOSName` is the NOS name of the base port to be used together with the offset to calculate the actual port name.
+
 ```console
 admin@s5248-01:~$ sonic-cli -c "show interface breakout modes | no-more"
 ------------------------------------------------------------------------------
