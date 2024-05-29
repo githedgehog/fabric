@@ -86,6 +86,7 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 	actual := []wiringapi.SwitchProfile{}
 	for _, sp := range actualList.Items {
 		sp.ResourceVersion = ""
+		sp.Default()
 		actual = append(actual, sp)
 	}
 	sort.Slice(actual, func(i, j int) bool {

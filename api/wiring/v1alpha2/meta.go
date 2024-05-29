@@ -44,6 +44,7 @@ var (
 	ListLabelValue            = "true"
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
+	AnnotationPorts           = LabelName("ports")
 )
 
 func LabelName(name string) string {
