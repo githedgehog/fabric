@@ -728,9 +728,6 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
-	// TODO validate local port names against server/switch profiles
-	// TODO validate used port names across all connections
-
 	if fabricCfg != nil {
 		if err := conn.Spec.ValidateServerFacingMTU(fabricCfg.FabricMTU, fabricCfg.ServerFacingMTUOffset); err != nil {
 			return nil, err
@@ -812,6 +809,32 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 						return nil, errors.Errorf("all switches in MCLAG/ESLAG/MCLAGDomain connection should belong to the same redundancy type, found %s in %s", switchName, rType)
 					}
 					rType = sw.Spec.Redundancy.Type
+				}
+			}
+
+			sp := &SwitchProfile{}
+			err = kube.Get(ctx, types.NamespacedName{Name: sw.Spec.Profile, Namespace: conn.Namespace}, sp) // TODO namespace could be different?
+			if apierrors.IsNotFound(err) {
+				return nil, errors.Errorf("switch profile %s not found", sw.Spec.Profile)
+			}
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get switch profile %s", sw.Spec.Profile) // TODO replace with some internal error to not expose to the user
+			}
+
+			allowedPorts, err := sp.Spec.GetNOSPortMappingFor(&sw.Spec)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get NOS port mapping for switch %s", switchName)
+			}
+
+			for _, port := range ports {
+				if !strings.HasPrefix(port, switchName+"/") {
+					continue
+				}
+
+				portName := strings.TrimPrefix(port, switchName+"/")
+
+				if _, ok := allowedPorts[portName]; !ok {
+					return nil, errors.Errorf("port %s is not allowed for switch %s", port, switchName)
 				}
 			}
 		}
