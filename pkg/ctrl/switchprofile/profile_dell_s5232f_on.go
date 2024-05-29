@@ -64,7 +64,7 @@ var profileDellS5232FON = wiringapi.SwitchProfile{
 			"E1/29": {NOSName: "1/29", BaseNOSName: "Ethernet112", Label: "29", Profile: "QSFP28-100G"},
 			"E1/30": {NOSName: "1/30", BaseNOSName: "Ethernet116", Label: "30", Profile: "QSFP28-100G"},
 			"E1/31": {NOSName: "1/31", BaseNOSName: "Ethernet120", Label: "31", Profile: "QSFP28-100G"},
-			"E1/32": {NOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G-nb"}, // TODO(sergeymatov) verify, it doesn't support breakouts (and it's not shown in "show interface breakout modes")
+			"E1/32": {NOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G-nb"},
 			"E1/33": {NOSName: "Ethernet128", Label: "33", Profile: "SFP-10G"},
 			"E1/34": {NOSName: "Ethernet129", Label: "34", Profile: "SFP-10G"},
 		},
@@ -75,7 +75,7 @@ var profileDellS5232FON = wiringapi.SwitchProfile{
 					Supported: []string{"1G", "10G"},
 				},
 			},
-			"QSFP28-100G-nb": { // TODO(sergeymatov) verify
+			"QSFP28-100G-nb": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "100G",
 					Supported: []string{"40G", "100G"},
