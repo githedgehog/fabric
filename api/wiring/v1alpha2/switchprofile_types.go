@@ -205,6 +205,9 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 
 	profiles := map[string]bool{}
 	groups := map[string]bool{}
+	nosPortNames := map[string]bool{}
+	baseNOSPortNames := map[string]bool{}
+	labels := map[string]bool{}
 
 	for name, port := range sp.Spec.Ports {
 		if port.NOSName == "" {
@@ -213,6 +216,18 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 
 		if len(name) < 2 {
 			return nil, errors.Errorf("port %q name must have with at least two characters", name)
+		}
+
+		if _, ok := nosPortNames[port.NOSName]; ok {
+			return nil, errors.Errorf("port %q NOS name %q is duplicated", name, port.NOSName)
+		}
+		nosPortNames[port.NOSName] = true
+
+		if port.BaseNOSName != "" {
+			if _, ok := baseNOSPortNames[port.BaseNOSName]; ok {
+				return nil, errors.Errorf("port %q base NOS name %q is duplicated", name, port.BaseNOSName)
+			}
+			baseNOSPortNames[port.BaseNOSName] = true
 		}
 
 		if port.Management {
@@ -277,6 +292,11 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 		if port.Label == "" {
 			return nil, errors.Errorf("port %q must have a label", name)
 		}
+
+		if _, ok := labels[port.Label]; ok {
+			return nil, errors.Errorf("port %q label %q is duplicated", name, port.Label)
+		}
+		labels[port.Label] = true
 
 		if port.Profile == "" && port.Group == "" {
 			return nil, errors.Errorf("port %q must have a profile or group", name)

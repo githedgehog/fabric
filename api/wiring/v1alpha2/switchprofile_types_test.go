@@ -45,7 +45,7 @@ func TestGetNOSPortMappingFor(t *testing.T) {
 					"E1/6": {NOSName: "Ethernet17", Label: "6", Profile: "SFP28-25G"},
 					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
 					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
-					"E1/9": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet28"},
+					"E1/9": {NOSName: "1/9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "Ethernet28"},
 				},
 				PortGroups: map[string]wiringapi.SwitchProfilePortGroup{
 					"1": {
