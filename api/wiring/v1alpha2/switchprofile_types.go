@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
+	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -138,6 +139,7 @@ type SwitchProfileStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sp
 // +kubebuilder:printcolumn:name="DisplayName",type=string,JSONPath=`.spec.displayName`,priority=0
 // +kubebuilder:printcolumn:name="OtherNames",type=string,JSONPath=`.spec.otherNames`,priority=0
+// +kubebuilder:printcolumn:name="Ports",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/ports`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // SwitchProfile represents switch capabilities and configuration
 type SwitchProfile struct {
@@ -179,6 +181,52 @@ func (spList *SwitchProfileList) GetItems() []meta.Object {
 
 func (sp *SwitchProfile) Default() {
 	meta.DefaultObjectMetadata(sp)
+
+	if sp.Annotations == nil {
+		sp.Annotations = map[string]string{}
+	}
+
+	ports := map[string]int{}
+
+	for _, port := range sp.Spec.Ports {
+		if port.Management {
+			continue
+		}
+
+		profile := ""
+		if port.Profile != "" {
+			profile = port.Profile
+		}
+
+		if port.Group != "" {
+			group, exists := sp.Spec.PortGroups[port.Group]
+			if !exists {
+				continue
+			}
+
+			profile = group.Profile
+		}
+
+		if profile == "" {
+			continue
+		}
+
+		ports[strings.TrimSuffix(profile, "-nb")]++
+	}
+
+	portsStr := ""
+	profiles := maps.Keys(ports)
+	slices.Sort(profiles)
+	for _, profile := range profiles {
+		count := ports[profile]
+		if portsStr != "" {
+			portsStr += ", "
+		}
+
+		portsStr += fmt.Sprintf("%dx%s", count, profile)
+	}
+
+	sp.Annotations[AnnotationPorts] = portsStr
 }
 
 func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {

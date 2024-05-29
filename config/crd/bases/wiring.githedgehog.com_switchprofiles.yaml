@@ -27,6 +27,9 @@ spec:
     - jsonPath: .spec.otherNames
       name: OtherNames
       type: string
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/ports
+      name: Ports
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
