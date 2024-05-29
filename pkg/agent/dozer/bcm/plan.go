@@ -147,6 +147,12 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan virtual edge")
 		}
+
+		err = translatePortNames(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to translate port names")
+		}
+
 		spec.Normalize()
 
 		return spec, nil
@@ -2441,7 +2447,7 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if isHedgehogPortName(name) {
 			portName, err := getNOSPortName(ports, name)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to translate port name for spec interfaces %s", name)
 			}
 
 			delete(spec.Interfaces, name)
@@ -2453,7 +2459,7 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if isHedgehogPortName(name) {
 			portName, err := getNOSPortName(ports, name)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to translate port name for ACL interfaces %s", name)
 			}
 
 			delete(spec.ACLInterfaces, name)
@@ -2465,7 +2471,7 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if isHedgehogPortName(name) {
 			portName, err := getNOSPortName(ports, name)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to translate port name for LLDP interfaces %s", name)
 			}
 
 			delete(spec.LLDPInterfaces, name)
@@ -2497,7 +2503,7 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if isHedgehogPortName(name) {
 			portName, err := getNOSPortName(ports, name)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to translate port name for LST interfaces %s", name)
 			}
 
 			delete(spec.LSTInterfaces, name)
