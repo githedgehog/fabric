@@ -33,6 +33,10 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	profileDellS5248FON,
 	profileDellS5232FON,
 	profileEdgecoreEPS203,
+	profileEdgecoreDCS203,
+	profileCelesticaDS3000,
+	profileCelesticaDS4000,
+	profileEdgecoreAS7712,
 }
 
 type Default struct {

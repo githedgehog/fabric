@@ -19,12 +19,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileDellS5232FON = wiringapi.SwitchProfile{
+var profileCelesticaDS3000 = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "dell-s5232f-on",
+		Name: "celestica-ds3000",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Dell S5232F-ON",
+		DisplayName: "Celestica DS3000",
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,
@@ -64,9 +64,8 @@ var profileDellS5232FON = wiringapi.SwitchProfile{
 			"E1/29": {NOSName: "1/29", BaseNOSName: "Ethernet112", Label: "29", Profile: "QSFP28-100G"},
 			"E1/30": {NOSName: "1/30", BaseNOSName: "Ethernet116", Label: "30", Profile: "QSFP28-100G"},
 			"E1/31": {NOSName: "1/31", BaseNOSName: "Ethernet120", Label: "31", Profile: "QSFP28-100G"},
-			"E1/32": {NOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G-nb"}, // 32x QSFP28-100G, single port w/o breakout
-			"E1/33": {NOSName: "Ethernet128", Label: "33", Profile: "SFP28-10G"},
-			"E1/34": {NOSName: "Ethernet129", Label: "34", Profile: "SFP28-10G"},
+			"E1/32": {NOSName: "1/32", BaseNOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G"}, // 32x QSFP28-100G
+			"E1/33": {NOSName: "Ethernet128", Label: "33", Profile: "SFP28-10G"},                        // 1x SFP28-10G
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"SFP28-10G": {
@@ -75,24 +74,14 @@ var profileDellS5232FON = wiringapi.SwitchProfile{
 					Supported: []string{"1G", "10G"},
 				},
 			},
-			"QSFP28-100G-nb": {
-				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
-					Default:   "100G",
-					Supported: []string{"40G", "100G"},
-				},
-			},
 			"QSFP28-100G": {
 				Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
 					Default: "1x100G",
 					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
 						"1x100G": {Offsets: []string{"0"}},
 						"1x40G":  {Offsets: []string{"0"}},
-						"2x50G":  {Offsets: []string{"0", "2"}},
-						"1x50G":  {Offsets: []string{"0"}},
 						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
 						"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
-						"1x25G":  {Offsets: []string{"0"}},
-						"1x10G":  {Offsets: []string{"0"}},
 					},
 				},
 			},
