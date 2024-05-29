@@ -151,6 +151,11 @@ spec:
                     Defines a switch port configuration
                     Only one of Profile or Group can be set
                   properties:
+                    baseNOSName:
+                      description: BaseNOSName defines the base NOS name that could
+                        be used together with the profile to generate the actual NOS
+                        name (e.g. breakouts)
+                      type: string
                     group:
                       description: If port isn't directly manageable, group defines
                         the group it belongs to, exclusive with profile
