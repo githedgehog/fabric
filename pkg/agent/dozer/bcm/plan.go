@@ -206,6 +206,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to plan static external connections")
 	}
 
+	err = translatePortNames(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to translate port names")
+	}
+
 	spec.Normalize()
 
 	return spec, nil
@@ -2418,4 +2423,107 @@ func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 	}
 
 	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
+}
+
+func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
+	sp := agent.Spec.SwitchProfile
+
+	if sp == nil {
+		return errors.Errorf("switch profile not found")
+	}
+
+	ports, err := sp.GetNOSPortMappingFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get NOS port mapping for switch")
+	}
+
+	for name, iface := range spec.Interfaces {
+		if isHedgehogPortName(name) {
+			portName, err := getNOSPortName(ports, name)
+			if err != nil {
+				return err
+			}
+
+			delete(spec.Interfaces, name)
+			spec.Interfaces[portName] = iface
+		}
+	}
+
+	for name, iface := range spec.ACLInterfaces {
+		if isHedgehogPortName(name) {
+			portName, err := getNOSPortName(ports, name)
+			if err != nil {
+				return err
+			}
+
+			delete(spec.ACLInterfaces, name)
+			spec.ACLInterfaces[portName] = iface
+		}
+	}
+
+	for name, iface := range spec.LLDPInterfaces {
+		if isHedgehogPortName(name) {
+			portName, err := getNOSPortName(ports, name)
+			if err != nil {
+				return err
+			}
+
+			delete(spec.LLDPInterfaces, name)
+			spec.LLDPInterfaces[portName] = iface
+		}
+	}
+
+	for name, group := range spec.PortGroups {
+		groupProfile, exists := sp.PortGroups[name]
+		if !exists {
+			return errors.Errorf("port group %s not found in NOS port mapping", name)
+		}
+
+		delete(spec.PortGroups, name)
+		spec.PortGroups[groupProfile.NOSName] = group
+	}
+
+	for name, breakout := range spec.PortBreakouts {
+		port, exists := sp.Ports[name]
+		if !exists {
+			return errors.Errorf("port %s not found in NOS port mapping", name)
+		}
+
+		delete(spec.PortBreakouts, name)
+		spec.PortBreakouts[port.NOSName] = breakout
+	}
+
+	for name, iface := range spec.LSTInterfaces {
+		if isHedgehogPortName(name) {
+			portName, err := getNOSPortName(ports, name)
+			if err != nil {
+				return err
+			}
+
+			delete(spec.LSTInterfaces, name)
+			spec.LSTInterfaces[portName] = iface
+		}
+	}
+
+	return nil
+}
+
+func getNOSPortName(ports map[string]string, name string) (string, error) {
+	sub := ""
+	if strings.Contains(name, ".") {
+		parts := strings.SplitN(name, ".", 2)
+		name = parts[0]
+		sub = "." + parts[1]
+	}
+
+	portName, exists := ports[name]
+	if !exists {
+		return "", errors.Errorf("port %s not found in NOS port mapping", name)
+	}
+
+	return portName + sub, nil
+}
+
+func isHedgehogPortName(name string) bool {
+	return strings.HasPrefix(name, "M") || strings.HasPrefix(name, "E")
 }
