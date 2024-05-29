@@ -42,7 +42,7 @@ var profileDellS5248FON = wiringapi.SwitchProfile{
 			"E1/7":  {NOSName: "Ethernet6", Label: "7", Group: "2"},
 			"E1/8":  {NOSName: "Ethernet7", Label: "8", Group: "2"},
 			"E1/9":  {NOSName: "Ethernet8", Label: "9", Group: "3"},
-			"E1/10": {NOSName: "Ethernet8", Label: "10", Group: "3"},
+			"E1/10": {NOSName: "Ethernet9", Label: "10", Group: "3"},
 			"E1/11": {NOSName: "Ethernet10", Label: "11", Group: "3"},
 			"E1/12": {NOSName: "Ethernet11", Label: "12", Group: "3"},
 			"E1/13": {NOSName: "Ethernet12", Label: "13", Group: "4"},
