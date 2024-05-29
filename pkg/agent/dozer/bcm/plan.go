@@ -2520,6 +2520,20 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.LSTInterfaces = newLSTIfaces
 
 	for vrfName, vrf := range spec.VRFs {
+		newIfaces := map[string]*dozer.SpecVRFInterface{}
+		for name, iface := range vrf.Interfaces {
+			portName := name
+			if isHedgehogPortName(name) {
+				portName, err = getNOSPortName(ports, name)
+				if err != nil {
+					return errors.Wrapf(err, "failed to translate port name for VRF %s interfaces %s", vrfName, name)
+				}
+			}
+
+			newIfaces[portName] = iface
+		}
+		vrf.Interfaces = newIfaces
+
 		for routeName, route := range vrf.StaticRoutes {
 			for idx, nextHop := range route.NextHops {
 				if nextHop.Interface == nil {
