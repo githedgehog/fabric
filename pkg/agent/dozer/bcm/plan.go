@@ -142,74 +142,65 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to plan basic BGP")
 	}
 
-	if agent.Spec.Switch.Role.IsVirtualEdge() {
+	if !agent.Spec.Switch.Role.IsVirtualEdge() {
+		err = planFabricConnections(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan fabric connections")
+		}
+
+		err = planVPCLoopbacks(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
+		}
+
+		err = planExternals(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan external connections")
+		}
+
+		err = planServerConnections(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan server connections")
+		}
+
+		if agent.Spec.Role.IsLeaf() {
+			err = planVXLAN(agent, spec)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to plan VXLAN")
+			}
+		}
+
+		if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
+			_ /* first */, err = planMCLAGDomain(agent, spec)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to plan mclag domain")
+			}
+		} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
+			err = planESLAG(agent, spec)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to plan eslag")
+			}
+		}
+
+		err = planVPCs(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan VPCs")
+		}
+
+		err = planExternalPeerings(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan external peerings")
+		}
+
+		err = planStaticExternals(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan static external connections")
+		}
+	} else {
 		err = planVirtualEdge(agent, spec)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan virtual edge")
 		}
-
-		err = translatePortNames(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to translate port names")
-		}
-
-		spec.Normalize()
-
-		return spec, nil
-	}
-
-	err = planFabricConnections(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan fabric connections")
-	}
-
-	err = planVPCLoopbacks(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
-	}
-
-	err = planExternals(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan external connections")
-	}
-
-	err = planServerConnections(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan server connections")
-	}
-
-	if agent.Spec.Role.IsLeaf() {
-		err = planVXLAN(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan VXLAN")
-		}
-	}
-
-	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
-		_ /* first */, err = planMCLAGDomain(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan mclag domain")
-		}
-	} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
-		err = planESLAG(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan eslag")
-		}
-	}
-
-	err = planVPCs(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan VPCs")
-	}
-
-	err = planExternalPeerings(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan external peerings")
-	}
-
-	err = planStaticExternals(agent, spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to plan static external connections")
 	}
 
 	err = translatePortNames(agent, spec)
@@ -2252,15 +2243,24 @@ func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, loWReq stri
 }
 
 func getPortSpeed(agent *agentapi.Agent, port string) *string {
-	if agent.Spec.Switch.PortSpeeds == nil {
-		return nil
+	var speed *string
+
+	sp := agent.Spec.SwitchProfile
+	if sp != nil {
+		if port, exists := sp.Ports[port]; exists && port.Group == "" && port.Profile != "" {
+			if profile, exists := sp.PortProfiles[port.Profile]; exists && profile.Speed != nil {
+				speed = &profile.Speed.Default
+			}
+		}
 	}
 
-	if speed, exists := agent.Spec.Switch.PortSpeeds[port]; exists {
-		return &speed
+	if agent.Spec.Switch.PortSpeeds != nil {
+		if cSpeed, exists := agent.Spec.Switch.PortSpeeds[port]; exists {
+			speed = &cSpeed
+		}
 	}
 
-	return nil
+	return speed
 }
 
 func getMaxPaths(agent *agentapi.Agent) uint32 {
