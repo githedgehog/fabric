@@ -1247,6 +1247,7 @@ the underlay definition including Switches, Server, wiring between them and etc.
 - [Server](#server)
 - [Switch](#switch)
 - [SwitchGroup](#switchgroup)
+- [SwitchProfile](#switchprofile)
 - [VLANNamespace](#vlannamespace)
 
 
@@ -1848,6 +1849,201 @@ SwitchGroupStatus defines the observed state of SwitchGroup
 
 _Appears in:_
 - [SwitchGroup](#switchgroup)
+
+
+
+#### SwitchProfile
+
+
+
+SwitchProfile represents switch capabilities and configuration
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `kind` _string_ | `SwitchProfile` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[SwitchProfileSpec](#switchprofilespec)_ |  |  |  |
+| `status` _[SwitchProfileStatus](#switchprofilestatus)_ |  |  |  |
+
+
+#### SwitchProfileConfig
+
+
+
+Defines switch-specific configuration options
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maxPathsEBGP` _integer_ | MaxPathsIBGP defines the maximum number of IBGP paths to be configured |  |  |
+
+
+#### SwitchProfileFeatures
+
+
+
+Defines features supported by a specific switch which is later used for roles and Fabric API features usage validation
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subinterfaces` _boolean_ | Subinterfaces defines if switch supports subinterfaces |  |  |
+| `vxlan` _boolean_ | VXLAN defines if switch supports VXLANs |  |  |
+| `acls` _boolean_ | ACLs defines if switch supports ACLs |  |  |
+
+
+#### SwitchProfilePort
+
+
+
+Defines a switch port configuration
+Only one of Profile or Group can be set
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nos` _string_ | NOSName defines how port is named in the NOS |  |  |
+| `baseNOSName` _string_ | BaseNOSName defines the base NOS name that could be used together with the profile to generate the actual NOS name (e.g. breakouts) |  |  |
+| `label` _string_ | Label defines the physical port label you can see on the actual switch |  |  |
+| `group` _string_ | If port isn't directly manageable, group defines the group it belongs to, exclusive with profile |  |  |
+| `profile` _string_ | If port is directly configurable, profile defines the profile it belongs to, exclusive with group |  |  |
+| `management` _boolean_ | Management defines if port is a management port, it's a special case and it can't have a group or profile |  |  |
+| `oniePortName` _string_ | OniePortName defines the ONIE port name for management ports only |  |  |
+
+
+#### SwitchProfilePortGroup
+
+
+
+Defines a switch port group configuration
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nos` _string_ | NOSName defines how group is named in the NOS |  |  |
+| `profile` _string_ | Profile defines the possible configuration profile for the group, could only have speed profile |  |  |
+
+
+#### SwitchProfilePortProfile
+
+
+
+Defines a switch port profile configuration
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `speed` _[SwitchProfilePortProfileSpeed](#switchprofileportprofilespeed)_ | Speed defines the speed configuration for the profile, exclusive with breakout |  |  |
+| `breakout` _[SwitchProfilePortProfileBreakout](#switchprofileportprofilebreakout)_ | Breakout defines the breakout configuration for the profile, exclusive with speed |  |  |
+
+
+#### SwitchProfilePortProfileBreakout
+
+
+
+Defines a switch port profile breakout configuration
+
+
+
+_Appears in:_
+- [SwitchProfilePortProfile](#switchprofileportprofile)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _string_ | Default defines the default breakout mode for the profile |  |  |
+| `supported` _object (keys:string, values:[SwitchProfilePortProfileBreakoutMode](#switchprofileportprofilebreakoutmode))_ | Supported defines the supported breakout modes for the profile with the NOS name offsets |  |  |
+
+
+#### SwitchProfilePortProfileBreakoutMode
+
+
+
+Defines a switch port profile breakout mode configuration
+
+
+
+_Appears in:_
+- [SwitchProfilePortProfileBreakout](#switchprofileportprofilebreakout)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `offsets` _string array_ | Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode |  |  |
+
+
+#### SwitchProfilePortProfileSpeed
+
+
+
+Defines a switch port profile speed configuration
+
+
+
+_Appears in:_
+- [SwitchProfilePortProfile](#switchprofileportprofile)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _string_ | Default defines the default speed for the profile |  |  |
+| `supported` _string array_ | Supported defines the supported speeds for the profile |  |  |
+
+
+#### SwitchProfileSpec
+
+
+
+SwitchProfileSpec defines the desired state of SwitchProfile
+
+
+
+_Appears in:_
+- [SwitchProfile](#switchprofile)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `displayName` _string_ | DisplayName defines the human-readable name of the switch |  |  |
+| `otherNames` _string array_ | OtherNames defines alternative names for the switch |  |  |
+| `features` _[SwitchProfileFeatures](#switchprofilefeatures)_ | Features defines the features supported by the switch |  |  |
+| `config` _[SwitchProfileConfig](#switchprofileconfig)_ | Config defines the switch-specific configuration options |  |  |
+| `ports` _object (keys:string, values:[SwitchProfilePort](#switchprofileport))_ | Ports defines the switch port configuration |  |  |
+| `portGroups` _object (keys:string, values:[SwitchProfilePortGroup](#switchprofileportgroup))_ | PortGroups defines the switch port group configuration |  |  |
+| `portProfiles` _object (keys:string, values:[SwitchProfilePortProfile](#switchprofileportprofile))_ | PortProfiles defines the switch port profile configuration |  |  |
+
+
+#### SwitchProfileStatus
+
+
+
+SwitchProfileStatus defines the observed state of SwitchProfile
+
+
+
+_Appears in:_
+- [SwitchProfile](#switchprofile)
 
 
 
