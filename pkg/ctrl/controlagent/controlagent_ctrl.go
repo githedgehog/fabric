@@ -274,7 +274,7 @@ func (r *Reconciler) buildNetworkd(serverName string, conns *wiringapi.Connectio
 			NextHops:   nextHops,
 		}
 
-		name := strings.ToLower(fmt.Sprintf("00-hh-1--%s--%s--%s", cfg.Port, swName, swPort))
+		name := strings.ReplaceAll(strings.ToLower(fmt.Sprintf("00-hh-1--%s--%s--%s", cfg.Port, swName, swPort)), "/", "_")
 		networkd[name+".network"], err = executeTemplate(controlNetworkTmpl, cfg)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error executing network template for conn %s", conn.Name)
