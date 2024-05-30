@@ -763,6 +763,14 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 				return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
 			}
 
+			if subnet == "0.0.0.0/0" {
+				if len(se.Subnets) > 1 {
+					return nil, errors.Errorf("default route should be the only subnet")
+				}
+
+				break
+			}
+
 			subnets = append(subnets, ipNet)
 		}
 

@@ -135,6 +135,10 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 		return nil, errors.Wrapf(err, "error unmarshalling config %s", path)
 	}
 
+	return cfg.Init()
+}
+
+func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 	if cfg.ControlVIP == "" {
 		return nil, errors.Errorf("config: controlVIP is required")
 	}
@@ -198,15 +202,8 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 		return nil, errors.Errorf("config: fabricMode must be one of %v", FabricModes)
 	}
 
-	if len(cfg.ReservedSubnets) == 0 {
-		return nil, errors.Errorf("config: reservedSubnets is required (it should include at least Fabric subnets)")
-	}
-	for _, subnet := range cfg.ReservedSubnets {
-		_, ipnet, err := net.ParseCIDR(subnet)
-		if err != nil {
-			return nil, errors.Wrapf(err, "config: reservedSubnets: invalid subnet %s", subnet)
-		}
-		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet)
+	if err := cfg.WithReservedSubnets(); err != nil {
+		return nil, err
 	}
 
 	if cfg.BaseVPCCommunity == "" {
@@ -265,4 +262,20 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	slog.Debug("Loaded config", "data", spew.Sdump(cfg))
 
 	return cfg, nil
+}
+
+func (cfg *FabricConfig) WithReservedSubnets() error {
+	if len(cfg.ReservedSubnets) == 0 {
+		return errors.Errorf("config: reservedSubnets is required (it should include at least Fabric subnets)")
+	}
+
+	for _, subnet := range cfg.ReservedSubnets {
+		_, ipnet, err := net.ParseCIDR(subnet)
+		if err != nil {
+			return errors.Wrapf(err, "config: reservedSubnets: invalid subnet %s", subnet)
+		}
+		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet)
+	}
+
+	return nil
 }
