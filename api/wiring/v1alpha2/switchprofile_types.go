@@ -565,7 +565,7 @@ func ValidatePortBreakoutMode(mode string) error {
 	return ValidatePortSpeed(speed)
 }
 
-func (sp *SwitchProfileSpec) GetNOSPortMappingFor(sw *SwitchSpec) (map[string]string, error) {
+func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]string, error) {
 	if sp == nil {
 		return nil, errors.Errorf("switch profile spec is nil")
 	}
@@ -620,6 +620,68 @@ func (sp *SwitchProfileSpec) GetNOSPortMappingFor(sw *SwitchSpec) (map[string]st
 		} else {
 			ports[portName] = port.NOSName
 		}
+	}
+
+	return ports, nil
+}
+
+func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]string, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+	if sw == nil {
+		return nil, errors.Errorf("switch spec is nil")
+	}
+
+	api2NOS, err := sp.GetAPI2NOSPortsFor(sw)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get API to NOS ports")
+	}
+
+	ports := map[string]string{}
+	for apiPort, nosPort := range api2NOS {
+		if prevAPIPort, exists := ports[nosPort]; exists {
+			if prevAPIPort+"/1" == apiPort {
+				ports[nosPort] = apiPort
+
+				continue
+			} else if prevAPIPort == apiPort+"/1" {
+				continue
+			}
+
+			return nil, errors.Errorf("NOS port %q is duplicated", nosPort)
+		}
+
+		ports[nosPort] = apiPort
+	}
+
+	return ports, nil
+}
+
+func (sp *SwitchProfileSpec) GetNOS2APIBreakouts() (map[string]string, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+
+	ports := map[string]string{}
+	for apiName, port := range sp.Ports {
+		if port.Profile == "" {
+			continue
+		}
+
+		profile, exists := sp.PortProfiles[port.Profile]
+		if !exists {
+			return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+		}
+		if profile.Breakout == nil {
+			continue
+		}
+
+		if _, exists := ports[port.NOSName]; exists {
+			return nil, errors.Errorf("NOS port %q is duplicated", port.NOSName)
+		}
+
+		ports[port.NOSName] = apiName
 	}
 
 	return ports, nil

@@ -260,9 +260,9 @@ type SwitchStateTransceiver struct {
 }
 
 type SwitchStateBreakout struct {
-	Mode    string   `json:"mode,omitempty"`
-	Members []string `json:"members,omitempty"`
-	Status  string   `json:"status,omitempty"`
+	Mode       string   `json:"mode,omitempty"`
+	NOSMembers []string `json:"nosMembers,omitempty"`
+	Status     string   `json:"status,omitempty"`
 }
 
 type SwitchStateLLDPNeighbor struct {

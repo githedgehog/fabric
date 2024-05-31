@@ -829,7 +829,7 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 				return nil, errors.Wrapf(err, "failed to get switch profile %s", sw.Spec.Profile) // TODO replace with some internal error to not expose to the user
 			}
 
-			allowedPorts, err := sp.Spec.GetNOSPortMappingFor(&sw.Spec)
+			allowedPorts, err := sp.Spec.GetAPI2NOSPortsFor(&sw.Spec)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get NOS port mapping for switch %s", switchName)
 			}

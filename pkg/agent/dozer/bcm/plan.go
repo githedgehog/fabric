@@ -2436,7 +2436,7 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	var err error
 
-	ports, err := sp.GetNOSPortMappingFor(&agent.Spec.Switch)
+	ports, err := sp.GetAPI2NOSPortsFor(&agent.Spec.Switch)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get NOS port mapping for switch")
 	}

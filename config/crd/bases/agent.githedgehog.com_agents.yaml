@@ -1630,12 +1630,12 @@ spec:
                   breakouts:
                     additionalProperties:
                       properties:
-                        members:
+                        mode:
+                          type: string
+                        nosMembers:
                           items:
                             type: string
                           type: array
-                        mode:
-                          type: string
                         status:
                           type: string
                       type: object

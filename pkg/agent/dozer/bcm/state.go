@@ -49,15 +49,29 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		},
 	}
 
-	if err := p.updateInterfaceMetrics(ctx, reg, swState); err != nil {
+	if agent.Spec.SwitchProfile == nil {
+		return errors.Errorf("switch profile not found")
+	}
+
+	portMap, err := agent.Spec.SwitchProfile.GetNOS2APIPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get port mapping")
+	}
+
+	breakoutMap, err := agent.Spec.SwitchProfile.GetNOS2APIBreakouts()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get breakout mapping")
+	}
+
+	if err := p.updateInterfaceMetrics(ctx, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update interface metrics")
 	}
 
-	if err := p.updateTransceiverMetrics(ctx, agent, reg, swState); err != nil {
+	if err := p.updateTransceiverMetrics(ctx, agent, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update transceiver metrics")
 	}
 
-	if err := p.updateLLDPNeighbors(ctx, swState); err != nil {
+	if err := p.updateLLDPNeighbors(ctx, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update lldp neighbors")
 	}
 
@@ -69,7 +83,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update platform metrics")
 	}
 
-	if err := p.updateComponentMetrics(ctx, reg, swState); err != nil {
+	if err := p.updateComponentMetrics(ctx, reg, swState, portMap, breakoutMap); err != nil {
 		return errors.Wrapf(err, "failed to update component metrics")
 	}
 
@@ -84,20 +98,29 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	return nil
 }
 
-func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
 	ifaces := &oc.OpenconfigInterfaces_Interfaces{}
 	err := p.client.Get(ctx, "/openconfig-interfaces:interfaces/interface", ifaces)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get interfaces")
 	}
 
-	for ifaceName, iface := range ifaces.Interface {
-		if !isManagement(ifaceName) && !isPhysical(ifaceName) && !isPortChannel(ifaceName) {
+	for ifaceNameRaw, iface := range ifaces.Interface {
+		if !isManagement(ifaceNameRaw) && !isPhysical(ifaceNameRaw) && !isPortChannel(ifaceNameRaw) {
 			continue
 		}
 
 		if iface.State == nil {
 			continue
+		}
+
+		ifaceName := ifaceNameRaw
+		if isManagement(ifaceNameRaw) || isPhysical(ifaceNameRaw) {
+			exists := false
+			ifaceName, exists = portMap[ifaceNameRaw]
+			if !exists {
+				slog.Warn("Port mapping not found, ignoring for metrics", "interface", ifaceNameRaw)
+			}
 		}
 
 		st := iface.State
@@ -256,7 +279,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 	return nil
 }
 
-func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/transceiver-dom", dev); err != nil {
 		return errors.Wrapf(err, "failed to get transceiver-dom")
@@ -270,12 +293,17 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent 
 		return errors.Errorf("transceiver-dom not found")
 	}
 
-	for transceiverName, transceiver := range dev.TransceiverDom.TransceiverDomInfo {
-		if !strings.HasPrefix(transceiverName, "Ethernet") {
+	for transceiverNameRaw, transceiver := range dev.TransceiverDom.TransceiverDomInfo {
+		if !strings.HasPrefix(transceiverNameRaw, "Ethernet") {
 			continue
 		}
 		if transceiver.State == nil {
 			continue
+		}
+
+		transceiverName, exists := portMap[transceiverNameRaw]
+		if !exists {
+			slog.Warn("Port mapping not found, ignoring for metrics", "transceiver", transceiverNameRaw)
 		}
 
 		ocSt := transceiver.State
@@ -479,7 +507,7 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent 
 	return nil
 }
 
-func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
 	lldp := &oc.OpenconfigLldp_Lldp{}
 	err := p.client.Get(ctx, "/lldp/interfaces", lldp)
 	if err != nil {
@@ -547,9 +575,14 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 			neighbours = append(neighbours, st)
 		}
 
-		intSt := swState.Interfaces[ifaceName]
+		ifaceNameTr, exists := portMap[ifaceName]
+		if !exists {
+			slog.Warn("Port mapping not found, ignoring for metrics", "lldpInterface", ifaceName)
+		}
+
+		intSt := swState.Interfaces[ifaceNameTr]
 		intSt.LLDPNeighbors = neighbours
-		swState.Interfaces[ifaceName] = intSt
+		swState.Interfaces[ifaceNameTr] = intSt
 	}
 
 	return nil
@@ -949,7 +982,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 	return nil
 }
 
-func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string, breakoutMap map[string]string) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/components", dev); err != nil {
 		return errors.Wrapf(err, "failed to get components")
@@ -966,7 +999,11 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 					continue
 				}
 
-				breakoutName := componentName
+				breakoutName, exists := breakoutMap[componentName]
+				if !exists {
+					slog.Warn("Breakout mapping not found, ignoring for metrics", "component", componentName)
+				}
+
 				if groups > 1 {
 					breakoutName += fmt.Sprintf("-%d", groupIdx)
 				}
@@ -978,7 +1015,7 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 					st.Mode = fmt.Sprintf("%dx%s", *grSt.NumBreakouts, *speed)
 				}
 
-				st.Members = grSt.Members
+				st.NOSMembers = grSt.Members
 
 				if grSt.Status != nil {
 					st.Status = *grSt.Status
@@ -989,7 +1026,10 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 		}
 
 		if component.State != nil && component.Transceiver != nil && component.Transceiver.State != nil {
-			transceiverName := componentName
+			transceiverName, exists := portMap[componentName]
+			if !exists {
+				slog.Warn("Port mapping not found, ignoring for metrics", "component", componentName)
+			}
 
 			if _, ok := swState.Interfaces[transceiverName]; !ok {
 				swState.Interfaces[transceiverName] = agentapi.SwitchStateInterface{}
@@ -1054,12 +1094,6 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 		}
 
 		if component.SoftwareModule != nil && component.SoftwareModule.State != nil {
-			// TODO consider more safe way to convert
-			// err = mapstructure.Decode(ocInfo.State, info) //nolint:musttag
-			// if err != nil {
-			// 	return nil, errors.Wrapf(err, "cannot convert NOS info")
-			// }
-
 			ocSt := component.SoftwareModule.State
 			st := agentapi.SwitchStateNOS{}
 
