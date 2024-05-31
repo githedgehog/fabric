@@ -242,7 +242,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `mode` _string_ |  |  |  |
-| `members` _string array_ |  |  |  |
+| `nosMembers` _string array_ |  |  |  |
 | `status` _string_ |  |  |  |
 
 
