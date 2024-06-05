@@ -35,6 +35,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	profileCelesticaDS4000,
 	profileEdgecoreAS7712,
 	profileEdgecoreDCS203,
+	profileEdgecoreDCS204,
 	profileEdgecoreEPS203,
 	profileSupermicroSSEC4632SB,
 	profileVS,
