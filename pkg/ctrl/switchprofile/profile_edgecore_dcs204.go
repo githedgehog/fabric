@@ -24,7 +24,8 @@ var profileEdgecoreDCS204 = wiringapi.SwitchProfile{
 		Name: "edgecore-dcs204",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Edgecore AS7726-32x",
+		DisplayName: "Edgecore DCS204",
+		OtherNames:  []string{"Edgecore AS7726-32X"},
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,
