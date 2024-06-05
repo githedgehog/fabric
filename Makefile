@@ -84,6 +84,7 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 .PHONY: docs
 docs: generate crd-ref-docs ## Build simple markdown documentation for all CRDs to be used as API docs
 	$(CRD_REF_DOCS) --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
+	go run cmd/fabric-gen/main.go profiles-ref
 
 ##@ Deployment
 

@@ -456,6 +456,35 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:  "inspect",
+				Usage: "inspect commands",
+				Flags: []cli.Flag{
+					verboseFlag,
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "port",
+						Usage: "Inspect port",
+						Flags: []cli.Flag{
+							verboseFlag,
+							&cli.StringFlag{
+								Name:     "name",
+								Usage:    "name",
+								Required: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							slog.Info("Inspecting port", "name", cCtx.String("name"))
+
+							return nil
+						},
+					},
+				},
+			},
 		},
 	}
 

@@ -732,3 +732,106 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 
 	return ports, nil
 }
+
+type SwitchProfilePortSummary struct {
+	Name      string
+	Label     string
+	Type      string
+	Group     string
+	Default   string
+	Supported string
+}
+
+func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+
+	res := []SwitchProfilePortSummary{}
+
+	portNames := maps.Keys(sp.Ports)
+	slices.SortFunc(portNames, func(a, b string) int {
+		if a[0] != b[0] {
+			if strings.HasPrefix(a, ManagementPortPrefix) {
+				return -1
+			}
+			if strings.HasPrefix(b, ManagementPortPrefix) {
+				return 1
+			}
+		}
+
+		if strings.HasPrefix(a, DataPortPrefix+"1/") && strings.HasPrefix(b, DataPortPrefix+"1/") {
+			a, _ = strings.CutPrefix(a, DataPortPrefix+"1/")
+			b, _ = strings.CutPrefix(b, DataPortPrefix+"1/")
+
+			numA, errA := strconv.Atoi(a)
+			numB, errB := strconv.Atoi(b)
+
+			if errA == nil && errB == nil {
+				return numA - numB
+			}
+		}
+
+		return strings.Compare(a, b)
+	})
+
+	for _, portName := range portNames {
+		port := sp.Ports[portName]
+
+		t := ""
+		def := ""
+		supported := ""
+
+		if port.Management {
+			t = "Management"
+		} else if port.Group != "" {
+			t = "Port Group"
+			gr, exists := sp.PortGroups[port.Group]
+			if !exists {
+				return nil, errors.Errorf("port %q references non-existent group %q", portName, port.Group)
+			}
+
+			profile, exists := sp.PortProfiles[gr.Profile]
+			if !exists {
+				return nil, errors.Errorf("group %q references non-existent profile %q", port.Group, gr.Profile)
+			}
+
+			if profile.Speed != nil {
+				def = profile.Speed.Default
+				supported = strings.Join(profile.Speed.Supported, ", ")
+			}
+		} else if port.Profile != "" {
+			profile := sp.PortProfiles[port.Profile]
+			if profile.Speed != nil {
+				t = "Direct"
+
+				if profile.Speed != nil {
+					def = profile.Speed.Default
+					supported = strings.Join(profile.Speed.Supported, ", ")
+				}
+			} else if profile.Breakout != nil {
+				t = "Breakout"
+
+				if profile.Breakout != nil {
+					def = profile.Breakout.Default
+					modes := maps.Keys(profile.Breakout.Supported)
+					slices.Sort(modes)
+					supported = strings.Join(modes, ", ")
+				}
+			}
+		}
+
+		summary := SwitchProfilePortSummary{
+			Name:      portName,
+			Label:     port.Label,
+			Type:      t,
+			Group:     port.Group,
+			Default:   def,
+			Supported: supported,
+		}
+
+		res = append(res, summary)
+	}
+
+	return res, nil
+}

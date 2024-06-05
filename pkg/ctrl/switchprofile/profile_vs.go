@@ -25,7 +25,7 @@ var profileVS = wiringapi.SwitchProfile{
 		Name: meta.SwitchProfileVS,
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "virtual-switch",
+		DisplayName: "Virtual Switch",
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,

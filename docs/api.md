@@ -2012,6 +2012,8 @@ _Appears in:_
 | `supported` _string array_ | Supported defines the supported speeds for the profile |  |  |
 
 
+
+
 #### SwitchProfileSpec
 
 
