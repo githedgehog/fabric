@@ -827,3 +827,330 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 		})
 	}
 }
+
+func TestGetReacheableFrom(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+
+	for _, tt := range []struct {
+		name      string
+		existing  []meta.Object
+		vpc       string
+		reachable map[string]*apiutil.ReachableFromSubnet
+		err       bool
+	}{
+		{
+			name: "simple",
+			existing: []meta.Object{
+				&vpcapi.VPC{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1",
+					},
+					Spec: vpcapi.VPCSpec{
+						Subnets: map[string]*vpcapi.VPCSubnet{
+							"subnet-1": {Subnet: "10.0.1.1/24"},
+							"subnet-2": {Subnet: "10.0.1.2/24", Restricted: pointer.To(true)},
+							"subnet-3": {Subnet: "10.0.1.3/24", Isolated: pointer.To(true)},
+							"subnet-4": {Subnet: "10.0.1.4/24", Isolated: pointer.To(true)},
+						},
+						Permit: [][]string{
+							{"subnet-1", "subnet-3"},
+						},
+					},
+				},
+				&vpcapi.VPC{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-2",
+					},
+					Spec: vpcapi.VPCSpec{
+						Subnets: map[string]*vpcapi.VPCSubnet{
+							"subnet-1": {Subnet: "10.0.2.1/24"},
+							"subnet-2": {Subnet: "10.0.2.2/24"},
+							"subnet-3": {Subnet: "10.0.2.3/24"},
+						},
+					},
+				},
+				&vpcapi.VPC{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-3",
+					},
+					Spec: vpcapi.VPCSpec{
+						Subnets: map[string]*vpcapi.VPCSubnet{
+							"subnet-1": {Subnet: "10.0.3.1/24"},
+						},
+					},
+				},
+				&vpcapi.VPC{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-4",
+					},
+					Spec: vpcapi.VPCSpec{
+						Subnets: map[string]*vpcapi.VPCSubnet{
+							"subnet-1": {Subnet: "10.0.4.1/24"},
+						},
+					},
+				},
+				&vpcapi.VPCPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--vpc-2",
+					},
+					Spec: vpcapi.VPCPeeringSpec{
+						Permit: []map[string]vpcapi.VPCPeer{
+							{
+								"vpc-1": {Subnets: []string{"subnet-1"}},
+								"vpc-2": {Subnets: []string{"subnet-2", "subnet-1"}},
+							},
+							{
+								"vpc-1": {Subnets: []string{"subnet-2"}},
+								"vpc-2": {},
+							},
+							{
+								"vpc-1": {},
+								"vpc-2": {Subnets: []string{"subnet-3"}},
+							},
+						},
+					},
+				},
+				&vpcapi.VPCPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--vpc-3",
+					},
+					Spec: vpcapi.VPCPeeringSpec{
+						Permit: []map[string]vpcapi.VPCPeer{
+							{
+								"vpc-1": {Subnets: []string{"subnet-1"}},
+								"vpc-3": {Subnets: []string{"subnet-1"}},
+							},
+						},
+					},
+				},
+				&vpcapi.VPCPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--vpc-4",
+					},
+					Spec: vpcapi.VPCPeeringSpec{
+						Remote: "border",
+						Permit: []map[string]vpcapi.VPCPeer{
+							{
+								"vpc-1": {Subnets: []string{"subnet-1"}},
+								"vpc-4": {Subnets: []string{"subnet-1"}},
+							},
+						},
+					},
+				},
+				&wiringapi.SwitchGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "border",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ext-1--attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						External: "ext-1",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ext-2--attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						External: "ext-2",
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-1",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-1", "subnet-2"},
+							},
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-1",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{Prefix: "172.1.2.0/24"},
+									{Prefix: "172.1.1.0/24"},
+								},
+							},
+						},
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-2",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-4", "subnet-1"},
+							},
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-2",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{Prefix: "172.2.0.0/24"},
+								},
+							},
+						},
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpc-1--ext-3",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-3"},
+							},
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-3",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{Prefix: "172.3.0.0/24"},
+								},
+							},
+						},
+					},
+				},
+			},
+			vpc: "vpc-1",
+			reachable: map[string]*apiutil.ReachableFromSubnet{
+				"subnet-1": {
+					WithinSameSubnet: &apiutil.ReachableSubnet{
+						Name:   "subnet-1",
+						Subnet: "10.0.1.1/24",
+					},
+					SameVPCSubnets: []apiutil.ReachableSubnet{
+						{
+							Name:   "subnet-2",
+							Subnet: "10.0.1.2/24",
+						},
+						{
+							Name:   "subnet-3",
+							Subnet: "10.0.1.3/24",
+						},
+					},
+					OtherVPCSubnets: map[string][]apiutil.ReachableSubnet{
+						"vpc-2": {
+							{
+								Name:   "subnet-1",
+								Subnet: "10.0.2.1/24",
+							},
+							{
+								Name:   "subnet-2",
+								Subnet: "10.0.2.2/24",
+							},
+							{
+								Name:   "subnet-3",
+								Subnet: "10.0.2.3/24",
+							},
+						},
+						"vpc-3": {
+							{
+								Name:   "subnet-1",
+								Subnet: "10.0.3.1/24",
+							},
+						},
+					},
+					ExternalPrefixes: map[string][]string{
+						"ext-1": {"172.1.1.0/24", "172.1.2.0/24"},
+						"ext-2": {"172.2.0.0/24"},
+					},
+				},
+				"subnet-2": {
+					WithinSameSubnet: nil,
+					SameVPCSubnets: []apiutil.ReachableSubnet{
+						{
+							Name:   "subnet-1",
+							Subnet: "10.0.1.1/24",
+						},
+					},
+					OtherVPCSubnets: map[string][]apiutil.ReachableSubnet{
+						"vpc-2": {
+							{
+								Name:   "subnet-1",
+								Subnet: "10.0.2.1/24",
+							},
+							{
+								Name:   "subnet-2",
+								Subnet: "10.0.2.2/24",
+							},
+							{
+								Name:   "subnet-3",
+								Subnet: "10.0.2.3/24",
+							},
+						},
+					},
+					ExternalPrefixes: map[string][]string{
+						"ext-1": {"172.1.1.0/24", "172.1.2.0/24"},
+					},
+				},
+				"subnet-3": {
+					WithinSameSubnet: &apiutil.ReachableSubnet{
+						Name:   "subnet-3",
+						Subnet: "10.0.1.3/24",
+					},
+					SameVPCSubnets: []apiutil.ReachableSubnet{
+						{
+							Name:   "subnet-1",
+							Subnet: "10.0.1.1/24",
+						},
+					},
+					OtherVPCSubnets: map[string][]apiutil.ReachableSubnet{
+						"vpc-2": {
+							{
+								Name:   "subnet-3",
+								Subnet: "10.0.2.3/24",
+							},
+						},
+					},
+					ExternalPrefixes: map[string][]string{},
+				},
+				"subnet-4": {
+					WithinSameSubnet: &apiutil.ReachableSubnet{
+						Name:   "subnet-4",
+						Subnet: "10.0.1.4/24",
+					},
+					SameVPCSubnets: nil,
+					OtherVPCSubnets: map[string][]apiutil.ReachableSubnet{
+						"vpc-2": {
+							{
+								Name:   "subnet-3",
+								Subnet: "10.0.2.3/24",
+							},
+						},
+					},
+					ExternalPrefixes: map[string][]string{
+						"ext-2": {"172.2.0.0/24"},
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			rawObjs := make([]client.Object, len(tt.existing))
+			for idx, obj := range tt.existing {
+				obj.Default()
+				rawObjs[idx] = obj
+			}
+
+			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
+			reachable, err := apiutil.GetReachableFrom(context.Background(), kube, tt.vpc)
+
+			if tt.err {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.reachable, reachable)
+		})
+	}
+}
