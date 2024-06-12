@@ -383,6 +383,25 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		}
 	}
 
+	for idx, staticRoute := range vpc.Spec.StaticRoutes {
+		if staticRoute.Prefix == "" {
+			return nil, errors.Errorf("static route #%d: prefix is required", idx)
+		}
+
+		ip, ipNet, err := net.ParseCIDR(staticRoute.Prefix)
+		if err != nil {
+			return nil, errors.Wrapf(err, "static route #%d: failed to parse prefix %s", idx, staticRoute.Prefix)
+		}
+
+		if !ipNet.IP.Equal(ip) {
+			return nil, errors.Errorf("static route #%d: prefix %s is invalid: inconsistent IP address and mask", idx, staticRoute.Prefix)
+		}
+
+		if len(staticRoute.NextHops) == 0 {
+			return nil, errors.Errorf("static route #%d: at least one next hop is required", idx)
+		}
+	}
+
 	if kube != nil {
 		// TODO Can we rely on Validation webhook for cross VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 
