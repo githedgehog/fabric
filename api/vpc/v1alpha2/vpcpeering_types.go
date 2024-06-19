@@ -151,7 +151,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube client.Reader, fab
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
-	if fabricCfg.VPCPeeringDisabled {
+	if fabricCfg != nil && fabricCfg.VPCPeeringDisabled {
 		return nil, errors.Errorf("vpc peering is not allowed")
 	}
 
