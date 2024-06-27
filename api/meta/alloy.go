@@ -28,6 +28,7 @@ type AlloyConfig struct {
 	UnixExporterEnabled        bool                             `json:"unixExporterEnabled,omitempty"`
 	UnixExporterCollectors     []string                         `json:"unixExporterCollectors,omitempty"`
 	UnixScrapeIntervalSeconds  uint                             `json:"unixScrapeIntervalSeconds,omitempty"`
+	CollectSyslogEnabled       bool                             `json:"collectSyslogEnabled,omitempty"`
 	PrometheusTargets          map[string]AlloyPrometheusTarget `json:"prometheusTargets,omitempty"`
 	LokiTargets                map[string]AlloyLokiTarget       `json:"lokiTargets,omitempty"`
 	ControlProxyURL            string                           `json:"controlProxyURL,omitempty"`

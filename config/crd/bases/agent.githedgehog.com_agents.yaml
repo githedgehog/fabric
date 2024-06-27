@@ -101,6 +101,8 @@ spec:
                 properties:
                   agentScrapeIntervalSeconds:
                     type: integer
+                  collectSyslogEnabled:
+                    type: boolean
                   controlProxyURL:
                     type: string
                   lokiTargets:
