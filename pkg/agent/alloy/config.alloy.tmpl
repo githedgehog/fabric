@@ -141,4 +141,23 @@ loki.source.file "agentlog" {
   {{ end }}
   ]
 }
+
+{{ if .CollectSyslogEnabled }}
+local.file_match "syslog" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/log/syslog",
+  }]
+}
+
+loki.source.file "syslog" {
+  targets    = local.file_match.syslog.targets
+  forward_to = [
+  {{ range $name, $target := .LokiTargets }}
+    loki.write.{{ $name }}.receiver,
+  {{ end }}
+  ]
+}
+{{ end }}
+
 {{ end }}
