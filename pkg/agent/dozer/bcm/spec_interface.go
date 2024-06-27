@@ -578,6 +578,7 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 			Enabled:       ocIface.Config.Enabled,
 			MTU:           mtu,
 			Subinterfaces: map[uint32]*dozer.SpecSubinterface{},
+			VLANIPs:       map[string]*dozer.SpecInterfaceIP{},
 		}
 
 		// just skip interfaces disabled by Fabric
