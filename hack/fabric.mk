@@ -150,10 +150,10 @@ push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push 
 
 .PHONY: dev-patch
 dev-patch:
-	kubectl patch helmchart fabric-api --type=merge -p '{"spec":{"version":"$(VERSION)"}}'
-	kubectl patch helmchart fabric --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"controllerManager.manager.image.tag":"$(VERSION)"}}}'
-	if kubectl get helmchart/fabric-dhcp-server ; then kubectl patch helmchart fabric-dhcp-server --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
-	if kubectl get helmchart/fabric-dhcpd ; then kubectl patch helmchart fabric-dhcpd --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
+	kubectl --insecure-skip-tls-verify patch helmchart fabric-api --type=merge -p '{"spec":{"version":"$(VERSION)"}}'
+	kubectl --insecure-skip-tls-verify patch helmchart fabric --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"controllerManager.manager.image.tag":"$(VERSION)"}}}'
+	if kubectl --insecure-skip-tls-verify get helmchart/fabric-dhcp-server ; then kubectl --insecure-skip-tls-verify patch helmchart fabric-dhcp-server --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
+	if kubectl --insecure-skip-tls-verify get helmchart/fabric-dhcpd ; then kubectl --insecure-skip-tls-verify patch helmchart fabric-dhcpd --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
 
 .PHONY: dev
 dev:
