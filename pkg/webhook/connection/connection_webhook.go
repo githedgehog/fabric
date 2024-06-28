@@ -158,22 +158,20 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	// This is a light check to make sure that no mclags links transit this domain before we delete the domain
 	if conn.Spec.MCLAGDomain != nil {
 		labels := conn.Spec.ConnectionLabels()
-		// sanity check
-		if len(labels) >= 2 {
-			searchLabels := make(client.MatchingLabels)
-			searchLabels[wiringapi.LabelConnectionType] = wiringapi.ConnectionTypeMCLAG
-			for key, val := range labels {
-				searchLabels[key] = val
-			}
-			mclagList := &wiringapi.ConnectionList{}
-			// The matching here, will logically and the key/vals in searchLabels together
-			// giving just the relevant connections
-			if err := w.Client.List(ctx, mclagList, searchLabels); err != nil {
-				return nil, errors.Errorf("error listing servers on management connection")
-			}
-			if len(mclagList.Items) > 0 {
-				return nil, errors.Errorf("MCLAGS link(s) present. Delete those before this domain")
-			}
+		searchLabels := make(client.MatchingLabels)
+		for key, val := range labels {
+			searchLabels[key] = val
+		}
+		// overwrite the MCLAG-Domain ConnectionType with just an MCLAG type
+		searchLabels[wiringapi.LabelConnectionType] = wiringapi.ConnectionTypeMCLAG
+		mclagList := &wiringapi.ConnectionList{}
+		// The matching here, will logically and the key/vals in searchLabels together
+		// giving just the relevant connections
+		if err := w.Client.List(ctx, mclagList, searchLabels); err != nil {
+			return nil, errors.Errorf("error listing servers on management connection")
+		}
+		if len(mclagList.Items) > 0 {
+			return nil, errors.Errorf("%d MCLAGS link(s) present. Delete those before this domain", len(mclagList.Items))
 		}
 	}
 
