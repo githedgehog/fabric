@@ -150,7 +150,6 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 		}); err != nil {
 			return nil, errors.Errorf("error listing servers on management connection")
 		}
-		// better to iterate through list a to check that there is more than one
 		if len(mgmtConnList.Items) <= 1 {
 			return nil, errors.Errorf("management connection is last one and cannot be deleted")
 		}
