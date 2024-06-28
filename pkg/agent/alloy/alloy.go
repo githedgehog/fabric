@@ -84,7 +84,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 
 	if _, err := osuser.Lookup(userName); err != nil {
 		if errors.Is(err, osuser.UnknownUserError(userName)) {
-			if err := execCmd(ctx, "useradd", "--no-create-home", "--shell", "/bin/false", userName); err != nil {
+			if err := execCmd(ctx, "useradd", "--no-create-home", "--shell", "/bin/false", "--groups", "adm", userName); err != nil {
 				return errors.Wrapf(err, "error creating alloy user %s", userName)
 			}
 		} else {
@@ -100,6 +100,10 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	alloyUserUID, err := strconv.Atoi(alloyUser.Uid)
 	if err != nil {
 		return errors.Wrapf(err, "error parsing alloy user UID %s", alloyUser.Uid)
+	}
+
+	if err := execCmd(ctx, "usermod", "--append", "--groups", "adm", userName); err != nil {
+		return errors.Wrapf(err, "error adding alloy user to adm group")
 	}
 
 	restart := false

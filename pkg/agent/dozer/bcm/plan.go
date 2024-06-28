@@ -1890,6 +1890,7 @@ func buildVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCS
 
 	if vpc.IsSubnetRestricted(subnetName) {
 		acl.Entries[1] = &dozer.SpecACLEntry{
+			SourceAddress:      pointer.To(subnet.Subnet),
 			DestinationAddress: pointer.To(subnet.Subnet),
 			Action:             dozer.SpecACLEntryActionDrop,
 		}
