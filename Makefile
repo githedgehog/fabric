@@ -6,7 +6,7 @@ include hack/fabric.mk
 IMG ?= controller:latest
 
 .PHONY: all
-all: build
+all: generate manifests docs api lint test build
 
 ##@ Development
 
