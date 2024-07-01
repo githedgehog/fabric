@@ -758,7 +758,7 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 
 		subnets := []*net.IPNet{}
 		for _, subnet := range se.Subnets {
-			_, ipNet, err := net.ParseCIDR(subnet)
+			ip, ipNet, err := net.ParseCIDR(subnet)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
 			}
@@ -769,6 +769,10 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 				}
 
 				break
+			}
+
+			if !ipNet.IP.Equal(ip) {
+				return nil, errors.Errorf("invalid subnet %s: inconsistent IP address and mask", subnet)
 			}
 
 			subnets = append(subnets, ipNet)

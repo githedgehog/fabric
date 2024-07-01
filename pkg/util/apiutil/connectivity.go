@@ -75,13 +75,23 @@ func IsSubnetReachable(ctx context.Context, kube client.Client, source, dest str
 }
 
 func IsSubnetReachableWithinVPC(ctx context.Context, kube client.Client, vpcName, source, dest string) (bool, error) {
-	vpc := vpcapi.VPC{}
+	vpc := &vpcapi.VPC{}
 	if err := kube.Get(ctx, client.ObjectKey{
 		Namespace: metav1.NamespaceDefault,
 		Name:      vpcName,
-	}, &vpc); err != nil {
+	}, vpc); err != nil {
 		return false, errors.Wrapf(err, "failed to get VPC %s", vpcName)
 	}
+
+	return IsSubnetReachableWithinVPCObj(vpc, source, dest)
+}
+
+func IsSubnetReachableWithinVPCObj(vpc *vpcapi.VPC, source, dest string) (bool, error) {
+	if vpc == nil {
+		return false, errors.New("VPC is nil")
+	}
+
+	vpcName := vpc.Name
 
 	if vpc.Spec.Subnets[source] == nil {
 		return false, errors.Errorf("source subnet %s not found in VPC %s", source, vpcName)
@@ -148,23 +158,13 @@ func IsSubnetReachableBetweenVPCs(ctx context.Context, kube client.Client, vpc1N
 
 	for _, vpcPeering := range vpcPeerings.Items {
 		if vpcPeering.Spec.Remote != "" {
-			if err := kube.Get(ctx, client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      vpcPeering.Spec.Remote,
-			}, &wiringapi.SwitchGroup{}); err != nil {
-				return false, errors.Wrapf(err, "failed to get switch group %s", vpcPeering.Spec.Remote)
+			notEmpty, err := IsVPCPeeringRemoteNotEmpty(ctx, kube, &vpcPeering)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to check if VPC peering %s has non-empty remote", vpcPeering.Name)
 			}
 
-			switches := wiringapi.SwitchList{}
-			if err := kube.List(ctx, &switches,
-				client.InNamespace(metav1.NamespaceDefault),
-				wiringapi.MatchingLabelsForSwitchGroup(vpcPeering.Spec.Remote),
-			); err != nil {
-				return false, errors.Wrapf(err, "failed to list switches")
-			}
-
-			if len(switches.Items) == 0 {
-				return false, nil
+			if !notEmpty {
+				continue
 			}
 		}
 
@@ -189,6 +189,33 @@ func IsSubnetReachableBetweenVPCs(ctx context.Context, kube client.Client, vpc1N
 	}
 
 	return false, nil
+}
+
+func IsVPCPeeringRemoteNotEmpty(ctx context.Context, kube client.Client, vpcPeering *vpcapi.VPCPeering) (bool, error) {
+	if vpcPeering == nil {
+		return false, errors.New("VPC peering is nil")
+	}
+
+	if vpcPeering.Spec.Remote == "" {
+		return false, errors.Errorf("VPC peering %s has no remote", vpcPeering.Name)
+	}
+
+	if err := kube.Get(ctx, client.ObjectKey{
+		Namespace: metav1.NamespaceDefault,
+		Name:      vpcPeering.Spec.Remote,
+	}, &wiringapi.SwitchGroup{}); err != nil {
+		return false, errors.Wrapf(err, "failed to get switch group %s", vpcPeering.Spec.Remote)
+	}
+
+	switches := wiringapi.SwitchList{}
+	if err := kube.List(ctx, &switches,
+		client.InNamespace(metav1.NamespaceDefault),
+		wiringapi.MatchingLabelsForSwitchGroup(vpcPeering.Spec.Remote),
+	); err != nil {
+		return false, errors.Wrapf(err, "failed to list switches")
+	}
+
+	return len(switches.Items) > 0, nil
 }
 
 // TODO check if allowed prefix contains destSubnet
@@ -222,26 +249,26 @@ func IsExternalSubnetReachable(ctx context.Context, kube client.Client, sourceSe
 					continue
 				}
 
-				extAttaches := vpcapi.ExternalAttachmentList{}
-				if err := kube.List(ctx, &extAttaches,
-					client.InNamespace(metav1.NamespaceDefault),
-					client.MatchingLabels{
-						vpcapi.LabelExternal: extPeering.Spec.Permit.External.Name,
-					},
-				); err != nil {
-					return false, errors.Wrapf(err, "failed to list external attachments")
-				}
-
-				if len(extAttaches.Items) == 0 {
-					return false, nil
-				}
-
-				return true, nil
+				return IsExternalAttached(ctx, kube, extPeering.Spec.Permit.External.Name)
 			}
 		}
 	}
 
 	return false, nil
+}
+
+func IsExternalAttached(ctx context.Context, kube client.Client, external string) (bool, error) {
+	extAttaches := vpcapi.ExternalAttachmentList{}
+	if err := kube.List(ctx, &extAttaches,
+		client.InNamespace(metav1.NamespaceDefault),
+		client.MatchingLabels{
+			vpcapi.LabelExternal: external,
+		},
+	); err != nil {
+		return false, errors.Wrapf(err, "failed to list external attachments")
+	}
+
+	return len(extAttaches.Items) > 0, nil
 }
 
 type ServerAttachment struct {
@@ -304,6 +331,204 @@ func GetAttachedSubnets(ctx context.Context, kube client.Client, server string) 
 				Interfaces: ifaces,
 				NativeVLAN: vpcAttach.Spec.NativeVLAN,
 			}
+		}
+	}
+
+	return ret, nil
+}
+
+type ReachableSubnet struct {
+	Name   string
+	Subnet string
+}
+
+type ReachableFromSubnet struct {
+	WithinSameSubnet *ReachableSubnet
+	SameVPCSubnets   []ReachableSubnet
+	OtherVPCSubnets  map[string][]ReachableSubnet // vpc -> []subnets
+	ExternalPrefixes map[string][]string          // external -> []prefixes
+}
+
+func GetReachableFrom(ctx context.Context, kube client.Client, vpcName string) (map[string]*ReachableFromSubnet, error) {
+	vpc := &vpcapi.VPC{}
+	if err := kube.Get(ctx, client.ObjectKey{
+		Namespace: metav1.NamespaceDefault,
+		Name:      vpcName,
+	}, vpc); err != nil {
+		return nil, errors.Wrapf(err, "failed to get VPC %s", vpcName)
+	}
+
+	ret := map[string]*ReachableFromSubnet{}
+
+	for subnetName, subnet := range vpc.Spec.Subnets {
+		var withinSameSubnet *ReachableSubnet
+		if !vpc.Spec.IsSubnetRestricted(subnetName) {
+			withinSameSubnet = &ReachableSubnet{
+				Name:   subnetName,
+				Subnet: subnet.Subnet,
+			}
+		}
+
+		ret[subnetName] = &ReachableFromSubnet{
+			WithinSameSubnet: withinSameSubnet,
+			OtherVPCSubnets:  map[string][]ReachableSubnet{},
+			ExternalPrefixes: map[string][]string{},
+		}
+	}
+
+	// suboptimal, but there should be not so many subnets and permits
+	for subnetName := range vpc.Spec.Subnets {
+		for otherName, other := range vpc.Spec.Subnets {
+			if otherName == subnetName {
+				continue
+			}
+
+			reachable, err := IsSubnetReachableWithinVPCObj(vpc, subnetName, otherName)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to check reachability between subnets %s and %s within vpc %s", subnetName, otherName, vpcName)
+			}
+
+			if reachable {
+				ret[subnetName].SameVPCSubnets = append(ret[subnetName].SameVPCSubnets, ReachableSubnet{
+					Name:   otherName,
+					Subnet: other.Subnet,
+				})
+			}
+		}
+
+		slices.SortFunc(ret[subnetName].SameVPCSubnets, func(a, b ReachableSubnet) int {
+			return strings.Compare(a.Name, b.Name)
+		})
+	}
+
+	vpcPeerings := vpcapi.VPCPeeringList{}
+	if err := kube.List(ctx, &vpcPeerings,
+		client.InNamespace(metav1.NamespaceDefault),
+		client.MatchingLabels{
+			vpcapi.ListLabelVPC(vpcName): vpcapi.ListLabelValue,
+		},
+	); err != nil {
+		return nil, errors.Wrapf(err, "failed to list VPC peerings")
+	}
+
+	for _, vpcPeering := range vpcPeerings.Items {
+		if vpcPeering.Spec.Remote != "" {
+			nonEmpty, err := IsVPCPeeringRemoteNotEmpty(ctx, kube, &vpcPeering)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to check if VPC peering %s has non-empty remote", vpcPeering.Name)
+			}
+
+			if !nonEmpty {
+				continue
+			}
+		}
+
+		otherVPCName := ""
+		for _, permit := range vpcPeering.Spec.Permit {
+			for otherVPC := range permit {
+				if otherVPC == vpcName {
+					continue
+				}
+
+				otherVPCName = otherVPC
+			}
+		}
+
+		otherVPC := &vpcapi.VPC{}
+		if err := kube.Get(ctx, client.ObjectKey{
+			Namespace: metav1.NamespaceDefault,
+			Name:      otherVPCName,
+		}, otherVPC); err != nil {
+			return nil, errors.Wrapf(err, "failed to get peer VPC %s for peering %s", otherVPCName, vpcPeering.Name)
+		}
+
+		// suboptimal, but there should be not so many subnets and permits
+		for subnetName := range vpc.Spec.Subnets {
+			all := false
+			reachable := map[string]bool{}
+
+			for _, permits := range vpcPeering.Spec.Permit {
+				permit1, exist := permits[vpcName]
+				if !exist {
+					return nil, errors.Errorf("permit for VPC %s not found in VPC peering %s", vpcName, vpcPeering.Name)
+				}
+
+				permit2, exist := permits[otherVPCName]
+				if !exist {
+					return nil, errors.Errorf("permit for VPC %s not found in VPC peering %s", otherVPCName, vpcPeering.Name)
+				}
+
+				if len(permit1.Subnets) > 0 && !slices.Contains(permit1.Subnets, subnetName) {
+					continue
+				}
+
+				if len(permit2.Subnets) == 0 {
+					all = true
+
+					break
+				}
+
+				for _, otherSubnet := range permit2.Subnets {
+					reachable[otherSubnet] = true
+				}
+			}
+
+			if !all && len(reachable) == 0 {
+				continue
+			}
+
+			for otherSubnetName, otherSubnet := range otherVPC.Spec.Subnets {
+				if !all && !reachable[otherSubnetName] {
+					continue
+				}
+
+				ret[subnetName].OtherVPCSubnets[otherVPCName] = append(ret[subnetName].OtherVPCSubnets[otherVPCName], ReachableSubnet{
+					Name:   otherSubnetName,
+					Subnet: otherSubnet.Subnet,
+				})
+			}
+
+			slices.SortFunc(ret[subnetName].OtherVPCSubnets[otherVPCName], func(a, b ReachableSubnet) int {
+				return strings.Compare(a.Name, b.Name)
+			})
+		}
+	}
+
+	extPeerings := vpcapi.ExternalPeeringList{}
+	if err := kube.List(ctx, &extPeerings,
+		client.InNamespace(metav1.NamespaceDefault),
+		client.MatchingLabels{
+			vpcapi.LabelVPC: vpcName,
+		},
+	); err != nil {
+		return nil, errors.Wrapf(err, "failed to list external peerings")
+	}
+
+	for _, extPeering := range extPeerings.Items {
+		extName := extPeering.Spec.Permit.External.Name
+		attached, err := IsExternalAttached(ctx, kube, extName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to check if external %s is attached", extName)
+		}
+
+		if !attached {
+			continue
+		}
+
+		for subnetName := range vpc.Spec.Subnets {
+			if !slices.Contains(extPeering.Spec.Permit.VPC.Subnets, subnetName) {
+				continue
+			}
+
+			for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
+				ret[subnetName].ExternalPrefixes[extName] = append(ret[subnetName].ExternalPrefixes[extName], prefix.Prefix)
+			}
+		}
+	}
+
+	for _, sub := range ret {
+		for _, ext := range sub.ExternalPrefixes {
+			slices.Sort(ext)
 		}
 	}
 
