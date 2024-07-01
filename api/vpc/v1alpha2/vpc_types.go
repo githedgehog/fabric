@@ -43,9 +43,9 @@ type VPCSpec struct {
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
 	// VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used)
 	VLANNamespace string `json:"vlanNamespace,omitempty"`
-	// DefaultIsolated sets default bahivour for isolated mode for the subnets (disabled by default)
+	// DefaultIsolated sets default behavior for isolated mode for the subnets (disabled by default)
 	DefaultIsolated bool `json:"defaultIsolated,omitempty"`
-	// DefaultRestricted sets default bahivour for restricted mode for the subnets (disabled by default)
+	// DefaultRestricted sets default behavior for restricted mode for the subnets (disabled by default)
 	DefaultRestricted bool `json:"defaultRestricted,omitempty"`
 	// Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.
 	// It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked

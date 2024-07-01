@@ -63,11 +63,11 @@ spec:
             description: Spec is the desired state of the VPC
             properties:
               defaultIsolated:
-                description: DefaultIsolated sets default bahivour for isolated mode
+                description: DefaultIsolated sets default behavior for isolated mode
                   for the subnets (disabled by default)
                 type: boolean
               defaultRestricted:
-                description: DefaultRestricted sets default bahivour for restricted
+                description: DefaultRestricted sets default behavior for restricted
                   mode for the subnets (disabled by default)
                 type: boolean
               ipv4Namespace:
