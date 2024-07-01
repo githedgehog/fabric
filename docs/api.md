@@ -1179,8 +1179,8 @@ _Appears in:_
 | `subnets` _object (keys:string, values:[VPCSubnet](#vpcsubnet))_ | Subnets is the list of VPC subnets to configure |  |  |
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used) |  |  |
 | `vlanNamespace` _string_ | VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used) |  |  |
-| `defaultIsolated` _boolean_ | DefaultIsolated sets default bahivour for isolated mode for the subnets (disabled by default) |  |  |
-| `defaultRestricted` _boolean_ | DefaultRestricted sets default bahivour for restricted mode for the subnets (disabled by default) |  |  |
+| `defaultIsolated` _boolean_ | DefaultIsolated sets default behavior for isolated mode for the subnets (disabled by default) |  |  |
+| `defaultRestricted` _boolean_ | DefaultRestricted sets default behavior for restricted mode for the subnets (disabled by default) |  |  |
 | `permit` _string array array_ | Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.<br />It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked<br />as isolated it's required to have it in a permit list to have access to other subnets. |  |  |
 | `staticRoutes` _[VPCStaticRoute](#vpcstaticroute) array_ | StaticRoutes is the list of additional static routes for the VPC |  |  |
 
