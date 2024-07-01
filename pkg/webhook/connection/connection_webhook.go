@@ -143,5 +143,37 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 		return nil, errors.Errorf("connection has external attachments")
 	}
 
+	if conn.Spec.Management != nil {
+		mgmtConnList := &wiringapi.ConnectionList{}
+		if err := w.Client.List(ctx, mgmtConnList, client.MatchingLabels{
+			wiringapi.LabelConnectionType: wiringapi.ConnectionTypeManagement,
+		}); err != nil {
+			return nil, errors.Errorf("error listing servers on management connection")
+		}
+		if len(mgmtConnList.Items) <= 1 {
+			return nil, errors.Errorf("management connection is last one and cannot be deleted")
+		}
+	}
+
+	// This is a light check to make sure that no mclags links transit this domain before we delete the domain
+	if conn.Spec.MCLAGDomain != nil {
+		labels := conn.Spec.ConnectionLabels()
+		searchLabels := make(client.MatchingLabels)
+		for key, val := range labels {
+			searchLabels[key] = val
+		}
+		// overwrite the MCLAG-Domain ConnectionType with just an MCLAG type
+		searchLabels[wiringapi.LabelConnectionType] = wiringapi.ConnectionTypeMCLAG
+		mclagList := &wiringapi.ConnectionList{}
+		// The matching here, will logically and the key/vals in searchLabels together
+		// giving just the relevant connections
+		if err := w.Client.List(ctx, mclagList, searchLabels); err != nil {
+			return nil, errors.Errorf("error listing servers on management connection")
+		}
+		if len(mclagList.Items) > 0 {
+			return nil, errors.Errorf("%d MCLAGS link(s) present. Delete those before this domain", len(mclagList.Items))
+		}
+	}
+
 	return nil, nil
 }
