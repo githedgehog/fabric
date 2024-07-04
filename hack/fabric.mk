@@ -53,6 +53,10 @@ hhfctl-build: ## Build hhfctl
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/darwin-amd64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 
+.PHONY: hhfctl-build-mac
+hhfctl-build-mac: ## Build hhfctl for Mac ARM64
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
+
 .PHONY: hhfctl-push
 hhfctl-push: hhfctl-build ## Push hhfctl
 	cd bin && oras push $(OCI_REPO)/hhfctl:$(VERSION),latest hhfctl
