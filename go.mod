@@ -10,6 +10,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+	github.com/dustin/go-humanize v1.0.1
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
 	github.com/insomniacslk/dhcp v0.0.0-20231206064809-8c70d406f6d2
