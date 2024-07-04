@@ -750,30 +750,7 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 	res := []SwitchProfilePortSummary{}
 
 	portNames := maps.Keys(sp.Ports)
-	slices.SortFunc(portNames, func(a, b string) int {
-		if a[0] != b[0] {
-			if strings.HasPrefix(a, ManagementPortPrefix) {
-				return -1
-			}
-			if strings.HasPrefix(b, ManagementPortPrefix) {
-				return 1
-			}
-		}
-
-		if strings.HasPrefix(a, DataPortPrefix+"1/") && strings.HasPrefix(b, DataPortPrefix+"1/") {
-			a, _ = strings.CutPrefix(a, DataPortPrefix+"1/")
-			b, _ = strings.CutPrefix(b, DataPortPrefix+"1/")
-
-			numA, errA := strconv.Atoi(a)
-			numB, errB := strconv.Atoi(b)
-
-			if errA == nil && errB == nil {
-				return numA - numB
-			}
-		}
-
-		return strings.Compare(a, b)
-	})
+	SortPortNames(portNames)
 
 	for _, portName := range portNames {
 		port := sp.Ports[portName]
@@ -834,4 +811,31 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 	}
 
 	return res, nil
+}
+
+func SortPortNames(portNames []string) {
+	slices.SortFunc(portNames, func(a, b string) int {
+		if a[0] != b[0] {
+			if strings.HasPrefix(a, ManagementPortPrefix) {
+				return -1
+			}
+			if strings.HasPrefix(b, ManagementPortPrefix) {
+				return 1
+			}
+		}
+
+		if strings.HasPrefix(a, DataPortPrefix+"1/") && strings.HasPrefix(b, DataPortPrefix+"1/") {
+			a, _ = strings.CutPrefix(a, DataPortPrefix+"1/")
+			b, _ = strings.CutPrefix(b, DataPortPrefix+"1/")
+
+			numA, errA := strconv.Atoi(a)
+			numB, errB := strconv.Atoi(b)
+
+			if errA == nil && errB == nil {
+				return numA - numB
+			}
+		}
+
+		return strings.Compare(a, b)
+	})
 }
