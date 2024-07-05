@@ -41,7 +41,7 @@ type FabricOutSwitch struct {
 }
 
 func (out *FabricOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[FabricIn, *FabricOut] = Fabric

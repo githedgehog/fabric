@@ -28,7 +28,7 @@ type VPCOut struct {
 }
 
 func (out *VPCOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[VPCIn, *VPCOut] = VPC
