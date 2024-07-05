@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
@@ -37,10 +37,64 @@ type FabricOutSwitch struct {
 	Software           string      `json:"software,omitempty"`
 	ProfileDisplayName string      `json:"profileDisplayName,omitempty"`
 	State              *AgentState `json:"state,omitempty"`
+	Role               string      `json:"role,omitempty"`
+	Groups             []string    `json:"groups,omitempty"`
 }
 
 func (out *FabricOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO implement marshal
+	str := &strings.Builder{}
+
+	str.WriteString("Control Nodes:\n")
+
+	ctrlData := [][]string{}
+	for _, ctrl := range out.ControlNodes {
+		applied := ""
+
+		if !ctrl.State.LastAppliedTime.IsZero() {
+			applied = humanize.Time(ctrl.State.LastAppliedTime.Time)
+		}
+
+		ctrlData = append(ctrlData, []string{
+			ctrl.Name,
+			ctrl.State.Summary,
+			fmt.Sprintf("%d/%d", ctrl.State.LastAppliedGen, ctrl.State.DesiredGen),
+			applied,
+			humanize.Time(ctrl.State.LastHeartbeat.Time),
+		})
+	}
+	str.WriteString(RenderTable(
+		[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},
+		ctrlData,
+	))
+
+	str.WriteString("Switches:\n")
+
+	swData := [][]string{}
+	for _, sw := range out.Switches {
+		applied := ""
+
+		if !sw.State.LastAppliedTime.IsZero() {
+			applied = humanize.Time(sw.State.LastAppliedTime.Time)
+		}
+
+		swData = append(swData, []string{
+			sw.Name,
+			sw.ProfileDisplayName,
+			sw.Role,
+			strings.Join(sw.Groups, ", "),
+			sw.Serial,
+			sw.State.Summary,
+			fmt.Sprintf("%d/%d", sw.State.LastAppliedGen, sw.State.DesiredGen),
+			applied,
+			humanize.Time(sw.State.LastHeartbeat.Time),
+		})
+	}
+	str.WriteString(RenderTable(
+		[]string{"Name", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
+		swData,
+	))
+
+	return str.String(), nil // TODO implement marshal
 }
 
 var _ Func[FabricIn, *FabricOut] = Fabric
@@ -83,6 +137,8 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 			Name:               swName,
 			ProfileDisplayName: sp.Spec.DisplayName,
 			State:              switchStateSummary(agent),
+			Role:               string(sw.Spec.Role),
+			Groups:             sw.Spec.Groups,
 		}
 
 		if !skipActual {
