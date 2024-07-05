@@ -3,12 +3,14 @@ package inspect
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,8 +26,6 @@ type ServerOut struct {
 	Connections         map[string]*wiringapi.ConnectionSpec `json:"connections,omitempty"`
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
 	AttachedVPCs        map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
-
-	// TODO connections and attachments
 }
 
 func (out *ServerOut) MarshalText() (string, error) {
@@ -66,6 +66,37 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 
 		if !skipActual {
 			out.ControlStateSummary = controlStateSummary(agent)
+		}
+	}
+
+	conns := &wiringapi.ConnectionList{}
+	if err := kube.List(ctx, conns, client.MatchingLabels{
+		wiringapi.ListLabelServer(in.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrap(err, "cannot list connections")
+	}
+
+	for _, conn := range conns.Items {
+		out.Connections[conn.Name] = pointer.To(conn.Spec)
+
+		vpcAttaches := &vpcapi.VPCAttachmentList{}
+		if err := kube.List(ctx, vpcAttaches, client.MatchingLabels{
+			wiringapi.LabelConnection: conn.Name,
+		}); err != nil {
+			return nil, errors.Wrap(err, "cannot list VPC attachments")
+		}
+
+		for _, vpcAttach := range vpcAttaches.Items {
+			out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+
+			vpcName := strings.SplitN(vpcAttach.Spec.Subnet, "/", 2)[0]
+
+			vpc := &vpcapi.VPC{}
+			if err := kube.Get(ctx, client.ObjectKey{Name: vpcName, Namespace: metav1.NamespaceDefault}, vpc); err != nil {
+				return nil, errors.Wrapf(err, "cannot get VPC %s", vpcName)
+			}
+
+			out.AttachedVPCs[vpcName] = pointer.To(vpc.Spec)
 		}
 	}
 
