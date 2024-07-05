@@ -19,6 +19,7 @@ import (
 	_ "embed"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/lmittmann/tint"
@@ -27,6 +28,7 @@ import (
 	"github.com/urfave/cli/v2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
+	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
 )
 
 var version = "(devel)"
@@ -37,7 +39,7 @@ func setupLogger(verbose bool) error {
 		logLevel = slog.LevelDebug
 	}
 
-	logW := os.Stdout
+	logW := os.Stderr
 	logger := slog.New(
 		tint.NewHandler(logW, &tint.Options{
 			Level:      logLevel,
@@ -94,10 +96,35 @@ func main() {
 		Destination: &printYaml,
 	}
 
+	outputTypes := []string{}
+	for _, t := range inspect.OutputTypes {
+		outputTypes = append(outputTypes, string(t))
+	}
+
+	var output string
+	outputFlag := &cli.StringFlag{
+		Name:        "output",
+		Aliases:     []string{"o"},
+		Usage:       "output format, one of " + strings.Join(outputTypes, ", "),
+		Value:       "text",
+		Destination: &output,
+	}
+
+	appName := "hhfctl"
+	usage := "Hedgehog Fabric API CLI client"
+	if len(os.Args) > 0 {
+		if strings.HasSuffix(os.Args[0], "kubectl-fabric") {
+			appName = "kubectl fabric"
+			usage = "Hedgehog Fabric API kubectl plugin"
+		} else if strings.HasSuffix(os.Args[0], "fabric") {
+			appName = "fabric"
+		}
+	}
+
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
 	app := &cli.App{
-		Name:                   "hhfctl",
-		Usage:                  "Hedgehog Fabric user client",
+		Name:                   appName,
+		Usage:                  usage,
 		Version:                version,
 		Suggest:                true,
 		UseShortOptionHandling: true,
@@ -457,20 +484,40 @@ func main() {
 				},
 			},
 			{
-				Name:  "inspect",
-				Usage: "inspect commands",
+				Name:    "inspect",
+				Aliases: []string{"i"},
+				Usage:   "Inspect Fabric API Objects",
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name:  "port",
-						Usage: "Inspect port",
+						Name:  "fabric",
+						Usage: "Inspect Fabric",
 						Flags: []cli.Flag{
 							verboseFlag,
+							outputFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(_ *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.Fabric, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.FabricIn{}, os.Stdout), "failed to inspect Fabric")
+						},
+					},
+					{
+						Name:  "switch",
+						Usage: "Inspect Switch",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
 							&cli.StringFlag{
 								Name:     "name",
-								Usage:    "name",
+								Aliases:  []string{"n"},
+								Usage:    "switch name",
 								Required: true,
 							},
 						},
@@ -478,9 +525,189 @@ func main() {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
-							slog.Info("Inspecting port", "name", cCtx.String("name"))
-
-							return nil
+							return errors.Wrapf(inspect.Run(ctx, inspect.Switch, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.SwitchIn{
+								Name: cCtx.String("name"),
+							}, os.Stdout), "failed to inspect Switch")
+						},
+					},
+					{
+						Name:    "port",
+						Aliases: []string{"switchport"},
+						Usage:   "Inspect Switch Port",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "name",
+								Aliases:  []string{"n"},
+								Usage:    "full switch port name (<switch-name>/<port-name>, e.g. 's5248-02/E1/2')",
+								Required: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.Port, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.PortIn{
+								Port: cCtx.String("name"),
+							}, os.Stdout), "failed to inspect Switch Port")
+						},
+					},
+					{
+						Name:  "server",
+						Usage: "Inspect Server",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "name",
+								Aliases:  []string{"n"},
+								Usage:    "server name",
+								Required: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.Server, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.ServerIn{
+								Name: cCtx.String("name"),
+							}, os.Stdout), "failed to inspect Server")
+						},
+					},
+					{
+						Name:    "connection",
+						Aliases: []string{"conn"},
+						Usage:   "Inspect Connection",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "name",
+								Aliases:  []string{"n"},
+								Usage:    "connection name",
+								Required: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.Connection, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.ConnectionIn{
+								Name: cCtx.String("name"),
+							}, os.Stdout), "failed to inspect Connection")
+						},
+					},
+					{
+						Name:    "vpc",
+						Aliases: []string{"subnet", "vpcsubnet"},
+						Usage:   "Inspect VPC/VPCSubnet",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "name",
+								Aliases:  []string{"n"},
+								Usage:    "VPC name",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "subnet",
+								Aliases: []string{"s"},
+								Usage:   "Subnet name (without VPC)",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.VPC, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.VPCIn{
+								Name:   cCtx.String("name"),
+								Subnet: cCtx.String("subnet"),
+							}, os.Stdout), "failed to inspect VPC")
+						},
+					},
+					{
+						Name:  "ip",
+						Usage: "Inspect IP Address",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "address",
+								Aliases:  []string{"a", "addr"},
+								Usage:    "ip address to inspect",
+								Required: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.IP, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.IPIn{
+								IP: cCtx.String("address"),
+							}, os.Stdout), "failed to inspect IP address")
+						},
+					},
+					{
+						Name:  "mac",
+						Usage: "Inspect MAC Address",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "address",
+								Aliases:  []string{"a", "addr"},
+								Usage:    "MAC address",
+								Required: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.MAC, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.MACIn{
+								Value: cCtx.String("address"),
+							}, os.Stdout), "failed to inspect MAC Address")
+						},
+					},
+					{
+						Name:  "access",
+						Usage: "Inspect access between IPs", // TODO
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							// TODO
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.Access, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.AccessIn{}, os.Stdout), "failed to inspect access")
 						},
 					},
 				},
