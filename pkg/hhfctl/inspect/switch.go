@@ -70,17 +70,27 @@ func (out *SwitchOut) MarshalText() (string, error) {
 
 	str.WriteString("Ports (in use):\n")
 
+	portMap, err := out.Profile.GetAPI2NOSPortsFor(out.Spec)
+	if err != nil {
+		return "", errors.Wrap(err, "cannot get API to NOS port mapping")
+	}
+
 	portData := [][]string{}
 	for _, port := range out.Ports {
 		portType := port.ConnectionType
 		state := ""
 		speed := ""
 		trans := ""
+		nos := portMap[port.PortName]
 
 		if port.BreakoutState != nil {
 			portType = "breakout"
 			speed = port.BreakoutState.Mode
 			state = strings.ToLower(port.BreakoutState.Status)
+
+			if out.Profile.Ports[port.PortName].NOSName != "" {
+				nos = out.Profile.Ports[port.PortName].NOSName
+			}
 		}
 
 		if port.InterfaceState != nil {
@@ -95,6 +105,7 @@ func (out *SwitchOut) MarshalText() (string, error) {
 
 		portData = append(portData, []string{
 			port.PortName,
+			nos,
 			portType,
 			port.ConnectionName,
 			state,
@@ -103,7 +114,7 @@ func (out *SwitchOut) MarshalText() (string, error) {
 		})
 	}
 	str.WriteString(RenderTable(
-		[]string{"Name", "Type", "Connection", "Adm/Op (Transc)", "Speed", "Transceiver"},
+		[]string{"Name", "NOS", "Type", "Connection", "Adm/Op (Transc)", "Speed", "Transceiver"},
 		portData,
 	))
 
@@ -124,18 +135,19 @@ func (out *SwitchOut) MarshalText() (string, error) {
 
 		countersData = append(countersData, []string{
 			port.PortName,
-			lastClear,
+			port.InterfaceState.Speed,
 			fmt.Sprintf("↓ %3d ↑ %3d ", counters.InUtilization, counters.OutUtilization),
 			fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InBitsPerSecond, 0)),
 			fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutBitsPerSecond, 0)),
 			fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InPktsPerSecond, 0)),
 			fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutPktsPerSecond, 0)),
+			lastClear,
 			fmt.Sprintf("↓ %d ↑ %d ", counters.InErrors, counters.OutErrors),
 			fmt.Sprintf("↓ %d ↑ %d", counters.InDiscards, counters.OutDiscards),
 		})
 	}
 	str.WriteString(RenderTable(
-		[]string{"Name", "Clear", "Util %", "Bits/sec In", "Bits/sec Out", "Pkts/sec In", "Pkts/sec Out", "Errors", "Discards"},
+		[]string{"Name", "Speed", "Util %", "Bits/sec In", "Bits/sec Out", "Pkts/sec In", "Pkts/sec Out", "Clear", "Errors", "Discards"},
 		countersData,
 	))
 
