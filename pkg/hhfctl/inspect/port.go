@@ -42,7 +42,9 @@ type PortOut struct {
 	BreakoutState  *agentapi.SwitchStateBreakout        `json:"breakoutState,omitempty"`
 	VPCAttachments map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
 	AttachedVPCs   map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
-	// TODO VPCPeerings and ExtPeerings if it's vpc-loopback port
+
+	// TODO if VPCLoopback show VPCPeerings and ExtPeerings
+	// TODO if External show ExternalAttachments
 }
 
 func (out *PortOut) MarshalText() (string, error) {
@@ -72,7 +74,6 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 			return nil, errors.Wrapf(err, "failed to get connection %s endpoints", conn.Name)
 		}
 
-		// TODO impl port query
 		if !(slices.Contains(ports, in.Port) || strings.Count(in.Port, "/") == 3 && slices.Contains(ports, strings.TrimSuffix(in.Port, "/1"))) {
 			continue
 		}
@@ -81,7 +82,6 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 		out.Connection = pointer.To(conn.Spec)
 	}
 
-	// TODO impl port query
 	swName := strings.SplitN(in.Port, "/", 2)[0]
 
 	skip := false
