@@ -2,7 +2,6 @@ package inspect
 
 import (
 	"context"
-	"log/slog"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
@@ -10,6 +9,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,17 +25,19 @@ type ConnectionOut struct {
 	Ports               []*ConnectionOutPort                      `json:"ports,omitempty"`
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`      // if server-facing conn
 	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`        // if server-facing conn
-	VPCPeerings         map[string]*vpcapi.VPCPeeringSpec         `json:"vpcPeerings,omitempty"`         // if VPCLoopback conn
-	ExternalPeerings    map[string]*vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`    // if VPCLoopback conn
 	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
-
-	// TODO if VPCLoopback show VPCPeerings and ExtPeerings
-	// TODO if External show ExternalAttachments
+	LoopbackWorkarounds map[string]*OutLoopbackWorkaround         `json:"loopbackWorkarounds,omitempty"` // if VPCLoopback conn
 }
 
 type ConnectionOutPort struct {
 	Name  string                         `json:"name,omitempty"`
 	State *agentapi.SwitchStateInterface `json:"state,omitempty"`
+}
+
+type OutLoopbackWorkaround struct {
+	Link             wiringapi.SwitchToSwitchLink           `json:"link,omitempty"`
+	VPCPeerings      map[string]*vpcapi.VPCPeeringSpec      `json:"vpcPeerings,omitempty"`
+	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec `json:"externalPeerings,omitempty"`
 }
 
 func (out *ConnectionOut) MarshalText() (string, error) {
@@ -52,8 +54,6 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 	out := &ConnectionOut{
 		VPCAttachments:      map[string]*vpcapi.VPCAttachmentSpec{},
 		AttachedVPCs:        map[string]*vpcapi.VPCSpec{},
-		VPCPeerings:         map[string]*vpcapi.VPCPeeringSpec{},
-		ExternalPeerings:    map[string]*vpcapi.ExternalPeeringSpec{},
 		ExternalAttachments: map[string]*vpcapi.ExternalAttachmentSpec{},
 	}
 
@@ -86,22 +86,20 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 		out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
 	}
 
-	_, _, ports, _, err := conn.Spec.Endpoints()
+	switches, _, ports, _, err := conn.Spec.Endpoints()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get connection %s endpoints", conn.Name)
 	}
 
-	agents := map[string]*agentapi.AgentStatus{}
+	agents := map[string]*agentapi.Agent{}
 	for _, port := range ports {
 		parts := strings.SplitN(port, "/", 2)
 		swName := parts[0]
 		portName := parts[1]
 
-		slog.Warn("Port name", "name", port, "swName", swName, "portName", portName)
-
-		agentStatus, exists := agents[swName]
+		agent, exists := agents[swName]
 		if !exists {
-			agent := &agentapi.Agent{}
+			agent = &agentapi.Agent{}
 			if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, agent); err != nil {
 				if !apierrors.IsNotFound(err) {
 					return nil, errors.Wrapf(err, "failed to get Agent %s", swName)
@@ -110,18 +108,17 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 				continue
 			}
 
-			agents[swName] = &agent.Status
-			agentStatus = agents[swName]
+			agents[swName] = agent
 		}
 
 		port := &ConnectionOutPort{
 			Name: port,
 		}
 
-		if agentStatus.State.Interfaces != nil {
-			state, exists := agentStatus.State.Interfaces[portName]
+		if agent.Status.State.Interfaces != nil {
+			state, exists := agent.Status.State.Interfaces[portName]
 			if !exists {
-				state, exists = agentStatus.State.Interfaces[portName+"/1"]
+				state, exists = agent.Status.State.Interfaces[portName+"/1"]
 				if exists {
 					port.Name += "/1"
 				}
@@ -133,6 +130,84 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 		}
 
 		out.Ports = append(out.Ports, port)
+	}
+
+	if conn.Spec.VPCLoopback != nil {
+		if len(switches) != 1 {
+			return nil, errors.New("VPCLoopback connection must have exactly one switch")
+		}
+
+		agent, exist := agents[switches[0]]
+		if !exist {
+			return nil, errors.Errorf("failed to get Agent %s for VPCLoopback", switches[0])
+		}
+
+		out.LoopbackWorkarounds, err = loopbackWorkaroundInfo(ctx, kube, agent)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get loopback workaround info")
+		}
+	}
+
+	if conn.Spec.External != nil {
+		extAttaches := &vpcapi.ExternalAttachmentList{}
+		if err := kube.List(ctx, extAttaches, client.MatchingLabels{
+			wiringapi.LabelConnection: conn.Name,
+		}); err != nil {
+			return nil, errors.Wrap(err, "cannot list ExternalAttachments")
+		}
+
+		for _, extAttach := range extAttaches.Items {
+			out.ExternalAttachments[extAttach.Name] = pointer.To(extAttach.Spec)
+		}
+	}
+
+	return out, nil
+}
+
+func loopbackWorkaroundInfo(ctx context.Context, kube client.Reader, agent *agentapi.Agent) (map[string]*OutLoopbackWorkaround, error) {
+	out := map[string]*OutLoopbackWorkaround{}
+
+	for workaround, link := range agent.Spec.Catalog.LooopbackWorkaroundLinks {
+		loWo, exists := out[link]
+		if !exists {
+			ports := strings.Split(link, "--")
+			if len(ports) != 2 {
+				return nil, errors.Errorf("invalid switch link %s for workaround %s", link, workaround)
+			}
+
+			loWo = &OutLoopbackWorkaround{
+				Link: wiringapi.SwitchToSwitchLink{
+					Switch1: wiringapi.NewBasePortName(ports[0]),
+					Switch2: wiringapi.NewBasePortName(ports[1]),
+				},
+				VPCPeerings:      map[string]*vpcapi.VPCPeeringSpec{},
+				ExternalPeerings: map[string]*vpcapi.ExternalPeeringSpec{},
+			}
+
+			out[link] = loWo
+		}
+
+		if strings.HasPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC) {
+			vpcPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC)
+
+			vpcPeering := &vpcapi.VPCPeering{}
+			if err := kube.Get(ctx, client.ObjectKey{Name: vpcPeeringName, Namespace: metav1.NamespaceDefault}, vpcPeering); err != nil {
+				return nil, errors.Wrapf(err, "failed to get VPCPeering %s", vpcPeeringName)
+			}
+
+			loWo.VPCPeerings[vpcPeeringName] = &vpcPeering.Spec
+		} else if strings.HasPrefix(workaround, librarian.LoWorkaroundReqPrefixExt) {
+			extPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixExt)
+
+			extPeering := &vpcapi.ExternalPeering{}
+			if err := kube.Get(ctx, client.ObjectKey{Name: extPeeringName, Namespace: metav1.NamespaceDefault}, extPeering); err != nil {
+				return nil, errors.Wrapf(err, "failed to get ExternalPeering %s", extPeeringName)
+			}
+
+			loWo.ExternalPeerings[extPeeringName] = &extPeering.Spec
+		} else {
+			return nil, errors.Errorf("invalid loopback workaround %s", workaround)
+		}
 	}
 
 	return out, nil
