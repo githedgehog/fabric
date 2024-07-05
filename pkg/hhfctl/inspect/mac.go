@@ -48,7 +48,6 @@ func MAC(ctx context.Context, kube client.Reader, in MACIn) (*MACOut, error) {
 		return nil, errors.Wrap(err, "cannot list agents")
 	}
 
-	// TODO all switch ports have the same MAC address
 	for _, agent := range agents.Items {
 		for ifaceName, iface := range agent.Status.State.Interfaces {
 			if iface.MAC != "" && strings.ToLower(iface.MAC) == mac {
