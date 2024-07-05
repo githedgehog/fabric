@@ -338,15 +338,15 @@ func GetAttachedSubnets(ctx context.Context, kube client.Reader, server string) 
 }
 
 type ReachableSubnet struct {
-	Name   string
-	Subnet string
+	Name   string `json:"name,omitempty"`
+	Subnet string `json:"subnet,omitempty"`
 }
 
 type ReachableFromSubnet struct {
-	WithinSameSubnet *ReachableSubnet
-	SameVPCSubnets   []ReachableSubnet
-	OtherVPCSubnets  map[string][]ReachableSubnet // vpc -> []subnets
-	ExternalPrefixes map[string][]string          // external -> []prefixes
+	WithinSameSubnet *ReachableSubnet             `json:"withinSameSubnet,omitempty"`
+	SameVPCSubnets   []ReachableSubnet            `json:"sameVPCSubnets,omitempty"`
+	OtherVPCSubnets  map[string][]ReachableSubnet `json:"otherVPCSubnets,omitempty"`  // vpc -> []subnets
+	ExternalPrefixes map[string][]string          `json:"externalPrefixes,omitempty"` // external -> []prefixes
 }
 
 func GetReachableFrom(ctx context.Context, kube client.Reader, vpcName string) (map[string]*ReachableFromSubnet, error) {
