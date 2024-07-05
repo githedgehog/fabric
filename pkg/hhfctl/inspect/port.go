@@ -36,19 +36,21 @@ type PortIn struct {
 }
 
 type PortOut struct {
-	ConnectionName *string                              `json:"connectionName,omitempty"`
-	Connection     *wiringapi.ConnectionSpec            `json:"connection,omitempty"`
-	InterfaceState *agentapi.SwitchStateInterface       `json:"interfaceState,omitempty"`
-	BreakoutState  *agentapi.SwitchStateBreakout        `json:"breakoutState,omitempty"`
-	VPCAttachments map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
-	AttachedVPCs   map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
+	ConnectionName   *string                                `json:"connectionName,omitempty"`
+	Connection       *wiringapi.ConnectionSpec              `json:"connection,omitempty"`
+	InterfaceState   *agentapi.SwitchStateInterface         `json:"interfaceState,omitempty"`
+	BreakoutState    *agentapi.SwitchStateBreakout          `json:"breakoutState,omitempty"`
+	VPCAttachments   map[string]*vpcapi.VPCAttachmentSpec   `json:"vpcAttachments,omitempty"`
+	AttachedVPCs     map[string]*vpcapi.VPCSpec             `json:"attachedVPCs,omitempty"`
+	VPCPeerings      map[string]*vpcapi.VPCPeeringSpec      `json:"vpcPeerings,omitempty"`      // if VPCLoopback conn
+	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec `json:"externalPeerings,omitempty"` // if VPCLoopback conn
 
 	// TODO if VPCLoopback show VPCPeerings and ExtPeerings
 	// TODO if External show ExternalAttachments
 }
 
 func (out *PortOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[PortIn, *PortOut] = Port
@@ -59,8 +61,10 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 	}
 
 	out := &PortOut{
-		VPCAttachments: map[string]*vpcapi.VPCAttachmentSpec{},
-		AttachedVPCs:   map[string]*vpcapi.VPCSpec{},
+		VPCAttachments:   map[string]*vpcapi.VPCAttachmentSpec{},
+		AttachedVPCs:     map[string]*vpcapi.VPCSpec{},
+		VPCPeerings:      map[string]*vpcapi.VPCPeeringSpec{},
+		ExternalPeerings: map[string]*vpcapi.ExternalPeeringSpec{},
 	}
 
 	conns := &wiringapi.ConnectionList{}

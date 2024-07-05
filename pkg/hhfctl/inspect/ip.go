@@ -34,12 +34,14 @@ type IPIn struct {
 }
 
 type IPOut struct {
-	found            bool
-	IPv4Namespace    *string                `json:"ipv4Namespace,omitempty"`
-	VPCSubnet        *IPOutVPCSubnet        `json:"vpcSubnet,omitempty"`
-	Switch           *IPOutSwitch           `json:"switch,omitempty"`
-	Connections      []IPOutConnection      `json:"connections,omitempty"`
-	ExternalPeerings []IPOutExternalPeering `json:"externalPeerings,omitempty"`
+	found         bool
+	IPv4Namespace *string           `json:"ipv4Namespace,omitempty"`
+	VPCSubnet     *IPOutVPCSubnet   `json:"vpcSubnet,omitempty"`
+	Switch        *IPOutSwitch      `json:"switch,omitempty"`
+	Connections   []IPOutConnection `json:"connections,omitempty"`
+
+	// TODO do we need to try searching for IPs available through externals?
+	// ExternalPeerings []IPOutExternalPeering `json:"externalPeerings,omitempty"`
 }
 
 type IPOutVPCSubnet struct {
@@ -66,13 +68,13 @@ type IPOutConnection struct {
 	wiringapi.ConnectionSpec `json:",inline"`
 }
 
-type IPOutExternalPeering struct {
-	Name                       string `json:"name,omitempty"`
-	vpcapi.ExternalPeeringSpec `json:",inline"`
-}
+// type IPOutExternalPeering struct {
+// 	Name                       string `json:"name,omitempty"`
+// 	vpcapi.ExternalPeeringSpec `json:",inline"`
+// }
 
 func (out *IPOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[IPIn, *IPOut] = IP
@@ -101,11 +103,9 @@ func IP(ctx context.Context, kube client.Reader, in IPIn) (*IPOut, error) {
 		return nil, errors.Wrap(err, "failed to inspect IP in Connections")
 	}
 
-	if err := ipInExternal(ctx, out, kube, ip); err != nil {
-		return nil, errors.Wrap(err, "failed to inspect IP in ExternalPeerings")
-	}
-
-	// TODO check for reserved subnets?
+	// if err := ipInExternal(ctx, out, kube, ip); err != nil {
+	// 	return nil, errors.Wrap(err, "failed to inspect IP in ExternalPeerings")
+	// }
 
 	return out, nil
 }
@@ -284,34 +284,33 @@ func ipInConnections(ctx context.Context, res *IPOut, kube client.Reader, ip net
 	return nil
 }
 
-func ipInExternal(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
-	// TODO external peering could be a default route so we need to check anyways?
-	if res.found {
-		return nil
-	}
+// func ipInExternal(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
+// 	if res.found {
+// 		return nil
+// 	}
 
-	extPeerings := &vpcapi.ExternalPeeringList{}
-	err := kube.List(ctx, extPeerings)
-	if err != nil {
-		return errors.Wrap(err, "cannot list ExternalPeering")
-	}
+// 	extPeerings := &vpcapi.ExternalPeeringList{}
+// 	err := kube.List(ctx, extPeerings)
+// 	if err != nil {
+// 		return errors.Wrap(err, "cannot list ExternalPeering")
+// 	}
 
-	for _, extPeering := range extPeerings.Items {
-		for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
-			_, prefixNet, err := net.ParseCIDR(prefix.Prefix)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse external peering %s prefix %q", extPeering.Name, prefix)
-			}
+// 	for _, extPeering := range extPeerings.Items {
+// 		for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
+// 			_, prefixNet, err := net.ParseCIDR(prefix.Prefix)
+// 			if err != nil {
+// 				return errors.Wrapf(err, "failed to parse external peering %s prefix %q", extPeering.Name, prefix)
+// 			}
 
-			if prefixNet.Contains(ip) {
-				res.found = true
-				res.ExternalPeerings = append(res.ExternalPeerings, IPOutExternalPeering{
-					Name:                extPeering.Name,
-					ExternalPeeringSpec: extPeering.Spec,
-				})
-			}
-		}
-	}
+// 			if prefixNet.Contains(ip) {
+// 				res.found = true
+// 				res.ExternalPeerings = append(res.ExternalPeerings, IPOutExternalPeering{
+// 					Name:                extPeering.Name,
+// 					ExternalPeeringSpec: extPeering.Spec,
+// 				})
+// 			}
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

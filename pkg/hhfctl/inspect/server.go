@@ -7,6 +7,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,14 +19,17 @@ type ServerIn struct {
 }
 
 type ServerOut struct {
-	Control             bool   `json:"control,omitempty"`
-	ControlStateSummary string `json:"controlStateSummary,omitempty"`
+	Control             bool                                 `json:"control,omitempty"`
+	ControlStateSummary string                               `json:"controlStateSummary,omitempty"`
+	Connections         map[string]*wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
+	AttachedVPCs        map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
 
 	// TODO connections and attachments
 }
 
 func (out *ServerOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[ServerIn, *ServerOut] = Server
@@ -35,7 +39,11 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 		return nil, errors.New("server name is required")
 	}
 
-	out := &ServerOut{}
+	out := &ServerOut{
+		Connections:    map[string]*wiringapi.ConnectionSpec{},
+		VPCAttachments: map[string]*vpcapi.VPCAttachmentSpec{},
+		AttachedVPCs:   map[string]*vpcapi.VPCSpec{},
+	}
 
 	srv := &wiringapi.Server{}
 	if err := kube.Get(ctx, client.ObjectKey{Name: in.Name, Namespace: metav1.NamespaceDefault}, srv); err != nil {

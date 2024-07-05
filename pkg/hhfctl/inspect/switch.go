@@ -39,7 +39,7 @@ type SwitchOutPort struct {
 }
 
 func (out *SwitchOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[SwitchIn, *SwitchOut] = Switch

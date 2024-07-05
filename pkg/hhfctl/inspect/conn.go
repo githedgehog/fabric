@@ -21,10 +21,13 @@ type ConnectionIn struct {
 }
 
 type ConnectionOut struct {
-	Spec           wiringapi.ConnectionSpec             `json:"spec,omitempty"`
-	Ports          []*ConnectionOutPort                 `json:"ports,omitempty"`
-	VPCAttachments map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
-	AttachedVPCs   map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
+	Spec                wiringapi.ConnectionSpec                  `json:"spec,omitempty"`
+	Ports               []*ConnectionOutPort                      `json:"ports,omitempty"`
+	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`      // if server-facing conn
+	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`        // if server-facing conn
+	VPCPeerings         map[string]*vpcapi.VPCPeeringSpec         `json:"vpcPeerings,omitempty"`         // if VPCLoopback conn
+	ExternalPeerings    map[string]*vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`    // if VPCLoopback conn
+	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
 
 	// TODO if VPCLoopback show VPCPeerings and ExtPeerings
 	// TODO if External show ExternalAttachments
@@ -36,7 +39,7 @@ type ConnectionOutPort struct {
 }
 
 func (out *ConnectionOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[ConnectionIn, *ConnectionOut] = Connection
@@ -47,8 +50,11 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 	}
 
 	out := &ConnectionOut{
-		VPCAttachments: map[string]*vpcapi.VPCAttachmentSpec{},
-		AttachedVPCs:   map[string]*vpcapi.VPCSpec{},
+		VPCAttachments:      map[string]*vpcapi.VPCAttachmentSpec{},
+		AttachedVPCs:        map[string]*vpcapi.VPCSpec{},
+		VPCPeerings:         map[string]*vpcapi.VPCPeeringSpec{},
+		ExternalPeerings:    map[string]*vpcapi.ExternalPeeringSpec{},
+		ExternalAttachments: map[string]*vpcapi.ExternalAttachmentSpec{},
 	}
 
 	conn := &wiringapi.Connection{}

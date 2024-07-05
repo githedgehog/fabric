@@ -30,7 +30,7 @@ type MACOutDHCPLease struct {
 }
 
 func (out *MACOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO
+	return spew.Sdump(out), nil // TODO implement marshal
 }
 
 var _ Func[MACIn, *MACOut] = MAC
