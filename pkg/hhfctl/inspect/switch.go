@@ -68,10 +68,9 @@ func (out *SwitchOut) MarshalText() (string, error) {
 		},
 	))
 
-	str.WriteString("Ports in use:\n")
+	str.WriteString("Ports (in use):\n")
 
 	portData := [][]string{}
-
 	for _, port := range out.Ports {
 		portType := port.ConnectionType
 		state := ""
@@ -103,10 +102,41 @@ func (out *SwitchOut) MarshalText() (string, error) {
 			trans,
 		})
 	}
-
 	str.WriteString(RenderTable(
 		[]string{"Name", "Type", "Connection", "Adm/Op (Transc)", "Speed", "Transceiver"},
 		portData,
+	))
+
+	str.WriteString("Port Counters (↓ In ↑ Out):\n")
+
+	countersData := [][]string{}
+	for _, port := range out.Ports {
+		if port.InterfaceState == nil || port.InterfaceState.Counters == nil {
+			continue
+		}
+
+		counters := port.InterfaceState.Counters
+
+		lastClear := "-"
+		if !counters.LastClear.IsZero() {
+			lastClear = humanize.Time(counters.LastClear.Time)
+		}
+
+		countersData = append(countersData, []string{
+			port.PortName,
+			lastClear,
+			fmt.Sprintf("↓ %3d ↑ %3d ", counters.InUtilization, counters.OutUtilization),
+			fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InBitsPerSecond, 0)),
+			fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutBitsPerSecond, 0)),
+			fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InPktsPerSecond, 0)),
+			fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutPktsPerSecond, 0)),
+			fmt.Sprintf("↓ %d ↑ %d ", counters.InErrors, counters.OutErrors),
+			fmt.Sprintf("↓ %d ↑ %d", counters.InDiscards, counters.OutDiscards),
+		})
+	}
+	str.WriteString(RenderTable(
+		[]string{"Name", "Clear", "Util %", "Bits/sec In", "Bits/sec Out", "Pkts/sec In", "Pkts/sec Out", "Errors", "Discards"},
+		countersData,
 	))
 
 	return str.String(), nil
