@@ -21,11 +21,11 @@ type ServerIn struct {
 }
 
 type ServerOut struct {
-	Control             bool                                 `json:"control,omitempty"`
-	ControlStateSummary string                               `json:"controlStateSummary,omitempty"`
-	Connections         map[string]*wiringapi.ConnectionSpec `json:"connections,omitempty"`
-	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
-	AttachedVPCs        map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
+	Control        bool                                 `json:"control,omitempty"`
+	ControlState   *AgentState                          `json:"controlState,omitempty"`
+	Connections    map[string]*wiringapi.ConnectionSpec `json:"connections,omitempty"`
+	VPCAttachments map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
+	AttachedVPCs   map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
 }
 
 func (out *ServerOut) MarshalText() (string, error) {
@@ -65,7 +65,7 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 		}
 
 		if !skipActual {
-			out.ControlStateSummary = controlStateSummary(agent)
+			out.ControlState = controlStateSummary(agent)
 		}
 	}
 
@@ -101,4 +101,30 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 	}
 
 	return out, nil
+}
+
+func controlStateSummary(agent *agentapi.ControlAgent) *AgentState {
+	res := &AgentState{
+		Summary: "Unknown",
+	}
+
+	if agent == nil {
+		return res
+	}
+
+	if agent.Status.LastAppliedGen == agent.Generation {
+		res.Summary = "Ready"
+	} else {
+		res.Summary = "Pending"
+	}
+
+	res.DesiredGen = agent.Generation
+
+	res.LastHeartbeat = agent.Status.LastHeartbeat
+	res.LastAttemptTime = agent.Status.LastAttemptTime
+	res.LastAttemptGen = agent.Status.LastAttemptGen
+	res.LastAppliedTime = agent.Status.LastAppliedTime
+	res.LastAppliedGen = agent.Status.LastAppliedGen
+
+	return res
 }
