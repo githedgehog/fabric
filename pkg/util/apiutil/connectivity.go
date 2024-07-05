@@ -33,7 +33,7 @@ import (
 // 	VLAN       uint16
 // }
 
-func IsServerReachable(ctx context.Context, kube client.Client, sourceServer, destServer string) (bool, error) {
+func IsServerReachable(ctx context.Context, kube client.Reader, sourceServer, destServer string) (bool, error) {
 	sourceSubnets, err := GetAttachedSubnets(ctx, kube, sourceServer)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get attached subnets for server %s", sourceServer)
@@ -60,7 +60,7 @@ func IsServerReachable(ctx context.Context, kube client.Client, sourceServer, de
 	return false, nil
 }
 
-func IsSubnetReachable(ctx context.Context, kube client.Client, source, dest string) (bool, error) {
+func IsSubnetReachable(ctx context.Context, kube client.Reader, source, dest string) (bool, error) {
 	sourceParts := strings.SplitN(source, "/", 2)
 	destParts := strings.SplitN(dest, "/", 2)
 
@@ -74,7 +74,7 @@ func IsSubnetReachable(ctx context.Context, kube client.Client, source, dest str
 	return IsSubnetReachableBetweenVPCs(ctx, kube, sourceVPC, sourceSubnet, destVPC, destSubnet)
 }
 
-func IsSubnetReachableWithinVPC(ctx context.Context, kube client.Client, vpcName, source, dest string) (bool, error) {
+func IsSubnetReachableWithinVPC(ctx context.Context, kube client.Reader, vpcName, source, dest string) (bool, error) {
 	vpc := &vpcapi.VPC{}
 	if err := kube.Get(ctx, client.ObjectKey{
 		Namespace: metav1.NamespaceDefault,
@@ -117,7 +117,7 @@ func IsSubnetReachableWithinVPCObj(vpc *vpcapi.VPC, source, dest string) (bool, 
 	return false, nil
 }
 
-func IsSubnetReachableBetweenVPCs(ctx context.Context, kube client.Client, vpc1Name, vpc1Subnet, vpc2Name, vpc2Subnet string) (bool, error) {
+func IsSubnetReachableBetweenVPCs(ctx context.Context, kube client.Reader, vpc1Name, vpc1Subnet, vpc2Name, vpc2Subnet string) (bool, error) {
 	if vpc1Name == vpc2Name {
 		return false, errors.Errorf("VPCs %s and %s are the same", vpc1Name, vpc2Name)
 	}
@@ -191,7 +191,7 @@ func IsSubnetReachableBetweenVPCs(ctx context.Context, kube client.Client, vpc1N
 	return false, nil
 }
 
-func IsVPCPeeringRemoteNotEmpty(ctx context.Context, kube client.Client, vpcPeering *vpcapi.VPCPeering) (bool, error) {
+func IsVPCPeeringRemoteNotEmpty(ctx context.Context, kube client.Reader, vpcPeering *vpcapi.VPCPeering) (bool, error) {
 	if vpcPeering == nil {
 		return false, errors.New("VPC peering is nil")
 	}
@@ -219,7 +219,7 @@ func IsVPCPeeringRemoteNotEmpty(ctx context.Context, kube client.Client, vpcPeer
 }
 
 // TODO check if allowed prefix contains destSubnet
-func IsExternalSubnetReachable(ctx context.Context, kube client.Client, sourceServer, destSubnet string) (bool, error) {
+func IsExternalSubnetReachable(ctx context.Context, kube client.Reader, sourceServer, destSubnet string) (bool, error) {
 	sourceSubnets, err := GetAttachedSubnets(ctx, kube, sourceServer)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get attached subnets for server %s", sourceServer)
@@ -257,7 +257,7 @@ func IsExternalSubnetReachable(ctx context.Context, kube client.Client, sourceSe
 	return false, nil
 }
 
-func IsExternalAttached(ctx context.Context, kube client.Client, external string) (bool, error) {
+func IsExternalAttached(ctx context.Context, kube client.Reader, external string) (bool, error) {
 	extAttaches := vpcapi.ExternalAttachmentList{}
 	if err := kube.List(ctx, &extAttaches,
 		client.InNamespace(metav1.NamespaceDefault),
@@ -277,7 +277,7 @@ type ServerAttachment struct {
 	NativeVLAN bool
 }
 
-func GetAttachedSubnets(ctx context.Context, kube client.Client, server string) (map[string]ServerAttachment, error) {
+func GetAttachedSubnets(ctx context.Context, kube client.Reader, server string) (map[string]ServerAttachment, error) {
 	ret := map[string]ServerAttachment{}
 
 	srv := wiringapi.Server{}
@@ -349,7 +349,7 @@ type ReachableFromSubnet struct {
 	ExternalPrefixes map[string][]string          // external -> []prefixes
 }
 
-func GetReachableFrom(ctx context.Context, kube client.Client, vpcName string) (map[string]*ReachableFromSubnet, error) {
+func GetReachableFrom(ctx context.Context, kube client.Reader, vpcName string) (map[string]*ReachableFromSubnet, error) {
 	vpc := &vpcapi.VPC{}
 	if err := kube.Get(ctx, client.ObjectKey{
 		Namespace: metav1.NamespaceDefault,
