@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 	"io"
 	"slices"
+	"strings"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
@@ -99,4 +101,25 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 	_, err = w.Write(data)
 
 	return errors.Wrapf(err, "failed to write inspect output")
+}
+
+func RenderTable(headers []string, data [][]string) string {
+	str := &strings.Builder{}
+
+	table := tablewriter.NewWriter(str)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(true)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetTablePadding("\t")
+	table.SetNoWhiteSpace(true)
+	table.AppendBulk(data)
+	table.Render()
+
+	return str.String()
 }

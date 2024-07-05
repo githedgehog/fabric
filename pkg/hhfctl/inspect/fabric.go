@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
@@ -28,16 +27,16 @@ type FabricOut struct {
 }
 
 type FabricOutControl struct {
-	Name         string `json:"name,omitempty"`
-	StateSummary string `json:"stateSummary,omitempty"`
+	Name  string      `json:"name,omitempty"`
+	State *AgentState `json:"state,omitempty"`
 }
 
 type FabricOutSwitch struct {
-	Name               string `json:"name,omitempty"`
-	Serial             string `json:"serial,omitempty"`
-	Software           string `json:"software,omitempty"`
-	ProfileDisplayName string `json:"profileDisplayName,omitempty"`
-	StateSummary       string `json:"stateSummary,omitempty"`
+	Name               string      `json:"name,omitempty"`
+	Serial             string      `json:"serial,omitempty"`
+	Software           string      `json:"software,omitempty"`
+	ProfileDisplayName string      `json:"profileDisplayName,omitempty"`
+	State              *AgentState `json:"state,omitempty"`
 }
 
 func (out *FabricOut) MarshalText() (string, error) {
@@ -83,7 +82,7 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 		swState := &FabricOutSwitch{
 			Name:               swName,
 			ProfileDisplayName: sp.Spec.DisplayName,
-			StateSummary:       switchStateSummary(&sw, agent),
+			State:              switchStateSummary(agent),
 		}
 
 		if !skipActual {
@@ -126,8 +125,8 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 		}
 
 		out.ControlNodes = append(out.ControlNodes, &FabricOutControl{
-			Name:         srvName,
-			StateSummary: controlStateSummary(agent),
+			Name:  srvName,
+			State: controlStateSummary(agent),
 		})
 
 		if !skipActual && agent.Status.LastAppliedGen == agent.Generation {
@@ -142,32 +141,4 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 	out.Summary = fmt.Sprintf("Ready: %d/%d control nodes, %d/%d switches", readyControls, totalControls, readySwitches, totalSwitches)
 
 	return out, nil
-}
-
-// TODO dedup with switch agent state summary
-func controlStateSummary(agent *agentapi.ControlAgent) string {
-	if agent == nil {
-		return "Unknown"
-	}
-
-	out := []string{}
-
-	if agent.Status.LastAppliedGen == agent.Generation {
-		out = append(out, "Ready")
-
-		if agent.Status.LastAppliedGen > 0 && !agent.Status.LastAppliedTime.IsZero() {
-			out = append(out, fmt.Sprintf("applied gen %d (%s)", agent.Status.LastAppliedGen, humanize.Time(agent.Status.LastAppliedTime.Time)))
-		}
-	} else {
-		out = append(out, "Pending")
-
-		out = append(out, fmt.Sprintf("desired gen %d", agent.Generation))
-		out = append(out, fmt.Sprintf("applied gen %d (%s)", agent.Status.LastAppliedGen, humanize.Time(agent.Status.LastAppliedTime.Time)))
-	}
-
-	if !agent.Status.LastHeartbeat.IsZero() {
-		out = append(out, fmt.Sprintf("last heartbeat %s", humanize.Time(agent.Status.LastHeartbeat.Time)))
-	}
-
-	return strings.Join(out, ", ")
 }
