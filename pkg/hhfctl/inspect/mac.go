@@ -2,11 +2,12 @@ package inspect
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"slices"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
@@ -30,7 +31,23 @@ type MACOutDHCPLease struct {
 }
 
 func (out *MACOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO implement marshal
+	str := strings.Builder{}
+
+	if len(out.Ports) > 0 {
+		str.WriteString("Ports:\n")
+
+		for _, port := range out.Ports {
+			str.WriteString("  " + port + "\n")
+		}
+	}
+
+	if len(out.DHCPLeases) > 0 {
+		for _, lease := range out.DHCPLeases {
+			str.WriteString(fmt.Sprintf("DHCP Lease for VPC Subnet %s:\n  Hostname: %s\n  Expiry: %s (%s)\n", lease.Subnet, lease.Hostname, lease.Expiry, humanize.Time(lease.Expiry.Time)))
+		}
+	}
+
+	return str.String(), nil
 }
 
 var _ Func[MACIn, *MACOut] = MAC

@@ -88,7 +88,8 @@ func (out *IPOut) MarshalText() (string, error) {
 		str.WriteString(string(data) + "\n")
 
 		if out.VPCSubnet.DHCPLease != nil {
-			str.WriteString(fmt.Sprintf("DHCP Lease:\n  MAC: %s\n  Expiry: %s (%s)\n", out.VPCSubnet.DHCPLease.MAC, out.VPCSubnet.DHCPLease.Expiry, humanize.Time(out.VPCSubnet.DHCPLease.Expiry.Time)))
+			lease := out.VPCSubnet.DHCPLease
+			str.WriteString(fmt.Sprintf("DHCP Lease:\n  Hostname: %s\n  MAC: %s\n  Expiry: %s (%s)\n", lease.Hostname, lease.MAC, lease.Expiry, humanize.Time(lease.Expiry.Time)))
 		}
 	} else if out.IPv4Namespace != nil {
 		str.WriteString("IP not found in any VPC subnet\n")
