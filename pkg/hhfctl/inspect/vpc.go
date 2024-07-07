@@ -28,6 +28,8 @@ type VPCOut struct {
 }
 
 func (out *VPCOut) MarshalText() (string, error) {
+	// TODO print VRF name
+
 	return spew.Sdump(out), nil // TODO implement marshal
 }
 

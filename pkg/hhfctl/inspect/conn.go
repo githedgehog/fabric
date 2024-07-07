@@ -2,18 +2,23 @@ package inspect
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
+	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 type ConnectionIn struct {
@@ -41,7 +46,114 @@ type OutLoopbackWorkaround struct {
 }
 
 func (out *ConnectionOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO implement marshal
+	str := &strings.Builder{}
+
+	data, err := yaml.Marshal(out.Spec)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to yaml marshal connection spec")
+	}
+	str.Write(data)
+	str.WriteString("\n")
+
+	if len(out.VPCAttachments) > 0 {
+		str.WriteString("VPC Attachments:\n")
+
+		attachData := [][]string{}
+		attachNames := maps.Keys(out.VPCAttachments)
+		for _, attachName := range attachNames {
+			attach := out.VPCAttachments[attachName]
+
+			subnet := ""
+			vlan := ""
+			vpcName := strings.SplitN(attach.Subnet, "/", 2)[0]
+			subnetName := strings.SplitN(attach.Subnet, "/", 2)[1]
+			if vpc, ok := out.AttachedVPCs[vpcName]; ok {
+				if vpcSubnet, ok := vpc.Subnets[subnetName]; ok {
+					subnet = vpcSubnet.Subnet
+					vlan = fmt.Sprintf("%d", vpcSubnet.VLAN)
+
+					if attach.NativeVLAN {
+						vlan = "native"
+					}
+				}
+			}
+
+			attachData = append(attachData, []string{
+				attachName,
+				attach.Subnet,
+				subnet,
+				vlan,
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Name", "VPCSubnet", "Subnet", "VLAN"},
+			attachData,
+		))
+	}
+
+	if len(out.ExternalAttachments) > 0 {
+		str.WriteString("External Attachments:\n")
+
+		attachData := [][]string{}
+		attachNames := maps.Keys(out.ExternalAttachments)
+		for _, attachName := range attachNames {
+			attach := out.ExternalAttachments[attachName]
+
+			attachData = append(attachData, []string{
+				attachName,
+				attach.External,
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Name", "External"},
+			attachData,
+		))
+	}
+
+	if len(out.LoopbackWorkarounds) > 0 {
+		str.WriteString("Loopback Workarounds:\n")
+
+		// TODO pass to a marshal func?
+		noColor := !isatty.IsTerminal(os.Stdout.Fd())
+
+		// TODO dedup
+		colored := color.New(color.FgCyan).SprintFunc()
+		if noColor {
+			colored = func(a ...interface{}) string { return fmt.Sprint(a...) }
+		}
+
+		sep := colored("←→")
+
+		loWoData := [][]string{}
+		for _, loWo := range out.LoopbackWorkarounds {
+			vpcPeerings := []string{}
+			for vpcPeeringName, vpcPeering := range loWo.VPCPeerings {
+				vpc1, vpc2, err := vpcPeering.VPCs()
+				if err != nil {
+					return "", errors.Wrapf(err, "failed to get VPCs for VPCPeering %s", vpcPeeringName)
+				}
+
+				vpcPeerings = append(vpcPeerings, fmt.Sprintf("%s (%s%s%s)", vpcPeeringName, vpc1, sep, vpc2))
+			}
+
+			extPeerings := []string{}
+			for extPeeringName, extPeering := range loWo.ExternalPeerings {
+				extPeerings = append(extPeerings, fmt.Sprintf("%s (%s%s%s)", extPeeringName, extPeering.Permit.VPC.Name, sep, extPeering.Permit.External.Name))
+			}
+
+			loWoData = append(loWoData, []string{
+				fmt.Sprintf("%s%s%s", loWo.Link.Switch1.PortName(), sep, loWo.Link.Switch2.PortName()),
+				strings.Join(vpcPeerings, "\n"),
+				strings.Join(extPeerings, "\n"),
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Link", "VPCPeerings", "ExternalPeerings"},
+			loWoData,
+		))
+	}
+
+	return str.String(), nil // TODO implement marshal
 }
 
 var _ Func[ConnectionIn, *ConnectionOut] = Connection
