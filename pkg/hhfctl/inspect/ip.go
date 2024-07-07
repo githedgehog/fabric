@@ -16,10 +16,11 @@ package inspect
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
@@ -27,6 +28,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 type IPIn struct {
@@ -34,14 +36,12 @@ type IPIn struct {
 }
 
 type IPOut struct {
-	found         bool
-	IPv4Namespace *string           `json:"ipv4Namespace,omitempty"`
-	VPCSubnet     *IPOutVPCSubnet   `json:"vpcSubnet,omitempty"`
-	Switch        *IPOutSwitch      `json:"switch,omitempty"`
-	Connections   []IPOutConnection `json:"connections,omitempty"`
-
-	// TODO do we need to try searching for IPs available through externals?
-	// ExternalPeerings []IPOutExternalPeering `json:"externalPeerings,omitempty"`
+	found            bool
+	IPv4Namespace    *string                `json:"ipv4Namespace,omitempty"`
+	VPCSubnet        *IPOutVPCSubnet        `json:"vpcSubnet,omitempty"`
+	Switch           *IPOutSwitch           `json:"switch,omitempty"`
+	Connections      []IPOutConnection      `json:"connections,omitempty"`
+	ExternalPeerings []IPOutExternalPeering `json:"externalPeerings,omitempty"`
 }
 
 type IPOutVPCSubnet struct {
@@ -51,10 +51,8 @@ type IPOutVPCSubnet struct {
 }
 
 type IPOutSwitch struct {
-	Name       string  `json:"name,omitempty"`
-	IP         *string `json:"ip,omitempty"`
-	VTEPIP     *string `json:"vtepIP,omitempty"`
-	ProtocolIP *string `json:"protocolIP,omitempty"`
+	Name                 string `json:"name,omitempty"`
+	wiringapi.SwitchSpec `json:",inline"`
 }
 
 type IPOutDHCPLease struct {
@@ -68,13 +66,72 @@ type IPOutConnection struct {
 	wiringapi.ConnectionSpec `json:",inline"`
 }
 
-// type IPOutExternalPeering struct {
-// 	Name                       string `json:"name,omitempty"`
-// 	vpcapi.ExternalPeeringSpec `json:",inline"`
-// }
+type IPOutExternalPeering struct {
+	Name                       string `json:"name,omitempty"`
+	vpcapi.ExternalPeeringSpec `json:",inline"`
+}
 
 func (out *IPOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO implement marshal
+	str := strings.Builder{}
+
+	if out.IPv4Namespace != nil {
+		str.WriteString("From IPv4Namespace: " + *out.IPv4Namespace + "\n")
+	}
+
+	if out.VPCSubnet != nil {
+		str.WriteString(fmt.Sprintf("From VPC subnet: %s (%s)\n", out.VPCSubnet.Name, out.VPCSubnet.Subnet))
+
+		data, err := yaml.Marshal(out.VPCSubnet.VPCSubnet)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to marshal VPCSubnet")
+		}
+		str.WriteString(string(data) + "\n")
+
+		if out.VPCSubnet.DHCPLease != nil {
+			str.WriteString(fmt.Sprintf("DHCP Lease:\n  MAC: %s\n  Expiry: %s (%s)\n", out.VPCSubnet.DHCPLease.MAC, out.VPCSubnet.DHCPLease.Expiry, humanize.Time(out.VPCSubnet.DHCPLease.Expiry.Time)))
+		}
+	} else if out.IPv4Namespace != nil {
+		str.WriteString("IP not found in any VPC subnet\n")
+	}
+
+	if out.Switch != nil {
+		str.WriteString(fmt.Sprintf("From Switch: %s\n", out.Switch.Name))
+
+		data, err := yaml.Marshal(out.Switch)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to marshal Switch")
+		}
+		str.WriteString(string(data) + "\n")
+	}
+
+	if len(out.Connections) > 0 {
+		for _, conn := range out.Connections {
+			str.WriteString(fmt.Sprintf("From Connection: %s\n", conn.Name))
+
+			data, err := yaml.Marshal(conn.ConnectionSpec)
+			if err != nil {
+				return "", errors.Wrap(err, "failed to marshal Connection")
+			}
+			str.WriteString(string(data) + "\n")
+		}
+	}
+
+	if len(out.ExternalPeerings) > 0 {
+		for _, extPeering := range out.ExternalPeerings {
+			str.WriteString(fmt.Sprintf("Potentially reachable using ExternalPeering: %s\n", extPeering.Name))
+
+			subnets := extPeering.Permit.VPC.Subnets
+			str.WriteString(fmt.Sprintf("  VPC %s subnets: %s\n", extPeering.Permit.VPC.Name, strings.Join(subnets, ", ")))
+
+			prefixes := []string{}
+			for _, prefix := range extPeering.Permit.External.Prefixes {
+				prefixes = append(prefixes, prefix.Prefix)
+			}
+			str.WriteString(fmt.Sprintf("  External %s prefixes: %s\n\n", extPeering.Permit.External.Name, strings.Join(prefixes, ", ")))
+		}
+	}
+
+	return str.String(), nil
 }
 
 var _ Func[IPIn, *IPOut] = IP
@@ -103,18 +160,14 @@ func IP(ctx context.Context, kube client.Reader, in IPIn) (*IPOut, error) {
 		return nil, errors.Wrap(err, "failed to inspect IP in Connections")
 	}
 
-	// if err := ipInExternal(ctx, out, kube, ip); err != nil {
-	// 	return nil, errors.Wrap(err, "failed to inspect IP in ExternalPeerings")
-	// }
+	if err := ipInExternal(ctx, out, kube, ip); err != nil {
+		return nil, errors.Wrap(err, "failed to inspect IP in ExternalPeerings")
+	}
 
 	return out, nil
 }
 
 func ipInIPNS(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
-	if res.found {
-		return nil
-	}
-
 	ipnsList := &vpcapi.IPv4NamespaceList{}
 	err := kube.List(ctx, ipnsList)
 	if err != nil {
@@ -188,10 +241,6 @@ func ipInIPNS(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) er
 }
 
 func ipInSwitches(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
-	if res.found {
-		return nil
-	}
-
 	sws := &wiringapi.SwitchList{}
 	err := kube.List(ctx, sws)
 	if err != nil {
@@ -199,27 +248,13 @@ func ipInSwitches(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP
 	}
 
 	for _, sw := range sws.Items {
-		if strings.SplitN(sw.Spec.IP, "/", 2)[0] == ip.String() {
-			res.found = true
-			res.Switch = &IPOutSwitch{
-				Name: sw.Name,
-				IP:   pointer.To(sw.Spec.IP),
-			}
-
-			break
-		} else if strings.SplitN(sw.Spec.VTEPIP, "/", 2)[0] == ip.String() {
-			res.found = true
-			res.Switch = &IPOutSwitch{
-				Name:   sw.Name,
-				VTEPIP: pointer.To(sw.Spec.VTEPIP),
-			}
-
-			break
-		} else if strings.SplitN(sw.Spec.ProtocolIP, "/", 2)[0] == ip.String() {
+		if strings.SplitN(sw.Spec.IP, "/", 2)[0] == ip.String() ||
+			strings.SplitN(sw.Spec.VTEPIP, "/", 2)[0] == ip.String() ||
+			strings.SplitN(sw.Spec.ProtocolIP, "/", 2)[0] == ip.String() {
 			res.found = true
 			res.Switch = &IPOutSwitch{
 				Name:       sw.Name,
-				ProtocolIP: pointer.To(sw.Spec.ProtocolIP),
+				SwitchSpec: sw.Spec,
 			}
 
 			break
@@ -230,10 +265,6 @@ func ipInSwitches(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP
 }
 
 func ipInConnections(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
-	if res.found {
-		return nil
-	}
-
 	conns := &wiringapi.ConnectionList{}
 	err := kube.List(ctx, conns)
 	if err != nil {
@@ -284,33 +315,33 @@ func ipInConnections(ctx context.Context, res *IPOut, kube client.Reader, ip net
 	return nil
 }
 
-// func ipInExternal(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
-// 	if res.found {
-// 		return nil
-// 	}
+func ipInExternal(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
+	if res.found {
+		return nil
+	}
 
-// 	extPeerings := &vpcapi.ExternalPeeringList{}
-// 	err := kube.List(ctx, extPeerings)
-// 	if err != nil {
-// 		return errors.Wrap(err, "cannot list ExternalPeering")
-// 	}
+	extPeerings := &vpcapi.ExternalPeeringList{}
+	err := kube.List(ctx, extPeerings)
+	if err != nil {
+		return errors.Wrap(err, "cannot list ExternalPeering")
+	}
 
-// 	for _, extPeering := range extPeerings.Items {
-// 		for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
-// 			_, prefixNet, err := net.ParseCIDR(prefix.Prefix)
-// 			if err != nil {
-// 				return errors.Wrapf(err, "failed to parse external peering %s prefix %q", extPeering.Name, prefix)
-// 			}
+	for _, extPeering := range extPeerings.Items {
+		for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
+			_, prefixNet, err := net.ParseCIDR(prefix.Prefix)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse external peering %s prefix %q", extPeering.Name, prefix)
+			}
 
-// 			if prefixNet.Contains(ip) {
-// 				res.found = true
-// 				res.ExternalPeerings = append(res.ExternalPeerings, IPOutExternalPeering{
-// 					Name:                extPeering.Name,
-// 					ExternalPeeringSpec: extPeering.Spec,
-// 				})
-// 			}
-// 		}
-// 	}
+			if prefixNet.Contains(ip) {
+				res.found = true
+				res.ExternalPeerings = append(res.ExternalPeerings, IPOutExternalPeering{
+					Name:                extPeering.Name,
+					ExternalPeeringSpec: extPeering.Spec,
+				})
+			}
+		}
+	}
 
-// 	return nil
-// }
+	return nil
+}
