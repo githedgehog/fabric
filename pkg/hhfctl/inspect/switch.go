@@ -151,6 +151,8 @@ func (out *SwitchOut) MarshalText() (string, error) {
 		countersData,
 	))
 
+	// TODO add port neigbors?
+
 	return str.String(), nil
 }
 

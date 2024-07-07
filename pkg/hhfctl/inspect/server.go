@@ -2,15 +2,19 @@ package inspect
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/dustin/go-humanize"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
+	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,6 +25,7 @@ type ServerIn struct {
 }
 
 type ServerOut struct {
+	Name           string                               `json:"name,omitempty"`
 	Control        bool                                 `json:"control,omitempty"`
 	ControlState   *AgentState                          `json:"controlState,omitempty"`
 	Connections    map[string]*wiringapi.ConnectionSpec `json:"connections,omitempty"`
@@ -29,7 +34,93 @@ type ServerOut struct {
 }
 
 func (out *ServerOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO implement marshal
+	str := &strings.Builder{}
+
+	if out.Control && out.ControlState != nil {
+		ctrlData := [][]string{}
+		applied := ""
+
+		if !out.ControlState.LastAppliedTime.IsZero() {
+			applied = humanize.Time(out.ControlState.LastAppliedTime.Time)
+		}
+
+		ctrlData = append(ctrlData, []string{
+			out.Name,
+			out.ControlState.Summary,
+			fmt.Sprintf("%d/%d", out.ControlState.LastAppliedGen, out.ControlState.DesiredGen),
+			applied,
+			humanize.Time(out.ControlState.LastHeartbeat.Time),
+		})
+		str.WriteString(RenderTable(
+			[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},
+			ctrlData,
+		))
+	}
+
+	// TODO pass to a marshal func?
+	noColor := !isatty.IsTerminal(os.Stdout.Fd())
+
+	if len(out.Connections) > 0 {
+		str.WriteString("Connections:\n")
+
+		connData := [][]string{}
+		connNames := maps.Keys(out.Connections)
+		for _, connName := range connNames {
+			conn := out.Connections[connName]
+
+			connData = append(connData, []string{
+				connName,
+				conn.Type(),
+				strings.Join(conn.LinkSummary(noColor), "\n"),
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Name", "Type", "Links"},
+			connData,
+		))
+	} else {
+		str.WriteString("No connections\n")
+	}
+
+	if len(out.VPCAttachments) > 0 {
+		str.WriteString("VPC Attachments:\n")
+
+		attachData := [][]string{}
+		attachNames := maps.Keys(out.VPCAttachments)
+		for _, attachName := range attachNames {
+			attach := out.VPCAttachments[attachName]
+
+			subnet := ""
+			vlan := ""
+			vpcName := strings.SplitN(attach.Subnet, "/", 2)[0]
+			subnetName := strings.SplitN(attach.Subnet, "/", 2)[1]
+			if vpc, ok := out.AttachedVPCs[vpcName]; ok {
+				if vpcSubnet, ok := vpc.Subnets[subnetName]; ok {
+					subnet = vpcSubnet.Subnet
+					vlan = fmt.Sprintf("%d", vpcSubnet.VLAN)
+
+					if attach.NativeVLAN {
+						vlan = "native"
+					}
+				}
+			}
+
+			attachData = append(attachData, []string{
+				attachName,
+				attach.Subnet,
+				subnet,
+				vlan,
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Name", "VPCSubnet", "Subnet", "VLAN"},
+			attachData,
+		))
+	} else if !out.Control {
+		str.WriteString("No VPC attachments\n")
+	}
+
+	return str.String(), nil
 }
 
 var _ Func[ServerIn, *ServerOut] = Server
@@ -40,6 +131,7 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 	}
 
 	out := &ServerOut{
+		Name:           in.Name,
 		Connections:    map[string]*wiringapi.ConnectionSpec{},
 		VPCAttachments: map[string]*vpcapi.VPCAttachmentSpec{},
 		AttachedVPCs:   map[string]*vpcapi.VPCSpec{},
