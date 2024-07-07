@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
@@ -695,6 +696,61 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 	}
 
 	return maps.Keys(switches), maps.Keys(servers), maps.Keys(ports), links, nil
+}
+
+func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
+	colored := color.New(color.FgCyan).SprintFunc()
+	if noColor {
+		colored = func(a ...interface{}) string { return fmt.Sprint(a...) }
+	}
+
+	sep := colored("←→")
+
+	out := []string{}
+	if connSpec.Management != nil {
+		out = append(out, fmt.Sprintf("%s%s%s", connSpec.Management.Link.Server.PortName(), sep, connSpec.Management.Link.Switch.PortName()))
+	} else if connSpec.Fabric != nil {
+		for _, link := range connSpec.Fabric.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Leaf.PortName()))
+		}
+	} else if connSpec.VPCLoopback != nil {
+		for _, link := range connSpec.VPCLoopback.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Switch1.PortName(), sep, link.Switch2.PortName()))
+		}
+	} else if connSpec.External != nil {
+		out = append(out, connSpec.External.Link.Switch.PortName())
+	} else if connSpec.StaticExternal != nil {
+		vpc := ""
+
+		if connSpec.StaticExternal.WithinVPC != "" {
+			vpc = fmt.Sprintf("(%s%s)", colored("vpc:"), connSpec.StaticExternal.WithinVPC)
+		}
+
+		out = append(out, fmt.Sprintf("%s%s", connSpec.StaticExternal.Link.Switch.PortName(), vpc))
+	} else if connSpec.MCLAGDomain != nil {
+		for _, link := range connSpec.MCLAGDomain.PeerLinks {
+			out = append(out, fmt.Sprintf("%s%s%s%s", colored("peer"), link.Switch1.PortName(), sep, link.Switch2.PortName()))
+		}
+		for _, link := range connSpec.MCLAGDomain.SessionLinks {
+			out = append(out, fmt.Sprintf("%s%s%s%s", colored("session"), link.Switch1.PortName(), sep, link.Switch2.PortName()))
+		}
+	} else if connSpec.Unbundled != nil {
+		out = append(out, fmt.Sprintf("%s%s%s", connSpec.Unbundled.Link.Server.PortName(), sep, connSpec.Unbundled.Link.Switch.PortName()))
+	} else if connSpec.Bundled != nil {
+		for _, link := range connSpec.Bundled.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Server.PortName(), sep, link.Switch.PortName()))
+		}
+	} else if connSpec.MCLAG != nil {
+		for _, link := range connSpec.MCLAG.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Server.PortName(), sep, link.Switch.PortName()))
+		}
+	} else if connSpec.ESLAG != nil {
+		for _, link := range connSpec.ESLAG.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Server.PortName(), sep, link.Switch.PortName()))
+		}
+	}
+
+	return out
 }
 
 func (conn *Connection) Default() {
