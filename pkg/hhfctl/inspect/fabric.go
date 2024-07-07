@@ -94,7 +94,7 @@ func (out *FabricOut) MarshalText() (string, error) {
 		swData,
 	))
 
-	return str.String(), nil // TODO implement marshal
+	return str.String(), nil
 }
 
 var _ Func[FabricIn, *FabricOut] = Fabric
