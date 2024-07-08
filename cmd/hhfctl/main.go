@@ -694,11 +694,22 @@ func main() {
 					},
 					{
 						Name:  "access",
-						Usage: "Inspect access between IPs", // TODO
+						Usage: "Inspect access between pair of IPs, Server names or VPCSubnets",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
-							// TODO
+							&cli.StringFlag{
+								Name:     "source",
+								Aliases:  []string{"s", "src"},
+								Usage:    "Source IP (only from VPC subnets), full VPC subnet name (<vpc-name>/<subnet-name>) or Server Name",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "destination",
+								Aliases:  []string{"d", "dest"},
+								Usage:    "Destination IP (from VPC subnets, Externals or StaticExternals), full VPC subnet name (<vpc-name>/<subnet-name>) or Server Name",
+								Required: true,
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
@@ -707,7 +718,10 @@ func main() {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Access, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
-							}, inspect.AccessIn{}, os.Stdout), "failed to inspect access")
+							}, inspect.AccessIn{
+								Source:      cCtx.String("source"),
+								Destination: cCtx.String("destination"),
+							}, os.Stdout), "failed to inspect access")
 						},
 					},
 				},
