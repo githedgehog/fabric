@@ -1,6 +1,6 @@
 # Switch Profiles Catalog
 
-The following is a list of all supported switches. Please, make sure to use correct version of documentation to get an
+The following is a list of all supported switches. Please, make sure to use the version of documentation that matches your environment to get an
 up-to-date list of supported switches, their features and port naming scheme.
 
 ## Celestica DS3000
