@@ -113,18 +113,22 @@ func (out *SwitchOut) MarshalText() (string, error) {
 			speed = port.BreakoutState.Mode
 			state = strings.ToLower(port.BreakoutState.Status)
 
-			if out.Profile.Ports[port.PortName].NOSName != "" {
-				nos = out.Profile.Ports[port.PortName].NOSName
+			profile, exists := out.Profile.Ports[port.PortName]
+			if exists {
+				if profile.NOSName != "" {
+					nos = profile.NOSName
+				}
 			}
 		}
 
 		if port.InterfaceState != nil {
 			state = fmt.Sprintf("%s/%s", port.InterfaceState.AdminStatus, port.InterfaceState.OperStatus)
 			speed = port.InterfaceState.Speed
-			trans = port.InterfaceState.Transceiver.Description
-
-			if port.InterfaceState.Transceiver.OperStatus != "" {
-				state += fmt.Sprintf(" (%s)", port.InterfaceState.Transceiver.OperStatus)
+			if port.InterfaceState.Transceiver != nil {
+				trans = port.InterfaceState.Transceiver.Description
+				if port.InterfaceState.Transceiver.OperStatus != "" {
+					state += fmt.Sprintf(" (%s)", port.InterfaceState.Transceiver.OperStatus)
+				}
 			}
 		}
 
