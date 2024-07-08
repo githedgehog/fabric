@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/maruel/natural"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	"golang.org/x/exp/maps"
@@ -814,28 +815,24 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 }
 
 func SortPortNames(portNames []string) {
-	slices.SortFunc(portNames, func(a, b string) int {
-		if a[0] != b[0] {
-			if strings.HasPrefix(a, ManagementPortPrefix) {
-				return -1
-			}
-			if strings.HasPrefix(b, ManagementPortPrefix) {
-				return 1
-			}
+	slices.SortFunc(portNames, ComparePortNames)
+}
+
+func ComparePortNames(a, b string) int {
+	if a[0] != b[0] {
+		if strings.HasPrefix(a, ManagementPortPrefix) {
+			return -1
 		}
-
-		if strings.HasPrefix(a, DataPortPrefix+"1/") && strings.HasPrefix(b, DataPortPrefix+"1/") {
-			a, _ = strings.CutPrefix(a, DataPortPrefix+"1/")
-			b, _ = strings.CutPrefix(b, DataPortPrefix+"1/")
-
-			numA, errA := strconv.Atoi(a)
-			numB, errB := strconv.Atoi(b)
-
-			if errA == nil && errB == nil {
-				return numA - numB
-			}
+		if strings.HasPrefix(b, ManagementPortPrefix) {
+			return 1
 		}
+	}
 
-		return strings.Compare(a, b)
-	})
+	if a == b {
+		return 0
+	} else if natural.Less(a, b) {
+		return -1
+	}
+
+	return 1
 }

@@ -425,3 +425,68 @@ func TestSwitchProfileDefault(t *testing.T) {
 		})
 	}
 }
+
+func TestComparePortNames(t *testing.T) {
+	tests := []struct {
+		name string
+		a    string
+		b    string
+		want int
+	}{
+		{
+			name: "simple-E",
+			a:    "E1/1",
+			b:    "E1/2",
+			want: -1,
+		},
+		{
+			name: "simple-E-same",
+			a:    "E1/1",
+			b:    "E1/1",
+			want: 0,
+		},
+		{
+			name: "simple-M",
+			a:    "M1",
+			b:    "M2",
+			want: -1,
+		},
+		{
+			name: "simple-M-same",
+			a:    "M1",
+			b:    "M1",
+			want: 0,
+		},
+		{
+			name: "simple-ME",
+			a:    "E1/1",
+			b:    "M1",
+			want: 1,
+		},
+		{
+			name: "simple-EB",
+			a:    "E1/1",
+			b:    "E1/1/1",
+			want: -1,
+		},
+		{
+			name: "simple-BB",
+			a:    "E1/1/1",
+			b:    "E1/1/2",
+			want: -1,
+		},
+		{
+			name: "simple-MB",
+			a:    "M1",
+			b:    "E1/1/1",
+			want: -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := wiringapi.ComparePortNames(tt.a, tt.b)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
