@@ -486,14 +486,14 @@ func main() {
 			{
 				Name:    "inspect",
 				Aliases: []string{"i"},
-				Usage:   "Inspect Fabric API Objects",
+				Usage:   "Inspect Fabric API Objects and Primitives",
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
 				Subcommands: []*cli.Command{
 					{
 						Name:  "fabric",
-						Usage: "Inspect Fabric",
+						Usage: "Inspect Fabric (overall control nodes and switches overview incl. status, serials, etc.)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
@@ -510,7 +510,7 @@ func main() {
 					},
 					{
 						Name:  "switch",
-						Usage: "Inspect Switch",
+						Usage: "Inspect Switch (status, used ports, counters, etc.)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
@@ -536,7 +536,7 @@ func main() {
 					{
 						Name:    "port",
 						Aliases: []string{"switchport"},
-						Usage:   "Inspect Switch Port",
+						Usage:   "Inspect Switch Port (connection if used in one, counters, VPC and External attachments, etc.)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
@@ -561,7 +561,7 @@ func main() {
 					},
 					{
 						Name:  "server",
-						Usage: "Inspect Server",
+						Usage: "Inspect Server (connection if used in one, VPC attachments, etc.)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
@@ -587,7 +587,7 @@ func main() {
 					{
 						Name:    "connection",
 						Aliases: []string{"conn"},
-						Usage:   "Inspect Connection",
+						Usage:   "Inspect Connection (incl. VPC and External attachments, Loobpback Workaround usage, etc.)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
@@ -613,20 +613,20 @@ func main() {
 					{
 						Name:    "vpc",
 						Aliases: []string{"subnet", "vpcsubnet"},
-						Usage:   "Inspect VPC/VPCSubnet",
+						Usage:   "Inspect VPC/VPCSubnet (incl. where is it attached and what's reachable from it)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
 							&cli.StringFlag{
 								Name:     "name",
 								Aliases:  []string{"n"},
-								Usage:    "VPC name",
+								Usage:    "VPC name (if no subnet specified, will inspect all subnets)",
 								Required: true,
 							},
 							&cli.StringFlag{
 								Name:    "subnet",
 								Aliases: []string{"s"},
-								Usage:   "Subnet name (without VPC)",
+								Usage:   "Subnet name (without VPC) to only inspect this subnet",
 							},
 						},
 						Before: func(_ *cli.Context) error {
@@ -644,14 +644,14 @@ func main() {
 					},
 					{
 						Name:  "ip",
-						Usage: "Inspect IP Address",
+						Usage: "Inspect IP Address (incl. IPv4Namespace, VPCSubnet and DHCPLease or External/StaticExternal usage)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
 							&cli.StringFlag{
 								Name:     "address",
 								Aliases:  []string{"a", "addr"},
-								Usage:    "ip address to inspect",
+								Usage:    "IP address to inspect",
 								Required: true,
 							},
 						},
@@ -669,7 +669,7 @@ func main() {
 					},
 					{
 						Name:  "mac",
-						Usage: "Inspect MAC Address",
+						Usage: "Inspect MAC Address (incl. switch ports and DHCP leases)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
@@ -694,7 +694,7 @@ func main() {
 					},
 					{
 						Name:  "access",
-						Usage: "Inspect access between pair of IPs, Server names or VPCSubnets",
+						Usage: "Inspect access between pair of IPs, Server names or VPCSubnets (everything except external IPs will be translated to VPCSubnets)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
