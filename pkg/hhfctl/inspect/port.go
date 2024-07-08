@@ -75,7 +75,7 @@ func (out *PortOut) MarshalText() (string, error) {
 			lastClear = humanize.Time(counters.LastClear.Time)
 		}
 
-		str.WriteString("Port Counters (↓ In ↑ Out):\n")
+		str.WriteString("\nPort Counters (↓ In ↑ Out):\n")
 
 		str.WriteString(RenderTable(
 			[]string{"Speed", "Util %", "Bits/sec In", "Bits/sec Out", "Pkts/sec In", "Pkts/sec Out", "Clear", "Errors", "Discards"},
