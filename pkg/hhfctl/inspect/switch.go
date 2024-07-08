@@ -66,8 +66,18 @@ type SwitchOutPort struct {
 func (out *SwitchOut) MarshalText() (string, error) {
 	str := &strings.Builder{}
 
+	applied := ""
+	if !out.State.LastAppliedTime.IsZero() {
+		applied = humanize.Time(out.State.LastAppliedTime.Time)
+	}
+
+	heartbeat := ""
+	if !out.State.LastHeartbeat.IsZero() {
+		heartbeat = humanize.Time(out.State.LastHeartbeat.Time)
+	}
+
 	str.WriteString(RenderTable(
-		[]string{"Name", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Heartbeat"},
+		[]string{"Name", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
 		[][]string{
 			{
 				out.Name,
@@ -77,7 +87,8 @@ func (out *SwitchOut) MarshalText() (string, error) {
 				out.Serial,
 				out.State.Summary,
 				fmt.Sprintf("%d/%d", out.State.LastAppliedGen, out.State.DesiredGen),
-				humanize.Time(out.State.LastHeartbeat.Time),
+				applied,
+				heartbeat,
 			},
 		},
 	))

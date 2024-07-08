@@ -52,10 +52,15 @@ func (out *ServerOut) MarshalText() (string, error) {
 
 	if out.Control && out.ControlState != nil {
 		ctrlData := [][]string{}
-		applied := ""
 
+		applied := ""
 		if !out.ControlState.LastAppliedTime.IsZero() {
 			applied = humanize.Time(out.ControlState.LastAppliedTime.Time)
+		}
+
+		heartbeat := ""
+		if !out.ControlState.LastHeartbeat.IsZero() {
+			heartbeat = humanize.Time(out.ControlState.LastHeartbeat.Time)
 		}
 
 		ctrlData = append(ctrlData, []string{
@@ -63,7 +68,7 @@ func (out *ServerOut) MarshalText() (string, error) {
 			out.ControlState.Summary,
 			fmt.Sprintf("%d/%d", out.ControlState.LastAppliedGen, out.ControlState.DesiredGen),
 			applied,
-			humanize.Time(out.ControlState.LastHeartbeat.Time),
+			heartbeat,
 		})
 		str.WriteString(RenderTable(
 			[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},

@@ -86,9 +86,13 @@ func (out *FabricOut) MarshalText() (string, error) {
 	swData := [][]string{}
 	for _, sw := range out.Switches {
 		applied := ""
-
 		if !sw.State.LastAppliedTime.IsZero() {
 			applied = humanize.Time(sw.State.LastAppliedTime.Time)
+		}
+
+		heartbeat := ""
+		if !sw.State.LastHeartbeat.IsZero() {
+			heartbeat = humanize.Time(sw.State.LastHeartbeat.Time)
 		}
 
 		swData = append(swData, []string{
@@ -100,7 +104,7 @@ func (out *FabricOut) MarshalText() (string, error) {
 			sw.State.Summary,
 			fmt.Sprintf("%d/%d", sw.State.LastAppliedGen, sw.State.DesiredGen),
 			applied,
-			humanize.Time(sw.State.LastHeartbeat.Time),
+			heartbeat,
 		})
 	}
 	str.WriteString(RenderTable(
