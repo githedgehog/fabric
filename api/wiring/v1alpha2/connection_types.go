@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sort"
 	"strings"
 
 	"github.com/fatih/color"
@@ -472,26 +471,23 @@ func (connSpec *ConnectionSpec) Type() string {
 func (connSpec *ConnectionSpec) ConnectionLabels() map[string]string {
 	labels := map[string]string{}
 
+	labels[LabelConnectionType] = connSpec.Type()
+
+	if connSpec.StaticExternal != nil && connSpec.StaticExternal.WithinVPC != "" {
+		labels[LabelVPC] = connSpec.StaticExternal.WithinVPC
+	}
+
 	switches, servers, _, _, err := connSpec.Endpoints()
 	// if error, we don't need to set labels
 	if err != nil {
 		return labels
 	}
 
-	sort.Strings(switches)
-	sort.Strings(servers)
-
 	for _, switchName := range switches {
 		labels[ListLabelSwitch(switchName)] = ListLabelValue
 	}
 	for _, serverName := range servers {
 		labels[ListLabelServer(serverName)] = ListLabelValue
-	}
-
-	labels[LabelConnectionType] = connSpec.Type()
-
-	if connSpec.StaticExternal != nil && connSpec.StaticExternal.WithinVPC != "" {
-		labels[LabelVPC] = connSpec.StaticExternal.WithinVPC
 	}
 
 	return labels
