@@ -1409,7 +1409,8 @@ spec:
                               namespace
                             type: integer
                         type: object
-                      description: Subnets is the list of VPC subnets to configure
+                      description: Subnets is the list of VPC subnets to configure,
+                        at least one of these is required
                       type: object
                     vlanNamespace:
                       description: VLANNamespace is the name of the VLANNamespace

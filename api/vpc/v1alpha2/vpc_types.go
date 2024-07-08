@@ -37,7 +37,7 @@ import (
 // VPCSpec defines the desired state of VPC.
 // At least one subnet is required.
 type VPCSpec struct {
-	// Subnets is the list of VPC subnets to configure
+	// Subnets is the list of VPC subnets to configure, at least one of these is required
 	Subnets map[string]*VPCSubnet `json:"subnets,omitempty"`
 	// IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used)
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
