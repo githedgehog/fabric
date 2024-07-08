@@ -16,6 +16,7 @@ package apiutil
 
 import (
 	"context"
+	"net"
 	"slices"
 	"strings"
 
@@ -61,6 +62,14 @@ func IsServerReachable(ctx context.Context, kube client.Reader, sourceServer, de
 }
 
 func IsSubnetReachable(ctx context.Context, kube client.Reader, source, dest string) (bool, error) {
+	if !strings.Contains(source, "/") {
+		return false, errors.Errorf("source must be full VPC subnet name (<vpc-name>/<subnet-name>)")
+	}
+
+	if !strings.Contains(dest, "/") {
+		return false, errors.Errorf("dest must be full VPC subnet name (<vpc-name>/<subnet-name>)")
+	}
+
 	sourceParts := strings.SplitN(source, "/", 2)
 	destParts := strings.SplitN(dest, "/", 2)
 
@@ -226,6 +235,10 @@ func IsExternalSubnetReachable(ctx context.Context, kube client.Reader, sourceSe
 	}
 
 	for subnetName := range sourceSubnets {
+		if !strings.Contains(subnetName, "/") {
+			return false, errors.Errorf("source subnet name must be full VPC subnet name (<vpc-name>/<subnet-name>)")
+		}
+
 		sourceParts := strings.SplitN(subnetName, "/", 2)
 		sourceVPC, sourceSubnet := sourceParts[0], sourceParts[1]
 
@@ -249,7 +262,78 @@ func IsExternalSubnetReachable(ctx context.Context, kube client.Reader, sourceSe
 					continue
 				}
 
-				return IsExternalAttached(ctx, kube, extPeering.Spec.Permit.External.Name)
+				attached, err := IsExternalAttached(ctx, kube, extPeering.Spec.Permit.External.Name)
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to check if external %s is attached", extPeering.Spec.Permit.External.Name)
+				}
+
+				if attached {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func IsExternalIPReachable(ctx context.Context, kube client.Reader, source, destIP string) (bool, error) {
+	dest := net.ParseIP(destIP)
+	if dest == nil {
+		return false, errors.Errorf("invalid destination IP %s", destIP)
+	}
+
+	if !strings.Contains(source, "/") {
+		return false, errors.Errorf("source must be full VPC subnet name (<vpc-name>/<subnet-name>)")
+	}
+
+	sourceParts := strings.SplitN(source, "/", 2)
+	sourceVPC, sourceSubnet := sourceParts[0], sourceParts[1]
+
+	vpc := &vpcapi.VPC{}
+	if err := kube.Get(ctx, client.ObjectKey{
+		Namespace: metav1.NamespaceDefault,
+		Name:      sourceVPC,
+	}, vpc); err != nil {
+		return false, errors.Wrapf(err, "failed to get VPC %s", sourceVPC)
+	}
+
+	if _, exist := vpc.Spec.Subnets[sourceSubnet]; !exist {
+		return false, errors.Errorf("source subnet %s not found in VPC %s", sourceSubnet, sourceVPC)
+	}
+
+	extPeerings := vpcapi.ExternalPeeringList{}
+	if err := kube.List(ctx, &extPeerings,
+		client.InNamespace(metav1.NamespaceDefault),
+		client.MatchingLabels{
+			vpcapi.LabelVPC: sourceVPC,
+		},
+	); err != nil {
+		return false, errors.Wrapf(err, "failed to list external peerings")
+	}
+
+	for _, extPeering := range extPeerings.Items {
+		if !slices.Contains(extPeering.Spec.Permit.VPC.Subnets, sourceSubnet) {
+			continue
+		}
+
+		for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
+			_, prefixSubnet, err := net.ParseCIDR(prefix.Prefix)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to parse external prefix %s", prefix.Prefix)
+			}
+
+			if !prefixSubnet.Contains(dest) {
+				continue
+			}
+
+			attached, err := IsExternalAttached(ctx, kube, extPeering.Spec.Permit.External.Name)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to check if external %s is attached", extPeering.Spec.Permit.External.Name)
+			}
+
+			if attached {
+				return true, nil
 			}
 		}
 	}
@@ -269,6 +353,64 @@ func IsExternalAttached(ctx context.Context, kube client.Reader, external string
 	}
 
 	return len(extAttaches.Items) > 0, nil
+}
+
+func IsStaticExternalIPReachable(ctx context.Context, kube client.Reader, source, destIP string) (bool, error) {
+	dest := net.ParseIP(destIP)
+	if dest == nil {
+		return false, errors.Errorf("invalid destination IP %s", destIP)
+	}
+
+	if !strings.Contains(source, "/") {
+		return false, errors.Errorf("source must be full VPC subnet name (<vpc-name>/<subnet-name>)")
+	}
+
+	sourceParts := strings.SplitN(source, "/", 2)
+	sourceVPC, sourceSubnet := sourceParts[0], sourceParts[1]
+
+	vpc := &vpcapi.VPC{}
+	if err := kube.Get(ctx, client.ObjectKey{
+		Namespace: metav1.NamespaceDefault,
+		Name:      sourceVPC,
+	}, vpc); err != nil {
+		return false, errors.Wrapf(err, "failed to get VPC %s", sourceVPC)
+	}
+
+	if _, exist := vpc.Spec.Subnets[sourceSubnet]; !exist {
+		return false, errors.Errorf("source subnet %s not found in VPC %s", sourceSubnet, sourceVPC)
+	}
+
+	conns := wiringapi.ConnectionList{}
+	if err := kube.List(ctx, &conns, client.MatchingLabels{
+		wiringapi.LabelConnectionType: wiringapi.ConnectionTypeStaticExternal,
+	}); err != nil {
+		return false, errors.Wrapf(err, "failed to list connections")
+	}
+
+	for _, conn := range conns.Items {
+		if conn.Spec.StaticExternal == nil {
+			continue
+		}
+
+		if conn.Spec.StaticExternal.WithinVPC != sourceVPC {
+			continue
+		}
+
+		nets := append(conn.Spec.StaticExternal.Link.Switch.Subnets, conn.Spec.StaticExternal.Link.Switch.IP)
+
+		for _, sub := range nets {
+			_, subnet, err := net.ParseCIDR(sub)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to parse static external subnet %s", subnet)
+			}
+
+			if subnet.Contains(dest) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 type ServerAttachment struct {
