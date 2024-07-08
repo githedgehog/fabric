@@ -16,41 +16,190 @@ package inspect
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"os"
 	"slices"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/dustin/go-humanize"
+	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
+	"golang.org/x/exp/maps"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
+
+// TODO dedup with conn
 
 type PortIn struct {
 	Port string
 }
 
 type PortOut struct {
-	ConnectionName   *string                                `json:"connectionName,omitempty"`
-	Connection       *wiringapi.ConnectionSpec              `json:"connection,omitempty"`
-	InterfaceState   *agentapi.SwitchStateInterface         `json:"interfaceState,omitempty"`
-	BreakoutState    *agentapi.SwitchStateBreakout          `json:"breakoutState,omitempty"`
-	VPCAttachments   map[string]*vpcapi.VPCAttachmentSpec   `json:"vpcAttachments,omitempty"`
-	AttachedVPCs     map[string]*vpcapi.VPCSpec             `json:"attachedVPCs,omitempty"`
-	VPCPeerings      map[string]*vpcapi.VPCPeeringSpec      `json:"vpcPeerings,omitempty"`      // if VPCLoopback conn
-	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec `json:"externalPeerings,omitempty"` // if VPCLoopback conn
-
-	// TODO if VPCLoopback show VPCPeerings and ExtPeerings
-	// TODO if External show ExternalAttachments
+	ConnectionName      *string                                   `json:"connectionName,omitempty"`
+	Connection          *wiringapi.ConnectionSpec                 `json:"connection,omitempty"`
+	InterfaceState      *agentapi.SwitchStateInterface            `json:"interfaceState,omitempty"`
+	BreakoutState       *agentapi.SwitchStateBreakout             `json:"breakoutState,omitempty"`
+	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
+	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`
+	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
+	LoopbackWorkarounds map[string]*OutLoopbackWorkaround         `json:"loopbackWorkarounds,omitempty"` // if VPCLoopback conn
 }
 
 func (out *PortOut) MarshalText() (string, error) {
-	return spew.Sdump(out), nil // TODO implement marshal
+	str := strings.Builder{}
+
+	if out.ConnectionName != nil && out.Connection != nil {
+		str.WriteString(fmt.Sprintf("Used in Connection %s:\n", *out.ConnectionName))
+
+		data, err := yaml.Marshal(out.Connection)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to marshal Connection")
+		}
+		str.WriteString(string(data))
+	}
+
+	if out.InterfaceState != nil && out.InterfaceState.Counters != nil {
+		counters := out.InterfaceState.Counters
+
+		lastClear := "-"
+		if !counters.LastClear.IsZero() {
+			lastClear = humanize.Time(counters.LastClear.Time)
+		}
+
+		str.WriteString("Port Counters (↓ In ↑ Out):\n")
+
+		str.WriteString(RenderTable(
+			[]string{"Speed", "Util %", "Bits/sec In", "Bits/sec Out", "Pkts/sec In", "Pkts/sec Out", "Clear", "Errors", "Discards"},
+			[][]string{
+				{
+					out.InterfaceState.Speed,
+					fmt.Sprintf("↓ %3d ↑ %3d ", counters.InUtilization, counters.OutUtilization),
+					fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InBitsPerSecond, 0)),
+					fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutBitsPerSecond, 0)),
+					fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InPktsPerSecond, 0)),
+					fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutPktsPerSecond, 0)),
+					lastClear,
+					fmt.Sprintf("↓ %d ↑ %d ", counters.InErrors, counters.OutErrors),
+					fmt.Sprintf("↓ %d ↑ %d", counters.InDiscards, counters.OutDiscards),
+				},
+			},
+		))
+	}
+
+	if out.BreakoutState != nil {
+		str.WriteString("Breakout State:\n")
+		str.WriteString(fmt.Sprintf("  Mode: %s\n", out.BreakoutState.Mode))
+		str.WriteString(fmt.Sprintf("  Status: %s\n", out.BreakoutState.Status))
+	}
+
+	if len(out.VPCAttachments) > 0 {
+		str.WriteString("VPC Attachments:\n")
+
+		attachData := [][]string{}
+		attachNames := maps.Keys(out.VPCAttachments)
+		for _, attachName := range attachNames {
+			attach := out.VPCAttachments[attachName]
+
+			subnet := ""
+			vlan := ""
+			vpcName := strings.SplitN(attach.Subnet, "/", 2)[0]
+			subnetName := strings.SplitN(attach.Subnet, "/", 2)[1]
+			if vpc, ok := out.AttachedVPCs[vpcName]; ok {
+				if vpcSubnet, ok := vpc.Subnets[subnetName]; ok {
+					subnet = vpcSubnet.Subnet
+					vlan = fmt.Sprintf("%d", vpcSubnet.VLAN)
+
+					if attach.NativeVLAN {
+						vlan = "native"
+					}
+				}
+			}
+
+			attachData = append(attachData, []string{
+				attachName,
+				attach.Subnet,
+				subnet,
+				vlan,
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Name", "VPCSubnet", "Subnet", "VLAN"},
+			attachData,
+		))
+	}
+
+	if len(out.ExternalAttachments) > 0 {
+		str.WriteString("External Attachments:\n")
+
+		attachData := [][]string{}
+		attachNames := maps.Keys(out.ExternalAttachments)
+		for _, attachName := range attachNames {
+			attach := out.ExternalAttachments[attachName]
+
+			attachData = append(attachData, []string{
+				attachName,
+				attach.External,
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Name", "External"},
+			attachData,
+		))
+	}
+
+	if len(out.LoopbackWorkarounds) > 0 {
+		str.WriteString("Loopback Workarounds:\n")
+
+		// TODO pass to a marshal func?
+		noColor := !isatty.IsTerminal(os.Stdout.Fd())
+
+		// TODO dedup
+		colored := color.New(color.FgCyan).SprintFunc()
+		if noColor {
+			colored = func(a ...interface{}) string { return fmt.Sprint(a...) }
+		}
+
+		sep := colored("←→")
+
+		loWoData := [][]string{}
+		for _, loWo := range out.LoopbackWorkarounds {
+			vpcPeerings := []string{}
+			for vpcPeeringName, vpcPeering := range loWo.VPCPeerings {
+				vpc1, vpc2, err := vpcPeering.VPCs()
+				if err != nil {
+					return "", errors.Wrapf(err, "failed to get VPCs for VPCPeering %s", vpcPeeringName)
+				}
+
+				vpcPeerings = append(vpcPeerings, fmt.Sprintf("%s (%s%s%s)", vpcPeeringName, vpc1, sep, vpc2))
+			}
+
+			extPeerings := []string{}
+			for extPeeringName, extPeering := range loWo.ExternalPeerings {
+				extPeerings = append(extPeerings, fmt.Sprintf("%s (%s%s%s)", extPeeringName, extPeering.Permit.VPC.Name, sep, extPeering.Permit.External.Name))
+			}
+
+			loWoData = append(loWoData, []string{
+				fmt.Sprintf("%s%s%s", loWo.Link.Switch1.PortName(), sep, loWo.Link.Switch2.PortName()),
+				strings.Join(vpcPeerings, "\n"),
+				strings.Join(extPeerings, "\n"),
+			})
+		}
+		str.WriteString(RenderTable(
+			[]string{"Link", "VPCPeerings", "ExternalPeerings"},
+			loWoData,
+		))
+	}
+
+	return str.String(), nil
 }
 
 var _ Func[PortIn, *PortOut] = Port
@@ -61,10 +210,10 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 	}
 
 	out := &PortOut{
-		VPCAttachments:   map[string]*vpcapi.VPCAttachmentSpec{},
-		AttachedVPCs:     map[string]*vpcapi.VPCSpec{},
-		VPCPeerings:      map[string]*vpcapi.VPCPeeringSpec{},
-		ExternalPeerings: map[string]*vpcapi.ExternalPeeringSpec{},
+		VPCAttachments:      map[string]*vpcapi.VPCAttachmentSpec{},
+		AttachedVPCs:        map[string]*vpcapi.VPCSpec{},
+		ExternalAttachments: map[string]*vpcapi.ExternalAttachmentSpec{},
+		LoopbackWorkarounds: map[string]*OutLoopbackWorkaround{},
 	}
 
 	conns := &wiringapi.ConnectionList{}
@@ -134,9 +283,12 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 	if out.Connection != nil && out.ConnectionName != nil {
 		conn := out.Connection
 		if conn.VPCLoopback != nil {
-			slog.Warn("Port is used for VPC loopback, but it's not yet supported for inspection", "name", in.Port)
-			// TODO find vpc peerings
-		} else if conn.Unbundled != nil || conn.MCLAG != nil || conn.ESLAG != nil {
+			var err error
+			out.LoopbackWorkarounds, err = loopbackWorkaroundInfo(ctx, kube, agent)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get loopback workaround info")
+			}
+		} else if conn.Unbundled != nil || conn.Bundled != nil || conn.MCLAG != nil || conn.ESLAG != nil {
 			vpcAttaches := &vpcapi.VPCAttachmentList{}
 			if err := kube.List(ctx, vpcAttaches, client.MatchingLabels{
 				wiringapi.LabelConnection: *out.ConnectionName,
@@ -159,6 +311,17 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 				}
 
 				out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+			}
+		} else if conn.External != nil {
+			extAttaches := &vpcapi.ExternalAttachmentList{}
+			if err := kube.List(ctx, extAttaches, client.MatchingLabels{
+				wiringapi.LabelConnection: *out.ConnectionName,
+			}); err != nil {
+				return nil, errors.Wrap(err, "cannot list ExternalAttachments")
+			}
+
+			for _, extAttach := range extAttaches.Items {
+				out.ExternalAttachments[extAttach.Name] = pointer.To(extAttach.Spec)
 			}
 		}
 	}

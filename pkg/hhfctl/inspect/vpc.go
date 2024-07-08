@@ -1,10 +1,24 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package inspect
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
@@ -20,7 +34,9 @@ type VPCIn struct {
 }
 
 type VPCOut struct {
-	Spec             *vpcapi.VPCSpec                         `json:"spec,omitempty"`
+	Name             string                                  `json:"name,omitempty"`
+	Subnet           string                                  `json:"subnet,omitempty"`
+	Spec             vpcapi.VPCSpec                          `json:"spec,omitempty"`
 	VPCAttachments   map[string]*vpcapi.VPCAttachmentSpec    `json:"vpcAttachments,omitempty"`
 	VPCPeerings      map[string]*vpcapi.VPCPeeringSpec       `json:"vpcPeerings,omitempty"`
 	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec  `json:"externalPeerings,omitempty"`
@@ -28,9 +44,87 @@ type VPCOut struct {
 }
 
 func (out *VPCOut) MarshalText() (string, error) {
-	// TODO print VRF name
+	str := strings.Builder{}
 
-	return spew.Sdump(out), nil // TODO implement marshal
+	// TODO helper func
+	str.WriteString(fmt.Sprintf("VRF Name (on all switches): VrfV%s\n", out.Name))
+
+	str.WriteString(fmt.Sprintf("VLAN Namespace: %s\n", out.Spec.VLANNamespace))
+	str.WriteString(fmt.Sprintf("IPv4 Namespace: %s\n", out.Spec.IPv4Namespace))
+
+	str.WriteString("Subnets:\n")
+	for subnetName, subnetSpec := range out.Spec.Subnets {
+		if out.Subnet != "" && subnetName != out.Subnet {
+			continue
+		}
+
+		str.WriteString(fmt.Sprintf("  %s:\n", subnetName))
+		str.WriteString(fmt.Sprintf("    Subnet: %s\n", subnetSpec.Subnet))
+		str.WriteString(fmt.Sprintf("    Gateway: %s\n", subnetSpec.Gateway))
+		str.WriteString(fmt.Sprintf("    VLAN: %d\n", subnetSpec.VLAN))
+
+		access, ok := out.Access[subnetName]
+		if !ok {
+			continue
+		}
+
+		if access.WithinSameSubnet == nil {
+			str.WriteString("    Restricted (hosts can't reach each other within the subnet)\n")
+		} else {
+			str.WriteString("    Not restricted (hosts can reach each other within the subnet)\n")
+		}
+
+		if len(access.SameVPCSubnets) == 0 {
+			if len(out.Spec.Subnets) > 1 {
+				str.WriteString("    Isolated (no access to other subnets in the same VPC)\n")
+			}
+		} else {
+			str.WriteString("    Reachable subnets in the same VPC:\n")
+			for _, peerSubnet := range access.SameVPCSubnets {
+				str.WriteString(fmt.Sprintf("      %s (%s)\n", peerSubnet.Name, peerSubnet.Subnet))
+			}
+		}
+
+		if len(access.OtherVPCSubnets) == 0 {
+			str.WriteString("    No access to other VPCs\n")
+		} else {
+			str.WriteString("    Reachable subnets in other VPCs:\n")
+			for vpcName, peerSubnets := range access.OtherVPCSubnets {
+				str.WriteString(fmt.Sprintf("      vpc %s:\n", vpcName))
+				for _, peerSubnet := range peerSubnets {
+					str.WriteString(fmt.Sprintf("        %s (%s)\n", peerSubnet.Name, peerSubnet.Subnet))
+				}
+			}
+		}
+
+		attaches := []string{}
+		for attachName, attachSpec := range out.VPCAttachments {
+			subnet := strings.SplitN(attachSpec.Subnet, "/", 2)[1]
+			if subnet != subnetName {
+				continue
+			}
+
+			vlan := ""
+			if attachSpec.NativeVLAN {
+				vlan = fmt.Sprintf(" (native VLAN %d)", subnetSpec.VLAN)
+			}
+
+			attaches = append(attaches, fmt.Sprintf("%s: %s%s", attachName, attachSpec.Connection, vlan))
+		}
+
+		if len(attaches) > 0 {
+			str.WriteString("    Attachements:\n")
+			for _, attach := range attaches {
+				str.WriteString(fmt.Sprintf("      %s\n", attach))
+			}
+		} else {
+			str.WriteString("    Not attached to any connection\n")
+		}
+
+		str.WriteString("\n")
+	}
+
+	return str.String(), nil
 }
 
 var _ Func[VPCIn, *VPCOut] = VPC
@@ -44,6 +138,8 @@ func VPC(ctx context.Context, kube client.Reader, in VPCIn) (*VPCOut, error) {
 	subnet := in.Subnet
 
 	out := &VPCOut{
+		Name:             name,
+		Subnet:           subnet,
 		VPCAttachments:   map[string]*vpcapi.VPCAttachmentSpec{},
 		VPCPeerings:      map[string]*vpcapi.VPCPeeringSpec{},
 		ExternalPeerings: map[string]*vpcapi.ExternalPeeringSpec{},
@@ -61,7 +157,7 @@ func VPC(ctx context.Context, kube client.Reader, in VPCIn) (*VPCOut, error) {
 		}
 	}
 
-	out.Spec = &vpc.Spec
+	out.Spec = vpc.Spec
 
 	vpcAttaches := &vpcapi.VPCAttachmentList{}
 	if err := kube.List(ctx, vpcAttaches, client.MatchingLabels{
