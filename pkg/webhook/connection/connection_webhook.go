@@ -173,5 +173,6 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 			return nil, errors.Errorf("%d MCLAGS link(s) present. Delete those before this domain", len(mclagList.Items))
 		}
 	}
+
 	return nil, nil
 }
