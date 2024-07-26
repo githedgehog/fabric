@@ -22,6 +22,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -90,7 +91,7 @@ func LoadDir(f fs.FS, root string, data *Data) error {
 			return nil
 		}
 
-		if filepath.Ext(path) != ".yaml" || strings.Contains(path, "kustom") || strings.Contains(path, ".skip.") {
+		if !slices.Contains([]string{".yaml", ".yml"}, filepath.Ext(path)) || strings.Contains(path, "kustom") || strings.Contains(path, ".skip.") {
 			// log.Println("Skipping file", path)
 
 			return nil
