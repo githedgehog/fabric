@@ -37,7 +37,7 @@ import (
 )
 
 const (
-	userName    = "alloy"
+	UserName    = "alloy"
 	unitName    = "hedgehog-alloy.service"
 	binDir      = "/opt/hedgehog/bin"
 	binName     = "alloy"
@@ -82,19 +82,19 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	binPath := filepath.Join(binDir, binName)
 	unitPath := filepath.Join("/etc/systemd/system/", unitName)
 
-	if _, err := osuser.Lookup(userName); err != nil {
-		if errors.Is(err, osuser.UnknownUserError(userName)) {
-			if err := execCmd(ctx, "useradd", "--no-create-home", "--shell", "/bin/false", "--groups", "adm", userName); err != nil {
-				return errors.Wrapf(err, "error creating alloy user %s", userName)
+	if _, err := osuser.Lookup(UserName); err != nil {
+		if errors.Is(err, osuser.UnknownUserError(UserName)) {
+			if err := execCmd(ctx, "useradd", "--no-create-home", "--shell", "/bin/false", "--groups", "adm", UserName); err != nil {
+				return errors.Wrapf(err, "error creating alloy user %s", UserName)
 			}
 		} else {
-			return errors.Wrapf(err, "error check looking up alloy user %s", userName)
+			return errors.Wrapf(err, "error check looking up alloy user %s", UserName)
 		}
 	}
 
-	alloyUser, err := osuser.Lookup(userName)
+	alloyUser, err := osuser.Lookup(UserName)
 	if err != nil {
-		return errors.Wrapf(err, "error looking up alloy user %s", userName)
+		return errors.Wrapf(err, "error looking up alloy user %s", UserName)
 	}
 
 	alloyUserUID, err := strconv.Atoi(alloyUser.Uid)
@@ -102,7 +102,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 		return errors.Wrapf(err, "error parsing alloy user UID %s", alloyUser.Uid)
 	}
 
-	if err := execCmd(ctx, "usermod", "--append", "--groups", "adm", userName); err != nil {
+	if err := execCmd(ctx, "usermod", "--append", "--groups", "adm", UserName); err != nil {
 		return errors.Wrapf(err, "error adding alloy user to adm group")
 	}
 
@@ -171,7 +171,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	}
 
 	desiredUnit, err := executeTemplate(unitTemplate, unitTemplateConf{
-		User:    userName,
+		User:    UserName,
 		Binary:  binPath,
 		Listen:  fmt.Sprintf("%s:%d", ip.String(), listenPort),
 		Storage: storagePath,
