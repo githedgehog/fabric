@@ -41,6 +41,7 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 	Marshal: func(name string, value *dozer.SpecCommunityList) (ygot.ValidatedGoStruct, error) {
 		memberStrs := slices.Clone(value.Members)
 		sort.Strings(memberStrs)
+		memberStrs = slices.Compact(memberStrs)
 
 		members := []oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config_CommunityMember_Union{}
 		for _, member := range memberStrs {
