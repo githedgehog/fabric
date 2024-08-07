@@ -38,7 +38,7 @@ lint-lic: addlicense ## Run addlicense to check if all files have the license he
 	$(ADDLICENSE) -c Hedgehog -ignore ".github/**" -ignore "config/**" -y 2023 .
 
 .PHONY: lint
-lint: lint-lic golangci-lint ## Run linters
+lint: fmt vet lint-lic golangci-lint ## Run linters
 	$(GOLANGCI_LINT) run --show-stats ./...
 
 ##@ Build
