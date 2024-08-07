@@ -156,7 +156,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 
 	// This is a light check to make sure that no mclags links transit this domain before we delete the domain
 	if conn.Spec.MCLAGDomain != nil {
-		labels = conn.Spec.ConnectionLabels()
+		labels := conn.Spec.ConnectionLabels()
 		// overwrite the MCLAG-Domain ConnectionType with just an MCLAG type
 		labels[wiringapi.LabelConnectionType] = wiringapi.ConnectionTypeMCLAG
 		mclagList := &wiringapi.ConnectionList{}
