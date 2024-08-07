@@ -162,7 +162,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 		mclagList := &wiringapi.ConnectionList{}
 		// The matching here, will logically and the key/vals in labels together
 		// giving just the relevant connections
-		if err := w.Client.List(ctx, mclagList, labels); err != nil {
+		if err := w.Client.List(ctx, mclagList, client.MatchingLabels(labels)); err != nil {
 			return nil, errors.Errorf("error listing MCLAG connections")
 		}
 		if len(mclagList.Items) > 0 {
