@@ -37,7 +37,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
-	k8s.io/client-go v0.30.1
+	k8s.io/client-go v0.30.3
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	oras.land/oras-go/v2 v2.5.0
 	sigs.k8s.io/controller-runtime v0.18.4
