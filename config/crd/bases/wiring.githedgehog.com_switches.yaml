@@ -112,6 +112,12 @@ spec:
                   uuidSig:
                     type: string
                 type: object
+              portAutoNegs:
+                additionalProperties:
+                  type: boolean
+                description: PortAutoNegs is a map of port auto negotiation, key is
+                  the port name, value is true or false
+                type: object
               portBreakouts:
                 additionalProperties:
                   type: string

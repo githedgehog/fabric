@@ -97,12 +97,16 @@ var profileEdgecoreEPS203 = wiringapi.SwitchProfile{
 					Default:   "2.5G",
 					Supported: []string{"1G", "2.5G"}, // TODO: 100M is also supported
 				},
+				AutoNegAllowed: true,
+				AutoNegDefault: true,
 			},
 			"RJ45-10G": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "10G",
 					Supported: []string{"1G", "10G"},
 				},
+				AutoNegAllowed: true,
+				AutoNegDefault: true,
 			},
 			"SFP28-25G": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
