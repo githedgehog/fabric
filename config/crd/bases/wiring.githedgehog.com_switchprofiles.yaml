@@ -106,6 +106,14 @@ spec:
                 additionalProperties:
                   description: Defines a switch port profile configuration
                   properties:
+                    autoNegAllowed:
+                      description: AutoNegAllowed defines if configuring auto-negotiation
+                        is allowed for the port
+                      type: boolean
+                    autoNegDefault:
+                      description: AutoNegDefault defines the default auto-negotiation
+                        state for the port
+                      type: boolean
                     breakout:
                       description: Breakout defines the breakout configuration for
                         the profile, exclusive with speed

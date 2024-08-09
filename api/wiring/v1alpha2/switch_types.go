@@ -107,6 +107,8 @@ type SwitchSpec struct {
 	PortSpeeds map[string]string `json:"portSpeeds,omitempty"`
 	// PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G"
 	PortBreakouts map[string]string `json:"portBreakouts,omitempty"`
+	// PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false
+	PortAutoNegs map[string]bool `json:"portAutoNegs,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
@@ -383,6 +385,17 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 
 			if _, exists := profile.Breakout.Supported[breakout]; !exists {
 				return nil, errors.Errorf("port %s does not support specified breakout %s", name, breakout)
+			}
+		}
+
+		autoNegAllowed, _, err := sp.Spec.GetAutoNegsDefaultsFor(&sw.Spec)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get auto negotiation defaults")
+		}
+
+		for name := range sw.Spec.PortAutoNegs {
+			if !autoNegAllowed[name] {
+				return nil, errors.Errorf("port %s does not support configuring auto negotiation", name)
 			}
 		}
 	}

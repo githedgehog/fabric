@@ -894,6 +894,12 @@ spec:
                       uuidSig:
                         type: string
                     type: object
+                  portAutoNegs:
+                    additionalProperties:
+                      type: boolean
+                    description: PortAutoNegs is a map of port auto negotiation, key
+                      is the port name, value is true or false
+                    type: object
                   portBreakouts:
                     additionalProperties:
                       type: string
@@ -1011,6 +1017,14 @@ spec:
                     additionalProperties:
                       description: Defines a switch port profile configuration
                       properties:
+                        autoNegAllowed:
+                          description: AutoNegAllowed defines if configuring auto-negotiation
+                            is allowed for the port
+                          type: boolean
+                        autoNegDefault:
+                          description: AutoNegDefault defines the default auto-negotiation
+                            state for the port
+                          type: boolean
                         breakout:
                           description: Breakout defines the breakout configuration
                             for the profile, exclusive with speed
@@ -1136,6 +1150,12 @@ spec:
                           type: string
                         uuidSig:
                           type: string
+                      type: object
+                    portAutoNegs:
+                      additionalProperties:
+                        type: boolean
+                      description: PortAutoNegs is a map of port auto negotiation,
+                        key is the port name, value is true or false
                       type: object
                     portBreakouts:
                       additionalProperties:

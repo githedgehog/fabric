@@ -112,6 +112,10 @@ type SwitchProfilePortProfile struct {
 	Speed *SwitchProfilePortProfileSpeed `json:"speed,omitempty"`
 	// Breakout defines the breakout configuration for the profile, exclusive with speed
 	Breakout *SwitchProfilePortProfileBreakout `json:"breakout,omitempty"`
+	// AutoNegAllowed defines if configuring auto-negotiation is allowed for the port
+	AutoNegAllowed bool `json:"autoNegAllowed,omitempty"`
+	// AutoNegDefault defines the default auto-negotiation state for the port
+	AutoNegDefault bool `json:"autoNegDefault,omitempty"`
 }
 
 // SwitchProfileSpec defines the desired state of SwitchProfile
@@ -438,6 +442,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 		if sp.Spec.PortProfiles[group.Profile].Speed == nil {
 			return nil, errors.Errorf("group %q references non-speed profile %q", name, group.Profile)
 		}
+
+		if profile := sp.Spec.PortProfiles[group.Profile]; profile.AutoNegAllowed {
+			return nil, errors.Errorf("group %q profile %q must not have auto-negotiation allowed", name, group.Profile)
+		}
 	}
 
 	for name, profile := range sp.Spec.PortProfiles {
@@ -451,6 +459,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 
 		if profile.Speed != nil && profile.Breakout != nil {
 			return nil, errors.Errorf("profile %q must have either a speed or breakout, not both", name)
+		}
+
+		if profile.AutoNegDefault && !profile.AutoNegAllowed {
+			return nil, errors.Errorf("profile %q must not have default auto-negotiation enabled if it's not allowed", name)
 		}
 
 		if profile.Speed != nil {
@@ -478,6 +490,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 		}
 
 		if profile.Breakout != nil {
+			if profile.AutoNegAllowed {
+				return nil, errors.Errorf("profile %q must not have auto-negotiation allowed with breakout", name)
+			}
+
 			if profile.Breakout.Default == "" {
 				return nil, errors.Errorf("profile %q must have a default breakout", name)
 			}
@@ -787,6 +803,10 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 					def = profile.Speed.Default
 					supported = strings.Join(profile.Speed.Supported, ", ")
 				}
+
+				if profile.AutoNegAllowed {
+					supported += fmt.Sprintf(", AutoNeg supported (default: %v)", profile.AutoNegDefault)
+				}
 			} else if profile.Breakout != nil {
 				t = "Breakout"
 
@@ -835,4 +855,33 @@ func ComparePortNames(a, b string) int {
 	}
 
 	return 1
+}
+
+func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]bool, map[string]bool, error) {
+	if sp == nil {
+		return nil, nil, errors.Errorf("switch profile spec is nil")
+	}
+	if sw == nil {
+		return nil, nil, errors.Errorf("switch spec is nil")
+	}
+
+	allowed, def := map[string]bool{}, map[string]bool{}
+
+	for portName, port := range sp.Ports {
+		if port.Management || port.Profile == "" {
+			continue
+		}
+
+		profile, exists := sp.PortProfiles[port.Profile]
+		if !exists {
+			return nil, nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+		}
+
+		allowed[portName] = profile.AutoNegAllowed
+		def[portName] = profile.AutoNegDefault
+
+		// TODO impl for port groups and breakouts when allowed
+	}
+
+	return allowed, def, nil
 }

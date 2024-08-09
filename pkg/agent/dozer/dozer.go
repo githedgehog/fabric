@@ -117,6 +117,7 @@ type SpecInterface struct {
 	TrunkVLANs         []string                     `json:"trunkVLANs,omitempty"`
 	MTU                *uint16                      `json:"mtu,omitempty"`
 	Speed              *string                      `json:"speed,omitempty"`
+	AutoNegotiate      *bool                        `json:"autoNegotiate,omitempty"`
 	VLANIPs            map[string]*SpecInterfaceIP  `json:"vlanIPs,omitempty"`
 	VLANAnycastGateway []string                     `json:"vlanAnycastGateway,omitempty"`
 	Subinterfaces      map[uint32]*SpecSubinterface `json:"subinterfaces,omitempty"`

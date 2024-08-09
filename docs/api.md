@@ -1960,6 +1960,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `speed` _[SwitchProfilePortProfileSpeed](#switchprofileportprofilespeed)_ | Speed defines the speed configuration for the profile, exclusive with breakout |  |  |
 | `breakout` _[SwitchProfilePortProfileBreakout](#switchprofileportprofilebreakout)_ | Breakout defines the breakout configuration for the profile, exclusive with speed |  |  |
+| `autoNegAllowed` _boolean_ | AutoNegAllowed defines if configuring auto-negotiation is allowed for the port |  |  |
+| `autoNegDefault` _boolean_ | AutoNegDefault defines the default auto-negotiation state for the port |  |  |
 
 
 #### SwitchProfilePortProfileBreakout
@@ -2112,6 +2114,7 @@ _Appears in:_
 | `portGroupSpeeds` _object (keys:string, values:string)_ | PortGroupSpeeds is a map of port group speeds, key is the port group name, value is the speed, such as '"2": 10G' |  |  |
 | `portSpeeds` _object (keys:string, values:string)_ | PortSpeeds is a map of port speeds, key is the port name, value is the speed |  |  |
 | `portBreakouts` _object (keys:string, values:string)_ | PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G" |  |  |
+| `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
 
 
 #### SwitchStatus

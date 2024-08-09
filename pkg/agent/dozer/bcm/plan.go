@@ -203,6 +203,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		}
 	}
 
+	err = planPortAutoNegs(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan port auto negs")
+	}
+
 	err = translatePortNames(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to translate port names")
@@ -2247,7 +2252,7 @@ func getPortSpeed(agent *agentapi.Agent, port string) *string {
 	var speed *string
 
 	sp := agent.Spec.SwitchProfile
-	if sp != nil {
+	if sp != nil && sp.Ports != nil && sp.PortProfiles != nil {
 		if port, exists := sp.Ports[port]; exists && port.Group == "" && port.Profile != "" {
 			if profile, exists := sp.PortProfiles[port.Profile]; exists && profile.Speed != nil {
 				speed = &profile.Speed.Default
@@ -2426,6 +2431,29 @@ func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 	}
 
 	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
+}
+
+func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
+	_, autoNegDefault, err := agent.Spec.SwitchProfile.GetAutoNegsDefaultsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get auto-negotiation settings for switch")
+	}
+
+	for name, iface := range spec.Interfaces {
+		if !isHedgehogPortName(name) {
+			continue
+		}
+
+		iface.AutoNegotiate = pointer.To(autoNegDefault[name])
+	}
+
+	for name, autoNeg := range agent.Spec.Switch.PortAutoNegs {
+		if iface, exists := spec.Interfaces[name]; exists {
+			iface.AutoNegotiate = pointer.To(autoNeg)
+		}
+	}
+
+	return nil
 }
 
 func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {

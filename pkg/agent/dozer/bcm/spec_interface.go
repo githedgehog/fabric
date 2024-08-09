@@ -320,7 +320,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Summary: "Interface %s Ethernet Base", // TODO better summary
 	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
 	Getter: func(_ string, value *dozer.SpecInterface) any {
-		return []any{value.PortChannel, value.Speed} //, value.TrunkVLANs, value.AccessVLAN}
+		return []any{value.PortChannel, value.Speed, value.AutoNegotiate} //, value.TrunkVLANs, value.AccessVLAN}
 	},
 	Path:      "/ethernet",
 	NoReplace: true,
@@ -341,8 +341,9 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			Ethernet: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
-					AggregateId: value.PortChannel,
-					PortSpeed:   speed,
+					AggregateId:   value.PortChannel,
+					PortSpeed:     speed,
+					AutoNegotiate: value.AutoNegotiate,
 				},
 			},
 		}, nil
@@ -678,6 +679,8 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 				if !isManagement(name) && !skipSpeedPorts[name] { // TODO support configuring speed on Mgmt interface
 					iface.Speed = UnmarshalPortSpeed(ocIface.Ethernet.Config.PortSpeed)
 				}
+
+				iface.AutoNegotiate = ocIface.Ethernet.Config.AutoNegotiate
 			}
 
 			if ocIface.Ethernet.SwitchedVlan != nil && ocIface.Ethernet.SwitchedVlan.Config != nil {
