@@ -32,6 +32,10 @@ func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *stri
 	speed = strings.TrimPrefix(speed, "SPEED_")
 	speed = strings.TrimSuffix(speed, "B")
 
+	if speed == "2500M" {
+		speed = "2.5G"
+	}
+
 	return pointer.To(speed)
 }
 
