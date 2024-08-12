@@ -514,6 +514,10 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 		return errors.Wrapf(err, "failed to get lldp interfaces")
 	}
 
+	if lldp.Interfaces == nil {
+		return nil
+	}
+
 	for ifaceName, iface := range lldp.Interfaces.Interface {
 		if iface.Neighbors == nil {
 			continue
