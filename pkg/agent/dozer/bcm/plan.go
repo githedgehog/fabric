@@ -2444,7 +2444,13 @@ func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
-		iface.AutoNegotiate = pointer.To(autoNegDefault[name])
+		val := pointer.To(autoNegDefault[name])
+
+		if strings.HasPrefix(name, "M") {
+			val = pointer.To(true)
+		}
+
+		iface.AutoNegotiate = val
 	}
 
 	for name, autoNeg := range agent.Spec.Switch.PortAutoNegs {
