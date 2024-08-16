@@ -81,6 +81,8 @@ type VPCDHCP struct {
 	Range *VPCDHCPRange `json:"range,omitempty"`
 	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
 	PXEURL string `json:"pxeURL,omitempty"`
+	// DNS server address to configure for this particular segment such as 10.10.10.2
+	DNSServer string `json:"dnsServer"`
 }
 
 // VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled
@@ -298,7 +300,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		if subnetCfg.DHCP.PXEURL != "" && !subnetCfg.DHCP.Enable {
 			return nil, errors.Errorf("subnet %s: pxeURL is set but dhcp is disabled", subnetName)
 		}
-
+		if subnetCfg.DHCP.DNSServer != "" && !subnetCfg.DHCP.Enable {
+			return nil, errors.Errorf("subnet %s: DNSServer is set but dhcp is disabled", subnetName)
+		}
 		if subnetCfg.DHCP.Enable {
 			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
 				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
@@ -329,7 +333,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			if !ipNet.Contains(ip) {
 				return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
 			}
-
+			if ip := net.ParseIP(subnetCfg.DHCP.DNSServer); ip == nil && len(subnetCfg.DHCP.DNSServer) > 0 {
+				return nil, errors.Errorf("subnet %s: dns address is not a valid IP", subnetName)
+			}
 			if subnetCfg.DHCP.Range.End == "" {
 				return nil, errors.Errorf("subnet %s: dhcp range end is required", subnetName)
 			}
