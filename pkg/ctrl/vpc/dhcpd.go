@@ -201,6 +201,7 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
 				CircuitID: fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
 				PXEURL:    subnet.DHCP.PXEURL,
+				DNSServer: subnet.DHCP.DNSServer,
 			}
 
 			return nil
