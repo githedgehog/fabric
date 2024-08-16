@@ -38,6 +38,8 @@ type DHCPSubnetSpec struct {
 	CircuitID string `json:"circuitID"`
 	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
 	PXEURL string `json:"pxeURL"`
+	// DNS server address to configure for this particular segment such as 10.10.10.2
+	DNSServer string `json:"dnsServer"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet
@@ -67,6 +69,7 @@ type DHCPAllocated struct {
 // +kubebuilder:printcolumn:name="VRF",type=string,JSONPath=`.spec.vrf`,priority=1
 // +kubebuilder:printcolumn:name="CircuitID",type=string,JSONPath=`.spec.circuitID`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="DNSServer",type=string,JSONPath=`.spec.dnsserver`,priority=1
 // DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
 // primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
 // Not intended to be modified by the user.

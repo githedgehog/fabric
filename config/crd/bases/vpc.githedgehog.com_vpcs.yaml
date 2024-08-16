@@ -109,6 +109,10 @@ spec:
                       description: DHCP is the on-demand DHCP configuration for the
                         subnet
                       properties:
+                        dnsServer:
+                          description: DNS server address to configure for this particular
+                            segment such as 10.10.10.2
+                          type: string
                         enable:
                           description: Enable enables DHCP server for the subnet
                           type: boolean
@@ -134,6 +138,8 @@ spec:
                           description: Relay is the DHCP relay IP address, if specified,
                             DHCP server will be disabled
                           type: string
+                      required:
+                      - dnsServer
                       type: object
                     gateway:
                       description: Gateway (optional) for the subnet, if not specified,
