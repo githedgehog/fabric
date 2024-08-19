@@ -43,13 +43,13 @@ spec:
       name: CircuitID
       priority: 1
       type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
     - jsonPath: .spec.dnsserver
       name: DNSServer
       priority: 1
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha2
     schema:
       openAPIV3Schema:
@@ -86,8 +86,8 @@ spec:
                   such as "Vlan1000" as it's named on switch
                 type: string
               dnsServer:
-                description: DNS server address to configure for this particular segment
-                  such as 10.10.10.2
+                description: DNS server address (optional) to configure for this particular
+                  segment such as 10.10.10.2
                 type: string
               endIP:
                 description: End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
