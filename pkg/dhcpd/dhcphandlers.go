@@ -289,7 +289,9 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {
 		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
 	}
-	resp.Options.Update(dhcpv4.OptDNS(net.ParseIP("192.168.1.0")))
+	if len(subnet.dhcpSubnet.Spec.DNSServer) > 0 {
+		resp.Options.Update(dhcpv4.OptDNS(net.ParseIP(subnet.dhcpSubnet.Spec.DNSServer)))
+	}
 
 	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
 		switch u.Scheme {
