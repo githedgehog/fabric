@@ -646,7 +646,8 @@ _Appears in:_
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |  |  |
 | `circuitID` _string_ | VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
-| `dnsServer` _string_ | DNS server address (optional) to configure for this particular segment such as 10.10.10.2 |  |  |
+| `dnsServer` _string_ | DNS server address (optional) to configure Domain Name Serverfor this particular segment such as 10.10.10.2 |  |  |
+| `timeServer` _string_ | NTP server address (optional) to configure for time server for this particular segment such as 10.10.10.2 |  |  |
 
 
 #### DHCPSubnetStatus
@@ -1072,7 +1073,8 @@ _Appears in:_
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |  |  |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
-| `dnsServer` _string_ | DNS server address to configure for this particular segment such as 10.10.10.2 |  |  |
+| `dnsServer` _string_ | DNS server address to configure Domain Name server for this particular segment such as 10.10.10.2 |  |  |
+| `timeServer` _string_ | TimeServer address to configure NTP time server for this particular segment such 10.10.10.2 |  |  |
 
 
 #### VPCDHCPRange

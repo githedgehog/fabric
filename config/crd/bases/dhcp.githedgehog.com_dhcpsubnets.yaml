@@ -47,6 +47,10 @@ spec:
       name: DNSServer
       priority: 1
       type: string
+    - jsonPath: .spec.timeserver
+      name: TimeServer
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -86,8 +90,8 @@ spec:
                   such as "Vlan1000" as it's named on switch
                 type: string
               dnsServer:
-                description: DNS server address (optional) to configure for this particular
-                  segment such as 10.10.10.2
+                description: DNS server address (optional) to configure Domain Name
+                  Serverfor this particular segment such as 10.10.10.2
                 type: string
               endIP:
                 description: End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
@@ -107,6 +111,10 @@ spec:
               subnet:
                 description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
                 type: string
+              timeServer:
+                description: NTP server address (optional) to configure for time server
+                  for this particular segment such as 10.10.10.2
+                type: string
               vrf:
                 description: VRF name to identify specific VPC (will be added to DHCP
                   packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as
@@ -121,6 +129,7 @@ spec:
             - pxeURL
             - startIP
             - subnet
+            - timeServer
             - vrf
             type: object
           status:
