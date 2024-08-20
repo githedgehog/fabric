@@ -193,15 +193,16 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 				vpcapi.LabelSubnet: subnetName,
 			}
 			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
-				Subnet:    fmt.Sprintf("%s/%s", vpc.Name, subnetName),
-				CIDRBlock: subnet.Subnet,
-				Gateway:   subnet.Gateway,
-				StartIP:   subnet.DHCP.Range.Start,
-				EndIP:     subnet.DHCP.Range.End,
-				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
-				CircuitID: fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
-				PXEURL:    subnet.DHCP.PXEURL,
-				DNSServer: subnet.DHCP.DNSServer,
+				Subnet:     fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock:  subnet.Subnet,
+				Gateway:    subnet.Gateway,
+				StartIP:    subnet.DHCP.Range.Start,
+				EndIP:      subnet.DHCP.Range.End,
+				VRF:        fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
+				CircuitID:  fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				PXEURL:     subnet.DHCP.PXEURL,
+				DNSServer:  subnet.DHCP.DNSServer,
+				TimeServer: subnet.DHCP.TimeServer,
 			}
 
 			return nil

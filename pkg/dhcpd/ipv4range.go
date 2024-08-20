@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/bits-and-blooms/bitset"
-	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +33,6 @@ type ipv4range struct {
 	Mask    net.IPMask
 	Count   uint32
 	bitmap  *bitset.BitSet
-	Options []dhcpv4.Option
 	sync.RWMutex
 }
 
