@@ -311,11 +311,12 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	}
 	slog.Debug("Desired state generated")
 
+	startActual := time.Now()
 	actual, err := svc.processor.LoadActualState(ctx, agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load actual state")
 	}
-	slog.Debug("Actual state loaded")
+	slog.Debug("Actual state loaded", "took", time.Since(startActual))
 
 	actions, err := svc.processor.CalculateActions(ctx, actual, desired)
 	if err != nil {
