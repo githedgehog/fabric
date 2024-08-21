@@ -316,11 +316,16 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 			}
 		}
 
+		var as oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config_As_Union
+		if value.AS != nil {
+			as = oc.UnionUint32(*value.AS)
+		}
+
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
 			Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
 				Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
-						As:                 value.AS,
+						As:                 as,
 						RouterId:           value.RouterID,
 						NetworkImportCheck: value.NetworkImportCheck,
 					},
@@ -383,6 +388,11 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			}
 		}
 
+		var remoteAS oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config_PeerAs_Union
+		if value.RemoteAS != nil {
+			remoteAS = oc.UnionUint32(*value.RemoteAS)
+		}
+
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
 				name: {
@@ -391,7 +401,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						NeighborAddress: pointer.To(name),
 						Enabled:         value.Enabled,
 						Description:     value.Description,
-						PeerAs:          value.RemoteAS,
+						PeerAs:          remoteAS,
 						PeerType:        peerType,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
@@ -655,7 +665,15 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 				if bgpConfig.Global != nil && bgpConfig.Global.Config != nil {
 					bgpOk = true
-					bgp.AS = bgpConfig.Global.Config.As
+
+					// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
+					if bgpConfig.Global.Config.As != nil {
+						if val, ok := bgpConfig.Global.Config.As.(oc.UnionUint32); ok {
+							bgp.AS = pointer.To(uint32(val))
+						} else {
+							return nil, errors.Errorf("failed to unmarshal AS %v (only uint32 is supported)", bgpConfig.Global.Config.As)
+						}
+					}
 					bgp.RouterID = bgpConfig.Global.Config.RouterId
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
 
@@ -754,10 +772,20 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							peerType = pointer.To(dozer.SpecVRFBGPNeighborPeerTypeExternal)
 						}
 
+						// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
+						var remoteAS *uint32
+						if neighbor.Config.PeerAs != nil {
+							if val, ok := neighbor.Config.PeerAs.(oc.UnionUint32); ok {
+								remoteAS = pointer.To(uint32(val))
+							} else {
+								return nil, errors.Errorf("failed to unmarshal Peer AS %v (only uint32 is supported)", neighbor.Config.PeerAs)
+							}
+						}
+
 						bgp.Neighbors[neighborName] = &dozer.SpecVRFBGPNeighbor{
 							Enabled:                   neighbor.Config.Enabled,
 							Description:               neighbor.Config.Description,
-							RemoteAS:                  neighbor.Config.PeerAs,
+							RemoteAS:                  remoteAS,
 							PeerType:                  peerType,
 							IPv4Unicast:               ipv4Unicast,
 							IPv4UnicastImportPolicies: ipv4ImportPolicies,
