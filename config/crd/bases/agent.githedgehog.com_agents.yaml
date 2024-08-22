@@ -1377,9 +1377,9 @@ spec:
                               for the subnet
                             properties:
                               dnsServers:
-                                description: DNS server address to configure Domain
-                                  Name servers for this particular segment such as
-                                  []{10.10.10.2,10.10.10.2}
+                                description: 'DNSservers (optional) to configure Domain
+                                  Name Servers for this particular segment such as:
+                                  10.10.10.1, 10.10.10.2'
                                 items:
                                   type: string
                                 type: array
@@ -1387,8 +1387,9 @@ spec:
                                 description: Enable enables DHCP server for the subnet
                                 type: boolean
                               interfaceMTU:
-                                description: InterfaceMTU to configure the MTU for
-                                  the device which send a DHCP discovery.
+                                description: InterfaceMTU (optional) is the MTU setting
+                                  that the dhcp server will send to the clients. It
+                                  is dependent on the client to honor this option.
                                 format: int32
                                 type: integer
                               pxeURL:
@@ -1415,8 +1416,9 @@ spec:
                                   specified, DHCP server will be disabled
                                 type: string
                               timeServers:
-                                description: TimeServers address to configure NTP
-                                  time servers for this particular segment such []{10.10.10.2,10.10.10.2}
+                                description: 'TimeServers (optional) NTP server addresses
+                                  to configure for time servers for this particular
+                                  segment such as: 10.10.10.1, 10.10.10.2'
                                 items:
                                   type: string
                                 type: array
