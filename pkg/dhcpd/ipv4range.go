@@ -108,7 +108,7 @@ func (r *ipv4range) AllocateIP(ip net.IPNet) (net.IPNet, error) {
 		r.bitmap.Set(offset) // it's available so set it
 
 		return net.IPNet{
-			IP:   r.toIP(uint32(offset)),
+			IP:   r.toIP(uint32(offset)), //nolint:gosec
 			Mask: mask,
 		}, nil
 	}
@@ -128,7 +128,7 @@ func (r *ipv4range) allocate() (net.IPNet, error) {
 	r.bitmap.Set(next)
 
 	return net.IPNet{
-		IP:   r.toIP(uint32(next)),
+		IP:   r.toIP(uint32(next)), //nolint:gosec
 		Mask: r.Mask,
 	}, nil
 }

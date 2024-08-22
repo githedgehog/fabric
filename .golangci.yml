@@ -40,7 +40,7 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - ginkgolinter
     - gocheckcompilerdirectives
     - goconst

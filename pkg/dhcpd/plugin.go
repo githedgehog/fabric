@@ -76,7 +76,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						net.ParseIP(event.Subnet.Spec.EndIP),
 						net.ParseIP(event.Subnet.Spec.Gateway),
 						binary.BigEndian.Uint32(net.ParseIP(event.Subnet.Spec.EndIP).To4())-binary.BigEndian.Uint32(net.ParseIP(event.Subnet.Spec.StartIP).To4())+1,
-						uint32(prefixLen),
+						uint32(prefixLen), //nolint:gosec
 					)
 					if err != nil {
 						log.Errorf("Unable to create ip pool for subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)

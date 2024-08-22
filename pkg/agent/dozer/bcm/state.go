@@ -163,7 +163,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 		if st.LastChange != nil {
 			reg.InterfaceMetrics.LastChange.WithLabelValues(ifaceName).Set(float64(*st.LastChange))
 			if *st.LastChange != 0 {
-				ifState.LastChange = metav1.Time{Time: time.Unix(int64(*st.LastChange), 0)}
+				ifState.LastChange = metav1.Time{Time: time.Unix(int64(*st.LastChange), 0)} //nolint:gosec
 			}
 		}
 
@@ -216,7 +216,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			if st.Counters.LastClear != nil {
 				reg.InterfaceCounters.LastClear.WithLabelValues(ifaceName).Set(float64(*st.Counters.LastClear))
 				if *st.Counters.LastClear != 0 {
-					ifState.Counters.LastClear = metav1.Time{Time: time.Unix(int64(*st.Counters.LastClear), 0)}
+					ifState.Counters.LastClear = metav1.Time{Time: time.Unix(int64(*st.Counters.LastClear), 0)} //nolint:gosec
 				}
 			}
 
@@ -640,13 +640,13 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if ocSt.LastEstablished != nil {
 				if *ocSt.LastEstablished != 0 {
-					st.LastEstablished = metav1.Time{Time: time.Unix(int64(*ocSt.LastEstablished), 0)}
+					st.LastEstablished = metav1.Time{Time: time.Unix(int64(*ocSt.LastEstablished), 0)} //nolint:gosec
 				}
 			}
 
 			if ocSt.LastRead != nil {
 				if *ocSt.LastRead != 0 {
-					st.LastRead = metav1.Time{Time: time.Unix(int64(*ocSt.LastRead), 0)}
+					st.LastRead = metav1.Time{Time: time.Unix(int64(*ocSt.LastRead), 0)} //nolint:gosec
 				}
 			}
 
@@ -656,13 +656,13 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if ocSt.LastResetTime != nil {
 				if *ocSt.LastResetTime != 0 {
-					st.LastResetTime = metav1.Time{Time: time.Unix(int64(*ocSt.LastResetTime), 0)}
+					st.LastResetTime = metav1.Time{Time: time.Unix(int64(*ocSt.LastResetTime), 0)} //nolint:gosec
 				}
 			}
 
 			if ocSt.LastWrite != nil {
 				if *ocSt.LastWrite != 0 {
-					st.LastWrite = metav1.Time{Time: time.Unix(int64(*ocSt.LastWrite), 0)}
+					st.LastWrite = metav1.Time{Time: time.Unix(int64(*ocSt.LastWrite), 0)} //nolint:gosec
 				}
 			}
 

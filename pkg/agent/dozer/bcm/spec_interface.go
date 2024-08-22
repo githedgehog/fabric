@@ -626,7 +626,7 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 						if err != nil {
 							return nil, errors.Wrapf(err, "can't parse %s", vlanID)
 						}
-						vlan = pointer.To(uint16(vlanVal))
+						vlan = pointer.To(uint16(vlanVal)) //nolint:gosec
 					} else if numVal, ok := vlanID.(oc.UnionUint16); ok {
 						vlan = pointer.To(uint16(numVal))
 					} else {
@@ -733,7 +733,7 @@ func marshalEthernetTrunkVLANs(value *dozer.SpecInterface) ([]oc.OpenconfigInter
 			if err != nil {
 				return nil, errors.Wrapf(err, "can't parse %s", vlan)
 			}
-			vlanVal := uint16(value)
+			vlanVal := uint16(value) //nolint:gosec
 			trunkVLANs = append(trunkVLANs, oc.UnionUint16(vlanVal))
 		}
 	}
@@ -752,7 +752,7 @@ func marshalPortChannelTrunkVLANs(value *dozer.SpecInterface) ([]oc.OpenconfigIn
 			if err != nil {
 				return nil, errors.Wrapf(err, "can't parse %s", vlan)
 			}
-			vlanVal := uint16(value)
+			vlanVal := uint16(value) //nolint:gosec
 			trunkVLANs = append(trunkVLANs, oc.UnionUint16(vlanVal))
 		}
 	}
