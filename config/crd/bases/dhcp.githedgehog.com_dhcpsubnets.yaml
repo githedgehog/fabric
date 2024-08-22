@@ -51,6 +51,10 @@ spec:
       name: TimeServer
       priority: 1
       type: string
+    - jsonPath: .spec.interfacemtu
+      name: InterfaceMTU
+      priority: 1
+      type: uint32
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -99,6 +103,12 @@ spec:
               gateway:
                 description: Gateway, such as 10.10.10.1
                 type: string
+              interfaceMTU:
+                description: InterfaceMTU is the MTU setting that the dhcp server
+                  will send to the clients. It is dependent on the client to honor
+                  this option.
+                format: int32
+                type: integer
               pxeURL:
                 description: PXEURL (optional) to identify the pxe server to use to
                   boot hosts connected to this segment such as http://10.10.10.99/bootfilename
@@ -126,6 +136,7 @@ spec:
             - dnsServer
             - endIP
             - gateway
+            - interfaceMTU
             - pxeURL
             - startIP
             - subnet

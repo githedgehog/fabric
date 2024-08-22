@@ -48,6 +48,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 
 		subnet.Lock()
 		defer func() {
+
 			addPxeInfo(req, resp, subnet)
 			subnet.Unlock()
 		}()
@@ -60,7 +61,12 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 
 			resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
-
+			if len(subnet.dhcpSubnet.Spec.DNSServer) > 0 {
+				resp.Options.Update(dhcpv4.OptDNS(net.ParseIP(subnet.dhcpSubnet.Spec.DNSServer)))
+			}
+			if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
+				resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
+			}
 			return nil
 		}
 		// This is not  a know reservation
@@ -79,6 +85,12 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			expiry:     time.Now().Add(leaseTime),
 			state:      pending,
 			hostname:   req.HostName(),
+		}
+		if len(subnet.dhcpSubnet.Spec.DNSServer) > 0 {
+			resp.Options.Update(dhcpv4.OptDNS(net.ParseIP(subnet.dhcpSubnet.Spec.DNSServer)))
+		}
+		if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
+			resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
 		}
 		time.AfterFunc(pendingDiscoverTimeout, func() {
 			subnet.Lock()
@@ -289,12 +301,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {
 		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
 	}
-	if len(subnet.dhcpSubnet.Spec.DNSServer) > 0 {
-		resp.Options.Update(dhcpv4.OptDNS(net.ParseIP(subnet.dhcpSubnet.Spec.DNSServer)))
-	}
-	if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
-		resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
-	}
+
 	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
 		switch u.Scheme {
 		case "http", "https", "ftp":

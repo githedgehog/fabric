@@ -648,6 +648,7 @@ _Appears in:_
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
 | `dnsServer` _string_ | DNS server address (optional) to configure Domain Name Serverfor this particular segment such as 10.10.10.2 |  |  |
 | `timeServer` _string_ | NTP server address (optional) to configure for time server for this particular segment such as 10.10.10.2 |  |  |
+| `interfaceMTU` _integer_ | InterfaceMTU is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
 
 
 #### DHCPSubnetStatus
@@ -1075,6 +1076,7 @@ _Appears in:_
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
 | `dnsServer` _string_ | DNS server address to configure Domain Name server for this particular segment such as 10.10.10.2 |  |  |
 | `timeServer` _string_ | TimeServer address to configure NTP time server for this particular segment such 10.10.10.2 |  |  |
+| `interfaceMTU` _integer_ | InterfaceMTU to configure the MTU for the device which send a DHCP discovery. |  |  |
 
 
 #### VPCDHCPRange

@@ -85,6 +85,10 @@ type VPCDHCP struct {
 	DNSServer string `json:"dnsServer"`
 	// TimeServer address to configure NTP time server for this particular segment such 10.10.10.2
 	TimeServer string `json:"timeServer"`
+	// InterfaceMTU to configure the MTU for the device which send a DHCP discovery.
+	// +kubebuilder:validation:Minimum: 96
+	// +kubebuilder:validation:Maximum: 9036
+	InterfaceMTU uint32 `json:"interfaceMTU"`
 }
 
 // VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled
@@ -224,6 +228,7 @@ func (vpc *VPC) Default() {
 		if subnet.DHCP.Range.End == "" {
 			subnet.DHCP.Range.End = end
 		}
+		subnet.DHCP.InterfaceMTU = 9036 // Magic number should be named constant somewhere.
 	}
 }
 
@@ -308,6 +313,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		if subnetCfg.DHCP.TimeServer != "" && !subnetCfg.DHCP.Enable {
 			return nil, errors.Errorf("subnet %s: TimeServer is set but dhcp is disabled", subnetName)
 		}
+
 		if subnetCfg.DHCP.Enable {
 			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
 				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
@@ -345,6 +351,11 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			if ip := net.ParseIP(subnetCfg.DHCP.TimeServer); ip == nil {
 				return nil, errors.Errorf("subnet %s: time server address is not a valid IP or a valid fqdn", subnetName)
 			}
+
+			if subnetCfg.DHCP.InterfaceMTU > 9036 {
+				return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
+			}
+
 			if subnetCfg.DHCP.Range.End == "" {
 				return nil, errors.Errorf("subnet %s: dhcp range end is required", subnetName)
 			}

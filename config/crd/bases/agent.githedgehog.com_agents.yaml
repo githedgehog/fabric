@@ -1384,6 +1384,11 @@ spec:
                               enable:
                                 description: Enable enables DHCP server for the subnet
                                 type: boolean
+                              interfaceMTU:
+                                description: InterfaceMTU to configure the MTU for
+                                  the device which send a DHCP discovery.
+                                format: int32
+                                type: integer
                               pxeURL:
                                 description: PXEURL (optional) to identify the pxe
                                   server to use to boot hosts connected to this segment
@@ -1413,6 +1418,7 @@ spec:
                                 type: string
                             required:
                             - dnsServer
+                            - interfaceMTU
                             - timeServer
                             type: object
                           gateway:

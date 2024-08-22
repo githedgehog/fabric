@@ -42,6 +42,10 @@ type DHCPSubnetSpec struct {
 	DNSServer string `json:"dnsServer"`
 	// NTP server address (optional) to configure for time server for this particular segment such as 10.10.10.2
 	TimeServer string `json:"timeServer"`
+	// InterfaceMTU is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
+	// +kubebuilder:validation:Minimum: 96
+	// +kubebuilder:validation:Maximum: 9036
+	InterfaceMTU uint32 `json:"interfaceMTU"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet
@@ -72,6 +76,7 @@ type DHCPAllocated struct {
 // +kubebuilder:printcolumn:name="CircuitID",type=string,JSONPath=`.spec.circuitID`,priority=1
 // +kubebuilder:printcolumn:name="DNSServer",type=string,JSONPath=`.spec.dnsserver`,priority=1
 // +kubebuilder:printcolumn:name="TimeServer",type=string,JSONPath=`.spec.timeserver`,priority=1
+// +kubebuilder:printcolumn:name="InterfaceMTU",type=uint32,JSONPath=`.spec.interfacemtu`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
 // primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
