@@ -646,8 +646,8 @@ _Appears in:_
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |  |  |
 | `circuitID` _string_ | VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
-| `dnsServer` _string_ | DNS server address (optional) to configure Domain Name Serverfor this particular segment such as 10.10.10.2 |  |  |
-| `timeServer` _string_ | TimeServer (optional) NTP server address  to configure for time server for this particular segment such as 10.10.10.2 |  |  |
+| `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as []{10.10.10.2,10.10.10.2} |  |  |
+| `timeServers` _string array_ | TimeServers (optional) NTP server addresses  to configure for time servers for this particular segment such as []{10.10.10.2,10.10.10.2} |  |  |
 | `interfaceMTU` _integer_ | InterfaceMTU (optional)is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
 
 
@@ -1074,8 +1074,8 @@ _Appears in:_
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |  |  |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
-| `dnsServer` _string_ | DNS server address to configure Domain Name server for this particular segment such as 10.10.10.2 |  |  |
-| `timeServer` _string_ | TimeServer address to configure NTP time server for this particular segment such 10.10.10.2 |  |  |
+| `dnsServers` _string array_ | DNS server address to configure Domain Name servers for this particular segment such as []{10.10.10.2,10.10.10.2} |  |  |
+| `timeServers` _string array_ | TimeServers address to configure NTP time servers for this particular segment such []{10.10.10.2,10.10.10.2} |  |  |
 | `interfaceMTU` _integer_ | InterfaceMTU to configure the MTU for the device which send a DHCP discovery. |  |  |
 
 

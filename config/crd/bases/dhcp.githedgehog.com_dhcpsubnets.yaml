@@ -44,11 +44,11 @@ spec:
       priority: 1
       type: string
     - jsonPath: .spec.dnsserver
-      name: DNSServer
+      name: DNSServers
       priority: 1
       type: string
     - jsonPath: .spec.timeserver
-      name: TimeServer
+      name: TimeServers
       priority: 1
       type: string
     - jsonPath: .spec.interfacemtu
@@ -93,10 +93,12 @@ spec:
                 description: VLAN ID to identify specific subnet withing the VPC,
                   such as "Vlan1000" as it's named on switch
                 type: string
-              dnsServer:
-                description: DNS server address (optional) to configure Domain Name
-                  Serverfor this particular segment such as 10.10.10.2
-                type: string
+              dnsServers:
+                description: DNSservers (optional) to configure Domain Name Servers
+                  for this particular segment such as []{10.10.10.2,10.10.10.2}
+                items:
+                  type: string
+                type: array
               endIP:
                 description: End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
                 type: string
@@ -121,10 +123,12 @@ spec:
               subnet:
                 description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
                 type: string
-              timeServer:
-                description: TimeServer (optional) NTP server address  to configure
-                  for time server for this particular segment such as 10.10.10.2
-                type: string
+              timeServers:
+                description: TimeServers (optional) NTP server addresses  to configure
+                  for time servers for this particular segment such as []{10.10.10.2,10.10.10.2}
+                items:
+                  type: string
+                type: array
               vrf:
                 description: VRF name to identify specific VPC (will be added to DHCP
                   packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as
@@ -133,14 +137,14 @@ spec:
             required:
             - cidrBlock
             - circuitID
-            - dnsServer
+            - dnsServers
             - endIP
             - gateway
             - interfaceMTU
             - pxeURL
             - startIP
             - subnet
-            - timeServer
+            - timeServers
             - vrf
             type: object
           status:

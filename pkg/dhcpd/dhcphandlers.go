@@ -61,11 +61,19 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 
 			resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
-			if len(subnet.dhcpSubnet.Spec.DNSServer) > 0 {
-				resp.Options.Update(dhcpv4.OptDNS(net.ParseIP(subnet.dhcpSubnet.Spec.DNSServer)))
+			if len(subnet.dhcpSubnet.Spec.DNSServers) > 0 {
+				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.DNSServers))
+				for index, dnsserver := range subnet.dhcpSubnet.Spec.DNSServers {
+					ips[index] = net.ParseIP(dnsserver)
+				}
+				resp.Options.Update(dhcpv4.OptDNS(ips...))
 			}
-			if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
-				resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
+			if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
+				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
+				for index, timeserver := range subnet.dhcpSubnet.Spec.DNSServers {
+					ips[index] = net.ParseIP(timeserver)
+				}
+				resp.Options.Update(dhcpv4.OptDNS(ips...))
 			}
 
 			return nil
@@ -87,12 +95,22 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			state:      pending,
 			hostname:   req.HostName(),
 		}
-		if len(subnet.dhcpSubnet.Spec.DNSServer) > 0 {
-			resp.Options.Update(dhcpv4.OptDNS(net.ParseIP(subnet.dhcpSubnet.Spec.DNSServer)))
+
+		if len(subnet.dhcpSubnet.Spec.DNSServers) > 0 {
+			ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.DNSServers))
+			for index, dnsserver := range subnet.dhcpSubnet.Spec.DNSServers {
+				ips[index] = net.ParseIP(dnsserver)
+			}
+			resp.Options.Update(dhcpv4.OptDNS(ips...))
 		}
-		if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
-			resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
+		if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
+			ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
+			for index, timeserver := range subnet.dhcpSubnet.Spec.DNSServers {
+				ips[index] = net.ParseIP(timeserver)
+			}
+			resp.Options.Update(dhcpv4.OptDNS(ips...))
 		}
+
 		mtu := make([]byte, 4)
 		binary.BigEndian.PutUint32(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)
 		resp.Options.Update(dhcpv4.Option{
