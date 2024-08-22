@@ -242,7 +242,7 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 				0: {
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: pointer.To(uint8(prefixLen)),
+							PrefixLen: pointer.To(uint8(prefixLen)), //nolint:gosec
 						},
 					},
 				},
@@ -346,7 +346,7 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
-						PrefixLen: pointer.To(uint8(ipPrefixLen)),
+						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 					},
 				},
 			},
@@ -366,7 +366,7 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
-						PrefixLen: pointer.To(uint8(ipPrefixLen)),
+						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 					},
 				},
 			},
@@ -387,7 +387,7 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 				0: {
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: pointer.To(uint8(ipPrefixLen)),
+							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 						},
 					},
 				},
@@ -456,7 +456,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 					0: {
 						IPs: map[string]*dozer.SpecInterfaceIP{
 							ip.String(): {
-								PrefixLen: pointer.To(uint8(ipPrefixLen)),
+								PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 							},
 						},
 					},
@@ -741,7 +741,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			VLAN: vlan,
 			IPs: map[string]*dozer.SpecInterfaceIP{
 				ip.String(): {
-					PrefixLen: pointer.To(uint8(prefixLength)),
+					PrefixLen: pointer.To(uint8(prefixLength)), //nolint:gosec
 				},
 			},
 		}
@@ -801,7 +801,7 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					VLAN: vlan,
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: pointer.To(uint8(ipPrefixLen)),
+							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 						},
 					},
 				},
@@ -871,7 +871,7 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				prefixList.Prefixes[subnetID] = &dozer.SpecPrefixListEntry{
 					Prefix: dozer.SpecPrefixListPrefix{
 						Prefix: subnet,
-						Le:     uint8(prefixLen),
+						Le:     uint8(prefixLen), //nolint:gosec
 					},
 					Action: dozer.SpecPrefixListActionPermit,
 				}
