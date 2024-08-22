@@ -647,8 +647,8 @@ _Appears in:_
 | `circuitID` _string_ | VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
 | `dnsServer` _string_ | DNS server address (optional) to configure Domain Name Serverfor this particular segment such as 10.10.10.2 |  |  |
-| `timeServer` _string_ | NTP server address (optional) to configure for time server for this particular segment such as 10.10.10.2 |  |  |
-| `interfaceMTU` _integer_ | InterfaceMTU is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
+| `timeServer` _string_ | TimeServer (optional) NTP server address  to configure for time server for this particular segment such as 10.10.10.2 |  |  |
+| `interfaceMTU` _integer_ | InterfaceMTU (optional)is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
 
 
 #### DHCPSubnetStatus

@@ -54,7 +54,7 @@ spec:
     - jsonPath: .spec.interfacemtu
       name: InterfaceMTU
       priority: 1
-      type: uint32
+      type: integer
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -104,9 +104,9 @@ spec:
                 description: Gateway, such as 10.10.10.1
                 type: string
               interfaceMTU:
-                description: InterfaceMTU is the MTU setting that the dhcp server
-                  will send to the clients. It is dependent on the client to honor
-                  this option.
+                description: InterfaceMTU (optional)is the MTU setting that the dhcp
+                  server will send to the clients. It is dependent on the client to
+                  honor this option.
                 format: int32
                 type: integer
               pxeURL:
@@ -122,8 +122,8 @@ spec:
                 description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
                 type: string
               timeServer:
-                description: NTP server address (optional) to configure for time server
-                  for this particular segment such as 10.10.10.2
+                description: TimeServer (optional) NTP server address  to configure
+                  for time server for this particular segment such as 10.10.10.2
                 type: string
               vrf:
                 description: VRF name to identify specific VPC (will be added to DHCP
