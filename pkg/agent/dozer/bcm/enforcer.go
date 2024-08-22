@@ -224,7 +224,7 @@ func (q *ActionQueue) Add(action *Action) error {
 
 func (q *ActionQueue) Sort() {
 	slices.SortStableFunc(q.actions, func(action, other dozer.Action) int {
-		return int(action.(*Action).Weight) - int(other.(*Action).Weight) //nolint:gosec
+		return int(action.(*Action).Weight) - int(other.(*Action).Weight)
 	})
 }
 

@@ -123,7 +123,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 					VLAN: vlan,
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: pointer.To(uint8(prefixLength)),
+							PrefixLen: pointer.To(uint8(prefixLength)), //nolint:gosec
 						},
 					},
 				},
