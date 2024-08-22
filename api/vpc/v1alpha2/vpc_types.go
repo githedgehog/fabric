@@ -313,7 +313,6 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		if subnetCfg.DHCP.TimeServer != "" && !subnetCfg.DHCP.Enable {
 			return nil, errors.Errorf("subnet %s: TimeServer is set but dhcp is disabled", subnetName)
 		}
-
 		if subnetCfg.DHCP.Enable {
 			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
 				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
@@ -356,6 +355,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 				return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
 			}
 
+			if ip := net.ParseIP(subnetCfg.DHCP.TimeServer); ip == nil {
+				return nil, errors.Errorf("subnet %s: time server address is not a valid IP", subnetName)
+			}
 			if subnetCfg.DHCP.Range.End == "" {
 				return nil, errors.Errorf("subnet %s: dhcp range end is required", subnetName)
 			}

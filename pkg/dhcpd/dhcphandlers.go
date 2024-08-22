@@ -49,7 +49,6 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 
 		subnet.Lock()
 		defer func() {
-
 			addPxeInfo(req, resp, subnet)
 			subnet.Unlock()
 		}()
@@ -68,6 +67,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
 				resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
 			}
+
 			return nil
 		}
 		// This is not  a know reservation
@@ -310,7 +310,6 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {
 		resp.Options.Update(dhcpv4.OptTFTPServerName(u.Host))
 	}
-
 	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
 		switch u.Scheme {
 		case "http", "https", "ftp":
