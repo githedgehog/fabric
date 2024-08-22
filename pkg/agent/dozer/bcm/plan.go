@@ -548,7 +548,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		for idx, subnet := range ipns.Subnets {
-			spec.PrefixLists[ipnsSubnetsPrefixListName(ipnsName)].Prefixes[uint32(idx+1)] = &dozer.SpecPrefixListEntry{
+			spec.PrefixLists[ipnsSubnetsPrefixListName(ipnsName)].Prefixes[uint32(idx+1)] = &dozer.SpecPrefixListEntry{ //nolint:gosec
 				Prefix: dozer.SpecPrefixListPrefix{
 					Prefix: subnet,
 					Le:     32,

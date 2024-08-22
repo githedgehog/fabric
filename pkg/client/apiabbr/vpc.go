@@ -320,7 +320,7 @@ func ParseVPCSubnet(in string) (string, *vpcapi.VPCSubnet, error) {
 				return "", nil, errors.Wrapf(err, "failed to parse VLAN: %s", value)
 			}
 
-			subnet.VLAN = uint16(vlan)
+			subnet.VLAN = uint16(vlan) //nolint:gosec
 		} else if key == "isolated" || key == "i" {
 			if trueVal {
 				subnet.Isolated = pointer.To(true)

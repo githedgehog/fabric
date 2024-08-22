@@ -184,7 +184,7 @@ func unmarshalActualVXLANs(ocVal *oc.SonicVxlan_SonicVxlan) (map[string]*dozer.S
 				if err != nil {
 					return nil, nil, nil, errors.Wrapf(err, "can't parse vlan %s", *vxlanTunnelMap.Vlan)
 				}
-				vlan = pointer.To(uint16(value))
+				vlan = pointer.To(uint16(value)) //nolint:gosec
 			}
 
 			vxlanTunnelMaps[key.Mapname] = &dozer.SpecVXLANTunnelMap{

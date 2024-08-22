@@ -97,7 +97,6 @@ func (d *Default) Enforce(ctx context.Context, kube client.Client, cfg *meta.Fab
 				continue
 			}
 
-			sp := sp
 			err := kube.Delete(ctx, &sp)
 			if err != nil {
 				return errors.Wrapf(err, "failed to delete non-default switch profile %q", sp.Name)

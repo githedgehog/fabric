@@ -108,7 +108,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to parse external attach switch vlan %s", externalConfig.IfVlan)
 		}
 
-		vlan := pointer.To(uint16(vlanVal))
+		vlan := pointer.To(uint16(vlanVal)) //nolint:gosec
 		ip, ipNet, err := net.ParseCIDR(externalConfig.IfIP)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse external attach switch ip %s", externalConfig.IfIP)
@@ -119,7 +119,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Enabled:     pointer.To(true),
 			Description: pointer.To(fmt.Sprintf("Virtual External %s", externalConfig.VRF)),
 			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-				uint32(vlanVal): {
+				uint32(vlanVal): { //nolint:gosec
 					VLAN: vlan,
 					IPs: map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
@@ -137,7 +137,7 @@ func planVirtualEdge(agent *agentapi.Agent, spec *dozer.Spec) error {
 		spec.VRFs[ipnsVrf].BGP.Neighbors[externalConfig.NeighborIP] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("External attach %s", externalConfig.VRF)),
-			RemoteAS:                  pointer.To(uint32(asnVal)),
+			RemoteAS:                  pointer.To(uint32(asnVal)), //nolint:gosec
 			IPv4Unicast:               pointer.To(true),
 			IPv4UnicastImportPolicies: []string{extInboundRouteMapName(ipnsVrf)},
 			IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(ipnsVrf)},
