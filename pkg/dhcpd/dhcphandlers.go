@@ -17,6 +17,7 @@
 package dhcpd
 
 import (
+	"encoding/binary"
 	"net"
 	"net/url"
 	"strings"
@@ -92,6 +93,14 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		if len(subnet.dhcpSubnet.Spec.TimeServer) > 0 {
 			resp.Options.Update(dhcpv4.OptNTPServers(net.ParseIP(subnet.dhcpSubnet.Spec.TimeServer)))
 		}
+		mtu := make([]byte, 4)
+		binary.BigEndian.PutUint32(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)
+		resp.Options.Update(dhcpv4.Option{
+			Code: dhcpv4.OptionInterfaceMTU,
+			Value: dhcpv4.OptionGeneric{
+				Data: mtu,
+			},
+		})
 		time.AfterFunc(pendingDiscoverTimeout, func() {
 			subnet.Lock()
 			defer subnet.Unlock()
