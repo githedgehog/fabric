@@ -40,9 +40,9 @@ type DHCPSubnetSpec struct {
 	PXEURL string `json:"pxeURL"`
 	// DNS server address (optional) to configure Domain Name Serverfor this particular segment such as 10.10.10.2
 	DNSServer string `json:"dnsServer"`
-	// NTP server address (optional) to configure for time server for this particular segment such as 10.10.10.2
+	// TimeServer (optional) NTP server address  to configure for time server for this particular segment such as 10.10.10.2
 	TimeServer string `json:"timeServer"`
-	// InterfaceMTU is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
+	// InterfaceMTU (optional)is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	// +kubebuilder:validation:Minimum: 96
 	// +kubebuilder:validation:Maximum: 9036
 	InterfaceMTU uint32 `json:"interfaceMTU"`
