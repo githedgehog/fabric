@@ -81,9 +81,9 @@ type VPCDHCP struct {
 	Range *VPCDHCPRange `json:"range,omitempty"`
 	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
 	PXEURL string `json:"pxeURL,omitempty"`
-	// DNS server address to configure Domain Name servers for this particular segment such as []{10.10.10.2,10.10.10.2}
+	// DNSservers (optional) address to configure Domain Name servers for this particular segment such as []{10.10.10.2,10.10.10.2}
 	DNSServers []string `json:"dnsServers"`
-	// TimeServers address to configure NTP time servers for this particular segment such []{10.10.10.2,10.10.10.2}
+	// TimeServers (optional) address to configure NTP time servers for this particular segment such []{10.10.10.2,10.10.10.2}
 	TimeServers []string `json:"timeServers"`
 	// InterfaceMTU to configure the MTU for the device which send a DHCP discovery.
 	// +kubebuilder:validation:Minimum: 96
