@@ -82,11 +82,11 @@ type VPCDHCP struct {
 	Range *VPCDHCPRange `json:"range,omitempty"`
 	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
 	PXEURL string `json:"pxeURL,omitempty"`
-	// DNSservers (optional) address to configure Domain Name servers for this particular segment such as []{10.10.10.2,10.10.10.2}
+	// DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2
 	DNSServers []string `json:"dnsServers"`
-	// TimeServers (optional) address to configure NTP time servers for this particular segment such []{10.10.10.2,10.10.10.2}
+	// TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2
 	TimeServers []string `json:"timeServers"`
-	// InterfaceMTU to configure the MTU for the device which send a DHCP discovery.
+	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	// +kubebuilder:validation:Minimum: 96
 	// +kubebuilder:validation:Maximum: 9036
 	InterfaceMTU uint32 `json:"interfaceMTU"`
@@ -329,6 +329,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			return nil, errors.Errorf("subnet %s: TimeServer is set but dhcp is disabled", subnetName)
 		}
 
+		if subnetCfg.DHCP.InterfaceMTU > 0 && !subnetCfg.DHCP.Enable {
+			return nil, errors.Errorf("subnet %s: InterfaceMTU is set but dhcp is disabled", subnetName)
+		}
+
 		if subnetCfg.DHCP.Enable {
 			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
 				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
@@ -360,15 +364,15 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 				return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
 			}
 
-			for _, dnsserver := range subnetCfg.DHCP.DNSServers {
-				if ip := net.ParseIP(dnsserver); ip == nil {
-					return nil, errors.Errorf("subnet %s: dns address is not a valid IP", subnetName)
+			for _, dnsServer := range subnetCfg.DHCP.DNSServers {
+				if ip := net.ParseIP(dnsServer); ip == nil {
+					return nil, errors.Errorf("subnet %s: dns address %s is not a valid IP", subnetName, dnsServer)
 				}
 			}
 
-			for _, timeserver := range subnetCfg.DHCP.TimeServers {
-				if ip := net.ParseIP(timeserver); ip == nil {
-					return nil, errors.Errorf("subnet %s: time server address is not a valid IP", subnetName)
+			for _, timeServer := range subnetCfg.DHCP.TimeServers {
+				if ip := net.ParseIP(timeServer); ip == nil {
+					return nil, errors.Errorf("subnet %s: time server %s address is not a valid IP", subnetName, timeServer)
 				}
 			}
 
