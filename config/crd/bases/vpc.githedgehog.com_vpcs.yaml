@@ -110,8 +110,9 @@ spec:
                         subnet
                       properties:
                         dnsServers:
-                          description: DNS server address to configure Domain Name
-                            servers for this particular segment such as []{10.10.10.2,10.10.10.2}
+                          description: DNSservers (optional) address to configure
+                            Domain Name servers for this particular segment such as
+                            []{10.10.10.2,10.10.10.2}
                           items:
                             type: string
                           type: array
@@ -146,8 +147,8 @@ spec:
                             DHCP server will be disabled
                           type: string
                         timeServers:
-                          description: TimeServers address to configure NTP time servers
-                            for this particular segment such []{10.10.10.2,10.10.10.2}
+                          description: TimeServers (optional) address to configure
+                            NTP time servers for this particular segment such []{10.10.10.2,10.10.10.2}
                           items:
                             type: string
                           type: array

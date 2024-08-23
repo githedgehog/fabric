@@ -67,6 +67,8 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 					ips[index] = net.ParseIP(dnsserver)
 				}
 				resp.Options.Update(dhcpv4.OptDNS(ips...))
+			} else {
+				log.Errorf("No DNSServer configured")
 			}
 			if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
 				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
@@ -74,6 +76,8 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 					ips[index] = net.ParseIP(timeserver)
 				}
 				resp.Options.Update(dhcpv4.OptDNS(ips...))
+			} else {
+				log.Errorf("No TimeServer configured")
 			}
 
 			return nil

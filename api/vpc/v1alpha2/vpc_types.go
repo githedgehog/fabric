@@ -17,6 +17,7 @@ package v1alpha2
 import (
 	"context"
 	"net"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -231,6 +232,16 @@ func (vpc *VPC) Default() {
 		if subnet.DHCP.InterfaceMTU == 0 {
 			subnet.DHCP.InterfaceMTU = 9036 // Magic number should be named constant somewhere.
 		}
+		if subnet.DHCP.DNSServers == nil {
+			subnet.DHCP.DNSServers = []string{} //
+		}
+		slices.Sort(subnet.DHCP.DNSServers)
+
+		if subnet.DHCP.TimeServers == nil {
+			subnet.DHCP.TimeServers = []string{} //
+		}
+
+		slices.Sort(subnet.DHCP.TimeServers)
 	}
 }
 
