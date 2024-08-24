@@ -71,13 +71,13 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 				resp.Options.Update(dhcpv4.OptDNS(ips...))
 			}
 			if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
-
 				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
 				for index, timeserver := range subnet.dhcpSubnet.Spec.TimeServers {
 					ips[index] = net.ParseIP(timeserver)
 				}
 				resp.Options.Update(dhcpv4.OptNTPServers(ips...))
 			}
+
 			return nil
 		}
 		// This is not  a know reservation
@@ -112,12 +112,11 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 				ips[index] = net.ParseIP(timeServer)
 			}
 			resp.Options.Update(dhcpv4.OptNTPServers(ips...))
-
 		}
 
 		if subnet.dhcpSubnet.Spec.InterfaceMTU > 0 {
 			mtu := make([]byte, 2)
-			binary.BigEndian.PutUint16(mtu, uint16(subnet.dhcpSubnet.Spec.InterfaceMTU))
+			binary.BigEndian.PutUint16(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)
 			resp.Options.Update(dhcpv4.Option{
 				Code: dhcpv4.OptionInterfaceMTU,
 				Value: dhcpv4.OptionGeneric{
@@ -192,7 +191,6 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			}
 
 			if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
-
 				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
 				for index, timeserver := range subnet.dhcpSubnet.Spec.TimeServers {
 					ips[index] = net.ParseIP(timeserver)
@@ -202,7 +200,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			}
 			if subnet.dhcpSubnet.Spec.InterfaceMTU > 0 {
 				mtu := make([]byte, 2)
-				binary.BigEndian.PutUint16(mtu, uint16(subnet.dhcpSubnet.Spec.InterfaceMTU))
+				binary.BigEndian.PutUint16(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)
 				resp.Options.Update(dhcpv4.Option{
 					Code: dhcpv4.OptionInterfaceMTU,
 					Value: dhcpv4.OptionGeneric{
@@ -210,6 +208,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 					},
 				})
 			}
+
 			return nil
 		}
 		ipnet, err := subnet.pool.Allocate()
@@ -242,7 +241,6 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		}
 
 		if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
-
 			ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
 			for index, timeserver := range subnet.dhcpSubnet.Spec.TimeServers {
 				ips[index] = net.ParseIP(timeserver)
@@ -251,7 +249,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		}
 		if subnet.dhcpSubnet.Spec.InterfaceMTU > 0 {
 			mtu := make([]byte, 2)
-			binary.BigEndian.PutUint16(mtu, uint16(subnet.dhcpSubnet.Spec.InterfaceMTU))
+			binary.BigEndian.PutUint16(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)
 			resp.Options.Update(dhcpv4.Option{
 				Code: dhcpv4.OptionInterfaceMTU,
 				Value: dhcpv4.OptionGeneric{

@@ -45,7 +45,7 @@ type DHCPSubnetSpec struct {
 	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	// +kubebuilder:validation:Minimum: 96
 	// +kubebuilder:validation:Maximum: 9036
-	InterfaceMTU uint32 `json:"interfaceMTU"`
+	InterfaceMTU uint16 `json:"interfaceMTU"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet

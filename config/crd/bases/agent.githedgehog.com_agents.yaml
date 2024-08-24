@@ -1390,7 +1390,6 @@ spec:
                                 description: InterfaceMTU (optional) is the MTU setting
                                   that the dhcp server will send to the clients. It
                                   is dependent on the client to honor this option.
-                                format: int32
                                 type: integer
                               pxeURL:
                                 description: PXEURL (optional) to identify the pxe
