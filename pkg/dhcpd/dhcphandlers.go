@@ -196,7 +196,6 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 					ips[index] = net.ParseIP(timeserver)
 				}
 				resp.Options.Update(dhcpv4.OptNTPServers(ips...))
-
 			}
 			if subnet.dhcpSubnet.Spec.InterfaceMTU > 0 {
 				mtu := make([]byte, 2)
