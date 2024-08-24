@@ -127,6 +127,10 @@ func unmarshalActualLLDPInterfaces(ocVal *oc.OpenconfigLldp_Lldp_Interfaces) (ma
 			continue
 		}
 
+		if ocInterface.Config.Enabled == nil || !*ocInterface.Config.Enabled {
+			continue
+		}
+
 		lldpInterfaces[name] = &dozer.SpecLLDPInterface{
 			Enabled:        ocInterface.Config.Enabled,
 			ManagementIPv4: ocInterface.Config.ManagementAddressIpv4,

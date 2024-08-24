@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openconfig/gnmic/api"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
@@ -515,7 +514,7 @@ var specInterfaceVLANAnycastGatewayEnforcer = &DefaultValueEnforcer[string, *doz
 
 func loadActualInterfaces(ctx context.Context, agent *agentapi.Agent, client *gnmi.Client, spec *dozer.Spec) error {
 	ocInterfaces := &oc.OpenconfigInterfaces_Interfaces{}
-	err := client.Get(ctx, "/interfaces/interface", ocInterfaces, api.DataTypeCONFIG())
+	err := client.Get(ctx, "/interfaces/interface", ocInterfaces)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read interfaces")
 	}
@@ -563,7 +562,7 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 			continue
 		}
 
-		if strings.HasPrefix(name, "vtep") {
+		if strings.HasPrefix(name, "vtep") || strings.Contains(name, ".") || strings.Contains(name, "|") {
 			continue
 		}
 
@@ -598,10 +597,6 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 				}
 
 				if sub.Ipv4 != nil && sub.Ipv4.Addresses != nil {
-					if len(sub.Ipv4.Addresses.Address) != 1 {
-						return nil, errors.Errorf("only one IP address expected on subinterface %s.%d", name, id)
-					}
-
 					for _, addr := range sub.Ipv4.Addresses.Address {
 						if addr.Config == nil || addr.Config.Ip == nil {
 							continue
@@ -617,23 +612,20 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 					subIface.AnycastGateways = sub.Ipv4.SagIpv4.Config.StaticAnycastGateway
 				}
 
-				if sub.Vlan != nil && sub.Vlan.Config != nil {
-					var vlan *uint16
-
-					vlanID := sub.Vlan.Config.VlanId
-					if strVal, ok := vlanID.(oc.UnionString); ok {
-						vlanVal, err := strconv.ParseUint(string(strVal), 10, 16)
+				if sub.Vlan != nil {
+					if sub.Vlan.Config != nil {
+						subIface.VLAN, err = unmarshalVLAN(sub.Vlan.Config.VlanId)
 						if err != nil {
-							return nil, errors.Wrapf(err, "can't parse %s", vlanID)
+							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
 						}
-						vlan = pointer.To(uint16(vlanVal)) //nolint:gosec
-					} else if numVal, ok := vlanID.(oc.UnionUint16); ok {
-						vlan = pointer.To(uint16(numVal))
-					} else {
-						return nil, errors.Errorf("unknown vlan id type %v for %s.%d", vlanID, name, id)
 					}
 
-					subIface.VLAN = vlan
+					if sub.Vlan.State != nil {
+						subIface.VLAN, err = unmarshalVLAN(sub.Vlan.State.VlanId)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
+						}
+					}
 				}
 
 				iface.Subinterfaces[id] = subIface
@@ -645,10 +637,6 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 			vlan = true
 			if ocIface.RoutedVlan.Ipv4 != nil {
 				if ocIface.RoutedVlan.Ipv4.Addresses != nil {
-					if len(ocIface.RoutedVlan.Ipv4.Addresses.Address) != 1 {
-						return nil, errors.Errorf("only one IP address expected on interface %s routed vlan", name)
-					}
-
 					for _, addr := range ocIface.RoutedVlan.Ipv4.Addresses.Address {
 						if addr.Config == nil || addr.Config.Ip == nil {
 							continue
@@ -790,4 +778,19 @@ func unmarshalPortChannelTrunkVLANs(vlans []oc.OpenconfigInterfaces_Interfaces_I
 	}
 
 	return trunkVLANs, nil
+}
+
+func unmarshalVLAN(in any) (*uint16, error) {
+	if strVal, ok := in.(oc.UnionString); ok {
+		vlanVal, err := strconv.ParseUint(string(strVal), 10, 16)
+		if err != nil {
+			return nil, errors.Wrapf(err, "can't parse %s", in)
+		}
+
+		return pointer.To(uint16(vlanVal)), nil //nolint:gosec
+	} else if numVal, ok := in.(oc.UnionUint16); ok {
+		return pointer.To(uint16(numVal)), nil
+	}
+
+	return nil, errors.Errorf("unknown vlan id type %v", in)
 }
