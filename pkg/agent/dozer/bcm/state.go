@@ -110,6 +110,10 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			continue
 		}
 
+		if strings.Contains(ifaceNameRaw, ".") || strings.Contains(ifaceNameRaw, "|") {
+			continue
+		}
+
 		if iface.State == nil {
 			continue
 		}
@@ -297,6 +301,7 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent 
 		if !strings.HasPrefix(transceiverNameRaw, "Ethernet") {
 			continue
 		}
+
 		if transceiver.State == nil {
 			continue
 		}
@@ -667,11 +672,17 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 			}
 
 			if ocSt.LocalAs != nil {
-				st.LocalAS = *ocSt.LocalAs
+				// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
+				if val, ok := ocSt.LocalAs.(oc.UnionUint32); ok {
+					st.LocalAS = uint32(val)
+				}
 			}
 
 			if ocSt.PeerAs != nil {
-				st.PeerAS = *ocSt.PeerAs
+				// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
+				if val, ok := ocSt.PeerAs.(oc.UnionUint32); ok {
+					st.PeerAS = uint32(val)
+				}
 			}
 
 			if ocSt.PeerGroup != nil {
