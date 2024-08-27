@@ -17,6 +17,7 @@ package v1alpha2
 import (
 	"context"
 	"net"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -79,8 +80,8 @@ type VPCDHCP struct {
 	Enable bool `json:"enable,omitempty"`
 	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled
 	Range *VPCDHCPRange `json:"range,omitempty"`
-	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
-	PXEURL string `json:"pxeURL,omitempty"`
+	// Options (optional) is the DHCP options for the subnet if DHCP server is enabled
+	Options *VPCDHCPOptions `json:"options,omitempty"`
 }
 
 // VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled
@@ -89,6 +90,22 @@ type VPCDHCPRange struct {
 	Start string `json:"start,omitempty"`
 	// End is the end IP address of the DHCP range
 	End string `json:"end,omitempty"`
+}
+
+// VPCDHCPOptions defines the DHCP options for the subnet if DHCP server is enabled
+type VPCDHCPOptions struct {
+	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
+	PXEURL string `json:"pxeURL,omitempty"`
+	// +kubebuilder:validation:Optional
+	// DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2
+	DNSServers []string `json:"dnsServers"`
+	// +kubebuilder:validation:Optional
+	// TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2
+	TimeServers []string `json:"timeServers"`
+	// +kubebuilder:validation:Minimum: 96
+	// +kubebuilder:validation:Maximum: 9036
+	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
+	InterfaceMTU uint16 `json:"interfaceMTU"`
 }
 
 // VPCStaticRoute defines the static route for the VPC
@@ -201,24 +218,47 @@ func (vpc *VPC) Default() {
 		}
 
 		if !subnet.DHCP.Enable {
-			if subnet.DHCP.Range != nil && subnet.DHCP.Range.Start == "" && subnet.DHCP.Range.End == "" {
-				subnet.DHCP.Range = nil
-			}
+			subnet.DHCP.Range = nil
+			subnet.DHCP.Options = nil
 
 			continue
 		}
 
-		start := cidr.DHCPRangeStart.String()
-		end := cidr.DHCPRangeEnd.String()
-
 		if subnet.DHCP.Range == nil {
 			subnet.DHCP.Range = &VPCDHCPRange{}
 		}
+
+		start := cidr.DHCPRangeStart.String()
 		if subnet.DHCP.Range.Start == "" {
 			subnet.DHCP.Range.Start = start
 		}
+
+		end := cidr.DHCPRangeEnd.String()
 		if subnet.DHCP.Range.End == "" {
 			subnet.DHCP.Range.End = end
+		}
+
+		if subnet.DHCP.Options != nil {
+			if subnet.DHCP.Options.PXEURL == "" && subnet.DHCP.Options.DNSServers == nil &&
+				subnet.DHCP.Options.TimeServers == nil && subnet.DHCP.Options.InterfaceMTU == 0 {
+				subnet.DHCP.Options = nil
+
+				continue
+			}
+
+			if subnet.DHCP.Options.InterfaceMTU == 0 {
+				subnet.DHCP.Options.InterfaceMTU = 9036 // TODO Magic number should be named constant somewhere.
+			}
+
+			if subnet.DHCP.Options.DNSServers == nil {
+				subnet.DHCP.Options.DNSServers = []string{}
+			}
+			slices.Sort(subnet.DHCP.Options.DNSServers)
+
+			if subnet.DHCP.Options.TimeServers == nil {
+				subnet.DHCP.Options.TimeServers = []string{}
+			}
+			slices.Sort(subnet.DHCP.Options.TimeServers)
 		}
 	}
 }
@@ -295,8 +335,22 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			}
 		}
 
-		if subnetCfg.DHCP.PXEURL != "" && !subnetCfg.DHCP.Enable {
-			return nil, errors.Errorf("subnet %s: pxeURL is set but dhcp is disabled", subnetName)
+		if subnetCfg.DHCP.Options != nil && !subnetCfg.DHCP.Enable {
+			if subnetCfg.DHCP.Options.PXEURL != "" {
+				return nil, errors.Errorf("subnet %s: pxeURL is set but dhcp is disabled", subnetName)
+			}
+
+			if len(subnetCfg.DHCP.Options.DNSServers) > 0 {
+				return nil, errors.Errorf("subnet %s: DNSServer is set but dhcp is disabled", subnetName)
+			}
+
+			if len(subnetCfg.DHCP.Options.TimeServers) > 0 {
+				return nil, errors.Errorf("subnet %s: TimeServer is set but dhcp is disabled", subnetName)
+			}
+
+			if subnetCfg.DHCP.Options.InterfaceMTU > 0 {
+				return nil, errors.Errorf("subnet %s: InterfaceMTU is set but dhcp is disabled", subnetName)
+			}
 		}
 
 		if subnetCfg.DHCP.Enable {
@@ -349,6 +403,24 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			}
 
 			// TODO check start < end
+
+			if subnetCfg.DHCP.Options != nil {
+				for _, dnsServer := range subnetCfg.DHCP.Options.DNSServers {
+					if ip := net.ParseIP(dnsServer); ip == nil {
+						return nil, errors.Errorf("subnet %s: dns address %s is not a valid IP", subnetName, dnsServer)
+					}
+				}
+
+				for _, timeServer := range subnetCfg.DHCP.Options.TimeServers {
+					if ip := net.ParseIP(timeServer); ip == nil {
+						return nil, errors.Errorf("subnet %s: time server %s address is not a valid IP", subnetName, timeServer)
+					}
+				}
+
+				if subnetCfg.DHCP.Options.InterfaceMTU > 9036 {
+					return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
+				}
+			}
 		} else {
 			if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
 				return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
