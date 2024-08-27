@@ -43,6 +43,18 @@ spec:
       name: CircuitID
       priority: 1
       type: string
+    - jsonPath: .spec.dnsServers
+      name: DNSServers
+      priority: 1
+      type: string
+    - jsonPath: .spec.timeServers
+      name: TimeServers
+      priority: 1
+      type: string
+    - jsonPath: .spec.interfaceMTU
+      name: InterfaceMTU
+      priority: 1
+      type: integer
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -81,12 +93,23 @@ spec:
                 description: VLAN ID to identify specific subnet withing the VPC,
                   such as "Vlan1000" as it's named on switch
                 type: string
+              dnsServers:
+                description: 'DNSservers (optional) to configure Domain Name Servers
+                  for this particular segment such as: 10.10.10.1, 10.10.10.2'
+                items:
+                  type: string
+                type: array
               endIP:
                 description: End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
                 type: string
               gateway:
                 description: Gateway, such as 10.10.10.1
                 type: string
+              interfaceMTU:
+                description: InterfaceMTU (optional) is the MTU setting that the dhcp
+                  server will send to the clients. It is dependent on the client to
+                  honor this option.
+                type: integer
               pxeURL:
                 description: PXEURL (optional) to identify the pxe server to use to
                   boot hosts connected to this segment such as http://10.10.10.99/bootfilename
@@ -99,6 +122,13 @@ spec:
               subnet:
                 description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
                 type: string
+              timeServers:
+                description: 'TimeServers (optional) NTP server addresses to configure
+                  for time servers for this particular segment such as: 10.10.10.1,
+                  10.10.10.2'
+                items:
+                  type: string
+                type: array
               vrf:
                 description: VRF name to identify specific VPC (will be added to DHCP
                   packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as
@@ -107,11 +137,14 @@ spec:
             required:
             - cidrBlock
             - circuitID
+            - dnsServers
             - endIP
             - gateway
+            - interfaceMTU
             - pxeURL
             - startIP
             - subnet
+            - timeServers
             - vrf
             type: object
           status:

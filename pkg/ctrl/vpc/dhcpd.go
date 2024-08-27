@@ -188,19 +188,37 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 
 		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
 		_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
+			pxeURL := ""
+			dnsServers := []string{}
+			timeServers := []string{}
+			mtu := uint16(9036) // TODO constant
+
+			if subnet.DHCP.Options != nil {
+				pxeURL = subnet.DHCP.Options.PXEURL
+				dnsServers = subnet.DHCP.Options.DNSServers
+				timeServers = subnet.DHCP.Options.TimeServers
+
+				if subnet.DHCP.Options.InterfaceMTU > 0 {
+					mtu = subnet.DHCP.Options.InterfaceMTU
+				}
+			}
+
 			dhcp.Labels = map[string]string{
 				vpcapi.LabelVPC:    vpc.Name,
 				vpcapi.LabelSubnet: subnetName,
 			}
 			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
-				Subnet:    fmt.Sprintf("%s/%s", vpc.Name, subnetName),
-				CIDRBlock: subnet.Subnet,
-				Gateway:   subnet.Gateway,
-				StartIP:   subnet.DHCP.Range.Start,
-				EndIP:     subnet.DHCP.Range.End,
-				VRF:       fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
-				CircuitID: fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
-				PXEURL:    subnet.DHCP.PXEURL,
+				Subnet:       fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock:    subnet.Subnet,
+				Gateway:      subnet.Gateway,
+				StartIP:      subnet.DHCP.Range.Start,
+				EndIP:        subnet.DHCP.Range.End,
+				VRF:          fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
+				CircuitID:    fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				PXEURL:       pxeURL,
+				DNSServers:   dnsServers,
+				TimeServers:  timeServers,
+				InterfaceMTU: mtu,
 			}
 
 			return nil

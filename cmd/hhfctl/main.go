@@ -182,10 +182,12 @@ func main() {
 								VLAN:   uint16(cCtx.Uint("vlan")), //nolint:gosec
 								DHCP: vpcapi.VPCDHCP{
 									Enable: cCtx.Bool("dhcp"),
-									PXEURL: cCtx.String("dhcp-pxe-url"),
 									Range: &vpcapi.VPCDHCPRange{
 										Start: cCtx.String("dhcp-range-start"),
 										End:   cCtx.String("dhcp-range-end"),
+									},
+									Options: &vpcapi.VPCDHCPOptions{
+										PXEURL: cCtx.String("dhcp-pxe-url"),
 									},
 								},
 							}), "failed to create vpc")
