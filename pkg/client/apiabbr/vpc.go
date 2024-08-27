@@ -293,7 +293,12 @@ func ParseVPCSubnet(in string) (string, *vpcapi.VPCSubnet, error) {
 	parts := strings.Split(in, ",")
 
 	name := ""
-	subnet := &vpcapi.VPCSubnet{}
+	subnet := &vpcapi.VPCSubnet{
+		DHCP: vpcapi.VPCDHCP{
+			Range:   &vpcapi.VPCDHCPRange{},
+			Options: &vpcapi.VPCDHCPOptions{},
+		},
+	}
 
 	for idx, part := range parts {
 		part := strings.TrimSpace(part)
@@ -334,22 +339,21 @@ func ParseVPCSubnet(in string) (string, *vpcapi.VPCSubnet, error) {
 				subnet.DHCP.Enable = true
 			}
 		} else if key == "dhcp-start" {
-			if subnet.DHCP.Range == nil {
-				subnet.DHCP.Range = &vpcapi.VPCDHCPRange{}
-			}
 			subnet.DHCP.Range.Start = value
 		} else if key == "dhcp-end" {
-			if subnet.DHCP.Range == nil {
-				subnet.DHCP.Range = &vpcapi.VPCDHCPRange{}
-			}
 			subnet.DHCP.Range.End = value
 		} else if key == "dhcp-relay" {
 			subnet.DHCP.Relay = value
 		} else if key == "dhcp-pxe-url" {
-			subnet.DHCP.PXEURL = value
+			subnet.DHCP.Options.PXEURL = value
 		} else {
 			return "", nil, errors.Errorf("unknown key: %s", key)
 		}
+	}
+
+	if !subnet.DHCP.Enable {
+		subnet.DHCP.Range = nil
+		subnet.DHCP.Options = nil
 	}
 
 	if name == "" {

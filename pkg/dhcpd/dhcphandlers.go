@@ -61,8 +61,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 
 			resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
-			log.Errorf("DHCP Discovery:: known reservation DNSServers %v", subnet.dhcpSubnet.Spec.DNSServers)
-			log.Errorf("DHCP Discovery:: known reservation TimeServers %v", subnet.dhcpSubnet.Spec.TimeServers)
+
 			if len(subnet.dhcpSubnet.Spec.DNSServers) > 0 {
 				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.DNSServers))
 				for index, dnsserver := range subnet.dhcpSubnet.Spec.DNSServers {
@@ -70,12 +69,24 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 				}
 				resp.Options.Update(dhcpv4.OptDNS(ips...))
 			}
+
 			if len(subnet.dhcpSubnet.Spec.TimeServers) > 0 {
 				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.TimeServers))
 				for index, timeserver := range subnet.dhcpSubnet.Spec.TimeServers {
 					ips[index] = net.ParseIP(timeserver)
 				}
 				resp.Options.Update(dhcpv4.OptNTPServers(ips...))
+			}
+
+			if subnet.dhcpSubnet.Spec.InterfaceMTU > 0 {
+				mtu := make([]byte, 2)
+				binary.BigEndian.PutUint16(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)
+				resp.Options.Update(dhcpv4.Option{
+					Code: dhcpv4.OptionInterfaceMTU,
+					Value: dhcpv4.OptionGeneric{
+						Data: mtu,
+					},
+				})
 			}
 
 			return nil
@@ -182,6 +193,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 			if err := updateBackend4(subnet.dhcpSubnet); err != nil {
 				log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
 			}
+
 			if len(subnet.dhcpSubnet.Spec.DNSServers) > 0 {
 				ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.DNSServers))
 				for index, dnsserver := range subnet.dhcpSubnet.Spec.DNSServers {
@@ -197,6 +209,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 				}
 				resp.Options.Update(dhcpv4.OptNTPServers(ips...))
 			}
+
 			if subnet.dhcpSubnet.Spec.InterfaceMTU > 0 {
 				mtu := make([]byte, 2)
 				binary.BigEndian.PutUint16(mtu, subnet.dhcpSubnet.Spec.InterfaceMTU)

@@ -1376,27 +1376,44 @@ spec:
                             description: DHCP is the on-demand DHCP configuration
                               for the subnet
                             properties:
-                              dnsServers:
-                                description: 'DNSservers (optional) to configure Domain
-                                  Name Servers for this particular segment such as:
-                                  10.10.10.1, 10.10.10.2'
-                                items:
-                                  type: string
-                                type: array
                               enable:
                                 description: Enable enables DHCP server for the subnet
                                 type: boolean
-                              interfaceMTU:
-                                description: InterfaceMTU (optional) is the MTU setting
-                                  that the dhcp server will send to the clients. It
-                                  is dependent on the client to honor this option.
-                                type: integer
-                              pxeURL:
-                                description: PXEURL (optional) to identify the pxe
-                                  server to use to boot hosts connected to this segment
-                                  such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename,
-                                  http query strings are not supported
-                                type: string
+                              options:
+                                description: Options (optional) is the DHCP options
+                                  for the subnet if DHCP server is enabled
+                                properties:
+                                  dnsServers:
+                                    description: 'DNSservers (optional) to configure
+                                      Domain Name Servers for this particular segment
+                                      such as: 10.10.10.1, 10.10.10.2'
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceMTU:
+                                    description: InterfaceMTU (optional) is the MTU
+                                      setting that the dhcp server will send to the
+                                      clients. It is dependent on the client to honor
+                                      this option.
+                                    type: integer
+                                  pxeURL:
+                                    description: PXEURL (optional) to identify the
+                                      pxe server to use to boot hosts connected to
+                                      this segment such as http://10.10.10.99/bootfilename
+                                      or tftp://10.10.10.99/bootfilename, http query
+                                      strings are not supported
+                                    type: string
+                                  timeServers:
+                                    description: 'TimeServers (optional) NTP server
+                                      addresses to configure for time servers for
+                                      this particular segment such as: 10.10.10.1,
+                                      10.10.10.2'
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - interfaceMTU
+                                type: object
                               range:
                                 description: Range (optional) is the DHCP range for
                                   the subnet if DHCP server is enabled
@@ -1414,17 +1431,6 @@ spec:
                                 description: Relay is the DHCP relay IP address, if
                                   specified, DHCP server will be disabled
                                 type: string
-                              timeServers:
-                                description: 'TimeServers (optional) NTP server addresses
-                                  to configure for time servers for this particular
-                                  segment such as: 10.10.10.1, 10.10.10.2'
-                                items:
-                                  type: string
-                                type: array
-                            required:
-                            - dnsServers
-                            - interfaceMTU
-                            - timeServers
                             type: object
                           gateway:
                             description: Gateway (optional) for the subnet, if not

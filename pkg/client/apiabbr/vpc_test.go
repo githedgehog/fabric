@@ -172,7 +172,9 @@ func TestParseVPCSubnet(t *testing.T) {
 				Subnet: "10.42.0.0/24",
 				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
-					Enable: true,
+					Enable:  true,
+					Range:   &vpcapi.VPCDHCPRange{},
+					Options: &vpcapi.VPCDHCPOptions{},
 				},
 			},
 		},
@@ -185,8 +187,10 @@ func TestParseVPCSubnet(t *testing.T) {
 				DHCP: vpcapi.VPCDHCP{
 					Enable: true,
 					Range: &vpcapi.VPCDHCPRange{
-						End: "10.42.0.99",
+						Start: "",
+						End:   "10.42.0.99",
 					},
+					Options: &vpcapi.VPCDHCPOptions{},
 				},
 			},
 		},
@@ -202,6 +206,7 @@ func TestParseVPCSubnet(t *testing.T) {
 						Start: "10.42.0.10",
 						End:   "10.42.0.99",
 					},
+					Options: &vpcapi.VPCDHCPOptions{},
 				},
 			},
 		},
@@ -217,13 +222,20 @@ func TestParseVPCSubnet(t *testing.T) {
 			},
 		},
 		{
-			in:           "default=10.42.0.0/24,vlan=1042,dhcp-pxe-url=10.42.100.100",
+			in:           "default=10.42.0.0/24,vlan=1042,dhcp,dhcp-pxe-url=10.42.100.100",
 			expectedName: "default",
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet: "10.42.0.0/24",
 				VLAN:   1042,
 				DHCP: vpcapi.VPCDHCP{
-					PXEURL: "10.42.100.100",
+					Enable: true,
+					Range: &vpcapi.VPCDHCPRange{
+						Start: "",
+						End:   "",
+					},
+					Options: &vpcapi.VPCDHCPOptions{
+						PXEURL: "10.42.100.100",
+					},
 				},
 			},
 		},

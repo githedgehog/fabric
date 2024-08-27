@@ -19,9 +19,9 @@
 replicaCount: 1
 
 image:
-  repository: env-2.l.hhdev.io:31000/githedgehog/fabric/fabric-dhcpd
+  repository: ghcr.io/githedgehog/fabric/fabric-dhcpd
   pullPolicy: Always
-  tag: "0.42.1-23-g55e9eef-dirty-1724447270"
+  tag: "0.0.0"
 
 imagePullSecrets: []
 nameOverride: ""
