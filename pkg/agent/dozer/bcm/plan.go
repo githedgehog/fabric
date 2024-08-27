@@ -1307,6 +1307,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
 
+		extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
+		if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
+			spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
+				Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+			}
+		}
+
 		spec.PrefixLists[vpcNotSubnetsPrefixListName(vpcName)] = &dozer.SpecPrefixList{
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
 				65535: {
@@ -1422,6 +1429,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				"5": {
 					Conditions: dozer.SpecRouteMapConditions{
 						MatchPrefixList: pointer.To(vpcStaticExtSubnetsPrefixListName(vpcName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(vpcExtPrefixesPrefixListName(vpcName)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -2084,6 +2097,31 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
+		if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
+			spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
+				Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+			}
+		}
+
+		for _, prefix := range peering.Permit.External.Prefixes {
+			idx := agent.Spec.Catalog.SubnetIDs[prefix.Prefix]
+			if idx == 0 {
+				return errors.Errorf("no external peering prefix id for prefix %s in peering %s", prefix.Prefix, name)
+			}
+			if idx >= 65000 {
+				return errors.Errorf("external peering prefix id for prefix %s in peering %s is too large", prefix.Prefix, name)
+			}
+
+			spec.PrefixLists[extPrefixesName].Prefixes[idx] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: prefix.Prefix,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			}
+		}
+
 		ipnsVrf := ipnsVrfName(external.IPv4Namespace)
 		vpcVrf := vpcVrfName(vpcName)
 
@@ -2385,6 +2423,10 @@ func vpcNotSubnetsPrefixListName(vpc string) string {
 
 func vpcStaticExtSubnetsPrefixListName(vpc string) string {
 	return fmt.Sprintf("vpc-static-ext-subnets--%s", vpc)
+}
+
+func vpcExtPrefixesPrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-ext-prefixes--%s", vpc)
 }
 
 func ipnsEgressAccessList(ipns string) string {
