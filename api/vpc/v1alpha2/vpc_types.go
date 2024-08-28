@@ -417,6 +417,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 					}
 				}
 
+				if subnetCfg.DHCP.Options.InterfaceMTU < 96 {
+					return nil, errors.Errorf("subnet %s: MTU cannot be set smaller than 96", subnetName)
+				}
 				if subnetCfg.DHCP.Options.InterfaceMTU > 9036 {
 					return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
 				}
