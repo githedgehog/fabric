@@ -108,7 +108,7 @@ type VPCDHCPOptions struct {
 	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	InterfaceMTU uint16 `json:"interfaceMTU"`
 	// DefaultOnieURL (optional) is the URL supplied to a onie agent to dowload the OS image
-	DefaultOnieURL string
+	DefaultOnieURL string `json:"defaultOnieURL"`
 }
 
 // VPCStaticRoute defines the static route for the VPC

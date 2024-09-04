@@ -47,7 +47,7 @@ type DHCPSubnetSpec struct {
 	// +kubebuilder:validation:Maximum: 9036
 	InterfaceMTU uint16 `json:"interfaceMTU"`
 	// DefaultOnieURL (optional) is the URL supplied to a onie agent to dowload the OS image
-	DefaultOnieURL string
+	DefaultOnieURL string `json:"defaultOnieURL"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet

@@ -1383,6 +1383,11 @@ spec:
                                 description: Options (optional) is the DHCP options
                                   for the subnet if DHCP server is enabled
                                 properties:
+                                  defaultOnieURL:
+                                    description: DefaultOnieURL (optional) is the
+                                      URL supplied to a onie agent to dowload the
+                                      OS image
+                                    type: string
                                   dnsServers:
                                     description: 'DNSservers (optional) to configure
                                       Domain Name Servers for this particular segment
@@ -1412,6 +1417,7 @@ spec:
                                       type: string
                                     type: array
                                 required:
+                                - defaultOnieURL
                                 - interfaceMTU
                                 type: object
                               range:

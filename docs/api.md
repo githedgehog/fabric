@@ -649,6 +649,7 @@ _Appears in:_
 | `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
 | `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
 | `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
+| `defaultOnieURL` _string_ | DefaultOnieURL (optional) is the URL supplied to a onie agent to dowload the OS image |  |  |
 
 
 #### DHCPSubnetStatus
@@ -1093,6 +1094,7 @@ _Appears in:_
 | `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: {} <br /> |
 | `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: {} <br /> |
 | `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
+| `defaultOnieURL` _string_ | DefaultOnieURL (optional) is the URL supplied to a onie agent to dowload the OS image |  |  |
 
 
 #### VPCDHCPRange

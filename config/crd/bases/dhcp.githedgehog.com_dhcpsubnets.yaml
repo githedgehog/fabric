@@ -93,6 +93,10 @@ spec:
                 description: VLAN ID to identify specific subnet withing the VPC,
                   such as "Vlan1000" as it's named on switch
                 type: string
+              defaultOnieURL:
+                description: DefaultOnieURL (optional) is the URL supplied to a onie
+                  agent to dowload the OS image
+                type: string
               dnsServers:
                 description: 'DNSservers (optional) to configure Domain Name Servers
                   for this particular segment such as: 10.10.10.1, 10.10.10.2'
@@ -137,6 +141,7 @@ spec:
             required:
             - cidrBlock
             - circuitID
+            - defaultOnieURL
             - dnsServers
             - endIP
             - gateway
