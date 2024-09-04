@@ -45,6 +45,10 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 				switch event.Type {
 				case EventTypeAdded:
 					pluginHdl.dhcpSubnets.Lock()
+					if len(event.Subnet.Spec.VRF) == 0 && len(event.Subnet.Spec.CircuitID) == 0 {
+						event.Subnet.Spec.VRF = vrfoob
+						event.Subnet.Spec.CircuitID = circuitIDoob
+					}
 					if val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]; ok {
 						log.Errorf("Received Add event for already existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)
 						if event.Subnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP ||
