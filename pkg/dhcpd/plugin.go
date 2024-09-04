@@ -45,6 +45,10 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 				switch event.Type {
 				case EventTypeAdded:
 					pluginHdl.dhcpSubnets.Lock()
+					if len(event.Subnet.Spec.VRF) == 0 && len(event.Subnet.Spec.CircuitID) == 0 {
+						event.Subnet.Spec.VRF = vrfOob
+						event.Subnet.Spec.CircuitID = circuitIDoob
+					}
 					if val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]; ok {
 						log.Errorf("Received Add event for already existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)
 						if event.Subnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP ||
@@ -121,6 +125,10 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					// Lets handle this later
 					// Will require merge
 					pluginHdl.dhcpSubnets.Lock()
+					if len(event.Subnet.Spec.VRF) == 0 && len(event.Subnet.Spec.CircuitID) == 0 {
+						event.Subnet.Spec.VRF = vrfOob
+						event.Subnet.Spec.CircuitID = circuitIDoob
+					}
 					val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
 					if !ok {
 						log.Errorf("Received modify event for dhcp subnet that does not exist: %s:%s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID)
@@ -152,6 +160,11 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					pluginHdl.dhcpSubnets.Unlock()
 				case EventTypeDeleted:
 					pluginHdl.dhcpSubnets.Lock()
+					if len(event.Subnet.Spec.VRF) == 0 && len(event.Subnet.Spec.CircuitID) == 0 {
+						event.Subnet.Spec.VRF = vrfOob
+						event.Subnet.Spec.CircuitID = circuitIDoob
+						log.Warnf("Received Delete for OOB subnet with CIDR block %s", event.Subnet.Spec.CIDRBlock)
+					}
 					val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
 					if !ok {
 						log.Errorf("Received Delete event for non existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)

@@ -17,6 +17,7 @@ package v1alpha2
 import (
 	"context"
 	"net"
+	"net/url"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -106,6 +107,8 @@ type VPCDHCPOptions struct {
 	// +kubebuilder:validation:Maximum: 9036
 	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	InterfaceMTU uint16 `json:"interfaceMTU"`
+	// DefaultOnieURL (optional) is the URL supplied to a onie agent to dowload the OS image
+	DefaultOnieURL string
 }
 
 // VPCStaticRoute defines the static route for the VPC
@@ -350,6 +353,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 
 			if subnetCfg.DHCP.Options.InterfaceMTU > 0 {
 				return nil, errors.Errorf("subnet %s: InterfaceMTU is set but dhcp is disabled", subnetName)
+			}
+			if _, err := url.ParseRequestURI(subnetCfg.DHCP.Options.DefaultOnieURL); err != nil {
+				return nil, errors.Errorf("Default Onie URL %s is not a valid URL")
 			}
 		}
 

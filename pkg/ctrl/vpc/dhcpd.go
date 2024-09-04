@@ -191,6 +191,7 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 			pxeURL := ""
 			dnsServers := []string{}
 			timeServers := []string{}
+			defaultOnieURL := ""
 			mtu := uint16(9036) // TODO constant
 
 			if subnet.DHCP.Options != nil {
@@ -201,6 +202,7 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 				if subnet.DHCP.Options.InterfaceMTU > 0 {
 					mtu = subnet.DHCP.Options.InterfaceMTU
 				}
+				defaultOnieURL = subnet.DHCP.Options.DefaultOnieURL
 			}
 
 			dhcp.Labels = map[string]string{
@@ -208,17 +210,18 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 				vpcapi.LabelSubnet: subnetName,
 			}
 			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
-				Subnet:       fmt.Sprintf("%s/%s", vpc.Name, subnetName),
-				CIDRBlock:    subnet.Subnet,
-				Gateway:      subnet.Gateway,
-				StartIP:      subnet.DHCP.Range.Start,
-				EndIP:        subnet.DHCP.Range.End,
-				VRF:          fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
-				CircuitID:    fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
-				PXEURL:       pxeURL,
-				DNSServers:   dnsServers,
-				TimeServers:  timeServers,
-				InterfaceMTU: mtu,
+				Subnet:         fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock:      subnet.Subnet,
+				Gateway:        subnet.Gateway,
+				StartIP:        subnet.DHCP.Range.Start,
+				EndIP:          subnet.DHCP.Range.End,
+				VRF:            fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
+				CircuitID:      fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				PXEURL:         pxeURL,
+				DNSServers:     dnsServers,
+				TimeServers:    timeServers,
+				InterfaceMTU:   mtu,
+				DefaultOnieURL: defaultOnieURL,
 			}
 
 			return nil
