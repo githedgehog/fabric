@@ -73,6 +73,15 @@ func Test_handleDiscover4(t *testing.T) {
 							allocation: make(map[string]*ipreservation),
 						},
 					}
+					pluginHdl.dhcpSubnets.subnets[vrfOob+circuitIDoob] = &ManagedSubnet{
+						dhcpSubnet: &v1alpha2.DHCPSubnet{
+							Spec: v1alpha2.DHCPSubnetSpec{},
+						},
+						pool: pool,
+						allocations: &ipallocations{
+							allocation: make(map[string]*ipreservation),
+						},
+					}
 					hardwareAddress, _ := net.ParseMAC("00:00:00:00:00:01")
 					req, _ := dhcpv4.NewDiscovery(hardwareAddress)
 
@@ -346,7 +355,7 @@ func Test_handleRequest4(t *testing.T) {
 					hardwareAddress, _ := net.ParseMAC("00:00:00:00:00:01")
 					req, _ := dhcpv4.NewDiscovery(hardwareAddress, dhcpv4.WithGeneric(dhcpv4.OptionRelayAgentInformation, []byte{
 						1, 8, 'V', 'l', 'a', 'n', '2', '0', '0', '0',
-						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '5',
+						151, 7, ' ', 'V', 'r', 'f', 'V', '1', '6',
 					}))
 					resp, _ := dhcpv4.NewReplyFromRequest(req)
 
@@ -355,7 +364,7 @@ func Test_handleRequest4(t *testing.T) {
 			},
 			wantErr: false,
 			expectedState: func() bool {
-				if val, ok := pluginHdl.dhcpSubnets.subnets[VrfV15+Vlan2000]; ok {
+				if val, ok := pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000]; ok {
 					res, ok := val.allocations.allocation["00:00:00:00:00:01"]
 					if !ok {
 						return false
@@ -619,7 +628,41 @@ func Test_handleDecline4(t *testing.T) {
 			args: args{
 				req: func() *dhcpv4.DHCPv4 {
 					decline, _ := dhcpv4.New(dhcpv4.WithMessageType(dhcpv4.MessageTypeDecline))
-
+					if pluginHdl == nil {
+						pluginHdl = &pluginState{
+							dhcpSubnets: &DHCPSubnets{
+								subnets: map[string]*ManagedSubnet{},
+							},
+							// svcHdl: svc,
+						}
+					}
+					pool, _ := newIPv4Range(
+						net.ParseIP("10.10.1.10"),
+						net.ParseIP("10.10.1.12"),
+						net.ParseIP("10.10.1.1"),
+						binary.BigEndian.Uint32(net.ParseIP("10.10.1.12").To4())-binary.BigEndian.Uint32(net.ParseIP("10.10.1.10").To4())+1,
+						uint32(24),
+					)
+					pluginHdl.dhcpSubnets.subnets[vrfOob+circuitIDoob] = &ManagedSubnet{
+						dhcpSubnet: &v1alpha2.DHCPSubnet{
+							Spec: v1alpha2.DHCPSubnetSpec{},
+							Status: v1alpha2.DHCPSubnetStatus{
+								Allocated: map[string]v1alpha2.DHCPAllocated{},
+							},
+						},
+						pool: pool,
+						allocations: &ipallocations{
+							allocation: map[string]*ipreservation{
+								"00:00:00:00:00:04": {
+									address:    net.IPNet{IP: net.ParseIP("10.10.1.10"), Mask: net.CIDRMask(24, 32)},
+									macAddress: "00:00:00:00:00:04",
+									expiry:     time.Now().Add(time.Hour * 1),
+									hostname:   "testhost",
+									state:      committed,
+								},
+							},
+						},
+					}
 					return decline
 				}(),
 				resp: func() *dhcpv4.DHCPv4 {

@@ -363,8 +363,10 @@ func handleDecline4(req, _ /* resp */ *dhcpv4.DHCPv4) error {
 	reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
 	if !ok {
 		log.Debugf("No reservation found for mac %s ip %s", req.ClientHWAddr.String(), req.ClientIPAddr.String())
+		return nil
 	}
 	delete(subnet.allocations.allocation, req.ClientHWAddr.String())
+
 	if err := subnet.pool.Free(reservation.address); err != nil {
 		log.Errorf("IP address %s could not be released", reservation.address.String())
 	}
@@ -456,7 +458,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 
 	// Add TFTP server Option Name
-	if len(subnet.dhcpSubnet.Spec.PXEURL) <= 0 &&
+	if len(subnet.dhcpSubnet.Spec.PXEURL) >= 0 &&
 		(req.IsOptionRequested(dhcpv4.OptionTFTPServerName) || req.IsOptionRequested(dhcpv4.OptionBootfileName)) { // PxeURL is not specified return early with an error message
 		log.Errorf("Client Requested pxe but it is not configured circuitID %s vrfName %s macAddress %s", circuitID, vrfName, req.ClientHWAddr.String())
 
