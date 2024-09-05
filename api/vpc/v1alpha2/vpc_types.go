@@ -354,8 +354,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 			if subnetCfg.DHCP.Options.InterfaceMTU > 0 {
 				return nil, errors.Errorf("subnet %s: InterfaceMTU is set but dhcp is disabled", subnetName)
 			}
-			if _, err := url.ParseRequestURI(subnetCfg.DHCP.Options.DefaultOnieURL); err != nil {
-				return nil, errors.Errorf("Default Onie URL %s is not a valid URL")
+			if _, err := url.ParseRequestURI(subnetCfg.DHCP.Options.DefaultOnieURL); err != nil && len(subnetCfg.DHCP.Options.DefaultOnieURL) != 0 {
+				return nil, errors.Errorf("Default Onie URL %s is not a valid URL", subnetCfg.DHCP.Options.DefaultOnieURL)
 			}
 		}
 

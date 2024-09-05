@@ -102,7 +102,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 		}
 		if strings.HasPrefix(req.ClassIdentifier(), onieClassIdentifier) {
 			if len(subnet.dhcpSubnet.Spec.DefaultOnieURL) == 0 {
-				log.Errorf("onie subnet configured without default URL", subnet.dhcpSubnet.Spec.CIDRBlock)
+				log.Errorf("onie subnet %s configured without default URL", subnet.dhcpSubnet.Spec.CIDRBlock)
 			} else {
 				resp.Options.Update(dhcpv4.Option{
 					Code: dhcpv4.OptionURL,
