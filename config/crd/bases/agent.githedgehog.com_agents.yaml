@@ -1249,6 +1249,10 @@ spec:
                     type: string
                   default:
                     type: string
+                  nosFileName:
+                    type: string
+                  nosRepo:
+                    type: string
                   nosVersion:
                     type: string
                   override:

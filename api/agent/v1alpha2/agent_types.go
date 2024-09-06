@@ -94,7 +94,9 @@ type AgentVersion struct {
 	CA           string `json:"ca,omitempty"`
 	AlloyRepo    string `json:"alloyRepo,omitempty"`
 	AlloyVersion string `json:"alloyVersion,omitempty"`
+	NOSRepo      string `json:"nosRepo,omitempty"`
 	NOSVersion   string `json:"nosVersion,omitempty"`
+	NOSFileName  string `json:"nosFileName,omitempty"`
 }
 
 type UserCreds struct {
@@ -526,6 +528,8 @@ type Agent struct {
 	// Status is the observed state of the Agent
 	Status AgentStatus `json:"status,omitempty"`
 }
+
+const KindAgent = "Agent"
 
 //+kubebuilder:object:root=true
 
