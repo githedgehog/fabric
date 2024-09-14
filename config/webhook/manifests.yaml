@@ -30,6 +30,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-wiring-githedgehog-com-v1alpha2-controlnode
+  failurePolicy: Fail
+  name: mcontrolnode.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - controlnodes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-vpc-githedgehog-com-v1alpha2-external
   failurePolicy: Fail
   name: mexternal.kb.io
@@ -270,6 +290,27 @@ webhooks:
     - DELETE
     resources:
     - connections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1alpha2-controlnode
+  failurePolicy: Fail
+  name: vcontrolnode.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - controlnodes
   sideEffects: None
 - admissionReviewVersions:
   - v1

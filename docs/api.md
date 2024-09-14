@@ -1266,6 +1266,7 @@ the underlay definition including Switches, Server, wiring between them and etc.
 
 ### Resource Types
 - [Connection](#connection)
+- [ControlNode](#controlnode)
 - [Server](#server)
 - [Switch](#switch)
 - [SwitchGroup](#switchgroup)
@@ -1648,6 +1649,58 @@ ConnectionStatus defines the observed state of Connection
 
 _Appears in:_
 - [Connection](#connection)
+
+
+
+#### ControlNode
+
+
+
+ControlNode is the Schema for the controlnodes API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `kind` _string_ | `ControlNode` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ControlNodeSpec](#controlnodespec)_ |  |  |  |
+| `status` _[ControlNodeStatus](#controlnodestatus)_ |  |  |  |
+
+
+#### ControlNodeSpec
+
+
+
+ControlNodeSpec defines configuration for the ControlNode
+
+
+
+_Appears in:_
+- [ControlNode](#controlnode)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `targetDevice` _string_ |  |  |  |
+| `mgmtIface` _string_ |  |  |  |
+| `mgmtIP` _string_ |  |  |  |
+| `extIface` _string_ |  |  |  |
+| `extIP` _string_ |  |  |  |
+
+
+#### ControlNodeStatus
+
+
+
+ControlNodeStatus defines the observed state of ControlNode
+
+
+
+_Appears in:_
+- [ControlNode](#controlnode)
 
 
 
