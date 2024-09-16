@@ -829,8 +829,8 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 			}
 
 			if fan.Presence != nil {
-				reg.PlatformMetrics.Fan.Presense.WithLabelValues(fanName).Set(boolToFloat64(fan.Presence))
-				st.Presense = *fan.Presence
+				reg.PlatformMetrics.Fan.Presence.WithLabelValues(fanName).Set(boolToFloat64(fan.Presence))
+				st.Presence = *fan.Presence
 			}
 
 			if fan.Status != nil {
@@ -855,8 +855,8 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 			st := agentapi.SwitchStatePlatformPSU{}
 
 			if psu.Presence != nil {
-				reg.PlatformMetrics.PSU.Presense.WithLabelValues(psuName).Set(boolToFloat64(psu.Presence))
-				st.Presense = *psu.Presence
+				reg.PlatformMetrics.PSU.Presence.WithLabelValues(psuName).Set(boolToFloat64(psu.Presence))
+				st.Presence = *psu.Presence
 			}
 
 			if psu.Status != nil {

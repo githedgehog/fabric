@@ -279,10 +279,10 @@ func (h *DefaultMapEnforcer[Key, Value]) Handle(basePath string, actualMap, desi
 type DefaultValueEnforcer[Key comparable, Value dozer.SpecPart] struct {
 	Summary       string
 	Skip          func(key Key, actual, desired Value) bool // skip if true
-	Getter        func(key Key, value Value) any            // nil to use Value for comparision or it should return values to compart
+	Getter        func(key Key, value Value) any            // nil to use Value for comparison or it should return values to compart
 	NoReplace     bool                                      // replace instead of update
-	MutateActual  func(key Key, actual Value) Value         // Mutates actual value before comparision
-	MutateDesired func(key Key, desired Value) Value        // Mutates desired value before comparision
+	MutateActual  func(key Key, actual Value) Value         // Mutates actual value before comparison
+	MutateDesired func(key Key, desired Value) Value        // Mutates desired value before comparison
 
 	CustomHandler func(basePath string, key Key, actual, desired Value, actions *ActionQueue) error // will be used instead of default one
 

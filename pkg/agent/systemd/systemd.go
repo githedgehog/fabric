@@ -59,7 +59,7 @@ WantedBy=multi-user.target
 
 // TODO identify better deps and wantedby if available
 // Requires=database.service and After=database.service potentially makes sense as it probably doesn't make any sense
-// to start agent without database available. On the other hand, for some recovery scenarious it could be helpful.
+// to start agent without database available. On the other hand, for some recovery scenarios it could be helpful.
 // Should we use WantedBy=sonic.target instead of multi-user.target? Agent is potentially closest to the
 // database.service which is using multi-user.target.
 // TODO think about RestartSec and StartLimitIntervalSec=1200 StartLimitBurst=3, we probably shouldn't limit agent and

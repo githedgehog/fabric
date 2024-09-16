@@ -75,7 +75,7 @@ spec:
             properties:
               connection:
                 description: Connection is the name of the Connection object this
-                  attachment belongs to (essentialy the name of the switch/port)
+                  attachment belongs to (essentially the name of the switch/port)
                 type: string
               external:
                 description: External is the name of the External object this attachment

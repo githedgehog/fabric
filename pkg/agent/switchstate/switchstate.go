@@ -171,7 +171,7 @@ type PlatformMetrics struct {
 
 type PlatformFanMetrics struct {
 	Speed    *prometheus.GaugeVec
-	Presense *prometheus.GaugeVec
+	Presence *prometheus.GaugeVec
 	Status   *prometheus.GaugeVec
 }
 
@@ -182,7 +182,7 @@ type PlatformPSUMetrics struct {
 	OutputCurrent *prometheus.GaugeVec
 	OutputPower   *prometheus.GaugeVec
 	OutputVoltage *prometheus.GaugeVec
-	Presense      *prometheus.GaugeVec
+	Presence      *prometheus.GaugeVec
 	Status        *prometheus.GaugeVec
 }
 
@@ -434,7 +434,7 @@ func NewRegistry() *Registry {
 		PlatformMetrics: PlatformMetrics{
 			Fan: PlatformFanMetrics{
 				Speed:    newPlatformGaugeVec("platform_fan_speed", "Fan speed"),
-				Presense: newPlatformGaugeVec("platform_fan_presense", "Fan presense"),
+				Presence: newPlatformGaugeVec("platform_fan_presence", "Fan presence"),
 				Status:   newPlatformGaugeVec("platform_fan_status", "Fan status"),
 			},
 			PSU: PlatformPSUMetrics{
@@ -444,7 +444,7 @@ func NewRegistry() *Registry {
 				OutputCurrent: newPlatformGaugeVec("platform_psu_output_current", "PSU output current"),
 				OutputPower:   newPlatformGaugeVec("platform_psu_output_power", "PSU output power"),
 				OutputVoltage: newPlatformGaugeVec("platform_psu_output_voltage", "PSU output voltage"),
-				Presense:      newPlatformGaugeVec("platform_psu_presense", "PSU presense"),
+				Presence:      newPlatformGaugeVec("platform_psu_presence", "PSU presence"),
 				Status:        newPlatformGaugeVec("platform_psu_status", "PSU status"),
 			},
 			Temperature: PlatformTemperatureMetrics{

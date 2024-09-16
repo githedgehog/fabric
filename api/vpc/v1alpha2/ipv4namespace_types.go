@@ -47,7 +47,7 @@ type IPv4NamespaceStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=ipns
 // +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets withing a single IPv4Namespace are
+// IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets within a single IPv4Namespace are
 // non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC subnets.
 type IPv4Namespace struct {
 	metav1.TypeMeta   `json:",inline"`

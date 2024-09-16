@@ -385,7 +385,7 @@ type SwitchStatePlatform struct {
 type SwitchStatePlatformFan struct {
 	Direction string  `json:"direction,omitempty"`
 	Speed     float64 `json:"speed,omitempty"`
-	Presense  bool    `json:"presense,omitempty"`
+	Presence  bool    `json:"presence,omitempty"`
 	Status    bool    `json:"status,omitempty"`
 }
 
@@ -396,7 +396,7 @@ type SwitchStatePlatformPSU struct {
 	OutputCurrent float64 `json:"outputCurrent,omitempty"`
 	OutputPower   float64 `json:"outputPower,omitempty"`
 	OutputVoltage float64 `json:"outputVoltage,omitempty"`
-	Presense      bool    `json:"presense,omitempty"`
+	Presence      bool    `json:"presence,omitempty"`
 	Status        bool    `json:"status,omitempty"`
 }
 

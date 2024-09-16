@@ -81,7 +81,7 @@ func (r *ipv4range) GatewayIP() net.IP {
 	return val
 }
 
-// Allocate allocates the next availabe IP in range
+// Allocate allocates the next available IP in range
 func (r *ipv4range) Allocate() (net.IPNet, error) {
 	r.Lock()
 	defer r.Unlock()
