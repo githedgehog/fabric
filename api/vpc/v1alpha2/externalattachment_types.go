@@ -33,7 +33,7 @@ import (
 type ExternalAttachmentSpec struct {
 	// External is the name of the External object this attachment belongs to
 	External string `json:"external,omitempty"`
-	// Connection is the name of the Connection object this attachment belongs to (essentialy the name of the switch/port)
+	// Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port)
 	Connection string `json:"connection,omitempty"`
 	// Switch is the switch port configuration for the external attachment
 	Switch ExternalAttachmentSwitch `json:"switch,omitempty"`

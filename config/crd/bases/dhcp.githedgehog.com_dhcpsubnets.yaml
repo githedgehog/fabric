@@ -90,8 +90,8 @@ spec:
                 description: CIDR block to use for VPC subnet, such as "10.10.10.0/24"
                 type: string
               circuitID:
-                description: VLAN ID to identify specific subnet withing the VPC,
-                  such as "Vlan1000" as it's named on switch
+                description: VLAN ID to identify specific subnet within the VPC, such
+                  as "Vlan1000" as it's named on switch
                 type: string
               dnsServers:
                 description: 'DNSservers (optional) to configure Domain Name Servers

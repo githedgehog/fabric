@@ -696,7 +696,7 @@ spec:
                   properties:
                     connection:
                       description: Connection is the name of the Connection object
-                        this attachment belongs to (essentialy the name of the switch/port)
+                        this attachment belongs to (essentially the name of the switch/port)
                       type: string
                     external:
                       description: External is the name of the External object this
@@ -2098,7 +2098,7 @@ spec:
                           properties:
                             direction:
                               type: string
-                            presense:
+                            presence:
                               type: boolean
                             speed:
                               type: number
@@ -2121,7 +2121,7 @@ spec:
                               type: number
                             outputVoltage:
                               type: number
-                            presense:
+                            presence:
                               type: boolean
                             status:
                               type: boolean

@@ -495,7 +495,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `direction` _string_ |  |  |  |
 | `speed` _float_ |  |  |  |
-| `presense` _boolean_ |  |  |  |
+| `presence` _boolean_ |  |  |  |
 | `status` _boolean_ |  |  |  |
 
 
@@ -518,7 +518,7 @@ _Appears in:_
 | `outputCurrent` _float_ |  |  |  |
 | `outputPower` _float_ |  |  |  |
 | `outputVoltage` _float_ |  |  |  |
-| `presense` _boolean_ |  |  |  |
+| `presence` _boolean_ |  |  |  |
 | `status` _boolean_ |  |  |  |
 
 
@@ -644,7 +644,7 @@ _Appears in:_
 | `startIP` _string_ | Start IP from the CIDRBlock to allocate IPs, such as 10.10.10.10 |  |  |
 | `endIP` _string_ | End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99 |  |  |
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |  |  |
-| `circuitID` _string_ | VLAN ID to identify specific subnet withing the VPC, such as "Vlan1000" as it's named on switch |  |  |
+| `circuitID` _string_ | VLAN ID to identify specific subnet within the VPC, such as "Vlan1000" as it's named on switch |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
 | `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
 | `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
@@ -756,7 +756,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `external` _string_ | External is the name of the External object this attachment belongs to |  |  |
-| `connection` _string_ | Connection is the name of the Connection object this attachment belongs to (essentialy the name of the switch/port) |  |  |
+| `connection` _string_ | Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port) |  |  |
 | `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment |  |  |
 | `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment |  |  |
 
@@ -942,7 +942,7 @@ _Appears in:_
 
 
 
-IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets withing a single IPv4Namespace are
+IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets within a single IPv4Namespace are
 non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC subnets.
 
 
