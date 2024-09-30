@@ -721,7 +721,7 @@ func marshalEthernetTrunkVLANs(value *dozer.SpecInterface) ([]oc.OpenconfigInter
 			if err != nil {
 				return nil, errors.Wrapf(err, "can't parse %s", vlan)
 			}
-			vlanVal := uint16(value) //nolint:gosec
+			vlanVal := uint16(value)
 			trunkVLANs = append(trunkVLANs, oc.UnionUint16(vlanVal))
 		}
 	}
@@ -740,7 +740,7 @@ func marshalPortChannelTrunkVLANs(value *dozer.SpecInterface) ([]oc.OpenconfigIn
 			if err != nil {
 				return nil, errors.Wrapf(err, "can't parse %s", vlan)
 			}
-			vlanVal := uint16(value) //nolint:gosec
+			vlanVal := uint16(value)
 			trunkVLANs = append(trunkVLANs, oc.UnionUint16(vlanVal))
 		}
 	}
@@ -787,7 +787,7 @@ func unmarshalVLAN(in any) (*uint16, error) {
 			return nil, errors.Wrapf(err, "can't parse %s", in)
 		}
 
-		return pointer.To(uint16(vlanVal)), nil //nolint:gosec
+		return pointer.To(uint16(vlanVal)), nil
 	} else if numVal, ok := in.(oc.UnionUint16); ok {
 		return pointer.To(uint16(numVal)), nil
 	}

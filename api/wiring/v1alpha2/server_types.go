@@ -19,7 +19,6 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -27,19 +26,8 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:validation:Enum=control;
-// ServerType is the type of server, could be control for control nodes or default (empty string) for everything else
-type ServerType string
-
-const (
-	ServerTypeControl ServerType = "control"
-	ServerTypeDefault ServerType = "" // or nil - just a server
-)
-
 // ServerSpec defines the desired state of Server
 type ServerSpec struct {
-	// Type is the type of server, could be control for control nodes or default (empty string) for everything else
-	Type ServerType `json:"type,omitempty"`
 	// Description is a description of the server
 	Description string `json:"description,omitempty"`
 	// Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric
@@ -95,16 +83,6 @@ func (srvList *ServerList) GetItems() []meta.Object {
 	return items
 }
 
-func (server *Server) IsControl() bool {
-	return server.Spec.Type == ServerTypeControl
-}
-
-func (serverSpec *ServerSpec) Labels() map[string]string {
-	return map[string]string{
-		LabelServerType: string(serverSpec.Type),
-	}
-}
-
 func (server *Server) Default() {
 	meta.DefaultObjectMetadata(server)
 
@@ -113,8 +91,6 @@ func (server *Server) Default() {
 	}
 
 	CleanupFabricLabels(server.Labels)
-
-	maps.Copy(server.Labels, server.Spec.Labels())
 }
 
 func (server *Server) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {

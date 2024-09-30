@@ -112,23 +112,6 @@ func TestIsServerReachable(t *testing.T) {
 			err:       true,
 		},
 		{
-			name: "source-is-control",
-			existing: []meta.Object{
-				&wiringapi.Server{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "source",
-					},
-					Spec: wiringapi.ServerSpec{
-						Type: wiringapi.ServerTypeControl,
-					},
-				},
-			},
-			source:    "source",
-			dest:      "dest",
-			reachable: false,
-			err:       true,
-		},
-		{
 			name: "only-servers",
 			existing: []meta.Object{
 				&wiringapi.Server{

@@ -62,12 +62,6 @@ spec:
                 description: Profile is the profile of the server, name of the ServerProfile
                   object to be used for this server, currently not used by the Fabric
                 type: string
-              type:
-                description: Type is the type of server, could be control for control
-                  nodes or default (empty string) for everything else
-                enum:
-                - control
-                type: string
             type: object
           status:
             description: Status is the observed state of the server

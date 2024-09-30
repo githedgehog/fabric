@@ -412,60 +412,11 @@ spec:
                           minItems: 1
                           type: array
                       type: object
-                    management:
-                      description: Management defines the management connection (single
-                        control node/server to a single switch with a single link)
-                      properties:
-                        link:
-                          description: ConnMgmtLink defines the management connection
-                            link
-                          properties:
-                            server:
-                              description: Server is the server side of the management
-                                link
-                              properties:
-                                ip:
-                                  description: IP is the IP address of the server
-                                    side of the management link (control node port
-                                    configuration)
-                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                  type: string
-                                mac:
-                                  description: |-
-                                    MAC is an optional MAC address of the control node port for the management link, if specified will be used to
-                                    create a "virtual" link with the connection names on the control node
-                                  type: string
-                                port:
-                                  description: |-
-                                    Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
-                                    SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
-                                  type: string
-                              type: object
-                            switch:
-                              description: Switch is the switch side of the management
-                                link
-                              properties:
-                                ip:
-                                  description: IP is the IP address of the switch
-                                    side of the management link (switch port configuration)
-                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
-                                  type: string
-                                oniePortName:
-                                  description: ONIEPortName is an optional ONIE port
-                                    name of the switch side of the management link
-                                    that's only used by the IPv6 Link Local discovery
-                                  type: string
-                                port:
-                                  description: |-
-                                    Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
-                                    SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
-                                  type: string
-                              type: object
-                          type: object
-                      type: object
                     mclag:
-                      description: MCLAG defines the MCLAG connection (port channel,
-                        single server to pair of switches with multiple links)
+                      description: |-
+                        // Management defines the management connection (single control node/server to a single switch with a single link)
+                        Management *ConnMgmt `json:"management,omitempty"`
+                        MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
                       properties:
                         fallback:
                           description: Fallback is the optional flag that used to
@@ -858,6 +809,18 @@ spec:
                     description: ASN is the ASN of the switch
                     format: int32
                     type: integer
+                  boot:
+                    description: Boot is the boot/provisioning information of the
+                      switch
+                    properties:
+                      mac:
+                        description: Identify switch by MAC address of the management
+                          port
+                        type: string
+                      serial:
+                        description: Identify switch by serial number
+                        type: string
+                    type: object
                   description:
                     description: Description is a description of the switch
                     type: string
@@ -871,29 +834,6 @@ spec:
                     description: IP is the IP of the switch that could be used to
                       access it from other switches and control nodes in the Fabric
                     type: string
-                  location:
-                    description: Location is the location of the switch, it is used
-                      to generate the location UUID and location signature
-                    properties:
-                      aisle:
-                        type: string
-                      location:
-                        type: string
-                      rack:
-                        type: string
-                      row:
-                        type: string
-                      slot:
-                        type: string
-                    type: object
-                  locationSig:
-                    description: LocationSig is the location signature for the switch
-                    properties:
-                      sig:
-                        type: string
-                      uuidSig:
-                        type: string
-                    type: object
                   portAutoNegs:
                     additionalProperties:
                       type: boolean
@@ -1115,6 +1055,18 @@ spec:
                       description: ASN is the ASN of the switch
                       format: int32
                       type: integer
+                    boot:
+                      description: Boot is the boot/provisioning information of the
+                        switch
+                      properties:
+                        mac:
+                          description: Identify switch by MAC address of the management
+                            port
+                          type: string
+                        serial:
+                          description: Identify switch by serial number
+                          type: string
+                      type: object
                     description:
                       description: Description is a description of the switch
                       type: string
@@ -1128,29 +1080,6 @@ spec:
                       description: IP is the IP of the switch that could be used to
                         access it from other switches and control nodes in the Fabric
                       type: string
-                    location:
-                      description: Location is the location of the switch, it is used
-                        to generate the location UUID and location signature
-                      properties:
-                        aisle:
-                          type: string
-                        location:
-                          type: string
-                        rack:
-                          type: string
-                        row:
-                          type: string
-                        slot:
-                          type: string
-                      type: object
-                    locationSig:
-                      description: LocationSig is the location signature for the switch
-                      properties:
-                        sig:
-                          type: string
-                        uuidSig:
-                          type: string
-                      type: object
                     portAutoNegs:
                       additionalProperties:
                         type: boolean

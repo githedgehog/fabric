@@ -211,13 +211,13 @@ func unmarshalOCPrefixLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_Defi
 					if err != nil {
 						return nil, errors.Wrapf(err, "invalid mask length range %s for prefix list %s", *ocPrefix.Config.MasklengthRange, name)
 					}
-					le = uint8(leR) //nolint:gosec
+					le = uint8(leR)
 
 					geR, err := strconv.ParseUint(parts[0], 10, 8)
 					if err != nil {
 						return nil, errors.Wrapf(err, "invalid mask length range %s for prefix list %s", *ocPrefix.Config.MasklengthRange, name)
 					}
-					ge = uint8(geR) //nolint:gosec
+					ge = uint8(geR)
 				}
 
 				_, ipNet, err := net.ParseCIDR(key.IpPrefix)

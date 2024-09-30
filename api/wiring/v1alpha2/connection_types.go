@@ -35,7 +35,6 @@ import (
 const (
 	ConnectionTypeUnbundled      = "unbundled"
 	ConnectionTypeBundled        = "bundled"
-	ConnectionTypeManagement     = "management" // TODO rename to control?
 	ConnectionTypeMCLAG          = "mclag"
 	ConnectionTypeMCLAGDomain    = "mclag-domain"
 	ConnectionTypeESLAG          = "eslag"
@@ -91,42 +90,6 @@ type ConnBundled struct {
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
-}
-
-// ConnMgmtLinkServer defines the server side of the management link
-type ConnMgmtLinkServer struct {
-	// BasePortName defines the full name of the switch port
-	BasePortName `json:",inline"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
-	// IP is the IP address of the server side of the management link (control node port configuration)
-	IP string `json:"ip,omitempty"`
-	// MAC is an optional MAC address of the control node port for the management link, if specified will be used to
-	// create a "virtual" link with the connection names on the control node
-	MAC string `json:"mac,omitempty"`
-}
-
-// ConnMgmtLinkSwitch defines the switch side of the management link
-type ConnMgmtLinkSwitch struct {
-	// BasePortName defines the full name of the switch port
-	BasePortName `json:",inline"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
-	// IP is the IP address of the switch side of the management link (switch port configuration)
-	IP string `json:"ip,omitempty"`
-	// ONIEPortName is an optional ONIE port name of the switch side of the management link that's only used by the IPv6 Link Local discovery
-	ONIEPortName string `json:"oniePortName,omitempty"`
-}
-
-// ConnMgmtLink defines the management connection link
-type ConnMgmtLink struct {
-	// Server is the server side of the management link
-	Server ConnMgmtLinkServer `json:"server,omitempty"`
-	// Switch is the switch side of the management link
-	Switch ConnMgmtLinkSwitch `json:"switch,omitempty"`
-}
-
-// ConnMgmt defines the management connection (single control node/server to a single switch with a single link)
-type ConnMgmt struct {
-	Link ConnMgmtLink `json:"link,omitempty"`
 }
 
 // ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
@@ -252,8 +215,6 @@ type ConnectionSpec struct {
 	Unbundled *ConnUnbundled `json:"unbundled,omitempty"`
 	// Bundled defines the bundled connection (port channel, single server to a single switch with multiple links)
 	Bundled *ConnBundled `json:"bundled,omitempty"`
-	// Management defines the management connection (single control node/server to a single switch with a single link)
-	Management *ConnMgmt `json:"management,omitempty"`
 	// MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
 	MCLAG *ConnMCLAG `json:"mclag,omitempty"`
 	// ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
@@ -334,10 +295,7 @@ type IPort interface {
 	DeviceName() string
 }
 
-var (
-	_ IPort = &BasePortName{}
-	_ IPort = &ConnMgmtLinkSwitch{}
-)
+var _ IPort = &BasePortName{}
 
 func (pn *BasePortName) PortName() string {
 	return pn.Port
@@ -378,10 +336,6 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 					return INVALID // TODO replace with error?
 				}
 			}
-		} else if connSpec.Management != nil {
-			role = "mgmt"
-			left = connSpec.Management.Link.Server.DeviceName()
-			right = []string{connSpec.Management.Link.Switch.DeviceName()}
 		} else if connSpec.MCLAGDomain != nil {
 			role = "mclag-domain"
 			left = connSpec.MCLAGDomain.PeerLinks[0].Switch1.DeviceName() // TODO check session links?
@@ -447,8 +401,6 @@ func (connSpec *ConnectionSpec) Type() string {
 		return ConnectionTypeUnbundled
 	} else if connSpec.Bundled != nil {
 		return ConnectionTypeBundled
-	} else if connSpec.Management != nil {
-		return ConnectionTypeManagement
 	} else if connSpec.MCLAGDomain != nil {
 		return ConnectionTypeMCLAGDomain
 	} else if connSpec.MCLAG != nil {
@@ -537,24 +489,6 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 		if len(ports) != 2*len(connSpec.Bundled.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
-		}
-	} else if connSpec.Management != nil {
-		nonNills++
-
-		switches[connSpec.Management.Link.Switch.DeviceName()] = struct{}{}
-		servers[connSpec.Management.Link.Server.DeviceName()] = struct{}{}
-		ports[connSpec.Management.Link.Switch.PortName()] = struct{}{}
-		ports[connSpec.Management.Link.Server.PortName()] = struct{}{}
-		links[connSpec.Management.Link.Switch.PortName()] = connSpec.Management.Link.Server.PortName()
-
-		if len(switches) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one switch must be used for management connection")
-		}
-		if len(servers) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one server must be used for management connection")
-		}
-		if len(ports) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("two unique ports must be used for management connection")
 		}
 	} else if connSpec.MCLAGDomain != nil {
 		nonNills++
@@ -703,9 +637,7 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 	sep := colored("←→")
 
 	out := []string{}
-	if connSpec.Management != nil {
-		out = append(out, fmt.Sprintf("%s%s%s", connSpec.Management.Link.Server.PortName(), sep, connSpec.Management.Link.Switch.PortName()))
-	} else if connSpec.Fabric != nil {
+	if connSpec.Fabric != nil {
 		for _, link := range connSpec.Fabric.Links {
 			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Leaf.PortName()))
 		}

@@ -19,6 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,15 +30,19 @@ import (
 )
 
 func NewClient(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
-	return newClient(ctx, kubeconfigPath, false, schemeBuilders...)
+	return newClient(ctx, kubeconfigPath, false, false, schemeBuilders...)
+}
+
+func NewClientWithCore(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+	return newClient(ctx, kubeconfigPath, true, false, schemeBuilders...)
 }
 
 func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
-	return newClient(ctx, kubeconfigPath, true, schemeBuilders...)
+	return newClient(ctx, kubeconfigPath, false, true, schemeBuilders...)
 }
 
 // TODO cached version is minimal naive implementation with hanging go routine, need to be improved
-func newClient(ctx context.Context, kubeconfigPath string, cached bool, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
 	var cfg *rest.Config
 	var err error
 
@@ -55,6 +60,13 @@ func newClient(ctx context.Context, kubeconfigPath string, cached bool, schemeBu
 	}
 
 	scheme := runtime.NewScheme()
+
+	if core {
+		if err := corev1.AddToScheme(scheme); err != nil {
+			return nil, errors.Wrapf(err, "failed to add core scheme to runtime")
+		}
+	}
+
 	for _, schemeBuilder := range schemeBuilders {
 		if err := schemeBuilder.AddToScheme(scheme); err != nil {
 			return nil, errors.Wrapf(err, "failed to add scheme %s to runtime", schemeBuilder.GroupVersion.String())

@@ -217,27 +217,5 @@ func ValidateFabric(ctx context.Context, kube client.Client, fabricCfg *meta.Fab
 		}
 	}
 
-	// Some Fabric-wide validation
-
-	if len(swList.Items) == 0 {
-		return errors.Errorf("no switches found")
-	}
-
-	if len(serverList.Items) == 0 {
-		return errors.Errorf("no servers found")
-	}
-	controls := 0
-	for _, server := range serverList.Items {
-		if server.IsControl() {
-			controls++
-		}
-	}
-	if controls == 0 {
-		return errors.Errorf("no controllers found")
-	}
-	if controls > 1 {
-		return errors.Errorf("multiple controllers not supported")
-	}
-
 	return nil
 }

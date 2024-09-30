@@ -16,7 +16,6 @@ package v1alpha2
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -74,6 +73,13 @@ type SwitchRedundancy struct {
 	Type meta.RedundancyType `json:"type,omitempty"`
 }
 
+type SwitchBoot struct {
+	// Identify switch by serial number
+	Serial string `json:"serial,omitempty"`
+	// Identify switch by MAC address of the management port
+	MAC string `json:"mac,omitempty"`
+}
+
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
 	// +kubebuilder:validation:Required
@@ -83,10 +89,6 @@ type SwitchSpec struct {
 	Description string `json:"description,omitempty"`
 	// Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric
 	Profile string `json:"profile,omitempty"`
-	// Location is the location of the switch, it is used to generate the location UUID and location signature
-	Location Location `json:"location,omitempty"`
-	// LocationSig is the location signature for the switch
-	LocationSig LocationSig `json:"locationSig,omitempty"`
 	// Groups is a list of switch groups the switch belongs to
 	Groups []string `json:"groups,omitempty"`
 	// Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used both for MCLAG and ESLAG connections
@@ -109,6 +111,8 @@ type SwitchSpec struct {
 	PortBreakouts map[string]string `json:"portBreakouts,omitempty"`
 	// PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false
 	PortAutoNegs map[string]bool `json:"portAutoNegs,omitempty"`
+	// Boot is the boot/provisioning information of the switch
+	Boot SwitchBoot `json:"boot,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
@@ -176,19 +180,6 @@ func (sw *Switch) Default() {
 	}
 
 	CleanupFabricLabels(sw.Labels)
-
-	if sw.Spec.Location.IsEmpty() {
-		sw.Spec.Location = Location{Location: fmt.Sprintf("gen--%s--%s", sw.Namespace, sw.Name)}
-	}
-	if sw.Spec.LocationSig.Sig == "" {
-		sw.Spec.LocationSig.Sig = "<undefined>"
-	}
-	if sw.Spec.LocationSig.UUIDSig == "" {
-		sw.Spec.LocationSig.UUIDSig = "<undefined>"
-	}
-
-	uuid, _ := sw.Spec.Location.GenerateUUID()
-	sw.Labels[LabelLocation] = uuid
 
 	for name, value := range sw.Spec.PortGroupSpeeds {
 		sw.Spec.PortGroupSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
@@ -284,22 +275,6 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 
 		if err := meta.CheckVLANRangesOverlap(ranges); err != nil {
 			return nil, errors.Wrapf(err, "invalid VLANNamespaces")
-		}
-
-		switches := &SwitchList{}
-		err = kube.List(ctx, switches, client.MatchingLabels{
-			LabelLocation: sw.Labels[LabelLocation],
-		})
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get switches") // TODO replace with some internal error to not expose to the user
-		}
-
-		for _, other := range switches.Items {
-			if sw.Name == other.Name {
-				continue
-			}
-
-			return nil, errors.Errorf("switch with location %s already exists", sw.Labels[LabelLocation])
 		}
 
 		for _, group := range sw.Spec.Groups {

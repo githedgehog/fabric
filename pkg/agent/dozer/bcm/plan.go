@@ -218,53 +218,30 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	return spec, nil
 }
 
+// TODO do we still need it if only management port is used?
 func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
-	for _, conn := range agent.Spec.Connections {
-		if conn.Management == nil {
-			continue
-		}
+	controlIface := "M1"
+	controlIP := agent.Spec.Switch.IP
 
-		controlIface := conn.Management.Link.Switch.LocalPortName()
-		controlIP := conn.Management.Link.Switch.IP
-		otherIP := conn.Management.Link.Server.IP
+	ip, ipNet, err := net.ParseCIDR(controlIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse control IP %s", controlIP)
+	}
+	prefixLen, _ := ipNet.Mask.Size()
 
-		ip, ipNet, err := net.ParseCIDR(controlIP)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse control IP %s", controlIP)
-		}
-		prefixLen, _ := ipNet.Mask.Size()
-
-		spec.Interfaces[controlIface] = &dozer.SpecInterface{
-			Description: pointer.To("Control interface direct"),
-			Enabled:     pointer.To(true),
-			Speed:       getPortSpeed(agent, controlIface),
-			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-				0: {
-					IPs: map[string]*dozer.SpecInterfaceIP{
-						ip.String(): {
-							PrefixLen: pointer.To(uint8(prefixLen)), //nolint:gosec
-						},
+	spec.Interfaces[controlIface] = &dozer.SpecInterface{
+		Description: pointer.To("Management link"),
+		Enabled:     pointer.To(true),
+		// Speed:       getPortSpeed(agent, controlIface), // TODO do we need to set it for management port?
+		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+			0: {
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: pointer.To(uint8(prefixLen)), //nolint:gosec
 					},
 				},
 			},
-		}
-
-		if !strings.HasPrefix(controlIface, "M") {
-			ip, _, err = net.ParseCIDR(otherIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse other IP %s", otherIP)
-			}
-
-			controlVIP := agent.Spec.Config.ControlVIP
-			spec.VRFs[VRFDefault].StaticRoutes[controlVIP] = &dozer.SpecVRFStaticRoute{
-				NextHops: []dozer.SpecVRFStaticRouteNextHop{
-					{
-						IP:        ip.String(),
-						Interface: pointer.To(controlIface),
-					},
-				},
-			}
-		}
+		},
 	}
 
 	return nil
@@ -2327,7 +2304,7 @@ func vpcWorkaroundIPs(agent *agentapi.Agent, vlan uint16) (string, string, error
 		return "", "", errors.Errorf("subnet should be at least /20")
 	}
 	ip := ipNet.IP.To4()
-	ip[2] += byte(vlan / 128)
+	ip[2] += byte(vlan / 128) // TODO ?? (vlan - starting vlan) / 128
 	ip[3] += byte(vlan % 128 * 2)
 
 	res1 := ip.String()

@@ -76,6 +76,17 @@ spec:
                 description: ASN is the ASN of the switch
                 format: int32
                 type: integer
+              boot:
+                description: Boot is the boot/provisioning information of the switch
+                properties:
+                  mac:
+                    description: Identify switch by MAC address of the management
+                      port
+                    type: string
+                  serial:
+                    description: Identify switch by serial number
+                    type: string
+                type: object
               description:
                 description: Description is a description of the switch
                 type: string
@@ -89,29 +100,6 @@ spec:
                 description: IP is the IP of the switch that could be used to access
                   it from other switches and control nodes in the Fabric
                 type: string
-              location:
-                description: Location is the location of the switch, it is used to
-                  generate the location UUID and location signature
-                properties:
-                  aisle:
-                    type: string
-                  location:
-                    type: string
-                  rack:
-                    type: string
-                  row:
-                    type: string
-                  slot:
-                    type: string
-                type: object
-              locationSig:
-                description: LocationSig is the location signature for the switch
-                properties:
-                  sig:
-                    type: string
-                  uuidSig:
-                    type: string
-                type: object
               portAutoNegs:
                 additionalProperties:
                   type: boolean

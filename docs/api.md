@@ -1266,7 +1266,6 @@ the underlay definition including Switches, Server, wiring between them and etc.
 
 ### Resource Types
 - [Connection](#connection)
-- [ControlNode](#controlnode)
 - [Server](#server)
 - [Switch](#switch)
 - [SwitchGroup](#switchgroup)
@@ -1288,8 +1287,6 @@ BasePortName defines the full name of the switch port
 _Appears in:_
 - [ConnExternalLink](#connexternallink)
 - [ConnFabricLinkSwitch](#connfabriclinkswitch)
-- [ConnMgmtLinkServer](#connmgmtlinkserver)
-- [ConnMgmtLinkSwitch](#connmgmtlinkswitch)
 - [ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
@@ -1435,75 +1432,6 @@ _Appears in:_
 | `sessionLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ | SessionLinks is the list of session links between the switches, used only to pass MCLAG control plane and BGP<br />traffic between switches |  | MinItems: 1 <br /> |
 
 
-#### ConnMgmt
-
-
-
-ConnMgmt defines the management connection (single control node/server to a single switch with a single link)
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `link` _[ConnMgmtLink](#connmgmtlink)_ |  |  |  |
-
-
-#### ConnMgmtLink
-
-
-
-ConnMgmtLink defines the management connection link
-
-
-
-_Appears in:_
-- [ConnMgmt](#connmgmt)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `server` _[ConnMgmtLinkServer](#connmgmtlinkserver)_ | Server is the server side of the management link |  |  |
-| `switch` _[ConnMgmtLinkSwitch](#connmgmtlinkswitch)_ | Switch is the switch side of the management link |  |  |
-
-
-#### ConnMgmtLinkServer
-
-
-
-ConnMgmtLinkServer defines the server side of the management link
-
-
-
-_Appears in:_
-- [ConnMgmtLink](#connmgmtlink)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
-| `ip` _string_ | IP is the IP address of the server side of the management link (control node port configuration) |  | Pattern: `^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$` <br /> |
-| `mac` _string_ | MAC is an optional MAC address of the control node port for the management link, if specified will be used to<br />create a "virtual" link with the connection names on the control node |  |  |
-
-
-#### ConnMgmtLinkSwitch
-
-
-
-ConnMgmtLinkSwitch defines the switch side of the management link
-
-
-
-_Appears in:_
-- [ConnMgmtLink](#connmgmtlink)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
-| `ip` _string_ | IP is the IP address of the switch side of the management link (switch port configuration) |  | Pattern: `^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$` <br /> |
-| `oniePortName` _string_ | ONIEPortName is an optional ONIE port name of the switch side of the management link that's only used by the IPv6 Link Local discovery |  |  |
-
-
 #### ConnStaticExternal
 
 
@@ -1629,8 +1557,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `unbundled` _[ConnUnbundled](#connunbundled)_ | Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link) |  |  |
 | `bundled` _[ConnBundled](#connbundled)_ | Bundled defines the bundled connection (port channel, single server to a single switch with multiple links) |  |  |
-| `management` _[ConnMgmt](#connmgmt)_ | Management defines the management connection (single control node/server to a single switch with a single link) |  |  |
-| `mclag` _[ConnMCLAG](#connmclag)_ | MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
+| `mclag` _[ConnMCLAG](#connmclag)_ | // Management defines the management connection (single control node/server to a single switch with a single link)<br />Management *ConnMgmt `json:"management,omitempty"`<br />MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
 | `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links) |  |  |
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
@@ -1652,58 +1579,6 @@ _Appears in:_
 
 
 
-#### ControlNode
-
-
-
-ControlNode is the Schema for the controlnodes API
-
-
-
-
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
-| `kind` _string_ | `ControlNode` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `spec` _[ControlNodeSpec](#controlnodespec)_ |  |  |  |
-| `status` _[ControlNodeStatus](#controlnodestatus)_ |  |  |  |
-
-
-#### ControlNodeSpec
-
-
-
-ControlNodeSpec defines configuration for the ControlNode
-
-
-
-_Appears in:_
-- [ControlNode](#controlnode)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `targetDevice` _string_ |  |  |  |
-| `mgmtIface` _string_ |  |  |  |
-| `mgmtIP` _string_ |  |  |  |
-| `extIface` _string_ |  |  |  |
-| `extIP` _string_ |  |  |  |
-
-
-#### ControlNodeStatus
-
-
-
-ControlNodeStatus defines the observed state of ControlNode
-
-
-
-_Appears in:_
-- [ControlNode](#controlnode)
-
-
-
 #### FabricLink
 
 
@@ -1721,43 +1596,6 @@ _Appears in:_
 | `leaf` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Leaf is the leaf side of the fabric link |  |  |
 
 
-
-
-#### Location
-
-
-
-Location defines the geographical position of the device in a datacenter
-
-
-
-_Appears in:_
-- [SwitchSpec](#switchspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `location` _string_ |  |  |  |
-| `aisle` _string_ |  |  |  |
-| `row` _string_ |  |  |  |
-| `rack` _string_ |  |  |  |
-| `slot` _string_ |  |  |  |
-
-
-#### LocationSig
-
-
-
-LocationSig contains signatures for the location UUID as well as the device location itself
-
-
-
-_Appears in:_
-- [SwitchSpec](#switchspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `sig` _string_ |  |  |  |
-| `uuidSig` _string_ |  |  |  |
 
 
 #### Server
@@ -1811,7 +1649,6 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `type` _[ServerType](#servertype)_ | Type is the type of server, could be control for control nodes or default (empty string) for everything else |  | Enum: [control] <br /> |
 | `description` _string_ | Description is a description of the server |  |  |
 | `profile` _string_ | Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric |  |  |
 
@@ -1849,20 +1686,6 @@ _Appears in:_
 | `switch` _[BasePortName](#baseportname)_ | Switch is the switch side of the connection |  |  |
 
 
-#### ServerType
-
-_Underlying type:_ _string_
-
-ServerType is the type of server, could be control for control nodes or default (empty string) for everything else
-
-_Validation:_
-- Enum: [control]
-
-_Appears in:_
-- [ServerSpec](#serverspec)
-
-
-
 #### Switch
 
 
@@ -1880,6 +1703,23 @@ Switch is the Schema for the switches API
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchSpec](#switchspec)_ | Spec is desired state of the switch |  |  |
 | `status` _[SwitchStatus](#switchstatus)_ | Status is the observed state of the switch |  |  |
+
+
+#### SwitchBoot
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `serial` _string_ | Identify switch by serial number |  |  |
+| `mac` _string_ | Identify switch by MAC address of the management port |  |  |
 
 
 #### SwitchGroup
@@ -2177,8 +2017,6 @@ _Appears in:_
 | `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf virtual-edge] <br />Required: {} <br /> |
 | `description` _string_ | Description is a description of the switch |  |  |
 | `profile` _string_ | Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric |  |  |
-| `location` _[Location](#location)_ | Location is the location of the switch, it is used to generate the location UUID and location signature |  |  |
-| `locationSig` _[LocationSig](#locationsig)_ | LocationSig is the location signature for the switch |  |  |
 | `groups` _string array_ | Groups is a list of switch groups the switch belongs to |  |  |
 | `redundancy` _[SwitchRedundancy](#switchredundancy)_ | Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used both for MCLAG and ESLAG connections |  |  |
 | `vlanNamespaces` _string array_ | VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap |  |  |
@@ -2190,6 +2028,7 @@ _Appears in:_
 | `portSpeeds` _object (keys:string, values:string)_ | PortSpeeds is a map of port speeds, key is the port name, value is the speed |  |  |
 | `portBreakouts` _object (keys:string, values:string)_ | PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G" |  |  |
 | `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
+| `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 
 
 #### SwitchStatus
