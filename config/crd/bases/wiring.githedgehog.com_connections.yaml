@@ -193,10 +193,8 @@ spec:
                     type: array
                 type: object
               mclag:
-                description: |-
-                  // Management defines the management connection (single control node/server to a single switch with a single link)
-                  Management *ConnMgmt `json:"management,omitempty"`
-                  MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
+                description: MCLAG defines the MCLAG connection (port channel, single
+                  server to pair of switches with multiple links)
                 properties:
                   fallback:
                     description: Fallback is the optional flag that used to indicate
