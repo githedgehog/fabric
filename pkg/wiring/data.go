@@ -252,9 +252,6 @@ func (d *Data) Write(ret io.Writer) error {
 	}
 
 	for _, server := range d.Server.All() {
-		if !server.IsControl() {
-			continue
-		}
 		err := marshal(server, true, w)
 		if err != nil {
 			return err
@@ -262,9 +259,6 @@ func (d *Data) Write(ret io.Writer) error {
 	}
 
 	for _, server := range d.Server.All() {
-		if server.IsControl() {
-			continue
-		}
 		err := marshal(server, true, w)
 		if err != nil {
 			return err

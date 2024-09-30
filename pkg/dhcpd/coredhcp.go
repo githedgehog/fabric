@@ -32,7 +32,7 @@ import (
 const defaultConfig = `
 server4:
   listen:
-    - "0.0.0.0"
+    - "172.30.1.1"
   plugins:
     - hhdhcp: ""
 `

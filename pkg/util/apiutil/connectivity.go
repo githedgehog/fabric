@@ -430,10 +430,6 @@ func GetAttachedSubnets(ctx context.Context, kube client.Reader, server string) 
 		return nil, errors.Wrapf(err, "failed to get server %s", server)
 	}
 
-	if srv.IsControl() {
-		return nil, errors.Errorf("server %s is a control node", server)
-	}
-
 	conns := wiringapi.ConnectionList{}
 	if err := kube.List(ctx, &conns,
 		client.InNamespace(metav1.NamespaceDefault),

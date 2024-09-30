@@ -175,29 +175,17 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 		return strings.Compare(a.Name, b.Name)
 	})
 
-	servers := &wiringapi.ServerList{}
-	if err := kube.List(ctx, servers, client.MatchingLabels{
-		wiringapi.LabelServerType: string(wiringapi.ServerTypeControl),
-	}); err != nil {
+	controls := &agentapi.ControlAgentList{}
+	if err := kube.List(ctx, controls); err != nil {
 		return nil, errors.Wrap(err, "cannot list control nodes")
 	}
 
-	for _, srv := range servers.Items {
-		srvName := srv.Name
+	for _, agent := range controls.Items {
+		srvName := agent.Name
 
 		totalControls++
 
 		skipActual := false
-		agent := &agentapi.ControlAgent{}
-		if err := kube.Get(ctx, client.ObjectKey{Name: srvName, Namespace: metav1.NamespaceDefault}, agent); err != nil {
-			if apierrors.IsNotFound(err) {
-				skipActual = true
-				slog.Warn("ControlAgent object not found", "name", srvName)
-			} else {
-				return nil, errors.Wrapf(err, "failed to get ControlAgent %s", srvName)
-			}
-		}
-
 		out.ControlNodes = append(out.ControlNodes, &FabricOutControl{
 			Name:  srvName,
 			State: controlStateSummary(agent),

@@ -17,11 +17,9 @@ package inspect
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
-	"github.com/dustin/go-humanize"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
@@ -29,7 +27,6 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"golang.org/x/exp/maps"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -40,7 +37,6 @@ type ServerIn struct {
 
 type ServerOut struct {
 	Name           string                               `json:"name,omitempty"`
-	Control        bool                                 `json:"control,omitempty"`
 	ControlState   *AgentState                          `json:"controlState,omitempty"`
 	Connections    map[string]*wiringapi.ConnectionSpec `json:"connections,omitempty"`
 	VPCAttachments map[string]*vpcapi.VPCAttachmentSpec `json:"vpcAttachments,omitempty"`
@@ -49,32 +45,6 @@ type ServerOut struct {
 
 func (out *ServerOut) MarshalText() (string, error) {
 	str := &strings.Builder{}
-
-	if out.Control && out.ControlState != nil {
-		ctrlData := [][]string{}
-
-		applied := ""
-		if !out.ControlState.LastAppliedTime.IsZero() {
-			applied = humanize.Time(out.ControlState.LastAppliedTime.Time)
-		}
-
-		heartbeat := ""
-		if !out.ControlState.LastHeartbeat.IsZero() {
-			heartbeat = humanize.Time(out.ControlState.LastHeartbeat.Time)
-		}
-
-		ctrlData = append(ctrlData, []string{
-			out.Name,
-			out.ControlState.Summary,
-			fmt.Sprintf("%d/%d", out.ControlState.LastAppliedGen, out.ControlState.DesiredGen),
-			applied,
-			heartbeat,
-		})
-		str.WriteString(RenderTable(
-			[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},
-			ctrlData,
-		))
-	}
 
 	// TODO pass to a marshal func?
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
@@ -135,7 +105,7 @@ func (out *ServerOut) MarshalText() (string, error) {
 			[]string{"Name", "VPCSubnet", "Subnet", "VLAN"},
 			attachData,
 		))
-	} else if !out.Control {
+	} else {
 		str.WriteString("No VPC attachments\n")
 	}
 
@@ -159,25 +129,6 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 	srv := &wiringapi.Server{}
 	if err := kube.Get(ctx, client.ObjectKey{Name: in.Name, Namespace: metav1.NamespaceDefault}, srv); err != nil {
 		return nil, errors.Wrap(err, "cannot get server")
-	}
-
-	out.Control = srv.Spec.Type == wiringapi.ServerTypeControl
-
-	if out.Control {
-		skipActual := false
-		agent := &agentapi.ControlAgent{}
-		if err := kube.Get(ctx, client.ObjectKey{Name: in.Name, Namespace: metav1.NamespaceDefault}, agent); err != nil {
-			if apierrors.IsNotFound(err) {
-				skipActual = true
-				slog.Warn("ControlAgent object not found", "name", in.Name)
-			} else {
-				return nil, errors.Wrapf(err, "failed to get ControlAgent %s", in.Name)
-			}
-		}
-
-		if !skipActual {
-			out.ControlState = controlStateSummary(agent)
-		}
 	}
 
 	conns := &wiringapi.ConnectionList{}
@@ -214,13 +165,9 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 	return out, nil
 }
 
-func controlStateSummary(agent *agentapi.ControlAgent) *AgentState {
+func controlStateSummary(agent agentapi.ControlAgent) *AgentState {
 	res := &AgentState{
 		Summary: "Unknown",
-	}
-
-	if agent == nil {
-		return res
 	}
 
 	if agent.Status.LastAppliedGen == agent.Generation {

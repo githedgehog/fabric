@@ -276,9 +276,7 @@ func ipInConnections(ctx context.Context, res *IPOut, kube client.Reader, ip net
 		ips := []string{}
 		subnets := []string{}
 
-		if conn.Spec.Management != nil {
-			ips = append(ips, conn.Spec.Management.Link.Server.IP, conn.Spec.Management.Link.Switch.IP)
-		} else if conn.Spec.Fabric != nil {
+		if conn.Spec.Fabric != nil {
 			for _, link := range conn.Spec.Fabric.Links {
 				ips = append(ips, link.Spine.IP, link.Leaf.IP)
 			}

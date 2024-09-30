@@ -16,92 +16,55 @@ package bcm
 
 import (
 	"context"
-	"net"
+	"fmt"
+	"net/netip"
 
-	"github.com/pkg/errors"
 	"github.com/vishvananda/netlink"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 )
 
 const (
-	managementPort = "M1"
+	mgmtPort = "eth0"
 )
-
-type route struct {
-	dst []*net.IPNet
-	gw  net.IP
-}
 
 func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi.Agent) error {
 	if agent == nil {
-		return errors.New("no agent config")
+		return fmt.Errorf("no agent config") //nolint:goerr113
 	}
 
-	_, controlVIP, err := net.ParseCIDR(agent.Spec.Config.ControlVIP) // it's ok as we're using /32
+	controlVIP, err := netip.ParsePrefix(agent.Spec.Config.ControlVIP)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse control VIP %s", agent.Spec.Config.ControlVIP)
+		return fmt.Errorf("parsing control VIP %s: %w", agent.Spec.Config.ControlVIP, err)
 	}
-	if controlVIP.Mask.String() != net.IPv4Mask(255, 255, 255, 255).String() {
-		return errors.Errorf("control VIP %s is not a /32", agent.Spec.Config.ControlVIP)
-	}
-
-	exists := false
-	dev := ""
-	switchIP := ""
-	controlIP := ""
-	for _, spec := range agent.Spec.Connections {
-		if spec.Management != nil {
-			dev = spec.Management.Link.Switch.LocalPortName()
-			if dev != managementPort {
-				continue
-			}
-
-			switchIP = spec.Management.Link.Switch.IP
-			controlIP = spec.Management.Link.Server.IP
-			exists = true
-
-			break
-		}
+	if controlVIP.Bits() != 32 {
+		return fmt.Errorf("control VIP %s is not a /32", agent.Spec.Config.ControlVIP) //nolint:goerr113
 	}
 
-	// it's not a directly connected switch or front panel used
-	if !exists || dev != managementPort {
-		return nil
-	}
-	if dev == "" {
-		return errors.New("no management interface found")
-	}
-	if switchIP == "" {
-		return errors.New("no management IP found")
-	}
-	if controlIP == "" {
-		return errors.New("no control IP found")
-	}
-
-	// it's temp till we can properly configure it through GNMI
-	if dev == managementPort {
-		dev = "eth0"
-	}
-	if dev != "eth0" {
-		return errors.Errorf("unsupported management interface %s (only eth0 currently supported)", dev)
-	}
-
-	link, err := netlink.LinkByName(dev)
+	switchIP, err := netip.ParsePrefix(agent.Spec.Switch.IP)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get link %s", dev)
+		return fmt.Errorf("parsing switch IP %s: %w", agent.Spec.Switch.IP, err)
 	}
 
-	addr, err := netlink.ParseAddr(switchIP)
+	if !switchIP.Contains(controlVIP.Addr()) {
+		return fmt.Errorf("control VIP %s is not in switch IP subnet %s", controlVIP, switchIP) //nolint:goerr113
+	}
+
+	link, err := netlink.LinkByName(mgmtPort)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse ip %s", switchIP)
+		return fmt.Errorf("getting link %s: %w", mgmtPort, err)
+	}
+
+	addr, err := netlink.ParseAddr(agent.Spec.Switch.IP)
+	if err != nil {
+		return fmt.Errorf("parsing switch IP %s: %w", agent.Spec.Switch.IP, err)
 	}
 
 	addrs, err := netlink.AddrList(link, 0)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get addresses for link %s", dev)
+		return fmt.Errorf("getting addresses for link %s: %w", mgmtPort, err)
 	}
 
-	exists = false
+	exists := false
 	for _, a := range addrs {
 		if a.Equal(*addr) {
 			exists = true
@@ -112,46 +75,7 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 
 	if !exists {
 		if err := netlink.AddrAdd(link, addr); err != nil {
-			return errors.Wrapf(err, "failed to add address %s to link %s", switchIP, dev)
-		}
-	}
-
-	existingRoutes, err := netlink.RouteList(link, 0)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get routes for link %s", dev)
-	}
-
-	routes := []route{
-		{
-			dst: []*net.IPNet{
-				controlVIP,
-			},
-			gw: net.ParseIP(controlIP),
-		},
-	}
-
-	for _, route := range routes {
-		for _, dst := range route.dst {
-			exists = false
-			for _, existingRoute := range existingRoutes {
-				if existingRoute.Dst == nil {
-					continue
-				}
-				if existingRoute.Dst.IP.Equal(dst.IP) && existingRoute.Dst.Mask.String() == dst.Mask.String() {
-					exists = true
-
-					break
-				}
-			}
-			if !exists {
-				if err := netlink.RouteAdd(&netlink.Route{
-					LinkIndex: link.Attrs().Index,
-					Dst:       dst,
-					Gw:        route.gw,
-				}); err != nil {
-					return errors.Wrapf(err, "failed to add route %s via %s to link %s", dst, route.gw, dev)
-				}
-			}
+			return fmt.Errorf("adding address %s to link %s: %w", switchIP, mgmtPort, err)
 		}
 	}
 

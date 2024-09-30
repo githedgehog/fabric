@@ -102,13 +102,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, errors.Wrapf(err, "error updating vpcs catalog")
 	}
 
-	err := r.updateISCDHCPConfig(ctx)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error updating dhcp config")
-	}
-
 	vpc := &vpcapi.VPC{}
-	err = r.Get(ctx, req.NamespacedName, vpc)
+	err := r.Get(ctx, req.NamespacedName, vpc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			l.Info("vpc deleted, cleaning up dhcp subnets")

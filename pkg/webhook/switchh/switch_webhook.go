@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,13 +77,9 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	oldSw := oldObj.(*wiringapi.Switch)
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
+	// oldSw := oldObj.(*wiringapi.Switch)
 	newSw := newObj.(*wiringapi.Switch)
-
-	if !equality.Semantic.DeepEqual(oldSw.Spec.Location, newSw.Spec.Location) {
-		return nil, errors.Errorf("switch location is immutable")
-	}
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {

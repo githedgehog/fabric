@@ -31,6 +31,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -654,6 +655,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
 		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
 		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
+		agent.Spec.Version.NOSRepo = "172.30.1.1:31000/githedgehog/sonic/x86_64-dellemc_s5248f_c3538-r0"
+		agent.Spec.Version.NOSFileName = "sonic-broadcom-enterprise-base.bin"
 		agent.Spec.Version.NOSVersion = "latest"
 
 		agent.Spec.Catalog = *cat
@@ -689,28 +692,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.ObjectMeta) (*ctrl.Result, error) {
+func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta) (*ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
-	sa := &corev1.ServiceAccount{ObjectMeta: agentMeta}
+	saName := common.AgentServiceAccount(ag.Name)
+	sa := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil })
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating service account")
 	}
 
-	role := &rbacv1.Role{ObjectMeta: agentMeta}
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
 		role.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups:     []string{agentapi.GroupVersion.Group},
 				Resources:     []string{"agents"},
-				ResourceNames: []string{agentMeta.Name},
+				ResourceNames: []string{ag.Name},
 				Verbs:         []string{"get", "watch"},
 			},
 			{
 				APIGroups:     []string{agentapi.GroupVersion.Group},
 				Resources:     []string{"agents/status"},
-				ResourceNames: []string{agentMeta.Name},
+				ResourceNames: []string{ag.Name},
 				Verbs:         []string{"get", "list", "watch", "create", "update", "patch", "delete"},
 			},
 		}
@@ -721,7 +725,7 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.Obj
 		return nil, errors.Wrapf(err, "error creating role")
 	}
 
-	roleBinding := &rbacv1.RoleBinding{ObjectMeta: agentMeta}
+	roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
 		roleBinding.Subjects = []rbacv1.Subject{
 			{
@@ -742,13 +746,13 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.Obj
 		return nil, errors.Wrapf(err, "error creating role binding")
 	}
 
-	tokenSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: agentMeta.Namespace, Name: agentMeta.Name + "-satoken"}}
+	tokenSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName + "-satoken"}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, tokenSecret, func() error {
 		if tokenSecret.Annotations == nil {
 			tokenSecret.Annotations = map[string]string{}
 		}
 
-		tokenSecret.Annotations[corev1.ServiceAccountNameKey] = agentMeta.Name
+		tokenSecret.Annotations[corev1.ServiceAccountNameKey] = ag.Name
 		tokenSecret.Type = corev1.SecretTypeServiceAccountToken
 
 		return nil
@@ -770,10 +774,11 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.Obj
 		return nil, errors.Wrapf(err, "error generating kubeconfig")
 	}
 
-	kubeconfigSecret := &corev1.Secret{ObjectMeta: agentMeta}
+	secretName := common.AgentKubeconfigSecret(ag.Name)
+	kubeconfigSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: secretName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, kubeconfigSecret, func() error {
 		kubeconfigSecret.StringData = map[string]string{
-			KubeconfigKey: kubeconfig,
+			common.AgentKubeconfigKey: kubeconfig,
 		}
 
 		return nil
@@ -784,10 +789,6 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, agentMeta metav1.Obj
 
 	return nil, nil //nolint: nilnil
 }
-
-const (
-	KubeconfigKey = "kubeconfig"
-)
 
 var genKubeconfigTmpl *template.Template
 
