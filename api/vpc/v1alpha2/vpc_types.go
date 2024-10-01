@@ -354,15 +354,6 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		}
 
 		if subnetCfg.DHCP.Enable {
-			if fabricCfg != nil && !fabricCfg.DHCPMode.IsMultiNSDHCP() {
-				if vpc.Spec.IPv4Namespace != DefaultIPv4Namespace {
-					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default IPv4Namespace in the current Fabric config", subnetName)
-				}
-				if vpc.Spec.VLANNamespace != wiringapi.DefaultVLANNamespace {
-					return nil, errors.Errorf("subnet %s: DHCP is not supported for non-default VLANNamespace in the current Fabric config", subnetName)
-				}
-			}
-
 			if subnetCfg.DHCP.Range == nil {
 				return nil, errors.Errorf("subnet %s: dhcp range is required", subnetName)
 			}

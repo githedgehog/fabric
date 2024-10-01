@@ -16,13 +16,11 @@ package meta
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
 	"slices"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -71,9 +69,6 @@ type FabricConfig struct {
 	VPCPeeringDisabled       bool        `json:"vpcPeeringDisabled,omitempty"`
 	ReservedSubnets          []string    `json:"reservedSubnets,omitempty"`
 	Users                    []UserCreds `json:"users,omitempty"`
-	DHCPMode                 DHCPMode    `json:"dhcpMode,omitempty"`
-	DHCPDConfigMap           string      `json:"dhcpdConfigMap,omitempty"`
-	DHCPDConfigKey           string      `json:"dhcpdConfigKey,omitempty"`
 	FabricMode               FabricMode  `json:"fabricMode,omitempty"`
 	BaseVPCCommunity         string      `json:"baseVPCCommunity,omitempty"`
 	VPCLoopbackSubnet        string      `json:"vpcLoopbackSubnet,omitempty"`
@@ -100,22 +95,6 @@ const (
 var FabricModes = []FabricMode{
 	FabricModeCollapsedCore,
 	FabricModeSpineLeaf,
-}
-
-type DHCPMode string
-
-const (
-	DHCPModeISC      DHCPMode = "isc"
-	DHCPModeHedgehog DHCPMode = "hedgehog"
-)
-
-var DHCPModes = []DHCPMode{
-	DHCPModeISC,
-	DHCPModeHedgehog,
-}
-
-func (m DHCPMode) IsMultiNSDHCP() bool {
-	return m == DHCPModeHedgehog
 }
 
 func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
@@ -173,13 +152,6 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		// TODO check total ranges size and expose as limit for API validation
 	}
 
-	if cfg.DHCPDConfigMap == "" {
-		return nil, errors.Errorf("config: dhcpdConfigMap is required")
-	}
-	if cfg.DHCPDConfigKey == "" {
-		return nil, errors.Errorf("config: dhcpdConfigKey is required")
-	}
-
 	for _, user := range cfg.Users {
 		if user.Name == "" {
 			return nil, errors.Errorf("config: users: name is required")
@@ -223,13 +195,6 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		return nil, errors.Errorf("config: serverFacingMTUOffset is required")
 	}
 
-	if cfg.DHCPMode == "" {
-		return nil, errors.Errorf("config: dhcp is required")
-	}
-	if !slices.Contains(DHCPModes, cfg.DHCPMode) {
-		return nil, errors.Errorf("config: dhcp must be one of %v", DHCPModes)
-	}
-
 	if cfg.FabricMode == FabricModeSpineLeaf {
 		if cfg.ESLAGMACBase == "" {
 			return nil, errors.Errorf("config: eslagMACBase is required")
@@ -259,7 +224,7 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 
 	// TODO validate format of all fields
 
-	slog.Debug("Loaded config", "data", spew.Sdump(cfg))
+	// slog.Debug("Loaded Fabric config", "data", spew.Sdump(cfg))
 
 	return cfg, nil
 }
