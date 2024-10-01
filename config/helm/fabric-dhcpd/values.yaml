@@ -20,7 +20,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/githedgehog/fabric/fabric-dhcpd
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   tag: "0.0.0"
 
 imagePullSecrets: []

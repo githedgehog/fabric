@@ -29,10 +29,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TODO remove hardcoded config
 const defaultConfig = `
 server4:
   listen:
-    - "172.30.1.1"
+    - "172.30.0.1"
   plugins:
     - hhdhcp: ""
 `
