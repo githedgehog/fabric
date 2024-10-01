@@ -59,15 +59,17 @@ type Reconciler struct {
 	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
 	Version string
+	CA      string
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, version string) error {
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, version, ca string) error {
 	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
 		LibMngr: libMngr,
 		Version: version,
+		CA:      ca,
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
@@ -652,7 +654,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		agent.Spec.Version.Default = r.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
-		agent.Spec.Version.CA = r.Cfg.AgentRepoCA
+		agent.Spec.Version.CA = r.CA
 		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
 		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
 		agent.Spec.Version.NOSRepo = "172.30.1.1:31000/githedgehog/sonic/x86_64-dellemc_s5248f_c3538-r0"

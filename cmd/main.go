@@ -104,6 +104,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	ca, err := os.ReadFile("/etc/hedgehog/ca/ca.crt") // TODO config?
+	if err != nil {
+		setupLog.Error(err, "unable to read CA")
+		os.Exit(1)
+	}
+
 	setupLog.Info("Config loaded", "config", cfg)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -151,7 +157,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, version); err != nil {
+	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, version, string(ca)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
 	}

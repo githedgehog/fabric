@@ -63,7 +63,6 @@ type FabricConfig struct {
 	ControlVIP               string      `json:"controlVIP,omitempty"`
 	APIServer                string      `json:"apiServer,omitempty"`
 	AgentRepo                string      `json:"agentRepo,omitempty"`
-	AgentRepoCA              string      `json:"agentRepoCA,omitempty"`
 	VPCIRBVLANRanges         []VLANRange `json:"vpcIRBVLANRange,omitempty"`
 	VPCPeeringVLANRanges     []VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
 	VPCPeeringDisabled       bool        `json:"vpcPeeringDisabled,omitempty"`
@@ -127,9 +126,6 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 
 	if cfg.AgentRepo == "" {
 		return nil, errors.Errorf("config: agentRepo is required")
-	}
-	if cfg.AgentRepoCA == "" {
-		return nil, errors.Errorf("config: agentRepoCA is required")
 	}
 
 	if r, err := NormalizedVLANRanges(cfg.VPCIRBVLANRanges); err != nil {

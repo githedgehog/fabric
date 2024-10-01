@@ -113,6 +113,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/hedgehog/fabric
+            - name: ca
+              mountPath: /etc/hedgehog/ca
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
@@ -120,3 +122,7 @@ spec:
           configMap:
             # TODO it shouldn't be static, prefixName should be used?
             name: fabric-config
+        - name: ca
+          configMap:
+            # TODO remove hardcoded name
+            name: fab-ca
