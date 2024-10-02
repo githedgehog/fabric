@@ -18,7 +18,9 @@ package dhcpd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net/netip"
 	"os"
 
 	"github.com/coredhcp/coredhcp/config"
@@ -30,10 +32,10 @@ import (
 )
 
 // TODO remove hardcoded config
-const defaultConfig = `
+const cfgTmpl = `
 server4:
   listen:
-    - "172.30.0.1"
+    - "%s"
   plugins:
     - hhdhcp: ""
 `
@@ -48,10 +50,18 @@ func (d *Service) runCoreDHCP(_ context.Context) error {
 
 	// TODO conf some facade to direct logrus to slog
 
+	if len(os.Args) != 2 {
+		return errors.New("Usage: hhdhcpd <listenAddress>")
+	}
+	ip, err := netip.ParseAddr(os.Args[1])
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse listen address")
+	}
+
 	if _, err := os.Stat(d.Config); errors.Is(err, os.ErrNotExist) {
 		d.Config = "/etc/coredhcp.conf"
 
-		if err := os.WriteFile(d.Config, []byte(defaultConfig), 0o600); err != nil {
+		if err := os.WriteFile(d.Config, []byte(fmt.Sprintf(cfgTmpl, ip.String())), 0o600); err != nil {
 			return errors.Wrapf(err, "failed to write default config")
 		}
 	}
