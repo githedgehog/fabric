@@ -88,7 +88,7 @@ func Test_handleDiscover4(t *testing.T) {
 					return resp
 				}(),
 			},
-			wantErr: false,
+			wantErr: true,
 			expectedState: func() bool {
 				return true
 			},
@@ -625,7 +625,7 @@ func Test_handleDecline4(t *testing.T) {
 					return &dhcpv4.DHCPv4{}
 				}(),
 			},
-			wantErr: false,
+			wantErr: true,
 			expectedState: func() bool {
 				return true
 			},
