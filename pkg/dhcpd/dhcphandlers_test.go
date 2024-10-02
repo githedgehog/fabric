@@ -19,7 +19,6 @@ package dhcpd
 import (
 	"encoding/binary"
 	"net"
-	"reflect"
 	"testing"
 	"time"
 
@@ -787,33 +786,33 @@ func Test_handleRelease4(t *testing.T) {
 	}
 }
 
-func Test_getSubnetInfo(t *testing.T) {
-	type args struct {
-		vrfName   string
-		circuitID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *ManagedSubnet
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(ttt *testing.T) {
-			got, err := getSubnetInfo(tt.args.vrfName, tt.args.circuitID)
-			if (err != nil) != tt.wantErr {
-				ttt.Errorf("getSubnetInfo() error = %v, wantErr %v", err, tt.wantErr)
+// func Test_getSubnetInfo(t *testing.T) {
+// 	type args struct {
+// 		vrfName   string
+// 		circuitID string
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		want    *ManagedSubnet
+// 		wantErr bool
+// 	}{
+// 		// TODO: Add test cases.
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(ttt *testing.T) {
+// 			got, err := getSubnetInfo(tt.args.vrfName, tt.args.circuitID)
+// 			if (err != nil) != tt.wantErr {
+// 				ttt.Errorf("getSubnetInfo() error = %v, wantErr %v", err, tt.wantErr)
 
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				ttt.Errorf("getSubnetInfo() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				ttt.Errorf("getSubnetInfo() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
 
 func Test_handleExpiredLeases(t *testing.T) {
 	tests := []struct {

@@ -18,6 +18,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ManagementSubnet = "management"
+)
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // DHCPSubnetSpec defines the desired state of DHCPSubnet
@@ -46,6 +50,8 @@ type DHCPSubnetSpec struct {
 	// +kubebuilder:validation:Minimum: 96
 	// +kubebuilder:validation:Maximum: 9036
 	InterfaceMTU uint16 `json:"interfaceMTU"`
+	// DefaultURL (optional) is the option 114 "default-url" to be sent to the clients
+	DefaultURL string `json:"defaultURL"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet

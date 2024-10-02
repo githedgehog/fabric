@@ -18,6 +18,7 @@ package dhcpd
 
 import (
 	"encoding/binary"
+	"log/slog"
 	"net"
 
 	"github.com/coredhcp/coredhcp/handler"
@@ -45,8 +46,14 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 				switch event.Type {
 				case EventTypeAdded:
 					pluginHdl.dhcpSubnets.Lock()
-					if val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]; ok {
-						log.Errorf("Received Add event for already existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)
+
+					key := event.Subnet.Spec.VRF + event.Subnet.Spec.CircuitID
+					if event.Subnet.Name == dhcpapi.ManagementSubnet {
+						key = dhcpapi.ManagementSubnet
+					}
+
+					if val, ok := pluginHdl.dhcpSubnets.subnets[key]; ok {
+						log.Errorf("Received Add event for already existing subnet %s with cidrblock %s", key, val.dhcpSubnet.Spec.CIDRBlock)
 						if event.Subnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP ||
 							event.Subnet.Spec.CIDRBlock != val.dhcpSubnet.Spec.CIDRBlock ||
 							event.Subnet.Spec.EndIP != val.dhcpSubnet.Spec.EndIP { //
@@ -55,7 +62,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 								delete(val.allocations.allocation, mac)
 							}
 
-							delete(pluginHdl.dhcpSubnets.subnets, event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID)
+							delete(pluginHdl.dhcpSubnets.subnets, key)
 						} else {
 							pluginHdl.dhcpSubnets.Unlock()
 
@@ -64,7 +71,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					}
 					_, cidr, err := net.ParseCIDR(event.Subnet.Spec.CIDRBlock)
 					if err != nil {
-						log.Errorf("Invalid CIDR block on DHCP subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)
+						log.Errorf("Invalid CIDR block on DHCP subnet %s with cidrblock %s", key, event.Subnet.Spec.CIDRBlock)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -79,7 +86,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						uint32(prefixLen), //nolint:gosec
 					)
 					if err != nil {
-						log.Errorf("Unable to create ip pool for subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)
+						log.Errorf("Unable to create ip pool for subnet %s with cidrblock %s", key, event.Subnet.Spec.CIDRBlock)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -102,12 +109,12 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 							state:      committed,
 						}
 					}
-					log.Infof("Received Add event for subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, event.Subnet.Spec.CIDRBlock)
+					log.Infof("Received Add event for subnet %s with cidrblock %s", key, event.Subnet.Spec.CIDRBlock)
 					// Create a new managed subnet.
 					if len(event.Subnet.Status.Allocated) == 0 {
 						event.Subnet.Status.Allocated = make(map[string]dhcpapi.DHCPAllocated)
 					}
-					pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID] = &ManagedSubnet{
+					pluginHdl.dhcpSubnets.subnets[key] = &ManagedSubnet{
 						dhcpSubnet: event.Subnet,
 						pool:       pool,
 						allocations: &ipallocations{
@@ -121,9 +128,15 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					// Lets handle this later
 					// Will require merge
 					pluginHdl.dhcpSubnets.Lock()
-					val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
+
+					key := event.Subnet.Spec.VRF + event.Subnet.Spec.CircuitID
+					if event.Subnet.Name == dhcpapi.ManagementSubnet {
+						key = dhcpapi.ManagementSubnet
+					}
+
+					val, ok := pluginHdl.dhcpSubnets.subnets[key]
 					if !ok {
-						log.Errorf("Received modify event for dhcp subnet that does not exist: %s:%s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID)
+						log.Errorf("Received modify event for dhcp subnet that does not exist: %s", key)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -142,7 +155,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					cachedprefixLen, _ := cached.Mask.Size()
 					if recprefixLen < cachedprefixLen {
 						// can't reduce CIDR block size
-						log.Errorf("Can't reduce CIDR block size for %s:%s from %d to %d", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, cachedprefixLen, recprefixLen)
+						log.Errorf("Can't reduce CIDR block size for %s from %d to %d", key, cachedprefixLen, recprefixLen)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -152,9 +165,15 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					pluginHdl.dhcpSubnets.Unlock()
 				case EventTypeDeleted:
 					pluginHdl.dhcpSubnets.Lock()
-					val, ok := pluginHdl.dhcpSubnets.subnets[event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID]
+
+					key := event.Subnet.Spec.VRF + event.Subnet.Spec.CircuitID
+					if event.Subnet.Name == dhcpapi.ManagementSubnet {
+						key = dhcpapi.ManagementSubnet
+					}
+
+					val, ok := pluginHdl.dhcpSubnets.subnets[key]
 					if !ok {
-						log.Errorf("Received Delete event for non existing subnet %s:%s with cidrblock %s", event.Subnet.Spec.VRF, event.Subnet.Spec.CircuitID, val.dhcpSubnet.Spec.CIDRBlock)
+						log.Errorf("Received Delete event for non existing subnet %s with cidrblock %s", key, val.dhcpSubnet.Spec.CIDRBlock)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -166,7 +185,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						delete(val.allocations.allocation, mac)
 					}
 
-					delete(pluginHdl.dhcpSubnets.subnets, event.Subnet.Spec.VRF+event.Subnet.Spec.CircuitID)
+					delete(pluginHdl.dhcpSubnets.subnets, key)
 					pluginHdl.dhcpSubnets.Unlock()
 				}
 			}
@@ -179,18 +198,22 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 func handlerDHCP4(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
 	switch req.MessageType() { //nolint:exhaustive
 	case dhcpv4.MessageTypeDiscover:
+		slog.Debug("Received DHCP Discover4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleDiscover4(req, resp); err != nil {
 			log.Errorf("handleDiscover4 error: %s", err)
 		}
 	case dhcpv4.MessageTypeRequest:
+		slog.Debug("Received DHCP Request4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleRequest4(req, resp); err != nil {
 			log.Errorf("handle DHCP Request4 error: %s", err)
 		}
 	case dhcpv4.MessageTypeRelease:
+		slog.Debug("Received DHCP Release4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleRelease4(req, resp); err != nil {
 			log.Errorf("handle DHCP Release4 error: %s", err)
 		}
 	case dhcpv4.MessageTypeDecline:
+		slog.Debug("Received DHCP Decline4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleDecline4(req, resp); err != nil {
 			log.Errorf("handle DHCP Decline4 error: %s", err)
 		}

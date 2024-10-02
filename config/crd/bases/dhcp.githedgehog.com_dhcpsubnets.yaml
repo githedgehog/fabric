@@ -93,6 +93,10 @@ spec:
                 description: VLAN ID to identify specific subnet within the VPC, such
                   as "Vlan1000" as it's named on switch
                 type: string
+              defaultURL:
+                description: DefaultURL (optional) is the option 114 "default-url"
+                  to be sent to the clients
+                type: string
               dnsServers:
                 description: 'DNSservers (optional) to configure Domain Name Servers
                   for this particular segment such as: 10.10.10.1, 10.10.10.2'
@@ -137,6 +141,7 @@ spec:
             required:
             - cidrBlock
             - circuitID
+            - defaultURL
             - dnsServers
             - endIP
             - gateway
