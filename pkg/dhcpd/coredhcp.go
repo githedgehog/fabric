@@ -50,10 +50,7 @@ func (d *Service) runCoreDHCP(_ context.Context) error {
 
 	// TODO conf some facade to direct logrus to slog
 
-	if len(os.Args) != 2 {
-		return errors.New("Usage: hhdhcpd <listenAddress>")
-	}
-	ip, err := netip.ParseAddr(os.Args[1])
+	ip, err := netip.ParseAddr(d.ListenAddress)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse listen address")
 	}

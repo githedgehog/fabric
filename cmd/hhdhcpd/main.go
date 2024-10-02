@@ -91,13 +91,20 @@ func main() {
 		Destination: &verbose,
 	}
 
-	var configPath string
+	var configPath, listenAddress string
 	configPathFlag := &cli.StringFlag{
 		Name:        "config",
 		Aliases:     []string{"c"},
 		Usage:       "config file",
 		Value:       "/etc/hedgehog/dhcpd.yaml",
 		Destination: &configPath,
+	}
+	listenAddressFlag := &cli.StringFlag{
+		Name:        "listen",
+		Aliases:     []string{"l"},
+		Usage:       "listen address",
+		Value:       "127.0.0.1",
+		Destination: &listenAddress,
 	}
 
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
@@ -115,14 +122,16 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 					configPathFlag,
+					listenAddressFlag,
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
 				},
 				Action: func(_ *cli.Context) error {
 					return errors.Wrapf((&dhcpd.Service{
-						Verbose: verbose,
-						Config:  configPath,
+						Verbose:       verbose,
+						Config:        configPath,
+						ListenAddress: listenAddress,
 					}).Run(ctx), "failed to run dhcp server")
 				},
 			},

@@ -30,8 +30,9 @@ import (
 )
 
 type Service struct {
-	Verbose bool
-	Config  string
+	Verbose       bool
+	Config        string
+	ListenAddress string
 
 	kubeUpdates  chan Event
 	updateStatus func(dhcpapi.DHCPSubnet) error
