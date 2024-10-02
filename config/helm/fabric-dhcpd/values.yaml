@@ -27,7 +27,7 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-listenAddress: "127.0.0.1"
+listenInterface: "eth0"
 
 serviceAccount:
   # Specifies whether a service account should be created
