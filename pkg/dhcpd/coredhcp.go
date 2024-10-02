@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/netip"
 	"os"
 
 	"github.com/coredhcp/coredhcp/config"
@@ -50,15 +49,10 @@ func (d *Service) runCoreDHCP(_ context.Context) error {
 
 	// TODO conf some facade to direct logrus to slog
 
-	ip, err := netip.ParseAddr(d.ListenAddress)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse listen address")
-	}
-
 	if _, err := os.Stat(d.Config); errors.Is(err, os.ErrNotExist) {
 		d.Config = "/etc/coredhcp.conf"
 
-		if err := os.WriteFile(d.Config, []byte(fmt.Sprintf(cfgTmpl, ip.String())), 0o600); err != nil {
+		if err := os.WriteFile(d.Config, []byte(fmt.Sprintf(cfgTmpl, "%"+d.ListenInterface)), 0o600); err != nil {
 			return errors.Wrapf(err, "failed to write default config")
 		}
 	}
