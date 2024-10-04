@@ -134,6 +134,8 @@ type SwitchProfileSpec struct {
 	PortGroups map[string]SwitchProfilePortGroup `json:"portGroups,omitempty"`
 	// PortProfiles defines the switch port profile configuration
 	PortProfiles map[string]SwitchProfilePortProfile `json:"portProfiles,omitempty"`
+	// NOSType defines the NOS type to be used for the switch
+	NOSType meta.NOSType `json:"nosType,omitempty"`
 }
 
 // SwitchProfileStatus defines the observed state of SwitchProfile
@@ -254,6 +256,13 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 		if idx := slices.Index(sp.Spec.OtherNames, name); idx != curr {
 			return nil, errors.Errorf("otherNames must not contain duplicates")
 		}
+	}
+
+	if sp.Spec.NOSType == "" {
+		return nil, errors.Errorf("nosType is required")
+	}
+	if !slices.Contains(meta.NOSTypes, sp.Spec.NOSType) {
+		return nil, errors.Errorf("nosType %q is invalid", sp.Spec.NOSType)
 	}
 
 	profiles := map[string]bool{}

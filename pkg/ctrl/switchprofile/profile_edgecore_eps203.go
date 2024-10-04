@@ -15,6 +15,7 @@
 package switchprofile
 
 import (
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,6 +32,7 @@ var profileEdgecoreEPS203 = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
+		NOSType: meta.NOSTypeSONiCBCMCampus,
 		Config: wiringapi.SwitchProfileConfig{
 			MaxPathsEBGP: 16,
 		},

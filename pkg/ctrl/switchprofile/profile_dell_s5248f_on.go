@@ -15,6 +15,7 @@
 package switchprofile
 
 import (
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,7 +31,8 @@ var profileDellS5248FON = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
-		Config: wiringapi.SwitchProfileConfig{},
+		NOSType: meta.NOSTypeSONiCBCMBase,
+		Config:  wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 			"E1/1":  {NOSName: "Ethernet0", Label: "1", Group: "1"},

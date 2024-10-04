@@ -31,6 +31,7 @@ var profileVS = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          false,
 		},
+		NOSType: meta.NOSTypeSONiCBCMVS,
 		Config: wiringapi.SwitchProfileConfig{
 			MaxPathsEBGP: 16,
 		},
