@@ -36,15 +36,15 @@ import (
 )
 
 const (
-	MCLAGDomainID                  = 100
-	MCLAGPeerLinkPortChannelID     = 250
-	MCLAGSessionLinkPortChannelID  = 251
-	MCLAGPeerLinkTrunkVLANRange    = "2..4094"    // TODO do we need to configure it?
-	MCLAGSessionIP1                = "172.30.5.0" // TODO move to config
-	MCLAGSessionIP2                = "172.30.5.1" // TODO move to config
-	MCLAGSessionIPPrefixLen        = 31           // TODO move to config
-	AgentUser                      = "hhagent"
-	LoopbackSwitch                 = "Loopback0"
+	MCLAGDomainID                 = 100
+	MCLAGPeerLinkPortChannelID    = 250
+	MCLAGSessionLinkPortChannelID = 251
+	MCLAGPeerLinkTrunkVLANRange   = "2..4094"    // TODO do we need to configure it?
+	MCLAGSessionIP1               = "172.30.5.0" // TODO move to config
+	MCLAGSessionIP2               = "172.30.5.1" // TODO move to config
+	MCLAGSessionIPPrefixLen       = 31           // TODO move to config
+	AgentUser                     = "hhagent"
+	// LoopbackSwitch                 = "Loopback0"
 	LoopbackProto                  = "Loopback1"
 	LoopbackVTEP                   = "Loopback2"
 	VRFDefault                     = "default"
@@ -58,6 +58,7 @@ const (
 	NoCommunity                    = "no-community"
 	LSTGroupSpineLink              = "spinelink"
 	BGPCommListAllExternals        = "all-externals"
+	MgmtIface                      = "Management0"
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -295,7 +296,7 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
-	spec.NTP.SourceInterface = []string{LoopbackSwitch}
+	spec.NTP.SourceInterface = []string{MgmtIface}
 
 	if !strings.HasSuffix(agent.Spec.Config.ControlVIP, "/32") {
 		return errors.Errorf("invalid control VIP %s", agent.Spec.Config.ControlVIP)
@@ -310,31 +311,31 @@ func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
-	ip, ipNet, err := net.ParseCIDR(agent.Spec.Switch.IP)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse switch ip %s", agent.Spec.Switch.IP)
-	}
-	ipPrefixLen, _ := ipNet.Mask.Size()
+	// ip, ipNet, err := net.ParseCIDR(agent.Spec.Switch.IP)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to parse switch ip %s", agent.Spec.Switch.IP)
+	// }
+	// ipPrefixLen, _ := ipNet.Mask.Size()
 
-	spec.Interfaces[LoopbackSwitch] = &dozer.SpecInterface{
-		Enabled:     pointer.To(true),
-		Description: pointer.To("Switch loopback"),
-		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-			0: {
-				IPs: map[string]*dozer.SpecInterfaceIP{
-					ip.String(): {
-						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
-					},
-				},
-			},
-		},
-	}
+	// spec.Interfaces[LoopbackSwitch] = &dozer.SpecInterface{
+	// 	Enabled:     pointer.To(true),
+	// 	Description: pointer.To("Switch loopback"),
+	// 	Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+	// 		0: {
+	// 			IPs: map[string]*dozer.SpecInterfaceIP{
+	// 				ip.String(): {
+	// 					PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// }
 
-	ip, ipNet, err = net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+	ip, ipNet, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 	}
-	ipPrefixLen, _ = ipNet.Mask.Size()
+	ipPrefixLen, _ := ipNet.Mask.Size()
 
 	spec.Interfaces[LoopbackProto] = &dozer.SpecInterface{
 		Enabled:     pointer.To(true),
@@ -1864,7 +1865,7 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 		}
 
 		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
-			SourceInterface: pointer.To(LoopbackSwitch),
+			SourceInterface: pointer.To(MgmtIface),
 			RelayAddress:    []string{dhcpRelayIP.String()},
 			LinkSelect:      true,
 			VRFSelect:       true,
