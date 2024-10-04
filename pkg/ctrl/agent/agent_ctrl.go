@@ -657,9 +657,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.Version.CA = r.CA
 		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
 		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
-		agent.Spec.Version.NOSRepo = "172.30.1.1:31000/githedgehog/sonic/x86_64-dellemc_s5248f_c3538-r0"
-		agent.Spec.Version.NOSFileName = "sonic-broadcom-enterprise-base.bin"
-		agent.Spec.Version.NOSVersion = "latest"
 
 		agent.Spec.Catalog = *cat
 
@@ -754,7 +751,7 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta
 			tokenSecret.Annotations = map[string]string{}
 		}
 
-		tokenSecret.Annotations[corev1.ServiceAccountNameKey] = ag.Name
+		tokenSecret.Annotations[corev1.ServiceAccountNameKey] = saName
 		tokenSecret.Type = corev1.SecretTypeServiceAccountToken
 
 		return nil
