@@ -45,7 +45,7 @@ agent-push-dev: agent-build ## Push agent
 	cd bin && oras push --insecure $(OCI_REPO)/agent:$(VERSION) agent
 
 .PHONY: hhfctl-build
-hhfctl-build: ## Build hhfctl
+hhfctl-build: build-embed-nos-install ## Build hhfctl
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/linux-amd64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
@@ -54,7 +54,7 @@ hhfctl-build: ## Build hhfctl
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 
 .PHONY: hhfctl-build-mac
-hhfctl-build-mac: ## Build hhfctl for Mac ARM64
+hhfctl-build-mac: build-embed-nos-install ## Build hhfctl for Mac ARM64
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/hhfctl -ldflags="-w -s -X main.version=$(VERSION)" ./cmd/hhfctl/main.go
 
 .PHONY: hhfctl-push
@@ -154,12 +154,20 @@ push: api-chart-push fabric-image-push fabric-chart-push agent-push hhfctl-push 
 
 .PHONY: dev-patch
 dev-patch:
-	kubectl --insecure-skip-tls-verify patch helmchart fabric-api --type=merge -p '{"spec":{"version":"$(VERSION)"}}'
-	kubectl --insecure-skip-tls-verify patch helmchart fabric --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"controllerManager.manager.image.tag":"$(VERSION)"}}}'
-	if kubectl --insecure-skip-tls-verify get helmchart/fabric-dhcp-server ; then kubectl --insecure-skip-tls-verify patch helmchart fabric-dhcp-server --type=merge -p '{"spec":{"version":"$(VERSION)"}}' ; fi
-	if kubectl --insecure-skip-tls-verify get helmchart/fabric-dhcpd ; then kubectl --insecure-skip-tls-verify patch helmchart fabric-dhcpd --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"image.tag":"$(VERSION)"}}}' ; fi
+	kubectl --insecure-skip-tls-verify -n fab patch helmchart fabric-api --type=merge -p '{"spec":{"version":"$(VERSION)"}}'
+	kubectl --insecure-skip-tls-verify -n fab patch helmchart fabric --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"controllerManager.manager.image.tag":"$(VERSION)"}}}'
+	if kubectl --insecure-skip-tls-verify -n fab get helmchart/fabric-dhcpd ; then kubectl --insecure-skip-tls-verify -n fab patch helmchart fabric-dhcpd --type=merge -p '{"spec":{"version":"$(VERSION)", "set":{"image.tag":"$(VERSION)"}}}' ; fi
+
+.PHONY: version
+version:
+	echo "Using version: $(VERSION)"
 
 .PHONY: dev
 dev:
-	VERSION=$(VERSION)-$(TIME) make dev-push dev-patch
-	echo "Deployed version: $(VERSION)-$(TIME)"
+	VERSION=$(VERSION)-$(TIME) make dev-push dev-patch version
+
+.PHONY: build-embed-nos-install
+build-embed-nos-install: ## Build binaries to embed
+	touch pkg/boot/nosinstall/bin/fabric-nos-install
+
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o pkg/boot/nosinstall/bin/fabric-nos-install -ldflags="-w -s -X main.version=$(VERSION)" $(GOFLAGS) ./cmd/fabric-nos-install
