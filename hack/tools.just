@@ -1,0 +1,111 @@
+#
+# Version handling
+#
+
+version_dirty := `[ -z "$(git status -s)" ] || echo "-$(date +"%H%M%S")"`
+version := `git describe --tags --dirty --always` + version_dirty
+
+# Print version that will be used in the build
+version:
+  @echo "Using version: {{version}}"
+
+_is_clean:
+  [ -z "`git status -s`" ] || exit 1
+
+#
+# Downloading all tools locally
+#
+
+localbin := "bin"
+
+_localbin:
+  @mkdir -p {{localbin}}
+
+# Download all tools locally
+tools: _kustomize _controller_gen _envtest _golangci_lint _butane _addlicense _crd_ref_docs _helm _helmify _oras _actionlint
+
+# kustomize
+kustomize_version := "v5.4.3"
+kustomize := localbin / "kustomize" + "-" + kustomize_version
+@_kustomize: _localbin
+  [ -f {{kustomize}} ] || just _goinstall "sigs.k8s.io/kustomize/kustomize/v5" {{kustomize_version}} "kustomize" {{kustomize}}
+
+# controller-gen
+controller_gen_version := "v0.16.1"
+controller_gen := localbin / "controller-gen" + "-" + controller_gen_version
+@_controller_gen: _localbin
+  [ -f {{controller_gen}} ] || just _goinstall "sigs.k8s.io/controller-tools/cmd/controller-gen" {{controller_gen_version}} "controller-gen" {{controller_gen}}
+
+# envtest
+envtest_version := "release-0.19"
+envtest := localbin / "setup-envtest" + "-" + envtest_version
+@_envtest: _localbin
+  [ -f {{envtest}} ] || just _goinstall "sigs.k8s.io/controller-runtime/tools/setup-envtest" {{envtest_version}} "setup-envtest" {{envtest}}
+
+# golangci-lint, keep version in sync with ci.yaml
+golangci_lint_version := "v1.61.0"
+golangci_lint := localbin / "golangci-lint" + "-" + golangci_lint_version
+@_golangci_lint: _localbin
+  [ -f {{golangci_lint}} ] || just _goinstall "github.com/golangci/golangci-lint/cmd/golangci-lint" {{golangci_lint_version}} "golangci-lint" {{golangci_lint}}
+
+# butane
+butane_version := "v0.22.0"
+butane := localbin / "butane" + "-" + butane_version
+@_butane: _localbin
+  [ -f {{butane}} ] || just _goinstall "github.com/coreos/butane/internal" {{butane_version}} "internal" {{butane}}
+
+# addlicense
+addlicense_version := "v1.1.1"
+addlicense := localbin / "addlicense" + "-" + addlicense_version
+@_addlicense: _localbin
+  [ -f {{addlicense}} ] || just _goinstall "github.com/google/addlicense" {{addlicense_version}} "addlicense" {{addlicense}}
+
+# crd-ref-docs
+crd_ref_docs_version := "v0.1.0"
+crd_ref_docs := localbin / "crd-ref-docs" + "-" + crd_ref_docs_version
+@_crd_ref_docs: _localbin
+  [ -f {{crd_ref_docs}} ] || just _goinstall "github.com/elastic/crd-ref-docs" {{crd_ref_docs_version}} "crd-ref-docs" {{crd_ref_docs}}
+
+# helm
+helm_version := "v3.16.1"
+helm := localbin / "helm" + "-" + helm_version
+@_helm: _localbin
+  [ -f {{helm}} ] || just _goinstall "helm.sh/helm/v3/cmd/helm" {{helm_version}} "helm" {{helm}}
+
+# helmify
+helmify_version := "v0.4.11"
+helmify := localbin / "helmify" + "-" + helmify_version
+@_helmify: _localbin
+  [ -f {{helmify}} ] || just _goinstall "github.com/arttor/helmify/cmd/helmify" {{helmify_version}} "helmify" {{helmify}}
+
+# oras
+oras_version := "v1.2.0"
+oras := localbin / "oras" + "-" + oras_version
+@_oras: _localbin
+  [ -f {{oras}} ] || just _goinstall "oras.land/oras/cmd/oras" {{oras_version}} "oras" {{oras}}
+
+# actionlint
+actionlint_version := "v1.7.3"
+actionlint := localbin / "actionlint" + "-" + actionlint_version
+@_actionlint: _localbin
+  [ -f {{actionlint}} ] || just _goinstall "github.com/rhysd/actionlint/cmd/actionlint" {{actionlint_version}} "actionlint" {{actionlint}}
+
+# go install helper
+_goinstall PACKAGE VERSION BINNAME TARGET: _localbin
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  echo "Installing go package: {{PACKAGE}}@{{VERSION}}..."
+  GOBIN=`pwd`/{{localbin}} go install {{PACKAGE}}@{{VERSION}}
+  mv {{localbin}}/{{BINNAME}} {{TARGET}}
+
+#
+# Common recipes
+#
+
+_license_headers: _addlicense
+  @{{addlicense}} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -y 2024 .
+
+# Run linter for GitHub Actions
+lint-gha: _actionlint
+   {{actionlint}} -verbose
