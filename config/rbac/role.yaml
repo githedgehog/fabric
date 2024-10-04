@@ -8,6 +8,8 @@ rules:
   - agent.githedgehog.com
   resources:
   - agents
+  - agents/status
+  - catalogs
   verbs:
   - create
   - delete
@@ -23,56 +25,10 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - agent.githedgehog.com
-  resources:
-  - agents/status
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - agent.githedgehog.com
-  resources:
-  - catalogs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - ""
   resources:
   - configmaps
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - serviceaccounts
   verbs:
   - create
@@ -112,17 +68,6 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - rolebindings
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - roles
   verbs:
   - create
@@ -136,85 +81,10 @@ rules:
   - vpc.githedgehog.com
   resources:
   - externalattachments
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - externalattachments/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
   - externalpeerings
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - externalpeerings/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
   - externals
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - externals/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
   - ipv4namespaces
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - ipv4namespaces/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
   - vpcattachments
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcattachments/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
   - vpcpeerings
   verbs:
   - get
@@ -223,7 +93,13 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
+  - externalattachments/status
+  - externalpeerings/status
+  - externals/status
+  - ipv4namespaces/status
+  - vpcattachments/status
   - vpcpeerings/status
+  - vpcs/status
   verbs:
   - get
   - patch
@@ -247,17 +123,11 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - wiring.githedgehog.com
   resources:
   - connections
+  - switchgroups
+  - vlannamespaces
   verbs:
   - get
   - list
@@ -266,6 +136,10 @@ rules:
   - wiring.githedgehog.com
   resources:
   - connections/status
+  - switches/status
+  - switchgroups/status
+  - switchprofiles/status
+  - vlannamespaces/status
   verbs:
   - get
   - patch
@@ -274,6 +148,7 @@ rules:
   - wiring.githedgehog.com
   resources:
   - switches
+  - switchprofiles
   verbs:
   - create
   - delete
@@ -287,64 +162,4 @@ rules:
   resources:
   - switches/finalizers
   verbs:
-  - update
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - switches/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - switchgroups
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - switchgroups/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - switchprofiles
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - switchprofiles/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - vlannamespaces
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - vlannamespaces/status
-  verbs:
-  - get
-  - patch
   - update

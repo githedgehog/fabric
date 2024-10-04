@@ -96,6 +96,20 @@ var FabricModes = []FabricMode{
 	FabricModeSpineLeaf,
 }
 
+type NOSType string
+
+const (
+	NOSTypeSONiCBCMBase   NOSType = "sonic-bcm-base"
+	NOSTypeSONiCBCMCampus NOSType = "sonic-bcm-campus"
+	NOSTypeSONiCBCMVS     NOSType = "sonic-bcm-vs"
+)
+
+var NOSTypes = []NOSType{
+	NOSTypeSONiCBCMBase,
+	NOSTypeSONiCBCMCampus,
+	NOSTypeSONiCBCMVS,
+}
+
 func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
 	return cfg.reservedSubnets
 }
