@@ -74,7 +74,7 @@ _helm-fabric-api: _kustomize _helm _kube_gen
 
 _helm-fabric: _kustomize _helm _helmify _kube_gen
   @rm config/helm/fabric-v*.tgz || true
-  @rm config/helm/fabric/templates/*.yaml config/helm/fabric/values.yaml
+  @rm config/helm/fabric/templates/*.yaml config/helm/fabric/values.yaml || true
   {{kustomize}} build config/default | {{helmify}} config/helm/fabric
   {{helm}} package config/helm/fabric --destination config/helm --version {{version}}
   {{helm}} lint config/helm/fabric-{{version}}.tgz

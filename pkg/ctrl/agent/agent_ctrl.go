@@ -56,19 +56,23 @@ const (
 // Reconciler reconciles a Agent object
 type Reconciler struct {
 	client.Client
-	Scheme  *runtime.Scheme
-	Cfg     *meta.FabricConfig
-	LibMngr *librarian.Manager
-	CA      string
+	Scheme   *runtime.Scheme
+	Cfg      *meta.FabricConfig
+	LibMngr  *librarian.Manager
+	CA       string
+	Username string
+	Password string
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca string) error {
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
 	r := &Reconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Cfg:     cfg,
-		LibMngr: libMngr,
-		CA:      ca,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Cfg:      cfg,
+		LibMngr:  libMngr,
+		CA:       ca,
+		Username: username,
+		Password: password,
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
@@ -651,9 +655,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.AttachedVPCs = attachedVPCs
 		agent.Spec.Users = userCreds
 
+		agent.Spec.Version.CA = r.CA
+		agent.Spec.Version.Username = r.Username
+		agent.Spec.Version.Password = r.Password
+
 		agent.Spec.Version.Default = version.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
-		agent.Spec.Version.CA = r.CA
+
 		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
 		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
 

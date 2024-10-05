@@ -87,11 +87,19 @@ func (a *Agent) IsSpineLeaf() bool {
 	return a != nil && a.Spec.Config.SpineLeaf != nil
 }
 
+// TODO rename?
 type AgentVersion struct {
-	Default      string `json:"default,omitempty"`
-	Override     string `json:"override,omitempty"`
-	Repo         string `json:"repo,omitempty"`
-	CA           string `json:"ca,omitempty"`
+	// Registry information
+	CA       string `json:"ca,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+
+	// Agent information
+	Repo     string `json:"repo,omitempty"`
+	Default  string `json:"default,omitempty"`
+	Override string `json:"override,omitempty"`
+
+	// Alloy information
 	AlloyRepo    string `json:"alloyRepo,omitempty"`
 	AlloyVersion string `json:"alloyVersion,omitempty"`
 }
