@@ -14,7 +14,7 @@
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --chown=0:0 ./bin/fabric /bin/
+COPY --chown=0:0 ./fabric /bin/
 
 USER 65532:65532
 

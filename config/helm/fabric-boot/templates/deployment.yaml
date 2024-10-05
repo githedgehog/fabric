@@ -1,28 +1,14 @@
-# Copyright 2023 Hedgehog
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "fabric-dhcpd.fullname" . }}
+  name: {{ include "fabric-boot.fullname" . }}
   labels:
-    {{- include "fabric-dhcpd.labels" . | nindent 4 }}
+    {{- include "fabric-boot.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "fabric-dhcpd.selectorLabels" . | nindent 6 }}
+      {{- include "fabric-boot.selectorLabels" . | nindent 6 }}
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -35,13 +21,16 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "fabric-dhcpd.selectorLabels" . | nindent 8 }}
+        {{- include "fabric-boot.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "fabric-dhcpd.serviceAccountName" . }}
+      serviceAccountName: {{ include "fabric-boot.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       dnsPolicy: ClusterFirstWithHostNet
@@ -52,9 +41,24 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["--listen", "{{ .Values.listenInterface }}"]
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: cache-dir
+              mountPath: /cache
+            - name: fab-ca
+              mountPath: /ca
+              readOnly: true
+            - name: creds
+              mountPath: /creds
+              readOnly: true
+            - name: config
+              mountPath: /config
+              readOnly: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -67,3 +71,15 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: cache-dir
+          emptyDir: {} # TODO probably use host path to avoid tmpfs?
+        - name: fab-ca
+          configMap:
+            name: fab-ca # TODO pass using values
+        - name: creds
+          secret:
+            secretName: registry-user-reader-docker # TODO pass using values
+        - name: config
+          configMap:
+            name: {{ include "fabric-boot.fullname" . }}-config

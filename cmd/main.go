@@ -47,6 +47,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	vpccontroller "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
+	"go.githedgehog.com/fabric/pkg/version"
 	connectionWebhook "go.githedgehog.com/fabric/pkg/webhook/connection"
 	externalWebhool "go.githedgehog.com/fabric/pkg/webhook/external"
 	externalAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/externalattachment"
@@ -77,8 +78,6 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-var version = "(devel)"
-
 //go:embed motd.txt
 var motd []byte
 
@@ -87,7 +86,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to write motd:", err)
 	}
-	fmt.Println("Version:", version)
+	fmt.Println("Version:", version.Version)
 
 	opts := zap.Options{
 		Development: true,
@@ -157,7 +156,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, version, string(ca)); err != nil {
+	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, string(ca)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
 	}

@@ -43,6 +43,11 @@ spec:
     matchLabels:
       control-plane: controller-manager
   replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       annotations:
@@ -113,8 +118,13 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/hedgehog/fabric
+              readOnly: true
             - name: ca
               mountPath: /etc/hedgehog/ca
+              readOnly: true
+            - name: creds
+              mountPath: /creds
+              readOnly: true
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
@@ -126,3 +136,6 @@ spec:
           configMap:
             # TODO remove hardcoded name
             name: fab-ca
+        - name: creds
+          secret:
+            secretName: registry-user-reader # TODO pass using values
