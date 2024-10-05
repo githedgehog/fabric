@@ -30,6 +30,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	"go.githedgehog.com/fabric/pkg/version"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -42,8 +43,6 @@ const (
 )
 
 type Service struct {
-	Version string
-
 	DryRun    bool
 	ApplyOnce bool
 }
@@ -54,7 +53,7 @@ func (svc *Service) Run(ctx context.Context) error {
 		return errors.Wrap(err, "failed to get hostname")
 	}
 
-	slog.Info("Starting control agent", "hostname", hostname, "version", svc.Version)
+	slog.Info("Starting control agent", "hostname", hostname, "version", version.Version)
 
 	kube, err := kubeutil.NewClient(ctx, KubeconfigFile, agentapi.SchemeBuilder)
 	if err != nil {
@@ -88,7 +87,7 @@ func (svc *Service) Run(ctx context.Context) error {
 	agent.Status.LastAttemptGen = currentGen
 	agent.Status.LastAppliedTime = now
 	agent.Status.LastAppliedGen = currentGen
-	agent.Status.Version = svc.Version
+	agent.Status.Version = version.Version
 	if agent.Status.Conditions == nil {
 		agent.Status.Conditions = []metav1.Condition{}
 	}
@@ -221,7 +220,7 @@ func (svc *Service) processKubeUpdate(ctx context.Context, kube client.Client, a
 func (svc *Service) process(ctx context.Context, agent *agentapi.ControlAgent) error {
 	slog.Info("Processing control agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
-	upgraded, err := common.AgentUpgrade(ctx, svc.Version, agent.Spec.Version, false, []string{"control", "apply", "--dry-run=true"})
+	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, false, []string{"control", "apply", "--dry-run=true"})
 	if err != nil {
 		slog.Warn("Failed to upgrade Agent", "err", err)
 	} else if upgraded {

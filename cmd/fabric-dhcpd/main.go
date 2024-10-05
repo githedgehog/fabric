@@ -30,6 +30,7 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/dhcpd"
+	"go.githedgehog.com/fabric/pkg/version"
 )
 
 const (
@@ -38,8 +39,6 @@ const (
 
 //go:embed motd.txt
 var motd []byte
-
-var version = "(devel)"
 
 func setupLogger(verbose bool, printMotd bool) error {
 	logLevel := slog.LevelInfo
@@ -111,7 +110,7 @@ func main() {
 	app := &cli.App{
 		Name:                   "hhdhcpd",
 		Usage:                  "hedgehog fabric dhcp server",
-		Version:                version,
+		Version:                version.Version,
 		Suggest:                true,
 		UseShortOptionHandling: true,
 		EnableBashCompletion:   true,

@@ -30,9 +30,8 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/gen/profilesref"
+	"go.githedgehog.com/fabric/pkg/version"
 )
-
-var version = "(devel)"
 
 func setupLogger(verbose bool) error {
 	logLevel := slog.LevelInfo
@@ -81,7 +80,7 @@ func main() {
 	app := &cli.App{
 		Name:                   "fabric-gen",
 		Usage:                  "hedgehog fabric code/docs generating tool",
-		Version:                version,
+		Version:                version.Version,
 		Suggest:                true,
 		UseShortOptionHandling: true,
 		EnableBashCompletion:   true,

@@ -90,13 +90,19 @@ actionlint := localbin / "actionlint" + "-" + actionlint_version
 @_actionlint: _localbin
   [ -f {{actionlint}} ] || just _goinstall "github.com/rhysd/actionlint/cmd/actionlint" {{actionlint_version}} "actionlint" {{actionlint}}
 
+# skopeo
+skopeo_version := "v1.16.1"
+skopeo := localbin / "skopeo" + "-" + skopeo_version
+@_skopeo: _localbin
+  [ -f {{skopeo}} ] || just _goinstall "github.com/containers/skopeo/cmd/skopeo" {{skopeo_version}} "skopeo" {{skopeo}} "--tags containers_image_openpgp,exclude_graphdriver_btrfs"
+
 # go install helper
-_goinstall PACKAGE VERSION BINNAME TARGET: _localbin
+_goinstall PACKAGE VERSION BINNAME TARGET FLAGS="": _localbin
   #!/usr/bin/env bash
   set -euo pipefail
 
   echo "Installing go package: {{PACKAGE}}@{{VERSION}}..."
-  GOBIN=`pwd`/{{localbin}} go install {{PACKAGE}}@{{VERSION}}
+  GOBIN=`pwd`/{{localbin}} go install {{FLAGS}} {{PACKAGE}}@{{VERSION}}
   mv {{localbin}}/{{BINNAME}} {{TARGET}}
 
 #

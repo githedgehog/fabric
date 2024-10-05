@@ -33,6 +33,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
+	"go.githedgehog.com/fabric/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -58,17 +59,15 @@ type Reconciler struct {
 	Scheme  *runtime.Scheme
 	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
-	Version string
 	CA      string
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, version, ca string) error {
+func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca string) error {
 	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Cfg:     cfg,
 		LibMngr: libMngr,
-		Version: version,
 		CA:      ca,
 	}
 
@@ -652,7 +651,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.AttachedVPCs = attachedVPCs
 		agent.Spec.Users = userCreds
 
-		agent.Spec.Version.Default = r.Version
+		agent.Spec.Version.Default = version.Version
 		agent.Spec.Version.Repo = r.Cfg.AgentRepo
 		agent.Spec.Version.CA = r.CA
 		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo

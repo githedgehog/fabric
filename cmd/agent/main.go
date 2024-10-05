@@ -34,6 +34,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/control"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
+	"go.githedgehog.com/fabric/pkg/version"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -45,8 +46,6 @@ const (
 
 //go:embed motd.txt
 var motd []byte
-
-var version = "(devel)"
 
 func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 	logLevel := slog.LevelInfo
@@ -126,7 +125,7 @@ func main() {
 	app := &cli.App{
 		Name:                   "agent",
 		Usage:                  "hedgehog fabric agent",
-		Version:                version,
+		Version:                version.Version,
 		Suggest:                true,
 		UseShortOptionHandling: true,
 		EnableBashCompletion:   true,
@@ -144,7 +143,6 @@ func main() {
 				Action: func(_ *cli.Context) error {
 					return errors.Wrapf((&agent.Service{
 						Basedir: basedir,
-						Version: version,
 					}).Run(ctx, func() (*gnmi.Client, error) {
 						client, err := gnmi.NewInSONiC(ctx, basedir, false)
 						if err != nil {
@@ -196,7 +194,7 @@ func main() {
 					return setupLogger(verbose, false, true)
 				},
 				Action: func(cCtx *cli.Context) error {
-					slog.Info("Applying", "version", version)
+					slog.Info("Applying", "version", version.Version)
 
 					getGNMIClient := func() (*gnmi.Client, error) {
 						if cCtx.Bool("gnmi-direct") {
@@ -221,7 +219,6 @@ func main() {
 
 					return errors.Wrapf((&agent.Service{
 						Basedir:         basedir,
-						Version:         version,
 						DryRun:          cCtx.Bool("dry-run"),
 						SkipControlLink: cCtx.Bool("skip-contol-link"),
 						ApplyOnce:       cCtx.Bool("apply-once"),
@@ -333,9 +330,7 @@ func main() {
 							return setupLogger(verbose, true, true)
 						},
 						Action: func(_ *cli.Context) error {
-							return errors.Wrapf((&control.Service{
-								Version: version,
-							}).Run(ctx), "failed to run control agent")
+							return errors.Wrapf((&control.Service{}).Run(ctx), "failed to run control agent")
 						},
 					},
 					{
@@ -354,7 +349,6 @@ func main() {
 						},
 						Action: func(cCtx *cli.Context) error {
 							return errors.Wrapf((&control.Service{
-								Version:   version,
 								ApplyOnce: true,
 								DryRun:    cCtx.Bool("dry-run"),
 							}).Run(ctx), "failed to apply control agent config")

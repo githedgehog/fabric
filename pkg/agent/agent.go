@@ -36,6 +36,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
+	"go.githedgehog.com/fabric/pkg/version"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -53,7 +54,6 @@ var motd []byte
 
 type Service struct {
 	Basedir string
-	Version string
 
 	DryRun          bool
 	SkipControlLink bool
@@ -75,7 +75,7 @@ const (
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
-	svc.reg.AgentMetrics.Version.WithLabelValues(svc.Version).Set(1)
+	svc.reg.AgentMetrics.Version.WithLabelValues(version.Version).Set(1)
 
 	if !svc.ApplyOnce && !svc.DryRun {
 		go func() {
@@ -89,11 +89,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	if svc.Basedir == "" {
 		return errors.New("basedir is required")
 	}
-	if svc.Version == "" {
+	if version.Version == "" {
 		return errors.New("version is required")
 	}
 
-	slog.Info("Starting", "version", svc.Version, "basedir", svc.Basedir)
+	slog.Info("Starting", "version", version.Version, "basedir", svc.Basedir)
 
 	agent, err := svc.loadConfigFromFile()
 	if err != nil {
@@ -156,7 +156,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.LastAppliedGen = currentGen
 		agent.Status.InstallID = svc.installID
 		agent.Status.RunID = svc.runID
-		agent.Status.Version = svc.Version
+		agent.Status.Version = version.Version
 		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
 		if agent.Status.Conditions == nil {
 			agent.Status.Conditions = []metav1.Condition{}
@@ -517,7 +517,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		}
 	}
 
-	upgraded, err := common.AgentUpgrade(ctx, svc.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true"})
+	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true"})
 	if err != nil {
 		slog.Warn("Failed to upgrade Agent", "err", err)
 	} else if upgraded {
