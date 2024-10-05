@@ -87,16 +87,23 @@ spec:
               version:
                 properties:
                   alloyRepo:
+                    description: Alloy information
                     type: string
                   alloyVersion:
                     type: string
                   ca:
+                    description: Registry information
                     type: string
                   default:
                     type: string
                   override:
                     type: string
+                  password:
+                    type: string
                   repo:
+                    description: Agent information
+                    type: string
+                  username:
                     type: string
                 type: object
             type: object

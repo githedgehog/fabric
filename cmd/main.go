@@ -60,6 +60,7 @@ import (
 	vpcWebhook "go.githedgehog.com/fabric/pkg/webhook/vpc"
 	vpcAttachmentWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
 	vpcPeeringWebhook "go.githedgehog.com/fabric/pkg/webhook/vpcpeering"
+	corev1 "k8s.io/api/core/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -106,6 +107,18 @@ func main() {
 	ca, err := os.ReadFile("/etc/hedgehog/ca/ca.crt") // TODO config?
 	if err != nil {
 		setupLog.Error(err, "unable to read CA")
+		os.Exit(1)
+	}
+
+	username, err := os.ReadFile("/creds/" + corev1.BasicAuthUsernameKey)
+	if err != nil {
+		setupLog.Error(err, "unable to read registry username")
+		os.Exit(1)
+	}
+
+	password, err := os.ReadFile("/creds/" + corev1.BasicAuthPasswordKey)
+	if err != nil {
+		setupLog.Error(err, "unable to read registry password")
 		os.Exit(1)
 	}
 
@@ -156,7 +169,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, string(ca)); err != nil {
+	if err = agentcontroller.SetupWithManager(mgr, cfg, libMngr, string(ca), string(username), string(password)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Agent")
 		os.Exit(1)
 	}

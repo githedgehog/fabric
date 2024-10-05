@@ -64,6 +64,7 @@ type service struct {
 }
 
 func Run(ctx context.Context) error {
+	// TODO cache should be using host path or local PV
 	if err := os.RemoveAll(CacheDir); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrapf(err, "removing cache dir %s", CacheDir)
 	}

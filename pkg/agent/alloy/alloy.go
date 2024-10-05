@@ -159,7 +159,14 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	}
 
 	if needsBinUpgrade {
-		if err := common.UpgradeBin(ctx, agent.Spec.Version.AlloyRepo, agent.Spec.Version.AlloyVersion, agent.Spec.Version.CA, binDir, binName,
+		if err := common.UpgradeBin(ctx,
+			agent.Spec.Version.AlloyRepo,
+			agent.Spec.Version.AlloyVersion,
+			agent.Spec.Version.CA,
+			agent.Spec.Version.Username,
+			agent.Spec.Version.Password,
+			binDir,
+			binName,
 			func(_ context.Context, _ string) error { return nil }); err != nil {
 			return errors.Wrapf(err, "error installing alloy binary")
 		}

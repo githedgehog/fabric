@@ -56,7 +56,7 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 
 	slog.Info("Attempting to upgrade Agent")
 
-	return true, UpgradeBin(ctx, version.Repo, desiredVersion, version.CA, "/opt/hedgehog/bin", "agent", func(ctx context.Context, binPath string) error {
+	return true, UpgradeBin(ctx, version.Repo, desiredVersion, version.CA, version.Username, version.Password, "/opt/hedgehog/bin", "agent", func(ctx context.Context, binPath string) error {
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 
@@ -70,7 +70,7 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 	})
 }
 
-func UpgradeBin(ctx context.Context, source, version, ca, target, name string, testFunc func(ctx context.Context, binPath string) error) error {
+func UpgradeBin(ctx context.Context, source, version, ca, username, password, target, name string, testFunc func(ctx context.Context, binPath string) error) error {
 	tmpPath, err := os.MkdirTemp(target, "bin-upgrade-*")
 	if err != nil {
 		return errors.Wrap(err, "failed to create temp dir")
@@ -103,6 +103,13 @@ func UpgradeBin(ctx context.Context, source, version, ca, target, name string, t
 	repo.Client = &auth.Client{
 		Client: &http.Client{
 			Transport: baseTransport,
+		},
+		Cache: auth.DefaultCache,
+		Credential: func(_ context.Context, _ string) (auth.Credential, error) {
+			return auth.Credential{
+				Username: username,
+				Password: password,
+			}, nil
 		},
 	}
 
