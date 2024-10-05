@@ -50,7 +50,6 @@ func (svc *service) preCacheBackground(ctx context.Context) {
 			// return fmt.Errorf("NOS repo not found: %s", nosType) //nolint:goerr113
 			l.Warn("NOS repo not found", "nosType", nosType)
 		}
-		repo += "/" + string(nosType)
 
 		if _, err := svc.getCachedOrDownload(ctx, repo, nosVersion, true); err != nil {
 			// return fmt.Errorf("pre-caching NOS %s %s: %w", nosType, nosVersion, err)
@@ -64,7 +63,6 @@ func (svc *service) preCacheBackground(ctx context.Context) {
 			// return fmt.Errorf("ONIE repo not found: %s", platform) //nolint:goerr113
 			l.Warn("ONIE repo not found", "platform", platform)
 		}
-		repo += "/" + platform
 
 		if _, err := svc.getCachedOrDownload(ctx, repo, version, true); err != nil {
 			// return fmt.Errorf("pre-caching ONIE %s %s: %w", platform, version, err)
@@ -268,7 +266,6 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 	if !ok {
 		return fmt.Errorf("NOS repo not found") //nolint:goerr113
 	}
-	nosRepo += "/" + string(nosType)
 
 	nosVersion, ok := svc.cfg.NOSVersions[nosType]
 	if !ok {
@@ -305,7 +302,6 @@ func (svc *service) streamONIEUpdater(ctx context.Context, platform string, w io
 	if !ok {
 		return fmt.Errorf("onie-updater repo not found") //nolint:goerr113
 	}
-	repo += "/" + platform
 
 	version, ok := svc.cfg.ONIEPlatformVersions[platform]
 	if !ok {
