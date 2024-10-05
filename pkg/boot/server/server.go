@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +32,7 @@ import (
 	ni "go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"golang.org/x/sync/singleflight"
+	corev1 "k8s.io/api/core/v1"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -39,23 +40,23 @@ import (
 
 const (
 	ListenPort = 32000
-	ConfigPath = "/etc/fabric-boot/config/config.yaml"
-	CAPath     = "/etc/fabric-boot/ca/ca.crt"
-	CredsPath  = "/etc/fabric-boot/creds/config.json" //nolint:gosec
-	CacheDir   = "/var/lib/fabric-boot/cache"
+	ConfigPath = "/config/config.yaml"
+	CAPath     = "/ca/ca.crt"
+	CredsPath  = "/creds/" + corev1.DockerConfigJsonKey
+	CacheDir   = "/cache/v1"
 )
 
 type Config struct {
 	ControlVIP           string                  `json:"controlVIP,omitempty"`
-	NOSRepoPrefix        string                  `json:"nosRepoPrefix,omitempty"`
+	NOSRepos             map[meta.NOSType]string `json:"nosRepos,omitempty"`
 	NOSVersions          map[meta.NOSType]string `json:"nosVersions,omitempty"`
-	ONIERepoPrefix       string                  `json:"onieRepoPrefix,omitempty"`
+	ONIERepos            map[string]string       `json:"onieRepos,omitempty"`
 	ONIEPlatformVersions map[string]string       `json:"oniePlatformVersions,omitempty"`
 }
 
 type service struct {
 	cfg          *Config
-	kube         client.Reader
+	kube         client.WithWatch
 	cacheDir     string
 	orasClient   *auth.Client
 	downloadLock *sync.Mutex
@@ -93,13 +94,15 @@ func Run(ctx context.Context) error {
 	if cfg.ControlVIP == "" {
 		return errors.New("ControlVIP is required")
 	}
-	cfg.NOSRepoPrefix = strings.TrimSuffix(cfg.NOSRepoPrefix, "/")
-	if cfg.NOSRepoPrefix == "" {
-		return errors.New("NOSRepoPrefix is required")
+	controlVIP, err := netip.ParsePrefix(cfg.ControlVIP)
+	if err != nil {
+		return fmt.Errorf("parsing ControlVIP: %w", err)
 	}
-	cfg.ONIERepoPrefix = strings.TrimSuffix(cfg.ONIERepoPrefix, "/")
-	if cfg.ONIERepoPrefix == "" {
-		return errors.New("ONIERepoPrefix is required")
+	if cfg.NOSRepos == nil {
+		cfg.NOSRepos = map[meta.NOSType]string{}
+	}
+	if cfg.ONIERepos == nil {
+		cfg.ONIERepos = map[string]string{}
 	}
 	if cfg.NOSVersions == nil {
 		cfg.NOSVersions = map[meta.NOSType]string{}
@@ -117,9 +120,15 @@ func Run(ctx context.Context) error {
 		sf:           &singleflight.Group{},
 	}
 
-	if err := svc.preCache(ctx); err != nil {
-		return fmt.Errorf("pre-caching: %w", err)
-	}
+	// TODO think about better way to do it
+	// ! separate controller (in fabric) that will populate SwitchBoot objects with MAC/Serial, NOSRepo/Version and AgentRepo/Version
+	// ! we'll watch only for SwitchBoot objects and we can report some status like if boot was attempted, if it failed, etc.
+	// ! that watch can just populate known mac/switch -> switch cache
+	// ! probably add /status endpoint to report status of the boot
+	// - currently we'll receive a TON of Agent updates, maybe introduce SwitchBoot object and watch only it with all needed info?
+	// - probably lazy caching so first request will fail but trigger caching
+	// - or get agent repo / version in the config and cache it - but what if not all Agent objects are up to date?
+	go svc.preCacheBackground(ctx)
 
 	r := chi.NewRouter()
 
@@ -138,7 +147,7 @@ func Run(ctx context.Context) error {
 	r.Post(ni.LogURLSuffix, svc.handleLog)
 
 	srv := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", cfg.ControlVIP, ListenPort),
+		Addr:              fmt.Sprintf("%s:%d", controlVIP.Addr(), ListenPort),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      300 * time.Second,

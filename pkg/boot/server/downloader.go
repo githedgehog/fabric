@@ -69,18 +69,18 @@ func newORASClient(credsPath, caPath string) (*auth.Client, error) {
 	}, nil
 }
 
-func (svc *service) getCachedOrDownload(ctx context.Context, repo, version string) (string, error) {
+func (svc *service) getCachedOrDownload(ctx context.Context, repo, version string, download bool) (string, error) {
 	cacheName := getCacheName(repo, version)
 	cachePath := filepath.Join(svc.cacheDir, cacheName)
 
 	if _, err := os.Stat(cachePath); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if download && errors.Is(err, os.ErrNotExist) {
 			if err := svc.downloadFiles(ctx, svc.cacheDir, cacheName, repo, version); err != nil {
 				return "", fmt.Errorf("downloading files: %w", err)
 			}
+		} else {
+			return "", fmt.Errorf("stat %s: %w", cachePath, err)
 		}
-
-		return "", fmt.Errorf("stat %s: %w", cachePath, err)
 	}
 
 	entries, err := os.ReadDir(cachePath)
@@ -99,6 +99,7 @@ func (svc *service) getCachedOrDownload(ctx context.Context, repo, version strin
 }
 
 func (svc *service) downloadFiles(ctx context.Context, cacheDir, cacheName, ref, tag string) error {
+	// TODO need a per-cache lock, move downloadLock back to downloadFiles
 	svc.downloadLock.Lock()
 	defer svc.downloadLock.Unlock()
 

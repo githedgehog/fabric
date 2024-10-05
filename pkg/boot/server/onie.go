@@ -33,28 +33,93 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
 var ErrNotFound = errors.New("not found")
 
-func (svc *service) preCache(ctx context.Context) error {
+func (svc *service) preCacheBackground(ctx context.Context) {
+	l := slog.With("background", "cacher")
+
 	for nosType, nosVersion := range svc.cfg.NOSVersions {
-		repo := svc.cfg.NOSRepoPrefix + "/" + string(nosType)
-		if _, err := svc.getCachedOrDownload(ctx, repo, nosVersion); err != nil {
-			return fmt.Errorf("pre-caching NOS %s %s: %w", nosType, nosVersion, err)
+		repo, ok := svc.cfg.NOSRepos[nosType]
+		if !ok {
+			// return fmt.Errorf("NOS repo not found: %s", nosType) //nolint:goerr113
+			l.Warn("NOS repo not found", "nosType", nosType)
+		}
+		repo += "/" + string(nosType)
+
+		if _, err := svc.getCachedOrDownload(ctx, repo, nosVersion, true); err != nil {
+			// return fmt.Errorf("pre-caching NOS %s %s: %w", nosType, nosVersion, err)
+			l.Warn("Failed to pre-cache NOS", "nosType", nosType, "nosVersion", nosVersion, "error", err.Error())
 		}
 	}
 
 	for platform, version := range svc.cfg.ONIEPlatformVersions {
-		repo := svc.cfg.ONIERepoPrefix + "/" + platform
-		if _, err := svc.getCachedOrDownload(ctx, repo, version); err != nil {
-			return fmt.Errorf("pre-caching ONIE %s %s: %w", platform, version, err)
+		repo, ok := svc.cfg.ONIERepos[platform]
+		if !ok {
+			// return fmt.Errorf("ONIE repo not found: %s", platform) //nolint:goerr113
+			l.Warn("ONIE repo not found", "platform", platform)
+		}
+		repo += "/" + platform
+
+		if _, err := svc.getCachedOrDownload(ctx, repo, version, true); err != nil {
+			// return fmt.Errorf("pre-caching ONIE %s %s: %w", platform, version, err)
+			l.Warn("Failed to pre-cache ONIE", "platform", platform, "version", version, "error", err.Error())
 		}
 	}
 
-	return nil
+retry:
+	for ctx.Err() == nil {
+		w, err := svc.kube.Watch(ctx, &agentapi.AgentList{})
+		if err != nil {
+			l.Error("Failed to watch agents", "error", err.Error())
+
+			continue
+		}
+		defer w.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, ok := <-w.ResultChan():
+				if !ok || event.Object == nil {
+					l.Warn("Watch channel closed, retrying")
+
+					continue retry
+				}
+
+				if event.Type == watch.Error {
+					l.Warn("Watch error, retrying", "error", event.Object)
+
+					continue retry
+				}
+
+				if event.Type == watch.Added || event.Type == watch.Modified || event.Type == watch.Bookmark {
+					agent, ok := event.Object.(*agentapi.Agent)
+					if !ok {
+						l.Warn("Failed to cast agent", "object", event.Object)
+
+						continue
+					}
+
+					agentRepo := agent.Spec.Version.Repo
+					agentVersion := agent.Spec.Version.Default
+					if agent.Spec.Version.Override != "" {
+						agentVersion = agent.Spec.Version.Override
+					}
+
+					if _, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, true); err != nil {
+						l.Warn("Failed to pre-cache agent", "repo", agentRepo, "version", agentVersion, "error", err.Error())
+					}
+				}
+			}
+		}
+	}
 }
 
 func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +153,7 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 		agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
-				l.Info("Switch not found", "error", err.Error())
+				l.Info("NOS not found", "error", err.Error())
 				w.WriteHeader(http.StatusNotFound)
 
 				return
@@ -100,6 +165,7 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		l.Info("NOS install")
 		if err := svc.streamNOSInstaller(ctx, agent, secret, w); err != nil {
 			l.Error("Failed to stream nos-install", "switch", agent.Name, "error", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -114,6 +180,12 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if svc.cfg.ONIERepos[platform] == "" || svc.cfg.ONIEPlatformVersions[platform] == "" {
+			l.Info("ONIE not found")
+			w.WriteHeader(http.StatusNotFound)
+		}
+
+		l.Info("ONIE update")
 		if err := svc.streamONIEUpdater(ctx, platform, w); err != nil {
 			l.Error("Failed to stream onie-updater", "platform", platform, "error", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -135,7 +207,7 @@ func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (
 
 	if serial != "" || mac != "" {
 		switches := &wiringapi.SwitchList{}
-		if err := svc.kube.List(ctx, switches); err != nil {
+		if err := svc.kube.List(ctx, switches, client.InNamespace(metav1.NamespaceDefault)); err != nil {
 			return nil, nil, fmt.Errorf("listing switches: %w", err)
 		}
 
@@ -192,13 +264,18 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 		return fmt.Errorf("invalid NOS type") //nolint:goerr113
 	}
 
-	nosRepo := svc.cfg.NOSRepoPrefix + "/" + string(nosType)
+	nosRepo, ok := svc.cfg.NOSRepos[nosType]
+	if !ok {
+		return fmt.Errorf("NOS repo not found") //nolint:goerr113
+	}
+	nosRepo += "/" + string(nosType)
+
 	nosVersion, ok := svc.cfg.NOSVersions[nosType]
 	if !ok {
 		return fmt.Errorf("NOS version not found") //nolint:goerr113
 	}
 
-	nosPath, err := svc.getCachedOrDownload(ctx, nosRepo, nosVersion)
+	nosPath, err := svc.getCachedOrDownload(ctx, nosRepo, nosVersion, false)
 	if err != nil {
 		return fmt.Errorf("getting NOS: %w", err)
 	}
@@ -209,7 +286,7 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 		agentVersion = agent.Spec.Version.Override
 	}
 
-	agentPath, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion)
+	agentPath, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, false)
 	if err != nil {
 		return fmt.Errorf("getting agent: %w", err)
 	}
@@ -224,13 +301,18 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 }
 
 func (svc *service) streamONIEUpdater(ctx context.Context, platform string, w io.Writer) error {
-	repo := svc.cfg.ONIERepoPrefix + "/" + platform
+	repo, ok := svc.cfg.ONIERepos[platform]
+	if !ok {
+		return fmt.Errorf("onie-updater repo not found") //nolint:goerr113
+	}
+	repo += "/" + platform
+
 	version, ok := svc.cfg.ONIEPlatformVersions[platform]
 	if !ok {
 		return fmt.Errorf("onie-updater version not found") //nolint:goerr113
 	}
 
-	oniePath, err := svc.getCachedOrDownload(ctx, repo, version)
+	oniePath, err := svc.getCachedOrDownload(ctx, repo, version, false)
 	if err != nil {
 		return fmt.Errorf("getting onie-updater: %w", err)
 	}
