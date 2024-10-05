@@ -73,6 +73,7 @@ type AgentSpecConfig struct {
 	ESLAGMACBase          string                        `json:"eslagMACBase,omitempty"`
 	ESLAGESIPrefix        string                        `json:"eslagESIPrefix,omitempty"`
 	DefaultMaxPathsEBGP   uint32                        `json:"defaultMaxPathsEBGP,omitempty"`
+	MCLAGSessionSubnet    string                        `json:"mclagSessionSubnet,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}

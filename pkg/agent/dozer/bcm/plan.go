@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"net/netip"
 	"slices"
 	"sort"
 	"strconv"
@@ -39,10 +40,7 @@ const (
 	MCLAGDomainID                 = 100
 	MCLAGPeerLinkPortChannelID    = 250
 	MCLAGSessionLinkPortChannelID = 251
-	MCLAGPeerLinkTrunkVLANRange   = "2..4094"    // TODO do we need to configure it?
-	MCLAGSessionIP1               = "172.30.5.0" // TODO move to config
-	MCLAGSessionIP2               = "172.30.5.1" // TODO move to config
-	MCLAGSessionIPPrefixLen       = 31           // TODO move to config
+	MCLAGPeerLinkTrunkVLANRange   = "2..4094" // TODO do we need to configure it?
 	AgentUser                     = "hhagent"
 	// LoopbackSwitch                 = "Loopback0"
 	LoopbackProto                  = "Loopback1"
@@ -1100,9 +1098,17 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		return false, errors.Errorf("no mclag peer switch found")
 	}
 
+	mclagSessionSubnet, err := netip.ParsePrefix(agent.Spec.Config.MCLAGSessionSubnet)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to parse MCLAG session subnet %s", agent.Spec.Config.MCLAGSessionSubnet)
+	}
+
+	mclagSessionIP1 := mclagSessionSubnet.Addr().String()
+	mclagSessionIP2 := mclagSessionSubnet.Addr().Next().String()
+
 	// using the same IP pair with switch with name < peer switch name getting first IP
-	sourceIP := MCLAGSessionIP1
-	peerIP := MCLAGSessionIP2
+	sourceIP := mclagSessionIP1
+	peerIP := mclagSessionIP2
 	if agent.Name > mclagPeerSwitch {
 		sourceIP, peerIP = peerIP, sourceIP
 	}
@@ -1130,7 +1136,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					sourceIP: {
-						PrefixLen: pointer.To(uint8(MCLAGSessionIPPrefixLen)),
+						PrefixLen: pointer.To(uint8(mclagSessionSubnet.Bits())), //nolint:gosec
 					},
 				},
 			},
@@ -1158,7 +1164,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		IPv4Unicast: pointer.To(true),
 	}
 
-	return sourceIP == MCLAGSessionIP1, nil
+	return sourceIP == mclagSessionIP1, nil
 }
 
 func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam

@@ -257,6 +257,8 @@ spec:
                     type: string
                   fabricMTU:
                     type: integer
+                  mclagSessionSubnet:
+                    type: string
                   serverFacingMTUOffset:
                     type: integer
                   spineLeaf:
