@@ -131,7 +131,7 @@ spec:
         - name: config
           configMap:
             # TODO it shouldn't be static, prefixName should be used?
-            name: fabric-config
+            name: fabric-ctrl-config
         - name: ca
           configMap:
             # TODO remove hardcoded name

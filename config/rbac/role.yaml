@@ -126,6 +126,7 @@ rules:
   - wiring.githedgehog.com
   resources:
   - connections
+  - servers
   - switchgroups
   - vlannamespaces
   verbs:
@@ -136,6 +137,7 @@ rules:
   - wiring.githedgehog.com
   resources:
   - connections/status
+  - servers/status
   - switches/status
   - switchgroups/status
   - switchprofiles/status

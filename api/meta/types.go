@@ -80,6 +80,7 @@ type FabricConfig struct {
 	Alloy                    AlloyConfig `json:"alloy,omitempty"`
 	DefaultMaxPathsEBGP      uint32      `json:"defaultMaxPathsEBGP,omitempty"`
 	AllowExtraSwitchProfiles bool        `json:"allowExtraSwitchProfiles,omitempty"`
+	MCLAGSessionSubnet       string      `json:"mclagSessionSubnet,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -221,6 +222,10 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		if len(cfg.ESLAGESIPrefix) != 12 {
 			return nil, errors.Errorf("config: eslagESIPrefix should be a valid 12 hex long prefix, e.g. '00:f2:00:00:'")
 		}
+	}
+
+	if cfg.MCLAGSessionSubnet == "" {
+		return nil, errors.Errorf("config: mclagSessionSubnet is required")
 	}
 
 	cfg.Alloy.Default()

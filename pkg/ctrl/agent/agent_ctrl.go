@@ -173,6 +173,9 @@ func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers/status,verbs=get;update;patch
+
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
@@ -678,6 +681,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ESLAGMACBase:          r.Cfg.ESLAGMACBase,
 			ESLAGESIPrefix:        r.Cfg.ESLAGESIPrefix,
 			DefaultMaxPathsEBGP:   r.Cfg.DefaultMaxPathsEBGP,
+			MCLAGSessionSubnet:    r.Cfg.MCLAGSessionSubnet,
 		}
 		if r.Cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
