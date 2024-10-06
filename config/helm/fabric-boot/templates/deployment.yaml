@@ -48,7 +48,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - name: cache-dir
+            - name: cache
               mountPath: /cache
             - name: fab-ca
               mountPath: /ca
@@ -72,8 +72,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: cache-dir
-          emptyDir: {} # TODO probably use host path to avoid tmpfs?
+        - name: cache
+          persistentVolumeClaim:
+            claimName: {{ include "fabric-boot.fullname" . }}-cache
         - name: fab-ca
           configMap:
             name: fab-ca # TODO pass using values

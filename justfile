@@ -103,10 +103,10 @@ _kube-build name: (_docker-build name) (_helm-build name)
 
 _kube-push name: (_docker-push name) (_helm-push name)
 
-kube-build: (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") && version
+kube-build: (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") (_helm-build "fabric-proxy") && version
   # Docker images and Helm charts built
 
-kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") && version
+kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") (_helm-push "fabric-proxy")  && version
   # Docker images and Helm charts pushed
 
 push: kube-push && version
