@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileSupermicroSSEC4632SB = wiringapi.SwitchProfile{
+var SupermicroSSEC4632SB = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "supermicro-sse-c4632sb",
 	},
@@ -30,10 +30,11 @@ var profileSupermicroSSEC4632SB = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
-		NOSType:      profileCelesticaDS3000.Spec.NOSType,
-		Config:       profileCelesticaDS3000.Spec.Config,
-		Ports:        profileCelesticaDS3000.Spec.Ports,
-		PortGroups:   profileCelesticaDS3000.Spec.PortGroups,
-		PortProfiles: profileCelesticaDS3000.Spec.PortProfiles,
+		NOSType:      CelesticaDS3000.Spec.NOSType,
+		Platform:     CelesticaDS3000.Spec.Platform,
+		Config:       CelesticaDS3000.Spec.Config,
+		Ports:        CelesticaDS3000.Spec.Ports,
+		PortGroups:   CelesticaDS3000.Spec.PortGroups,
+		PortProfiles: CelesticaDS3000.Spec.PortProfiles,
 	},
 }

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileEdgecoreEPS203 = wiringapi.SwitchProfile{
+var EdgecoreEPS203 = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "edgecore-eps203",
 	},
@@ -32,7 +32,8 @@ var profileEdgecoreEPS203 = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
-		NOSType: meta.NOSTypeSONiCBCMCampus,
+		NOSType:  meta.NOSTypeSONiCBCMCampus,
+		Platform: "x86_64-accton_as4630_54npe-r0",
 		Config: wiringapi.SwitchProfileConfig{
 			MaxPathsEBGP: 16,
 		},

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileDellS5232FON = wiringapi.SwitchProfile{
+var DellS5232FON = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dell-s5232f-on",
 	},
@@ -31,8 +31,9 @@ var profileDellS5232FON = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
-		NOSType: meta.NOSTypeSONiCBCMBase,
-		Config:  wiringapi.SwitchProfileConfig{},
+		NOSType:  meta.NOSTypeSONiCBCMBase,
+		Platform: "x86_64-dellemc_s5232f_c3538-r0",
+		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 			"E1/1":  {NOSName: "1/1", BaseNOSName: "Ethernet0", Label: "1", Profile: "QSFP28-100G"},

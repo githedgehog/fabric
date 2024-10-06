@@ -91,6 +91,10 @@ spec:
                 items:
                   type: string
                 type: array
+              platform:
+                description: Platform is what expected to be request by ONIE and displayed
+                  in the NOS
+                type: string
               portGroups:
                 additionalProperties:
                   description: Defines a switch port group configuration
