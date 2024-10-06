@@ -20,12 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var EdgecoreAS7712 = wiringapi.SwitchProfile{
+var EdgecoreDCS501 = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "edgecore-as7712-32x-ec",
+		Name: "edgecore-dcs501",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Edgecore AS7712-32X-EC",
+		DisplayName: "Edgecore DCS501",
+		OtherNames:  []string{"Edgecore AS7712-32X"},
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         false,
