@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileCelesticaDS4000 = wiringapi.SwitchProfile{
+var CelesticaDS4000 = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "celestica-ds4000",
 	},
@@ -31,8 +31,9 @@ var profileCelesticaDS4000 = wiringapi.SwitchProfile{
 			VXLAN:         false,
 			ACLs:          true,
 		},
-		NOSType: meta.NOSTypeSONiCBCMBase,
-		Config:  wiringapi.SwitchProfileConfig{},
+		NOSType:  meta.NOSTypeSONiCBCMBase,
+		Platform: "x86_64-cel_silverstone-r0",
+		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 			"E1/1":  {NOSName: "1/1", BaseNOSName: "Ethernet0", Label: "1", Profile: "QSFPDD-400G"},

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileVS = wiringapi.SwitchProfile{
+var VS = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: meta.SwitchProfileVS,
 	},
@@ -31,12 +31,13 @@ var profileVS = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          false,
 		},
-		NOSType: meta.NOSTypeSONiCBCMVS,
+		NOSType:  meta.NOSTypeSONiCBCMVS,
+		Platform: "x86_64-kvm_x86_64-r0",
 		Config: wiringapi.SwitchProfileConfig{
 			MaxPathsEBGP: 16,
 		},
-		Ports:        profileDellS5248FON.Spec.Ports,
-		PortGroups:   profileDellS5248FON.Spec.PortGroups,
-		PortProfiles: profileDellS5248FON.Spec.PortProfiles,
+		Ports:        DellS5248FON.Spec.Ports,
+		PortGroups:   DellS5248FON.Spec.PortGroups,
+		PortProfiles: DellS5248FON.Spec.PortProfiles,
 	},
 }

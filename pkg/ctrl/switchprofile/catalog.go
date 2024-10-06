@@ -29,16 +29,16 @@ import (
 )
 
 var defaultSwitchProfiles = []wiringapi.SwitchProfile{
-	profileDellS5232FON,
-	profileDellS5248FON,
-	profileCelesticaDS3000,
-	profileCelesticaDS4000,
-	profileEdgecoreAS7712,
-	profileEdgecoreDCS203,
-	profileEdgecoreDCS204,
-	profileEdgecoreEPS203,
-	profileSupermicroSSEC4632SB,
-	profileVS,
+	DellS5232FON,
+	DellS5248FON,
+	CelesticaDS3000,
+	CelesticaDS4000,
+	EdgecoreAS7712,
+	EdgecoreDCS203,
+	EdgecoreDCS204,
+	EdgecoreEPS203,
+	SupermicroSSEC4632SB,
+	VS,
 }
 
 type Default struct {

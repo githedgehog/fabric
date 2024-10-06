@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var profileEdgecoreDCS203 = wiringapi.SwitchProfile{
+var EdgecoreDCS203 = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "edgecore-dcs203",
 	},
@@ -32,8 +32,9 @@ var profileEdgecoreDCS203 = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
-		NOSType: meta.NOSTypeSONiCBCMBase,
-		Config:  wiringapi.SwitchProfileConfig{},
+		NOSType:  meta.NOSTypeSONiCBCMBase,
+		Platform: "x86_64-accton_as7326_56x-r0",
+		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 			"E1/1":  {NOSName: "Ethernet0", Label: "1", Group: "1"},

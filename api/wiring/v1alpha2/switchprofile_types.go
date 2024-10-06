@@ -136,6 +136,8 @@ type SwitchProfileSpec struct {
 	PortProfiles map[string]SwitchProfilePortProfile `json:"portProfiles,omitempty"`
 	// NOSType defines the NOS type to be used for the switch
 	NOSType meta.NOSType `json:"nosType,omitempty"`
+	// Platform is what expected to be request by ONIE and displayed in the NOS
+	Platform string `json:"platform,omitempty"`
 }
 
 // SwitchProfileStatus defines the observed state of SwitchProfile
@@ -263,6 +265,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.Fa
 	}
 	if !slices.Contains(meta.NOSTypes, sp.Spec.NOSType) {
 		return nil, errors.Errorf("nosType %q is invalid", sp.Spec.NOSType)
+	}
+
+	if sp.Spec.Platform == "" {
+		return nil, errors.Errorf("platform is required")
 	}
 
 	profiles := map[string]bool{}
