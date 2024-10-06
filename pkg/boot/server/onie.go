@@ -44,6 +44,8 @@ var ErrNotFound = errors.New("not found")
 func (svc *service) preCacheBackground(ctx context.Context) {
 	l := slog.With("background", "cacher")
 
+	l.Info("Starting pre-caching")
+
 	for nosType, nosVersion := range svc.cfg.NOSVersions {
 		repo, ok := svc.cfg.NOSRepos[nosType]
 		if !ok {
@@ -57,6 +59,8 @@ func (svc *service) preCacheBackground(ctx context.Context) {
 		}
 	}
 
+	l.Info("NOS pre-caching done")
+
 	for platform, version := range svc.cfg.ONIEPlatformVersions {
 		repo, ok := svc.cfg.ONIERepos[platform]
 		if !ok {
@@ -69,6 +73,8 @@ func (svc *service) preCacheBackground(ctx context.Context) {
 			l.Warn("Failed to pre-cache ONIE", "platform", platform, "version", version, "error", err.Error())
 		}
 	}
+
+	l.Info("ONIE pre-caching done")
 
 retry:
 	for ctx.Err() == nil {

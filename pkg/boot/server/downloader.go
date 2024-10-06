@@ -26,8 +26,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dustin/go-humanize"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -103,6 +101,8 @@ func (svc *service) downloadFiles(ctx context.Context, cacheDir, cacheName, ref,
 	svc.downloadLock.Lock()
 	defer svc.downloadLock.Unlock()
 
+	slog.Info("Downloading files", "ref", ref, "tag", tag)
+
 	tmp, err := os.MkdirTemp(cacheDir, "download-*")
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
@@ -122,26 +122,9 @@ func (svc *service) downloadFiles(ctx context.Context, cacheDir, cacheName, ref,
 
 	repo.Client = svc.orasClient
 
-	logProgress := func(stage string) func(context.Context, ocispec.Descriptor) error {
-		return func(_ context.Context, desc ocispec.Descriptor) error {
-			if desc.Annotations == nil || desc.Annotations["org.opencontainers.image.title"] == "" {
-				return nil
-			}
-
-			slog.Info(stage, "name", desc.Annotations["org.opencontainers.image.title"],
-				"size", humanize.IBytes(uint64(desc.Size)), "digest", desc.Digest.Encoded()[:12], //nolint:gosec
-				"ref", ref, "tag", tag)
-
-			return nil
-		}
-	}
-
 	_, err = oras.Copy(ctx, repo, tag, fs, "", oras.CopyOptions{
 		CopyGraphOptions: oras.CopyGraphOptions{
-			Concurrency:   4,
-			PreCopy:       logProgress("Downloading"),
-			PostCopy:      logProgress("Downloaded"),
-			OnCopySkipped: logProgress("Skipped"),
+			Concurrency: 4,
 		},
 	})
 	if err != nil {
@@ -152,6 +135,8 @@ func (svc *service) downloadFiles(ctx context.Context, cacheDir, cacheName, ref,
 	if err := os.Rename(tmp, cachePath); err != nil {
 		return fmt.Errorf("moving %s to %s: %w", tmp, cachePath, err)
 	}
+
+	slog.Info("Downloaded files", "ref", ref, "tag", tag)
 
 	return nil
 }
