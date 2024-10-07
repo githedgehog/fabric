@@ -1,3 +1,4 @@
+{{ if .Values.cachePVC }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,3 +12,4 @@ spec:
   resources:
     requests:
       storage: 30Gi
+{{ end }}
