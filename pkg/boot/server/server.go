@@ -87,7 +87,7 @@ func Run(ctx context.Context) error {
 	}
 
 	cfg := &Config{}
-	if err := yaml.Unmarshal(configData, cfg); err != nil {
+	if err := yaml.UnmarshalStrict(configData, cfg); err != nil {
 		return fmt.Errorf("unmarshalling config: %w", err)
 	}
 	if cfg.ControlVIP == "" {
