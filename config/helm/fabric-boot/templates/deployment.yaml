@@ -73,8 +73,13 @@ spec:
       {{- end }}
       volumes:
         - name: cache
+          {{ if .Values.cachePVC }}
           persistentVolumeClaim:
             claimName: {{ include "fabric-boot.fullname" . }}-cache
+          {{ else }}
+          emptyDir:
+            medium: Memory
+          {{ end }}
         - name: fab-ca
           configMap:
             name: fab-ca # TODO pass using values
