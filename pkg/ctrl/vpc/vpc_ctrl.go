@@ -54,6 +54,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 
 	// TODO only enqueue related VPCs
 	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
+		Named("vpc").
 		For(&vpcapi.VPC{}).
 		// It's enough to trigger just a single VPC update in this case as it'll update DHCP config for all VPCs
 		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOneVPC)).

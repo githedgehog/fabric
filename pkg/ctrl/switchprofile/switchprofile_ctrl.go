@@ -53,7 +53,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Man
 	}
 
 	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
-		Named("connection").
+		Named("switchprofile").
 		For(&wiringapi.SwitchProfile{}).
 		Complete(r), "failed to setup switch profile controller")
 }

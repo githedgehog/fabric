@@ -1,3 +1,6 @@
+// Copyright 2024 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
 package boot
 
 import "go.githedgehog.com/fabric/api/meta"

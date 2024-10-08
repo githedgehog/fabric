@@ -77,6 +77,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
 	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
+		Named("agent").
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
