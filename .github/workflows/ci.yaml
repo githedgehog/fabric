@@ -44,11 +44,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: bin
-          key: bin-${{ hashFiles('hack/tools.mk') }}
+          key: bin-${{ hashFiles('hack/tools.just') }}
 
       - name: Prepare all dev tools
         run: |
-          make tools
+          just --timestamp tools
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -85,16 +85,20 @@ jobs:
           path: bin
           key: bin-${{ hashFiles('hack/tools.mk') }}
 
-      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running make
-      - name: Make all (autogeneration) and fail on dirty
+      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
+      - name: Just all (autogeneration) and fail on dirty
         run: |
-          make generate manifests lint-lic docs
+          just --timestamp gen _lint docs
           git status --short
           git diff --quiet
 
       - name: Run tests
         run: |
-          make test
+          just --timestamp test
+
+      - name: GHA Lint
+        run: |
+          just --timestamp lint-gha
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -133,15 +137,7 @@ jobs:
 
       - name: Install CRDs
         run: |
-          kind export kubeconfig --name kind
-          make api-chart-install
-          sleep 10
-          kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
-          kubectl get crd | grep hedgehog
-
-    #   - name: Deploy samples
-    #     run: |
-    #       make deploy-samples
+          just --timestamp test-api
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -175,7 +171,7 @@ jobs:
 
       - name: Build all
         run: |
-          make build
+          just --timestamp build
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -220,7 +216,7 @@ jobs:
 
       - name: Publish Images, Helm charts and Bins on release
         run: |
-          OCI_REPO=ghcr.io/githedgehog/fabric make push
+          just --timestamp oci_repo=ghcr.io push
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}

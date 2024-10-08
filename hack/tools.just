@@ -37,6 +37,7 @@ controller_gen := localbin / "controller-gen" + "-" + controller_gen_version
   [ -f {{controller_gen}} ] || just _goinstall "sigs.k8s.io/controller-tools/cmd/controller-gen" {{controller_gen_version}} "controller-gen" {{controller_gen}}
 
 # envtest
+envtest_k8s_version := "1.29.1"
 envtest_version := "release-0.19"
 envtest := localbin / "setup-envtest" + "-" + envtest_version
 @_envtest: _localbin
@@ -95,6 +96,12 @@ skopeo_version := "v1.16.1"
 skopeo := localbin / "skopeo" + "-" + skopeo_version
 @_skopeo: _localbin
   [ -f {{skopeo}} ] || just _goinstall "github.com/containers/skopeo/cmd/skopeo" {{skopeo_version}} "skopeo" {{skopeo}} "--tags containers_image_openpgp,exclude_graphdriver_btrfs"
+
+# gcov2lcov
+gcov2lcov_version := "v1.0.6"
+gcov2lcov := localbin / "gcov2lcov" + "-" + gcov2lcov_version
+@_gcov2lcov: _localbin
+  [ -f {{gcov2lcov}} ] || just _goinstall "github.com/jandelgado/gcov2lcov" {{gcov2lcov_version}} "gcov2lcov" {{gcov2lcov}}
 
 # go install helper
 _goinstall PACKAGE VERSION BINNAME TARGET FLAGS="": _localbin
