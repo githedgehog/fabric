@@ -32,7 +32,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.2
-	github.com/vishvananda/netlink v1.1.0
+	github.com/vishvananda/netlink v1.3.0
 	go.githedgehog.com/fabric-bcm-ygot v0.2.0-4.4.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/sync v0.7.0
@@ -193,7 +193,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/u-root/uio v0.0.0-20230305220412-3e8cd9d6bf63 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
+	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
