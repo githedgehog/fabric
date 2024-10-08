@@ -159,7 +159,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 	}
 
 	if err := extractFiles(tmp); err != nil {
-		return err
+		return fmt.Errorf("extracting embedded files: %w", err)
 	}
 
 	if dryRun {
@@ -178,12 +178,16 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		}
 	}()
 
+	if err := ensureONIEBootPartition(ctx); err != nil {
+		return fmt.Errorf("ensuring ONIE boot partition: %w", err)
+	}
+
 	if err := runNOSInstaller(ctx, tmp); err != nil {
-		return err
+		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
 	if err := installAgent(ctx, tmp); err != nil {
-		return err
+		return fmt.Errorf("installing agent: %w", err)
 	}
 
 	slog.Info("Installation complete")
@@ -298,6 +302,42 @@ func runNOSInstaller(ctx context.Context, tmp string) error {
 	return nil
 }
 
+func ensureONIEBootPartition(ctx context.Context) error {
+	_, err := os.Stat("/mnt/onie-boot/onie/grub.d")
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("statting /mnt/onie-boot/onie/grub.d: %w", err)
+	}
+
+	slog.Warn("ONIE boot partition seems to be not mounted, trying to mount now")
+
+	cmd := exec.CommandContext(ctx, "mount", "LABEL=ONIE-BOOT", "-t", "ext4", "/mnt/onie-boot")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Mount ONIE-BOOT: ")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Mount ONIE-BOOT: ")
+
+	if err := cmd.Run(); err != nil {
+		slog.Warn("Mounting ONIE-BOOT failed", "error", err.Error())
+	}
+
+	for attempt := 0; attempt < 10; attempt++ {
+		if attempt > 0 {
+			slog.Info("Waiting for ONIE boot partition to be mounted")
+			time.Sleep(1 * time.Second)
+		}
+
+		if _, err := os.Stat("/mnt/onie-boot"); err == nil {
+			return nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("statting /mnt/onie-boot/onie/grub.d: %w", err)
+		}
+	}
+
+	return fmt.Errorf("ONIE boot partition not mounted") //nolint:goerr113
+}
+
 func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
 	ctx, cancel := context.WithCancel(origCtx)
 	defer cancel()
@@ -312,8 +352,8 @@ func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
 	slog.Debug("SONiC partition mount point", "path", sonicRoot)
 
 	cmd := exec.CommandContext(ctx, "mount", "LABEL=SONiC-OS", "-t", "ext4", sonicRoot)
-	cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Mount: ")
-	cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Mount: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Mount SONiC-OS: ")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Mount SONiC-OS: ")
 
 	if err := cmd.Run(); err != nil {
 		return "", nil, fmt.Errorf("mounting SONiC partition: %w", err)
