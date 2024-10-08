@@ -117,7 +117,7 @@ test path="./...": gen _envtest _gcov2lcov
 test-api: _helm-fabric-api
     kind export kubeconfig --name kind || kind create cluster --name kind
     kind export kubeconfig --name kind
-    {{helm}} install fabric-api config/helm/fabric-api-{{version}}.tgz
+    {{helm}} install -n default fabric-api config/helm/fabric-api-{{version}}.tgz
     sleep 10
     kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
     kubectl wait --for condition=established --timeout=60s crd/vpcs.vpc.githedgehog.com
