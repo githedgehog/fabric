@@ -115,7 +115,7 @@ test tests="./...": gen _envtest _gcov2lcov
 
 # Install API on a kind cluster and wait for CRDs to be ready
 test-api: _helm-fabric-api
-    kind get cluster || kind create cluster --name kind
+    kind export kubeconfig --name kind || kind create cluster --name kind
     kind export kubeconfig --name kind
     {{helm}} install fabric-api config/helm/fabric-api-{{version}}.tgz
     sleep 10
