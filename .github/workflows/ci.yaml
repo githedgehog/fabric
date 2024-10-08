@@ -27,40 +27,40 @@ env:
   ORG: githedgehog
 
 jobs:
-  cache-tools:
-    runs-on: ubuntu-latest # It should be faster than running in hour DC
+  # cache-tools:
+  #   runs-on: ubuntu-latest # It should be faster than running in hour DC
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: stable
-          cache: true
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: stable
+  #         cache: true
 
-      - name: Cache dev tools
-        uses: actions/cache@v4
-        with:
-          path: bin
-          key: bin-${{ hashFiles('hack/tools.just') }}
+  #     - name: Cache dev tools
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: bin
+  #         key: bin-${{ hashFiles('hack/tools.just') }}
 
-      - name: Prepare all dev tools
-        run: |
-          just --timestamp tools
+  #     - name: Prepare all dev tools
+  #       run: |
+  #         just --timestamp tools
 
-      - name: Setup tmate session for debug
-        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 30
-        with:
-          limit-access-to-actor: true
+  #     - name: Setup tmate session for debug
+  #       if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+  #       uses: mxschmitt/action-tmate@v3
+  #       timeout-minutes: 30
+  #       with:
+  #         limit-access-to-actor: true
 
   test:
     runs-on: lab
-    needs:
-      - cache-tools
+    # needs:
+    #   - cache-tools
 
     steps:
       - name: Checkout repository
@@ -74,16 +74,16 @@ jobs:
           go-version: stable
           cache: true
 
-      - name: Go Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-
       - name: Cache dev tools
         uses: actions/cache@v4
         with:
           path: bin
           key: bin-${{ hashFiles('hack/tools.mk') }}
+
+      - name: Go Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
 
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
       - name: Just all (autogeneration) and fail on dirty
@@ -107,10 +107,10 @@ jobs:
         with:
           limit-access-to-actor: true
 
-  kind-test-api:
+  test-api:
     runs-on: lab
-    needs:
-      - cache-tools
+    # needs:
+    #   - cache-tools
 
     steps:
       - name: Checkout repository
@@ -124,11 +124,11 @@ jobs:
           go-version: stable
           cache: true
 
-      - name: Cache dev tools
-        uses: actions/cache@v4
-        with:
-          path: bin
-          key: bin-${{ hashFiles('hack/tools.mk') }}
+      # - name: Cache dev tools
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: bin
+      #     key: bin-${{ hashFiles('hack/tools.mk') }}
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.10.0
@@ -148,8 +148,8 @@ jobs:
 
   build:
     runs-on: lab
-    needs:
-      - cache-tools
+    # needs:
+    #   - cache-tools
 
     steps:
       - name: Checkout repository
@@ -163,11 +163,11 @@ jobs:
           go-version: stable
           cache: true
 
-      - name: Cache dev tools
-        uses: actions/cache@v4
-        with:
-          path: bin
-          key: bin-${{ hashFiles('hack/tools.mk') }}
+      # - name: Cache dev tools
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: bin
+      #     key: bin-${{ hashFiles('hack/tools.mk') }}
 
       - name: Build all
         run: |
@@ -184,9 +184,9 @@ jobs:
     runs-on: lab
     if: startsWith(github.event.ref, 'refs/tags/') && github.event_name == 'push'
     needs:
-      - cache-tools
+      # - cache-tools
       - test
-      - kind-test-api
+      - test-api
       - build
 
     steps:
