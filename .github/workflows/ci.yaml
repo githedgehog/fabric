@@ -74,16 +74,15 @@ jobs:
           go-version: stable
           cache: true
 
-      - name: Cache dev tools
-        uses: actions/cache@v4
-        with:
-          path: bin
-          key: bin-${{ hashFiles('hack/tools.mk') }}
+      # - name: Cache dev tools
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: bin
+      #     key: bin-${{ hashFiles('hack/tools.mk') }}
 
-      - name: Go Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
+      - name: GHA Lint
+        run: |
+          just --timestamp lint-gha
 
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
       - name: Just all (autogeneration) and fail on dirty
@@ -92,13 +91,18 @@ jobs:
           git status --short
           git diff --quiet
 
+      - name: Go lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      - name: More Go lint
+        run: |
+          just --timestamp _lint
+
       - name: Run tests
         run: |
           just --timestamp test
-
-      - name: GHA Lint
-        run: |
-          just --timestamp lint-gha
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -133,6 +137,7 @@ jobs:
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.10.0
         with:
+          version: v0.24.0
           cluster_name: kind
 
       - name: Install CRDs
