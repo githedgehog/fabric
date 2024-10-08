@@ -29,6 +29,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	"go.githedgehog.com/fabric/pkg/boot"
 	ni "go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"golang.org/x/sync/singleflight"
@@ -46,16 +47,8 @@ const (
 	CacheDir   = "/cache/v1"
 )
 
-type Config struct {
-	ControlVIP           string                  `json:"controlVIP,omitempty"`
-	NOSRepos             map[meta.NOSType]string `json:"nosRepos,omitempty"`
-	NOSVersions          map[meta.NOSType]string `json:"nosVersions,omitempty"`
-	ONIERepos            map[string]string       `json:"onieRepos,omitempty"`
-	ONIEPlatformVersions map[string]string       `json:"oniePlatformVersions,omitempty"`
-}
-
 type service struct {
-	cfg          *Config
+	cfg          *boot.ServerConfig
 	kube         client.WithWatch
 	cacheDir     string
 	orasClient   *auth.Client
@@ -86,7 +79,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("reading config file %s: %w", ConfigPath, err)
 	}
 
-	cfg := &Config{}
+	cfg := &boot.ServerConfig{}
 	if err := yaml.UnmarshalStrict(configData, cfg); err != nil {
 		return fmt.Errorf("unmarshalling config: %w", err)
 	}
@@ -119,14 +112,6 @@ func Run(ctx context.Context) error {
 		sf:           &singleflight.Group{},
 	}
 
-	// TODO think about better way to do it
-	// ! separate controller (in fabric) that will populate SwitchBoot objects with MAC/Serial, NOSRepo/Version and AgentRepo/Version
-	// ! we'll watch only for SwitchBoot objects and we can report some status like if boot was attempted, if it failed, etc.
-	// ! that watch can just populate known mac/switch -> switch cache
-	// ! probably add /status endpoint to report status of the boot
-	// - currently we'll receive a TON of Agent updates, maybe introduce SwitchBoot object and watch only it with all needed info?
-	// - probably lazy caching so first request will fail but trigger caching
-	// - or get agent repo / version in the config and cache it - but what if not all Agent objects are up to date?
 	go svc.preCacheBackground(ctx)
 
 	r := chi.NewRouter()
