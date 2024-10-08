@@ -28,6 +28,12 @@ _Underlying type:_ _string_
 _Appears in:_
 - [SwitchStateInterface](#switchstateinterface)
 
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `up` |  |
+| `down` |  |
+| `testing` |  |
 
 
 #### Agent
@@ -128,6 +134,15 @@ _Underlying type:_ _string_
 _Appears in:_
 - [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
 
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `idle` |  |
+| `connect` |  |
+| `active` |  |
+| `openSent` |  |
+| `openConfirm` |  |
+| `established` |  |
 
 
 #### BGPPeerType
@@ -141,6 +156,11 @@ _Underlying type:_ _string_
 _Appears in:_
 - [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
 
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `internal` |  |
+| `external` |  |
 
 
 #### OperStatus
@@ -154,6 +174,16 @@ _Underlying type:_ _string_
 _Appears in:_
 - [SwitchStateInterface](#switchstateinterface)
 
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `up` |  |
+| `down` |  |
+| `testing` |  |
+| `unknown` |  |
+| `dormant` |  |
+| `notPresent` |  |
+| `lowerLayerDown` |  |
 
 
 #### SwitchState
@@ -1091,8 +1121,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
-| `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: {} <br /> |
-| `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: {} <br /> |
+| `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
+| `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
 | `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
 
 
@@ -1394,7 +1424,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
-| `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$` <br /> |
+| `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
 
 
 #### ConnMCLAG
@@ -1480,8 +1510,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
-| `ip` _string_ | IP is the IP address of the switch side of the static external connection link (switch port configuration) |  | Pattern: `^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$` <br /> |
-| `nextHop` _string_ | NextHop is the next hop IP address for static routes that will be created for the subnets |  | Pattern: `^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$` <br /> |
+| `ip` _string_ | IP is the IP address of the switch side of the static external connection link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
+| `nextHop` _string_ | NextHop is the next hop IP address for static routes that will be created for the subnets |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}$` <br /> |
 | `subnets` _string array_ | Subnets is the list of subnets that will get static routes using the specified next hop |  |  |
 | `vlan` _integer_ | VLAN is the optional VLAN ID to be configured on the switch port |  |  |
 
@@ -1953,6 +1983,7 @@ _Appears in:_
 | `portGroups` _object (keys:string, values:[SwitchProfilePortGroup](#switchprofileportgroup))_ | PortGroups defines the switch port group configuration |  |  |
 | `portProfiles` _object (keys:string, values:[SwitchProfilePortProfile](#switchprofileportprofile))_ | PortProfiles defines the switch port profile configuration |  |  |
 | `nosType` _[NOSType](#nostype)_ | NOSType defines the NOS type to be used for the switch |  |  |
+| `platform` _string_ | Platform is what expected to be request by ONIE and displayed in the NOS |  |  |
 
 
 #### SwitchProfileStatus
@@ -2001,6 +2032,13 @@ _Validation:_
 _Appears in:_
 - [SwitchSpec](#switchspec)
 
+| Field | Description |
+| --- | --- |
+| `spine` |  |
+| `server-leaf` |  |
+| `border-leaf` |  |
+| `mixed-leaf` |  |
+| `virtual-edge` |  |
 
 
 #### SwitchSpec
@@ -2016,7 +2054,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf virtual-edge] <br />Required: {} <br /> |
+| `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf virtual-edge] <br />Required: \{\} <br /> |
 | `description` _string_ | Description is a description of the switch |  |  |
 | `profile` _string_ | Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric |  |  |
 | `groups` _string array_ | Groups is a list of switch groups the switch belongs to |  |  |
