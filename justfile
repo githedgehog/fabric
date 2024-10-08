@@ -109,8 +109,8 @@ push: kube-push && version
   cd bin && oras push {{oci_repo}}/{{oci_prefix}}/hhfctl:{{version}} hhfctl
 
 # Run tests
-test tests="./...": gen _envtest _gcov2lcov
-  KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbin}} -p path` go test `go list {{tests}} | grep -v /e2e` -coverprofile cover.out
+test path="./...": gen _envtest _gcov2lcov
+  KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbin}} -p path` go test `go list {{path}} | grep -v /e2e` -coverprofile cover.out
   {{gcov2lcov}} -infile cover.out -outfile lcov.info
 
 # Install API on a kind cluster and wait for CRDs to be ready

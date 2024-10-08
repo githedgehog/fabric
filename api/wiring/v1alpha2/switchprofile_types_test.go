@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -109,6 +110,10 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.sp != nil {
+				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
+				tt.sp.Platform = "vs"
+			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -215,6 +220,10 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.sp != nil {
+				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
+				tt.sp.Platform = "vs"
+			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -315,6 +324,10 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.sp != nil {
+				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
+				tt.sp.Platform = "vs"
+			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -407,6 +420,10 @@ func TestSwitchProfileDefault(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.sp != nil {
+				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
+				tt.sp.Platform = "vs"
+			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
