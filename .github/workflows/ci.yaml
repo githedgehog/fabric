@@ -85,20 +85,21 @@ jobs:
           just --timestamp lint-gha
 
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
-      - name: Just all (autogeneration) and fail on dirty
+      - name: Just all autogeneration and fail on dirty
         run: |
-          just --timestamp gen _lint docs
+          just --timestamp gen docs
           git status --short
           git diff --quiet
 
-      - name: Go lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-
-      - name: More Go lint
+      - name: Some Go lint
         run: |
           just --timestamp _lint
+
+      - name: More Go lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          # keep in sync with hack/tools.just
+          version: v1.61.0
 
       - name: Run tests
         run: |
@@ -176,7 +177,7 @@ jobs:
 
       - name: Build all
         run: |
-          just --timestamp build
+          just --timestamp build kube-build
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
