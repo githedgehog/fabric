@@ -79,9 +79,12 @@ _docker-build bin: build
   cp bin/{{bin}} config/docker/{{bin}}/
   cd config/docker/{{bin}}/ && docker build -t {{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} -f Dockerfile .
 
+
+skopeo_copy_flags := if env("DOCKER_HOST", "") != "" { "--src-daemon-host " + env_var("DOCKER_HOST") } else { "" }
+
 _docker-push bin: _skopeo
   #docker push {{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}}
-  {{skopeo}} --insecure-policy copy docker-daemon:{{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} docker://{{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}}
+  {{skopeo}} --insecure-policy copy {{skopeo_copy_flags}} docker-daemon:{{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} docker://{{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}}
 
 _helm-build name: _helm
   @rm config/helm/{{name}}-v*.tgz || true
