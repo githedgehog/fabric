@@ -15,6 +15,9 @@ _gotools: _touch_embed
 # Called in CI
 _lint: _license_headers _gotools
 
+# Generate, lint, test and build everything
+all: gen docs lint lint-gha test build kube-build && version
+
 # Run linters against code (incl. license headers)
 lint: _lint _golangci_lint
   {{golangci_lint}} run --show-stats ./...
@@ -55,17 +58,6 @@ build: _license_headers _kube_gen _gotools _embed && version
 oci_repo := "127.0.0.1:30000"
 oci_prefix := "githedgehog/fabric"
 
-
-# API_HELM ?= config/helm/fabric-api
-# API_HELM_PACKAGE ?= $(API_HELM)-$(VERSION).tgz
-
-# .PHONY: api-chart-build
-# api-chart-build: generate manifests kustomize helm ## Build Fabric API (CRDs) Helm chart
-# 	rm $(API_HELM)-*.tgz || true
-# 	$(KUSTOMIZE) build config/crd > $(API_HELM)/templates/crds.yaml
-# 	$(HELM) package $(API_HELM) --destination config/helm --version $(VERSION)
-# 	$(HELM) lint $(API_HELM_PACKAGE)
-
 _helm-fabric-api: _kustomize _helm _kube_gen
   @rm config/helm/fabric-api-v*.tgz || true
   {{kustomize}} build config/crd > config/helm/fabric-api/templates/crds.yaml
@@ -103,12 +95,38 @@ _kube-build name: (_docker-build name) (_helm-build name)
 
 _kube-push name: (_docker-push name) (_helm-push name)
 
+# Build all K8s artifacts (images and charts)
 kube-build: (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") (_helm-build "fabric-proxy") && version
   # Docker images and Helm charts built
 
-kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") (_helm-push "fabric-proxy")  && version
+# Push all K8s artifacts (images and charts)
+kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") (_helm-push "fabric-proxy") && version
   # Docker images and Helm charts pushed
 
+# Push all K8s artifacts (images and charts) and binaries
 push: kube-push && version
   cd bin && oras push {{oci_repo}}/{{oci_prefix}}/agent:{{version}} agent
   cd bin && oras push {{oci_repo}}/{{oci_prefix}}/hhfctl:{{version}} hhfctl
+
+# Run tests
+test tests="./...": gen _envtest _gcov2lcov
+  KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbin}} -p path` go test `go list {{tests}} | grep -v /e2e` -coverprofile cover.out
+  {{gcov2lcov}} -infile cover.out -outfile lcov.info
+
+# Install API on a kind cluster and wait for CRDs to be ready
+test-api: _helm-fabric-api
+    kind get cluster || kind create cluster --name kind
+    kind export kubeconfig --name kind
+    {{helm}} install fabric-api config/helm/fabric-api-{{version}}.tgz
+    sleep 10
+    kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
+    kubectl wait --for condition=established --timeout=60s crd/vpcs.vpc.githedgehog.com
+    kubectl wait --for condition=established --timeout=60s crd/agents.agent.githedgehog.com
+    kubectl wait --for condition=established --timeout=60s crd/dhcpsubnets.dhcp.githedgehog.com
+    kubectl get crd | grep hedgehog
+    kind delete cluster --name kind
+
+# Generate docs
+docs: gen _crd_ref_docs
+  {{crd_ref_docs}} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
+  go run cmd/fabric-gen/main.go profiles-ref
