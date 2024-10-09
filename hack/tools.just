@@ -38,7 +38,7 @@ controller_gen := localbin / "controller-gen" + "-" + controller_gen_version
   [ -f {{controller_gen}} ] || just _goinstall "sigs.k8s.io/controller-tools/cmd/controller-gen" {{controller_gen_version}} "controller-gen" {{controller_gen}}
 
 # envtest
-envtest_k8s_version := "1.29.1"
+envtest_k8s_version := "1.31.0"
 envtest_version := "release-0.19"
 envtest := localbin / "setup-envtest" + "-" + envtest_version
 @_envtest: _localbin
