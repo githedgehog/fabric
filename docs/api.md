@@ -55,7 +55,7 @@ Switch object.
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `agent.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `Agent` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `status` _[AgentStatus](#agentstatus)_ | Status is the observed state of the Agent |  |  |
 
 
@@ -76,13 +76,13 @@ _Appears in:_
 | `version` _string_ | Current running agent version |  |  |
 | `installID` _string_ | ID of the agent installation, used to track NOS re-installs |  |  |
 | `runID` _string_ | ID of the agent run, used to track NOS reboots |  |  |
-| `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Time of the last heartbeat from the agent |  |  |
-| `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Time of the last attempt to apply configuration |  |  |
+| `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Time of the last heartbeat from the agent |  |  |
+| `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Time of the last attempt to apply configuration |  |  |
 | `lastAttemptGen` _integer_ | Generation of the last attempt to apply configuration |  |  |
-| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
+| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
 | `state` _[SwitchState](#switchstate)_ | Detailed switch state updated with each heartbeat |  |  |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
 
 
 #### BGPMessages
@@ -223,11 +223,11 @@ _Appears in:_
 | `connectionsDropped` _integer_ |  |  |  |
 | `enabled` _boolean_ |  |  |  |
 | `establishedTransitions` _integer_ |  |  |  |
-| `lastEstablished` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
-| `lastRead` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastEstablished` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `lastRead` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `lastResetReason` _string_ |  |  |  |
-| `lastResetTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
-| `lastWrite` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastResetTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `lastWrite` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `localAS` _integer_ |  |  |  |
 | `messages` _[BGPMessages](#bgpmessages)_ |  |  |  |
 | `peerAS` _integer_ |  |  |  |
@@ -405,7 +405,7 @@ _Appears in:_
 | `adminStatus` _[AdminStatus](#adminstatus)_ |  |  |  |
 | `operStatus` _[OperStatus](#operstatus)_ |  |  |  |
 | `mac` _string_ |  |  |  |
-| `lastChanged` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastChanged` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `speed` _string_ |  |  |  |
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `transceiver` _[SwitchStateTransceiver](#switchstatetransceiver)_ |  |  |  |
@@ -430,7 +430,7 @@ _Appears in:_
 | `inErrors` _integer_ |  |  |  |
 | `inPktsPerSecond` _float_ |  |  |  |
 | `inUtilization` _integer_ |  |  |  |
-| `lastClear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ |  |  |  |
+| `lastClear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `outBitsPerSecond` _float_ |  |  |  |
 | `outDiscards` _integer_ |  |  |  |
 | `outErrors` _integer_ |  |  |  |
@@ -630,7 +630,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `ip` _string_ | Allocated IP address |  |  |
-| `expiry` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Expiry time of the lease |  |  |
+| `expiry` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Expiry time of the lease |  |  |
 | `hostname` _string_ | Hostname from DHCP request |  |  |
 
 
@@ -650,7 +650,7 @@ Not intended to be modified by the user.
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `dhcp.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `DHCPSubnet` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[DHCPSubnetSpec](#dhcpsubnetspec)_ | Spec is the desired state of the DHCPSubnet |  |  |
 | `status` _[DHCPSubnetStatus](#dhcpsubnetstatus)_ | Status is the observed state of the DHCPSubnet |  |  |
 
@@ -731,7 +731,7 @@ worry about the details of how external system is attached to the Fabric.
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `External` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalSpec](#externalspec)_ | Spec is the desired state of the External |  |  |
 | `status` _[ExternalStatus](#externalstatus)_ | Status is the observed state of the External |  |  |
 
@@ -751,7 +751,7 @@ Effectively it represents BGP peering between the switch and external system inc
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `ExternalAttachment` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalAttachmentSpec](#externalattachmentspec)_ | Spec is the desired state of the ExternalAttachment |  |  |
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
 
@@ -836,7 +836,7 @@ ExternalPeering is the Schema for the externalpeerings API
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `ExternalPeering` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalPeeringSpec](#externalpeeringspec)_ | Spec is the desired state of the ExternalPeering |  |  |
 | `status` _[ExternalPeeringStatus](#externalpeeringstatus)_ | Status is the observed state of the ExternalPeering |  |  |
 
@@ -984,7 +984,7 @@ non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC s
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `IPv4Namespace` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[IPv4NamespaceSpec](#ipv4namespacespec)_ | Spec is the desired state of the IPv4Namespace |  |  |
 | `status` _[IPv4NamespaceStatus](#ipv4namespacestatus)_ | Status is the observed state of the IPv4Namespace |  |  |
 
@@ -1033,7 +1033,7 @@ resources with support for multiple subnets each with user-provided VLANs and on
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `VPC` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VPCSpec](#vpcspec)_ | Spec is the desired state of the VPC |  |  |
 | `status` _[VPCStatus](#vpcstatus)_ | Status is the observed state of the VPC |  |  |
 
@@ -1052,7 +1052,7 @@ VPCAttachment is the Schema for the vpcattachments API
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `VPCAttachment` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VPCAttachmentSpec](#vpcattachmentspec)_ | Spec is the desired state of the VPCAttachment |  |  |
 | `status` _[VPCAttachmentStatus](#vpcattachmentstatus)_ | Status is the observed state of the VPCAttachment |  |  |
 
@@ -1180,7 +1180,7 @@ Minimal example of the VPC peering showing vpc-1 to vpc-2 peering with all subne
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `VPCPeering` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VPCPeeringSpec](#vpcpeeringspec)_ | Spec is the desired state of the VPCPeering |  |  |
 | `status` _[VPCPeeringStatus](#vpcpeeringstatus)_ | Status is the observed state of the VPCPeering |  |  |
 
@@ -1568,7 +1568,7 @@ in a single Connection object.
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `Connection` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ConnectionSpec](#connectionspec)_ | Spec is the desired state of the Connection |  |  |
 | `status` _[ConnectionStatus](#connectionstatus)_ | Status is the observed state of the Connection |  |  |
 
@@ -1643,7 +1643,7 @@ Server is the Schema for the servers API
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `Server` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ServerSpec](#serverspec)_ | Spec is desired state of the server |  |  |
 | `status` _[ServerStatus](#serverstatus)_ | Status is the observed state of the server |  |  |
 
@@ -1731,7 +1731,7 @@ Switch is the Schema for the switches API
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `Switch` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchSpec](#switchspec)_ | Spec is desired state of the switch |  |  |
 | `status` _[SwitchStatus](#switchstatus)_ | Status is the observed state of the switch |  |  |
 
@@ -1767,7 +1767,7 @@ SwitchGroup is the marker API object to group switches together, switch can belo
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `SwitchGroup` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchGroupSpec](#switchgroupspec)_ | Spec is the desired state of the SwitchGroup |  |  |
 | `status` _[SwitchGroupStatus](#switchgroupstatus)_ | Status is the observed state of the SwitchGroup |  |  |
 
@@ -1812,7 +1812,7 @@ SwitchProfile represents switch capabilities and configuration
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `SwitchProfile` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchProfileSpec](#switchprofilespec)_ |  |  |  |
 | `status` _[SwitchProfileStatus](#switchprofilestatus)_ |  |  |  |
 
@@ -2116,7 +2116,7 @@ VLANNamespace is the Schema for the vlannamespaces API
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
 | `kind` _string_ | `VLANNamespace` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VLANNamespaceSpec](#vlannamespacespec)_ | Spec is the desired state of the VLANNamespace |  |  |
 | `status` _[VLANNamespaceStatus](#vlannamespacestatus)_ | Status is the observed state of the VLANNamespace |  |  |
 
