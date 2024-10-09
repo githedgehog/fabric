@@ -17,6 +17,7 @@ _is_clean:
 #
 
 localbin := "bin"
+localbinpath := `pwd`/localbin
 
 _localbin:
   @mkdir -p {{localbin}}
@@ -125,7 +126,7 @@ lint-gha: _actionlint
 
 # Run tests
 test path="./...": gen _envtest _gcov2lcov
-  KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbin}} -p path` go test `go list {{path}} | grep -v /e2e` -coverprofile cover.out
+  KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbinpath}} -p path` go test {{go_flags}} `go list {{path}} | grep -v /e2e` -coverprofile cover.out
   {{gcov2lcov}} -infile cover.out -outfile lcov.info
 
 #
