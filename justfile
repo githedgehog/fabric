@@ -53,7 +53,7 @@ build: _license_headers _kube_gen _gotools _embed && version
   {{go_linux_build}} -o ./bin/hhfctl ./cmd/hhfctl
   {{go_linux_build}} -o ./bin/fabric-boot ./cmd/fabric-boot
   {{go_linux_build}} -o ./bin/fabric-dhcpd ./cmd/fabric-dhcpd
-  @echo "Build complete"
+  # Build complete
 
 oci_repo := "127.0.0.1:30000"
 oci_prefix := "githedgehog/fabric"
@@ -72,7 +72,7 @@ _helm-fabric: _kustomize _helm _helmify _kube_gen
   {{helm}} lint config/helm/fabric-{{version}}.tgz
 
 # Build all K8s artifacts (images and charts)
-kube-build: (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") (_helm-build "fabric-proxy") && version
+kube-build: build (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") (_helm-build "fabric-proxy") && version
   # Docker images and Helm charts built
 
 # Push all K8s artifacts (images and charts)
