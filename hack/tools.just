@@ -122,3 +122,32 @@ _license_headers: _addlicense
 # Run linter for GitHub Actions
 lint-gha: _actionlint
    {{actionlint}} -verbose
+
+# Run tests
+test path="./...": gen _envtest _gcov2lcov
+  KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbin}} -p path` go test `go list {{path}} | grep -v /e2e` -coverprofile cover.out
+  {{gcov2lcov}} -infile cover.out -outfile lcov.info
+
+#
+# Docker/Helm recipes
+#
+
+_docker-build bin: build
+  cp bin/{{bin}} config/docker/{{bin}}/
+  cd config/docker/{{bin}}/ && docker build -t {{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} -f Dockerfile .
+
+skopeo_copy_flags := if env("DOCKER_HOST", "") != "" { "--src-daemon-host " + env_var("DOCKER_HOST") } else { "" }
+_docker-push bin: _skopeo
+  {{skopeo}} --insecure-policy copy {{skopeo_copy_flags}} docker-daemon:{{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} docker://{{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}}
+
+_helm-build name: _helm
+  @rm config/helm/{{name}}-v*.tgz || true
+  {{helm}} package config/helm/{{name}} --destination config/helm --version {{version}}
+  {{helm}} lint config/helm/{{name}}-{{version}}.tgz
+
+_helm-push name: _helm
+  {{helm}} push config/helm/{{name}}-{{version}}.tgz oci://{{oci_repo}}/{{oci_prefix}}/charts
+
+_kube-build name: (_docker-build name) (_helm-build name)
+
+_kube-push name: (_docker-push name) (_helm-push name)
