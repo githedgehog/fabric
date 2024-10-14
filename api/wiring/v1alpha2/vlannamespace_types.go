@@ -16,6 +16,7 @@ package v1alpha2
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -123,7 +124,7 @@ func (ns *VLANNamespace) Validate(_ context.Context, _ client.Reader, fabricCfg 
 	}
 
 	if fabricCfg != nil {
-		if err := meta.CheckVLANRangesOverlap(append(fabricCfg.VPCIRBVLANRanges, ns.Spec.Ranges...)); err != nil {
+		if err := meta.CheckVLANRangesOverlap(append(slices.Clone(fabricCfg.VPCIRBVLANRanges), ns.Spec.Ranges...)); err != nil {
 			return nil, errors.Wrapf(err, "ranges overlap with Fabric reserved VLANs")
 		}
 	}
