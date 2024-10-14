@@ -28,6 +28,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/boot/server"
 	"go.githedgehog.com/fabric/pkg/version"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -51,8 +52,8 @@ func setupLogger(verbose, brief bool) error {
 	})
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
-
 	ctrl.SetLogger(logr.FromSlogHandler(handler))
+	klog.SetSlogLogger(logger)
 
 	return nil
 }

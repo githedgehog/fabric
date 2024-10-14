@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
@@ -29,6 +30,8 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var version = "(devel)"
@@ -40,14 +43,16 @@ func setupLogger(verbose bool) error {
 	}
 
 	logW := os.Stderr
-	logger := slog.New(
-		tint.NewHandler(logW, &tint.Options{
-			Level:      logLevel,
-			TimeFormat: time.TimeOnly,
-			NoColor:    !isatty.IsTerminal(logW.Fd()),
-		}),
-	)
+	handler := tint.NewHandler(logW, &tint.Options{
+		Level:      logLevel,
+		TimeFormat: time.TimeOnly,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})
+
+	logger := slog.New(handler)
 	slog.SetDefault(logger)
+	ctrl.SetLogger(logr.FromSlogHandler(handler))
+	klog.SetSlogLogger(logger)
 
 	return nil
 }

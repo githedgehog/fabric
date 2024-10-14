@@ -24,6 +24,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
@@ -31,6 +32,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/dhcpd"
 	"go.githedgehog.com/fabric/pkg/version"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -56,9 +59,11 @@ func setupLogger(verbose bool, printMotd bool) error {
 		}),
 	}
 
-	logger := slog.New(slogmulti.Fanout(handlers...))
-
+	handler := slogmulti.Fanout(handlers...)
+	logger := slog.New(handler)
 	slog.SetDefault(logger)
+	ctrl.SetLogger(logr.FromSlogHandler(handler))
+	klog.SetSlogLogger(logger)
 
 	if printMotd {
 		_, err := logConsole.Write(motd)
