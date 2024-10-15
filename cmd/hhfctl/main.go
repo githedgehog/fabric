@@ -472,8 +472,8 @@ func main() {
 							&cli.StringSliceFlag{
 								Name:    "external-prefix",
 								Aliases: []string{"prefix"},
-								Usage:   "external prefixes to enable peering for, could be in a format 10.0.0.0/8_le32_ge32",
-								Value:   cli.NewStringSlice("0.0.0.0/0_le32"),
+								Usage:   "external prefixes to enable peering for, e.g. 0.0.0.0/0 for default route",
+								Value:   cli.NewStringSlice("0.0.0.0/0"),
 							},
 						},
 						Before: func(_ *cli.Context) error {
