@@ -246,48 +246,12 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 	spec.LLDP = &dozer.SpecLLDP{
 		Enabled:           pointer.To(true),
 		HelloTimer:        pointer.To(uint64(5)), // TODO make configurable?
 		SystemName:        pointer.To(agent.Name),
-		SystemDescription: pointer.To(fmt.Sprintf("Hedgehog: [control_vip=%s]", agent.Spec.Config.ControlVIP)),
-	}
-
-	if !agent.IsSpineLeaf() {
-		return nil
-	}
-
-	for _, conn := range agent.Spec.Connections {
-		if conn.Fabric != nil {
-			for _, link := range conn.Fabric.Links {
-				mgmtIP := ""
-				iface := ""
-
-				if link.Spine.DeviceName() == agent.Name {
-					iface = link.Spine.LocalPortName()
-					mgmtIP = link.Spine.IP
-				} else if link.Leaf.DeviceName() == agent.Name {
-					iface = link.Leaf.LocalPortName()
-					mgmtIP = link.Leaf.IP
-				}
-
-				if mgmtIP != "" {
-					parts := strings.Split(mgmtIP, "/")
-					if len(parts) != 2 {
-						return errors.Errorf("invalid lldp management ip %s", mgmtIP)
-					}
-					mgmtIP = parts[0]
-				}
-
-				if mgmtIP != "" && iface != "" {
-					spec.LLDPInterfaces[iface] = &dozer.SpecLLDPInterface{
-						Enabled:        pointer.To(true),
-						ManagementIPv4: pointer.To(mgmtIP),
-					}
-				}
-			}
-		}
+		SystemDescription: pointer.To("Hedgehog Fabric"),
 	}
 
 	return nil
