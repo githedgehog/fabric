@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )

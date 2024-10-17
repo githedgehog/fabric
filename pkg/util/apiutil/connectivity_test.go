@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

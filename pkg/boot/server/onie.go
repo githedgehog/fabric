@@ -26,9 +26,9 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	corev1 "k8s.io/api/core/v1"

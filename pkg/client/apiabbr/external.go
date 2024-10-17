@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"

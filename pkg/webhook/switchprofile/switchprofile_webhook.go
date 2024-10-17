@@ -19,7 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,8 +57,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-switchprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update,versions=v1alpha2,name=mswitchprofile.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-switchprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update;delete,versions=v1alpha2,name=vswitchprofile.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update,versions=v1beta1,name=mswitchprofile.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update;delete,versions=v1beta1,name=vswitchprofile.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("switchprofile-webhook")
 

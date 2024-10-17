@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -56,8 +56,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1alpha2-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1alpha2,name=mconnection.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1alpha2-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update;delete,versions=v1alpha2,name=vconnection.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1beta1,name=mconnection.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update;delete,versions=v1beta1,name=vconnection.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("connection-webhook")
 

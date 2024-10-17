@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/client/apiabbr"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )

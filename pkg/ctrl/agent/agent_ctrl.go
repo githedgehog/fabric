@@ -27,10 +27,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"

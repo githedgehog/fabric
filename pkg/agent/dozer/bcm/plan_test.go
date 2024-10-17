@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )

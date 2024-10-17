@@ -20,7 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"golang.org/x/exp/maps"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

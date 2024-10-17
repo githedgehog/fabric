@@ -20,7 +20,7 @@ import (
 	"net/netip"
 
 	"github.com/vishvananda/netlink"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 )
 
 const (

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"

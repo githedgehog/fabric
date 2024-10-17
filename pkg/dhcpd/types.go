@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
 var (

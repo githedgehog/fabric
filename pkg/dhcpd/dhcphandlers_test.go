@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
-	"go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
 const (
@@ -64,8 +64,8 @@ func Test_handleDiscover4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets[VrfV12+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
 						},
 						pool: pool,
 						allocations: &ipallocations{
@@ -113,8 +113,8 @@ func Test_handleDiscover4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets["VrfV13"+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
 						},
 						pool: pool,
 						allocations: &ipallocations{
@@ -171,8 +171,8 @@ func Test_handleDiscover4(t *testing.T) {
 					// 	uint32(24),
 					// )
 					// pluginHdl.dhcpSubnets.subnets["VrfV14"+Vlan2000] = &ManagedSubnet{
-					// 	dhcpSubnet: &v1alpha2.DHCPSubnet{
-					// 		Spec: v1alpha2.DHCPSubnetSpec{},
+					// 	dhcpSubnet: &dhcpapi.DHCPSubnet{
+					// 		Spec: dhcpapi.DHCPSubnetSpec{},
 					// 	},
 					// 	pool: pool,
 					// 	allocations: &ipallocations{
@@ -223,8 +223,8 @@ func Test_handleDiscover4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets[VrfV15+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
 						},
 						pool: pool,
 						allocations: &ipallocations{
@@ -310,10 +310,10 @@ func Test_handleRequest4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
-							Status: v1alpha2.DHCPSubnetStatus{
-								Allocated: map[string]v1alpha2.DHCPAllocated{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
+							Status: dhcpapi.DHCPSubnetStatus{
+								Allocated: map[string]dhcpapi.DHCPAllocated{},
 							},
 						},
 						pool: pool,
@@ -389,10 +389,10 @@ func Test_handleRequest4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
-							Status: v1alpha2.DHCPSubnetStatus{
-								Allocated: map[string]v1alpha2.DHCPAllocated{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
+							Status: dhcpapi.DHCPSubnetStatus{
+								Allocated: map[string]dhcpapi.DHCPAllocated{},
 							},
 						},
 						pool: pool,
@@ -468,10 +468,10 @@ func Test_handleRequest4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets[VrfV16+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
-							Status: v1alpha2.DHCPSubnetStatus{
-								Allocated: map[string]v1alpha2.DHCPAllocated{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
+							Status: dhcpapi.DHCPSubnetStatus{
+								Allocated: map[string]dhcpapi.DHCPAllocated{},
 							},
 						},
 						pool: pool,
@@ -544,10 +544,10 @@ func Test_handleRequest4(t *testing.T) {
 						return nil
 					}
 					pluginHdl.dhcpSubnets.subnets["VrfV18"+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
-							Status: v1alpha2.DHCPSubnetStatus{
-								Allocated: map[string]v1alpha2.DHCPAllocated{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
+							Status: dhcpapi.DHCPSubnetStatus{
+								Allocated: map[string]dhcpapi.DHCPAllocated{},
 							},
 						},
 						pool: pool,
@@ -659,10 +659,10 @@ func Test_handleDecline4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets["VrfV19"+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
-							Status: v1alpha2.DHCPSubnetStatus{
-								Allocated: map[string]v1alpha2.DHCPAllocated{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
+							Status: dhcpapi.DHCPSubnetStatus{
+								Allocated: map[string]dhcpapi.DHCPAllocated{},
 							},
 						},
 						pool: pool,
@@ -726,10 +726,10 @@ func Test_handleDecline4(t *testing.T) {
 						uint32(24),
 					)
 					pluginHdl.dhcpSubnets.subnets["VrfV20"+Vlan2000] = &ManagedSubnet{
-						dhcpSubnet: &v1alpha2.DHCPSubnet{
-							Spec: v1alpha2.DHCPSubnetSpec{},
-							Status: v1alpha2.DHCPSubnetStatus{
-								Allocated: map[string]v1alpha2.DHCPAllocated{},
+						dhcpSubnet: &dhcpapi.DHCPSubnet{
+							Spec: dhcpapi.DHCPSubnetSpec{},
+							Status: dhcpapi.DHCPSubnetStatus{
+								Allocated: map[string]dhcpapi.DHCPAllocated{},
 							},
 						},
 						pool: pool,

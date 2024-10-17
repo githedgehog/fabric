@@ -32,7 +32,7 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1alpha2
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: VPCAttachment is the Schema for the vpcattachments API

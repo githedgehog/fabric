@@ -25,7 +25,7 @@ import (
 	"github.com/coredhcp/coredhcp/logger"
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
-	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
 var (

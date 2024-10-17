@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 )
 

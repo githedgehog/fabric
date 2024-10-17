@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"sigs.k8s.io/yaml"
 )

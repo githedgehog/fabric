@@ -10,14 +10,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-wiring-githedgehog-com-v1alpha2-connection
+      path: /mutate-wiring-githedgehog-com-v1beta1-connection
   failurePolicy: Fail
   name: mconnection.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -30,14 +30,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-external
+      path: /mutate-vpc-githedgehog-com-v1beta1-external
   failurePolicy: Fail
   name: mexternal.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -50,14 +50,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-externalattachment
+      path: /mutate-vpc-githedgehog-com-v1beta1-externalattachment
   failurePolicy: Fail
   name: mexternalattachment.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -70,14 +70,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-externalpeering
+      path: /mutate-vpc-githedgehog-com-v1beta1-externalpeering
   failurePolicy: Fail
   name: mexternalpeering.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -90,14 +90,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-ipv4namespace
+      path: /mutate-vpc-githedgehog-com-v1beta1-ipv4namespace
   failurePolicy: Fail
   name: mipv4namespace.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -110,14 +110,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-wiring-githedgehog-com-v1alpha2-server
+      path: /mutate-wiring-githedgehog-com-v1beta1-server
   failurePolicy: Fail
   name: mserver.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -130,14 +130,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-wiring-githedgehog-com-v1alpha2-switch
+      path: /mutate-wiring-githedgehog-com-v1beta1-switch
   failurePolicy: Fail
   name: mswitch.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -150,14 +150,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-wiring-githedgehog-com-v1alpha2-switchprofile
+      path: /mutate-wiring-githedgehog-com-v1beta1-switchprofile
   failurePolicy: Fail
   name: mswitchprofile.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -170,14 +170,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-wiring-githedgehog-com-v1alpha2-vlannamespace
+      path: /mutate-wiring-githedgehog-com-v1beta1-vlannamespace
   failurePolicy: Fail
   name: mvlannamespace.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -190,14 +190,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-vpc
+      path: /mutate-vpc-githedgehog-com-v1beta1-vpc
   failurePolicy: Fail
   name: mvpc.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -210,14 +210,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-vpcattachment
+      path: /mutate-vpc-githedgehog-com-v1beta1-vpcattachment
   failurePolicy: Fail
   name: mvpcattachment.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -230,14 +230,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-vpc-githedgehog-com-v1alpha2-vpcpeering
+      path: /mutate-vpc-githedgehog-com-v1beta1-vpcpeering
   failurePolicy: Fail
   name: mvpcpeering.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -256,14 +256,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-wiring-githedgehog-com-v1alpha2-connection
+      path: /validate-wiring-githedgehog-com-v1beta1-connection
   failurePolicy: Fail
   name: vconnection.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -277,14 +277,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-external
+      path: /validate-vpc-githedgehog-com-v1beta1-external
   failurePolicy: Fail
   name: vexternal.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -298,14 +298,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-externalattachment
+      path: /validate-vpc-githedgehog-com-v1beta1-externalattachment
   failurePolicy: Fail
   name: vexternalattachment.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -319,14 +319,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-externalpeering
+      path: /validate-vpc-githedgehog-com-v1beta1-externalpeering
   failurePolicy: Fail
   name: vexternalpeering.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -340,14 +340,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-ipv4namespace
+      path: /validate-vpc-githedgehog-com-v1beta1-ipv4namespace
   failurePolicy: Fail
   name: vipv4namespace.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -361,14 +361,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-wiring-githedgehog-com-v1alpha2-server
+      path: /validate-wiring-githedgehog-com-v1beta1-server
   failurePolicy: Fail
   name: vserver.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -382,14 +382,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-wiring-githedgehog-com-v1alpha2-switch
+      path: /validate-wiring-githedgehog-com-v1beta1-switch
   failurePolicy: Fail
   name: vswitch.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -403,14 +403,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-wiring-githedgehog-com-v1alpha2-switchprofile
+      path: /validate-wiring-githedgehog-com-v1beta1-switchprofile
   failurePolicy: Fail
   name: vswitchprofile.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -424,14 +424,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-wiring-githedgehog-com-v1alpha2-vlannamespace
+      path: /validate-wiring-githedgehog-com-v1beta1-vlannamespace
   failurePolicy: Fail
   name: vvlannamespace.kb.io
   rules:
   - apiGroups:
     - wiring.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -445,14 +445,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-vpc
+      path: /validate-vpc-githedgehog-com-v1beta1-vpc
   failurePolicy: Fail
   name: vvpc.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -466,14 +466,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-vpcattachment
+      path: /validate-vpc-githedgehog-com-v1beta1-vpcattachment
   failurePolicy: Fail
   name: vvpcattachment.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -487,14 +487,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-vpc-githedgehog-com-v1alpha2-vpcpeering
+      path: /validate-vpc-githedgehog-com-v1beta1-vpcpeering
   failurePolicy: Fail
   name: vvpcpeering.kb.io
   rules:
   - apiGroups:
     - vpc.githedgehog.com
     apiVersions:
-    - v1alpha2
+    - v1beta1
     operations:
     - CREATE
     - UPDATE

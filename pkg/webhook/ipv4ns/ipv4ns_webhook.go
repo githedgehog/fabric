@@ -19,7 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,8 +54,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1alpha2-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1alpha2,name=mipv4namespace.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1alpha2-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1alpha2,name=vipv4namespace.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1beta1,name=mipv4namespace.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1beta1,name=vipv4namespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("ipv4namespace-webhook")
 

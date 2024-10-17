@@ -27,7 +27,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"

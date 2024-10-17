@@ -17,7 +17,7 @@ spec:
     singular: serverprofile
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         description: ServerProfile is currently not used/implemented in the Fabric

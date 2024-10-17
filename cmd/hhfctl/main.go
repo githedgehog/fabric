@@ -27,7 +27,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1alpha2"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
 	"k8s.io/klog/v2"

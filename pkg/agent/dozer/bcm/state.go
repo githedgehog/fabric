@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

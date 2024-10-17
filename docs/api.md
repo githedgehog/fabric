@@ -1,15 +1,15 @@
 # API Reference
 
 ## Packages
-- [agent.githedgehog.com/v1alpha2](#agentgithedgehogcomv1alpha2)
-- [dhcp.githedgehog.com/v1alpha2](#dhcpgithedgehogcomv1alpha2)
-- [vpc.githedgehog.com/v1alpha2](#vpcgithedgehogcomv1alpha2)
-- [wiring.githedgehog.com/v1alpha2](#wiringgithedgehogcomv1alpha2)
+- [agent.githedgehog.com/v1beta1](#agentgithedgehogcomv1beta1)
+- [dhcp.githedgehog.com/v1beta1](#dhcpgithedgehogcomv1beta1)
+- [vpc.githedgehog.com/v1beta1](#vpcgithedgehogcomv1beta1)
+- [wiring.githedgehog.com/v1beta1](#wiringgithedgehogcomv1beta1)
 
 
-## agent.githedgehog.com/v1alpha2
+## agent.githedgehog.com/v1beta1
 
-Package v1alpha2 contains API Schema definitions for the agent v1alpha2 API group. This is the internal API group
+Package v1beta1 contains API Schema definitions for the agent v1beta1 API group. This is the internal API group
 for the switch and control node agents. Not intended to be modified by the user.
 
 ### Resource Types
@@ -53,7 +53,7 @@ Switch object.
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `agent.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `agent.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `Agent` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `status` _[AgentStatus](#agentstatus)_ | Status is the observed state of the Agent |  |  |
@@ -605,9 +605,9 @@ _Appears in:_
 
 
 
-## dhcp.githedgehog.com/v1alpha2
+## dhcp.githedgehog.com/v1beta1
 
-Package v1alpha2 contains API Schema definitions for the dhcp v1alpha2 API group. It is the primary internal API
+Package v1beta1 contains API Schema definitions for the dhcp v1beta1 API group. It is the primary internal API
 group for the intended Hedgehog DHCP server configuration and storing leases as well as making them available to the
 end user through API. Not intended to be modified by the user.
 
@@ -648,7 +648,7 @@ Not intended to be modified by the user.
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `dhcp.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `dhcp.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `DHCPSubnet` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[DHCPSubnetSpec](#dhcpsubnetspec)_ | Spec is the desired state of the DHCPSubnet |  |  |
@@ -699,9 +699,9 @@ _Appears in:_
 
 
 
-## vpc.githedgehog.com/v1alpha2
+## vpc.githedgehog.com/v1beta1
 
-Package v1alpha2 contains API Schema definitions for the vpc v1alpha2 API group. It is public API group for the VPCs
+Package v1beta1 contains API Schema definitions for the vpc v1beta1 API group. It is public API group for the VPCs
 and Externals APIs. Intended to be used by the user.
 
 ### Resource Types
@@ -729,7 +729,7 @@ worry about the details of how external system is attached to the Fabric.
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `External` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalSpec](#externalspec)_ | Spec is the desired state of the External |  |  |
@@ -749,7 +749,7 @@ Effectively it represents BGP peering between the switch and external system inc
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `ExternalAttachment` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalAttachmentSpec](#externalattachmentspec)_ | Spec is the desired state of the ExternalAttachment |  |  |
@@ -834,7 +834,7 @@ ExternalPeering is the Schema for the externalpeerings API
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `ExternalPeering` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalPeeringSpec](#externalpeeringspec)_ | Spec is the desired state of the ExternalPeering |  |  |
@@ -982,7 +982,7 @@ non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC s
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `IPv4Namespace` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[IPv4NamespaceSpec](#ipv4namespacespec)_ | Spec is the desired state of the IPv4Namespace |  |  |
@@ -1031,7 +1031,7 @@ resources with support for multiple subnets each with user-provided VLANs and on
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `VPC` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VPCSpec](#vpcspec)_ | Spec is the desired state of the VPC |  |  |
@@ -1050,7 +1050,7 @@ VPCAttachment is the Schema for the vpcattachments API
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `VPCAttachment` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VPCAttachmentSpec](#vpcattachmentspec)_ | Spec is the desired state of the VPCAttachment |  |  |
@@ -1178,7 +1178,7 @@ Minimal example of the VPC peering showing vpc-1 to vpc-2 peering with all subne
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `vpc.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `VPCPeering` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VPCPeeringSpec](#vpcpeeringspec)_ | Spec is the desired state of the VPCPeering |  |  |
@@ -1290,9 +1290,9 @@ _Appears in:_
 
 
 
-## wiring.githedgehog.com/v1alpha2
+## wiring.githedgehog.com/v1beta1
 
-Package v1alpha2 contains API Schema definitions for the wiring v1alpha2 API group. It is public API group mainly for
+Package v1beta1 contains API Schema definitions for the wiring v1beta1 API group. It is public API group mainly for
 the underlay definition including Switches, Server, wiring between them and etc. Intended to be used by the user.
 
 ### Resource Types
@@ -1566,7 +1566,7 @@ in a single Connection object.
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `Connection` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ConnectionSpec](#connectionspec)_ | Spec is the desired state of the Connection |  |  |
@@ -1641,7 +1641,7 @@ Server is the Schema for the servers API
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `Server` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ServerSpec](#serverspec)_ | Spec is desired state of the server |  |  |
@@ -1729,7 +1729,7 @@ Switch is the Schema for the switches API
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `Switch` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchSpec](#switchspec)_ | Spec is desired state of the switch |  |  |
@@ -1765,7 +1765,7 @@ SwitchGroup is the marker API object to group switches together, switch can belo
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `SwitchGroup` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchGroupSpec](#switchgroupspec)_ | Spec is the desired state of the SwitchGroup |  |  |
@@ -1810,7 +1810,7 @@ SwitchProfile represents switch capabilities and configuration
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `SwitchProfile` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SwitchProfileSpec](#switchprofilespec)_ |  |  |  |
@@ -2114,7 +2114,7 @@ VLANNamespace is the Schema for the vlannamespaces API
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `apiVersion` _string_ | `wiring.githedgehog.com/v1alpha2` | | |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
 | `kind` _string_ | `VLANNamespace` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[VLANNamespaceSpec](#vlannamespacespec)_ | Spec is the desired state of the VLANNamespace |  |  |

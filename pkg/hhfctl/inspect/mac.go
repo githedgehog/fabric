@@ -23,8 +23,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
-	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

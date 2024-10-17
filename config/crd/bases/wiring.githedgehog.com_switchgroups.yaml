@@ -24,7 +24,7 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1alpha2
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: SwitchGroup is the marker API object to group switches together,

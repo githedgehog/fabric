@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1alpha2"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 )

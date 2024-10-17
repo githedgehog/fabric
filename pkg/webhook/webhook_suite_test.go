@@ -30,7 +30,7 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	//+kubebuilder:scaffold:imports
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1alpha2"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/webhook/connection"
 	"go.githedgehog.com/fabric/pkg/webhook/server"
 	"go.githedgehog.com/fabric/pkg/webhook/switchh"
