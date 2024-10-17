@@ -2460,13 +2460,13 @@ func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 }
 
 func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
-	_, autoNegDefault, err := agent.Spec.SwitchProfile.GetAutoNegsDefaultsFor(&agent.Spec.Switch)
+	autoNegAllowed, autoNegDefault, err := agent.Spec.SwitchProfile.GetAutoNegsDefaultsFor(&agent.Spec.Switch)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get auto-negotiation settings for switch")
 	}
 
 	for name, iface := range spec.Interfaces {
-		if !isHedgehogPortName(name) {
+		if !isHedgehogPortName(name) || !autoNegAllowed[name] {
 			continue
 		}
 
@@ -2480,6 +2480,10 @@ func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	for name, autoNeg := range agent.Spec.Switch.PortAutoNegs {
+		if !isHedgehogPortName(name) || strings.HasPrefix(name, "M") || !autoNegAllowed[name] {
+			continue
+		}
+
 		if iface, exists := spec.Interfaces[name]; exists {
 			iface.AutoNegotiate = pointer.To(autoNeg)
 		}
