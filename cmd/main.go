@@ -24,7 +24,6 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"github.com/go-logr/logr"
@@ -153,7 +152,7 @@ func run() error {
 		// the manager stops, so would be fine to enable this option. However,
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
+		LeaderElectionReleaseOnCancel: true,
 
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -165,7 +164,7 @@ func run() error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("starting manager: %w", err)
+		return fmt.Errorf("creating manager: %w", err)
 	}
 
 	libMngr := librarian.NewManager(cfg)
