@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -76,6 +77,15 @@ func main() {
 		Aliases:     []string{"n"},
 		Usage:       "name",
 		Destination: &name,
+	}
+
+	var username string
+	usernameFlag := &cli.StringFlag{
+		Name:        "username",
+		Aliases:     []string{"u"},
+		Usage:       "username",
+		Destination: &username,
+		Value:       "admin",
 	}
 
 	var yes bool
@@ -262,15 +272,60 @@ func main() {
 			},
 			{
 				Name:    "switch",
-				Aliases: []string{"sw", "agent"},
-				Usage:   "Switch/Agent commands",
+				Aliases: []string{"sw"},
+				Usage:   "Switch commands",
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
 				Subcommands: []*cli.Command{
 					{
+						Name:  "ip",
+						Usage: "Get switch management IP address",
+						Flags: []cli.Flag{
+							usernameFlag,
+							verboseFlag,
+							nameFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(_ *cli.Context) error {
+							return errors.Wrapf(hhfctl.SwitchIP(ctx, name), "failed to get switch IP address")
+						},
+					},
+					{
+						Name:  "ssh",
+						Usage: "SSH into the switch (only from control nodes, using mgmt network)",
+						Flags: []cli.Flag{
+							usernameFlag,
+							verboseFlag,
+							nameFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(_ *cli.Context) error {
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSSH(ctx, name, username), "failed to ssh into the switch"))
+						},
+					},
+					{
+						Name:  "serial",
+						Usage: "Run serial console for the switch (only if it's specified in the switch annotations)",
+						Flags: []cli.Flag{
+							usernameFlag,
+							verboseFlag,
+							nameFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(_ *cli.Context) error {
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSerial(ctx, name), "failed to run serial for the switch"))
+						},
+					},
+					{
 						Name:  "reboot",
-						Usage: "Reboot the switch",
+						Usage: "Reboot the switch (only works if switch is healthy and sends heartbeats)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,
@@ -281,15 +336,15 @@ func main() {
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
-								return err
+								return wrapErrWithPressToContinue(err)
 							}
 
-							return errors.Wrapf(hhfctl.SwitchReboot(ctx, name), "failed to reboot switch")
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchReboot(ctx, name), "failed to reboot switch"))
 						},
 					},
 					{
 						Name:  "power-reset",
-						Usage: "Power reset the switch (unsafe, skips graceful shutdown)",
+						Usage: "Power reset the switch (UNSAFE, skips graceful shutdown, only works if switch is healthy and sends heartbeats)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,
@@ -300,15 +355,15 @@ func main() {
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
-								return err
+								return wrapErrWithPressToContinue(err)
 							}
 
-							return errors.Wrapf(hhfctl.SwitchPowerReset(ctx, name), "failed to power reset switch")
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchPowerReset(ctx, name), "failed to power reset switch"))
 						},
 					},
 					{
 						Name:  "reinstall",
-						Usage: "Reinstall the switch (reboot into ONIE)",
+						Usage: "Reinstall the switch (reboot into ONIE, only works if switch is healthy and sends heartbeats)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,
@@ -319,34 +374,10 @@ func main() {
 						},
 						Action: func(cCtx *cli.Context) error {
 							if err := yesCheck(cCtx); err != nil {
-								return err
+								return wrapErrWithPressToContinue(err)
 							}
 
-							return errors.Wrapf(hhfctl.SwitchReinstall(ctx, name), "failed to reinstall switch")
-						},
-					},
-					{
-						Name:  "agent-version",
-						Usage: "Force agent version on the switch (empty version to reset to the default)",
-						Flags: []cli.Flag{
-							verboseFlag,
-							nameFlag,
-							yesFlag,
-							&cli.StringFlag{
-								Name:     "version",
-								Usage:    "version (empty to reset to the default)",
-								Required: true,
-							},
-						},
-						Before: func(_ *cli.Context) error {
-							return setupLogger(verbose)
-						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
-								return err
-							}
-
-							return errors.Wrapf(hhfctl.SwitchForceAgentVersion(ctx, name, cCtx.String("version")), "failed to force agent version on the switch")
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchReinstall(ctx, name), "failed to reinstall switch"))
 						},
 					},
 				},
@@ -740,4 +771,18 @@ func main() {
 		slog.Error("Failed", "err", err.Error())
 		os.Exit(1)
 	}
+}
+
+func wrapErrWithPressToContinue(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if strings.Contains(os.Getenv("_"), "k9s") {
+		slog.Error("Failed", "err", err.Error())
+		slog.Warn("Press Enter to continue...")
+		_, _ = fmt.Scanln()
+	}
+
+	return err
 }
