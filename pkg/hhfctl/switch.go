@@ -16,19 +16,39 @@ package hhfctl
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
+	"os"
+	"os/exec"
+	"strings"
 
-	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getAgent(ctx context.Context, kube client.WithWatch, name string) (*agentapi.Agent, error) {
+const (
+	HHFabCfgPrefix          = ".hhfab.githedgehog.com"
+	HHFabCfgSerial          = "serial" + HHFabCfgPrefix
+	HHFctlCfgPrefix         = ".fabric.githedgehog.com"
+	HHFctlCfgSerial         = "serial" + HHFctlCfgPrefix
+	HHFabCfgSerialSchemeSSH = "ssh://"
+)
+
+var SSHQuietFlags = []string{
+	"-o", "GlobalKnownHostsFile=/dev/null",
+	"-o", "UserKnownHostsFile=/dev/null",
+	"-o", "StrictHostKeyChecking=no",
+	"-o", "LogLevel=ERROR",
+}
+
+func getAgent(ctx context.Context, kube client.Reader, name string) (*agentapi.Agent, error) {
 	agent := &agentapi.Agent{}
 	err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, agent)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot get agent")
+		return nil, fmt.Errorf("getting agent: %w", err)
 	}
 
 	return agent, nil
@@ -37,7 +57,7 @@ func getAgent(ctx context.Context, kube client.WithWatch, name string) (*agentap
 func SwitchReboot(ctx context.Context, name string) error {
 	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
+		return fmt.Errorf("creating kube client: %w", err)
 	}
 
 	agent, err := getAgent(ctx, kube, name)
@@ -46,13 +66,13 @@ func SwitchReboot(ctx context.Context, name string) error {
 	}
 
 	if agent.Status.RunID == "" {
-		return errors.Errorf("agent is not running (missing .status.runID)")
+		return fmt.Errorf("agent is not running (missing .status.runID)") //nolint:goerr113
 	}
 
 	agent.Spec.Reboot = agent.Status.RunID
 	err = kube.Update(ctx, agent)
 	if err != nil {
-		return errors.Wrap(err, "cannot update agent")
+		return fmt.Errorf("updating agent object: %w", err)
 	}
 
 	return nil
@@ -61,7 +81,7 @@ func SwitchReboot(ctx context.Context, name string) error {
 func SwitchPowerReset(ctx context.Context, name string) error {
 	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
+		return fmt.Errorf("creating kube client: %w", err)
 	}
 
 	agent, err := getAgent(ctx, kube, name)
@@ -70,13 +90,13 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 	}
 
 	if agent.Status.RunID == "" {
-		return errors.Errorf("agent is not running (missing .status.runID)")
+		return fmt.Errorf("agent is not running (missing .status.runID)") //nolint:goerr113
 	}
 
 	agent.Spec.PowerReset = agent.Status.RunID
 	err = kube.Update(ctx, agent)
 	if err != nil {
-		return errors.Wrap(err, "cannot update agent")
+		return fmt.Errorf("updating agent object: %w", err)
 	}
 
 	return nil
@@ -85,7 +105,7 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 func SwitchReinstall(ctx context.Context, name string) error {
 	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
 	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
+		return fmt.Errorf("creating kube client: %w", err)
 	}
 
 	agent, err := getAgent(ctx, kube, name)
@@ -94,40 +114,125 @@ func SwitchReinstall(ctx context.Context, name string) error {
 	}
 
 	if agent.Status.InstallID == "" {
-		return errors.Errorf("agent is not installed (missing .status.installID)")
+		return fmt.Errorf("agent is not installed (missing .status.installID)") //nolint:goerr113
 	}
 
 	agent.Spec.Reinstall = agent.Status.InstallID
 	err = kube.Update(ctx, agent)
 	if err != nil {
-		return errors.Wrap(err, "cannot update agent")
+		return fmt.Errorf("updating agent object: %w", err)
 	}
 
 	return nil
 }
 
-func SwitchForceAgentVersion(ctx context.Context, name string, version string) error {
-	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
+func SwitchIP(ctx context.Context, name string) error {
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
 	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
+		return fmt.Errorf("creating kube client: %w", err)
 	}
 
-	agent, err := getAgent(ctx, kube, name)
-	if err != nil {
-		return err
+	sw := &wiringapi.Switch{}
+	if err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+		return fmt.Errorf("getting switch %q: %w", name, err)
 	}
 
-	if agent.Status.RunID == "" {
-		return errors.Errorf("agent is not running")
+	if sw.Spec.IP == "" {
+		return fmt.Errorf("switch %q has no management IP address", name) //nolint:goerr113
 	}
 
-	agent.Spec.Version.Override = version
-	agent.Spec.Reboot = agent.Status.RunID
+	fmt.Println(sw.Spec.IP)
 
-	err = kube.Update(ctx, agent)
+	return nil
+}
+
+func SwitchSSH(ctx context.Context, name, username string) error {
+	if username == "" {
+		return fmt.Errorf("username is required") //nolint:goerr113
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
 	if err != nil {
-		return errors.Wrap(err, "cannot update agent")
+		return fmt.Errorf("creating kube client: %w", err)
+	}
+
+	sw := &wiringapi.Switch{}
+	if err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+		return fmt.Errorf("getting switch %q: %w", name, err)
+	}
+
+	if sw.Spec.IP == "" {
+		return fmt.Errorf("switch %q has no management IP address", name) //nolint:goerr113
+	}
+
+	ip, err := netip.ParsePrefix(sw.Spec.IP)
+	if err != nil {
+		return fmt.Errorf("parsing switch IP address: %w", err)
+	}
+
+	cmd := exec.CommandContext(ctx, "ssh", append(SSHQuietFlags, username+"@"+ip.Addr().String())...) //nolint:gosec
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running ssh: %w", err)
 	}
 
 	return nil
+}
+
+func SwitchSerial(ctx context.Context, name string) error {
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	if err != nil {
+		return fmt.Errorf("creating kube client: %w", err)
+	}
+
+	sw := &wiringapi.Switch{}
+	if err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+		return fmt.Errorf("getting switch %q: %w", name, err)
+	}
+
+	serial := GetSerialInfo(sw)
+	if serial == "" {
+		return fmt.Errorf("switch %q has no serial connection information", name) //nolint:goerr113
+	}
+
+	parts := strings.SplitN(serial, ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid remote serial (expected host:port): %s", serial) //nolint:goerr113
+	}
+
+	cmd := exec.CommandContext(ctx, "ssh", append(SSHQuietFlags, "-p", parts[1], parts[0])...) //nolint:gosec
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running ssh for serial: %w", err)
+	}
+
+	return nil
+}
+
+func GetSerialInfo(sw *wiringapi.Switch) string {
+	if sw.GetAnnotations() != nil {
+		if v, exist := sw.GetAnnotations()[HHFabCfgSerial]; exist {
+			if strings.HasPrefix(v, HHFabCfgSerialSchemeSSH) {
+				return v[len(HHFabCfgSerialSchemeSSH):]
+			}
+
+			return ""
+		}
+
+		if v, exist := sw.GetAnnotations()[HHFctlCfgSerial]; exist {
+			if strings.HasPrefix(v, HHFabCfgSerialSchemeSSH) {
+				return v[len(HHFabCfgSerialSchemeSSH):]
+			}
+
+			return ""
+		}
+	}
+
+	return ""
 }
