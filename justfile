@@ -59,7 +59,7 @@ build: _license_headers _kube_gen _gotools _embed && version
 
 _hhfctl-build GOOS GOARCH: _license_headers _kube_gen _gotools _embed
   GOOS={{GOOS}} GOARCH={{GOARCH}} {{go_build}} -o ./bin/hhfctl-{{GOOS}}-{{GOARCH}}/hhfctl ./cmd/hhfctl
-  cd bin && tar -czvf hhfctl-{{GOOS}}-{{GOARCH}}.tar.gz hhfctl-{{GOOS}}-{{GOARCH}}/hhfctl
+  cd bin && tar -czvf hhfctl-{{GOOS}}-{{GOARCH}}-{{version}}.tar.gz hhfctl-{{GOOS}}-{{GOARCH}}/hhfctl
 
 # Build hhfctl and other user-facing binaries for all supported OS/Arch
 build-multi: (_hhfctl-build "linux" "amd64") (_hhfctl-build "linux" "arm64") (_hhfctl-build "darwin" "amd64") (_hhfctl-build "darwin" "arm64") && version
