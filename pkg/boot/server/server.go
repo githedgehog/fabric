@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/netip"
 	"os"
@@ -112,7 +113,12 @@ func Run(ctx context.Context) error {
 		sf:           &singleflight.Group{},
 	}
 
-	go svc.preCacheBackground(ctx)
+	go func() {
+		if err := svc.preCacheBackground(ctx); err != nil {
+			slog.Error("Failed to pre-cache", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	r := chi.NewRouter()
 

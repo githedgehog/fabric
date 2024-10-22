@@ -41,7 +41,7 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
-func (svc *service) preCacheBackground(ctx context.Context) {
+func (svc *service) preCacheBackground(ctx context.Context) error {
 	l := slog.With("background", "cacher")
 
 	l.Info("Starting pre-caching")
@@ -49,13 +49,11 @@ func (svc *service) preCacheBackground(ctx context.Context) {
 	for nosType, nosVersion := range svc.cfg.NOSVersions {
 		repo, ok := svc.cfg.NOSRepos[nosType]
 		if !ok {
-			// return fmt.Errorf("NOS repo not found: %s", nosType) //nolint:goerr113
-			l.Warn("NOS repo not found", "nosType", nosType)
+			return fmt.Errorf("NOS repo not found: %s", nosType) //nolint:goerr113
 		}
 
 		if _, err := svc.getCachedOrDownload(ctx, repo, nosVersion, true); err != nil {
-			// return fmt.Errorf("pre-caching NOS %s %s: %w", nosType, nosVersion, err)
-			l.Warn("Failed to pre-cache NOS", "nosType", nosType, "nosVersion", nosVersion, "error", err.Error())
+			return fmt.Errorf("pre-caching NOS %s %s: %w", nosType, nosVersion, err)
 		}
 	}
 
@@ -64,13 +62,11 @@ func (svc *service) preCacheBackground(ctx context.Context) {
 	for platform, version := range svc.cfg.ONIEPlatformVersions {
 		repo, ok := svc.cfg.ONIERepos[platform]
 		if !ok {
-			// return fmt.Errorf("ONIE repo not found: %s", platform) //nolint:goerr113
-			l.Warn("ONIE repo not found", "platform", platform)
+			return fmt.Errorf("ONIE repo not found: %s", platform) //nolint:goerr113
 		}
 
 		if _, err := svc.getCachedOrDownload(ctx, repo, version, true); err != nil {
-			// return fmt.Errorf("pre-caching ONIE %s %s: %w", platform, version, err)
-			l.Warn("Failed to pre-cache ONIE", "platform", platform, "version", version, "error", err.Error())
+			return fmt.Errorf("pre-caching ONIE %s %s: %w", platform, version, err)
 		}
 	}
 
@@ -89,7 +85,7 @@ retry:
 		for {
 			select {
 			case <-ctx.Done():
-				return
+				return fmt.Errorf("context done: %w", ctx.Err())
 			case event, ok := <-w.ResultChan():
 				if !ok || event.Object == nil {
 					l.Warn("Watch channel closed, retrying")
@@ -118,12 +114,14 @@ retry:
 					}
 
 					if _, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, true); err != nil {
-						l.Warn("Failed to pre-cache agent", "repo", agentRepo, "version", agentVersion, "error", err.Error())
+						return fmt.Errorf("pre-caching agent %s %s: %w", agentRepo, agentVersion, err)
 					}
 				}
 			}
 		}
 	}
+
+	return fmt.Errorf("context done (pre-cache finished): %w", ctx.Err())
 }
 
 func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
