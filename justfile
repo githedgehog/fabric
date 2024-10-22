@@ -16,7 +16,7 @@ _gotools: _touch_embed
 _lint: _license_headers _gotools
 
 # Generate, lint, test and build everything
-all: gen docs lint lint-gha test build kube-build && version
+all: gen lint lint-gha test build kube-build && version
 
 # Run linters against code (incl. license headers)
 lint: _lint _golangci_lint
