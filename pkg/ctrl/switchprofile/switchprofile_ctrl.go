@@ -89,9 +89,25 @@ var (
 )
 
 func (i *Initializer) Start(ctx context.Context) error {
-	log.FromContext(ctx).Info("SwitchProfile initial setup")
+	l := log.FromContext(ctx).WithValues("initializer", "switchprofile")
+	l.Info("SwitchProfile initial setup")
 
-	return i.Profiles.Enforce(ctx, i.Client, i.Cfg, true)
+	var err error
+	for attempt := 0; attempt < 60; attempt++ { // TODO think about more graceful way to handle this
+		err = i.Profiles.Enforce(ctx, i.Client, i.Cfg, true)
+		if err == nil {
+			break
+		}
+
+		l.Info("Failed to enforce switch profiles", "attempt", attempt, "error", err)
+		time.Sleep(5 * time.Second)
+	}
+
+	if err != nil {
+		return errors.Wrap(err, "error enforcing switch profiles")
+	}
+
+	return nil
 }
 
 func (i *Initializer) NeedLeaderElection() bool {
