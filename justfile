@@ -57,6 +57,12 @@ build: _license_headers _kube_gen _gotools _embed && version
   {{go_linux_build}} -o ./bin/fabric-dhcpd ./cmd/fabric-dhcpd
   # Build complete
 
+_hhfctl-build GOOS GOARCH: _license_headers _kube_gen _gotools _embed
+  GOOS={{GOOS}} GOARCH={{GOARCH}} {{go_build}} -o ./bin/hhfctl-{{GOOS}}-{{GOARCH}}/hhfctl ./cmd/hhfctl
+
+# Build hhfctl and other user-facing binaries for all supported OS/Arch
+build-multi: (_hhfctl-build "linux" "amd64") (_hhfctl-build "linux" "arm64") (_hhfctl-build "darwin" "amd64") (_hhfctl-build "darwin" "arm64") && version
+
 oci_repo := "127.0.0.1:30000"
 oci_prefix := "githedgehog/fabric"
 
@@ -85,6 +91,12 @@ kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-pus
 push: kube-push && version
   cd bin && oras push {{oci_repo}}/{{oci_prefix}}/agent:{{version}} agent
   cd bin && oras push {{oci_repo}}/{{oci_prefix}}/hhfctl:{{version}} hhfctl
+
+_hhfctl-push GOOS GOARCH: _oras (_hhfctl-build GOOS GOARCH)
+  cd bin/hhfctl-{{GOOS}}-{{GOARCH}} && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/hhfctl-{{GOOS}}-{{GOARCH}}:{{version}} hhfctl
+
+# Publish hhfctl and other user-facing binaries for all supported OS/Arch
+push-multi: (_hhfctl-push "linux" "amd64") (_hhfctl-push "linux" "arm64") (_hhfctl-push "darwin" "amd64") (_hhfctl-push "darwin" "arm64") && version
 
 # Install API on a kind cluster and wait for CRDs to be ready
 test-api: _helm-fabric-api

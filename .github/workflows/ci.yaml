@@ -177,7 +177,7 @@ jobs:
 
       - name: Build all
         run: |
-          just --timestamp build kube-build
+          just --timestamp build kube-build build-multi
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -222,7 +222,7 @@ jobs:
 
       - name: Publish Images, Helm charts and Bins on release
         run: |
-          just --timestamp oci_repo=ghcr.io push
+          just --timestamp oci_repo=ghcr.io push push-multi
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
