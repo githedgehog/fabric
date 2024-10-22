@@ -25,7 +25,6 @@ resources:
   - bases/vpc.githedgehog.com_vpcs.yaml
   - bases/vpc.githedgehog.com_vpcattachments.yaml
   - bases/vpc.githedgehog.com_vpcpeerings.yaml
-  - bases/agent.githedgehog.com_controlagents.yaml
   - bases/vpc.githedgehog.com_ipv4namespaces.yaml
   - bases/wiring.githedgehog.com_vlannamespaces.yaml
   - bases/wiring.githedgehog.com_switchgroups.yaml
@@ -49,7 +48,6 @@ patches:
   - path: patches/webhook_in_vpc_vpcs.yaml
   - path: patches/webhook_in_vpc_vpcattachments.yaml
   - path: patches/webhook_in_vpc_vpcpeerings.yaml
-  #- path: patches/webhook_in_agent_controlagents.yaml
   - path: patches/webhook_in_vpc_ipv4namespaces.yaml
   - path: patches/webhook_in_wiring_vlannamespaces.yaml
   - path: patches/webhook_in_vpc_externals.yaml
@@ -72,7 +70,6 @@ patches:
   - path: patches/cainjection_in_vpc_vpcs.yaml
   - path: patches/cainjection_in_vpc_vpcattachments.yaml
   - path: patches/cainjection_in_vpc_vpcpeerings.yaml
-  #- path: patches/cainjection_in_agent_controlagents.yaml
   - path: patches/cainjection_in_vpc_ipv4namespaces.yaml
   - path: patches/cainjection_in_wiring_vlannamespaces.yaml
   - path: patches/cainjection_in_vpc_externals.yaml

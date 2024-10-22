@@ -120,9 +120,7 @@ var _ Func[FabricIn, *FabricOut] = Fabric
 func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, error) {
 	out := &FabricOut{}
 
-	totalControls := 0
 	totalSwitches := 0
-	readyControls := 0
 	readySwitches := 0
 
 	swList := &wiringapi.SwitchList{}
@@ -175,32 +173,11 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 		return strings.Compare(a.Name, b.Name)
 	})
 
-	controls := &agentapi.ControlAgentList{}
-	if err := kube.List(ctx, controls); err != nil {
-		return nil, errors.Wrap(err, "cannot list control nodes")
-	}
-
-	for _, agent := range controls.Items {
-		srvName := agent.Name
-
-		totalControls++
-
-		skipActual := false
-		out.ControlNodes = append(out.ControlNodes, &FabricOutControl{
-			Name:  srvName,
-			State: controlStateSummary(agent),
-		})
-
-		if !skipActual && agent.Status.LastAppliedGen == agent.Generation {
-			readyControls++
-		}
-	}
-
 	slices.SortFunc(out.ControlNodes, func(a, b *FabricOutControl) int {
 		return strings.Compare(a.Name, b.Name)
 	})
 
-	out.Summary = fmt.Sprintf("Ready: %d/%d control nodes, %d/%d switches", readyControls, totalControls, readySwitches, totalSwitches)
+	out.Summary = fmt.Sprintf("Ready: %d/%d switches", readySwitches, totalSwitches)
 
 	return out, nil
 }

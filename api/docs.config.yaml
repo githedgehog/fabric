@@ -16,7 +16,6 @@ processor:
   # RE2 regular expressions describing types that should be excluded from the generated documentation.
   ignoreTypes:
     - "List$"
-    - "ControlAgent"
     - "AgentSpec"
     - "UserCreds"
     - "AgentVersion"

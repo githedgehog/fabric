@@ -32,7 +32,6 @@ import (
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/agent"
-	"go.githedgehog.com/fabric/pkg/agent/control"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
 	"go.githedgehog.com/fabric/pkg/version"
@@ -314,51 +313,6 @@ func main() {
 						User:    cCtx.String("user"),
 						Control: cCtx.Bool("control"),
 					}), "failed to install systemd unit")
-				},
-			},
-			{
-				Name:  "control",
-				Usage: "control agent",
-				Flags: []cli.Flag{
-					verboseFlag,
-					basedirFlag,
-				},
-				Subcommands: []*cli.Command{
-					{
-						Name:  "start",
-						Usage: "start control agent to watch for config changes and apply them",
-						Flags: []cli.Flag{
-							verboseFlag,
-							basedirFlag,
-						},
-						Before: func(_ *cli.Context) error {
-							return setupLogger(verbose, true, true)
-						},
-						Action: func(_ *cli.Context) error {
-							return errors.Wrapf((&control.Service{}).Run(ctx), "failed to run control agent")
-						},
-					},
-					{
-						Name:  "apply",
-						Usage: "apply control agent config once",
-						Flags: []cli.Flag{
-							verboseFlag,
-							basedirFlag,
-							&cli.BoolFlag{
-								Name:  "dry-run",
-								Value: true,
-							},
-						},
-						Before: func(_ *cli.Context) error {
-							return setupLogger(verbose, false, true)
-						},
-						Action: func(cCtx *cli.Context) error {
-							return errors.Wrapf((&control.Service{
-								ApplyOnce: true,
-								DryRun:    cCtx.Bool("dry-run"),
-							}).Run(ctx), "failed to apply control agent config")
-						},
-					},
 				},
 			},
 		},

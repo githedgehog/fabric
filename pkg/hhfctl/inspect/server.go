@@ -22,7 +22,6 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
-	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
@@ -163,26 +162,4 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 	}
 
 	return out, nil
-}
-
-func controlStateSummary(agent agentapi.ControlAgent) *AgentState {
-	res := &AgentState{
-		Summary: "Unknown",
-	}
-
-	if agent.Status.LastAppliedGen == agent.Generation {
-		res.Summary = "Ready"
-	} else {
-		res.Summary = "Pending"
-	}
-
-	res.DesiredGen = agent.Generation
-
-	res.LastHeartbeat = agent.Status.LastHeartbeat
-	res.LastAttemptTime = agent.Status.LastAttemptTime
-	res.LastAttemptGen = agent.Status.LastAttemptGen
-	res.LastAppliedTime = agent.Status.LastAppliedTime
-	res.LastAppliedGen = agent.Status.LastAppliedGen
-
-	return res
 }
