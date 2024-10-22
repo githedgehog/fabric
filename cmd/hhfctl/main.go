@@ -31,11 +31,10 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
+	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
-
-var version = "(devel)"
 
 func setupLogger(verbose bool) error {
 	logLevel := slog.LevelInfo
@@ -140,7 +139,7 @@ func main() {
 	app := &cli.App{
 		Name:                   appName,
 		Usage:                  usage,
-		Version:                version,
+		Version:                version.Version,
 		Suggest:                true,
 		UseShortOptionHandling: true,
 		EnableBashCompletion:   true,
