@@ -43,8 +43,10 @@ _kube_gen: _controller_gen
   # Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
   {{controller_gen}} rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-# Generate code/manifests, things to embed, etc
-gen: _kube_gen _embed
+# Generate docs, code/manifests, things to embed, etc
+gen: _kube_gen _embed _crd_ref_docs
+  {{crd_ref_docs}} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
+  go run cmd/fabric-gen/main.go profiles-ref
 
 # Build all artifacts
 build: _license_headers _kube_gen _gotools _embed && version
@@ -96,8 +98,3 @@ test-api: _helm-fabric-api
     kubectl wait --for condition=established --timeout=60s crd/dhcpsubnets.dhcp.githedgehog.com
     kubectl get crd | grep hedgehog
     kind delete cluster --name kind
-
-# Generate docs
-docs: gen _crd_ref_docs
-  {{crd_ref_docs}} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
-  go run cmd/fabric-gen/main.go profiles-ref
