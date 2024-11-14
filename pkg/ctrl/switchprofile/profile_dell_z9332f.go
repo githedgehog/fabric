@@ -22,7 +22,7 @@ import (
 
 var DellZ9332F = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "dell-z9332F",
+		Name: "dell-z9332f",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName: "Dell Z9332F",
