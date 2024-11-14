@@ -235,9 +235,9 @@ Label column is a port label on a physical switch.
 | E1/56 | 56 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
 
 
-## Dell Z9332F
+## Dell Z9332F-ON
 
-Profile Name (to use in switch.spec.profile): **dell-z9332f**
+Profile Name (to use in switch.spec.profile): **dell-z9332f-on**
 
 **Supported features:**
 
