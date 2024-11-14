@@ -20,12 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var DellZ9332F = wiringapi.SwitchProfile{
+var DellZ9332FON = wiringapi.SwitchProfile{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "dell-z9332f",
+		Name: "dell-z9332f-on",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Dell Z9332F",
+		DisplayName: "Dell Z9332F-ON",
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         false,
