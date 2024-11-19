@@ -31,6 +31,7 @@ import (
 var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	DellS5232FON,
 	DellS5248FON,
+	DellZ9332FON,
 	CelesticaDS3000,
 	CelesticaDS4000,
 	EdgecoreDCS203,
