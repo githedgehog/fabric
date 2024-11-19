@@ -68,8 +68,8 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 			"E1/30": {NOSName: "1/30", BaseNOSName: "Ethernet232", Label: "30", Profile: "QSFPDD-400G"},
 			"E1/31": {NOSName: "1/31", BaseNOSName: "Ethernet240", Label: "31", Profile: "QSFPDD-400G"},
 			"E1/32": {NOSName: "1/32", BaseNOSName: "Ethernet248", Label: "32", Profile: "QSFPDD-400G"}, // 32x QSFPDD-400G
-			"E1/33": {NOSName: "Ethernet256", Label: "33", Profile: "SFP28-10G"},                        // 1x SFP28-10G
-			"E1/34": {NOSName: "Ethernet257", Label: "34", Profile: "SFP28-10G"},                        // 1x SFP28-10G
+			"E1/33": {NOSName: "Ethernet256", Label: "M1", Profile: "SFP28-10G"},                        // 1x SFP28-10G
+			"E1/34": {NOSName: "Ethernet257", Label: "M2", Profile: "SFP28-10G"},                        // 1x SFP28-10G
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"SFP28-10G": {
