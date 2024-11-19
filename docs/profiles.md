@@ -284,8 +284,8 @@ Label column is a port label on a physical switch.
 | E1/30 | 30 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 4x100G, 4x10G, 4x25G, 8x10G, 8x25G, 8x50G |
 | E1/31 | 31 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 4x100G, 4x10G, 4x25G, 8x10G, 8x25G, 8x50G |
 | E1/32 | 32 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 4x100G, 4x10G, 4x25G, 8x10G, 8x25G, 8x50G |
-| E1/33 | 33 | Direct |  | 10G | 1G, 10G |
-| E1/34 | 34 | Direct |  | 10G | 1G, 10G |
+| E1/33 | M1 | Direct |  | 10G | 1G, 10G |
+| E1/34 | M2 | Direct |  | 10G | 1G, 10G |
 
 
 ## Edgecore DCS203
