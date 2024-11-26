@@ -47,6 +47,8 @@ var SwitchRoles = []SwitchRole{
 	SwitchRoleSpine,
 	SwitchRoleServerLeaf,
 	SwitchRoleBorderLeaf,
+	SwitchRoleMixedLeaf,
+	SwitchRoleVirtualEdge,
 }
 
 func (r SwitchRole) IsSpine() bool {
@@ -54,7 +56,7 @@ func (r SwitchRole) IsSpine() bool {
 }
 
 func (r SwitchRole) IsLeaf() bool {
-	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf
+	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf || r == SwitchRoleMixedLeaf
 }
 
 func (r SwitchRole) IsVirtualEdge() bool {
