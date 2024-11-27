@@ -390,8 +390,10 @@ func main() {
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name:  "get",
-						Usage: "Get connections",
+						Name:        "get",
+						Usage:       "Get connections",
+						ArgsUsage:   " <type>",
+						Description: "Available types: management, fabric, and vpc-loopback",
 						Flags: []cli.Flag{
 							verboseFlag,
 						},
