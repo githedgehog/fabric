@@ -58,28 +58,29 @@ type FabricOutSwitch struct {
 func (out *FabricOut) MarshalText() (string, error) {
 	str := &strings.Builder{}
 
-	str.WriteString("Control Nodes:\n")
+	// TODO return back after there is an agent running on the control node again
+	// str.WriteString("Control Nodes:\n")
 
-	ctrlData := [][]string{}
-	for _, ctrl := range out.ControlNodes {
-		applied := ""
+	// ctrlData := [][]string{}
+	// for _, ctrl := range out.ControlNodes {
+	// 	applied := ""
 
-		if !ctrl.State.LastAppliedTime.IsZero() {
-			applied = humanize.Time(ctrl.State.LastAppliedTime.Time)
-		}
+	// 	if !ctrl.State.LastAppliedTime.IsZero() {
+	// 		applied = humanize.Time(ctrl.State.LastAppliedTime.Time)
+	// 	}
 
-		ctrlData = append(ctrlData, []string{
-			ctrl.Name,
-			ctrl.State.Summary,
-			fmt.Sprintf("%d/%d", ctrl.State.LastAppliedGen, ctrl.State.DesiredGen),
-			applied,
-			humanize.Time(ctrl.State.LastHeartbeat.Time),
-		})
-	}
-	str.WriteString(RenderTable(
-		[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},
-		ctrlData,
-	))
+	// 	ctrlData = append(ctrlData, []string{
+	// 		ctrl.Name,
+	// 		ctrl.State.Summary,
+	// 		fmt.Sprintf("%d/%d", ctrl.State.LastAppliedGen, ctrl.State.DesiredGen),
+	// 		applied,
+	// 		humanize.Time(ctrl.State.LastHeartbeat.Time),
+	// 	})
+	// }
+	// str.WriteString(RenderTable(
+	// 	[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},
+	// 	ctrlData,
+	// ))
 
 	str.WriteString("Switches:\n")
 
