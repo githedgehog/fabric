@@ -80,16 +80,9 @@ jobs:
       #     path: bin
       #     key: bin-${{ hashFiles('hack/tools.mk') }}
 
-      - name: GHA Lint
+      - name: Lint and generate code
         run: |
-          just --timestamp lint-gha
-
-      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
-      - name: Just all autogeneration and fail on dirty
-        run: |
-          just --timestamp gen
-          git status --short
-          git diff --quiet
+          just --timestamp lint-gha gen _lint
 
       - name: Some Go lint
         run: |
@@ -104,6 +97,12 @@ jobs:
       - name: Run tests
         run: |
           just --timestamp test
+
+      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
+      - name: Fail on dirty
+        run: |
+          git status --short
+          git diff --quiet
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
