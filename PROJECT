@@ -203,16 +203,4 @@ resources:
   kind: Catalog
   path: go.githedgehog.com/fabric/api/agent/v1beta1
   version: v1beta1
-- api:
-    crdVersion: v1
-    namespaced: true
-  domain: githedgehog.com
-  group: wiring
-  kind: ControlNode
-  path: go.githedgehog.com/fabric/api/wiring/v1beta1
-  version: v1beta1
-  webhooks:
-    defaulting: true
-    validation: true
-    webhookVersion: v1
 version: "3"
