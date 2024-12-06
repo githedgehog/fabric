@@ -35,14 +35,8 @@ type FabricIn struct {
 }
 
 type FabricOut struct {
-	Summary      string              `json:"summary,omitempty"`
-	ControlNodes []*FabricOutControl `json:"controlNodes,omitempty"`
-	Switches     []*FabricOutSwitch  `json:"switches,omitempty"`
-}
-
-type FabricOutControl struct {
-	Name  string      `json:"name,omitempty"`
-	State *AgentState `json:"state,omitempty"`
+	Summary  string             `json:"summary,omitempty"`
+	Switches []*FabricOutSwitch `json:"switches,omitempty"`
 }
 
 type FabricOutSwitch struct {
@@ -57,30 +51,6 @@ type FabricOutSwitch struct {
 
 func (out *FabricOut) MarshalText() (string, error) {
 	str := &strings.Builder{}
-
-	// TODO return back after there is an agent running on the control node again
-	// str.WriteString("Control Nodes:\n")
-
-	// ctrlData := [][]string{}
-	// for _, ctrl := range out.ControlNodes {
-	// 	applied := ""
-
-	// 	if !ctrl.State.LastAppliedTime.IsZero() {
-	// 		applied = humanize.Time(ctrl.State.LastAppliedTime.Time)
-	// 	}
-
-	// 	ctrlData = append(ctrlData, []string{
-	// 		ctrl.Name,
-	// 		ctrl.State.Summary,
-	// 		fmt.Sprintf("%d/%d", ctrl.State.LastAppliedGen, ctrl.State.DesiredGen),
-	// 		applied,
-	// 		humanize.Time(ctrl.State.LastHeartbeat.Time),
-	// 	})
-	// }
-	// str.WriteString(RenderTable(
-	// 	[]string{"Name", "State", "Gen", "Applied", "Heartbeat"},
-	// 	ctrlData,
-	// ))
 
 	str.WriteString("Switches:\n")
 
@@ -171,10 +141,6 @@ func Fabric(ctx context.Context, kube client.Reader, _ FabricIn) (*FabricOut, er
 	}
 
 	slices.SortFunc(out.Switches, func(a, b *FabricOutSwitch) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-
-	slices.SortFunc(out.ControlNodes, func(a, b *FabricOutControl) int {
 		return strings.Compare(a.Name, b.Name)
 	})
 
