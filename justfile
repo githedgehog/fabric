@@ -111,3 +111,7 @@ test-api: _helm-fabric-api
     kubectl wait --for condition=established --timeout=60s crd/dhcpsubnets.dhcp.githedgehog.com
     kubectl get crd | grep hedgehog
     kind delete cluster --name kind
+
+# Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
+patch: && version
+  kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"fabric":{"api":"{{version}}","agent":"{{version}}","boot":"{{version}}","controller":"{{version}}","ctl":"{{version}}","dhcpd":"{{version}}","proxyChart":"{{version}}"}}}}}'
