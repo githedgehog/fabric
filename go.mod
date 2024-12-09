@@ -30,20 +30,20 @@ require (
 	github.com/samber/slog-multi v1.2.3
 	github.com/samber/slog-webhook/v2 v2.8.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.9.0
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/stretchr/testify v1.10.0
+	github.com/urfave/cli/v2 v2.27.5
 	github.com/vishvananda/netlink v1.3.0
 	go.githedgehog.com/fabric-bcm-ygot v0.2.0-4.4.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/sync v0.8.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	k8s.io/api v0.31.2
-	k8s.io/apimachinery v0.31.2
-	k8s.io/client-go v0.31.2
+	k8s.io/api v0.31.3
+	k8s.io/apimachinery v0.31.3
+	k8s.io/client-go v0.31.3
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	oras.land/oras-go/v2 v2.5.0
-	sigs.k8s.io/controller-runtime v0.19.1
+	sigs.k8s.io/controller-runtime v0.19.3
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -85,7 +85,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chappjc/logrus-prefix v0.0.0-20180227015900-3a1d64819adb // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/libkv v0.2.2-0.20180912205406-458977154600 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/zealic/xignore v0.3.3 // indirect
 	go.etcd.io/bbolt v1.3.9 // indirect
 	go.opencensus.io v0.24.0 // indirect
