@@ -523,6 +523,47 @@ func main() {
 				},
 			},
 			{
+				Name:  "wiring",
+				Usage: "general wiring diagram helpers",
+				Flags: []cli.Flag{
+					verboseFlag,
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "export",
+						Usage: "export wiring diagram (incl. switches, connections, vpcs, externals, etc.)",
+						Flags: []cli.Flag{
+							verboseFlag,
+							&cli.BoolFlag{
+								Name:  "vpcs",
+								Usage: "include VPCs",
+								Value: true,
+							},
+							&cli.BoolFlag{
+								Name:  "externals",
+								Usage: "include Externals",
+								Value: true,
+							},
+							&cli.BoolFlag{
+								Name:  "switch-profiles",
+								Usage: "include SwitchProfiles (may cause issues on importing)",
+								Value: false,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(hhfctl.WiringExport(ctx, hhfctl.WiringExportOptions{
+								VPCs:           cCtx.Bool("vpcs"),
+								Externals:      cCtx.Bool("externals"),
+								SwitchProfiles: cCtx.Bool("switch-profiles"),
+							}), "failed to export wiring")
+						},
+					},
+				},
+			},
+			{
 				Name:    "inspect",
 				Aliases: []string{"i"},
 				Usage:   "Inspect Fabric API Objects and Primitives",
