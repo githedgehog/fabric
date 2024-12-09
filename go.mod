@@ -35,7 +35,7 @@ require (
 	github.com/vishvananda/netlink v1.3.0
 	go.githedgehog.com/fabric-bcm-ygot v0.2.0-4.4.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.10.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.31.3
 	k8s.io/apimachinery v0.31.3
