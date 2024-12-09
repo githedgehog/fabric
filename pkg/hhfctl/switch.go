@@ -32,6 +32,7 @@ import (
 const (
 	HHFabCfgPrefix          = ".hhfab.githedgehog.com"
 	HHFabCfgSerial          = "serial" + HHFabCfgPrefix
+	HHFabCfgPower           = "power" + HHFabCfgPrefix
 	HHFctlCfgPrefix         = ".fabric.githedgehog.com"
 	HHFctlCfgSerial         = "serial" + HHFctlCfgPrefix
 	HHFabCfgSerialSchemeSSH = "ssh://"
@@ -235,4 +236,18 @@ func GetSerialInfo(sw *wiringapi.Switch) string {
 	}
 
 	return ""
+}
+
+func GetPowerInfo(sw *wiringapi.Switch) map[string]string {
+	powerInfo := make(map[string]string)
+	if annotations := sw.GetAnnotations(); annotations != nil {
+		for key, value := range annotations {
+			if strings.HasPrefix(key, HHFabCfgPower+"/") {
+				psuName := strings.TrimPrefix(key, HHFabCfgPower+"/")
+				powerInfo[psuName] = value
+			}
+		}
+	}
+
+	return powerInfo
 }
