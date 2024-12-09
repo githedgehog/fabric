@@ -10,7 +10,6 @@ spec:
   names:
     categories:
     - hedgehog
-    - fabric
     kind: DHCPSubnet
     listKind: DHCPSubnetList
     plural: dhcpsubnets

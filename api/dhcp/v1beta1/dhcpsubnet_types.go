@@ -72,7 +72,7 @@ type DHCPAllocated struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric,shortName=dhcp
+// +kubebuilder:resource:categories=hedgehog,shortName=dhcp
 // +kubebuilder:printcolumn:name="Subnet",type=string,JSONPath=`.spec.subnet`,priority=0
 // +kubebuilder:printcolumn:name="CIDRBlock",type=string,JSONPath=`.spec.cidrBlock`,priority=0
 // +kubebuilder:printcolumn:name="Gateway",type=string,JSONPath=`.spec.gateway`,priority=0

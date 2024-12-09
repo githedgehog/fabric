@@ -10,7 +10,6 @@ spec:
   names:
     categories:
     - hedgehog
-    - fabric
     kind: Agent
     listKind: AgentList
     plural: agents
