@@ -8,6 +8,8 @@ metadata:
 spec:
   group: agent.githedgehog.com
   names:
+    categories:
+    - hedgehog
     kind: Catalog
     listKind: CatalogList
     plural: catalogs

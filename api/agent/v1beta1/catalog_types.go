@@ -53,9 +53,9 @@ type CatalogSpec struct {
 // CatalogStatus defines the observed state of Catalog
 type CatalogStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog
 // Catalog is the Schema for the catalogs API
 type Catalog struct {
 	metav1.TypeMeta   `json:",inline"`

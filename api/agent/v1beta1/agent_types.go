@@ -505,7 +505,7 @@ type SwitchStateCRMStats struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric,shortName=ag
+// +kubebuilder:resource:categories=hedgehog,shortName=ag
 // +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
 // +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.state.nos.hwskuVersion`,priority=1

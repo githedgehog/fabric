@@ -10,7 +10,6 @@ spec:
   names:
     categories:
     - hedgehog
-    - wiring
     - fabric
     kind: IPv4Namespace
     listKind: IPv4NamespaceList
