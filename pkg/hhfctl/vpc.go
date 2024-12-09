@@ -332,3 +332,58 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 
 	return nil
 }
+
+func VPCWipe(ctx context.Context) error {
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	// delete all external peerings
+	extPeers := &vpcapi.ExternalPeeringList{}
+	if err := kube.List(ctx, extPeers); err != nil {
+		return errors.Wrap(err, "cannot list external peerings")
+	}
+	for _, extPeer := range extPeers.Items {
+		if err := kube.Delete(ctx, &extPeer); err != nil {
+			return errors.Wrapf(err, "cannot delete external peering %s", extPeer.Name)
+		}
+	}
+
+	// delete all regular peerings
+	peers := &vpcapi.VPCPeeringList{}
+	if err := kube.List(ctx, peers); err != nil {
+		return errors.Wrap(err, "cannot list peerings")
+	}
+	for _, peer := range peers.Items {
+		if err := kube.Delete(ctx, &peer); err != nil {
+			return errors.Wrapf(err, "cannot delete peering %s", peer.Name)
+		}
+	}
+
+	// delete all attachments
+	attachments := &vpcapi.VPCAttachmentList{}
+	if err := kube.List(ctx, attachments); err != nil {
+		return errors.Wrap(err, "cannot list attachments")
+	}
+	for _, attach := range attachments.Items {
+		if err := kube.Delete(ctx, &attach); err != nil {
+			return errors.Wrapf(err, "cannot delete attachment %s", attach.Name)
+		}
+	}
+
+	// delete all vpcs
+	vpcs := &vpcapi.VPCList{}
+	if err := kube.List(ctx, vpcs); err != nil {
+		return errors.Wrap(err, "cannot list vpcs")
+	}
+	for _, vpc := range vpcs.Items {
+		if err := kube.Delete(ctx, &vpc); err != nil {
+			return errors.Wrapf(err, "cannot delete vpc %s", vpc.Name)
+		}
+	}
+
+	slog.Info("All VPCs, attachments and peerings wiped")
+
+	return nil
+}
