@@ -267,6 +267,23 @@ func main() {
 							}), "failed to peer vpcs")
 						},
 					},
+					{
+						Name:  "wipe",
+						Usage: "Delete all vpcs, their peerings (incl. external) and attachments",
+						Flags: []cli.Flag{
+							yesFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							if err := yesCheck(cCtx); err != nil {
+								return wrapErrWithPressToContinue(err)
+							}
+
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.VPCWipe(ctx), "failed to wipe vpcs"))
+						},
+					},
 				},
 			},
 			{
