@@ -90,8 +90,8 @@ kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-pus
 
 # Push all K8s artifacts (images and charts) and binaries
 push: kube-push && version
-  cd bin && oras push {{oci_repo}}/{{oci_prefix}}/agent:{{version}} agent
-  cd bin && oras push {{oci_repo}}/{{oci_prefix}}/hhfctl:{{version}} hhfctl
+  cd bin && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/agent:{{version}} agent
+  cd bin && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/hhfctl:{{version}} hhfctl
 
 _hhfctl-push GOOS GOARCH: _oras (_hhfctl-build GOOS GOARCH)
   cd bin/hhfctl-{{GOOS}}-{{GOARCH}} && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/hhfctl-{{GOOS}}-{{GOARCH}}:{{version}} hhfctl
