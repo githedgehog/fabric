@@ -32,6 +32,7 @@ import (
 const (
 	HHFabCfgPrefix          = ".hhfab.githedgehog.com"
 	HHFabCfgSerial          = "serial" + HHFabCfgPrefix
+	HHFabCfgPower           = "power" + HHFabCfgPrefix
 	HHFctlCfgPrefix         = ".fabric.githedgehog.com"
 	HHFctlCfgSerial         = "serial" + HHFctlCfgPrefix
 	HHFabCfgSerialSchemeSSH = "ssh://"
@@ -235,4 +236,32 @@ func GetSerialInfo(sw *wiringapi.Switch) string {
 	}
 
 	return ""
+}
+
+func GetPowerInfo(ctx context.Context, swName string) map[string]string {
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	if err != nil {
+		fmt.Println("\tError creating kube client %w", err)
+
+		return nil
+	}
+
+	sw := &wiringapi.Switch{}
+	if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+		fmt.Printf("\tError getting switch %s: %v\n", swName, err)
+
+		return nil
+	}
+
+	powerInfo := make(map[string]string)
+	if annotations := sw.GetAnnotations(); annotations != nil {
+		for key, value := range annotations {
+			if strings.HasPrefix(key, HHFabCfgPower+"/") {
+				psuName := strings.TrimPrefix(key, HHFabCfgPower+"/")
+				powerInfo[psuName] = value
+			}
+		}
+	}
+
+	return powerInfo
 }
