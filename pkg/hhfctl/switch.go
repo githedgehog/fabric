@@ -238,21 +238,7 @@ func GetSerialInfo(sw *wiringapi.Switch) string {
 	return ""
 }
 
-func GetPowerInfo(ctx context.Context, swName string) map[string]string {
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
-	if err != nil {
-		fmt.Println("\tError creating kube client %w", err)
-
-		return nil
-	}
-
-	sw := &wiringapi.Switch{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, sw); err != nil {
-		fmt.Printf("\tError getting switch %s: %v\n", swName, err)
-
-		return nil
-	}
-
+func GetPowerInfo(sw *wiringapi.Switch) map[string]string {
 	powerInfo := make(map[string]string)
 	if annotations := sw.GetAnnotations(); annotations != nil {
 		for key, value := range annotations {
