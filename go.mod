@@ -10,7 +10,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.20.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fatih/color v1.17.0
+	github.com/fatih/color v1.18.0
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-logr/logr v1.4.2
 	github.com/google/uuid v1.6.0
