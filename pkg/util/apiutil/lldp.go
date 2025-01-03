@@ -14,9 +14,9 @@ import (
 )
 
 type LLDPNeighbor struct {
-	Name        string
-	Description string
-	Port        string
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Port        string `json:"port,omitempty"`
 }
 
 type LLDPNeighborType string
@@ -28,11 +28,11 @@ const (
 )
 
 type LLDPNeighborStatus struct {
-	ConnectionName string
-	ConnectionType string
-	Type           LLDPNeighborType
-	Expected       LLDPNeighbor
-	Actual         LLDPNeighbor
+	ConnectionName string           `json:"connectionName,omitempty"`
+	ConnectionType string           `json:"connectionType,omitempty"`
+	Type           LLDPNeighborType `json:"type,omitempty"`
+	Expected       LLDPNeighbor     `json:"expected,omitempty"`
+	Actual         LLDPNeighbor     `json:"actual,omitempty"`
 }
 
 func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {

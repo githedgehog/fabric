@@ -28,7 +28,9 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	coreapi "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
 	"sigs.k8s.io/yaml"
 )
 
@@ -66,7 +68,15 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 		return errors.Errorf("invalid output type: %s", outType)
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder, vpcapi.SchemeBuilder, agentapi.SchemeBuilder, dhcpapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "",
+		wiringapi.SchemeBuilder,
+		vpcapi.SchemeBuilder,
+		agentapi.SchemeBuilder,
+		dhcpapi.SchemeBuilder,
+		&scheme.Builder{
+			GroupVersion:  coreapi.SchemeGroupVersion,
+			SchemeBuilder: coreapi.SchemeBuilder,
+		})
 	if err != nil {
 		return errors.Wrapf(err, "cannot create kube client")
 	}

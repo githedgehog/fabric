@@ -740,6 +740,35 @@ func main() {
 						},
 					},
 					{
+						Name:  "bgp",
+						Usage: "Inspect BGP neighbors",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringSliceFlag{
+								Name:    "switch-name",
+								Aliases: []string{"switch", "s"},
+								Usage:   "Switch names to inspect BGP neighbors for (if not specified, will inspect all switches)",
+							},
+							&cli.BoolFlag{
+								Name:  "strict",
+								Usage: "strict BGP check (will fail if any neighbor is missing, not expected or not established)",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.BGP, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.BGPIn{
+								Switches: cCtx.StringSlice("switch-name"),
+								Strict:   cCtx.Bool("strict"),
+							}, os.Stdout), "failed to inspect BGP")
+						},
+					},
+					{
 						Name:  "lldp",
 						Usage: "Inspect LLDP neighbors",
 						Flags: []cli.Flag{
