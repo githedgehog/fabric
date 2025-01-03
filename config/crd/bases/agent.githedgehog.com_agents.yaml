@@ -250,6 +250,8 @@ spec:
                   defaultMaxPathsEBGP:
                     format: int32
                     type: integer
+                  deploymentID:
+                    type: string
                   eslagESIPrefix:
                     type: string
                   eslagMACBase:

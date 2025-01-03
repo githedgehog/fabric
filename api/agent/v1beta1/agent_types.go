@@ -62,6 +62,7 @@ type AgentSpec struct {
 }
 
 type AgentSpecConfig struct {
+	DeploymentID          string                        `json:"deploymentID,omitempty"`
 	ControlVIP            string                        `json:"controlVIP,omitempty"`
 	VPCPeeringDisabled    bool                          `json:"vpcPeeringDisabled,omitempty"`
 	CollapsedCore         *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`

@@ -602,11 +602,13 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 
 		switches[connSpec.External.Link.Switch.DeviceName()] = struct{}{}
 		ports[connSpec.External.Link.Switch.PortName()] = struct{}{}
+		links[connSpec.External.Link.Switch.PortName()] = "/"
 	} else if connSpec.StaticExternal != nil {
 		nonNills++
 
 		switches[connSpec.StaticExternal.Link.Switch.DeviceName()] = struct{}{}
 		ports[connSpec.StaticExternal.Link.Switch.PortName()] = struct{}{}
+		links[connSpec.StaticExternal.Link.Switch.PortName()] = "/"
 	}
 
 	if nonNills != 1 {

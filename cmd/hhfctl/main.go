@@ -740,6 +740,53 @@ func main() {
 						},
 					},
 					{
+						Name:  "lldp",
+						Usage: "Inspect LLDP neighbors",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringSliceFlag{
+								Name:    "switch-name",
+								Aliases: []string{"switch", "s"},
+								Usage:   "Switch names to inspect LLDP neighbors for (if not specified, will inspect all switches)",
+							},
+							&cli.BoolFlag{
+								Name:  "strict",
+								Usage: "strict LLDP check (will fail if any neighbor is missing or not as expected ignoring external ones)",
+							},
+							&cli.BoolFlag{
+								Name:  "fabric",
+								Usage: "include fabric neighbors (fabric, mclag-domain and vpcloopback connections)",
+								Value: true,
+							},
+							&cli.BoolFlag{
+								Name:  "external",
+								Usage: "include external neighbors (external and staticexternal connections)",
+								Value: true,
+							},
+							&cli.BoolFlag{
+								Name:  "server",
+								Usage: "include server neighbors (unbundled, bundled, eslag and mclag connections)",
+								Value: true,
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.LLDP, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.LLDPIn{
+								Switches: cCtx.StringSlice("switch-name"),
+								Strict:   cCtx.Bool("strict"),
+								Fabric:   cCtx.Bool("fabric"),
+								External: cCtx.Bool("external"),
+								Server:   cCtx.Bool("server"),
+							}, os.Stdout), "failed to inspect LLDP")
+						},
+					},
+					{
 						Name:  "ip",
 						Usage: "Inspect IP Address (incl. IPv4Namespace, VPCSubnet and DHCPLease or External/StaticExternal usage)",
 						Flags: []cli.Flag{

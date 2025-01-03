@@ -103,3 +103,13 @@ func CleanupFabricLabels(labels map[string]string) {
 		}
 	}
 }
+
+const SwitchLLDPDescriptionPrefix = "Hedgehog Fabric"
+
+func SwitchLLDPDescription(deploymentID string) string {
+	if deploymentID == "" {
+		return SwitchLLDPDescriptionPrefix
+	}
+
+	return SwitchLLDPDescriptionPrefix + " " + deploymentID
+}
