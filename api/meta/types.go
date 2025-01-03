@@ -19,6 +19,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -60,6 +61,7 @@ type UserCreds struct {
 }
 
 type FabricConfig struct {
+	DeploymentID             string      `json:"deploymentID,omitempty"`
 	ControlVIP               string      `json:"controlVIP,omitempty"`
 	APIServer                string      `json:"apiServer,omitempty"`
 	AgentRepo                string      `json:"agentRepo,omitempty"`
@@ -115,6 +117,8 @@ func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
 	return cfg.reservedSubnets
 }
 
+var idChecker = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]?$`)
+
 func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	path := filepath.Join(basedir, "config.yaml")
 	data, err := os.ReadFile(path)
@@ -132,6 +136,18 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 }
 
 func (cfg *FabricConfig) Init() (*FabricConfig, error) {
+	if cfg.DeploymentID != "" {
+		if len(cfg.DeploymentID) > 16 {
+			return nil, errors.Errorf("config: deploymentID must be <= 16 characters")
+		}
+		if len(cfg.DeploymentID) < 3 {
+			return nil, errors.Errorf("config: deploymentID must be >= 3 characters")
+		}
+		if !idChecker.MatchString(cfg.DeploymentID) {
+			return nil, errors.Errorf("config: deploymentID must match %s", idChecker.String())
+		}
+	}
+
 	if cfg.ControlVIP == "" {
 		return nil, errors.Errorf("config: controlVIP is required")
 	}

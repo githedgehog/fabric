@@ -251,7 +251,7 @@ func planLLDP(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 		Enabled:           pointer.To(true),
 		HelloTimer:        pointer.To(uint64(5)), // TODO make configurable?
 		SystemName:        pointer.To(agent.Name),
-		SystemDescription: pointer.To("Hedgehog Fabric"),
+		SystemDescription: pointer.To(wiringapi.SwitchLLDPDescription(agent.Spec.Config.DeploymentID)),
 	}
 
 	return nil

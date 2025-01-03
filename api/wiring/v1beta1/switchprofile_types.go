@@ -765,6 +765,36 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 	return ports, nil
 }
 
+func (sp *SwitchProfileSpec) NormalizePortName(portName string) (string, error) {
+	if sp == nil {
+		return "", errors.Errorf("switch profile spec is nil") //nolint:goerr113
+	}
+
+	if strings.Count(portName, "/") == 2 {
+		return portName, nil
+	}
+
+	port, exists := sp.Ports[portName]
+	if !exists {
+		return "", errors.Errorf("port %q does not exist in the switch profile", portName)
+	}
+
+	if port.Profile == "" {
+		return portName, nil
+	}
+
+	profile, exists := sp.PortProfiles[port.Profile]
+	if !exists {
+		return "", errors.Errorf("port %q references non-existent port profile %q", portName, port.Profile)
+	}
+
+	if profile.Breakout == nil {
+		return portName, nil
+	}
+
+	return portName + "/1", nil
+}
+
 type SwitchProfilePortSummary struct {
 	Name      string
 	Label     string

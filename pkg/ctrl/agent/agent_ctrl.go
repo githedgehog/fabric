@@ -674,6 +674,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		agent.Spec.StatusUpdates = statusUpdates
 
 		agent.Spec.Config = agentapi.AgentSpecConfig{
+			DeploymentID:          r.Cfg.DeploymentID,
 			ControlVIP:            r.Cfg.ControlVIP,
 			BaseVPCCommunity:      r.Cfg.BaseVPCCommunity,
 			VPCLoopbackSubnet:     r.Cfg.VPCLoopbackSubnet,
