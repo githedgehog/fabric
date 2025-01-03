@@ -27,7 +27,7 @@ type LLDPIn struct {
 }
 
 type LLDPOut struct {
-	Neighbors map[string]map[string]apiutil.LLDPNeighborStatus
+	Neighbors map[string]map[string]apiutil.LLDPNeighborStatus `json:"neighbors"`
 }
 
 func (out *LLDPOut) MarshalText() (string, error) {
