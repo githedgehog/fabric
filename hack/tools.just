@@ -2,8 +2,9 @@
 # Version handling
 #
 
+version_extra := ""
 version_dirty := `[ -z "$(git status -s)" ] || echo "-$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 2)$(date +"%H%M")"`
-version := `git describe --tags --dirty --always` + version_dirty
+version := `git describe --tags --dirty --always` + version_dirty + version_extra
 
 # Print version that will be used in the build
 version:
@@ -17,6 +18,7 @@ _is_clean:
 #
 
 localbin := "bin"
+localpath := `pwd`
 localbinpath := `pwd`/localbin
 
 _localbin:
@@ -118,7 +120,7 @@ _goinstall PACKAGE VERSION BINNAME TARGET FLAGS="": _localbin
 #
 
 _license_headers: _addlicense
-  @{{addlicense}} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -y 2024 .
+  @{{addlicense}} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -ignore "vendor/**" -y 2024 .
 
 # Run linter for GitHub Actions
 lint-gha: _actionlint
