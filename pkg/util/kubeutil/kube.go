@@ -16,12 +16,16 @@ package kubeutil
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	clientcache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -76,7 +80,8 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 	var cacheOpts *client.CacheOptions
 	if cached {
 		clientCache, err := cache.New(cfg, cache.Options{
-			Scheme: scheme,
+			Scheme:                   scheme,
+			DefaultWatchErrorHandler: cacheWatchErrorHandler,
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create kube controller runtime cache")
@@ -85,7 +90,7 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 		go func() {
 			if err := clientCache.Start(ctx); err != nil {
 				slog.Error("failed to start kube controller runtime cache", "err", err)
-				panic(err)
+				panic(fmt.Errorf("failed to start kube controller runtime cache: %w", err))
 			}
 		}()
 
@@ -107,4 +112,19 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 	}
 
 	return kubeClient, nil
+}
+
+func cacheWatchErrorHandler(r *clientcache.Reflector, err error) {
+	switch {
+	case apierrors.IsResourceExpired(err) || apierrors.IsGone(err):
+		clientcache.DefaultWatchErrorHandler(r, err)
+	case errors.Is(err, io.EOF):
+		// watch closed normally
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		clientcache.DefaultWatchErrorHandler(r, err)
+	default:
+		slog.Error("kube controller runtime cache: failed to watch", "err", err)
+		clientcache.DefaultWatchErrorHandler(r, err)
+		panic(fmt.Errorf("kube controller runtime cache: failed to watch: %w", err))
+	}
 }
