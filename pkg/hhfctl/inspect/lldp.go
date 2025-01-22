@@ -28,6 +28,7 @@ type LLDPIn struct {
 
 type LLDPOut struct {
 	Neighbors map[string]map[string]apiutil.LLDPNeighborStatus `json:"neighbors"`
+	Errs      []error                                          `json:"errors"`
 }
 
 func (out *LLDPOut) MarshalText() (string, error) {
@@ -92,7 +93,14 @@ func (out *LLDPOut) MarshalText() (string, error) {
 	return str.String(), nil
 }
 
-var _ Func[LLDPIn, *LLDPOut] = LLDP
+func (out *LLDPOut) Errors() []error {
+	return out.Errs
+}
+
+var (
+	_ Func[LLDPIn, *LLDPOut] = LLDP
+	_ WithErrors             = (*LLDPOut)(nil)
+)
 
 func LLDP(ctx context.Context, kube client.Reader, in LLDPIn) (*LLDPOut, error) {
 	out := &LLDPOut{
@@ -133,15 +141,15 @@ func LLDP(ctx context.Context, kube client.Reader, in LLDPIn) (*LLDPOut, error) 
 
 			if n.Type != apiutil.LLDPNeighborTypeExternal && in.Strict {
 				if n.Expected.Name != n.Actual.Name {
-					return nil, fmt.Errorf("switch %s: expected neighbor %q, got %q", sw.Name, n.Expected.Name, n.Actual.Name) //nolint:goerr113
+					out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q, got %q", sw.Name, name, n.Expected.Name, n.Actual.Name)) //nolint:goerr113
 				}
 
 				if n.Expected.Port != n.Actual.Port {
-					return nil, fmt.Errorf("switch %s: expected neighbor port %q, got %q", sw.Name, n.Expected.Port, n.Actual.Port) //nolint:goerr113
+					out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", sw.Name, name, n.Expected.Port, n.Actual.Port)) //nolint:goerr113
 				}
 
 				if n.Expected.Description != "" && n.Expected.Description != n.Actual.Description {
-					return nil, fmt.Errorf("switch %s: expected neighbor description %q, got %q", sw.Name, n.Expected.Description, n.Actual.Description) //nolint:goerr113
+					out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", sw.Name, name, n.Expected.Description, n.Actual.Description)) //nolint:goerr113
 				}
 			}
 		}

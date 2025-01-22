@@ -747,7 +747,7 @@ func main() {
 							outputFlag,
 							&cli.StringSliceFlag{
 								Name:    "switch-name",
-								Aliases: []string{"switch", "s"},
+								Aliases: []string{"name", "n"},
 								Usage:   "Switch names to inspect BGP neighbors for (if not specified, will inspect all switches)",
 							},
 							&cli.BoolFlag{
@@ -776,7 +776,7 @@ func main() {
 							outputFlag,
 							&cli.StringSliceFlag{
 								Name:    "switch-name",
-								Aliases: []string{"switch", "s"},
+								Aliases: []string{"name", "n"},
 								Usage:   "Switch names to inspect LLDP neighbors for (if not specified, will inspect all switches)",
 							},
 							&cli.BoolFlag{

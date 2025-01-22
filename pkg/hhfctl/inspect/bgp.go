@@ -30,6 +30,7 @@ type BGPIn struct {
 
 type BGPOut struct {
 	Neighbors map[string]map[string]map[string]apiutil.BGPNeighborStatus `json:"neighbors"`
+	Errs      []error                                                    `json:"errors"`
 }
 
 func (out *BGPOut) MarshalText() (string, error) {
@@ -88,7 +89,14 @@ func (out *BGPOut) MarshalText() (string, error) {
 	return str.String(), nil
 }
 
-var _ Func[BGPIn, *BGPOut] = BGP
+func (out *BGPOut) Errors() []error {
+	return out.Errs
+}
+
+var (
+	_ Func[BGPIn, *BGPOut] = BGP
+	_ WithErrors           = (*BGPOut)(nil)
+)
 
 func BGP(ctx context.Context, kube client.Reader, in BGPIn) (*BGPOut, error) {
 	out := &BGPOut{
@@ -128,11 +136,11 @@ func BGP(ctx context.Context, kube client.Reader, in BGPIn) (*BGPOut, error) {
 			for vrf, vrfNeighbors := range neighs {
 				for name, neighbor := range vrfNeighbors {
 					if !neighbor.Expected {
-						return nil, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", sw.Name, vrf, name) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", sw.Name, vrf, name)) //nolint:goerr113
 					}
 
 					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {
-						return nil, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", sw.Name, vrf, name) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", sw.Name, vrf, name)) //nolint:goerr113
 					}
 				}
 			}
