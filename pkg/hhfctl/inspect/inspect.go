@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -54,6 +55,10 @@ type In interface{}
 
 type Out interface {
 	MarshalText() (string, error)
+}
+
+type WithErrors interface {
+	Errors() []error
 }
 
 type Func[TIn In, TOut Out] func(ctx context.Context, kube client.Reader, in TIn) (TOut, error)
@@ -109,8 +114,28 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 	}
 
 	_, err = w.Write(data)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write inspect output")
+	}
 
-	return errors.Wrapf(err, "failed to write inspect output")
+	var o Out = out
+	if we, ok := o.(WithErrors); ok {
+		errs := we.Errors()
+
+		if len(errs) > 0 {
+			slog.Error("Inspect function reported errors", "count", len(errs))
+		}
+
+		for _, err := range errs {
+			slog.Error("Reported ", "err", err)
+		}
+
+		if len(errs) > 0 {
+			return errors.Errorf("inspect function reported %d errors", len(errs))
+		}
+	}
+
+	return nil
 }
 
 func RenderTable(headers []string, data [][]string) string {

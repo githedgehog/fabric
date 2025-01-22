@@ -151,6 +151,10 @@ func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Swi
 	}
 
 	for ifaceName, iface := range ag.Status.State.Interfaces {
+		if strings.HasPrefix(ifaceName, wiringapi.ManagementPortPrefix) {
+			continue
+		}
+
 		for _, neighbor := range iface.LLDPNeighbors {
 			status := out[ifaceName]
 
