@@ -25,6 +25,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -333,54 +334,44 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 	return nil
 }
 
+// Defined as a separate function so it can be used in release tests
+func VPCWipeWithClient(ctx context.Context, kube client.Client) error {
+	delAllOpts := client.DeleteAllOfOptions{
+		ListOptions: client.ListOptions{
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	// delete all external peerings
+	if err := kube.DeleteAllOf(ctx, &vpcapi.ExternalPeering{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete external peerings")
+	}
+
+	// delete all regular peerings
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCPeering{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete vpc peerings")
+	}
+
+	// delete all attachments
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCAttachment{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete vpc attachments")
+	}
+
+	// delete all vpcs
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPC{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete vpcs")
+	}
+
+	return nil
+}
+
 func VPCWipe(ctx context.Context) error {
 	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
 
-	// delete all external peerings
-	extPeers := &vpcapi.ExternalPeeringList{}
-	if err := kube.List(ctx, extPeers); err != nil {
-		return errors.Wrap(err, "cannot list external peerings")
-	}
-	for _, extPeer := range extPeers.Items {
-		if err := kube.Delete(ctx, &extPeer); err != nil {
-			return errors.Wrapf(err, "cannot delete external peering %s", extPeer.Name)
-		}
-	}
-
-	// delete all regular peerings
-	peers := &vpcapi.VPCPeeringList{}
-	if err := kube.List(ctx, peers); err != nil {
-		return errors.Wrap(err, "cannot list peerings")
-	}
-	for _, peer := range peers.Items {
-		if err := kube.Delete(ctx, &peer); err != nil {
-			return errors.Wrapf(err, "cannot delete peering %s", peer.Name)
-		}
-	}
-
-	// delete all attachments
-	attachments := &vpcapi.VPCAttachmentList{}
-	if err := kube.List(ctx, attachments); err != nil {
-		return errors.Wrap(err, "cannot list attachments")
-	}
-	for _, attach := range attachments.Items {
-		if err := kube.Delete(ctx, &attach); err != nil {
-			return errors.Wrapf(err, "cannot delete attachment %s", attach.Name)
-		}
-	}
-
-	// delete all vpcs
-	vpcs := &vpcapi.VPCList{}
-	if err := kube.List(ctx, vpcs); err != nil {
-		return errors.Wrap(err, "cannot list vpcs")
-	}
-	for _, vpc := range vpcs.Items {
-		if err := kube.Delete(ctx, &vpc); err != nil {
-			return errors.Wrapf(err, "cannot delete vpc %s", vpc.Name)
-		}
+	if err := VPCWipeWithClient(ctx, kube); err != nil {
+		return errors.Wrap(err, "cannot wipe vpcs")
 	}
 
 	slog.Info("All VPCs, attachments and peerings wiped")
