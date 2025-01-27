@@ -15,7 +15,7 @@ func ContextExtractor(ctx context.Context, fns []func(ctx context.Context) []slo
 
 func ExtractFromContext(keys ...any) func(ctx context.Context) []slog.Attr {
 	return func(ctx context.Context) []slog.Attr {
-		attrs := []slog.Attr{}
+		attrs := make([]slog.Attr, 0, len(keys))
 		for _, key := range keys {
 			attrs = append(attrs, slog.Any(key.(string), ctx.Value(key)))
 		}
