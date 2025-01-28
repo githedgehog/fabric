@@ -229,9 +229,9 @@ func planControlLink(agent *agentapi.Agent, spec *dozer.Spec) error {
 	prefixLen, _ := ipNet.Mask.Size()
 
 	spec.Interfaces[controlIface] = &dozer.SpecInterface{
-		Description: pointer.To("Management link"),
-		Enabled:     pointer.To(true),
-		// Speed:       getPortSpeed(agent, controlIface), // TODO do we need to set it for management port?
+		Description:   pointer.To("Management link"),
+		Enabled:       pointer.To(true),
+		AutoNegotiate: pointer.To(true),
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
 			0: {
 				IPs: map[string]*dozer.SpecInterfaceIP{
@@ -2430,21 +2430,15 @@ func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	for name, iface := range spec.Interfaces {
-		if !isHedgehogPortName(name) || !autoNegAllowed[name] {
+		if !isHedgehogPortName(name) || strings.HasPrefix(name, wiringapi.ManagementPortPrefix) {
 			continue
 		}
 
-		val := pointer.To(autoNegDefault[name])
-
-		if strings.HasPrefix(name, "M") {
-			val = pointer.To(true)
-		}
-
-		iface.AutoNegotiate = val
+		iface.AutoNegotiate = pointer.To(autoNegDefault[name])
 	}
 
 	for name, autoNeg := range agent.Spec.Switch.PortAutoNegs {
-		if !isHedgehogPortName(name) || strings.HasPrefix(name, "M") || !autoNegAllowed[name] {
+		if !isHedgehogPortName(name) || strings.HasPrefix(name, wiringapi.ManagementPortPrefix) || !autoNegAllowed[name] {
 			continue
 		}
 
