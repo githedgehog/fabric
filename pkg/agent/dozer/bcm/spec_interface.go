@@ -327,14 +327,17 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	UpdateWeight: ActionWeightInterfaceEthernetBaseUpdate,
 	DeleteWeight: ActionWeightInterfaceEthernetBaseDelete,
 	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+		autoNeg := value.AutoNegotiate
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 
-		if value.Speed != nil {
+		if (autoNeg == nil || !*autoNeg) && value.Speed != nil {
 			var ok bool
 			speed, ok = MarshalPortSpeed(*value.Speed)
 			if !ok {
 				return nil, errors.Errorf("invalid speed %s", *value.Speed)
 			}
+
+			autoNeg = nil
 		}
 
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
@@ -342,7 +345,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
 					AggregateId:   value.PortChannel,
 					PortSpeed:     speed,
-					AutoNegotiate: value.AutoNegotiate,
+					AutoNegotiate: autoNeg,
 				},
 			},
 		}, nil
