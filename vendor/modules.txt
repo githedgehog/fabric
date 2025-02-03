@@ -677,7 +677,7 @@ github.com/kr/fs
 ## explicit; go 1.11
 github.com/kylelemons/godebug/diff
 github.com/kylelemons/godebug/pretty
-# github.com/lmittmann/tint v1.0.6
+# github.com/lmittmann/tint v1.0.7
 ## explicit; go 1.21
 github.com/lmittmann/tint
 # github.com/magiconair/properties v1.8.7
