@@ -442,6 +442,13 @@ func installAgent(ctx context.Context, tmp string) error {
 		return fmt.Errorf("symlinking agent systemd unit: %w", err)
 	}
 
+	slog.Info("Copying cls to cel for workaround")
+	dstPath := filepath.Join(sonicRoot, "/usr/share/sonic/device/x86_64-cel_ds4101-r0")
+	srcPath := filepath.Join(sonicRoot, "/usr/share/sonic/device/x86_64-cls_ds4101-r0")
+	if err := os.CopyFS(dstPath, os.DirFS(srcPath)); err != nil {
+		return fmt.Errorf("copying cls to cel directory")
+	}
+
 	return nil
 }
 
