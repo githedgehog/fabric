@@ -80,7 +80,7 @@ var CelesticaDS4101 = wiringapi.SwitchProfile{
 			},
 			"OSFP": {
 				Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
-					Default: "1x800G",
+					Default: "2x400G",
 					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
 						"1x100G": {Offsets: []string{"0"}},
 						"1x200G": {Offsets: []string{"0"}},
