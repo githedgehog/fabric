@@ -186,7 +186,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
-	if err := installAgent(ctx, tmp); err != nil {
+	if err := installAgent(ctx, tmp, env.Platform); err != nil {
 		return fmt.Errorf("installing agent: %w", err)
 	}
 
@@ -379,7 +379,7 @@ func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
 	}, nil
 }
 
-func installAgent(ctx context.Context, tmp string) error {
+func installAgent(ctx context.Context, tmp string, platform string) error {
 	sonicRoot, unmountSONiC, err := mountSONiCPartition(ctx)
 	if err != nil {
 		return fmt.Errorf("mounting SONiC partition: %w", err)
@@ -440,6 +440,16 @@ func installAgent(ctx context.Context, tmp string) error {
 	}
 	if err := os.Symlink(filepath.Join(systemdPath, AgentUnitName), filepath.Join(wantsPath, AgentUnitName)); err != nil {
 		return fmt.Errorf("symlinking agent systemd unit: %w", err)
+	}
+
+	//TODO only do this copy for DS4101
+	if platform == "x86_64-cls_ds4101-r0" {
+		slog.Info("Copying cls to cel for workaround")
+		dstPath := filepath.Join(sonicRoot, "/usr/share/sonic/device/x86_64-cel_ds4101-r0")
+		srcPath := filepath.Join(sonicRoot, "/usr/share/sonic/device/x86_64-cls_ds4101-r0")
+		if err := os.CopyFS(dstPath, os.DirFS(srcPath)); err != nil {
+			return fmt.Errorf("copying cls to cel directory")
+		}
 	}
 
 	return nil
