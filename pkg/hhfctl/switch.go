@@ -66,11 +66,11 @@ func SwitchReboot(ctx context.Context, name string) error {
 		return err
 	}
 
-	if agent.Status.RunID == "" {
-		return fmt.Errorf("agent is not running (missing .status.runID)") //nolint:goerr113
+	if agent.Status.BootID == "" {
+		return fmt.Errorf("agent is not running (missing .status.bootID)") //nolint:goerr113
 	}
 
-	agent.Spec.Reboot = agent.Status.RunID
+	agent.Spec.Reboot = agent.Status.BootID
 	err = kube.Update(ctx, agent)
 	if err != nil {
 		return fmt.Errorf("updating agent object: %w", err)
@@ -90,11 +90,11 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 		return err
 	}
 
-	if agent.Status.RunID == "" {
-		return fmt.Errorf("agent is not running (missing .status.runID)") //nolint:goerr113
+	if agent.Status.BootID == "" {
+		return fmt.Errorf("agent is not running (missing .status.bootID)") //nolint:goerr113
 	}
 
-	agent.Spec.PowerReset = agent.Status.RunID
+	agent.Spec.PowerReset = agent.Status.BootID
 	err = kube.Update(ctx, agent)
 	if err != nil {
 		return fmt.Errorf("updating agent object: %w", err)
