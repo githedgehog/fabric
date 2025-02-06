@@ -75,7 +75,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `version` _string_ | Current running agent version |  |  |
 | `installID` _string_ | ID of the agent installation, used to track NOS re-installs |  |  |
-| `runID` _string_ | ID of the agent run, used to track NOS reboots |  |  |
+| `runID` _string_ | ID of the agent run, used to track agent restarts |  |  |
+| `bootID` _string_ | ID for the NOS boot, used to track NOS reboots |  |  |
 | `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Time of the last heartbeat from the agent |  |  |
 | `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Time of the last attempt to apply configuration |  |  |
 | `lastAttemptGen` _integer_ | Generation of the last attempt to apply configuration |  |  |

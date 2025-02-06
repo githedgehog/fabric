@@ -130,8 +130,10 @@ type AgentStatus struct {
 	Version string `json:"version,omitempty"`
 	// ID of the agent installation, used to track NOS re-installs
 	InstallID string `json:"installID,omitempty"`
-	// ID of the agent run, used to track NOS reboots
+	// ID of the agent run, used to track agent restarts
 	RunID string `json:"runID,omitempty"`
+	// ID for the NOS boot, used to track NOS reboots
+	BootID string `json:"bootID,omitempty"`
 	// Time of the last heartbeat from the agent
 	LastHeartbeat metav1.Time `json:"lastHeartbeat,omitempty"`
 	// Time of the last attempt to apply configuration

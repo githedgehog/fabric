@@ -1415,6 +1415,9 @@ spec:
           status:
             description: Status is the observed state of the Agent
             properties:
+              bootID:
+                description: ID for the NOS boot, used to track NOS reboots
+                type: string
               conditions:
                 description: Conditions of the agent, includes readiness marker for
                   use with kubectl wait
@@ -1497,7 +1500,7 @@ spec:
                 format: date-time
                 type: string
               runID:
-                description: ID of the agent run, used to track NOS reboots
+                description: ID of the agent run, used to track agent restarts
                 type: string
               state:
                 description: Detailed switch state updated with each heartbeat

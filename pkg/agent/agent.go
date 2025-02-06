@@ -65,6 +65,7 @@ type Service struct {
 	name       string
 	installID  string
 	runID      string
+	bootID     string
 
 	reg *switchstate.Registry
 }
@@ -160,6 +161,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	agent.Status.LastAppliedGen = currentGen
 	agent.Status.InstallID = svc.installID
 	agent.Status.RunID = svc.runID
+	agent.Status.BootID = svc.bootID
 	agent.Status.Version = version.Version
 	agent.Status.StatusUpdates = agent.Spec.StatusUpdates
 	if agent.Status.Conditions == nil {
@@ -273,10 +275,16 @@ func (svc *Service) setInstallAndRunIDs() error {
 	} else if err != nil {
 		return errors.Wrapf(err, "failed to read install ID file %q", installIDFile)
 	} else {
-		svc.installID = string(installID)
+		svc.installID = strings.TrimSpace(string(installID))
 	}
 
-	slog.Info("IDs ready", "install", svc.installID, "run", svc.runID)
+	bootID, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err != nil {
+		return errors.Wrapf(err, "failed to read boot ID")
+	}
+	svc.bootID = strings.TrimSpace(string(bootID))
+
+	slog.Info("IDs", "install", svc.installID, "boot", svc.bootID, "run", svc.runID)
 
 	return nil
 }
@@ -471,8 +479,8 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 }
 
 func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) error {
-	if agent.Spec.PowerReset != "" && agent.Spec.PowerReset == svc.runID {
-		slog.Info("Power reset requested, executing in 5 seconds", "runID", agent.Spec.PowerReset)
+	if agent.Spec.PowerReset != "" && agent.Spec.PowerReset == svc.bootID {
+		slog.Info("Power reset requested, executing in 5 seconds", "bootID", agent.Spec.PowerReset)
 		time.Sleep(5 * time.Second)
 		if !svc.SkipActions {
 			slog.Info("Power resetting")
@@ -505,8 +513,8 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		}
 	}
 
-	if agent.Spec.Reboot != "" && agent.Spec.Reboot == svc.runID {
-		slog.Info("Reboot requested", "runID", agent.Spec.Reboot)
+	if agent.Spec.Reboot != "" && agent.Spec.Reboot == svc.bootID {
+		slog.Info("Reboot requested", "bootID", agent.Spec.Reboot)
 		if !svc.SkipActions {
 			slog.Info("Rebooting")
 			reboot = true
