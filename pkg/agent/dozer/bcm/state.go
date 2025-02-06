@@ -67,7 +67,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update interface metrics")
 	}
 
-	if err := p.updateTransceiverMetrics(ctx, agent, reg, swState, portMap); err != nil {
+	if err := p.updateTransceiverMetrics(ctx, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update transceiver metrics")
 	}
 
@@ -283,18 +283,14 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 	return nil
 }
 
-func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
+func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/transceiver-dom", dev); err != nil {
 		return errors.Wrapf(err, "failed to get transceiver-dom")
 	}
 
 	if dev.TransceiverDom == nil {
-		if agent.Spec.IsVS() {
-			return nil
-		}
-
-		return errors.Errorf("transceiver-dom not found")
+		return nil
 	}
 
 	for transceiverNameRaw, transceiver := range dev.TransceiverDom.TransceiverDomInfo {
