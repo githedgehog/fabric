@@ -35,6 +35,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 	"go.githedgehog.com/fabric/pkg/version"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -528,13 +529,8 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 			slog.Warn("Failed to send wall message", "err", err)
 		}
 
-		cmd = exec.CommandContext(ctx, "reboot")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err = cmd.Run()
-		if err != nil {
-			return errors.Wrap(err, "failed to reboot")
+		if err := doRebootNow(ctx); err != nil {
+			return err
 		}
 	}
 
@@ -544,6 +540,21 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	} else if upgraded {
 		slog.Info("Agent upgraded, restarting")
 		os.Exit(0) // TODO graceful agent restart
+	}
+
+	return nil
+}
+
+func doRebootNow(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "reboot")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "reboot: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "reboot: ")
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to reboot")
 	}
 
 	return nil
