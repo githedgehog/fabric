@@ -110,149 +110,152 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	svc.processor = bcm.Processor(svc.gnmiClient)
 
+	if !svc.DryRun && !svc.ApplyOnce {
+		err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
+		if err != nil {
+			slog.Warn("Failed to write motd", "err", err)
+		}
+	}
+
 	err = svc.processAgent(ctx, agent, true)
 	if err != nil {
 		return errors.Wrap(err, "failed to process agent config from file")
 	}
 
 	if svc.DryRun {
-		slog.Warn("Dry run, exiting")
+		slog.Info("Dry run, exiting")
 
 		return nil
 	}
 
-	err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
-	if err != nil {
-		slog.Warn("Failed to write motd", "err", err)
+	if svc.ApplyOnce {
+		slog.Info("Apply once, exiting")
+
+		return nil
 	}
 
-	if !svc.ApplyOnce {
-		err := svc.setInstallAndRunIDs()
-		if err != nil {
-			return errors.Wrap(err, "failed to set install and run IDs")
-		}
+	if err := svc.setInstallAndRunIDs(); err != nil {
+		return errors.Wrap(err, "failed to set install and run IDs")
+	}
 
-		kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
-		kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.SchemeBuilder)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create K8s client")
-		}
+	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
+	kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.SchemeBuilder)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create K8s client")
+	}
 
-		currentGen := agent.Generation
+	currentGen := agent.Generation
 
-		err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: metav1.NamespaceDefault}, agent)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get initial agent config from k8s")
-		}
+	err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: metav1.NamespaceDefault}, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get initial agent config from k8s")
+	}
 
-		// reset observability state
-		now := metav1.Time{Time: time.Now()}
-		agent.Status.LastHeartbeat = now
-		agent.Status.LastAttemptTime = now
-		agent.Status.LastAttemptGen = currentGen
-		agent.Status.LastAppliedTime = now
-		agent.Status.LastAppliedGen = currentGen
-		agent.Status.InstallID = svc.installID
-		agent.Status.RunID = svc.runID
-		agent.Status.Version = version.Version
-		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
-		if agent.Status.Conditions == nil {
-			agent.Status.Conditions = []metav1.Condition{}
-		}
+	// reset observability state
+	now := metav1.Time{Time: time.Now()}
+	agent.Status.LastHeartbeat = now
+	agent.Status.LastAttemptTime = now
+	agent.Status.LastAttemptGen = currentGen
+	agent.Status.LastAppliedTime = now
+	agent.Status.LastAppliedGen = currentGen
+	agent.Status.InstallID = svc.installID
+	agent.Status.RunID = svc.runID
+	agent.Status.Version = version.Version
+	agent.Status.StatusUpdates = agent.Spec.StatusUpdates
+	if agent.Status.Conditions == nil {
+		agent.Status.Conditions = []metav1.Condition{}
+	}
 
-		if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
-			return errors.Wrapf(err, "failed to update switch state")
-		}
-		if st := svc.reg.GetSwitchState(); st != nil {
-			agent.Status.State = *st
-		}
-		agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+		return errors.Wrapf(err, "failed to update switch state")
+	}
+	if st := svc.reg.GetSwitchState(); st != nil {
+		agent.Status.State = *st
+	}
+	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
-		err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
-		if err != nil {
-			return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
-		}
+	err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
+	if err != nil {
+		return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
+	}
 
-		slog.Debug("Starting watch for config changes in K8s")
+	slog.Debug("Starting watch for config changes in K8s")
 
-		watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
-			"metadata.name": svc.name,
-		})
-		if err != nil {
-			return errors.Wrapf(err, "failed to watch agent config in k8s")
-		}
-		defer watcher.Stop()
+	watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
+		"metadata.name": svc.name,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to watch agent config in k8s")
+	}
+	defer watcher.Stop()
 
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Context done, exiting")
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Context done, exiting")
 
-				return nil
-			case <-time.After(2 * time.Minute):
-				slog.Debug("Enforcing config", "name", agent.Name)
-				err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
-				if err != nil {
-					return errors.Wrap(err, "failed to process agent config from k8s (enforce)")
-				}
-			case <-time.After(15 * time.Second):
-				slog.Debug("Sending heartbeat", "name", agent.Name)
-				hbStart := time.Now()
+			return nil
+		case <-time.After(2 * time.Minute):
+			slog.Debug("Enforcing config", "name", agent.Name)
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
+			if err != nil {
+				return errors.Wrap(err, "failed to process agent config from k8s (enforce)")
+			}
+		case <-time.After(15 * time.Second):
+			slog.Debug("Sending heartbeat", "name", agent.Name)
+			hbStart := time.Now()
 
-				if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
-					return errors.Wrapf(err, "failed to update switch state")
-				}
-				if st := svc.reg.GetSwitchState(); st != nil {
-					agent.Status.State = *st
-				}
-				agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+			if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+				return errors.Wrapf(err, "failed to update switch state")
+			}
+			if st := svc.reg.GetSwitchState(); st != nil {
+				agent.Status.State = *st
+			}
+			agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
-				err := kube.Status().Update(ctx, agent)
-				if err != nil {
-					return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
-				}
+			err := kube.Status().Update(ctx, agent)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
+			}
 
-				svc.reg.AgentMetrics.HeartbeatDuration.Observe(time.Since(hbStart).Seconds())
-				svc.reg.AgentMetrics.HeartbeatsTotal.Inc()
-			case event, ok := <-watcher.ResultChan():
-				// TODO check why channel gets closed
-				if !ok {
-					slog.Warn("K8s watch channel closed, restarting agent")
-					os.Exit(1)
-				}
+			svc.reg.AgentMetrics.HeartbeatDuration.Observe(time.Since(hbStart).Seconds())
+			svc.reg.AgentMetrics.HeartbeatsTotal.Inc()
+		case event, ok := <-watcher.ResultChan():
+			// TODO check why channel gets closed
+			if !ok {
+				slog.Warn("K8s watch channel closed, restarting agent")
+				os.Exit(1)
+			}
 
-				// TODO why are we getting nil events?
-				if event.Object == nil {
-					slog.Warn("Received nil object from K8s, restarting agent")
-					os.Exit(1)
-				}
+			// TODO why are we getting nil events?
+			if event.Object == nil {
+				slog.Warn("Received nil object from K8s, restarting agent")
+				os.Exit(1)
+			}
 
-				// TODO handle bookmarks and delete events
-				if event.Type == watch.Deleted || event.Type == watch.Bookmark {
-					slog.Info("Received watch event, ignoring", "event", event.Type)
+			// TODO handle bookmarks and delete events
+			if event.Type == watch.Deleted || event.Type == watch.Bookmark {
+				slog.Info("Received watch event, ignoring", "event", event.Type)
 
-					continue
-				}
-				if event.Type == watch.Error {
-					slog.Error("Received watch error", "event", event.Type, "object", event.Object)
-					if err, ok := event.Object.(error); ok {
-						return errors.Wrapf(err, "watch error")
-					}
-
-					return errors.New("watch error")
+				continue
+			}
+			if event.Type == watch.Error {
+				slog.Error("Received watch error", "event", event.Type, "object", event.Object)
+				if err, ok := event.Object.(error); ok {
+					return errors.Wrapf(err, "watch error")
 				}
 
-				agent = event.Object.(*agentapi.Agent)
+				return errors.New("watch error")
+			}
 
-				err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
-				if err != nil {
-					return errors.Wrap(err, "failed to process agent config from k8s")
-				}
+			agent = event.Object.(*agentapi.Agent)
+
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
+			if err != nil {
+				return errors.Wrap(err, "failed to process agent config from k8s")
 			}
 		}
 	}
-
-	return nil
 }
 
 func (svc *Service) setInstallAndRunIDs() error {
