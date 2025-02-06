@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
@@ -138,6 +140,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	if err := svc.setInstallAndRunIDs(); err != nil {
 		return errors.Wrap(err, "failed to set install and run IDs")
+	}
+
+	// TODO remove this after we know the root cause for Celestica switches having non-working ports after power-cycling
+	if err := svc.celesticaWorkaround(ctx, agent); err != nil {
+		return errors.Wrap(err, "failed to apply Celestica workaround")
 	}
 
 	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
@@ -259,6 +266,45 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			}
 		}
 	}
+}
+
+var celesticaWorkaroundPlatforms = []string{
+	switchprofile.CelesticaDS3000.Spec.Platform,
+	switchprofile.CelesticaDS4000.Spec.Platform,
+}
+
+func (svc *Service) celesticaWorkaround(ctx context.Context, agent *agentapi.Agent) error {
+	if agent.Spec.SwitchProfile != nil && slices.Contains(celesticaWorkaroundPlatforms, agent.Spec.SwitchProfile.Platform) {
+		marker := filepath.Join(svc.Basedir, ".celestica-workaroud")
+		if _, err := os.Stat(marker); err != nil {
+			if os.IsNotExist(err) {
+				slog.Warn("First boot with Celestica switch profile, rebooting in 5 seconds as a workaround")
+
+				if err = os.WriteFile(marker, []byte{}, 0o644); err != nil { //nolint:gosec
+					return errors.Wrapf(err, "failed to create celestica marker file %q", marker)
+				}
+
+				time.Sleep(5 * time.Second)
+
+				// If we're failed to reboot, we'll try again on the next agent start
+				defer func() {
+					if err := os.Remove(marker); err != nil {
+						slog.Warn("Failed to remove celestica marker file", "err", err)
+					}
+				}()
+
+				if err := doRebootNow(ctx); err != nil {
+					return errors.Wrap(err, "failed to reboot to apply Celestica workaround")
+				}
+
+				return errors.New("failed to reboot to apply Celestica workaround")
+			}
+
+			return errors.Wrapf(err, "failed to check celestica marker file %q", marker)
+		}
+	}
+
+	return nil
 }
 
 func (svc *Service) setInstallAndRunIDs() error {
