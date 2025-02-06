@@ -110,145 +110,195 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	svc.processor = bcm.Processor(svc.gnmiClient)
 
+	if !svc.DryRun && !svc.ApplyOnce {
+		err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
+		if err != nil {
+			slog.Warn("Failed to write motd", "err", err)
+		}
+	}
+
 	err = svc.processAgent(ctx, agent, true)
 	if err != nil {
 		return errors.Wrap(err, "failed to process agent config from file")
 	}
 
 	if svc.DryRun {
-		slog.Warn("Dry run, exiting")
+		slog.Info("Dry run, exiting")
 
 		return nil
 	}
 
-	err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
-	if err != nil {
-		slog.Warn("Failed to write motd", "err", err)
+	if svc.ApplyOnce {
+		slog.Info("Apply once, exiting")
+
+		return nil
 	}
 
-	if !svc.ApplyOnce {
-		err := svc.setInstallAndRunIDs()
-		if err != nil {
-			return errors.Wrap(err, "failed to set install and run IDs")
-		}
+	if err := svc.setInstallAndRunIDs(); err != nil {
+		return errors.Wrap(err, "failed to set install and run IDs")
+	}
 
-		kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
-		kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.SchemeBuilder)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create K8s client")
-		}
+	if err := svc.celesticaWorkaround(agent); err != nil {
+		return errors.Wrap(err, "failed to apply Celestica workaround")
+	}
 
-		currentGen := agent.Generation
+	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
+	kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.SchemeBuilder)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create K8s client")
+	}
 
-		err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: metav1.NamespaceDefault}, agent)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get initial agent config from k8s")
-		}
+	currentGen := agent.Generation
 
-		// reset observability state
-		now := metav1.Time{Time: time.Now()}
-		agent.Status.LastHeartbeat = now
-		agent.Status.LastAttemptTime = now
-		agent.Status.LastAttemptGen = currentGen
-		agent.Status.LastAppliedTime = now
-		agent.Status.LastAppliedGen = currentGen
-		agent.Status.InstallID = svc.installID
-		agent.Status.RunID = svc.runID
-		agent.Status.Version = version.Version
-		agent.Status.StatusUpdates = agent.Spec.StatusUpdates
-		if agent.Status.Conditions == nil {
-			agent.Status.Conditions = []metav1.Condition{}
-		}
+	err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: metav1.NamespaceDefault}, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get initial agent config from k8s")
+	}
 
-		if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
-			return errors.Wrapf(err, "failed to update switch state")
-		}
-		if st := svc.reg.GetSwitchState(); st != nil {
-			agent.Status.State = *st
-		}
-		agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	// reset observability state
+	now := metav1.Time{Time: time.Now()}
+	agent.Status.LastHeartbeat = now
+	agent.Status.LastAttemptTime = now
+	agent.Status.LastAttemptGen = currentGen
+	agent.Status.LastAppliedTime = now
+	agent.Status.LastAppliedGen = currentGen
+	agent.Status.InstallID = svc.installID
+	agent.Status.RunID = svc.runID
+	agent.Status.Version = version.Version
+	agent.Status.StatusUpdates = agent.Spec.StatusUpdates
+	if agent.Status.Conditions == nil {
+		agent.Status.Conditions = []metav1.Condition{}
+	}
 
-		err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
-		if err != nil {
-			return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
-		}
+	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+		return errors.Wrapf(err, "failed to update switch state")
+	}
+	if st := svc.reg.GetSwitchState(); st != nil {
+		agent.Status.State = *st
+	}
+	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
-		slog.Debug("Starting watch for config changes in K8s")
+	err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
+	if err != nil {
+		return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
+	}
 
-		watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
-			"metadata.name": svc.name,
-		})
-		if err != nil {
-			return errors.Wrapf(err, "failed to watch agent config in k8s")
-		}
-		defer watcher.Stop()
+	slog.Debug("Starting watch for config changes in K8s")
 
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Context done, exiting")
+	watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
+		"metadata.name": svc.name,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to watch agent config in k8s")
+	}
+	defer watcher.Stop()
 
-				return nil
-			case <-time.After(2 * time.Minute):
-				slog.Debug("Enforcing config", "name", agent.Name)
-				err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
-				if err != nil {
-					return errors.Wrap(err, "failed to process agent config from k8s (enforce)")
-				}
-			case <-time.After(15 * time.Second):
-				slog.Debug("Sending heartbeat", "name", agent.Name)
-				hbStart := time.Now()
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Context done, exiting")
 
-				if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
-					return errors.Wrapf(err, "failed to update switch state")
-				}
-				if st := svc.reg.GetSwitchState(); st != nil {
-					agent.Status.State = *st
-				}
-				agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
-
-				err := kube.Status().Update(ctx, agent)
-				if err != nil {
-					return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
-				}
-
-				svc.reg.AgentMetrics.HeartbeatDuration.Observe(time.Since(hbStart).Seconds())
-				svc.reg.AgentMetrics.HeartbeatsTotal.Inc()
-			case event, ok := <-watcher.ResultChan():
-				// TODO check why channel gets closed
-				if !ok {
-					slog.Warn("K8s watch channel closed, restarting agent")
-					os.Exit(1)
-				}
-
-				// TODO why are we getting nil events?
-				if event.Object == nil {
-					slog.Warn("Received nil object from K8s, restarting agent")
-					os.Exit(1)
-				}
-
-				// TODO handle bookmarks and delete events
-				if event.Type == watch.Deleted || event.Type == watch.Bookmark {
-					slog.Info("Received watch event, ignoring", "event", event.Type)
-
-					continue
-				}
-				if event.Type == watch.Error {
-					slog.Error("Received watch error", "event", event.Type, "object", event.Object)
-					if err, ok := event.Object.(error); ok {
-						return errors.Wrapf(err, "watch error")
-					}
-
-					return errors.New("watch error")
-				}
-
-				agent = event.Object.(*agentapi.Agent)
-
-				err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
-				if err != nil {
-					return errors.Wrap(err, "failed to process agent config from k8s")
-				}
+			return nil
+		case <-time.After(2 * time.Minute):
+			slog.Debug("Enforcing config", "name", agent.Name)
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
+			if err != nil {
+				return errors.Wrap(err, "failed to process agent config from k8s (enforce)")
 			}
+		case <-time.After(15 * time.Second):
+			slog.Debug("Sending heartbeat", "name", agent.Name)
+			hbStart := time.Now()
+
+			if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+				return errors.Wrapf(err, "failed to update switch state")
+			}
+			if st := svc.reg.GetSwitchState(); st != nil {
+				agent.Status.State = *st
+			}
+			agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+
+			err := kube.Status().Update(ctx, agent)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
+			}
+
+			svc.reg.AgentMetrics.HeartbeatDuration.Observe(time.Since(hbStart).Seconds())
+			svc.reg.AgentMetrics.HeartbeatsTotal.Inc()
+		case event, ok := <-watcher.ResultChan():
+			// TODO check why channel gets closed
+			if !ok {
+				slog.Warn("K8s watch channel closed, restarting agent")
+				os.Exit(1)
+			}
+
+			// TODO why are we getting nil events?
+			if event.Object == nil {
+				slog.Warn("Received nil object from K8s, restarting agent")
+				os.Exit(1)
+			}
+
+			// TODO handle bookmarks and delete events
+			if event.Type == watch.Deleted || event.Type == watch.Bookmark {
+				slog.Info("Received watch event, ignoring", "event", event.Type)
+
+				continue
+			}
+			if event.Type == watch.Error {
+				slog.Error("Received watch error", "event", event.Type, "object", event.Object)
+				if err, ok := event.Object.(error); ok {
+					return errors.Wrapf(err, "watch error")
+				}
+
+				return errors.New("watch error")
+			}
+
+			agent = event.Object.(*agentapi.Agent)
+
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
+			if err != nil {
+				return errors.Wrap(err, "failed to process agent config from k8s")
+			}
+		}
+	}
+}
+
+func (svc *Service) celesticaWorkaround(agent *agentapi.Agent) error {
+	// TODO remove this after we know the root cause for Celestica switches having non-working ports after power-cycling
+	if agent.Spec.SwitchProfile != nil && strings.HasPrefix(agent.Spec.SwitchProfile.Platform, "x86_64-cel_") {
+		marker := filepath.Join(svc.Basedir, ".celestica-fix")
+		if _, err := os.Stat(marker); err != nil {
+			if os.IsNotExist(err) {
+				slog.Warn("First boot with Celestica switch profile, rebooting in 5 seconds")
+
+				if err = os.WriteFile(marker, []byte{}, 0o644); err != nil { //nolint:gosec
+					return errors.Wrapf(err, "failed to create celestica marker file %q", marker)
+				}
+
+				time.Sleep(5 * time.Second)
+
+				file, err := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0o200)
+				if err != nil {
+					return errors.Wrapf(err, "error opening /proc/sysrq-trigger")
+				}
+				defer file.Close()
+
+				// If we're failed to reboot, we'll try again on the next agent start
+				defer func() {
+					if err := os.Remove(marker); err != nil {
+						slog.Warn("Failed to remove celestica marker file", "err", err)
+					}
+				}()
+
+				if _, err := file.WriteString("b"); err != nil {
+					return errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
+				}
+
+				time.Sleep(5 * time.Minute)
+
+				return errors.New("failed to reboot to apply Celestica workaround")
+			}
+
+			return errors.Wrapf(err, "failed to check celestica marker file %q", marker)
 		}
 	}
 
