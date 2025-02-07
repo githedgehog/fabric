@@ -15,7 +15,9 @@
 package bcm
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -27,6 +29,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
+	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 )
 
@@ -43,30 +46,8 @@ func Processor(client *gnmi.Client) *BroadcomProcessor {
 }
 
 func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
-	// TODO think about better timeout handling
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
-
-	// TODO seems like we don't really need to wait for system to become ready anymore
-	// for {
-	// 	slog.Debug("Checking if system is ready")
-
-	// 	buf := &bytes.Buffer{}
-	// 	// TODO figure out how to call gNMI actions(rpcs?) from agent
-	// 	cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AgentUser) //nolint:gosec
-	// 	cmd.Stdout = io.MultiWriter(buf, os.Stdout)
-	// 	cmd.Stderr = os.Stdout
-	// 	err := cmd.Run()
-	// 	if err != nil {
-	// 		return errors.Wrap(err, "failed to run sonic-cli: show system status brief")
-	// 	}
-
-	// 	if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
-	// 		break
-	// 	}
-
-	// 	time.Sleep(3 * time.Second)
-	// }
 
 	// TODO replace with better handling
 	cmd := exec.CommandContext(ctx, "bash", "-c", "(sudo dmidecode -t system | grep 'QEMU') && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT) || true")
@@ -75,6 +56,29 @@ func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 	err := cmd.Run()
 	if err != nil {
 		return errors.Wrap(err, "failed to fix iptables for vxlan on VS")
+	}
+
+	slog.Debug("Checking if system is ready")
+
+	lOut := logutil.NewSink(ctx, slog.Debug, "status: ")
+	lErr := logutil.NewSink(ctx, slog.Warn, "status: ")
+
+	retriesStart := time.Now()
+	for time.Since(retriesStart) < 10*time.Minute {
+		buf := &bytes.Buffer{}
+		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AgentUser) //nolint:gosec
+		cmd.Stdout = io.MultiWriter(buf, lOut)
+		cmd.Stderr = lErr
+		err := cmd.Run()
+		if err != nil {
+			slog.Warn("Failed to run sonic-cli: show system status brief", "err", err)
+		} else if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
+			slog.Info("System is ready")
+
+			break
+		}
+
+		time.Sleep(15 * time.Second)
 	}
 
 	return nil
