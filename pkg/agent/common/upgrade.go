@@ -27,6 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -61,10 +62,9 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 		defer cancel()
 
 		cmd := exec.CommandContext(ctx, binPath, testArgs...)
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			slog.Warn("Failed to run new agent", "err", err, "output", string(output))
-		}
+		cmd.Stdout = logutil.NewSink(ctx, slog.Info, "newagent: ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Warn, "newagent: ")
+		err := cmd.Run()
 
 		return errors.Wrap(err, "failed to run new agent")
 	})
