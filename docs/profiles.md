@@ -107,6 +107,59 @@ Label column is a port label on a physical switch.
 | E1/33 | 33 | Direct |  | 10G | 1G, 10G |
 
 
+## Celestica DS4101
+
+Profile Name (to use in switch.spec.profile): **celestica-ds4101**
+
+**Supported features:**
+
+- Subinterfaces: false
+- VXLAN: false
+- ACLs: true
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/2 | 2 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/3 | 3 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/4 | 4 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/5 | 5 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/6 | 6 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/7 | 7 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/8 | 8 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/9 | 9 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/10 | 10 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/11 | 11 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/12 | 12 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/13 | 13 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/14 | 14 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/15 | 15 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/16 | 16 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/17 | 17 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/18 | 18 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/19 | 19 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/20 | 20 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/21 | 21 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/22 | 22 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/23 | 23 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/24 | 24 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/25 | 25 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/26 | 26 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/27 | 27 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/28 | 28 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/29 | 29 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/30 | 30 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/31 | 31 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/32 | 32 | Breakout |  | 2x400G | 1x100G, 1x200G, 1x400G, 2x100G, 2x200G, 2x400G, 2x40G, 4x100G, 4x200G, 4x50G, 8x100G, 8x10G, 8x25G, 8x50G |
+| E1/33 | M1 | Direct |  | 10G | 1G, 10G |
+| E1/34 | M2 | Direct |  | 10G | 1G, 10G |
+
+
 ## Dell S5232F-ON
 
 Profile Name (to use in switch.spec.profile): **dell-s5232f-on**
