@@ -106,9 +106,20 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
-	svc.gnmiClient, err = getClient()
+	retriesStart := time.Now()
+	for time.Since(retriesStart) < 10*time.Minute {
+		svc.gnmiClient, err = getClient()
+		if err != nil {
+			slog.Warn("Failed to create gNMI client", "err", err)
+			time.Sleep(15 * time.Second)
+
+			continue
+		}
+
+		break
+	}
 	if err != nil {
-		return errors.Wrap(err, "failed to create gNMI client")
+		return errors.Wrap(err, "failed to create gNMI client after retries")
 	}
 	defer svc.gnmiClient.Close()
 
