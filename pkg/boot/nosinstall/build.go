@@ -31,6 +31,7 @@ const (
 	AgentConfigName     = "agent-config.yaml"
 	AgentKubeConfigName = "agent-kubeconfig"
 	AgentUnitName       = "hedgehog-agent.service"
+	CopyUnitName        = "cel-To-cls.service"
 	AgentUnitContent    = `
 [Unit]
 Description=Hedgehog Fabric Agent
@@ -41,6 +42,21 @@ ExecStart=/opt/hedgehog/bin/agent start
 
 Restart=always
 RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+`
+	CopyUnitContent = `
+[Unit]
+Description=CLS to CEL workaround
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+ConditionPathExists=!/usr/share/sonic/device/x86_64-cls_ds4101-r0
+ExecStart=/usr/bin/cp -R /usr/share/sonic/device/x86_64-cel_ds4101-r0/. /usr/share/sonic/device/x86_64-cls_ds4101-r0/
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
@@ -80,6 +96,9 @@ func (b *Builder) Build(w io.Writer) error {
 
 	if err := addFileFromData(tw, AgentUnitName, []byte(AgentUnitContent)); err != nil {
 		return fmt.Errorf("adding agent systemd unit: %w", err)
+	}
+	if err := addFileFromData(tw, CopyUnitName, []byte(CopyUnitContent)); err != nil {
+		return fmt.Errorf("adding copy systemd unit: %w", err)
 	}
 
 	if err := tw.Close(); err != nil {
