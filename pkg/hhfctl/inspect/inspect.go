@@ -91,26 +91,31 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 		return errors.Wrapf(err, "failed to run inspect function")
 	}
 
+	return Render(args.Output, w, out)
+}
+
+func Render[TOut Out](output OutputType, w io.Writer, out TOut) error {
 	var data []byte
-	if args.Output == OutputTypeText {
+	var err error
+	if output == OutputTypeText {
 		dataS, err := out.MarshalText()
 		if err != nil {
 			return errors.Wrapf(err, "failed to get marshal output as text")
 		}
 
 		data = []byte(dataS)
-	} else if args.Output == OutputTypeYAML {
+	} else if output == OutputTypeYAML {
 		data, err = yaml.Marshal(out)
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal inspect output as yaml")
 		}
-	} else if args.Output == OutputTypeJSON {
+	} else if output == OutputTypeJSON {
 		data, err = json.MarshalIndent(out, "", "  ")
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal inspect output as json")
 		}
 	} else {
-		return errors.Errorf("output type %s is not implemented", args.Output)
+		return errors.Errorf("output type %s is not implemented", output)
 	}
 
 	_, err = w.Write(data)
