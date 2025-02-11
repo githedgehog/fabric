@@ -1319,6 +1319,7 @@ BasePortName defines the full name of the switch port
 _Appears in:_
 - [ConnExternalLink](#connexternallink)
 - [ConnFabricLinkSwitch](#connfabriclinkswitch)
+- [ConnGatewayLinkGateway](#conngatewaylinkgateway)
 - [ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)
 - [ServerToSwitchLink](#servertoswitchlink)
 - [SwitchToSwitchLink](#switchtoswitchlink)
@@ -1415,12 +1416,46 @@ _Appears in:_
 
 
 
-ConnFabricLinkSwitch defines the switch side of the fabric link
+ConnFabricLinkSwitch defines the switch side of the fabric (or gateway) link
 
 
 
 _Appears in:_
 - [FabricLink](#fabriclink)
+- [GatewayLink](#gatewaylink)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
+
+
+#### ConnGateway
+
+
+
+ConnGateway defines the gateway connection (single spine to a single gateway with at least one link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[GatewayLink](#gatewaylink) array_ | Links is the list of spine to gateway links |  | MinItems: 1 <br /> |
+
+
+#### ConnGatewayLinkGateway
+
+
+
+ConnGatewayLinkGateway defines the gateway side of the gateway link
+
+
+
+_Appears in:_
+- [GatewayLink](#gatewaylink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1593,6 +1628,7 @@ _Appears in:_
 | `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links) |  |  |
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
+| `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |
 | `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ | VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround |  |  |
 | `external` _[ConnExternal](#connexternal)_ | External defines the external connection (single switch to a single external device with a single link) |  |  |
 | `staticExternal` _[ConnStaticExternal](#connstaticexternal)_ | StaticExternal defines the static external connection (single switch to a single external device with a single link) |  |  |
@@ -1626,6 +1662,23 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `spine` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Spine is the spine side of the fabric link |  |  |
 | `leaf` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Leaf is the leaf side of the fabric link |  |  |
+
+
+#### GatewayLink
+
+
+
+GatewayLink defines the gateway connection link
+
+
+
+_Appears in:_
+- [ConnGateway](#conngateway)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `spine` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Spine is the spine side of the gateway link |  |  |
+| `gateway` _[ConnGatewayLinkGateway](#conngatewaylinkgateway)_ | Gateway is the gateway side of the gateway link |  |  |
 
 
 

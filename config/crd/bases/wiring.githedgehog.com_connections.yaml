@@ -192,6 +192,48 @@ spec:
                     minItems: 1
                     type: array
                 type: object
+              gateway:
+                description: Gateway defines the gateway connection (single spine
+                  to a single gateway with at least one link)
+                properties:
+                  links:
+                    description: Links is the list of spine to gateway links
+                    items:
+                      description: GatewayLink defines the gateway connection link
+                      properties:
+                        gateway:
+                          description: Gateway is the gateway side of the gateway
+                            link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                        spine:
+                          description: Spine is the spine side of the gateway link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
+                    type: array
+                type: object
               mclag:
                 description: MCLAG defines the MCLAG connection (port channel, single
                   server to pair of switches with multiple links)
