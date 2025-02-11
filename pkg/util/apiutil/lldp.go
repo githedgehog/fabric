@@ -6,6 +6,7 @@ package apiutil
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -174,7 +175,7 @@ func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Swi
 				if apiPort, ok := ports[port]; ok {
 					port = apiPort
 				} else {
-					return nil, fmt.Errorf("port mapping for %s not found in switch %s", port, status.Expected.Name) //nolint:goerr113
+					slog.Warn("port mapping for %s not found in switch %s", port, status.Expected.Name)
 				}
 			}
 
