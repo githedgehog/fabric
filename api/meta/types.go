@@ -83,6 +83,7 @@ type FabricConfig struct {
 	DefaultMaxPathsEBGP      uint32      `json:"defaultMaxPathsEBGP,omitempty"`
 	AllowExtraSwitchProfiles bool        `json:"allowExtraSwitchProfiles,omitempty"`
 	MCLAGSessionSubnet       string      `json:"mclagSessionSubnet,omitempty"`
+	GatewayASN               uint32      `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
 
 	reservedSubnets []*net.IPNet
 }
@@ -251,6 +252,10 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 
 	if cfg.DefaultMaxPathsEBGP == 0 {
 		return nil, errors.Errorf("config: defaultMaxPathsEBGP is required")
+	}
+
+	if cfg.GatewayASN == 0 {
+		return nil, errors.Errorf("config: gatewayASN is required")
 	}
 
 	// TODO validate format of all fields

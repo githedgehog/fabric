@@ -258,6 +258,9 @@ spec:
                     type: string
                   fabricMTU:
                     type: integer
+                  gatewayASN:
+                    format: int32
+                    type: integer
                   mclagSessionSubnet:
                     type: string
                   serverFacingMTUOffset:
