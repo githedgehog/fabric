@@ -39,6 +39,7 @@ const (
 	ConnectionTypeMCLAGDomain    = "mclag-domain"
 	ConnectionTypeESLAG          = "eslag"
 	ConnectionTypeFabric         = "fabric"
+	ConnectionTypeGateway        = "gateway"
 	ConnectionTypeVPCLoopback    = "vpc-loopback"
 	ConnectionTypeExternal       = "external"
 	ConnectionTypeStaticExternal = "static-external"
@@ -135,7 +136,7 @@ type ConnMCLAGDomain struct {
 	SessionLinks []SwitchToSwitchLink `json:"sessionLinks,omitempty"`
 }
 
-// ConnFabricLinkSwitch defines the switch side of the fabric link
+// ConnFabricLinkSwitch defines the switch side of the fabric (or gateway) link
 type ConnFabricLinkSwitch struct {
 	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
@@ -157,6 +158,30 @@ type ConnFabric struct {
 	//+kubebuilder:validation:MinItems=1
 	// Links is the list of spine-to-leaf links
 	Links []FabricLink `json:"links,omitempty"`
+}
+
+// ConnGatewayLinkGateway defines the gateway side of the gateway link
+type ConnGatewayLinkGateway struct {
+	// BasePortName defines the full name of the gateway port
+	BasePortName `json:",inline"`
+	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	// IP is the IP address of the switch side of the fabric link (switch port configuration)
+	IP string `json:"ip,omitempty"`
+}
+
+// GatewayLink defines the gateway connection link
+type GatewayLink struct {
+	// Spine is the spine side of the gateway link
+	Spine ConnFabricLinkSwitch `json:"spine,omitempty"`
+	// Gateway is the gateway side of the gateway link
+	Gateway ConnGatewayLinkGateway `json:"gateway,omitempty"`
+}
+
+// ConnGateway defines the gateway connection (single spine to a single gateway with at least one link)
+type ConnGateway struct {
+	//+kubebuilder:validation:MinItems=1
+	// Links is the list of spine to gateway links
+	Links []GatewayLink `json:"links,omitempty"`
 }
 
 // ConnVPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) that enables automated
@@ -223,6 +248,8 @@ type ConnectionSpec struct {
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	// Fabric defines the fabric connection (single spine to a single leaf with at least one link)
 	Fabric *ConnFabric `json:"fabric,omitempty"`
+	// Gateway defines the gateway connection (single spine to a single gateway with at least one link)
+	Gateway *ConnGateway `json:"gateway,omitempty"`
 	// VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround
 	VPCLoopback *ConnVPCLoopback `json:"vpcLoopback,omitempty"`
 	// External defines the external connection (single switch to a single external device with a single link)
@@ -373,6 +400,10 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 			role = "fabric"
 			left = connSpec.Fabric.Links[0].Spine.DeviceName()
 			right = []string{connSpec.Fabric.Links[0].Leaf.DeviceName()}
+		} else if connSpec.Gateway != nil {
+			role = "gateway"
+			left = connSpec.Gateway.Links[0].Spine.DeviceName()
+			right = []string{connSpec.Gateway.Links[0].Gateway.DeviceName()}
 		} else if connSpec.VPCLoopback != nil {
 			role = "vpc-loopback"
 			left = connSpec.VPCLoopback.Links[0].Switch1.DeviceName()
@@ -409,6 +440,8 @@ func (connSpec *ConnectionSpec) Type() string {
 		return ConnectionTypeESLAG
 	} else if connSpec.Fabric != nil {
 		return ConnectionTypeFabric
+	} else if connSpec.Gateway != nil {
+		return ConnectionTypeGateway
 	} else if connSpec.VPCLoopback != nil {
 		return ConnectionTypeVPCLoopback
 	} else if connSpec.External != nil {
@@ -448,6 +481,7 @@ func (connSpec *ConnectionSpec) ConnectionLabels() map[string]string {
 func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]string, error) {
 	switches := map[string]struct{}{}
 	servers := map[string]struct{}{}
+	gateways := map[string]struct{}{}
 	ports := map[string]struct{}{}
 	links := map[string]string{}
 
@@ -580,6 +614,23 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		if len(ports) != 2*len(connSpec.Fabric.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
+	} else if connSpec.Gateway != nil {
+		nonNills++
+
+		for _, link := range connSpec.Gateway.Links {
+			switches[link.Spine.DeviceName()] = struct{}{}
+			gateways[link.Gateway.DeviceName()] = struct{}{}
+			ports[link.Spine.PortName()] = struct{}{}
+			ports[link.Gateway.PortName()] = struct{}{}
+			links[link.Spine.PortName()] = link.Gateway.PortName()
+		}
+
+		if len(switches) != 1 {
+			return nil, nil, nil, nil, errors.Errorf("one switches must be used for gateway connection")
+		}
+		if len(ports) != 2*len(connSpec.Gateway.Links) {
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for gateway connection")
+		}
 	} else if connSpec.VPCLoopback != nil {
 		nonNills++
 
@@ -642,6 +693,10 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 	if connSpec.Fabric != nil {
 		for _, link := range connSpec.Fabric.Links {
 			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Leaf.PortName()))
+		}
+	} else if connSpec.Gateway != nil {
+		for _, link := range connSpec.Gateway.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Gateway.PortName()))
 		}
 	} else if connSpec.VPCLoopback != nil {
 		for _, link := range connSpec.VPCLoopback.Links {
@@ -779,6 +834,10 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 
 	if conn.Spec.ESLAG != nil && fabricCfg != nil && fabricCfg.FabricMode != meta.FabricModeSpineLeaf {
 		return nil, errors.Errorf("eslag connection is not allowed in current fabric configuration")
+	}
+
+	if conn.Spec.Gateway != nil && fabricCfg != nil && fabricCfg.FabricMode != meta.FabricModeSpineLeaf {
+		return nil, errors.Errorf("gateway connection is not allowed in current fabric configuration")
 	}
 
 	if kube != nil {
