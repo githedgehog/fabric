@@ -147,6 +147,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 			return nil, errors.Wrap(err, "failed to plan fabric connections")
 		}
 
+		err = planGatewayConnections(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan gateway connections")
+		}
+
 		err = planVPCLoopbacks(agent, spec)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
@@ -421,6 +426,80 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				L2VPNEVPN:               pointer.To(true),
 				L2VPNEVPNImportPolicies: []string{RouteMapBlockEVPNDefaultRemote},
 				// TODO: We might later specify dedicated neighbors for this.
+				L2VPNEVPNAllowOwnAS: pointer.To(true),
+			}
+		}
+	}
+
+	return nil
+}
+
+func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	if !agent.IsSpineLeaf() {
+		return nil
+	}
+
+	for connName, conn := range agent.Spec.Connections {
+		if conn.Gateway == nil {
+			continue
+		}
+
+		if agent.Spec.Config.GatewayASN == 0 {
+			return errors.Errorf("gateway ASN not set")
+		}
+
+		for _, link := range conn.Gateway.Links {
+			port := ""
+			ipStr := ""
+			remote := ""
+			// peer := ""
+			peerIP := ""
+			if link.Spine.DeviceName() == agent.Name {
+				port = link.Spine.LocalPortName()
+				ipStr = link.Spine.IP
+				remote = link.Gateway.Port
+				// peer = link.Gateway.DeviceName()
+				peerIP = link.Gateway.IP
+			} else {
+				continue
+			}
+
+			if ipStr == "" {
+				return errors.Errorf("no IP found for gateway conn %s", connName)
+			}
+
+			ip, ipNet, err := net.ParseCIDR(ipStr)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse gateway conn ip %s", ipStr)
+			}
+			ipPrefixLen, _ := ipNet.Mask.Size()
+
+			spec.Interfaces[port] = &dozer.SpecInterface{
+				Enabled:     pointer.To(true),
+				Description: pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
+				Speed:       getPortSpeed(agent, port),
+				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+					0: {
+						IPs: map[string]*dozer.SpecInterfaceIP{
+							ip.String(): {
+								PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+							},
+						},
+					},
+				},
+			}
+
+			ip, _, err = net.ParseCIDR(peerIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse gateway conn peer ip %s", peerIP)
+			}
+
+			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+				Enabled:             pointer.To(true),
+				Description:         pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
+				RemoteAS:            pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
+				IPv4Unicast:         pointer.To(true),
+				L2VPNEVPN:           pointer.To(true),
 				L2VPNEVPNAllowOwnAS: pointer.To(true),
 			}
 		}

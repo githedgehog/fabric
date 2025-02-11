@@ -684,6 +684,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ESLAGESIPrefix:        r.Cfg.ESLAGESIPrefix,
 			DefaultMaxPathsEBGP:   r.Cfg.DefaultMaxPathsEBGP,
 			MCLAGSessionSubnet:    r.Cfg.MCLAGSessionSubnet,
+			GatewayASN:            r.Cfg.GatewayASN,
 		}
 		if r.Cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
