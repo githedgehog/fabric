@@ -47,13 +47,13 @@ envtest := localbin / "setup-envtest" + "-" + envtest_version
   [ -f {{envtest}} ] || just _goinstall "sigs.k8s.io/controller-runtime/tools/setup-envtest" {{envtest_version}} "setup-envtest" {{envtest}}
 
 # golangci-lint, keep version in sync with ci.yaml
-golangci_lint_version := "v1.61.0"
+golangci_lint_version := "v1.64.2"
 golangci_lint := localbin / "golangci-lint" + "-" + golangci_lint_version
 @_golangci_lint: _localbin
   [ -f {{golangci_lint}} ] || just _goinstall "github.com/golangci/golangci-lint/cmd/golangci-lint" {{golangci_lint_version}} "golangci-lint" {{golangci_lint}}
 
 # butane
-butane_version := "v0.22.0"
+butane_version := "v0.23.0"
 butane := localbin / "butane" + "-" + butane_version
 @_butane: _localbin
   [ -f {{butane}} ] || just _goinstall "github.com/coreos/butane/internal" {{butane_version}} "internal" {{butane}}
@@ -138,6 +138,7 @@ test path="./...": gen _envtest _gcov2lcov
 oci := ""
 skopeo_dest_insecure := if oci == "http" { "--dest-tls-verify=false" } else { "" }
 oras_insecure := if oci == "http" { "--plain-http" } else { "" }
+helm_insecure_push := if oci == "http" { "--plain-http" } else { "" }
 
 _docker-build bin: build
   cp bin/{{bin}} config/docker/{{bin}}/
@@ -153,7 +154,7 @@ _helm-build name: _helm
   {{helm}} lint config/helm/{{name}}-{{version}}.tgz
 
 _helm-push name: _helm
-  {{helm}} push config/helm/{{name}}-{{version}}.tgz oci://{{oci_repo}}/{{oci_prefix}}/charts
+  {{helm}} push {{helm_insecure_push}} config/helm/{{name}}-{{version}}.tgz oci://{{oci_repo}}/{{oci_prefix}}/charts
 
 _kube-build name: (_docker-build name) (_helm-build name)
 
