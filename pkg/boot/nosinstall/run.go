@@ -163,7 +163,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 	}
 
 	if dryRun {
-		slog.Info("Dry run, embeded files extracted, not actually running", "dir", tmp)
+		slog.Info("Dry run, embedded files extracted, not actually running", "dir", tmp)
 
 		return nil
 	}
