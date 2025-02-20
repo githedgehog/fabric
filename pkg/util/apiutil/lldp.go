@@ -175,7 +175,7 @@ func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Swi
 				if apiPort, ok := ports[port]; ok {
 					port = apiPort
 				} else {
-					slog.Warn("Port mapping not found", "switch", status.Expected.Name, "port", port)
+					slog.Warn("port mapping for %s not found in switch %s", port, status.Expected.Name)
 				}
 			}
 
