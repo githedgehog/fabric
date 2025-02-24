@@ -186,7 +186,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
-	if err := installAgent(ctx, tmp); err != nil {
+	if err := installAgent(ctx, tmp, env.Platform); err != nil {
 		return fmt.Errorf("installing agent: %w", err)
 	}
 
@@ -379,7 +379,7 @@ func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
 	}, nil
 }
 
-func installAgent(ctx context.Context, tmp string) error {
+func installAgent(ctx context.Context, tmp string, platform string) error {
 	sonicRoot, unmountSONiC, err := mountSONiCPartition(ctx)
 	if err != nil {
 		return fmt.Errorf("mounting SONiC partition: %w", err)
@@ -440,6 +440,22 @@ func installAgent(ctx context.Context, tmp string) error {
 	}
 	if err := os.Symlink(filepath.Join(systemdPath, AgentUnitName), filepath.Join(wantsPath, AgentUnitName)); err != nil {
 		return fmt.Errorf("symlinking agent systemd unit: %w", err)
+	}
+
+	if platform == "x86_64-cls_ds4101-r0" {
+		slog.Info("Installing WorkAroud systemd unit")
+		systemdPath := filepath.Join(sonicRoot, "/etc/systemd/system")
+		if err := installFile(tmp, systemdPath, CopyUnitName, 0o644); err != nil {
+			return fmt.Errorf("installing agent systemd unit: %w", err)
+		}
+
+		wantsPath := filepath.Join(sonicRoot, "/etc/systemd/system/multi-user.target.wants")
+		if err := os.MkdirAll(wantsPath, 0o755); err != nil {
+			return fmt.Errorf("creating systemd wants dir: %w", err)
+		}
+		if err := os.Symlink(filepath.Join(systemdPath, CopyUnitName), filepath.Join(wantsPath, CopyUnitName)); err != nil {
+			return fmt.Errorf("symlinking agent systemd unit: %w", err)
+		}
 	}
 
 	return nil
