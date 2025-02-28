@@ -34,32 +34,38 @@ import (
 )
 
 func NewClient(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
-	return newClient(ctx, kubeconfigPath, false, false, schemeBuilders...)
+	_, kube, err := newClient(ctx, kubeconfigPath, false, false, schemeBuilders...)
+
+	return kube, err
 }
 
 func NewClientWithCore(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
-	return newClient(ctx, kubeconfigPath, true, false, schemeBuilders...)
+	_, kube, err := newClient(ctx, kubeconfigPath, true, false, schemeBuilders...)
+
+	return kube, err
 }
 
-func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (context.CancelFunc, client.WithWatch, error) {
 	return newClient(ctx, kubeconfigPath, false, true, schemeBuilders...)
 }
 
 // TODO cached version is minimal naive implementation with hanging go routine, need to be improved
-func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (client.WithWatch, error) {
+func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (context.CancelFunc, client.WithWatch, error) { //nolint:contextcheck
 	var cfg *rest.Config
 	var err error
 
+	cancel := func() {}
+
 	if kubeconfigPath == "" {
 		if cfg, err = ctrl.GetConfig(); err != nil {
-			return nil, errors.Wrapf(err, "failed to get kubeconfig using default path or in-cluster config")
+			return cancel, nil, errors.Wrapf(err, "failed to get kubeconfig using default path or in-cluster config")
 		}
 	} else {
 		if cfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
 			nil,
 		).ClientConfig(); err != nil {
-			return nil, errors.Wrapf(err, "failed to load kubeconfig from %s", kubeconfigPath)
+			return cancel, nil, errors.Wrapf(err, "failed to load kubeconfig from %s", kubeconfigPath)
 		}
 	}
 
@@ -67,13 +73,13 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 
 	if core {
 		if err := corev1.AddToScheme(scheme); err != nil {
-			return nil, errors.Wrapf(err, "failed to add core scheme to runtime")
+			return cancel, nil, errors.Wrapf(err, "failed to add core scheme to runtime")
 		}
 	}
 
 	for _, schemeBuilder := range schemeBuilders {
 		if err := schemeBuilder.AddToScheme(scheme); err != nil {
-			return nil, errors.Wrapf(err, "failed to add scheme %s to runtime", schemeBuilder.GroupVersion.String())
+			return cancel, nil, errors.Wrapf(err, "failed to add scheme %s to runtime", schemeBuilder.GroupVersion.String())
 		}
 	}
 
@@ -84,18 +90,22 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 			DefaultWatchErrorHandler: cacheWatchErrorHandler,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create kube controller runtime cache")
+			return cancel, nil, errors.Wrapf(err, "failed to create kube controller runtime cache")
 		}
 
+		// Use a separate context for the cache to avoid canceling when parent context is canceled
+		var cacheCtx context.Context
+		cacheCtx, cancel = context.WithCancel(context.Background())
+
 		go func() {
-			if err := clientCache.Start(ctx); err != nil {
+			if err := clientCache.Start(cacheCtx); err != nil {
 				slog.Error("failed to start kube controller runtime cache", "err", err)
 				panic(fmt.Errorf("failed to start kube controller runtime cache: %w", err))
 			}
 		}()
 
 		if !clientCache.WaitForCacheSync(ctx) {
-			return nil, errors.New("failed to sync kube controller runtime cache")
+			return cancel, nil, errors.New("failed to sync kube controller runtime cache")
 		}
 
 		cacheOpts = &client.CacheOptions{
@@ -108,10 +118,10 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 		Cache:  cacheOpts,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create kube controller runtime client")
+		return cancel, nil, errors.Wrapf(err, "failed to create kube controller runtime client")
 	}
 
-	return kubeClient, nil
+	return cancel, kubeClient, nil
 }
 
 func cacheWatchErrorHandler(r *clientcache.Reflector, err error) {
