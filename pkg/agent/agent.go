@@ -547,7 +547,21 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 
 	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true"})
 	if err != nil {
-		slog.Warn("Failed to upgrade Agent", "err", err)
+		if errors.Is(err, common.ErrAgentUpgradeDownloadFailed) {
+			// TODO properly retry it without restarting the agent
+			slog.Warn("Failed to download new agent version, restarting agent to retry", "err", err)
+
+			return errors.New("failed to download new agent version")
+		} else if errors.Is(err, common.ErrAgentUpgradeCheckFailed) {
+			// TODO properly report it in the Agent object status
+			slog.Warn("Failed to check new agent version, skipping upgrade", "err", err)
+
+			// not failing here, as new agent seems to be not working
+		} else {
+			slog.Warn("Failed to upgrade agent", "err", err)
+
+			return errors.Wrap(err, "failed to upgrade agent")
+		}
 	} else if upgraded {
 		slog.Info("Agent upgraded, restarting")
 		os.Exit(0) // TODO graceful agent restart
