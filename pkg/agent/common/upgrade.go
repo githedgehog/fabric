@@ -18,6 +18,8 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,13 +27,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
+)
+
+var (
+	ErrAgentUpgradeDownloadFailed = errors.New("agent upgrade download failed")
+	ErrAgentUpgradeCheckFailed    = errors.New("agent upgrade check failed")
 )
 
 func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.AgentVersion, dryRun bool, testArgs []string) (bool, error) {
@@ -66,31 +72,31 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 		cmd.Stderr = logutil.NewSink(ctx, slog.Warn, "newagent: ")
 		err := cmd.Run()
 
-		return errors.Wrap(err, "failed to run new agent")
+		return fmt.Errorf("failed to run new agent: %w", err)
 	})
 }
 
 func UpgradeBin(ctx context.Context, source, version, ca, username, password, target, name string, testFunc func(ctx context.Context, binPath string) error) error {
 	tmpPath, err := os.MkdirTemp(target, "bin-upgrade-*")
 	if err != nil {
-		return errors.Wrap(err, "failed to create temp dir")
+		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpPath)
 
 	fs, err := file.New(tmpPath)
 	if err != nil {
-		return errors.Wrapf(err, "error creating oras file store in %s", tmpPath)
+		return fmt.Errorf("failed to create oras file store: %w", err)
 	}
 	defer fs.Close()
 
 	repo, err := remote.NewRepository(source)
 	if err != nil {
-		return errors.Wrapf(err, "error creating oras remote repo %s", source)
+		return fmt.Errorf("failed to create oras remote repo: %w", err)
 	}
 
 	rootCAs := x509.NewCertPool()
 	if !rootCAs.AppendCertsFromPEM([]byte(ca)) {
-		return errors.New("failed to append CA cert to rootCAs")
+		return fmt.Errorf("failed to append CA cert to rootCAs") //nolint:goerr113
 	}
 
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -119,24 +125,24 @@ func UpgradeBin(ctx context.Context, source, version, ca, username, password, ta
 		},
 	})
 	if err != nil {
-		return errors.Wrapf(err, "error downloading new %s bin %s from %s", name, version, source)
+		return fmt.Errorf("failed to download new %s bin %s from %s: %w", name, version, source, errors.Join(ErrAgentUpgradeDownloadFailed, err))
 	}
 
 	binPath := filepath.Join(tmpPath, name)
 
 	err = os.Chmod(binPath, 0o755)
 	if err != nil {
-		return errors.Wrapf(err, "failed to chmod new %s bin in %s", name, tmpPath)
+		return fmt.Errorf("failed to chmod new %s bin in %s: %w", name, tmpPath, err)
 	}
 
 	if err := testFunc(ctx, binPath); err != nil {
-		return errors.Wrapf(err, "failed to test new %s bin in %s", name, tmpPath)
+		return fmt.Errorf("failed to test new %s bin in %s: %w", name, tmpPath, errors.Join(ErrAgentUpgradeCheckFailed, err))
 	}
 
 	targetPath := filepath.Join(target, name)
 	err = os.Rename(binPath, targetPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to move new bin to %s", targetPath)
+		return fmt.Errorf("failed to move new %s bin to %s: %w", name, targetPath, err)
 	}
 
 	return nil
