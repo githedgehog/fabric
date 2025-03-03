@@ -7,7 +7,7 @@ replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumber
 require (
 	github.com/0x5a17ed/uefi v0.6.1
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/bits-and-blooms/bitset v1.20.0
+	github.com/bits-and-blooms/bitset v1.21.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
