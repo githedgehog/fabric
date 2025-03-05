@@ -34,6 +34,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	DellZ9332FON,
 	CelesticaDS3000,
 	CelesticaDS4000,
+	CelesticaDS4101,
 	EdgecoreDCS203,
 	EdgecoreDCS204,
 	EdgecoreDCS501,
