@@ -97,3 +97,41 @@ as4630-01(config-if-Ethernet48)# speed
 as4630-01(config-if-Ethernet48)# speed 400000
 %Error: Unsupported speed
 ```
+
+# Testing a new Switch
+
+A new switch either a leaf or spine should be tested as part of these changes.
+
+## Switch Configuration
+
+Some test cases:
+
+0. Ensure that a port can be broken out using the hedgehog fabric. Either
+   manually edit the switch object to create a breakout or add connections that
+will require a breakout. After the configuration is applied according to the
+generations reported by the switch agent confirm the breakout using the sonic
+cli via `show interface breakout`
+
+0. Ensure the last "asic" port can be broken out, e.g if the switch claims
+   32x100G ports, ensure port 32 can be broken out.
+
+## Passing Traffic
+
+Once the required cabling has been done in the lab we are ready to test passing
+traffic. The iperf results should not deviate from the norm, if they do
+investigation is needed. Ensure that traffic is not going through the switch
+CPU.
+
+### Spines
+
+For testing a new spine it is best to have the spine be the only spine in a
+fabric. The fabrics have at least two spines, power off other spines so that
+the functionality of the new spine can be quickly determined. Run the standard
+ping and iperf3 testing to ensure that traffic is flowing as expected. 
+
+
+### Leafs
+
+A leaf will need similar testing to a spine. Create a VPC attached to leaf and
+have the traffic transit the leaf in and out of the VPC. Additionally test that
+the leaf allows for Remote VPC peering. 
