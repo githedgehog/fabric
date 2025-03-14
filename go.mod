@@ -1,8 +1,6 @@
 module go.githedgehog.com/fabric
 
-go 1.23.4
-
-toolchain go1.24.1
+go 1.24.0
 
 replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
 
