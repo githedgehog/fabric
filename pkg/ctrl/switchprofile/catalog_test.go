@@ -15,7 +15,6 @@
 package switchprofile_test
 
 import (
-	"context"
 	"sort"
 	"testing"
 
@@ -29,7 +28,7 @@ import (
 )
 
 func TestDefaultSwitchProfiles(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
@@ -53,7 +52,7 @@ func TestDefaultSwitchProfiles(t *testing.T) {
 }
 
 func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))

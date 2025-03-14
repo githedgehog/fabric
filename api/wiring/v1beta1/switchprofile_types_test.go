@@ -15,7 +15,6 @@
 package v1beta1_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -120,7 +119,7 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
-			}).Validate(context.Background(), nil, nil)
+			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
 			got, err := tt.sp.GetAPI2NOSPortsFor(tt.sw)
@@ -230,7 +229,7 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
-			}).Validate(context.Background(), nil, nil)
+			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
 			got, err := tt.sp.GetNOS2APIPortsFor(tt.sw)
@@ -334,7 +333,7 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
-			}).Validate(context.Background(), nil, nil)
+			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
 			got, err := tt.sp.GetAllBreakoutNOSNames()
@@ -430,7 +429,7 @@ func TestSwitchProfileDefault(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
-			}).Validate(context.Background(), nil, nil)
+			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
 			sp := &wiringapi.SwitchProfile{

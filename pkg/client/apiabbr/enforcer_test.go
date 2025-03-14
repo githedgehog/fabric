@@ -15,7 +15,6 @@
 package apiabbr_test
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -295,7 +294,7 @@ func TestEnforcer(t *testing.T) {
 				WithObjects(initObjects...).
 				Build()
 
-			err = enf.Enforce(context.Background(), kube)
+			err = enf.Enforce(t.Context(), kube)
 			require.NoError(t, err)
 
 			expectedObjects := tt.expectedObjects.toObjects(t, "expected", true)
@@ -309,7 +308,7 @@ func TestEnforcer(t *testing.T) {
 				&vpcapi.VPCPeeringList{},
 				&vpcapi.ExternalPeeringList{},
 			} {
-				if err := kube.List(context.Background(), list); err != nil {
+				if err := kube.List(t.Context(), list); err != nil {
 					t.Fatalf("failed to list %s: %v", list.GetObjectKind().GroupVersionKind().Kind, err)
 				}
 

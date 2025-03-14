@@ -15,7 +15,6 @@
 package apiutil_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -551,7 +550,7 @@ func TestIsServerReachable(t *testing.T) {
 			}
 
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
-			reachable, err := apiutil.IsServerReachable(context.Background(), kube, tt.source, tt.dest)
+			reachable, err := apiutil.IsServerReachable(t.Context(), kube, tt.source, tt.dest)
 
 			if tt.err {
 				require.Error(t, err)
@@ -798,7 +797,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			}
 
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
-			reachable, err := apiutil.IsExternalSubnetReachable(context.Background(), kube, tt.source, tt.dest)
+			reachable, err := apiutil.IsExternalSubnetReachable(t.Context(), kube, tt.source, tt.dest)
 
 			if tt.err {
 				require.Error(t, err)
@@ -1124,7 +1123,7 @@ func TestGetReacheableFrom(t *testing.T) {
 			}
 
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
-			reachable, err := apiutil.GetReachableFrom(context.Background(), kube, tt.vpc)
+			reachable, err := apiutil.GetReachableFrom(t.Context(), kube, tt.vpc)
 
 			if tt.err {
 				require.Error(t, err)
@@ -1290,7 +1289,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 			}
 
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
-			reachable, err := apiutil.IsStaticExternalIPReachable(context.Background(), kube, tt.source, tt.dest)
+			reachable, err := apiutil.IsStaticExternalIPReachable(t.Context(), kube, tt.source, tt.dest)
 
 			if tt.err {
 				require.Error(t, err)
@@ -1585,7 +1584,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			}
 
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rawObjs...).Build()
-			reachable, err := apiutil.IsExternalIPReachable(context.Background(), kube, tt.source, tt.dest)
+			reachable, err := apiutil.IsExternalIPReachable(t.Context(), kube, tt.source, tt.dest)
 
 			if tt.err {
 				require.Error(t, err)
