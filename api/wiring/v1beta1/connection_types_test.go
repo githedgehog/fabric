@@ -15,7 +15,6 @@
 package v1beta1_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -184,7 +183,7 @@ func TestConnectionValidation(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: *tt.conn,
-			}).Validate(context.Background(), nil, cfg)
+			}).Validate(t.Context(), nil, cfg)
 
 			if tt.err {
 				require.Error(t, err)
