@@ -70,9 +70,12 @@ func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.A
 		cmd := exec.CommandContext(ctx, binPath, testArgs...)
 		cmd.Stdout = logutil.NewSink(ctx, slog.Info, "newagent: ")
 		cmd.Stderr = logutil.NewSink(ctx, slog.Warn, "newagent: ")
-		err := cmd.Run()
 
-		return fmt.Errorf("failed to run new agent: %w", err)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to run new agent: %w", err)
+		}
+
+		return nil
 	})
 }
 
