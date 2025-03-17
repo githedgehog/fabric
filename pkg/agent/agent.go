@@ -34,6 +34,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
@@ -515,25 +516,33 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
 		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)
 		if !svc.SkipActions {
-			err := uefiutil.MakeONIEDefaultBootEntryAndCleanup()
-			if err != nil {
-				slog.Warn("Failed to make ONIE default boot entry", "err", err)
-			} else {
-				slog.Info("Rebooting into ONIE")
-				reboot = true
+			slog.Info("Making ONIE next boot entry")
+
+			if err := uefiutil.MakeONIEDefaultBootEntryAndCleanup(); err != nil {
+				return fmt.Errorf("failed to make ONIE default boot entry: %w", err)
 			}
+
+			slog.Info("Make ONIE grub NOS Install entry default")
+
+			if err := svc.setONIENOSInstall(ctx); err != nil {
+				return fmt.Errorf("failed to set ONIE to install: %w", err)
+			}
+
+			reboot = true
 		}
 	}
 
 	if agent.Spec.Reboot != "" && agent.Spec.Reboot == svc.bootID {
 		slog.Info("Reboot requested", "bootID", agent.Spec.Reboot)
 		if !svc.SkipActions {
-			slog.Info("Rebooting")
 			reboot = true
 		}
 	}
 
 	if reboot {
+		slog.Info("Rebooting in 5 seconds")
+		time.Sleep(5 * time.Second)
+
 		cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
 		err := cmd.Run()
 		if err != nil {
@@ -618,6 +627,33 @@ func (svc *Service) saveConfigToFile(agent *agentapi.Agent) error {
 	err = os.WriteFile(svc.configFilePath(), data, 0o644) //nolint:gosec
 	if err != nil {
 		return errors.Wrapf(err, "failed to write config file %s", svc.configFilePath())
+	}
+
+	return nil
+}
+
+func (svc *Service) setONIENOSInstall(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if err := nosinstall.EnsureONIEBootPartition(ctx); err != nil {
+		return errors.Wrap(err, "failed to ensure ONIE boot partition")
+	}
+
+	cmd := exec.CommandContext(ctx, "/mnt/onie-boot/onie/tools/bin/onie-boot-mode", "-o", "install")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to run onie-boot-mode set install")
+	}
+
+	cmd = exec.CommandContext(ctx, "/mnt/onie-boot/onie/tools/bin/onie-boot-mode", "-l")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to run onie-boot-mode list")
 	}
 
 	return nil
