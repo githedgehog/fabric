@@ -1,2 +1,4 @@
 self-hosted-runner:
-  labels: ["lab", "simple", "X64", "jammy"]
+  labels:
+    - lab
+    - lab-h
