@@ -178,7 +178,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		}
 	}()
 
-	if err := ensureONIEBootPartition(ctx); err != nil {
+	if err := EnsureONIEBootPartition(ctx); err != nil {
 		return fmt.Errorf("ensuring ONIE boot partition: %w", err)
 	}
 
@@ -302,7 +302,7 @@ func runNOSInstaller(ctx context.Context, tmp string) error {
 	return nil
 }
 
-func ensureONIEBootPartition(ctx context.Context) error {
+func EnsureONIEBootPartition(ctx context.Context) error {
 	_, err := os.Stat("/mnt/onie-boot/onie/grub.d")
 	if err == nil {
 		return nil
