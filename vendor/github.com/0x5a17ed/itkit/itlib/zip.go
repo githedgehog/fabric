@@ -1,4 +1,4 @@
-// Copyright (c) 2022 individual contributors
+// Copyright (c) 2022 individual contributors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import (
 )
 
 type ZipIterator[T1, T2 any] struct {
-	Left    itkit.Iterator[T1]
-	Right   itkit.Iterator[T2]
-	current ittuple.T2[T1, T2]
+	Left  itkit.Iterator[T1]
+	Right itkit.Iterator[T2]
+	cur   ittuple.T2[T1, T2]
 }
 
 type Pair[T1, T2 any] interface{ Values() (T1, T2) }
@@ -30,18 +30,15 @@ type Pair[T1, T2 any] interface{ Values() (T1, T2) }
 // Ensure ZipIterator conforms to the Iterator protocol.
 var _ itkit.Iterator[Pair[struct{}, struct{}]] = &ZipIterator[struct{}, struct{}]{}
 
-func (it *ZipIterator[T1, T2]) Next() bool {
-	if !it.Left.Next() || !it.Right.Next() {
-		it.current = ittuple.T2[T1, T2]{}
-		return false
+func (it *ZipIterator[T1, T2]) Next() (ok bool) {
+	if ok = it.Left.Next() && it.Right.Next(); ok {
+		it.cur = ittuple.T2[T1, T2]{it.Left.Value(), it.Right.Value()}
 	}
-
-	it.current = ittuple.T2[T1, T2]{it.Left.Value(), it.Right.Value()}
-	return true
+	return
 }
 
 func (it *ZipIterator[T1, T2]) Value() Pair[T1, T2] {
-	return it.current
+	return it.cur
 }
 
 // Zip returns an iterator that aggregates elements from the given iterators.

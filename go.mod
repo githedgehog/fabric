@@ -5,7 +5,7 @@ go 1.24.0
 replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
 
 require (
-	github.com/0x5a17ed/uefi v0.6.1
+	github.com/0x5a17ed/uefi v0.7.0
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/bits-and-blooms/bitset v1.22.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
@@ -57,7 +57,7 @@ require (
 	cloud.google.com/go/monitoring v1.21.2 // indirect
 	cloud.google.com/go/storage v1.49.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
-	github.com/0x5a17ed/itkit v0.6.0 // indirect
+	github.com/0x5a17ed/itkit v0.7.0 // indirect
 	github.com/AlekSi/pointer v1.2.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.25.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.48.1 // indirect

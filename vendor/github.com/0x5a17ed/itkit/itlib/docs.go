@@ -12,31 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package itlib provides generic function for operating on iterators.
 package itlib
-
-import (
-	"github.com/0x5a17ed/itkit"
-)
-
-type MapFn[T, V any] func(T) V
-
-type MapIterator[T, V any] struct {
-	it  itkit.Iterator[T]
-	fn  MapFn[T, V]
-	cur V
-}
-
-func (m *MapIterator[T, V]) Next() (ok bool) {
-	if ok = m.it.Next(); ok {
-		m.cur = m.fn(m.it.Value())
-	}
-	return
-}
-
-func (m *MapIterator[T, V]) Value() V { return m.cur }
-
-// Map returns an iterator that applies MapFn function to every item
-// of iterkit.Iterator iterable, yielding the results.
-func Map[T, V any](it itkit.Iterator[T], fn MapFn[T, V]) itkit.Iterator[V] {
-	return &MapIterator[T, V]{it: it, fn: fn}
-}

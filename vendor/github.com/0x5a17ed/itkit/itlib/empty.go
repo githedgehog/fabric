@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Arthur Skowronek <0x5a17ed@tuta.io>
+// Copyright (c) 2022 individual contributors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 
 type EmptyIterator[T any] struct{}
 
-func (e EmptyIterator[T]) Next() bool { return false }
-func (e EmptyIterator[T]) Value() T   { panic("empty iterator") }
+func (e EmptyIterator[T]) Next() bool   { return false }
+func (e EmptyIterator[T]) Value() (v T) { return }
 
 // Empty returns an Iterator that is always exhausted.
 func Empty[T any]() itkit.Iterator[T] { return &EmptyIterator[T]{} }

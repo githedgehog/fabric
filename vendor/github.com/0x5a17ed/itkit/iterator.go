@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Arthur Skowronek <0x5a17ed@tuta.io>
+// Copyright (c) 2022 individual contributors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ type Iterator[T any] interface {
 	// available to be fetched with Value and false otherwise.
 	Next() bool
 
-	// Value returns the current item if there is any and panics
-	// otherwise.
+	// Value returns the current item if there is any and may
+	// panic otherwise.
 	//
 	// Note: Use Next to ensure there is an item.
 	Value() T
