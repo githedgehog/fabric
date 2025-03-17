@@ -52,13 +52,13 @@ cloud.google.com/go/storage/internal/apiv2/storagepb
 # dario.cat/mergo v1.0.0
 ## explicit; go 1.13
 dario.cat/mergo
-# github.com/0x5a17ed/itkit v0.6.0
+# github.com/0x5a17ed/itkit v0.7.0
 ## explicit; go 1.18
 github.com/0x5a17ed/itkit
 github.com/0x5a17ed/itkit/iters/sliceit
 github.com/0x5a17ed/itkit/itlib
 github.com/0x5a17ed/itkit/ittuple
-# github.com/0x5a17ed/uefi v0.6.1
+# github.com/0x5a17ed/uefi v0.7.0
 ## explicit; go 1.18
 github.com/0x5a17ed/uefi/efi/efiguid
 github.com/0x5a17ed/uefi/efi/efihex

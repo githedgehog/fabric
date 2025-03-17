@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Arthur Skowronek <0x5a17ed@tuta.io>
+// Copyright (c) 2022 individual contributors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ type ApplyNFn[T any] func(i int, item T)
 // ApplyN walks through the given Iterator it and calls ApplyNFn fn
 // for every single entry together with its index.
 func ApplyN[T any](it itkit.Iterator[T], fn ApplyNFn[T]) {
-	for i := 0; it.Next(); i += 1 {
+	for i := 0; it.Next(); i++ {
 		fn(i, it.Value())
 	}
 }

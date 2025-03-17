@@ -31,27 +31,69 @@ import (
 	"github.com/0x5a17ed/uefi/efi/efivario/efiwindows"
 )
 
+type sysEnvVarsAPIImpl struct{}
+
+func (impl sysEnvVarsAPIImpl) Get(lpName *uint16, lpGuid *uint16, buf []byte, attrs *uint32) (n uint32, err error) {
+	return efiwindows.GetFirmwareEnvironmentVariableEx(lpName, lpGuid, buf, attrs)
+}
+
+func (impl sysEnvVarsAPIImpl) Set(lpName *uint16, lpGuid *uint16, buf []byte, attrs uint32) (err error) {
+	return efiwindows.SetFirmwareEnvironmentVariableEx(lpName, lpGuid, buf, attrs)
+}
+
+func (impl sysEnvVarsAPIImpl) Enumerate(InformationClass uint32, buf *byte, bufLen *uint32) (ntstatus error) {
+	return efiwindows.NtEnumerateSystemEnvironmentValuesEx(InformationClass, buf, bufLen)
+}
+
+func (impl sysEnvVarsAPIImpl) Query(
+	name *windows.NTUnicodeString,
+	guid *efiwindows.GUID,
+	buf *byte,
+	bufLen *uint32,
+	attrs *uint32,
+) (ntstatus error) {
+	return efiwindows.NtQuerySystemEnvironmentValueEx(name, guid, buf, bufLen, attrs)
+}
+
 type bufferVarEntry struct {
-	Length uint32
+	NextEntryOffset uint32
 
 	Guid efiguid.GUID
 
-	Name []byte
+	Name string
 }
 
 func (e *bufferVarEntry) ReadFrom(r io.Reader) (n int64, err error) {
 	fr := efireader.NewFieldReader(r, &n)
 
-	if err = fr.ReadFields(&e.Length, &e.Guid); err != nil {
-		return
+	if err = fr.ReadFields(&e.NextEntryOffset, &e.Guid); err != nil {
+		return n, err
 	}
 
-	e.Name = make([]byte, e.Length-20)
-	if _, err = io.ReadFull(fr, e.Name); err != nil {
-		return
+	// Read remainder of the entry.
+	var entryBuffer bytes.Buffer
+	if e.NextEntryOffset > 0 {
+		// Read until next entry.
+		entryLength := int64(e.NextEntryOffset) - fr.Offset()
+		if _, err = io.CopyN(&entryBuffer, fr, entryLength); err != nil {
+			return n, err
+		}
+
+	} else {
+		// Read all what's left in the buffer.
+		if _, err = io.Copy(&entryBuffer, fr); err != nil {
+			return n, err
+		}
 	}
 
-	return
+	// Set name field.
+	nameBytes, err := efireader.ReadUTF16NullBytes(&entryBuffer)
+	if err != nil {
+		return n, err
+	}
+	e.Name = efireader.UTF16ZBytesToString(nameBytes)
+
+	return n, nil
 }
 
 type wapiVarNameIterator struct {
@@ -79,7 +121,7 @@ func (it *wapiVarNameIterator) Next() bool {
 	}
 
 	it.current = &VariableNameItem{
-		Name: efireader.UTF16ZBytesToString(entry.Name),
+		Name: entry.Name,
 		GUID: entry.Guid,
 	}
 	return true
@@ -109,9 +151,27 @@ func convertNameGuid(name string, guid efiguid.GUID) (lpName, lpGuid *uint16, er
 	return
 }
 
+type sysEnvVarsAPI interface {
+	Get(lpName *uint16, lpGuid *uint16, buf []byte, attrs *uint32) (n uint32, err error)
+
+	Set(lpName *uint16, lpGuid *uint16, buf []byte, attrs uint32) (err error)
+
+	Enumerate(InformationClass uint32, buf *byte, bufLen *uint32) (ntstatus error)
+
+	Query(
+		name *windows.NTUnicodeString,
+		guid *efiwindows.GUID,
+		buf *byte,
+		bufLen *uint32,
+		attrs *uint32,
+	) (ntstatus error)
+}
+
 // WindowsContext provides an implementation of the Context API
 // for the windows platform.
-type WindowsContext struct{}
+type WindowsContext struct {
+	api sysEnvVarsAPI
+}
 
 // Ensure the public facing API in Context is implemented by WindowsContext.
 var _ Context = &WindowsContext{}
@@ -122,14 +182,16 @@ func (c WindowsContext) Close() error {
 
 func (c WindowsContext) VariableNames() (VariableNameIterator, error) {
 	var bufLen uint32
-	if err := efiwindows.NtEnumerateSystemEnvironmentValuesEx(1, nil, &bufLen); err != nil {
+
+	// Try first a null buffer to figure out how large the buffer needs to be.
+	if err := c.api.Enumerate(1, nil, &bufLen); err != nil {
 		if !errors.Is(err, windows.STATUS_BUFFER_TOO_SMALL) {
 			return nil, err
 		}
 	}
 
 	buf := make([]byte, bufLen)
-	if err := efiwindows.NtEnumerateSystemEnvironmentValuesEx(1, &buf[0], &bufLen); err != nil {
+	if err := c.api.Enumerate(1, &buf[0], &bufLen); err != nil {
 		return nil, err
 	}
 
@@ -146,7 +208,7 @@ func (c WindowsContext) GetSizeHint(name string, guid efiguid.GUID) (int64, erro
 	windows.RtlInitUnicodeString(&uName, lpName)
 
 	var bufLen uint32
-	err = efiwindows.NtQuerySystemEnvironmentValueEx(&uName, &guid, nil, &bufLen, nil)
+	err = c.api.Query(&uName, &guid, nil, &bufLen, nil)
 	if err != nil && !errors.Is(err, windows.STATUS_BUFFER_TOO_SMALL) {
 		return 0, fmt.Errorf("efivario/GetSizeHint: query(%q): %w", name, err)
 	}
@@ -160,7 +222,7 @@ func (c WindowsContext) Get(name string, guid efiguid.GUID, out []byte) (a Attri
 		return
 	}
 
-	length, err := efiwindows.GetFirmwareEnvironmentVariableEx(lpName, lpGuid, out, (*uint32)(&a))
+	length, err := c.api.Get(lpName, lpGuid, out, (*uint32)(&a))
 	if err != nil {
 		switch err {
 		case windows.ERROR_INSUFFICIENT_BUFFER:
@@ -181,7 +243,7 @@ func (c WindowsContext) Set(name string, guid efiguid.GUID, attributes Attribute
 		return fmt.Errorf("efivario/Set: %w", err)
 	}
 
-	err = efiwindows.SetFirmwareEnvironmentVariableEx(lpName, lpGuid, value, (uint32)(attributes))
+	err = c.api.Set(lpName, lpGuid, value, (uint32)(attributes))
 	if err != nil {
 		return fmt.Errorf("efivario/Set: %w", err)
 	}
@@ -194,7 +256,7 @@ func (c WindowsContext) Delete(name string, guid efiguid.GUID) error {
 		return fmt.Errorf("efivario/Delete: %w", err)
 	}
 
-	err = efiwindows.SetFirmwareEnvironmentVariableEx(lpName, lpGuid, nil, 0)
+	err = c.api.Set(lpName, lpGuid, nil, 0)
 	if err != nil {
 		return fmt.Errorf("efivario/Delete: %w", err)
 	}
@@ -202,5 +264,5 @@ func (c WindowsContext) Delete(name string, guid efiguid.GUID) error {
 }
 
 func NewDefaultContext() Context {
-	return &WindowsContext{}
+	return &WindowsContext{api: sysEnvVarsAPIImpl{}}
 }

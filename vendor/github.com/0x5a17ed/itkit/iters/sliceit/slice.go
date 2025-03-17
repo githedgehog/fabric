@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Arthur Skowronek <0x5a17ed@tuta.io>
+// Copyright (c) 2022 individual contributors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,24 +23,20 @@ import (
 type SliceIterator[T any] struct {
 	Data []T
 
-	index   int
-	current *T
+	index int
+	cur   T
 }
 
 // Ensure SliceIterator conforms to the Iterator protocol.
 var _ itkit.Iterator[[]struct{}] = &SliceIterator[[]struct{}]{}
 
-func (it *SliceIterator[T]) Next() bool {
-	if it.index >= len(it.Data) {
-		it.current = nil
-		return false
-	}
-	it.current, it.index = &it.Data[it.index], it.index+1
-	return true
-}
+func (it *SliceIterator[T]) Value() T { return it.cur }
 
-func (it *SliceIterator[T]) Value() T {
-	return *it.current
+func (it *SliceIterator[T]) Next() (ok bool) {
+	if ok = it.index < len(it.Data); ok {
+		it.cur, it.index = it.Data[it.index], it.index+1
+	}
+	return
 }
 
 // In returns an [Iterator] yielding items in the given slice.
