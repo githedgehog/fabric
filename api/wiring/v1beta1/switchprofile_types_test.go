@@ -506,3 +506,176 @@ func TestComparePortNames(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAvailableAPIPorts(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		sp   *wiringapi.SwitchProfileSpec
+		sw   *wiringapi.SwitchSpec
+		want map[string]bool
+		err  bool
+	}{
+		{
+			name: "simple",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName: "Test",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
+					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
+					"E1/2": {NOSName: "Ethernet4", Label: "2", Group: "1"},
+					"E1/3": {NOSName: "Ethernet8", Label: "3", Group: "2"},
+					"E1/4": {NOSName: "Ethernet12", Label: "4", Group: "2"},
+					"E1/5": {NOSName: "Ethernet16", Label: "5", Profile: "SFP28-25G"},
+					"E1/6": {NOSName: "Ethernet17", Label: "6", Profile: "SFP28-25G"},
+					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
+					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
+					"E1/9": {NOSName: "1/9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "Ethernet28"},
+				},
+				PortGroups: map[string]wiringapi.SwitchProfilePortGroup{
+					"1": {
+						NOSName: "1",
+						Profile: "SFP28-25G",
+					},
+					"2": {
+						NOSName: "2",
+						Profile: "SFP28-25G",
+					},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"SFP28-25G": {
+						Speed: &wiringapi.SwitchProfilePortProfileSpeed{
+							Default:   "25G",
+							Supported: []string{"10G", "25G"},
+						},
+					},
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{"0"}},
+								"1x40G":  {Offsets: []string{"0"}},
+								"2x50G":  {Offsets: []string{"0", "2"}},
+								"1x50G":  {Offsets: []string{"0"}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{"0"}},
+								"1x10G":  {Offsets: []string{"0"}},
+							},
+						},
+					},
+				},
+			},
+			sw: &wiringapi.SwitchSpec{
+				PortBreakouts: map[string]string{
+					"E1/8": "4x25G",
+					"E1/9": "2x50G",
+				},
+			},
+			want: map[string]bool{
+				"E1/1":   true,
+				"E1/2":   true,
+				"E1/3":   true,
+				"E1/4":   true,
+				"E1/5":   true,
+				"E1/6":   true,
+				"E1/7/1": true,
+				"E1/8/1": true,
+				"E1/8/2": true,
+				"E1/8/3": true,
+				"E1/8/4": true,
+				"E1/9/1": true,
+				"E1/9/2": true,
+			},
+		},
+		{
+			name: "simple-no-switch",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName: "Test",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
+					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
+					"E1/2": {NOSName: "Ethernet4", Label: "2", Group: "1"},
+					"E1/3": {NOSName: "Ethernet8", Label: "3", Group: "2"},
+					"E1/4": {NOSName: "Ethernet12", Label: "4", Group: "2"},
+					"E1/5": {NOSName: "Ethernet16", Label: "5", Profile: "SFP28-25G"},
+					"E1/6": {NOSName: "Ethernet17", Label: "6", Profile: "SFP28-25G"},
+					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
+					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
+					"E1/9": {NOSName: "1/9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "Ethernet28"},
+				},
+				PortGroups: map[string]wiringapi.SwitchProfilePortGroup{
+					"1": {
+						NOSName: "1",
+						Profile: "SFP28-25G",
+					},
+					"2": {
+						NOSName: "2",
+						Profile: "SFP28-25G",
+					},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"SFP28-25G": {
+						Speed: &wiringapi.SwitchProfilePortProfileSpeed{
+							Default:   "25G",
+							Supported: []string{"10G", "25G"},
+						},
+					},
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{"0"}},
+								"1x40G":  {Offsets: []string{"0"}},
+								"2x50G":  {Offsets: []string{"0", "2"}},
+								"1x50G":  {Offsets: []string{"0"}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{"0"}},
+								"1x10G":  {Offsets: []string{"0"}},
+							},
+						},
+					},
+				},
+			},
+			sw: nil,
+			want: map[string]bool{
+				"E1/1":   true,
+				"E1/2":   true,
+				"E1/3":   true,
+				"E1/4":   true,
+				"E1/5":   true,
+				"E1/6":   true,
+				"E1/7/1": true,
+				"E1/8/1": true,
+				"E1/9/1": true,
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.sp != nil {
+				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
+				tt.sp.Platform = "vs"
+			}
+
+			_, err := (&wiringapi.SwitchProfile{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: *tt.sp,
+			}).Validate(t.Context(), nil, nil)
+			require.NoError(t, err)
+
+			got, err := tt.sp.GetAvailableAPIPorts(tt.sw)
+
+			if tt.err {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
