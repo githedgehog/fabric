@@ -49,7 +49,7 @@ gen: _kube_gen _embed _crd_ref_docs
   go run cmd/fabric-gen/main.go profiles-ref
 
 # Build all artifacts
-build: _license_headers _kube_gen _gotools _embed && version
+build: _license_headers _gotools gen _embed && version
   {{go_linux_build}} -o ./bin/fabric ./cmd
   {{go_linux_build}} -o ./bin/agent ./cmd/agent
   {{go_linux_build}} -o ./bin/hhfctl ./cmd/hhfctl
