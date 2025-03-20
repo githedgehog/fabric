@@ -115,6 +115,8 @@ type SwitchSpec struct {
 	PortAutoNegs map[string]bool `json:"portAutoNegs,omitempty"`
 	// Boot is the boot/provisioning information of the switch
 	Boot SwitchBoot `json:"boot,omitempty"`
+	// EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not
+	EnableAllPorts bool `json:"enableAllPorts,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch

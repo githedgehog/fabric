@@ -207,6 +207,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		}
 	}
 
+	err = planAllPortsUp(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan all ports up")
+	}
+
 	err = planPortAutoNegs(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan port auto negs")
@@ -2500,6 +2505,33 @@ func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 	}
 
 	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
+}
+
+func planAllPortsUp(agent *agentapi.Agent, spec *dozer.Spec) error {
+	if !agent.Spec.Switch.EnableAllPorts {
+		return nil
+	}
+
+	ports, err := agent.Spec.SwitchProfile.GetAvailableAPIPorts(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get available API ports for switch")
+	}
+
+	for port := range ports {
+		if iface, exists := spec.Interfaces[port]; exists {
+			if iface.Enabled != nil && *iface.Enabled {
+				continue
+			}
+		} else {
+			spec.Interfaces[port] = &dozer.SpecInterface{}
+		}
+
+		spec.Interfaces[port].Enabled = pointer.To(true)
+		spec.Interfaces[port].Description = pointer.To("Unused")
+		spec.Interfaces[port].Speed = getPortSpeed(agent, port)
+	}
+
+	return nil
 }
 
 func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {

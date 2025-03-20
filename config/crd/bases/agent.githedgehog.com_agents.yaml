@@ -871,6 +871,10 @@ spec:
                   description:
                     description: Description is a description of the switch
                     type: string
+                  enableAllPorts:
+                    description: EnableAllPorts is a flag to enable all ports on the
+                      switch regardless of them being used or not
+                    type: boolean
                   groups:
                     description: Groups is a list of switch groups the switch belongs
                       to
@@ -1126,6 +1130,10 @@ spec:
                     description:
                       description: Description is a description of the switch
                       type: string
+                    enableAllPorts:
+                      description: EnableAllPorts is a flag to enable all ports on
+                        the switch regardless of them being used or not
+                      type: boolean
                     groups:
                       description: Groups is a list of switch groups the switch belongs
                         to
