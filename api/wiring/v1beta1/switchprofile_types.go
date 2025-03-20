@@ -930,3 +930,52 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 
 	return allowed, def, nil
 }
+
+func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bool, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+	if sw == nil {
+		sw = &SwitchSpec{}
+	}
+
+	ports := map[string]bool{}
+
+	for portName, port := range sp.Ports {
+		if port.Management {
+			continue
+		}
+
+		if port.Profile != "" {
+			profile, exists := sp.PortProfiles[port.Profile]
+			if !exists {
+				return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+			}
+
+			if profile.Breakout != nil {
+				b := profile.Breakout.Default
+				if swB, ok := sw.PortBreakouts[portName]; ok {
+					b = swB
+				}
+
+				if mode, ok := profile.Breakout.Supported[b]; ok {
+					for idx := range len(mode.Offsets) {
+						ports[fmt.Sprintf("%s/%d", portName, idx+1)] = true
+					}
+				} else {
+					return nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, b, port.Profile)
+				}
+			} else if profile.Speed != nil {
+				ports[portName] = true
+			} else {
+				return nil, errors.Errorf("port %q references profile %q without speed or breakout", port.NOSName, port.Profile)
+			}
+		} else if port.Group != "" {
+			ports[portName] = true
+		} else {
+			return nil, errors.Errorf("port %q must have a profile or group", port.NOSName)
+		}
+	}
+
+	return ports, nil
+}
