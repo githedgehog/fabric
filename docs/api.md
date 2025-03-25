@@ -1326,7 +1326,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
 
 
 #### ConnBundled
@@ -1426,7 +1426,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
 | `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
 
 
@@ -1459,7 +1459,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
 | `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
 
 
@@ -1545,7 +1545,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
 | `ip` _string_ | IP is the IP address of the switch side of the static external connection link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
 | `nextHop` _string_ | NextHop is the next hop IP address for static routes that will be created for the subnets |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}$` <br /> |
 | `subnets` _string array_ | Subnets is the list of subnets that will get static routes using the specified next hop |  |  |
