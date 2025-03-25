@@ -33,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/vishvananda/netlink v1.3.0
-	go.githedgehog.com/fabric-bcm-ygot v0.3.1-4.4.1
+	go.githedgehog.com/fabric-bcm-ygot v0.4.0-4.4.2
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 	golang.org/x/sync v0.12.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
