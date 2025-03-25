@@ -58,7 +58,7 @@ const INVALID = "<invalid>"
 
 // BasePortName defines the full name of the switch port
 type BasePortName struct {
-	// Port defines the full name of the switch port in the format of "device/port", such as "spine-1/Ethernet1".
+	// Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
 	// SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
 	Port string `json:"port,omitempty"`
 }
