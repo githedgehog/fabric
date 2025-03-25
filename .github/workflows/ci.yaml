@@ -185,6 +185,36 @@ jobs:
         with:
           limit-access-to-actor: true
 
+  test-checkout:
+    runs-on: lab-h
+
+    strategy:
+      fail-fast: false
+      matrix:
+        tags:
+          - true
+          - false
+        depth:
+          - 0
+          - 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ matrix.depth }}
+          fetch-tags: ${{ matrix.tags }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Check version
+        run: |
+          just --timestamp version
+
   publish:
     runs-on: lab-h
     if: startsWith(github.event.ref, 'refs/tags/v') && github.event_name == 'push'
