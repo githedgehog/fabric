@@ -33,6 +33,7 @@ const (
 	BGPNeighborTypeFabric   BGPNeighborType = "fabric"
 	BGPNeighborTypeMCLAG    BGPNeighborType = "mclag"
 	BGPNeighborTypeExternal BGPNeighborType = "external"
+	BGPNeighborTypeGateway  BGPNeighborType = "gateway"
 )
 
 func GetBGPNeighbors(ctx context.Context, kube client.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
@@ -158,6 +159,23 @@ func GetBGPNeighbors(ctx context.Context, kube client.Reader, fabCfg *meta.Fabri
 			}
 		} else if conn.Spec.External != nil {
 			extConns[conn.Name] = &conn
+		} else if conn.Spec.Gateway != nil {
+			for _, link := range conn.Spec.Gateway.Links {
+				ip := strings.Split(link.Gateway.IP, "/")[0]
+				neigh, ok := out["default"][ip]
+				if !ok {
+					neigh = BGPNeighborStatus{}
+				}
+
+				neigh.RemoteName = link.Gateway.Port
+				neigh.Type = BGPNeighborTypeGateway
+				neigh.Expected = true
+				neigh.ConnectionName = conn.Name
+				neigh.ConnectionType = conn.Spec.Type()
+				neigh.Port = link.Spine.LocalPortName()
+
+				out["default"][ip] = neigh
+			}
 		}
 	}
 
