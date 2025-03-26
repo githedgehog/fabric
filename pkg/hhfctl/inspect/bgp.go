@@ -24,8 +24,9 @@ import (
 )
 
 type BGPIn struct {
-	Switches []string
-	Strict   bool
+	Switches            []string
+	Strict              bool
+	GatewayExpectActive bool // TODO remove after gateway is implemented
 }
 
 type BGPOut struct {
@@ -137,6 +138,10 @@ func BGP(ctx context.Context, kube client.Reader, in BGPIn) (*BGPOut, error) {
 				for name, neighbor := range vrfNeighbors {
 					if !neighbor.Expected {
 						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", sw.Name, vrf, name)) //nolint:goerr113
+					}
+
+					if in.GatewayExpectActive && neighbor.Type == apiutil.BGPNeighborTypeGateway && neighbor.SessionState == v1beta1.BGPNeighborSessionStateActive {
+						continue
 					}
 
 					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {

@@ -26,6 +26,7 @@ const (
 	LLDPNeighborTypeFabric   LLDPNeighborType = "fabric"
 	LLDPNeighborTypeExternal LLDPNeighborType = "external"
 	LLDPNeighborTypeServer   LLDPNeighborType = "server"
+	LLDPNeighborTypeGateway  LLDPNeighborType = "gateway"
 )
 
 type LLDPNeighborStatus struct {
@@ -108,6 +109,8 @@ func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Swi
 				statusType = LLDPNeighborTypeFabric
 			} else if conn.Spec.External != nil {
 				statusType = LLDPNeighborTypeExternal
+			} else if conn.Spec.Gateway != nil {
+				statusType = LLDPNeighborTypeGateway
 			} else {
 				statusType = LLDPNeighborTypeServer
 			}
