@@ -58,8 +58,7 @@ type ActionWeight uint8
 const (
 	ActionWeightUnset ActionWeight = iota // keep it first
 
-	// Creates/Updates:
-
+	// Misc basic operations that should go first
 	ActionWeightSystemZTP
 	ActionWeightSystemHostname
 	ActionWeightLLDP
@@ -68,99 +67,27 @@ const (
 	ActionWeightPortGroup
 	ActionWeightPortBreakout
 
-	ActionWeightPrefixListUpdate
+	// All Deletes (in original relative order)
+
 	ActionWeightPrefixListEntryDelete
-	ActionWeightPrefixListEntryUpdate
-
-	ActionWeightCommunityListUpdate
-
-	ActionWeightInterfaceBasePortChannelsUpdate
-	ActionWeightInterfaceBaseUpdate
-
-	ActionWeightVRFBaseUpdate
-	ActionWeightVRFVNIUpdate
-
-	ActionWeightRouteMapUpdate
 	ActionWeightRouteMapStatementDelete
-	ActionWeightRouteMapStatementUpdate
-
-	ActionWeightInterfaceVLANIPsUpdate
-	ActionWeightInterfacePortChannelSwitchedAccessUpdate
-	ActionWeightInterfacePortChannelSwitchedTrunkUpdate
-	ActionWeightInterfaceEthernetBaseUpdate
-	ActionWeightInterfaceEthernetSwitchedAccessUpdate
-	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
-	ActionWeightInterfaceVLANAnycastGatewayUpdate
-	ActionWeightInterfaceNATZoneUpdate
-	ActionWeightPortChannelConfigMACUpdate
-	ActionWeightPortChannelConfigFallbackUpdate
-
 	ActionWeightInterfaceSubinterfaceIPsDelete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightACLInterfaceDelete
 	ActionWeightInterfaceSubinterfaceDelete
-	ActionWeightInterfaceSubinterfaceUpdate
-	ActionWeightVRFInterfaceUpdate
-	ActionWeightInterfaceSubinterfaceIPsUpdate
-
-	ActionWeightLLDPInterfaceUpdate
-	ActionWeightNTP
-	ActionWeightNTPServerUpdate
-
-	ActionWeightMCLAGDomainUpdate
-	ActionWeightMCLAGInterfaceUpdate
-
-	ActionWeightACLBaseUpdate
-	ActionWeightACLInterfaceUpdate
+	ActionWeightLLDPInterfaceDelete
+	ActionWeightNTPServerDelete
 	ActionWeightACLEntryDelete
-	ActionWeightACLEntryUpdate
-
-	ActionWeightNATBaseUpdate
-	ActionWeightNATPoolUpdate
-	ActionWeightNATBindingUpdate
-	ActionWeightNATEntryUpdate
-
-	ActionWeightSuppressVLANNeighUpdate
-
-	ActionWeightVRFStaticRouteDelete // it seems like it's better to first remove routes and then add new ones
-	ActionWeightVRFStaticRouteUpdate
-
-	ActionWeightVRFBGPBaseUpdate
-	ActionWeightVRFSAGUpdate
-	ActionWeightVRFEVPNMHUpdate
-	ActionWeightVRFEthernetSegmentUpdate
-
-	ActionWeightLSTGroupUpdate
-	ActionWeightLSTInterfaceUpdate
-
+	ActionWeightVRFStaticRouteDelete
 	ActionWeightVXLANTunnelMapDelete
-	ActionWeightVXLANTunnelUpdate
 	ActionWeightVXLANEVPNNVODelete
-	ActionWeightVXLANEVPNNVOUpdate
 	ActionWeightVXLANTunnelDelete
-	ActionWeightVXLANTunnelMapUpdate
-
-	ActionWeightVRFBGPNeighborUpdate
-	ActionWeightVRFBGPNetworkUpdate
-	ActionWrightVRFTableConnectionUpdate
-
-	ActionWeightVRFBGPImportVRFPolicyUpdate
-	ActionWeightVRFBGPImportVRFUpdate
-
-	ActionWeightDHCPRelayUpdate
-
-	// Deletes:
-
 	ActionWeightDHCPRelayDelete
-
 	ActionWeightVRFBGPImportVRFDelete
 	ActionWeightVRFBGPImportVRFPolicyDelete
-
 	ActionWeightVRFVNIDelete
-
 	ActionWeightLSTInterfaceDelete
 	ActionWeightLSTGroupDelete
-
 	ActionWeightVRFEthernetSegmentDelete
 	ActionWeightVRFEVPNMHDelete
 	ActionWrightVRFTableConnectionDelete
@@ -169,20 +96,13 @@ const (
 	ActionWeightVRFSAGDelete
 	ActionWeightVRFBGPBaseDelete
 	ActionWeightVRFBaseDelete
-
 	ActionWeightSuppressVLANNeighDelete
-
 	ActionWeightNATEntryDelete
 	ActionWeightNATBindingDelete
 	ActionWeightNATPoolDelete
 	ActionWeightNATBaseDelete
-
-	ActionWeightLLDPInterfaceDelete
-	ActionWeightNTPServerDelete
-
 	ActionWeightMCLAGInterfaceDelete
 	ActionWeightMCLAGDomainDelete
-
 	ActionWeightPortChannelConfigMACDelete
 	ActionWeightPortChannelConfigFallbackDelete
 	ActionWeightInterfaceEthernetSwitchedAccessDelete
@@ -193,14 +113,65 @@ const (
 	ActionWeightInterfaceNATZoneDelete
 	ActionWeightInterfaceVLANIPsDelete
 	ActionWeightInterfaceVLANAnycastGatewayDelete
-
 	ActionWeightACLBaseDelete
-
 	ActionWeightInterfaceBaseDelete
-
 	ActionWeightRouteMapDelete
 	ActionWeightPrefixListDelete
 	ActionWeightCommunityListDelete
+
+	// All Updates/Creates (in original relative order)
+
+	ActionWeightPrefixListUpdate
+	ActionWeightPrefixListEntryUpdate
+	ActionWeightCommunityListUpdate
+	ActionWeightInterfaceBasePortChannelsUpdate
+	ActionWeightInterfaceBaseUpdate
+	ActionWeightVRFBaseUpdate
+	ActionWeightVRFVNIUpdate
+	ActionWeightRouteMapUpdate
+	ActionWeightRouteMapStatementUpdate
+	ActionWeightInterfaceVLANIPsUpdate
+	ActionWeightInterfacePortChannelSwitchedAccessUpdate
+	ActionWeightInterfacePortChannelSwitchedTrunkUpdate
+	ActionWeightInterfaceEthernetBaseUpdate
+	ActionWeightInterfaceEthernetSwitchedAccessUpdate
+	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
+	ActionWeightInterfaceVLANAnycastGatewayUpdate
+	ActionWeightInterfaceNATZoneUpdate
+	ActionWeightPortChannelConfigMACUpdate
+	ActionWeightPortChannelConfigFallbackUpdate
+	ActionWeightInterfaceSubinterfaceUpdate
+	ActionWeightVRFInterfaceUpdate
+	ActionWeightInterfaceSubinterfaceIPsUpdate
+	ActionWeightLLDPInterfaceUpdate
+	ActionWeightNTP
+	ActionWeightNTPServerUpdate
+	ActionWeightMCLAGDomainUpdate
+	ActionWeightMCLAGInterfaceUpdate
+	ActionWeightACLBaseUpdate
+	ActionWeightACLInterfaceUpdate
+	ActionWeightACLEntryUpdate
+	ActionWeightNATBaseUpdate
+	ActionWeightNATPoolUpdate
+	ActionWeightNATBindingUpdate
+	ActionWeightNATEntryUpdate
+	ActionWeightSuppressVLANNeighUpdate
+	ActionWeightVRFStaticRouteUpdate
+	ActionWeightVRFBGPBaseUpdate
+	ActionWeightVRFSAGUpdate
+	ActionWeightVRFEVPNMHUpdate
+	ActionWeightVRFEthernetSegmentUpdate
+	ActionWeightLSTGroupUpdate
+	ActionWeightLSTInterfaceUpdate
+	ActionWeightVXLANTunnelUpdate
+	ActionWeightVXLANEVPNNVOUpdate
+	ActionWeightVXLANTunnelMapUpdate
+	ActionWeightVRFBGPNeighborUpdate
+	ActionWeightVRFBGPNetworkUpdate
+	ActionWrightVRFTableConnectionUpdate
+	ActionWeightVRFBGPImportVRFPolicyUpdate
+	ActionWeightVRFBGPImportVRFUpdate
+	ActionWeightDHCPRelayUpdate
 
 	ActionWeightMax // keep it last
 )
