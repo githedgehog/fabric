@@ -89,7 +89,7 @@ jobs:
           just --timestamp _lint
 
       - name: More Go lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           # keep in sync with hack/tools.just
           version: v1.64.2
