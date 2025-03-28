@@ -25,7 +25,7 @@ _localbin:
   @mkdir -p {{localbin}}
 
 # Download all tools locally
-tools: _kustomize _controller_gen _envtest _golangci_lint _butane _addlicense _crd_ref_docs _helm _helmify _oras _actionlint _skopeo _gcov2lcov
+tools: _kustomize _envtest _golangci_lint _butane _addlicense _crd_ref_docs _helm _helmify _oras _actionlint _skopeo _gcov2lcov
 
 # kustomize
 kustomize_version := "v5.4.3"
@@ -34,10 +34,7 @@ kustomize := localbin / "kustomize" + "-" + kustomize_version
   [ -f {{kustomize}} ] || just _goinstall "sigs.k8s.io/kustomize/kustomize/v5" {{kustomize_version}} "kustomize" {{kustomize}}
 
 # controller-gen
-controller_gen_version := "v0.16.1"
-controller_gen := localbin / "controller-gen" + "-" + controller_gen_version
-@_controller_gen: _localbin
-  [ -f {{controller_gen}} ] || just _goinstall "sigs.k8s.io/controller-tools/cmd/controller-gen" {{controller_gen_version}} "controller-gen" {{controller_gen}}
+controller_gen := "go tool controller-gen"
 
 # envtest
 envtest_k8s_version := "1.31.0"

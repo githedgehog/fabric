@@ -37,7 +37,7 @@ _embed: _touch_embed
   # Build fabric-nos-install binary for embedding
   {{go_linux_build}} -o ./pkg/boot/nosinstall/bin/fabric-nos-install ./cmd/fabric-nos-install
 
-_kube_gen: _controller_gen
+_kube_gen:
   # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject implementations
   {{controller_gen}} object:headerFile="hack/boilerplate.go.txt" paths="./..."
   # Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
