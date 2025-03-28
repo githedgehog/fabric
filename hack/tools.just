@@ -142,7 +142,7 @@ helm_insecure_push := if oci == "http" { "--plain-http" } else { "" }
 
 _docker-build bin: build
   cp bin/{{bin}} config/docker/{{bin}}/
-  cd config/docker/{{bin}}/ && docker build -t {{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} -f Dockerfile .
+  cd config/docker/{{bin}}/ && docker build --platform=linux/amd64 -t {{oci_repo}}/{{oci_prefix}}/{{bin}}:{{version}} -f Dockerfile .
 
 skopeo_copy_flags := if env("DOCKER_HOST", "") != "" { "--src-daemon-host " + env_var("DOCKER_HOST") } else { "" }
 _docker-push bin: _skopeo
