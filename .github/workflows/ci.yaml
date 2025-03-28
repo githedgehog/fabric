@@ -98,11 +98,19 @@ jobs:
         run: |
           just --timestamp test
 
-      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running just
+      - name: Go mod tidy
+        run: |
+          go mod tidy
+          go mod vendor
+
+      # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running gen/lint/test
       - name: Fail on dirty
         run: |
-          git status --short
-          git diff --quiet
+          if ! git status --short || ! git diff --quiet; then
+            git --no-pager diff -- . :^vendor
+            echo "::error::Working directory is dirty. Please run 'just gen lint && go mod tidy && go mod vendor' and commit the changes."
+            exit 1
+          fi
 
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
