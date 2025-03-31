@@ -204,13 +204,16 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	defer watcher.Stop()
 
+	enforceTicker := time.NewTicker(2 * time.Minute)
+	defer enforceTicker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			slog.Info("Context done, exiting")
 
 			return nil
-		case <-time.After(2 * time.Minute):
+		case <-enforceTicker.C:
 			slog.Debug("Enforcing config", "name", agent.Name)
 			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
 			if err != nil {
