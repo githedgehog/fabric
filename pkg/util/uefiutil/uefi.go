@@ -48,7 +48,7 @@ func MakeONIEDefaultBootEntryAndCleanup() error {
 	if err != nil {
 		return errors.Wrapf(err, "error getting BootOrder")
 	}
-	if len(bootOrder) <= 0 {
+	if len(bootOrder) == 0 {
 		return errEmptyBootOrder
 	}
 
