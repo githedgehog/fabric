@@ -141,70 +141,63 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to plan basic BGP")
 	}
 
-	if !agent.Spec.Switch.Role.IsVirtualEdge() {
-		err = planFabricConnections(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan fabric connections")
-		}
+	err = planFabricConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan fabric connections")
+	}
 
-		err = planGatewayConnections(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan gateway connections")
-		}
+	err = planGatewayConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan gateway connections")
+	}
 
-		err = planVPCLoopbacks(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
-		}
+	err = planVPCLoopbacks(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan VPC loopbacks")
+	}
 
-		err = planExternals(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan external connections")
-		}
+	err = planExternals(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan external connections")
+	}
 
-		err = planServerConnections(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan server connections")
-		}
+	err = planServerConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan server connections")
+	}
 
-		if agent.Spec.Role.IsLeaf() {
-			err = planVXLAN(agent, spec)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to plan VXLAN")
-			}
-		}
-
-		if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
-			_ /* first */, err = planMCLAGDomain(agent, spec)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to plan mclag domain")
-			}
-		} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
-			err = planESLAG(agent, spec)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to plan eslag")
-			}
-		}
-
-		err = planVPCs(agent, spec)
+	if agent.Spec.Role.IsLeaf() {
+		err = planVXLAN(agent, spec)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan VPCs")
+			return nil, errors.Wrap(err, "failed to plan VXLAN")
 		}
+	}
 
-		err = planExternalPeerings(agent, spec)
+	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
+		_ /* first */, err = planMCLAGDomain(agent, spec)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan external peerings")
+			return nil, errors.Wrap(err, "failed to plan mclag domain")
 		}
+	} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
+		err = planESLAG(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan eslag")
+		}
+	}
 
-		err = planStaticExternals(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan static external connections")
-		}
-	} else {
-		err = planVirtualEdge(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan virtual edge")
-		}
+	err = planVPCs(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan VPCs")
+	}
+
+	err = planExternalPeerings(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan external peerings")
+	}
+
+	err = planStaticExternals(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan static external connections")
 	}
 
 	err = planAllPortsUp(agent, spec)
