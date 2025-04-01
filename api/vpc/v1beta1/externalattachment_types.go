@@ -20,10 +20,10 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -73,8 +73,8 @@ type ExternalAttachmentStatus struct{}
 // ExternalAttachment is a definition of how specific switch is connected with external system (External object).
 // Effectively it represents BGP peering between the switch and external system including all needed configuration.
 type ExternalAttachment struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the ExternalAttachment
 	Spec ExternalAttachmentSpec `json:"spec,omitempty"`
@@ -86,9 +86,9 @@ type ExternalAttachment struct {
 
 // ExternalAttachmentList contains a list of ExternalAttachment
 type ExternalAttachmentList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ExternalAttachment `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []ExternalAttachment `json:"items"`
 }
 
 func init() {
@@ -122,7 +122,7 @@ func (attach *ExternalAttachment) Default() {
 	attach.Labels[LabelExternal] = attach.Spec.External
 }
 
-func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -145,8 +145,8 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Read
 
 	if kube != nil {
 		ext := &External{}
-		if err := kube.Get(ctx, types.NamespacedName{Name: attach.Spec.External, Namespace: attach.Namespace}, ext); err != nil {
-			if apierrors.IsNotFound(err) {
+		if err := kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.External, Namespace: attach.Namespace}, ext); err != nil {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("external %s not found", attach.Spec.External)
 			}
 
@@ -154,8 +154,8 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube client.Read
 		}
 
 		conn := &wiringapi.Connection{}
-		if err := kube.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn); err != nil {
-			if apierrors.IsNotFound(err) {
+		if err := kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn); err != nil {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 			}
 

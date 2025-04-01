@@ -26,15 +26,15 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	"golang.org/x/exp/maps"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 // TODO dedup with conn
@@ -60,7 +60,7 @@ func (out *PortOut) MarshalText() (string, error) {
 	if out.ConnectionName != nil && out.Connection != nil {
 		str.WriteString(fmt.Sprintf("Used in Connection %s:\n", *out.ConnectionName))
 
-		data, err := yaml.Marshal(out.Connection)
+		data, err := kyaml.Marshal(out.Connection)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to marshal Connection")
 		}
@@ -105,7 +105,7 @@ func (out *PortOut) MarshalText() (string, error) {
 		str.WriteString("VPC Attachments:\n")
 
 		attachData := [][]string{}
-		attachNames := maps.Keys(out.VPCAttachments)
+		attachNames := lo.Keys(out.VPCAttachments)
 		for _, attachName := range attachNames {
 			attach := out.VPCAttachments[attachName]
 
@@ -141,7 +141,7 @@ func (out *PortOut) MarshalText() (string, error) {
 		str.WriteString("External Attachments:\n")
 
 		attachData := [][]string{}
-		attachNames := maps.Keys(out.ExternalAttachments)
+		attachNames := lo.Keys(out.ExternalAttachments)
 		for _, attachName := range attachNames {
 			attach := out.ExternalAttachments[attachName]
 
@@ -204,7 +204,7 @@ func (out *PortOut) MarshalText() (string, error) {
 
 var _ Func[PortIn, *PortOut] = Port
 
-func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) {
+func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error) {
 	if in.Port == "" {
 		return nil, errors.New("port is required")
 	}
@@ -239,8 +239,8 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 
 	skip := false
 	sw := &wiringapi.Switch{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, sw); err != nil {
-		if apierrors.IsNotFound(err) {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
+		if kapierrors.IsNotFound(err) {
 			skip = true
 			slog.Warn("Switch object not found", "name", swName)
 		} else {
@@ -249,8 +249,8 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 	}
 
 	agent := &agentapi.Agent{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, agent); err != nil {
-		if apierrors.IsNotFound(err) {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, agent); err != nil {
+		if kapierrors.IsNotFound(err) {
 			skip = true
 			slog.Warn("Agent object not found", "name", swName)
 		} else {
@@ -290,7 +290,7 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 			}
 		} else if conn.Unbundled != nil || conn.Bundled != nil || conn.MCLAG != nil || conn.ESLAG != nil {
 			vpcAttaches := &vpcapi.VPCAttachmentList{}
-			if err := kube.List(ctx, vpcAttaches, client.MatchingLabels{
+			if err := kube.List(ctx, vpcAttaches, kclient.MatchingLabels{
 				wiringapi.LabelConnection: *out.ConnectionName,
 			}); err != nil {
 				return nil, errors.Wrapf(err, "failed to list VPCAttachments for connection %s", *out.ConnectionName)
@@ -304,7 +304,7 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 				vpcName := strings.SplitN(vpcAttach.Spec.Subnet, "/", 2)[0]
 				if _, exists := out.AttachedVPCs[vpcName]; !exists {
 					vpc := &vpcapi.VPC{}
-					if err := kube.Get(ctx, client.ObjectKey{Name: vpcName, Namespace: metav1.NamespaceDefault}, vpc); err != nil {
+					if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, vpc); err != nil {
 						return nil, errors.Wrapf(err, "failed to get VPC %s", vpcName)
 					}
 					out.AttachedVPCs[vpcName] = &vpc.Spec
@@ -314,7 +314,7 @@ func Port(ctx context.Context, kube client.Reader, in PortIn) (*PortOut, error) 
 			}
 		} else if conn.External != nil {
 			extAttaches := &vpcapi.ExternalAttachmentList{}
-			if err := kube.List(ctx, extAttaches, client.MatchingLabels{
+			if err := kube.List(ctx, extAttaches, kclient.MatchingLabels{
 				wiringapi.LabelConnection: *out.ConnectionName,
 			}); err != nil {
 				return nil, errors.Wrap(err, "cannot list ExternalAttachments")

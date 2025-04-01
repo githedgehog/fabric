@@ -21,25 +21,25 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type Webhook struct {
-	client.Client
+	kclient.Client
 	Scheme *runtime.Scheme
 	Cfg    *meta.FabricConfig
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &Webhook{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Cfg:    cfg,
 	}
 
-	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.Server{}).
 		WithDefaulter(w).
 		WithValidator(w).
@@ -90,7 +90,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	server := obj.(*wiringapi.Server)
 
 	conns := &wiringapi.ConnectionList{}
-	if err := w.Client.List(ctx, conns, client.MatchingLabels{
+	if err := w.Client.List(ctx, conns, kclient.MatchingLabels{
 		wiringapi.ListLabelServer(server.Name): wiringapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing connections") // TODO hide internal error

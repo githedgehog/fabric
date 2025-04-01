@@ -30,9 +30,9 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	coreapi "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
-	"sigs.k8s.io/yaml"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type Args struct {
@@ -61,7 +61,7 @@ type WithErrors interface {
 	Errors() []error
 }
 
-type Func[TIn In, TOut Out] func(ctx context.Context, kube client.Reader, in TIn) (TOut, error)
+type Func[TIn In, TOut Out] func(ctx context.Context, kube kclient.Reader, in TIn) (TOut, error)
 
 func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in TIn, w io.Writer) error {
 	outType := OutputTypeText
@@ -105,7 +105,7 @@ func Render[TOut Out](output OutputType, w io.Writer, out TOut) error {
 
 		data = []byte(dataS)
 	} else if output == OutputTypeYAML {
-		data, err = yaml.Marshal(out)
+		data, err = kyaml.Marshal(out)
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal inspect output as yaml")
 		}

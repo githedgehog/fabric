@@ -23,9 +23,9 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"sigs.k8s.io/yaml"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type Defaultable interface {
@@ -33,18 +33,18 @@ type Defaultable interface {
 }
 
 type Validatable interface {
-	Validate(ctx context.Context, kube client.Reader, fabricCfg *FabricConfig) (admission.Warnings, error)
+	Validate(ctx context.Context, kube kclient.Reader, fabricCfg *FabricConfig) (admission.Warnings, error)
 }
 
 type Object interface {
-	client.Object
+	kclient.Object
 
 	Defaultable
 	Validatable
 }
 
 type ObjectList interface {
-	client.ObjectList
+	kclient.ObjectList
 
 	GetItems() []Object
 }
@@ -128,7 +128,7 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 	}
 
 	cfg := &FabricConfig{}
-	err = yaml.UnmarshalStrict(data, cfg)
+	err = kyaml.UnmarshalStrict(data, cfg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error unmarshalling config %s", path)
 	}

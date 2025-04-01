@@ -24,8 +24,8 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -96,17 +96,17 @@ func newVPCHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC, *vpca
 			}
 
 			return &vpcapi.VPC{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       spec,
 			}, nil
 		},
-		ObjectListFn: func(ctx context.Context, kube client.Client) (*vpcapi.VPCList, error) {
+		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.VPCList, error) {
 			list := &vpcapi.VPCList{}
 
 			return list, kube.List(ctx, list)
 		},
-		CreateOrUpdateFn: func(ctx context.Context, kube client.Client, newObj *vpcapi.VPC) (ctrlutil.OperationResult, error) {
+		CreateOrUpdateFn: func(ctx context.Context, kube kclient.Client, newObj *vpcapi.VPC) (ctrlutil.OperationResult, error) {
 			// TODO if no subnets assigned to the VPC, consider auto allocate some from the used IP namespace
 
 			vpc := &vpcapi.VPC{ObjectMeta: newObj.ObjectMeta}
@@ -162,26 +162,26 @@ func newVPCAttachmentHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.
 			}
 
 			return &vpcapi.VPCAttachment{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       spec,
 			}, nil
 		},
-		ObjectListFn: func(ctx context.Context, kube client.Client) (*vpcapi.VPCAttachmentList, error) {
+		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.VPCAttachmentList, error) {
 			list := &vpcapi.VPCAttachmentList{}
 
 			return list, kube.List(ctx, list)
 		},
-		CreateOrUpdateFn: func(ctx context.Context, kube client.Client, newObj *vpcapi.VPCAttachment) (ctrlutil.OperationResult, error) {
+		CreateOrUpdateFn: func(ctx context.Context, kube kclient.Client, newObj *vpcapi.VPCAttachment) (ctrlutil.OperationResult, error) {
 			conn := &wiringapi.Connection{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: newObj.Spec.Connection, Namespace: metav1.NamespaceDefault}, conn); err != nil {
-				if client.IgnoreNotFound(err) != nil {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: newObj.Spec.Connection, Namespace: kmetav1.NamespaceDefault}, conn); err != nil {
+				if kclient.IgnoreNotFound(err) != nil {
 					return ctrlutil.OperationResultNone, errors.Wrapf(err, "cannot get connection")
 				}
 
 				serverName := newObj.Spec.Connection
 				srv := &wiringapi.Server{}
-				if err := kube.Get(ctx, client.ObjectKey{Name: serverName, Namespace: metav1.NamespaceDefault}, srv); err != nil {
+				if err := kube.Get(ctx, kclient.ObjectKey{Name: serverName, Namespace: kmetav1.NamespaceDefault}, srv); err != nil {
 					return ctrlutil.OperationResultNone, errors.Wrapf(err, "cannot get server %s", serverName)
 				}
 
@@ -267,17 +267,17 @@ func newVPCPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC
 			}
 
 			return &vpcapi.VPCPeering{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       spec,
 			}, nil
 		},
-		ObjectListFn: func(ctx context.Context, kube client.Client) (*vpcapi.VPCPeeringList, error) {
+		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.VPCPeeringList, error) {
 			list := &vpcapi.VPCPeeringList{}
 
 			return list, kube.List(ctx, list)
 		},
-		CreateOrUpdateFn: func(ctx context.Context, kube client.Client, newObj *vpcapi.VPCPeering) (ctrlutil.OperationResult, error) {
+		CreateOrUpdateFn: func(ctx context.Context, kube kclient.Client, newObj *vpcapi.VPCPeering) (ctrlutil.OperationResult, error) {
 			peering := &vpcapi.VPCPeering{ObjectMeta: newObj.ObjectMeta}
 
 			return ctrlutil.CreateOrUpdate(ctx, kube, peering, func() error {

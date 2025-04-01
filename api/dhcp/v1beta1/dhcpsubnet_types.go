@@ -15,7 +15,7 @@
 package v1beta1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -65,7 +65,7 @@ type DHCPAllocated struct {
 	// Allocated IP address
 	IP string `json:"ip"`
 	// Expiry time of the lease
-	Expiry metav1.Time `json:"expiry"`
+	Expiry kmetav1.Time `json:"expiry"`
 	// Hostname from DHCP request
 	Hostname string `json:"hostname"`
 }
@@ -88,8 +88,8 @@ type DHCPAllocated struct {
 // primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
 // Not intended to be modified by the user.
 type DHCPSubnet struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the DHCPSubnet
 	Spec DHCPSubnetSpec `json:"spec,omitempty"`
@@ -101,9 +101,9 @@ type DHCPSubnet struct {
 
 // DHCPSubnetList contains a list of DHCPSubnet
 type DHCPSubnetList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DHCPSubnet `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []DHCPSubnet `json:"items"`
 }
 
 func init() {

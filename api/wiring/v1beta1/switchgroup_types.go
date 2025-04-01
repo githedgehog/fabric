@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -38,8 +38,8 @@ type SwitchGroupStatus struct{}
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // SwitchGroup is the marker API object to group switches together, switch can belong to multiple groups
 type SwitchGroup struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the SwitchGroup
 	Spec SwitchGroupSpec `json:"spec,omitempty"`
@@ -53,9 +53,9 @@ const KindSwitchGroup = "SwitchGroup"
 
 // SwitchGroupList contains a list of SwitchGroup
 type SwitchGroupList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SwitchGroup `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []SwitchGroup `json:"items"`
 }
 
 func init() {
@@ -80,7 +80,7 @@ func (sg *SwitchGroup) Default() {
 	meta.DefaultObjectMetadata(sg)
 }
 
-func (sg *SwitchGroup) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (sg *SwitchGroup) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sg); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}

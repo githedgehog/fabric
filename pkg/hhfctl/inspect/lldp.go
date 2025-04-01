@@ -15,7 +15,7 @@ import (
 	"github.com/mattn/go-isatty"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type LLDPIn struct {
@@ -103,7 +103,7 @@ var (
 	_ WithErrors             = (*LLDPOut)(nil)
 )
 
-func LLDP(ctx context.Context, kube client.Reader, in LLDPIn) (*LLDPOut, error) {
+func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error) {
 	out := &LLDPOut{
 		Neighbors: map[string]map[string]apiutil.LLDPNeighborStatus{},
 	}

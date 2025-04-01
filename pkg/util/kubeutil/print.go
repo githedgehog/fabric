@@ -11,11 +11,11 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
-func PrintObjectList(ctx context.Context, kube client.Reader, w io.Writer, objList meta.ObjectList, objs *int) error {
+func PrintObjectList(ctx context.Context, kube kclient.Reader, w io.Writer, objList meta.ObjectList, objs *int) error {
 	if objs == nil {
 		objs = new(int)
 	}
@@ -63,7 +63,7 @@ type printObjMeta struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-func PrintObject(obj client.Object, w io.Writer, withStatus bool) error {
+func PrintObject(obj kclient.Object, w io.Writer, withStatus bool) error {
 	labels := obj.GetLabels()
 	wiringapi.CleanupFabricLabels(labels)
 	if len(labels) == 0 {
@@ -96,7 +96,7 @@ func PrintObject(obj client.Object, w io.Writer, withStatus bool) error {
 		p.Status = reflect.ValueOf(obj).Elem().FieldByName("Status").Interface()
 	}
 
-	buf, err := yaml.Marshal(p)
+	buf, err := kyaml.Marshal(p)
 	if err != nil {
 		return fmt.Errorf("marshalling: %w", err)
 	}

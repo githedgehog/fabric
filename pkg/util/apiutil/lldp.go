@@ -11,7 +11,7 @@ import (
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type LLDPNeighbor struct {
@@ -37,13 +37,13 @@ type LLDPNeighborStatus struct {
 	Actual         LLDPNeighbor     `json:"actual,omitempty"`
 }
 
-func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {
+func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {
 	if sw == nil {
 		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
 	}
 
 	ag := &agentapi.Agent{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, ag); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, ag); err != nil {
 		return nil, fmt.Errorf("getting agent %s: %w", sw.Name, err)
 	}
 
@@ -61,7 +61,7 @@ func GetLLDPNeighbors(ctx context.Context, kube client.Reader, sw *wiringapi.Swi
 	for _, sw := range swList.Items {
 		if _, ok := spNOS2API[sw.Spec.Profile]; !ok {
 			sp := &wiringapi.SwitchProfile{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp); err != nil {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp); err != nil {
 				return nil, fmt.Errorf("getting switch profile %s: %w", sw.Spec.Profile, err)
 			}
 

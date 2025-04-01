@@ -21,7 +21,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -136,13 +136,13 @@ type AgentStatus struct {
 	// ID for the NOS boot, used to track NOS reboots
 	BootID string `json:"bootID,omitempty"`
 	// Time of the last heartbeat from the agent
-	LastHeartbeat metav1.Time `json:"lastHeartbeat,omitempty"`
+	LastHeartbeat kmetav1.Time `json:"lastHeartbeat,omitempty"`
 	// Time of the last attempt to apply configuration
-	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
+	LastAttemptTime kmetav1.Time `json:"lastAttemptTime,omitempty"`
 	// Generation of the last attempt to apply configuration
 	LastAttemptGen int64 `json:"lastAttemptGen,omitempty"`
 	// Time of the last successful configuration application
-	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
+	LastAppliedTime kmetav1.Time `json:"lastAppliedTime,omitempty"`
 	// Generation of the last successful configuration application
 	LastAppliedGen int64 `json:"lastAppliedGen,omitempty"`
 	// Detailed switch state updated with each heartbeat
@@ -150,7 +150,7 @@ type AgentStatus struct {
 	// Status updates from the agent
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
 	// Conditions of the agent, includes readiness marker for use with kubectl wait
-	Conditions []metav1.Condition `json:"conditions"`
+	Conditions []kmetav1.Condition `json:"conditions"`
 }
 
 type SwitchState struct {
@@ -173,7 +173,7 @@ type SwitchStateInterface struct {
 	AdminStatus   AdminStatus                   `json:"adminStatus,omitempty"`
 	OperStatus    OperStatus                    `json:"operStatus,omitempty"`
 	MAC           string                        `json:"mac,omitempty"`
-	LastChange    metav1.Time                   `json:"lastChanged,omitempty"`
+	LastChange    kmetav1.Time                  `json:"lastChanged,omitempty"`
 	Speed         string                        `json:"speed,omitempty"`
 	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
 	Transceiver   *SwitchStateTransceiver       `json:"transceiver,omitempty"`
@@ -181,17 +181,17 @@ type SwitchStateInterface struct {
 }
 
 type SwitchStateInterfaceCounters struct {
-	InBitsPerSecond  float64     `json:"inBitsPerSecond,omitempty"`
-	InDiscards       uint64      `json:"inDiscards,omitempty"`
-	InErrors         uint64      `json:"inErrors,omitempty"`
-	InPktsPerSecond  float64     `json:"inPktsPerSecond,omitempty"`
-	InUtilization    uint8       `json:"inUtilization,omitempty"`
-	LastClear        metav1.Time `json:"lastClear,omitempty"`
-	OutBitsPerSecond float64     `json:"outBitsPerSecond,omitempty"`
-	OutDiscards      uint64      `json:"outDiscards,omitempty"`
-	OutErrors        uint64      `json:"outErrors,omitempty"`
-	OutPktsPerSecond float64     `json:"outPktsPerSecond,omitempty"`
-	OutUtilization   uint8       `json:"outUtilization,omitempty"`
+	InBitsPerSecond  float64      `json:"inBitsPerSecond,omitempty"`
+	InDiscards       uint64       `json:"inDiscards,omitempty"`
+	InErrors         uint64       `json:"inErrors,omitempty"`
+	InPktsPerSecond  float64      `json:"inPktsPerSecond,omitempty"`
+	InUtilization    uint8        `json:"inUtilization,omitempty"`
+	LastClear        kmetav1.Time `json:"lastClear,omitempty"`
+	OutBitsPerSecond float64      `json:"outBitsPerSecond,omitempty"`
+	OutDiscards      uint64       `json:"outDiscards,omitempty"`
+	OutErrors        uint64       `json:"outErrors,omitempty"`
+	OutPktsPerSecond float64      `json:"outPktsPerSecond,omitempty"`
+	OutUtilization   uint8        `json:"outUtilization,omitempty"`
 }
 
 type AdminStatus string
@@ -295,11 +295,11 @@ type SwitchStateBGPNeighbor struct {
 	ConnectionsDropped     uint64                                    `json:"connectionsDropped,omitempty"`
 	Enabled                bool                                      `json:"enabled,omitempty"`
 	EstablishedTransitions uint64                                    `json:"establishedTransitions,omitempty"`
-	LastEstablished        metav1.Time                               `json:"lastEstablished,omitempty"`
-	LastRead               metav1.Time                               `json:"lastRead,omitempty"`
+	LastEstablished        kmetav1.Time                              `json:"lastEstablished,omitempty"`
+	LastRead               kmetav1.Time                              `json:"lastRead,omitempty"`
 	LastResetReason        string                                    `json:"lastResetReason,omitempty"`
-	LastResetTime          metav1.Time                               `json:"lastResetTime,omitempty"`
-	LastWrite              metav1.Time                               `json:"lastWrite,omitempty"`
+	LastResetTime          kmetav1.Time                              `json:"lastResetTime,omitempty"`
+	LastWrite              kmetav1.Time                              `json:"lastWrite,omitempty"`
 	LocalAS                uint32                                    `json:"localAS,omitempty"`
 	Messages               BGPMessages                               `json:"messages,omitempty"`
 	PeerAS                 uint32                                    `json:"peerAS,omitempty"`
@@ -389,7 +389,7 @@ type BGPMessagesCounters struct {
 type SwitchStatePlatform struct {
 	Fans         map[string]SwitchStatePlatformFan         `json:"fans,omitempty"`
 	PSUs         map[string]SwitchStatePlatformPSU         `json:"psus,omitempty"`
-	Temperatures map[string]SwitchStatePlatformTemperature `json:"temperature,omitempty"`
+	Temperatures map[string]SwitchStatePlatformTemperature `json:"temperatures,omitempty"`
 }
 
 type SwitchStatePlatformFan struct {
@@ -430,7 +430,7 @@ type SwitchStateNOS struct {
 	// NOS build user
 	BuiltBy string `json:"builtBy,omitempty"`
 	// NOS config DB version, such as "version_4_2_1"
-	ConfigDbVersion string `json:"configDbVersion,omitempty"`
+	ConfigDBVersion string `json:"configDBVersion,omitempty"`
 	// Distribution version, such as "Debian 10.13"
 	DistributionVersion string `json:"distributionVersion,omitempty"`
 	// Hardware version, such as "X01"
@@ -530,8 +530,8 @@ type SwitchStateCRMStats struct {
 // Agent object is the same as the name of the switch it is running on and it's created in the same namespace as the
 // Switch object.
 type Agent struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the Agent
 	Spec AgentSpec `json:"spec,omitempty"`
@@ -545,9 +545,9 @@ const KindAgent = "Agent"
 
 // AgentList contains a list of Agent
 type AgentList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Agent `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []Agent `json:"items"`
 }
 
 func init() {

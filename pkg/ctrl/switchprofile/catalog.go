@@ -19,13 +19,13 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"golang.org/x/exp/maps"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var defaultSwitchProfiles = []wiringapi.SwitchProfile{
@@ -54,7 +54,7 @@ func NewDefaultSwitchProfiles() *Default {
 	}
 }
 
-func (d *Default) Register(ctx context.Context, kube client.Reader, cfg *meta.FabricConfig, sp wiringapi.SwitchProfile) error {
+func (d *Default) Register(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, sp wiringapi.SwitchProfile) error {
 	if sp.Name == "" {
 		return errors.Errorf("switch profile name must be set")
 	}
@@ -63,7 +63,7 @@ func (d *Default) Register(ctx context.Context, kube client.Reader, cfg *meta.Fa
 		return errors.Errorf("switch profile %q already registered", sp.Name)
 	}
 
-	sp.Namespace = metav1.NamespaceDefault
+	sp.Namespace = kmetav1.NamespaceDefault
 
 	sp.Default()
 
@@ -77,7 +77,7 @@ func (d *Default) Register(ctx context.Context, kube client.Reader, cfg *meta.Fa
 	return nil
 }
 
-func (d *Default) RegisterAll(ctx context.Context, kube client.Reader, cfg *meta.FabricConfig) error {
+func (d *Default) RegisterAll(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) error {
 	for _, sp := range defaultSwitchProfiles {
 		if err := d.Register(ctx, kube, cfg, sp); err != nil {
 			return errors.Wrapf(err, "failed to register switch profile %q", sp.Name)
@@ -87,7 +87,7 @@ func (d *Default) RegisterAll(ctx context.Context, kube client.Reader, cfg *meta
 	return nil
 }
 
-func (d *Default) Enforce(ctx context.Context, kube client.Client, cfg *meta.FabricConfig, logs bool) error {
+func (d *Default) Enforce(ctx context.Context, kube kclient.Client, cfg *meta.FabricConfig, logs bool) error {
 	if !cfg.AllowExtraSwitchProfiles {
 		sps := &wiringapi.SwitchProfileList{}
 		if err := kube.List(ctx, sps); err != nil {
@@ -108,7 +108,7 @@ func (d *Default) Enforce(ctx context.Context, kube client.Client, cfg *meta.Fab
 
 	for _, defaultSp := range d.store {
 		sp := &wiringapi.SwitchProfile{
-			ObjectMeta: metav1.ObjectMeta{
+			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      defaultSp.Name,
 				Namespace: defaultSp.Namespace,
 			},
@@ -124,7 +124,7 @@ func (d *Default) Enforce(ctx context.Context, kube client.Client, cfg *meta.Fab
 		}
 
 		if logs && res != ctrlutil.OperationResultNone {
-			l := log.FromContext(ctx)
+			l := kctrllog.FromContext(ctx)
 			l.Info("switch profile reconciled", "name", sp.Name, "operation", res)
 		}
 	}
@@ -143,5 +143,5 @@ func (d *Default) IsInitialized() bool {
 }
 
 func (d *Default) List() []*wiringapi.SwitchProfile {
-	return maps.Values(d.store)
+	return lo.Values(d.store)
 }

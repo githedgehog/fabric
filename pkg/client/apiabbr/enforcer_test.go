@@ -24,9 +24,9 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/client/apiabbr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -353,10 +353,10 @@ func TestEnforcer(t *testing.T) {
 
 type testData map[string]any
 
-func (d testData) toObjects(t *testing.T, logType string, logObj bool) []client.Object {
+func (d testData) toObjects(t *testing.T, logType string, logObj bool) []kclient.Object {
 	t.Helper()
 
-	objs := []client.Object{}
+	objs := []kclient.Object{}
 	for k, v := range d {
 		parts := strings.Split(k, "/")
 		if len(parts) != 2 {
@@ -369,38 +369,38 @@ func (d testData) toObjects(t *testing.T, logType string, logObj bool) []client.
 		switch kind {
 		case "srv":
 			objs = append(objs, &wiringapi.Server{
-				TypeMeta:   metav1.TypeMeta{APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindServer},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindServer},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       v.(wiringapi.ServerSpec),
 			})
 		case "conn":
 			objs = append(objs, &wiringapi.Connection{
-				TypeMeta:   metav1.TypeMeta{APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindConnection},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindConnection},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       v.(wiringapi.ConnectionSpec),
 			})
 		case "vpc":
 			objs = append(objs, &vpcapi.VPC{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       v.(vpcapi.VPCSpec),
 			})
 		case "vpcattach":
 			objs = append(objs, &vpcapi.VPCAttachment{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       v.(vpcapi.VPCAttachmentSpec),
 			})
 		case "vpcpeer":
 			objs = append(objs, &vpcapi.VPCPeering{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       v.(vpcapi.VPCPeeringSpec),
 			})
 		case "extpeer":
 			objs = append(objs, &vpcapi.ExternalPeering{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec:       v.(vpcapi.ExternalPeeringSpec),
 			})
 		default:

@@ -21,6 +21,9 @@ linters:
     - bodyclose
     - containedctx
     - contextcheck
+    - depguard
+    - dogsled
+    # - dupl
     - durationcheck
     - errchkjson
     - errname
@@ -30,14 +33,19 @@ linters:
     - ginkgolinter
     - gocheckcompilerdirectives
     - goconst
+    # - gocritic
+    # - gocyclo
     - err113
     - gofmt
     - goimports
+    - goprintffuncname
     - gosec
+    - importas
     - loggercheck
     - makezero
     - misspell
     - musttag
+    - nakedret
     - nilerr
     - nilnil
     - nlreturn
@@ -49,6 +57,8 @@ linters:
     - promlinter
     - reassign
     - revive
+    - stylecheck
+    # - tagliatelle
     - unconvert
     - unparam
     - usestdlibvars
@@ -61,6 +71,78 @@ linters-settings:
     check:
       - switch
       - map
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+  importas:
+    no-unaliased: true
+    alias:
+      - pkg: k8s.io/apimachinery/pkg/types
+        alias: ktypes
+      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+        alias: kmetav1
+      - pkg: k8s.io/apimachinery/pkg/api/errors
+        alias: kapierrors
+      - pkg: k8s.io/apimachinery/pkg/util/errors
+        alias: kerrors
+      - pkg: k8s.io/apimachinery/pkg/api/meta
+        alias: kmeta
+      - pkg: sigs.k8s.io/controller-runtime/pkg/log
+        alias: kctrllog
+      - pkg: sigs.k8s.io/yaml
+        alias: kyaml
+      - pkg: sigs.k8s.io/controller-runtime
+        alias: kctrl
+      - pkg: sigs.k8s.io/controller-runtime/pkg/client
+        alias: kclient
+  depguard:
+    rules:
+      main:
+        deny:
+          # - pkg: "github.com/pkg/errors$"
+          #   desc: use stdlib errors package
+          - pkg: "golang.org/x/exp/maps$"
+            desc: use stdlib maps or samber/lo package
+          - pkg: "golang.org/x/exp/slices$"
+            desc: use stdlib slices or samber/lo package
+          - pkg: "golang.org/x/exp/slog$"
+            desc: use stdlib slog package
+          - pkg: "k8s.io/utils/strings/slices$"
+            desc: use stdlib slices or samber/lo package
+          - pkg: gopkg.in/yaml
+            desc: use sigs.k8s.io/yaml
   reassign:
     patterns:
       - ".*"
+  revive:
+    # By default, revive will enable only the linting rules that are named in the configuration file.
+    # So, it's needed to explicitly enable all required rules here.
+    rules:
+      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: superfluous-else
+      - name: unreachable-code
+      - name: redefines-builtin-id
+      #
+      # Rules in addition to the recommended configuration above.
+      #
+      - name: bool-literal-in-expr
+      - name: constant-logical-expr

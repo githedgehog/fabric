@@ -22,8 +22,8 @@ import (
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type SwitchGroupCreateOptions struct {
@@ -32,9 +32,9 @@ type SwitchGroupCreateOptions struct {
 
 func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroupCreateOptions) error {
 	sg := &wiringapi.SwitchGroup{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: metav1.NamespaceDefault,
+			Namespace: kmetav1.NamespaceDefault,
 		},
 		Spec: wiringapi.SwitchGroupSpec{},
 	}
@@ -56,7 +56,7 @@ func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroup
 		sg.ObjectMeta.Generation = 0
 		sg.ObjectMeta.ResourceVersion = ""
 
-		out, err := yaml.Marshal(sg)
+		out, err := kyaml.Marshal(sg)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal sg")
 		}

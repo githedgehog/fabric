@@ -15,28 +15,33 @@
 package meta
 
 import (
+	"fmt"
 	"regexp"
 
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ErrInvalidName      = fmt.Errorf("invalid resource name")
+	ErrInvalidNamespace = fmt.Errorf("invalid resource namespace")
 )
 
 var nameChecker = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
 
-func DefaultObjectMetadata(obj client.Object) {
+func DefaultObjectMetadata(obj kclient.Object) {
 	if obj.GetNamespace() == "" {
-		obj.SetNamespace(metav1.NamespaceDefault)
+		obj.SetNamespace(kmetav1.NamespaceDefault)
 	}
 }
 
-func ValidateObjectMetadata(obj client.Object) error {
+func ValidateObjectMetadata(obj kclient.Object) error {
 	if !nameChecker.MatchString(obj.GetName()) {
-		return errors.Errorf("name does not match a lowercase RFC 1123 subdomain")
+		return fmt.Errorf("%w: name does not match a lowercase RFC 1123 subdomain", ErrInvalidName)
 	}
 
-	if obj.GetNamespace() != metav1.NamespaceDefault {
-		return errors.Errorf("only default namespace is currently supported")
+	if obj.GetNamespace() != kmetav1.NamespaceDefault {
+		return fmt.Errorf("%w: only default namespace is currently supported", ErrInvalidNamespace)
 	}
 
 	return nil

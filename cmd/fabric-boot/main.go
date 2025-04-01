@@ -29,7 +29,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/boot/server"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
+	kctrl "sigs.k8s.io/controller-runtime"
 )
 
 func setupLogger(verbose, brief bool) error {
@@ -52,7 +52,7 @@ func setupLogger(verbose, brief bool) error {
 	})
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
-	ctrl.SetLogger(logr.FromSlogHandler(handler))
+	kctrl.SetLogger(logr.FromSlogHandler(handler))
 	klog.SetSlogLogger(logger)
 
 	return nil

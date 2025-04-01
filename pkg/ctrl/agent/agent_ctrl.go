@@ -36,15 +36,15 @@ import (
 	"go.githedgehog.com/fabric/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -55,7 +55,7 @@ const (
 
 // Reconciler reconciles a Agent object
 type Reconciler struct {
-	client.Client
+	kclient.Client
 	Scheme   *runtime.Scheme
 	Cfg      *meta.FabricConfig
 	LibMngr  *librarian.Manager
@@ -64,7 +64,7 @@ type Reconciler struct {
 	Password string
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
 	r := &Reconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
@@ -76,7 +76,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
-	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("agent").
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
@@ -90,7 +90,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 		Complete(r), "failed to setup agent controller")
 }
 
-func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
@@ -105,7 +105,7 @@ func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj client.Obj
 
 		if strings.HasPrefix(label, switchConnPrefix) {
 			switchName := strings.TrimPrefix(label, switchConnPrefix)
-			res = append(res, reconcile.Request{NamespacedName: types.NamespacedName{
+			res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
 				Namespace: obj.GetNamespace(),
 				Name:      switchName,
 			}})
@@ -115,13 +115,13 @@ func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj client.Obj
 	return res
 }
 
-func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
-	err := r.List(ctx, sws, client.InNamespace(obj.GetNamespace()))
+	err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
 	if err != nil {
-		log.FromContext(ctx).Error(err, "error listing switches to reconcile by profile")
+		kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile by profile")
 
 		return res
 	}
@@ -131,7 +131,7 @@ func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj client
 			continue
 		}
 
-		res = append(res, reconcile.Request{NamespacedName: types.NamespacedName{
+		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
 			Namespace: sw.Namespace,
 			Name:      sw.Name,
 		}})
@@ -140,19 +140,19 @@ func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj client
 	return res
 }
 
-func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
-	err := r.List(ctx, sws, client.InNamespace(obj.GetNamespace()))
+	err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
 	if err != nil {
-		log.FromContext(ctx).Error(err, "error listing switches to reconcile all")
+		kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile all")
 
 		return res
 	}
 
 	for _, sw := range sws.Items {
-		res = append(res, reconcile.Request{NamespacedName: types.NamespacedName{
+		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
 			Namespace: sw.Namespace,
 			Name:      sw.Name,
 		}})
@@ -211,35 +211,35 @@ func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj client.Object) 
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx)
+func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+	l := kctrllog.FromContext(ctx)
 
 	sw := &wiringapi.Switch{}
 	err := r.Get(ctx, req.NamespacedName, sw)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+		if kapierrors.IsNotFound(err) {
+			return kctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errors.Wrapf(err, "error getting switch")
+		return kctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
 
 	// TODO impl
 	statusUpdates := appendUpdate(nil, sw)
 
-	switchNsName := metav1.ObjectMeta{Name: sw.Name, Namespace: sw.Namespace}
+	switchNsName := kmetav1.ObjectMeta{Name: sw.Name, Namespace: sw.Namespace}
 	res, err := r.prepareAgentInfra(ctx, switchNsName)
 	if err != nil {
-		return ctrl.Result{}, err
+		return kctrl.Result{}, err
 	}
 	if res != nil {
 		return *res, nil
 	}
 
 	connList := &wiringapi.ConnectionList{}
-	err = r.List(ctx, connList, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
+	err = r.List(ctx, connList, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
+		return kctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
 	conns := map[string]wiringapi.ConnectionSpec{}
@@ -252,7 +252,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	for _, conn := range connList.Items {
 		sws, _, _, _, err := conn.Spec.Endpoints()
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting endpoints for connection %s", conn.Name)
+			return kctrl.Result{}, errors.Wrapf(err, "error getting endpoints for connection %s", conn.Name)
 		}
 		for _, sw := range sws {
 			neighborSwitches[sw] = true
@@ -271,9 +271,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	switchList := &wiringapi.SwitchList{}
-	err = r.List(ctx, switchList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, switchList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting switches")
+		return kctrl.Result{}, errors.Wrapf(err, "error getting switches")
 	}
 
 	switches := map[string]wiringapi.SwitchSpec{}
@@ -291,15 +291,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	mclagConns := map[string]wiringapi.ConnectionSpec{}
 	if mclagPeerName != "" {
 		mclagPeer = &agentapi.Agent{}
-		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: mclagPeerName}, mclagPeer)
-		if err != nil && !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
+		err = r.Get(ctx, ktypes.NamespacedName{Namespace: sw.Namespace, Name: mclagPeerName}, mclagPeer)
+		if err != nil && !kapierrors.IsNotFound(err) {
+			return kctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
 		}
 
 		connList := &wiringapi.ConnectionList{}
-		err = r.List(ctx, connList, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(mclagPeerName))
+		err = r.List(ctx, connList, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(mclagPeerName))
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting mclag peer switch connections")
+			return kctrl.Result{}, errors.Wrapf(err, "error getting mclag peer switch connections")
 		}
 
 		for _, conn := range connList.Items {
@@ -312,9 +312,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
 	attachedVPCs := map[string]bool{}
 	attachList := &vpcapi.VPCAttachmentList{}
-	err = r.List(ctx, attachList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, attachList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments")
 	}
 	for _, attach := range attachList.Items {
 		_, conn := conns[attach.Spec.Connection]
@@ -345,9 +345,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	vpcs := map[string]vpcapi.VPCSpec{}
 	vpcList := &vpcapi.VPCList{}
-	err = r.List(ctx, vpcList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, vpcList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
 	}
 	for _, vpc := range vpcList.Items {
 		ok := attachedVPCs[vpc.Name] || staticExtVPCs[vpc.Name]
@@ -367,14 +367,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	peerings := map[string]vpcapi.VPCPeeringSpec{}
 	peeringsList := &vpcapi.VPCPeeringList{}
 	peeredVPCs := map[string]bool{}
-	err = r.List(ctx, peeringsList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, peeringsList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing vpc peerings")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing vpc peerings")
 	}
 	for _, peer := range peeringsList.Items {
 		vpc1, vpc2, err := peer.Spec.VPCs()
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", peer.Name)
+			return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", peer.Name)
 		}
 
 		_, exists1 := vpcs[vpc1]
@@ -390,9 +390,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	attachedExternals := map[string]bool{}
 	externalAttaches := map[string]vpcapi.ExternalAttachmentSpec{}
 	externalAttachList := &vpcapi.ExternalAttachmentList{}
-	err = r.List(ctx, externalAttachList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, externalAttachList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing external attachments")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing external attachments")
 	}
 	for _, attach := range externalAttachList.Items {
 		if _, exists := conns[attach.Spec.Connection]; !exists {
@@ -406,9 +406,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	externals := map[string]vpcapi.ExternalSpec{}
 	externalsToConfig := map[string]vpcapi.ExternalSpec{}
 	externalList := &vpcapi.ExternalList{}
-	err = r.List(ctx, externalList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, externalList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing externals")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing externals")
 	}
 	for _, ext := range externalList.Items {
 		externals[ext.Name] = ext.Spec
@@ -419,9 +419,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	externalPeerings := map[string]vpcapi.ExternalPeeringSpec{}
 	externalPeeringList := &vpcapi.ExternalPeeringList{}
-	err = r.List(ctx, externalPeeringList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, externalPeeringList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing external peerings")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing external peerings")
 	}
 	for _, peering := range externalPeeringList.Items {
 		if _, exists := externalsToConfig[peering.Spec.Permit.External.Name]; !exists {
@@ -442,14 +442,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	for name, vpc := range vpcs {
 		if !slices.Contains(sw.Spec.VLANNamespaces, vpc.VLANNamespace) {
-			return ctrl.Result{}, errors.Errorf("switch %s doesn't have vlan namespace %s while gets vpc %s", sw.Name, vpc.VLANNamespace, name)
+			return kctrl.Result{}, errors.Errorf("switch %s doesn't have vlan namespace %s while gets vpc %s", sw.Name, vpc.VLANNamespace, name)
 		}
 	}
 
 	ipv4NamespaceList := &vpcapi.IPv4NamespaceList{}
-	err = r.List(ctx, ipv4NamespaceList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, ipv4NamespaceList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing ipv4 namespaces")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing ipv4 namespaces")
 	}
 
 	ipv4Namespaces := map[string]vpcapi.IPv4NamespaceSpec{}
@@ -458,9 +458,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	vlanNamespaceList := &wiringapi.VLANNamespaceList{}
-	err = r.List(ctx, vlanNamespaceList, client.InNamespace(sw.Namespace))
+	err = r.List(ctx, vlanNamespaceList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error listing vlan namespaces")
+		return kctrl.Result{}, errors.Wrapf(err, "error listing vlan namespaces")
 	}
 
 	vlanNamespaces := map[string]wiringapi.VLANNamespaceSpec{}
@@ -491,7 +491,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		for _, other := range switchList.Items {
 			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
 				if sw.Spec.Redundancy.Type != other.Spec.Redundancy.Type {
-					return ctrl.Result{}, errors.Errorf("switch %s and %s have different redundancy types but in the redundancy same group", sw.Name, other.Name)
+					return kctrl.Result{}, errors.Errorf("switch %s and %s have different redundancy types but in the redundancy same group", sw.Name, other.Name)
 				}
 
 				rgPeers = append(rgPeers, other.Name)
@@ -501,9 +501,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	for _, rgPeerName := range rgPeers {
 		connList := &wiringapi.ConnectionList{}
-		err = r.List(ctx, connList, client.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(rgPeerName))
+		err = r.List(ctx, connList, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(rgPeerName))
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting rg peer switch %s connections", rgPeerName)
+			return kctrl.Result{}, errors.Wrapf(err, "error getting rg peer switch %s connections", rgPeerName)
 		}
 
 		for _, conn := range connList.Items {
@@ -528,7 +528,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	err = r.LibMngr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
+		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
 
 	loWorkaroundLinks := []string{}
@@ -542,7 +542,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			sort.Strings(ports)
 
 			if len(ports) != 2 {
-				return ctrl.Result{}, errors.Errorf("invalid vpc loopback %s link %d", name, linkID)
+				return kctrl.Result{}, errors.Errorf("invalid vpc loopback %s link %d", name, linkID)
 			}
 
 			loRef := fmt.Sprintf("%s--%s", ports[0], ports[1])
@@ -554,7 +554,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	for name, peering := range peerings {
 		vpc1, vpc2, err := peering.VPCs()
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
+			return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
 		}
 
 		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
@@ -597,7 +597,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		_, ipNet, err := net.ParseCIDR(conn.StaticExternal.Link.Switch.IP)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error parsing static external conn %s ip %s", connName, conn.StaticExternal.Link.Switch.IP)
+			return kctrl.Result{}, errors.Wrapf(err, "error parsing static external conn %s ip %s", connName, conn.StaticExternal.Link.Switch.IP)
 		}
 
 		subnetsReq[ipNet.String()] = true
@@ -609,7 +609,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	err = r.LibMngr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
+		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
 
 	userCreds := []agentapi.UserCreds{}
@@ -626,9 +626,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if sw.Spec.Profile != "" {
 		sp := &wiringapi.SwitchProfile{}
-		err = r.Get(ctx, types.NamespacedName{Namespace: sw.Namespace, Name: sw.Spec.Profile}, sp)
+		err = r.Get(ctx, ktypes.NamespacedName{Namespace: sw.Namespace, Name: sw.Spec.Profile}, sp)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error getting switch profile")
+			return kctrl.Result{}, errors.Wrapf(err, "error getting switch profile")
 		}
 
 		spSpec = &sp.Spec
@@ -697,25 +697,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error creating agent")
+		return kctrl.Result{}, errors.Wrapf(err, "error creating agent")
 	}
 
 	l.Info("agent reconciled")
 
-	return ctrl.Result{}, nil
+	return kctrl.Result{}, nil
 }
 
-func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta) (*ctrl.Result, error) {
-	l := log.FromContext(ctx)
+func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.ObjectMeta) (*kctrl.Result, error) {
+	l := kctrllog.FromContext(ctx)
 
 	saName := common.AgentServiceAccount(ag.Name)
-	sa := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
+	sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil })
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating service account")
 	}
 
-	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
+	role := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
 		role.Rules = []rbacv1.PolicyRule{
 			{
@@ -738,7 +738,7 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta
 		return nil, errors.Wrapf(err, "error creating role")
 	}
 
-	roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
+	roleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
 		roleBinding.Subjects = []rbacv1.Subject{
 			{
@@ -759,7 +759,7 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta
 		return nil, errors.Wrapf(err, "error creating role binding")
 	}
 
-	tokenSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: saName + "-satoken"}}
+	tokenSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName + "-satoken"}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, tokenSecret, func() error {
 		if tokenSecret.Annotations == nil {
 			tokenSecret.Annotations = map[string]string{}
@@ -779,7 +779,7 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta
 		// TODO is it the best we can do? or should we do few in-place retries?
 		l.Info("requeue to wait for service account token")
 
-		return &ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		return &kctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	kubeconfig, err := r.genKubeconfig(tokenSecret)
@@ -788,7 +788,7 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag metav1.ObjectMeta
 	}
 
 	secretName := common.AgentKubeconfigSecret(ag.Name)
-	kubeconfigSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: ag.Namespace, Name: secretName}}
+	kubeconfigSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: secretName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, kubeconfigSecret, func() error {
 		kubeconfigSecret.StringData = map[string]string{
 			common.AgentKubeconfigKey: kubeconfig,
@@ -851,7 +851,7 @@ func (r *Reconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	return buf.String(), nil
 }
 
-func appendUpdate(statusUpdates []agentapi.ApplyStatusUpdate, obj client.Object) []agentapi.ApplyStatusUpdate {
+func appendUpdate(statusUpdates []agentapi.ApplyStatusUpdate, obj kclient.Object) []agentapi.ApplyStatusUpdate {
 	return append(statusUpdates, agentapi.ApplyStatusUpdate{
 		APIVersion: obj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 		Kind:       obj.GetObjectKind().GroupVersionKind().Kind,

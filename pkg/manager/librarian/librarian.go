@@ -24,14 +24,14 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	Namespace                = metav1.NamespaceDefault
+	Namespace                = kmetav1.NamespaceDefault
 	CatConns                 = "connections"
 	CatVPCs                  = "vpcs"
 	CatSwitchPrefix          = "switch."
@@ -55,10 +55,10 @@ func NewManager(cfg *meta.FabricConfig) *Manager {
 	}
 }
 
-func (m *Manager) getCatalog(ctx context.Context, kube client.Client, key string) (*agentapi.Catalog, error) {
+func (m *Manager) getCatalog(ctx context.Context, kube kclient.Client, key string) (*agentapi.Catalog, error) {
 	cat := &agentapi.Catalog{}
-	err := kube.Get(ctx, types.NamespacedName{Name: key, Namespace: Namespace}, cat)
-	if client.IgnoreNotFound(err) != nil {
+	err := kube.Get(ctx, ktypes.NamespacedName{Name: key, Namespace: Namespace}, cat)
+	if kclient.IgnoreNotFound(err) != nil {
 		return nil, errors.Wrapf(err, "failed to get catalog %s", key)
 	}
 
@@ -84,9 +84,9 @@ func (m *Manager) getCatalog(ctx context.Context, kube client.Client, key string
 	return cat, nil
 }
 
-func (m *Manager) saveCatalog(ctx context.Context, kube client.Client, key string, cat *agentapi.Catalog) error {
+func (m *Manager) saveCatalog(ctx context.Context, kube kclient.Client, key string, cat *agentapi.Catalog) error {
 	if err := kube.Update(ctx, cat); err != nil {
-		if apierrors.IsNotFound(err) {
+		if kapierrors.IsNotFound(err) {
 			if err := kube.Create(ctx, cat); err != nil {
 				return errors.Wrapf(err, "failed to create catalog %s", key)
 			}
@@ -98,7 +98,7 @@ func (m *Manager) saveCatalog(ctx context.Context, kube client.Client, key strin
 	return nil
 }
 
-func (m *Manager) UpdateConnections(ctx context.Context, kube client.Client) error {
+func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -108,7 +108,7 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube client.Client) err
 	}
 
 	connList := &wiringapi.ConnectionList{}
-	if err := kube.List(ctx, connList, client.MatchingLabels{
+	if err := kube.List(ctx, connList, kclient.MatchingLabels{
 		wiringapi.LabelConnectionType: wiringapi.ConnectionTypeESLAG,
 	}); err != nil {
 		return errors.Wrapf(err, "error listing ESLAG connections")
@@ -130,7 +130,7 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube client.Client) err
 	return m.saveCatalog(ctx, kube, CatConns, cat)
 }
 
-func (m *Manager) UpdateVPCs(ctx context.Context, kube client.Client) error {
+func (m *Manager) UpdateVPCs(ctx context.Context, kube kclient.Client) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -188,7 +188,7 @@ func (m *Manager) getSwitchKey(swName string) string {
 	return CatSwitchPrefix + swName
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube client.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool) error {
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -274,7 +274,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube client.Cli
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube client.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, subnets map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, subnets map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

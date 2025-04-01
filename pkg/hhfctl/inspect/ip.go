@@ -26,9 +26,9 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type IPIn struct {
@@ -56,9 +56,9 @@ type IPOutSwitch struct {
 }
 
 type IPOutDHCPLease struct {
-	MAC      string      `json:"mac,omitempty"`
-	Expiry   metav1.Time `json:"expiry,omitempty"`
-	Hostname string      `json:"hostname,omitempty"`
+	MAC      string       `json:"mac,omitempty"`
+	Expiry   kmetav1.Time `json:"expiry,omitempty"`
+	Hostname string       `json:"hostname,omitempty"`
 }
 
 type IPOutConnection struct {
@@ -81,7 +81,7 @@ func (out *IPOut) MarshalText() (string, error) {
 	if out.VPCSubnet != nil {
 		str.WriteString(fmt.Sprintf("From VPC subnet: %s (%s)\n", out.VPCSubnet.Name, out.VPCSubnet.Subnet))
 
-		data, err := yaml.Marshal(out.VPCSubnet.VPCSubnet)
+		data, err := kyaml.Marshal(out.VPCSubnet.VPCSubnet)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to marshal VPCSubnet")
 		}
@@ -98,7 +98,7 @@ func (out *IPOut) MarshalText() (string, error) {
 	if out.Switch != nil {
 		str.WriteString(fmt.Sprintf("From Switch: %s\n", out.Switch.Name))
 
-		data, err := yaml.Marshal(out.Switch)
+		data, err := kyaml.Marshal(out.Switch)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to marshal Switch")
 		}
@@ -109,7 +109,7 @@ func (out *IPOut) MarshalText() (string, error) {
 		for _, conn := range out.Connections {
 			str.WriteString(fmt.Sprintf("From Connection: %s\n", conn.Name))
 
-			data, err := yaml.Marshal(conn.ConnectionSpec)
+			data, err := kyaml.Marshal(conn.ConnectionSpec)
 			if err != nil {
 				return "", errors.Wrap(err, "failed to marshal Connection")
 			}
@@ -137,7 +137,7 @@ func (out *IPOut) MarshalText() (string, error) {
 
 var _ Func[IPIn, *IPOut] = IP
 
-func IP(ctx context.Context, kube client.Reader, in IPIn) (*IPOut, error) {
+func IP(ctx context.Context, kube kclient.Reader, in IPIn) (*IPOut, error) {
 	ip := net.ParseIP(in.IP)
 	if ip == nil {
 		return nil, errors.Errorf("invalid IP address: %s", in.IP)
@@ -168,7 +168,7 @@ func IP(ctx context.Context, kube client.Reader, in IPIn) (*IPOut, error) {
 	return out, nil
 }
 
-func ipInIPNS(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
+func ipInIPNS(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
 	ipnsList := &vpcapi.IPv4NamespaceList{}
 	err := kube.List(ctx, ipnsList)
 	if err != nil {
@@ -186,7 +186,7 @@ func ipInIPNS(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) er
 				res.IPv4Namespace = pointer.To(ipns.Name)
 
 				vpcs := &vpcapi.VPCList{}
-				err = kube.List(ctx, vpcs, client.MatchingLabels{
+				err = kube.List(ctx, vpcs, kclient.MatchingLabels{
 					vpcapi.LabelIPv4NS: ipns.Name,
 				})
 				if err != nil {
@@ -209,7 +209,7 @@ func ipInIPNS(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) er
 
 							if subnet.DHCP.Enable {
 								dhcpSubnet := &dhcpapi.DHCPSubnet{}
-								err = kube.Get(ctx, client.ObjectKey{Name: vpc.Name + "--" + subnetName, Namespace: metav1.NamespaceDefault}, dhcpSubnet)
+								err = kube.Get(ctx, kclient.ObjectKey{Name: vpc.Name + "--" + subnetName, Namespace: kmetav1.NamespaceDefault}, dhcpSubnet)
 								if err != nil {
 									return errors.Wrapf(err, "failed to get DHCPSubnet %s", vpc.Name+"-"+subnetName)
 								}
@@ -241,7 +241,7 @@ func ipInIPNS(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) er
 	return nil
 }
 
-func ipInSwitches(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
+func ipInSwitches(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
 	sws := &wiringapi.SwitchList{}
 	err := kube.List(ctx, sws)
 	if err != nil {
@@ -265,7 +265,7 @@ func ipInSwitches(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP
 	return nil
 }
 
-func ipInConnections(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
+func ipInConnections(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
 	conns := &wiringapi.ConnectionList{}
 	err := kube.List(ctx, conns)
 	if err != nil {
@@ -314,7 +314,7 @@ func ipInConnections(ctx context.Context, res *IPOut, kube client.Reader, ip net
 	return nil
 }
 
-func ipInExternal(ctx context.Context, res *IPOut, kube client.Reader, ip net.IP) error {
+func ipInExternal(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
 	if res.found {
 		return nil
 	}

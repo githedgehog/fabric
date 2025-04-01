@@ -20,8 +20,8 @@ import (
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -71,19 +71,19 @@ func newExternalPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcap
 			}
 
 			return &vpcapi.ExternalPeering{
-				TypeMeta:   metav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec: vpcapi.ExternalPeeringSpec{
 					Permit: permit,
 				},
 			}, nil
 		},
-		ObjectListFn: func(ctx context.Context, kube client.Client) (*vpcapi.ExternalPeeringList, error) {
+		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.ExternalPeeringList, error) {
 			list := &vpcapi.ExternalPeeringList{}
 
 			return list, kube.List(ctx, list)
 		},
-		CreateOrUpdateFn: func(ctx context.Context, kube client.Client, newObj *vpcapi.ExternalPeering) (ctrlutil.OperationResult, error) {
+		CreateOrUpdateFn: func(ctx context.Context, kube kclient.Client, newObj *vpcapi.ExternalPeering) (ctrlutil.OperationResult, error) {
 			extPeering := &vpcapi.ExternalPeering{ObjectMeta: newObj.ObjectMeta}
 
 			return ctrlutil.CreateOrUpdate(ctx, kube, extPeering, func() error {

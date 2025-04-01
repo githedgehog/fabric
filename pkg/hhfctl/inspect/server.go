@@ -22,12 +22,12 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	"golang.org/x/exp/maps"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ServerIn struct {
@@ -52,7 +52,7 @@ func (out *ServerOut) MarshalText() (string, error) {
 		str.WriteString("Connections:\n")
 
 		connData := [][]string{}
-		connNames := maps.Keys(out.Connections)
+		connNames := lo.Keys(out.Connections)
 		for _, connName := range connNames {
 			conn := out.Connections[connName]
 
@@ -74,7 +74,7 @@ func (out *ServerOut) MarshalText() (string, error) {
 		str.WriteString("VPC Attachments:\n")
 
 		attachData := [][]string{}
-		attachNames := maps.Keys(out.VPCAttachments)
+		attachNames := lo.Keys(out.VPCAttachments)
 		for _, attachName := range attachNames {
 			attach := out.VPCAttachments[attachName]
 
@@ -113,7 +113,7 @@ func (out *ServerOut) MarshalText() (string, error) {
 
 var _ Func[ServerIn, *ServerOut] = Server
 
-func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, error) {
+func Server(ctx context.Context, kube kclient.Reader, in ServerIn) (*ServerOut, error) {
 	if in.Name == "" {
 		return nil, errors.New("server name is required")
 	}
@@ -126,12 +126,12 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 	}
 
 	srv := &wiringapi.Server{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: in.Name, Namespace: metav1.NamespaceDefault}, srv); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: in.Name, Namespace: kmetav1.NamespaceDefault}, srv); err != nil {
 		return nil, errors.Wrap(err, "cannot get server")
 	}
 
 	conns := &wiringapi.ConnectionList{}
-	if err := kube.List(ctx, conns, client.MatchingLabels{
+	if err := kube.List(ctx, conns, kclient.MatchingLabels{
 		wiringapi.ListLabelServer(in.Name): wiringapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrap(err, "cannot list connections")
@@ -141,7 +141,7 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 		out.Connections[conn.Name] = pointer.To(conn.Spec)
 
 		vpcAttaches := &vpcapi.VPCAttachmentList{}
-		if err := kube.List(ctx, vpcAttaches, client.MatchingLabels{
+		if err := kube.List(ctx, vpcAttaches, kclient.MatchingLabels{
 			wiringapi.LabelConnection: conn.Name,
 		}); err != nil {
 			return nil, errors.Wrap(err, "cannot list VPC attachments")
@@ -153,7 +153,7 @@ func Server(ctx context.Context, kube client.Reader, in ServerIn) (*ServerOut, e
 			vpcName := strings.SplitN(vpcAttach.Spec.Subnet, "/", 2)[0]
 
 			vpc := &vpcapi.VPC{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: vpcName, Namespace: metav1.NamespaceDefault}, vpc); err != nil {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, vpc); err != nil {
 				return nil, errors.Wrapf(err, "cannot get VPC %s", vpcName)
 			}
 

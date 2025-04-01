@@ -22,13 +22,13 @@ import (
 	"github.com/pkg/errors"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
-	err := r.deleteDHCPSubnets(ctx, client.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, vpc.Spec.Subnets)
+	err := r.deleteDHCPSubnets(ctx, kclient.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, vpc.Spec.Subnets)
 	if err != nil {
 		return errors.Wrapf(err, "error deleting obsolete dhcp subnets")
 	}
@@ -38,7 +38,7 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 			continue
 		}
 
-		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
+		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: kmetav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
 		_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
 			pxeURL := ""
 			dnsServers := []string{}
@@ -83,9 +83,9 @@ func (r *Reconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) err
 	return nil
 }
 
-func (r *Reconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
+func (r *Reconciler) deleteDHCPSubnets(ctx context.Context, vpcKey kclient.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
 	dhcpSubnets := &dhcpapi.DHCPSubnetList{}
-	err := r.List(ctx, dhcpSubnets, client.MatchingLabels{vpcapi.LabelVPC: vpcKey.Name})
+	err := r.List(ctx, dhcpSubnets, kclient.MatchingLabels{vpcapi.LabelVPC: vpcKey.Name})
 	if err != nil {
 		return errors.Wrapf(err, "error listing dhcp subnets")
 	}
@@ -102,7 +102,7 @@ func (r *Reconciler) deleteDHCPSubnets(ctx context.Context, vpcKey client.Object
 		}
 
 		err = r.Delete(ctx, &subnet)
-		if client.IgnoreNotFound(err) != nil {
+		if kclient.IgnoreNotFound(err) != nil {
 			return errors.Wrapf(err, "error deleting dhcp subnet %s", subnet.Name)
 		}
 	}

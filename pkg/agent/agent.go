@@ -39,11 +39,11 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 	"go.githedgehog.com/fabric/pkg/version"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -165,13 +165,13 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	currentGen := agent.Generation
 
-	err = kube.Get(ctx, client.ObjectKey{Name: agent.Name, Namespace: metav1.NamespaceDefault}, agent)
+	err = kube.Get(ctx, kclient.ObjectKey{Name: agent.Name, Namespace: kmetav1.NamespaceDefault}, agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get initial agent config from k8s")
 	}
 
 	// reset observability state
-	now := metav1.Time{Time: time.Now()}
+	now := kmetav1.Time{Time: time.Now()}
 	agent.Status.LastAttemptTime = now
 	agent.Status.LastAttemptGen = currentGen
 	agent.Status.LastAppliedTime = now
@@ -183,7 +183,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	agent.Status.Version = version.Version
 	agent.Status.StatusUpdates = agent.Spec.StatusUpdates
 	if agent.Status.Conditions == nil {
-		agent.Status.Conditions = []metav1.Condition{}
+		agent.Status.Conditions = []kmetav1.Condition{}
 	}
 
 	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
@@ -193,7 +193,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.State = *st
 	}
 
-	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
 	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
 	err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
@@ -203,7 +203,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	slog.Debug("Starting watch for config changes in K8s")
 
-	watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, client.InNamespace(metav1.NamespaceDefault), client.MatchingFields{
+	watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingFields{
 		"metadata.name": svc.name,
 	})
 	if err != nil {
@@ -252,7 +252,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				agent.Status.State = *st
 			}
 
-			agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+			agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
 			svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
 			err := kube.Status().Update(ctx, agent)
@@ -430,7 +430,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, exporterPort), "failed to ensure alloy installed")
 }
 
-func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64) error {
+func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64) error {
 	if agent.Generation == *currentGen {
 		return nil
 	}
@@ -440,21 +440,21 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
 
 	if agent.Status.Conditions == nil {
-		agent.Status.Conditions = []metav1.Condition{}
+		agent.Status.Conditions = []kmetav1.Condition{}
 	}
 
 	// TODO better handle status condtions
-	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+	kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
 		Type:               "Applied",
-		Status:             metav1.ConditionFalse,
+		Status:             kmetav1.ConditionFalse,
 		Reason:             "ApplyPending",
-		LastTransitionTime: metav1.Time{Time: time.Now()},
+		LastTransitionTime: kmetav1.Time{Time: time.Now()},
 		Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
 	})
 
 	// demonstrating that we're going to try to apply config
 	agent.Status.LastAttemptGen = agent.Generation
-	agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
+	agent.Status.LastAttemptTime = kmetav1.Time{Time: time.Now()}
 
 	if err := kube.Status().Update(ctx, agent); err != nil {
 		return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
@@ -474,15 +474,15 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 
 	// report that we've been able to apply config
 	agent.Status.LastAppliedGen = agent.Generation
-	agent.Status.LastAppliedTime = metav1.Time{Time: time.Now()}
+	agent.Status.LastAppliedTime = kmetav1.Time{Time: time.Now()}
 	svc.lastApplied = agent.Status.LastAppliedTime.Time
 
 	// TODO not the best way to use conditions, but it's the easiest way to then wait for agents
-	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+	kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
 		Type:               "Applied",
-		Status:             metav1.ConditionTrue,
+		Status:             kmetav1.ConditionTrue,
 		Reason:             "ApplySucceeded",
-		LastTransitionTime: metav1.Time{Time: time.Now()},
+		LastTransitionTime: kmetav1.Time{Time: time.Now()},
 		Message:            fmt.Sprintf("Config applied, gen=%d", agent.Generation),
 	})
 
@@ -495,7 +495,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 		agent.Status.State = *st
 	}
 
-	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
 	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
 	if err := kube.Status().Update(ctx, agent); err != nil {
@@ -621,7 +621,7 @@ func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 	}
 
 	config := &agentapi.Agent{}
-	err = yaml.UnmarshalStrict(data, config)
+	err = kyaml.UnmarshalStrict(data, config)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", svc.configFilePath())
 	}
@@ -635,7 +635,7 @@ func (svc *Service) saveConfigToFile(agent *agentapi.Agent) error {
 		return errors.New("no config to save")
 	}
 
-	data, err := yaml.Marshal(agent)
+	data, err := kyaml.Marshal(agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal config")
 	}

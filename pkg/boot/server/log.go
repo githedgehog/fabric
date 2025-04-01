@@ -20,7 +20,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -29,7 +28,6 @@ type logEntry struct {
 	Extra logEntryExtra `json:"extra"`
 	Level string        `json:"level"`
 	Msg   string        `json:"message"`
-	Ts    time.Time     `json:"timestamp"`
 }
 
 type logEntryExtra struct {

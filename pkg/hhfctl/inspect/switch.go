@@ -22,13 +22,13 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"golang.org/x/exp/maps"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type SwitchIn struct {
@@ -46,13 +46,13 @@ type SwitchOut struct {
 }
 
 type AgentState struct {
-	Summary         string      `json:"summary,omitempty"`
-	DesiredGen      int64       `json:"desiredGen,omitempty"`
-	LastHeartbeat   metav1.Time `json:"lastHeartbeat,omitempty"`
-	LastAttemptTime metav1.Time `json:"lastAttemptTime,omitempty"`
-	LastAttemptGen  int64       `json:"lastAttemptGen,omitempty"`
-	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
-	LastAppliedGen  int64       `json:"lastAppliedGen,omitempty"`
+	Summary         string       `json:"summary,omitempty"`
+	DesiredGen      int64        `json:"desiredGen,omitempty"`
+	LastHeartbeat   kmetav1.Time `json:"lastHeartbeat,omitempty"`
+	LastAttemptTime kmetav1.Time `json:"lastAttemptTime,omitempty"`
+	LastAttemptGen  int64        `json:"lastAttemptGen,omitempty"`
+	LastAppliedTime kmetav1.Time `json:"lastAppliedTime,omitempty"`
+	LastAppliedGen  int64        `json:"lastAppliedGen,omitempty"`
 }
 
 type SwitchOutPort struct {
@@ -187,7 +187,7 @@ func (out *SwitchOut) MarshalText() (string, error) {
 
 var _ Func[SwitchIn, *SwitchOut] = Switch
 
-func Switch(ctx context.Context, kube client.Reader, in SwitchIn) (*SwitchOut, error) {
+func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, error) {
 	swName := in.Name
 	if swName == "" {
 		return nil, errors.Errorf("switch name is required")
@@ -198,14 +198,14 @@ func Switch(ctx context.Context, kube client.Reader, in SwitchIn) (*SwitchOut, e
 	}
 
 	sw := &wiringapi.Switch{}
-	if err := kube.Get(ctx, types.NamespacedName{Name: swName, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+	if err := kube.Get(ctx, ktypes.NamespacedName{Name: swName, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
 		return nil, errors.Wrapf(err, "cannot get switch %s", swName)
 	}
 
 	out.Spec = &sw.Spec
 
 	sp := &wiringapi.SwitchProfile{}
-	if err := kube.Get(ctx, types.NamespacedName{Name: sw.Spec.Profile, Namespace: metav1.NamespaceDefault}, sp); err != nil {
+	if err := kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: kmetav1.NamespaceDefault}, sp); err != nil {
 		return nil, errors.Wrapf(err, "cannot get switch profile %s", sw.Spec.Profile)
 	}
 
@@ -213,8 +213,8 @@ func Switch(ctx context.Context, kube client.Reader, in SwitchIn) (*SwitchOut, e
 
 	skipActual := false
 	agent := &agentapi.Agent{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, agent); err != nil {
-		if apierrors.IsNotFound(err) {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, agent); err != nil {
+		if kapierrors.IsNotFound(err) {
 			skipActual = true
 			slog.Warn("Agent object not found", "name", swName)
 		} else {
@@ -232,7 +232,7 @@ func Switch(ctx context.Context, kube client.Reader, in SwitchIn) (*SwitchOut, e
 	out.Software = agent.Status.State.NOS.SoftwareVersion
 
 	conns := &wiringapi.ConnectionList{}
-	if err := kube.List(ctx, conns, client.MatchingLabels{
+	if err := kube.List(ctx, conns, kclient.MatchingLabels{
 		wiringapi.ListLabelSwitch(swName): wiringapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrap(err, "cannot list Connections")
@@ -289,7 +289,7 @@ func Switch(ctx context.Context, kube client.Reader, in SwitchIn) (*SwitchOut, e
 		}
 	}
 
-	portNames := maps.Keys(ports)
+	portNames := lo.Keys(ports)
 	wiringapi.SortPortNames(portNames)
 
 	for _, portName := range portNames {

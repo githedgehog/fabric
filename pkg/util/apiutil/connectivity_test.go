@@ -23,20 +23,20 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var base = []meta.Object{
 	&wiringapi.Server{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name: "source",
 		},
 	},
 	&wiringapi.Connection{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name: "source-conn",
 		},
 		Spec: wiringapi.ConnectionSpec{
@@ -49,12 +49,12 @@ var base = []meta.Object{
 		},
 	},
 	&wiringapi.Server{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name: "dest",
 		},
 	},
 	&wiringapi.Connection{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name: "dest-conn",
 		},
 		Spec: wiringapi.ConnectionSpec{
@@ -67,7 +67,7 @@ var base = []meta.Object{
 		},
 	},
 	&vpcapi.VPC{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name: "vpc-1",
 		},
 		Spec: vpcapi.VPCSpec{
@@ -78,7 +78,7 @@ var base = []meta.Object{
 		},
 	},
 	&vpcapi.VPC{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name: "vpc-2",
 		},
 		Spec: vpcapi.VPCSpec{
@@ -114,12 +114,12 @@ func TestIsServerReachable(t *testing.T) {
 			name: "only-servers",
 			existing: []meta.Object{
 				&wiringapi.Server{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source",
 					},
 				},
 				&wiringapi.Server{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest",
 					},
 				},
@@ -141,7 +141,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "same-subnet",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -150,7 +150,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -168,7 +168,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-subnet-same-vpc",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -177,7 +177,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -195,7 +195,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-vpc-no-peering",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -204,7 +204,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -222,7 +222,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-vpc-peering",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -231,7 +231,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -240,7 +240,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1-vpc-2",
 					},
 					Spec: vpcapi.VPCPeeringSpec{
@@ -262,7 +262,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-subnet-same-vpc-default-isolated",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -274,7 +274,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -283,7 +283,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -301,7 +301,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-subnet-same-vpc-isolated",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -314,7 +314,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -323,7 +323,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -341,7 +341,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-subnet-same-vpc-default-isolated-not-isolated",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -357,7 +357,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -366,7 +366,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -384,7 +384,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "different-subnet-same-vpc-default-isolated-permit",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -399,7 +399,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -408,7 +408,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -426,7 +426,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "same-subnet-default-restricted",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -437,7 +437,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -446,7 +446,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -464,7 +464,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "same-subnet-restricted",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -476,7 +476,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -485,7 +485,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -503,7 +503,7 @@ func TestIsServerReachable(t *testing.T) {
 			name: "same-subnet-default-restricted-not-restricted",
 			existing: append(base,
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -516,7 +516,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -525,7 +525,7 @@ func TestIsServerReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "dest-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -543,7 +543,7 @@ func TestIsServerReachable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rawObjs := make([]client.Object, len(tt.existing))
+			rawObjs := make([]kclient.Object, len(tt.existing))
 			for idx, obj := range tt.existing {
 				obj.Default()
 				rawObjs[idx] = obj
@@ -580,7 +580,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			name: "simple-reachable",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -589,7 +589,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -598,7 +598,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -628,7 +628,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			name: "no-ext-attach",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -637,7 +637,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -667,7 +667,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			name: "no-ext-peering",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -676,7 +676,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -694,7 +694,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			name: "ext-peering-wrong-subnet",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -703,7 +703,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -712,7 +712,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -742,7 +742,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			name: "ext-peering-wrong-prefix",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -751,7 +751,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -760,7 +760,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -790,7 +790,7 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rawObjs := make([]client.Object, len(tt.existing))
+			rawObjs := make([]kclient.Object, len(tt.existing))
 			for idx, obj := range tt.existing {
 				obj.Default()
 				rawObjs[idx] = obj
@@ -826,7 +826,7 @@ func TestGetReacheableFrom(t *testing.T) {
 			name: "simple",
 			existing: []meta.Object{
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -842,7 +842,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-2",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -854,7 +854,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-3",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -864,7 +864,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.VPC{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-4",
 					},
 					Spec: vpcapi.VPCSpec{
@@ -874,7 +874,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--vpc-2",
 					},
 					Spec: vpcapi.VPCPeeringSpec{
@@ -895,7 +895,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--vpc-3",
 					},
 					Spec: vpcapi.VPCPeeringSpec{
@@ -908,7 +908,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.VPCPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--vpc-4",
 					},
 					Spec: vpcapi.VPCPeeringSpec{
@@ -922,12 +922,12 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&wiringapi.SwitchGroup{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "border",
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1--attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -935,7 +935,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-2--attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -943,7 +943,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -963,7 +963,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-2",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -982,7 +982,7 @@ func TestGetReacheableFrom(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-3",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -1116,7 +1116,7 @@ func TestGetReacheableFrom(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			rawObjs := make([]client.Object, len(tt.existing))
+			rawObjs := make([]kclient.Object, len(tt.existing))
 			for idx, obj := range tt.existing {
 				obj.Default()
 				rawObjs[idx] = obj
@@ -1154,7 +1154,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 			name: "simple-reachable-ip",
 			existing: append(base,
 				&wiringapi.Connection{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "static-ext",
 					},
 					Spec: wiringapi.ConnectionSpec{
@@ -1178,7 +1178,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 			name: "simple-reachable-subnet",
 			existing: append(base,
 				&wiringapi.Connection{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "static-ext",
 					},
 					Spec: wiringapi.ConnectionSpec{
@@ -1205,7 +1205,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 			name: "simple-reachable-no-subnet",
 			existing: append(base,
 				&wiringapi.Connection{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "static-ext",
 					},
 					Spec: wiringapi.ConnectionSpec{
@@ -1232,7 +1232,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 			name: "simple-reachable-no-in-subnet",
 			existing: append(base,
 				&wiringapi.Connection{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "static-ext",
 					},
 					Spec: wiringapi.ConnectionSpec{
@@ -1259,7 +1259,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 			name: "not-within-vpc",
 			existing: append(base,
 				&wiringapi.Connection{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "static-ext",
 					},
 					Spec: wiringapi.ConnectionSpec{
@@ -1282,7 +1282,7 @@ func TestIsStaticExternalIPReachable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rawObjs := make([]client.Object, len(tt.existing))
+			rawObjs := make([]kclient.Object, len(tt.existing))
 			for idx, obj := range tt.existing {
 				obj.Default()
 				rawObjs[idx] = obj
@@ -1319,7 +1319,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			name: "simple-reachable",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -1328,7 +1328,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -1337,7 +1337,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -1367,7 +1367,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			name: "simple-reachable-32",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -1376,7 +1376,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -1385,7 +1385,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -1415,7 +1415,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			name: "no-ext-attach",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -1424,7 +1424,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -1454,7 +1454,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			name: "no-ext-peering",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -1463,7 +1463,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -1481,7 +1481,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			name: "ext-peering-wrong-subnet",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -1490,7 +1490,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -1499,7 +1499,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -1529,7 +1529,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 			name: "ext-peering-wrong-prefix",
 			existing: append(base,
 				&vpcapi.VPCAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "source-attach",
 					},
 					Spec: vpcapi.VPCAttachmentSpec{
@@ -1538,7 +1538,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalAttachment{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "ext-1-attach",
 					},
 					Spec: vpcapi.ExternalAttachmentSpec{
@@ -1547,7 +1547,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 					},
 				},
 				&vpcapi.ExternalPeering{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "vpc-1--ext-1",
 					},
 					Spec: vpcapi.ExternalPeeringSpec{
@@ -1577,7 +1577,7 @@ func TestIsExternalIPReachable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rawObjs := make([]client.Object, len(tt.existing))
+			rawObjs := make([]kclient.Object, len(tt.existing))
 			for idx, obj := range tt.existing {
 				obj.Default()
 				rawObjs[idx] = obj

@@ -21,19 +21,19 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type Webhook struct {
-	client.Client
+	kclient.Client
 	Scheme     *runtime.Scheme
-	KubeClient client.Reader
+	KubeClient kclient.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -41,7 +41,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.External{}).
 		WithDefaulter(w).
 		WithValidator(w).
@@ -97,7 +97,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	ext := obj.(*vpcapi.External)
 
 	extAttachments := &vpcapi.ExternalAttachmentList{}
-	if err := w.Client.List(ctx, extAttachments, client.MatchingLabels{
+	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
@@ -107,7 +107,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	extPeerings := &vpcapi.ExternalPeeringList{}
-	if err := w.Client.List(ctx, extPeerings, client.MatchingLabels{
+	if err := w.Client.List(ctx, extPeerings, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error

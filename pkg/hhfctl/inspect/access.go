@@ -20,13 +20,13 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
-	"golang.org/x/exp/maps"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type AccessIn struct {
@@ -93,7 +93,7 @@ func (out *AccessOut) MarshalText() (string, error) {
 
 var _ Func[AccessIn, *AccessOut] = Access
 
-func Access(ctx context.Context, kube client.Reader, in AccessIn) (*AccessOut, error) {
+func Access(ctx context.Context, kube kclient.Reader, in AccessIn) (*AccessOut, error) {
 	out := &AccessOut{
 		Reachable:               map[string][]string{},
 		ExternalReachable:       map[string]bool{},
@@ -173,7 +173,7 @@ func Access(ctx context.Context, kube client.Reader, in AccessIn) (*AccessOut, e
 	return out, nil
 }
 
-func asVPCSubnets(ctx context.Context, kube client.Reader, in string, t string) ([]string, error) {
+func asVPCSubnets(ctx context.Context, kube kclient.Reader, in string, t string) ([]string, error) {
 	if in == "" {
 		return nil, nil
 	}
@@ -203,7 +203,7 @@ func asVPCSubnets(ctx context.Context, kube client.Reader, in string, t string) 
 
 				if subnetNet.Contains(ip) {
 					vpcs := &vpcapi.VPCList{}
-					err = kube.List(ctx, vpcs, client.MatchingLabels{
+					err = kube.List(ctx, vpcs, kclient.MatchingLabels{
 						vpcapi.LabelIPv4NS: ipns.Name,
 					})
 					if err != nil {
@@ -227,7 +227,7 @@ func asVPCSubnets(ctx context.Context, kube client.Reader, in string, t string) 
 		}
 	} else {
 		server := &wiringapi.Server{}
-		err := kube.Get(ctx, types.NamespacedName{Name: in, Namespace: metav1.NamespaceDefault}, server)
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: in, Namespace: kmetav1.NamespaceDefault}, server)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get server")
 		}
@@ -237,7 +237,7 @@ func asVPCSubnets(ctx context.Context, kube client.Reader, in string, t string) 
 			return nil, errors.Wrap(err, "failed to get attached subnets for "+t+" "+in)
 		}
 
-		return maps.Keys(subnets), nil
+		return lo.Keys(subnets), nil
 	}
 
 	return nil, nil

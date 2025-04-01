@@ -22,19 +22,19 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type Webhook struct {
-	client.Client
+	kclient.Client
 	Scheme     *runtime.Scheme
-	KubeClient client.Reader
+	KubeClient kclient.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -42,7 +42,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
 		For(&vpcapi.IPv4Namespace{}).
 		WithDefaulter(w).
 		WithValidator(w).
@@ -93,7 +93,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	ipns := obj.(*vpcapi.IPv4Namespace)
 
 	vpcs := &vpcapi.VPCList{}
-	if err := w.Client.List(ctx, vpcs, client.MatchingLabels{
+	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelIPv4NS: ipns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
@@ -103,7 +103,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	externals := &vpcapi.ExternalList{}
-	if err := w.Client.List(ctx, externals, client.MatchingLabels{
+	if err := w.Client.List(ctx, externals, kclient.MatchingLabels{
 		vpcapi.LabelIPv4NS: ipns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing externals") // TODO hide internal error

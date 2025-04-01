@@ -32,11 +32,11 @@ import (
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -209,7 +209,7 @@ func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (
 
 	if serial != "" || mac != "" {
 		switches := &wiringapi.SwitchList{}
-		if err := svc.kube.List(ctx, switches, client.InNamespace(metav1.NamespaceDefault)); err != nil {
+		if err := svc.kube.List(ctx, switches, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
 			return nil, nil, fmt.Errorf("listing switches: %w", err)
 		}
 
@@ -219,8 +219,8 @@ func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (
 
 			if serial != "" && strings.EqualFold(bootSerial, serial) || mac != "" && strings.EqualFold(bootMAC, mac) {
 				agent := &agentapi.Agent{}
-				if err := svc.kube.Get(ctx, client.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, agent); err != nil {
-					if apierrors.IsNotFound(err) {
+				if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, agent); err != nil {
+					if kapierrors.IsNotFound(err) {
 						return nil, nil, fmt.Errorf("agent %s: %w", sw.Name, ErrNotFound)
 					}
 
@@ -229,8 +229,8 @@ func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (
 
 				secretName := common.AgentKubeconfigSecret(sw.Name)
 				agentSecret := &corev1.Secret{}
-				if err := svc.kube.Get(ctx, client.ObjectKey{Name: secretName, Namespace: agent.Namespace}, agentSecret); err != nil {
-					if apierrors.IsNotFound(err) {
+				if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: secretName, Namespace: agent.Namespace}, agentSecret); err != nil {
+					if kapierrors.IsNotFound(err) {
 						return nil, nil, fmt.Errorf("agent %s secret %s: %w", sw.Name, secretName, ErrNotFound)
 					}
 
@@ -247,7 +247,7 @@ func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (
 
 func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agent, secret *corev1.Secret, w io.Writer) error {
 	agent.SetGroupVersionKind(agentapi.GroupVersion.WithKind(agentapi.KindAgent))
-	agentConfig, err := yaml.Marshal(agent)
+	agentConfig, err := kyaml.Marshal(agent)
 	if err != nil {
 		return fmt.Errorf("marshaling agent: %w", err)
 	}

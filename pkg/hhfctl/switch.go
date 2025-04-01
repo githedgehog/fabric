@@ -25,8 +25,8 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -45,9 +45,9 @@ var SSHQuietFlags = []string{
 	"-o", "LogLevel=ERROR",
 }
 
-func getAgent(ctx context.Context, kube client.Reader, name string) (*agentapi.Agent, error) {
+func getAgent(ctx context.Context, kube kclient.Reader, name string) (*agentapi.Agent, error) {
 	agent := &agentapi.Agent{}
-	err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, agent)
+	err := kube.Get(ctx, kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, agent)
 	if err != nil {
 		return nil, fmt.Errorf("getting agent: %w", err)
 	}
@@ -134,7 +134,7 @@ func SwitchIP(ctx context.Context, name string) error {
 	}
 
 	sw := &wiringapi.Switch{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
 		return fmt.Errorf("getting switch %q: %w", name, err)
 	}
 
@@ -158,7 +158,7 @@ func SwitchSSH(ctx context.Context, name, username string) error {
 	}
 
 	sw := &wiringapi.Switch{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
 		return fmt.Errorf("getting switch %q: %w", name, err)
 	}
 
@@ -190,7 +190,7 @@ func SwitchSerial(ctx context.Context, name string) error {
 	}
 
 	sw := &wiringapi.Switch{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: name, Namespace: metav1.NamespaceDefault}, sw); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
 		return fmt.Errorf("getting switch %q: %w", name, err)
 	}
 

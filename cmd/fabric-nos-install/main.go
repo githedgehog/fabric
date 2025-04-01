@@ -29,7 +29,6 @@ import (
 	slogwh "github.com/samber/slog-webhook/v2"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
-	ni "go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/version"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -37,7 +36,7 @@ import (
 //go:embed motd.txt
 var motd []byte
 
-func setupLogger(verbose, brief bool, env ni.Env) error {
+func setupLogger(verbose, brief bool, env nosinstall.Env) error {
 	if verbose && brief {
 		return cli.Exit("verbose and brief are mutually exclusive", 1)
 	}
@@ -71,8 +70,8 @@ func setupLogger(verbose, brief bool, env ni.Env) error {
 		}),
 	}
 
-	if ni.WebhookLog && strings.HasPrefix(env.ExecURL, "http://") && strings.HasSuffix(env.ExecURL, ni.OnieURLSuffix) {
-		logURL := strings.TrimSuffix(env.ExecURL, ni.OnieURLSuffix) + ni.LogURLSuffix
+	if nosinstall.WebhookLog && strings.HasPrefix(env.ExecURL, "http://") && strings.HasSuffix(env.ExecURL, nosinstall.OnieURLSuffix) {
+		logURL := strings.TrimSuffix(env.ExecURL, nosinstall.OnieURLSuffix) + nosinstall.LogURLSuffix
 
 		if env.Serial != "" || env.EthAddr != "" {
 			handlers = append(handlers,
@@ -82,8 +81,8 @@ func setupLogger(verbose, brief bool, env ni.Env) error {
 					AttrFromContext: []func(ctx context.Context) []slog.Attr{
 						func(_ context.Context) []slog.Attr {
 							return []slog.Attr{
-								slog.String(ni.KeySerial, env.Serial),
-								slog.String(ni.KeyEthAddr, env.EthAddr),
+								slog.String(nosinstall.KeySerial, env.Serial),
+								slog.String(nosinstall.KeyEthAddr, env.EthAddr),
 							}
 						},
 					},

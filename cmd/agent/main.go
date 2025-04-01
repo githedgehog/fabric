@@ -37,7 +37,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/version"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
+	kctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -84,7 +84,7 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 	handler := slogmulti.Fanout(handlers...)
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
-	ctrl.SetLogger(logr.FromSlogHandler(handler))
+	kctrl.SetLogger(logr.FromSlogHandler(handler))
 	klog.SetSlogLogger(logger)
 
 	if printMotd {

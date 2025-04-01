@@ -24,8 +24,8 @@ import (
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"golang.org/x/exp/maps"
 	"k8s.io/apimachinery/pkg/api/equality"
 )
 
@@ -247,7 +247,7 @@ func (h *DefaultMapEnforcer[Key, Value]) Handle(basePath string, actualMap, desi
 	}
 
 	// for each actual value in the map we want to delete it if it's not present in desired
-	actualKeys := maps.Keys(actualMap)
+	actualKeys := lo.Keys(actualMap)
 	slices.Sort(actualKeys)
 	for _, key := range actualKeys {
 		actual := actualMap[key]
@@ -261,7 +261,7 @@ func (h *DefaultMapEnforcer[Key, Value]) Handle(basePath string, actualMap, desi
 	}
 
 	// for each desired value in the map we want to create or update state (actual=value or nil and desired=value)
-	desiredKeys := maps.Keys(desiredMap)
+	desiredKeys := lo.Keys(desiredMap)
 	slices.Sort(desiredKeys)
 	for _, key := range desiredKeys {
 		desired := desiredMap[key]

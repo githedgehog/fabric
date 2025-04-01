@@ -21,10 +21,10 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -85,8 +85,8 @@ type ExternalPeeringStatus struct{}
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // ExternalPeering is the Schema for the externalpeerings API
 type ExternalPeering struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the ExternalPeering
 	Spec ExternalPeeringSpec `json:"spec,omitempty"`
@@ -100,9 +100,9 @@ const KindExternalPeering = "ExternalPeering"
 
 // ExternalPeeringList contains a list of ExternalPeering
 type ExternalPeeringList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ExternalPeering `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []ExternalPeering `json:"items"`
 }
 
 func init() {
@@ -141,7 +141,7 @@ func (peering *ExternalPeering) Default() {
 	})
 }
 
-func (peering *ExternalPeering) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -172,8 +172,8 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube client.Reader
 
 	if kube != nil {
 		vpc := &VPC{}
-		if err := kube.Get(ctx, types.NamespacedName{Name: peering.Spec.Permit.VPC.Name, Namespace: peering.Namespace}, vpc); err != nil {
-			if apierrors.IsNotFound(err) {
+		if err := kube.Get(ctx, ktypes.NamespacedName{Name: peering.Spec.Permit.VPC.Name, Namespace: peering.Namespace}, vpc); err != nil {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("vpc %s not found", peering.Spec.Permit.VPC.Name)
 			}
 
@@ -181,8 +181,8 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube client.Reader
 		}
 
 		ext := &External{}
-		if err := kube.Get(ctx, types.NamespacedName{Name: peering.Spec.Permit.External.Name, Namespace: peering.Namespace}, ext); err != nil {
-			if apierrors.IsNotFound(err) {
+		if err := kube.Get(ctx, ktypes.NamespacedName{Name: peering.Spec.Permit.External.Name, Namespace: peering.Namespace}, ext); err != nil {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("external %s not found", peering.Spec.Permit.External.Name)
 			}
 

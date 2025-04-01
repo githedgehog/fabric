@@ -16,13 +16,13 @@ package v1beta1
 
 import (
 	"context"
+	"maps"
 	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	"golang.org/x/exp/maps"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -45,8 +45,8 @@ type VLANNamespaceStatus struct{}
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VLANNamespace is the Schema for the vlannamespaces API
 type VLANNamespace struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the VLANNamespace
 	Spec VLANNamespaceSpec `json:"spec,omitempty"`
@@ -60,9 +60,9 @@ const KindVLANNamespace = "VLANNamespace"
 
 // VLANNamespaceList contains a list of VLANNamespace
 type VLANNamespaceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VLANNamespace `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []VLANNamespace `json:"items"`
 }
 
 func init() {
@@ -114,7 +114,7 @@ func (ns *VLANNamespace) Default() {
 	}
 }
 
-func (ns *VLANNamespace) Validate(_ context.Context, _ client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (ns *VLANNamespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}

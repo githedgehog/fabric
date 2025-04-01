@@ -17,11 +17,11 @@ package switchprofile
 import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var DellS5248FON = wiringapi.SwitchProfile{
-	ObjectMeta: metav1.ObjectMeta{
+	ObjectMeta: kmetav1.ObjectMeta{
 		Name: "dell-s5248f-on",
 	},
 	Spec: wiringapi.SwitchProfileSpec{

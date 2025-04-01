@@ -26,7 +26,7 @@ import (
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -167,7 +167,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 		if st.LastChange != nil {
 			reg.InterfaceMetrics.LastChange.WithLabelValues(ifaceName).Set(float64(*st.LastChange))
 			if *st.LastChange != 0 {
-				ifState.LastChange = metav1.Time{Time: time.Unix(int64(*st.LastChange), 0)} //nolint:gosec
+				ifState.LastChange = kmetav1.Time{Time: time.Unix(int64(*st.LastChange), 0)} //nolint:gosec
 			}
 		}
 
@@ -220,7 +220,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			if st.Counters.LastClear != nil {
 				reg.InterfaceCounters.LastClear.WithLabelValues(ifaceName).Set(float64(*st.Counters.LastClear))
 				if *st.Counters.LastClear != 0 {
-					ifState.Counters.LastClear = metav1.Time{Time: time.Unix(int64(*st.Counters.LastClear), 0)} //nolint:gosec
+					ifState.Counters.LastClear = kmetav1.Time{Time: time.Unix(int64(*st.Counters.LastClear), 0)} //nolint:gosec
 				}
 			}
 
@@ -641,13 +641,13 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if ocSt.LastEstablished != nil {
 				if *ocSt.LastEstablished != 0 {
-					st.LastEstablished = metav1.Time{Time: time.Unix(int64(*ocSt.LastEstablished), 0)} //nolint:gosec
+					st.LastEstablished = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastEstablished), 0)} //nolint:gosec
 				}
 			}
 
 			if ocSt.LastRead != nil {
 				if *ocSt.LastRead != 0 {
-					st.LastRead = metav1.Time{Time: time.Unix(int64(*ocSt.LastRead), 0)} //nolint:gosec
+					st.LastRead = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastRead), 0)} //nolint:gosec
 				}
 			}
 
@@ -657,13 +657,13 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if ocSt.LastResetTime != nil {
 				if *ocSt.LastResetTime != 0 {
-					st.LastResetTime = metav1.Time{Time: time.Unix(int64(*ocSt.LastResetTime), 0)} //nolint:gosec
+					st.LastResetTime = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastResetTime), 0)} //nolint:gosec
 				}
 			}
 
 			if ocSt.LastWrite != nil {
 				if *ocSt.LastWrite != 0 {
-					st.LastWrite = metav1.Time{Time: time.Unix(int64(*ocSt.LastWrite), 0)} //nolint:gosec
+					st.LastWrite = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastWrite), 0)} //nolint:gosec
 				}
 			}
 
@@ -1125,7 +1125,7 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 			}
 
 			if ocSt.ConfigDbVersion != nil {
-				st.ConfigDbVersion = *ocSt.ConfigDbVersion
+				st.ConfigDBVersion = *ocSt.ConfigDbVersion
 			}
 
 			if ocSt.DistributionVersion != nil {

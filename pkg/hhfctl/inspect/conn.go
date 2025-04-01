@@ -23,16 +23,16 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	"golang.org/x/exp/maps"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -66,7 +66,7 @@ type OutLoopbackWorkaround struct {
 func (out *ConnectionOut) MarshalText() (string, error) {
 	str := &strings.Builder{}
 
-	data, err := yaml.Marshal(out.Spec)
+	data, err := kyaml.Marshal(out.Spec)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to yaml marshal connection spec")
 	}
@@ -77,7 +77,7 @@ func (out *ConnectionOut) MarshalText() (string, error) {
 		str.WriteString("VPC Attachments:\n")
 
 		attachData := [][]string{}
-		attachNames := maps.Keys(out.VPCAttachments)
+		attachNames := lo.Keys(out.VPCAttachments)
 		for _, attachName := range attachNames {
 			attach := out.VPCAttachments[attachName]
 
@@ -113,7 +113,7 @@ func (out *ConnectionOut) MarshalText() (string, error) {
 		str.WriteString("External Attachments:\n")
 
 		attachData := [][]string{}
-		attachNames := maps.Keys(out.ExternalAttachments)
+		attachNames := lo.Keys(out.ExternalAttachments)
 		for _, attachName := range attachNames {
 			attach := out.ExternalAttachments[attachName]
 
@@ -176,7 +176,7 @@ func (out *ConnectionOut) MarshalText() (string, error) {
 
 var _ Func[ConnectionIn, *ConnectionOut] = Connection
 
-func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*ConnectionOut, error) {
+func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*ConnectionOut, error) {
 	if in.Name == "" {
 		return nil, errors.New("connection name is required")
 	}
@@ -188,14 +188,14 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 	}
 
 	conn := &wiringapi.Connection{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: in.Name, Namespace: metav1.NamespaceDefault}, conn); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: in.Name, Namespace: kmetav1.NamespaceDefault}, conn); err != nil {
 		return nil, errors.Wrap(err, "cannot get connection")
 	}
 
 	out.Spec = conn.Spec
 
 	vpcAttches := &vpcapi.VPCAttachmentList{}
-	if err := kube.List(ctx, vpcAttches, client.MatchingLabels{
+	if err := kube.List(ctx, vpcAttches, kclient.MatchingLabels{
 		wiringapi.LabelConnection: in.Name,
 	}); err != nil {
 		return nil, errors.Wrap(err, "cannot list VPCAttachments")
@@ -207,7 +207,7 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 		vpcName := strings.SplitN(vpcAttach.Spec.Subnet, "/", 2)[0]
 		if _, exists := out.AttachedVPCs[vpcName]; !exists {
 			vpc := &vpcapi.VPC{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: vpcName, Namespace: metav1.NamespaceDefault}, vpc); err != nil {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, vpc); err != nil {
 				return nil, errors.Wrapf(err, "failed to get VPC %s", vpcName)
 			}
 			out.AttachedVPCs[vpcName] = &vpc.Spec
@@ -230,8 +230,8 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 		agent, exists := agents[swName]
 		if !exists {
 			agent = &agentapi.Agent{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: swName, Namespace: metav1.NamespaceDefault}, agent); err != nil {
-				if !apierrors.IsNotFound(err) {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, agent); err != nil {
+				if !kapierrors.IsNotFound(err) {
 					return nil, errors.Wrapf(err, "failed to get Agent %s", swName)
 				}
 
@@ -280,7 +280,7 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 
 	if conn.Spec.External != nil {
 		extAttaches := &vpcapi.ExternalAttachmentList{}
-		if err := kube.List(ctx, extAttaches, client.MatchingLabels{
+		if err := kube.List(ctx, extAttaches, kclient.MatchingLabels{
 			wiringapi.LabelConnection: conn.Name,
 		}); err != nil {
 			return nil, errors.Wrap(err, "cannot list ExternalAttachments")
@@ -294,7 +294,7 @@ func Connection(ctx context.Context, kube client.Reader, in ConnectionIn) (*Conn
 	return out, nil
 }
 
-func loopbackWorkaroundInfo(ctx context.Context, kube client.Reader, agent *agentapi.Agent) (map[string]*OutLoopbackWorkaround, error) {
+func loopbackWorkaroundInfo(ctx context.Context, kube kclient.Reader, agent *agentapi.Agent) (map[string]*OutLoopbackWorkaround, error) {
 	out := map[string]*OutLoopbackWorkaround{}
 
 	for workaround, link := range agent.Spec.Catalog.LooopbackWorkaroundLinks {
@@ -321,7 +321,7 @@ func loopbackWorkaroundInfo(ctx context.Context, kube client.Reader, agent *agen
 			vpcPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC)
 
 			vpcPeering := &vpcapi.VPCPeering{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: vpcPeeringName, Namespace: metav1.NamespaceDefault}, vpcPeering); err != nil {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcPeeringName, Namespace: kmetav1.NamespaceDefault}, vpcPeering); err != nil {
 				return nil, errors.Wrapf(err, "failed to get VPCPeering %s", vpcPeeringName)
 			}
 
@@ -330,7 +330,7 @@ func loopbackWorkaroundInfo(ctx context.Context, kube client.Reader, agent *agen
 			extPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixExt)
 
 			extPeering := &vpcapi.ExternalPeering{}
-			if err := kube.Get(ctx, client.ObjectKey{Name: extPeeringName, Namespace: metav1.NamespaceDefault}, extPeering); err != nil {
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: extPeeringName, Namespace: kmetav1.NamespaceDefault}, extPeering); err != nil {
 				return nil, errors.Wrapf(err, "failed to get ExternalPeering %s", extPeeringName)
 			}
 
