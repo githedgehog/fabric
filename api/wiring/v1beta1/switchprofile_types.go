@@ -821,7 +821,7 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 		def := ""
 		supported := ""
 
-		if port.Management {
+		if port.Management { //nolint:gocritic
 			t = "Management"
 		} else if port.Group != "" {
 			t = "Port Group"
@@ -946,13 +946,13 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 			continue
 		}
 
-		if port.Profile != "" {
+		if port.Profile != "" { //nolint:gocritic
 			profile, exists := sp.PortProfiles[port.Profile]
 			if !exists {
 				return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
 			}
 
-			if profile.Breakout != nil {
+			if profile.Breakout != nil { //nolint:gocritic
 				b := profile.Breakout.Default
 				if swB, ok := sw.PortBreakouts[portName]; ok {
 					b = swB

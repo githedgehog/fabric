@@ -48,7 +48,7 @@ func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, b
 		speed = "SPEED_" + speed
 	}
 	if !strings.HasSuffix(speed, "B") {
-		speed = speed + "B"
+		speed += "B"
 	}
 	res := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
 

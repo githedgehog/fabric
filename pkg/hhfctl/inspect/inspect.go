@@ -97,24 +97,27 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 func Render[TOut Out](output OutputType, w io.Writer, out TOut) error {
 	var data []byte
 	var err error
-	if output == OutputTypeText {
+	switch output {
+	case OutputTypeText:
 		dataS, err := out.MarshalText()
 		if err != nil {
 			return errors.Wrapf(err, "failed to get marshal output as text")
 		}
 
 		data = []byte(dataS)
-	} else if output == OutputTypeYAML {
+	case OutputTypeYAML:
 		data, err = kyaml.Marshal(out)
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal inspect output as yaml")
 		}
-	} else if output == OutputTypeJSON {
+	case OutputTypeJSON:
 		data, err = json.MarshalIndent(out, "", "  ")
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal inspect output as json")
 		}
-	} else {
+	case OutputTypeUndefined:
+		return errors.Errorf("output type %s is not defined", output)
+	default:
 		return errors.Errorf("output type %s is not implemented", output)
 	}
 

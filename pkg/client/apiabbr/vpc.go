@@ -316,7 +316,7 @@ func ParseVPCSubnet(in string) (string, *vpcapi.VPCSubnet, error) {
 
 		trueVal := slices.Contains(TrueValsDefault, value)
 
-		if idx == 0 {
+		if idx == 0 { //nolint:gocritic
 			name = key
 			subnet.Subnet = value
 		} else if key == "vlan" {

@@ -165,7 +165,7 @@ func (out *PortOut) MarshalText() (string, error) {
 		// TODO dedup
 		colored := color.New(color.FgCyan).SprintFunc()
 		if noColor {
-			colored = func(a ...interface{}) string { return fmt.Sprint(a...) }
+			colored = fmt.Sprint
 		}
 
 		sep := colored("←→")
@@ -282,7 +282,7 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 
 	if out.Connection != nil && out.ConnectionName != nil {
 		conn := out.Connection
-		if conn.VPCLoopback != nil {
+		if conn.VPCLoopback != nil { //nolint:gocritic
 			var err error
 			out.LoopbackWorkarounds, err = loopbackWorkaroundInfo(ctx, kube, agent)
 			if err != nil {

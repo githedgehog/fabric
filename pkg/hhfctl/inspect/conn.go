@@ -137,7 +137,7 @@ func (out *ConnectionOut) MarshalText() (string, error) {
 		// TODO dedup
 		colored := color.New(color.FgCyan).SprintFunc()
 		if noColor {
-			colored = func(a ...interface{}) string { return fmt.Sprint(a...) }
+			colored = fmt.Sprint
 		}
 
 		sep := colored("←→")
@@ -317,7 +317,7 @@ func loopbackWorkaroundInfo(ctx context.Context, kube kclient.Reader, agent *age
 			out[link] = loWo
 		}
 
-		if strings.HasPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC) {
+		if strings.HasPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC) { //nolint:gocritic
 			vpcPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC)
 
 			vpcPeering := &vpcapi.VPCPeering{}

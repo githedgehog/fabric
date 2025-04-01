@@ -97,7 +97,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 	}
 
 	for _, conn := range conns.Items {
-		if conn.Spec.MCLAGDomain != nil {
+		if conn.Spec.MCLAGDomain != nil { //nolint:gocritic
 			switches, _, _, _, err := conn.Spec.Endpoints()
 			if err != nil {
 				return nil, fmt.Errorf("getting endpoints for %s: %w", conn.Name, err)

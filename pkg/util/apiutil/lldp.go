@@ -105,7 +105,7 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 			}
 
 			var statusType LLDPNeighborType
-			if conn.Spec.MCLAGDomain != nil || conn.Spec.Fabric != nil || conn.Spec.VPCLoopback != nil {
+			if conn.Spec.MCLAGDomain != nil || conn.Spec.Fabric != nil || conn.Spec.VPCLoopback != nil { //nolint:gocritic
 				statusType = LLDPNeighborTypeFabric
 			} else if conn.Spec.External != nil {
 				statusType = LLDPNeighborTypeExternal

@@ -347,7 +347,7 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 		left := ""
 		right := []string{}
 
-		if connSpec.Unbundled != nil {
+		if connSpec.Unbundled != nil { //nolint:gocritic
 			role = "unbundled"
 			left = connSpec.Unbundled.Link.Server.DeviceName()
 			right = []string{connSpec.Unbundled.Link.Switch.DeviceName()}
@@ -429,7 +429,7 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 }
 
 func (connSpec *ConnectionSpec) Type() string {
-	if connSpec.Unbundled != nil {
+	if connSpec.Unbundled != nil { //nolint:gocritic
 		return ConnectionTypeUnbundled
 	} else if connSpec.Bundled != nil {
 		return ConnectionTypeBundled
@@ -487,7 +487,7 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 	links := map[string]string{}
 
 	nonNills := 0
-	if connSpec.Unbundled != nil {
+	if connSpec.Unbundled != nil { //nolint:gocritic
 		nonNills++
 
 		switches[connSpec.Unbundled.Link.Switch.DeviceName()] = struct{}{}
@@ -685,13 +685,13 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 	colored := color.New(color.FgCyan).SprintFunc()
 	if noColor {
-		colored = func(a ...interface{}) string { return fmt.Sprint(a...) }
+		colored = fmt.Sprint
 	}
 
 	sep := colored("←→")
 
 	out := []string{}
-	if connSpec.Fabric != nil {
+	if connSpec.Fabric != nil { //nolint:gocritic
 		for _, link := range connSpec.Fabric.Links {
 			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Leaf.PortName()))
 		}

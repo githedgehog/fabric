@@ -396,7 +396,7 @@ func IsStaticExternalIPReachable(ctx context.Context, kube kclient.Reader, sourc
 			continue
 		}
 
-		nets := append(conn.Spec.StaticExternal.Link.Switch.Subnets, conn.Spec.StaticExternal.Link.Switch.IP)
+		nets := append(slices.Clone(conn.Spec.StaticExternal.Link.Switch.Subnets), conn.Spec.StaticExternal.Link.Switch.IP)
 
 		for _, sub := range nets {
 			_, subnet, err := net.ParseCIDR(sub)

@@ -15,6 +15,7 @@
 package v1beta1
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -564,7 +565,7 @@ func (a *Agent) IsFirstInRedundancyGroup() bool {
 		return true
 	}
 
-	rg := append(a.Spec.RedundancyGroupPeers, a.Name)
+	rg := append(slices.Clone(a.Spec.RedundancyGroupPeers), a.Name)
 	sort.Strings(rg)
 
 	return rg[0] == a.Name

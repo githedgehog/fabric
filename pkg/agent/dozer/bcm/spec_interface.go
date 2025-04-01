@@ -319,7 +319,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Summary: "Interface %s Ethernet Base", // TODO better summary
 	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
 	Getter: func(_ string, value *dozer.SpecInterface) any {
-		return []any{value.PortChannel, value.Speed, value.AutoNegotiate} //, value.TrunkVLANs, value.AccessVLAN}
+		return []any{value.PortChannel, value.Speed, value.AutoNegotiate} // , value.TrunkVLANs, value.AccessVLAN}
 	},
 	Path:      "/ethernet",
 	NoReplace: true,
