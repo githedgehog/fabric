@@ -1,6 +1,9 @@
 run:
   timeout: 10m
   allow-parallel-runners: true
+  build-tags:
+    - containers_image_openpgp
+    - containers_image_storage_stub
 
 linters:
   disable-all: true
