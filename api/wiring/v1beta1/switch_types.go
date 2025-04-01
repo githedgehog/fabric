@@ -36,11 +36,10 @@ import (
 type SwitchRole string
 
 const (
-	SwitchRoleSpine       SwitchRole = "spine"
-	SwitchRoleServerLeaf  SwitchRole = "server-leaf"
-	SwitchRoleBorderLeaf  SwitchRole = "border-leaf"
-	SwitchRoleMixedLeaf   SwitchRole = "mixed-leaf"
-	SwitchRoleVirtualEdge SwitchRole = "virtual-edge"
+	SwitchRoleSpine      SwitchRole = "spine"
+	SwitchRoleServerLeaf SwitchRole = "server-leaf"
+	SwitchRoleBorderLeaf SwitchRole = "border-leaf"
+	SwitchRoleMixedLeaf  SwitchRole = "mixed-leaf"
 )
 
 var SwitchRoles = []SwitchRole{
@@ -48,7 +47,6 @@ var SwitchRoles = []SwitchRole{
 	SwitchRoleServerLeaf,
 	SwitchRoleBorderLeaf,
 	SwitchRoleMixedLeaf,
-	SwitchRoleVirtualEdge,
 }
 
 func (r SwitchRole) IsSpine() bool {
@@ -57,10 +55,6 @@ func (r SwitchRole) IsSpine() bool {
 
 func (r SwitchRole) IsLeaf() bool {
 	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf || r == SwitchRoleMixedLeaf
-}
-
-func (r SwitchRole) IsVirtualEdge() bool {
-	return r == SwitchRoleVirtualEdge
 }
 
 // SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
