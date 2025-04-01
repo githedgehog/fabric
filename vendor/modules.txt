@@ -1217,7 +1217,6 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 ## explicit; go 1.23.0
 golang.org/x/exp/constraints
-golang.org/x/exp/maps
 golang.org/x/exp/slices
 golang.org/x/exp/slog
 golang.org/x/exp/slog/internal
@@ -2016,7 +2015,6 @@ k8s.io/utils/lru
 k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/ptr
-k8s.io/utils/strings/slices
 k8s.io/utils/trace
 # oras.land/oras-go/v2 v2.5.0
 ## explicit; go 1.21

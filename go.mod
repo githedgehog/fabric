@@ -29,6 +29,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.21.1
+	github.com/samber/lo v1.49.1
 	github.com/samber/slog-multi v1.4.0
 	github.com/samber/slog-webhook/v2 v2.8.2
 	github.com/sirupsen/logrus v1.9.3
@@ -43,7 +44,6 @@ require (
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e
 	oras.land/oras-go/v2 v2.5.0
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/yaml v1.4.0
@@ -199,7 +199,6 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/samber/lo v1.49.1 // indirect
 	github.com/samber/slog-common v0.18.1 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
@@ -259,6 +258,7 @@ require (
 	inet.af/netaddr v0.0.0-20220811202034-502d2d690317 // indirect
 	k8s.io/apiextensions-apiserver v0.32.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
+	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect
 	sigs.k8s.io/controller-tools v0.17.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
