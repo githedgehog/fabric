@@ -22,8 +22,8 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type ExternalCreateOptions struct {
@@ -35,9 +35,9 @@ type ExternalCreateOptions struct {
 
 func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreateOptions) error {
 	ext := &vpcapi.External{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: metav1.NamespaceDefault,
+			Namespace: kmetav1.NamespaceDefault,
 		},
 		Spec: vpcapi.ExternalSpec{
 			IPv4Namespace:     options.IPv4Namespace,
@@ -74,7 +74,7 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 		ext.ObjectMeta.Generation = 0
 		ext.ObjectMeta.ResourceVersion = ""
 
-		out, err := yaml.Marshal(ext)
+		out, err := kyaml.Marshal(ext)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ext")
 		}
@@ -94,9 +94,9 @@ type ExternalPeeringOptions struct {
 
 func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeringOptions) error {
 	extPeering := &vpcapi.ExternalPeering{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", options.VPC, options.External),
-			Namespace: metav1.NamespaceDefault,
+			Namespace: kmetav1.NamespaceDefault,
 		},
 		Spec: vpcapi.ExternalPeeringSpec{
 			Permit: vpcapi.ExternalPeeringSpecPermit{
@@ -180,7 +180,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 		extPeering.ObjectMeta.Generation = 0
 		extPeering.ObjectMeta.ResourceVersion = ""
 
-		out, err := yaml.Marshal(extPeering)
+		out, err := kyaml.Marshal(extPeering)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExternalPeering")
 		}

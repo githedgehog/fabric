@@ -23,7 +23,7 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
-	"sigs.k8s.io/yaml"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type Processor interface {
@@ -439,7 +439,7 @@ func (s *Spec) CleanupSensetive() {
 func (s *Spec) MarshalYAML() ([]byte, error) {
 	s.CleanupSensetive()
 
-	data, err := yaml.Marshal(s)
+	data, err := kyaml.Marshal(s)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to marshal spec")
 	}

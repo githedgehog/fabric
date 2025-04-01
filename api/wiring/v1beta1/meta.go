@@ -17,8 +17,8 @@ package v1beta1
 import (
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -72,27 +72,27 @@ func ListLabelSwitchGroup(groupName string) string {
 	return ListLabel("switchgroup", groupName)
 }
 
-func MatchingLabelsForListLabelServer(serverName string) client.MatchingLabels {
-	return client.MatchingLabels{
+func MatchingLabelsForListLabelServer(serverName string) kclient.MatchingLabels {
+	return kclient.MatchingLabels{
 		ListLabel(ConnectionLabelTypeServer, serverName): ListLabelValue,
 	}
 }
 
-func MatchingLabelsForListLabelSwitch(switchName string) client.MatchingLabels {
-	return client.MatchingLabels{
+func MatchingLabelsForListLabelSwitch(switchName string) kclient.MatchingLabels {
+	return kclient.MatchingLabels{
 		ListLabel(ConnectionLabelTypeSwitch, switchName): ListLabelValue,
 	}
 }
 
-func MatchingLabelsForSwitchGroup(groupName string) client.MatchingLabels {
-	return client.MatchingLabels{
+func MatchingLabelsForSwitchGroup(groupName string) kclient.MatchingLabels {
+	return kclient.MatchingLabels{
 		ListLabelSwitchGroup(groupName): ListLabelValue,
 	}
 }
 
 type ApplyStatus struct {
 	Generation int64            `json:"gen,omitempty"`
-	Time       metav1.Time      `json:"time,omitempty"`
+	Time       kmetav1.Time     `json:"time,omitempty"`
 	Detailed   map[string]int64 `json:"detailed,omitempty"`
 }
 

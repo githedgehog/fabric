@@ -17,7 +17,6 @@ package iputil
 import (
 	"net"
 
-	"github.com/apparentlymart/go-cidr/cidr"
 	cidrlib "github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
 )
@@ -68,5 +67,5 @@ func VerifyNoOverlap(subnets []*net.IPNet) error {
 		return errors.Wrapf(err, "failed to parse cidr %s", anyNetCIDR)
 	}
 
-	return errors.Wrapf(cidr.VerifyNoOverlap(subnets, anyNet), "failed to verify no overlap subnets")
+	return errors.Wrapf(cidrlib.VerifyNoOverlap(subnets, anyNet), "failed to verify no overlap subnets")
 }

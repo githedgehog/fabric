@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"maps"
 	"net"
 	"sort"
 
@@ -23,9 +24,8 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
-	"golang.org/x/exp/maps"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -50,8 +50,8 @@ type IPv4NamespaceStatus struct{}
 // IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets within a single IPv4Namespace are
 // non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC subnets.
 type IPv4Namespace struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the IPv4Namespace
 	Spec IPv4NamespaceSpec `json:"spec,omitempty"`
@@ -65,9 +65,9 @@ const KindIPv4Namespace = "IPv4Namespace"
 
 // IPv4NamespaceList contains a list of IPv4Namespace
 type IPv4NamespaceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IPv4Namespace `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []IPv4Namespace `json:"items"`
 }
 
 func init() {
@@ -107,7 +107,7 @@ func (ns *IPv4Namespace) Default() {
 	sort.Strings(ns.Spec.Subnets)
 }
 
-func (ns *IPv4Namespace) Validate(_ context.Context, _ client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}

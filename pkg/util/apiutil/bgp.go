@@ -14,7 +14,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type BGPNeighborStatus struct {
@@ -36,7 +36,7 @@ const (
 	BGPNeighborTypeGateway  BGPNeighborType = "gateway"
 )
 
-func GetBGPNeighbors(ctx context.Context, kube client.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
+func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
 	if sw == nil {
 		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
 	}
@@ -47,7 +47,7 @@ func GetBGPNeighbors(ctx context.Context, kube client.Reader, fabCfg *meta.Fabri
 	out := map[string]map[string]BGPNeighborStatus{}
 
 	ag := &agentapi.Agent{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, ag); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, ag); err != nil {
 		return nil, fmt.Errorf("getting agent %s: %w", sw.Name, err)
 	}
 

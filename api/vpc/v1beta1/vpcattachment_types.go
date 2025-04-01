@@ -16,17 +16,17 @@ package v1beta1
 
 import (
 	"context"
+	"maps"
 	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"golang.org/x/exp/maps"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -54,8 +54,8 @@ type VPCAttachmentStatus struct{}
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCAttachment is the Schema for the vpcattachments API
 type VPCAttachment struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the VPCAttachment
 	Spec VPCAttachmentSpec `json:"spec,omitempty"`
@@ -69,9 +69,9 @@ const KindVPCAttachment = "VPCAttachment"
 
 // VPCAttachmentList contains a list of VPCAttachment
 type VPCAttachmentList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VPCAttachment `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []VPCAttachment `json:"items"`
 }
 
 func init() {
@@ -142,7 +142,7 @@ func (attach *VPCAttachment) Default() {
 	maps.Copy(attach.Labels, attach.Spec.Labels())
 }
 
-func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -165,8 +165,8 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, _
 
 	if kube != nil {
 		vpc := &VPC{}
-		err := kube.Get(ctx, types.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
-		if apierrors.IsNotFound(err) {
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
+		if kapierrors.IsNotFound(err) {
 			return nil, errors.Errorf("vpc %s not found", vpcName)
 		}
 		if err != nil {
@@ -177,8 +177,8 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, _
 		}
 
 		conn := &wiringapi.Connection{}
-		err = kube.Get(ctx, types.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn)
-		if apierrors.IsNotFound(err) {
+		err = kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn)
+		if kapierrors.IsNotFound(err) {
 			return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
 		}
 		if err != nil {
@@ -201,8 +201,8 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, _
 
 		for _, switchName := range switchNames {
 			sw := &wiringapi.Switch{}
-			err = kube.Get(ctx, types.NamespacedName{Name: switchName, Namespace: attach.Namespace}, sw)
-			if apierrors.IsNotFound(err) {
+			err = kube.Get(ctx, ktypes.NamespacedName{Name: switchName, Namespace: attach.Namespace}, sw)
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch %s used in connection not found", switchName)
 			}
 			if err != nil {
@@ -215,7 +215,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube client.Reader, _
 		}
 
 		attaches := &VPCAttachmentList{}
-		err = kube.List(ctx, attaches, client.MatchingLabels{
+		err = kube.List(ctx, attaches, kclient.MatchingLabels{
 			wiringapi.LabelConnection: attach.Spec.Connection,
 		})
 		if err != nil {

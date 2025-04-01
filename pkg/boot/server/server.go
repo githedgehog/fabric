@@ -36,8 +36,8 @@ import (
 	"golang.org/x/sync/singleflight"
 	corev1 "k8s.io/api/core/v1"
 	"oras.land/oras-go/v2/registry/remote/auth"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -50,7 +50,7 @@ const (
 
 type service struct {
 	cfg          *boot.ServerConfig
-	kube         client.WithWatch
+	kube         kclient.WithWatch
 	cacheDir     string
 	orasClient   *auth.Client
 	downloadLock *sync.Mutex
@@ -81,7 +81,7 @@ func Run(ctx context.Context) error {
 	}
 
 	cfg := &boot.ServerConfig{}
-	if err := yaml.UnmarshalStrict(configData, cfg); err != nil {
+	if err := kyaml.UnmarshalStrict(configData, cfg); err != nil {
 		return fmt.Errorf("unmarshalling config: %w", err)
 	}
 	if cfg.ControlVIP == "" {

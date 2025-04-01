@@ -17,18 +17,19 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
-	"golang.org/x/exp/maps"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -271,8 +272,8 @@ type ConnectionStatus struct{}
 // Diagram. Connection type is defined by the top-level field in the ConnectionSpec. Exactly one of them could be used
 // in a single Connection object.
 type Connection struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the Connection
 	Spec ConnectionSpec `json:"spec,omitempty"`
@@ -286,9 +287,9 @@ const KindConnection = "Connection"
 
 // ConnectionList contains a list of Connection
 type ConnectionList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Connection `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []Connection `json:"items"`
 }
 
 func init() {
@@ -678,7 +679,7 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 	}
 
-	return maps.Keys(switches), maps.Keys(servers), maps.Keys(ports), links, nil
+	return lo.Keys(switches), lo.Keys(servers), lo.Keys(ports), links, nil
 }
 
 func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
@@ -764,7 +765,7 @@ func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, server
 	return nil
 }
 
-func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(conn); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -846,8 +847,8 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 
 		for _, switchName := range switches {
 			sw := &Switch{}
-			err := kube.Get(ctx, types.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
-			if apierrors.IsNotFound(err) {
+			err := kube.Get(ctx, ktypes.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch %s not found", switchName)
 			}
 			if err != nil {
@@ -870,8 +871,8 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 			}
 
 			sp := &SwitchProfile{}
-			err = kube.Get(ctx, types.NamespacedName{Name: sw.Spec.Profile, Namespace: conn.Namespace}, sp) // TODO namespace could be different?
-			if apierrors.IsNotFound(err) {
+			err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: conn.Namespace}, sp) // TODO namespace could be different?
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch profile %s not found", sw.Spec.Profile)
 			}
 			if err != nil {
@@ -922,8 +923,8 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 		}
 
 		for _, serverName := range servers {
-			err := kube.Get(ctx, types.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
-			if apierrors.IsNotFound(err) {
+			err := kube.Get(ctx, ktypes.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("server %s not found", serverName)
 			}
 			if err != nil {
@@ -937,7 +938,7 @@ func (conn *Connection) Validate(ctx context.Context, kube client.Reader, fabric
 		}
 
 		conns := &ConnectionList{}
-		if err := kube.List(ctx, conns, &client.ListOptions{Namespace: conn.Namespace}); err != nil { // TODO namespace could be different?
+		if err := kube.List(ctx, conns, &kclient.ListOptions{Namespace: conn.Namespace}); err != nil { // TODO namespace could be different?
 			return nil, errors.Wrapf(err, "failed to list connections")
 		}
 

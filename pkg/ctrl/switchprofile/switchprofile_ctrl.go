@@ -23,20 +23,20 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type Reconciler struct {
-	client.Client
+	kclient.Client
 	Scheme   *runtime.Scheme
 	Cfg      *meta.FabricConfig
 	Profiles *Default
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Manager, profiles *Default) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Manager, profiles *Default) error {
 	r := &Reconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
@@ -52,7 +52,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Man
 		return errors.Wrapf(err, "failed to add switch profile initializer")
 	}
 
-	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("switchprofile").
 		For(&wiringapi.SwitchProfile{}).
 		Complete(r), "failed to setup switch profile controller")
@@ -61,24 +61,24 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Man
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
 
-func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx)
+func (r *Reconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
+	l := kctrllog.FromContext(ctx)
 
 	if !r.Profiles.IsInitialized() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		return kctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	if err := r.Profiles.Enforce(ctx, r.Client, r.Cfg, true); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error enforcing switch profiles")
+		return kctrl.Result{}, errors.Wrapf(err, "error enforcing switch profiles")
 	}
 
 	l.Info("switch profiles reconciled")
 
-	return ctrl.Result{}, nil
+	return kctrl.Result{}, nil
 }
 
 type Initializer struct {
-	Client   client.Client
+	Client   kclient.Client
 	Cfg      *meta.FabricConfig
 	Profiles *Default
 }
@@ -89,7 +89,7 @@ var (
 )
 
 func (i *Initializer) Start(ctx context.Context) error {
-	l := log.FromContext(ctx).WithValues("initializer", "switchprofile")
+	l := kctrllog.FromContext(ctx).WithValues("initializer", "switchprofile")
 	l.Info("SwitchProfile initial setup")
 
 	var err error

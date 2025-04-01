@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -49,8 +49,8 @@ type ServerProfileStatus struct{}
 
 // ServerProfile is currently not used/implemented in the Fabric API
 type ServerProfile struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   ServerProfileSpec   `json:"spec,omitempty"`
 	Status ServerProfileStatus `json:"status,omitempty"`
@@ -62,9 +62,9 @@ const KindServerProfile = "ServerProfile"
 
 // ServerProfileList contains a list of ServerProfile
 type ServerProfileList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ServerProfile `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []ServerProfile `json:"items"`
 }
 
 func init() {
@@ -89,7 +89,7 @@ func (sp *ServerProfile) Default() {
 	meta.DefaultObjectMetadata(sp)
 }
 
-func (sp *ServerProfile) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (sp *ServerProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sp); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}

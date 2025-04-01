@@ -21,10 +21,10 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -57,8 +57,8 @@ type ExternalStatus struct{}
 // Users can do external peering with the external system by specifying the name of the External Object without need to
 // worry about the details of how external system is attached to the Fabric.
 type External struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the External
 	Spec ExternalSpec `json:"spec,omitempty"`
@@ -70,9 +70,9 @@ type External struct {
 
 // ExternalList contains a list of External
 type ExternalList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []External `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []External `json:"items"`
 }
 
 func init() {
@@ -109,7 +109,7 @@ func (external *External) Default() {
 	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
 }
 
-func (external *External) Validate(ctx context.Context, kube client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(external); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -136,9 +136,9 @@ func (external *External) Validate(ctx context.Context, kube client.Reader, _ *m
 
 	if kube != nil {
 		ipNs := &IPv4Namespace{}
-		err := kube.Get(ctx, types.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", external.Spec.IPv4Namespace)
 			}
 

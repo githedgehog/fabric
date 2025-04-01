@@ -23,10 +23,10 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type VPCCreateOptions struct {
@@ -38,9 +38,9 @@ type VPCCreateOptions struct {
 
 func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
 	vpc := &vpcapi.VPC{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: metav1.NamespaceDefault,
+			Namespace: kmetav1.NamespaceDefault,
 		},
 		Spec: vpcapi.VPCSpec{
 			Subnets: map[string]*vpcapi.VPCSubnet{
@@ -81,7 +81,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 		vpc.ObjectMeta.Generation = 0
 		vpc.ObjectMeta.ResourceVersion = ""
 
-		out, err := yaml.Marshal(vpc)
+		out, err := kyaml.Marshal(vpc)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc")
 		}
@@ -105,9 +105,9 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 	}
 
 	attach := &vpcapi.VPCAttachment{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      name,
-			Namespace: metav1.NamespaceDefault,
+			Namespace: kmetav1.NamespaceDefault,
 		},
 		Spec: vpcapi.VPCAttachmentSpec{
 			Subnet:     options.VPCSubnet,
@@ -143,7 +143,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 		attach.ObjectMeta.Generation = 0
 		attach.ObjectMeta.ResourceVersion = ""
 
-		out, err := yaml.Marshal(attach)
+		out, err := kyaml.Marshal(attach)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc attachment")
 		}
@@ -167,9 +167,9 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	}
 
 	peering := &vpcapi.VPCPeering{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      name,
-			Namespace: metav1.NamespaceDefault,
+			Namespace: kmetav1.NamespaceDefault,
 		},
 		Spec: vpcapi.VPCPeeringSpec{
 			Remote: options.Remote,
@@ -210,7 +210,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		peering.ObjectMeta.Generation = 0
 		peering.ObjectMeta.ResourceVersion = ""
 
-		out, err := yaml.Marshal(peering)
+		out, err := kyaml.Marshal(peering)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc peering")
 		}
@@ -237,7 +237,7 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 	}
 
 	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: metav1.NamespaceDefault}, vpc)
+	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
 	}
@@ -259,7 +259,7 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 		vpc.ObjectMeta.ResourceVersion = ""
 		vpc.Status = vpcapi.VPCStatus{}
 
-		out, err := yaml.Marshal(vpc)
+		out, err := kyaml.Marshal(vpc)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc")
 		}
@@ -289,7 +289,7 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 	}
 
 	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, types.NamespacedName{Name: options.VPC, Namespace: metav1.NamespaceDefault}, vpc)
+	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
 	}
@@ -323,7 +323,7 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 		vpc.ObjectMeta.ResourceVersion = ""
 		vpc.Status = vpcapi.VPCStatus{}
 
-		out, err := yaml.Marshal(vpc)
+		out, err := kyaml.Marshal(vpc)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc")
 		}
@@ -335,10 +335,10 @@ func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions
 }
 
 // Defined as a separate function so it can be used in release tests
-func VPCWipeWithClient(ctx context.Context, kube client.Client) error {
-	delAllOpts := client.DeleteAllOfOptions{
-		ListOptions: client.ListOptions{
-			Namespace: metav1.NamespaceDefault,
+func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
+	delAllOpts := kclient.DeleteAllOfOptions{
+		ListOptions: kclient.ListOptions{
+			Namespace: kmetav1.NamespaceDefault,
 		},
 	}
 	// delete all external peerings

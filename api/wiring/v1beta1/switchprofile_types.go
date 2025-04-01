@@ -23,10 +23,10 @@ import (
 
 	"github.com/maruel/natural"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
-	"golang.org/x/exp/maps"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -152,8 +152,8 @@ type SwitchProfileStatus struct{}
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // SwitchProfile represents switch capabilities and configuration
 type SwitchProfile struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   SwitchProfileSpec   `json:"spec,omitempty"`
 	Status SwitchProfileStatus `json:"status,omitempty"`
@@ -165,9 +165,9 @@ const KindSwitchProfile = "SwitchProfile"
 
 // SwitchProfileList contains a list of SwitchProfile
 type SwitchProfileList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SwitchProfile `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []SwitchProfile `json:"items"`
 }
 
 func init() {
@@ -224,7 +224,7 @@ func (sp *SwitchProfile) Default() {
 	}
 
 	portsStr := ""
-	profiles := maps.Keys(ports)
+	profiles := lo.Keys(ports)
 	slices.Sort(profiles)
 	for _, profile := range profiles {
 		count := ports[profile]
@@ -238,7 +238,7 @@ func (sp *SwitchProfile) Default() {
 	sp.Annotations[AnnotationPorts] = portsStr
 }
 
-func (sp *SwitchProfile) Validate(_ context.Context, _ client.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sp); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -811,7 +811,7 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 
 	res := []SwitchProfilePortSummary{}
 
-	portNames := maps.Keys(sp.Ports)
+	portNames := lo.Keys(sp.Ports)
 	SortPortNames(portNames)
 
 	for _, portName := range portNames {
@@ -857,7 +857,7 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 
 				if profile.Breakout != nil {
 					def = profile.Breakout.Default
-					modes := maps.Keys(profile.Breakout.Supported)
+					modes := lo.Keys(profile.Breakout.Supported)
 					slices.Sort(modes)
 					supported = strings.Join(modes, ", ")
 				}

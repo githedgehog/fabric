@@ -22,7 +22,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -44,7 +44,7 @@ func TestDefaultSwitchProfiles(t *testing.T) {
 	for _, sp := range profiles.List() {
 		require.NotEmpty(t, sp.Name, "switch profile name should be set")
 		require.NotNil(t, profiles.Get(sp.Name), "switch profile %q should be registered", sp.Name)
-		require.Equal(t, metav1.NamespaceDefault, sp.Namespace, "switch profile %q should be in default namespace", sp.Name)
+		require.Equal(t, kmetav1.NamespaceDefault, sp.Namespace, "switch profile %q should be in default namespace", sp.Name)
 
 		_, err := sp.Validate(ctx, kube, &meta.FabricConfig{})
 		require.NoError(t, err, "switch profile %q should be valid", sp.Name)
@@ -60,7 +60,7 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(&wiringapi.SwitchProfile{
-			ObjectMeta: metav1.ObjectMeta{
+			ObjectMeta: kmetav1.ObjectMeta{
 				Name: "some-profile",
 			},
 		}).

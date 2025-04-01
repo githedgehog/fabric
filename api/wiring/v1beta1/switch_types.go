@@ -22,10 +22,10 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -138,8 +138,8 @@ type SwitchStatus struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Switch is the Schema for the switches API
 type Switch struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is desired state of the switch
 	Spec SwitchSpec `json:"spec,omitempty"`
@@ -153,9 +153,9 @@ const KindSwitch = "Switch"
 
 // SwitchList contains a list of Switch
 type SwitchList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Switch `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []Switch `json:"items"`
 }
 
 func init() {
@@ -215,7 +215,7 @@ func (sw *Switch) Default() {
 	sw.Labels[LabelProfile] = sw.Spec.Profile
 }
 
-func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sw); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -287,9 +287,9 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 			}
 
 			sg := &SwitchGroup{}
-			err = kube.Get(ctx, types.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
+			err = kube.Get(ctx, ktypes.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
 			if err != nil {
-				if apierrors.IsNotFound(err) {
+				if kapierrors.IsNotFound(err) {
 					return nil, errors.Errorf("switch group %s does not exist", group)
 				}
 
@@ -298,9 +298,9 @@ func (sw *Switch) Validate(ctx context.Context, kube client.Reader, fabricCfg *m
 		}
 
 		sp := &SwitchProfile{}
-		err = kube.Get(ctx, types.NamespacedName{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp)
+		err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("switch profile %s does not exist", sw.Spec.Profile)
 			}
 

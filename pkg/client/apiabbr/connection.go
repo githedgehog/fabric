@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -44,7 +44,7 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 			}
 
 			return &wiringapi.Connection{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
+				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec: wiringapi.ConnectionSpec{
 					MCLAG: &wiringapi.ConnMCLAG{
 						Fallback: !disableFallback,
@@ -55,7 +55,7 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 				},
 			}, nil
 		},
-		ObjectListFn: func(ctx context.Context, kube client.Client) (*wiringapi.ConnectionList, error) {
+		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*wiringapi.ConnectionList, error) {
 			list := &wiringapi.ConnectionList{}
 
 			return list, kube.List(ctx, list)
@@ -81,7 +81,7 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 
 			return false
 		},
-		CreateOrUpdateFn: func(ctx context.Context, kube client.Client, newObj *wiringapi.Connection) (ctrlutil.OperationResult, error) {
+		CreateOrUpdateFn: func(ctx context.Context, kube kclient.Client, newObj *wiringapi.Connection) (ctrlutil.OperationResult, error) {
 			conn := &wiringapi.Connection{ObjectMeta: newObj.ObjectMeta}
 
 			return ctrlutil.CreateOrUpdate(ctx, kube, conn, func() error {

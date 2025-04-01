@@ -19,8 +19,8 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	coreapi "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type BGPIn struct {
@@ -99,18 +99,18 @@ var (
 	_ WithErrors           = (*BGPOut)(nil)
 )
 
-func BGP(ctx context.Context, kube client.Reader, in BGPIn) (*BGPOut, error) {
+func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 	out := &BGPOut{
 		Neighbors: map[string]map[string]map[string]apiutil.BGPNeighborStatus{},
 	}
 
 	fabCfgCM := &coreapi.ConfigMap{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: "fabric-ctrl-config", Namespace: "fab"}, fabCfgCM); err != nil {
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: "fabric-ctrl-config", Namespace: "fab"}, fabCfgCM); err != nil {
 		return nil, fmt.Errorf("getting fabric-ctrl-config: %w", err)
 	}
 
 	fabCfg := &meta.FabricConfig{}
-	if err := yaml.UnmarshalStrict([]byte(fabCfgCM.Data["config.yaml"]), fabCfg); err != nil {
+	if err := kyaml.UnmarshalStrict([]byte(fabCfgCM.Data["config.yaml"]), fabCfg); err != nil {
 		return nil, fmt.Errorf("unmarshalling fabric config: %w", err)
 	}
 

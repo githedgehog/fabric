@@ -23,10 +23,10 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -130,8 +130,8 @@ type VPCStatus struct{}
 // VPC is Virtual Private Cloud, similar to the public cloud VPC it provides an isolated private network for the
 // resources with support for multiple subnets each with user-provided VLANs and on-demand DHCP.
 type VPC struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the VPC
 	Spec VPCSpec `json:"spec,omitempty"`
@@ -145,9 +145,9 @@ const KindVPC = "VPC"
 
 // VPCList contains a list of VPC
 type VPCList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VPC `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []VPC `json:"items"`
 }
 
 func init() {
@@ -263,7 +263,7 @@ func (vpc *VPC) Default() {
 	}
 }
 
-func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(vpc); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -472,9 +472,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		// TODO Can we rely on Validation webhook for cross VPC subnet? if not - main VPC subnet validation should happen in the VPC controller
 
 		ipNs := &IPv4Namespace{}
-		err := kube.Get(ctx, types.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("IPv4Namespace %s not found", vpc.Spec.IPv4Namespace)
 			}
 
@@ -482,9 +482,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		}
 
 		vlanNs := &wiringapi.VLANNamespace{}
-		err = kube.Get(ctx, types.NamespacedName{Name: vpc.Spec.VLANNamespace, Namespace: vpc.Namespace}, vlanNs)
+		err = kube.Get(ctx, ktypes.NamespacedName{Name: vpc.Spec.VLANNamespace, Namespace: vpc.Namespace}, vlanNs)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
+			if kapierrors.IsNotFound(err) {
 				return nil, errors.Errorf("VLANNamespace %s not found", vpc.Spec.VLANNamespace)
 			}
 
@@ -521,7 +521,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		}
 
 		vpcs := &VPCList{}
-		err = kube.List(ctx, vpcs, client.MatchingLabels{
+		err = kube.List(ctx, vpcs, kclient.MatchingLabels{
 			LabelIPv4NS: vpc.Spec.IPv4Namespace,
 		})
 		if err != nil {
@@ -551,7 +551,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube client.Reader, fabricCfg *met
 		}
 
 		vpcs = &VPCList{}
-		err = kube.List(ctx, vpcs, client.MatchingLabels{
+		err = kube.List(ctx, vpcs, kclient.MatchingLabels{
 			LabelVLANNS: vpc.Spec.VLANNamespace,
 		})
 		if err != nil {

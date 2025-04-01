@@ -15,7 +15,7 @@
 package v1beta1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -58,8 +58,8 @@ type CatalogStatus struct{}
 // +kubebuilder:resource:categories=hedgehog
 // Catalog is the Schema for the catalogs API
 type Catalog struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   CatalogSpec   `json:"spec,omitempty"`
 	Status CatalogStatus `json:"status,omitempty"`
@@ -69,9 +69,9 @@ type Catalog struct {
 
 // CatalogList contains a list of Catalog
 type CatalogList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Catalog `json:"items"`
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []Catalog `json:"items"`
 }
 
 func init() {

@@ -23,20 +23,20 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type Webhook struct {
-	client.Client
+	kclient.Client
 	Scheme     *runtime.Scheme
-	KubeClient client.Reader
+	KubeClient kclient.Reader
 	Cfg        *meta.FabricConfig
 	Profiles   *switchprofile.Default
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
 	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -45,7 +45,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, profiles *switch
 		Profiles:   profiles,
 	}
 
-	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.SwitchProfile{}).
 		WithDefaulter(w).
 		WithValidator(w).

@@ -22,11 +22,11 @@ import (
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
-	"golang.org/x/exp/maps"
 )
 
 var specVRFsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRF]{
@@ -478,7 +478,7 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	UpdateWeight: ActionWeightVRFBGPImportVRFUpdate,
 	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
 	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
-		imports := maps.Keys(value.IPv4Unicast.ImportVRFs)
+		imports := lo.Keys(value.IPv4Unicast.ImportVRFs)
 		sort.Strings(imports)
 
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{

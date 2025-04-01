@@ -21,22 +21,22 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type Webhook struct {
-	client.Client
+	kclient.Client
 	Scheme     *runtime.Scheme
-	KubeClient client.Reader
+	KubeClient kclient.Reader
 	Cfg        *meta.FabricConfig
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &Webhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -44,7 +44,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(ctrl.NewWebhookManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
 		For(&wiringapi.Connection{}).
 		WithDefaulter(w).
 		WithValidator(w).
@@ -70,11 +70,11 @@ func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
 }
 
 // validateStaticExternal checks that the static external connection is valid and it's located in a webhook to avoid circular dependency with vpcapi
-func (w *Webhook) validateStaticExternal(ctx context.Context, kube client.Reader, conn *wiringapi.Connection) error {
+func (w *Webhook) validateStaticExternal(ctx context.Context, kube kclient.Reader, conn *wiringapi.Connection) error {
 	if conn.Spec.StaticExternal != nil && conn.Spec.StaticExternal.WithinVPC != "" {
 		vpc := &vpcapi.VPC{}
-		err := kube.Get(ctx, types.NamespacedName{Name: conn.Spec.StaticExternal.WithinVPC, Namespace: conn.Namespace}, vpc) // TODO namespace could be different?
-		if apierrors.IsNotFound(err) {
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: conn.Spec.StaticExternal.WithinVPC, Namespace: conn.Namespace}, vpc) // TODO namespace could be different?
+		if kapierrors.IsNotFound(err) {
 			return errors.Errorf("vpc %s not found", conn.Spec.StaticExternal.WithinVPC)
 		}
 		if err != nil {
@@ -124,7 +124,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	conn := obj.(*wiringapi.Connection)
 
 	vpcAttachments := &vpcapi.VPCAttachmentList{}
-	if err := w.Client.List(ctx, vpcAttachments, client.MatchingLabels{
+	if err := w.Client.List(ctx, vpcAttachments, kclient.MatchingLabels{
 		wiringapi.LabelConnection: conn.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpc attachments") // TODO hide internal error
@@ -134,7 +134,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	extAttachments := &vpcapi.ExternalAttachmentList{}
-	if err := w.Client.List(ctx, extAttachments, client.MatchingLabels{
+	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
 		wiringapi.LabelConnection: conn.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
@@ -151,7 +151,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 		mclagList := &wiringapi.ConnectionList{}
 		// The matching here, will logically and the key/vals in labels together
 		// giving just the relevant connections
-		if err := w.Client.List(ctx, mclagList, client.MatchingLabels(labels)); err != nil {
+		if err := w.Client.List(ctx, mclagList, kclient.MatchingLabels(labels)); err != nil {
 			return nil, errors.Errorf("error listing MCLAG connections")
 		}
 		if len(mclagList.Items) > 0 {

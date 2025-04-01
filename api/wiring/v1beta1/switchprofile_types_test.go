@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetAPI2NOSPortsFor(t *testing.T) {
@@ -114,9 +114,9 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: kmetav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
 			}).Validate(t.Context(), nil, nil)
@@ -224,9 +224,9 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: kmetav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
 			}).Validate(t.Context(), nil, nil)
@@ -328,9 +328,9 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: kmetav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
 			}).Validate(t.Context(), nil, nil)
@@ -424,9 +424,9 @@ func TestSwitchProfileDefault(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: kmetav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
 			}).Validate(t.Context(), nil, nil)
@@ -658,9 +658,9 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 			}
 
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
-					Namespace: metav1.NamespaceDefault,
+					Namespace: kmetav1.NamespaceDefault,
 				},
 				Spec: *tt.sp,
 			}).Validate(t.Context(), nil, nil)

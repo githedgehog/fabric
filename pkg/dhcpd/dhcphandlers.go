@@ -28,7 +28,7 @@ import (
 	"go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/netlinkutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -109,7 +109,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 
 		subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1beta1.DHCPAllocated{
 			IP:       reservation.address.IP.String(),
-			Expiry:   metav1.NewTime(reservation.expiry),
+			Expiry:   kmetav1.NewTime(reservation.expiry),
 			Hostname: reservation.hostname,
 		}
 
@@ -139,7 +139,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 
 	subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1beta1.DHCPAllocated{
 		IP:       ipnet.IP.String(),
-		Expiry:   metav1.NewTime(time.Now().Add(leaseTime)),
+		Expiry:   kmetav1.NewTime(time.Now().Add(leaseTime)),
 		Hostname: req.HostName(),
 	}
 

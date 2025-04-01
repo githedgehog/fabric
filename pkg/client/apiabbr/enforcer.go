@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -129,7 +129,7 @@ func (e *Enforcer) Load(lines ...string) error {
 	return nil
 }
 
-func (e *Enforcer) Enforce(ctx context.Context, kube client.Client) error {
+func (e *Enforcer) Enforce(ctx context.Context, kube kclient.Client) error {
 	for i := len(e.handlers) - 1; i >= 0; i-- {
 		handler := e.handlers[i]
 		if err := handler.PreProcess(ctx, kube); err != nil {
@@ -227,8 +227,8 @@ func (p AbbrParams) GetStringSlice(keys []string) []string {
 
 type AbbrHandler interface {
 	Load(ct AbbrType, abbr string, params AbbrParams) (handled bool, err error)
-	PreProcess(ctx context.Context, kube client.Client) error
-	PostProcess(ctx context.Context, kube client.Client) error
+	PreProcess(ctx context.Context, kube kclient.Client) error
+	PostProcess(ctx context.Context, kube kclient.Client) error
 }
 
 type ObjectAbbrHandler[T meta.Object, TList meta.ObjectList] struct {
@@ -237,8 +237,8 @@ type ObjectAbbrHandler[T meta.Object, TList meta.ObjectList] struct {
 	AcceptNoTypeFn   func(abbr string) bool
 	NameFn           func(abbr string) (name string)
 	ParseObjectFn    func(name, abbr string, params AbbrParams) (T, error)
-	ObjectListFn     func(ctx context.Context, kube client.Client) (TList, error)
-	CreateOrUpdateFn func(ctx context.Context, kube client.Client, obj T) (ctrlutil.OperationResult, error)
+	ObjectListFn     func(ctx context.Context, kube kclient.Client) (TList, error)
+	CreateOrUpdateFn func(ctx context.Context, kube kclient.Client, obj T) (ctrlutil.OperationResult, error)
 	PatchExistingFn  func(obj T) bool
 
 	DisallowOverride  bool
@@ -297,7 +297,7 @@ func (h *ObjectAbbrHandler[T, TList]) Load(ct AbbrType, abbr string, params Abbr
 	return true, nil
 }
 
-func (h *ObjectAbbrHandler[T, TList]) PreProcess(ctx context.Context, kube client.Client) error {
+func (h *ObjectAbbrHandler[T, TList]) PreProcess(ctx context.Context, kube kclient.Client) error {
 	if !h.CleanupNotDefined {
 		return nil
 	}
@@ -323,7 +323,7 @@ func (h *ObjectAbbrHandler[T, TList]) PreProcess(ctx context.Context, kube clien
 	return nil
 }
 
-func (h *ObjectAbbrHandler[T, TList]) PostProcess(ctx context.Context, kube client.Client) error {
+func (h *ObjectAbbrHandler[T, TList]) PostProcess(ctx context.Context, kube kclient.Client) error {
 	if h.PatchExistingFn != nil {
 		list, err := h.ObjectListFn(ctx, kube)
 		if err != nil {

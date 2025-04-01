@@ -21,21 +21,21 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type Reconciler struct {
-	client.Client
+	kclient.Client
 	Scheme  *runtime.Scheme
 	Cfg     *meta.FabricConfig
 	LibMngr *librarian.Manager
 }
 
-func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
 	r := &Reconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
@@ -43,7 +43,7 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 		LibMngr: libMngr,
 	}
 
-	return errors.Wrapf(ctrl.NewControllerManagedBy(mgr).
+	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("connection").
 		For(&wiringapi.Connection{}).
 		Complete(r), "failed to setup connection controller")
@@ -54,24 +54,24 @@ func SetupWithManager(mgr ctrl.Manager, cfg *meta.FabricConfig, libMngr *librari
 
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx)
+func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+	l := kctrllog.FromContext(ctx)
 
 	if err := r.LibMngr.UpdateConnections(ctx, r.Client); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error updating connections catalog")
+		return kctrl.Result{}, errors.Wrapf(err, "error updating connections catalog")
 	}
 
 	conn := &wiringapi.Connection{}
 	err := r.Get(ctx, req.NamespacedName, conn)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+		if kapierrors.IsNotFound(err) {
+			return kctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errors.Wrapf(err, "error getting connection")
+		return kctrl.Result{}, errors.Wrapf(err, "error getting connection")
 	}
 
 	l.Info("connection reconciled")
 
-	return ctrl.Result{}, nil
+	return kctrl.Result{}, nil
 }
