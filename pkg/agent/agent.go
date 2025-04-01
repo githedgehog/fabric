@@ -47,8 +47,10 @@ import (
 )
 
 const (
-	ConfigFile     = "agent-config.yaml"
-	KubeconfigFile = "agent-kubeconfig"
+	ConfigFile      = "agent-config.yaml"
+	KubeconfigFile  = "agent-kubeconfig"
+	HeartbeatPeriod = 15 * time.Second
+	EnforcePeriod   = 2 * time.Minute
 )
 
 //go:embed motd.txt
@@ -70,6 +72,9 @@ type Service struct {
 	bootID     string
 
 	reg *switchstate.Registry
+
+	lastHeartbeat time.Time
+	lastApplied   time.Time
 }
 
 const (
@@ -167,10 +172,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	// reset observability state
 	now := metav1.Time{Time: time.Now()}
-	agent.Status.LastHeartbeat = now
 	agent.Status.LastAttemptTime = now
 	agent.Status.LastAttemptGen = currentGen
 	agent.Status.LastAppliedTime = now
+	svc.lastApplied = agent.Status.LastAppliedTime.Time
 	agent.Status.LastAppliedGen = currentGen
 	agent.Status.InstallID = svc.installID
 	agent.Status.RunID = svc.runID
@@ -187,7 +192,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	if st := svc.reg.GetSwitchState(); st != nil {
 		agent.Status.State = *st
 	}
+
 	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
 	err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
 	if err != nil {
@@ -204,8 +211,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	defer watcher.Stop()
 
-	enforceTicker := time.NewTicker(2 * time.Minute)
+	enforceTicker := time.NewTicker(EnforcePeriod)
 	defer enforceTicker.Stop()
+
+	heartbeatTicker := time.NewTicker(HeartbeatPeriod)
+	defer heartbeatTicker.Stop()
 
 	for {
 		select {
@@ -214,12 +224,24 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 			return nil
 		case <-enforceTicker.C:
-			slog.Debug("Enforcing config", "name", agent.Name)
-			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
-			if err != nil {
-				return errors.Wrap(err, "failed to process agent config from k8s (enforce)")
+			if time.Since(svc.lastApplied) < EnforcePeriod/2 {
+				slog.Debug("Skipping config enforcement, already applied recently", "name", agent.Name)
+
+				continue
 			}
-		case <-time.After(15 * time.Second):
+
+			if err := svc.processAgent(ctx, agent, false); err != nil {
+				return errors.Wrap(err, "failed to process agent config (enforce)")
+			}
+
+			svc.lastApplied = time.Now()
+		case <-heartbeatTicker.C:
+			if time.Since(svc.lastHeartbeat) < HeartbeatPeriod/2 {
+				slog.Debug("Skipping heartbeat, already sent recently", "name", agent.Name)
+
+				continue
+			}
+
 			slog.Debug("Sending heartbeat", "name", agent.Name)
 			hbStart := time.Now()
 
@@ -229,7 +251,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			if st := svc.reg.GetSwitchState(); st != nil {
 				agent.Status.State = *st
 			}
+
 			agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+			svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
 			err := kube.Status().Update(ctx, agent)
 			if err != nil {
@@ -268,7 +292,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 			agent = event.Object.(*agentapi.Agent)
 
-			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen)
 			if err != nil {
 				return errors.Wrap(err, "failed to process agent config from k8s")
 			}
@@ -308,8 +332,6 @@ func (svc *Service) setInstallAndRunIDs() error {
 func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
 	start := time.Now()
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
-
-	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 
 	if !svc.SkipControlLink {
 		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
@@ -402,68 +424,58 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
 
+	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
 	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, exporterPort), "failed to ensure alloy installed")
 }
 
-func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64, enforce bool) error {
-	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
-
-	if !enforce && agent.Generation == *currentGen {
+func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64) error {
+	if agent.Generation == *currentGen {
 		return nil
 	}
 
 	start := time.Now()
 
-	if agent.Generation != *currentGen {
-		slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
-	} else if enforce {
-		slog.Info("Enforcing agent config", "gen", agent.Generation)
-	}
+	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
 
 	if agent.Status.Conditions == nil {
 		agent.Status.Conditions = []metav1.Condition{}
 	}
 
-	if !enforce {
-		// TODO better handle status condtions
-		apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
-			Type:               "Applied",
-			Status:             metav1.ConditionFalse,
-			Reason:             "ApplyPending",
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
-		})
+	// TODO better handle status condtions
+	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+		Type:               "Applied",
+		Status:             metav1.ConditionFalse,
+		Reason:             "ApplyPending",
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
+	})
 
-		// demonstrating that we're going to try to apply config
-		agent.Status.LastAttemptGen = agent.Generation
-		agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
+	// demonstrating that we're going to try to apply config
+	agent.Status.LastAttemptGen = agent.Generation
+	agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
 
-		err := kube.Status().Update(ctx, agent)
-		if err != nil {
-			return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
-		}
+	if err := kube.Status().Update(ctx, agent); err != nil {
+		return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
 	}
 
-	err := svc.processActions(ctx, agent)
-	if err != nil {
+	if err := svc.processActions(ctx, agent); err != nil {
 		return errors.Wrap(err, "failed to process agent actions from k8s")
 	}
 
-	err = svc.processAgent(ctx, agent, false)
-	if err != nil {
+	if err := svc.processAgent(ctx, agent, false); err != nil {
 		return errors.Wrap(err, "failed to process agent config loaded from k8s")
 	}
 
-	err = svc.saveConfigToFile(agent)
-	if err != nil {
+	if err := svc.saveConfigToFile(agent); err != nil {
 		return errors.Wrap(err, "failed to save agent config to file")
 	}
 
 	// report that we've been able to apply config
 	agent.Status.LastAppliedGen = agent.Generation
 	agent.Status.LastAppliedTime = metav1.Time{Time: time.Now()}
+	svc.lastApplied = agent.Status.LastAppliedTime.Time
 
 	// TODO not the best way to use conditions, but it's the easiest way to then wait for agents
 	apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
@@ -482,10 +494,11 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	if st := svc.reg.GetSwitchState(); st != nil {
 		agent.Status.State = *st
 	}
-	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
 
-	err = kube.Status().Update(ctx, agent)
-	if err != nil {
+	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
+
+	if err := kube.Status().Update(ctx, agent); err != nil {
 		return errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
 	}
 
