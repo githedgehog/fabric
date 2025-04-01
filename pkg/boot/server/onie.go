@@ -139,7 +139,8 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 	l = l.With("platform", platform)
 
 	op := r.Header.Get("ONIE-OPERATION")
-	if op == "os-install" {
+	switch op {
+	case "os-install":
 		serial := strings.TrimSpace(r.Header.Get("ONIE-SERIAL-NUMBER"))
 		mac := strings.TrimSpace(r.Header.Get("ONIE-ETH-ADDR"))
 
@@ -174,7 +175,7 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
-	} else if op == "onie-update" {
+	case "onie-update":
 		if platform == "" {
 			l.Info("Platform is missing")
 			w.WriteHeader(http.StatusBadRequest)
@@ -196,7 +197,7 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusNotImplemented)
-	} else {
+	default:
 		w.WriteHeader(http.StatusBadRequest)
 
 		return

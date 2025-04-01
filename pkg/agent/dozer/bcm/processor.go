@@ -180,13 +180,14 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 			}
 
 			options := []api.GNMIOption{}
-			if act.Type == ActionTypeUpdate {
+			switch act.Type {
+			case ActionTypeUpdate:
 				options = append(options, api.Update(api.Path(act.Path), api.Value(ocData, gnmi.JSONIETFEncoding)))
-			} else if act.Type == ActionTypeReplace {
+			case ActionTypeReplace:
 				options = append(options, api.Replace(api.Path(act.Path), api.Value(ocData, gnmi.JSONIETFEncoding)))
-			} else if act.Type == ActionTypeDelete {
+			case ActionTypeDelete:
 				options = append(options, api.Delete(act.Path))
-			} else {
+			default:
 				return nil, errors.Errorf("unsupported gnmi action %+v", act)
 			}
 

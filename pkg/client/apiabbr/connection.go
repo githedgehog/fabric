@@ -85,7 +85,7 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 			conn := &wiringapi.Connection{ObjectMeta: newObj.ObjectMeta}
 
 			return ctrlutil.CreateOrUpdate(ctx, kube, conn, func() error {
-				if conn.Spec.MCLAG != nil {
+				if conn.Spec.MCLAG != nil { //nolint:gocritic
 					conn.Spec.MCLAG.Fallback = newObj.Spec.MCLAG.Fallback
 				} else if conn.Spec.ESLAG != nil {
 					conn.Spec.ESLAG.Fallback = newObj.Spec.ESLAG.Fallback

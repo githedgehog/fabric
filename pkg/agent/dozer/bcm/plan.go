@@ -372,7 +372,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			remote := ""
 			peer := ""
 			peerIP := ""
-			if link.Spine.DeviceName() == agent.Name {
+			if link.Spine.DeviceName() == agent.Name { //nolint:gocritic
 				port = link.Spine.LocalPortName()
 				ipStr = link.Spine.IP
 				remote = link.Leaf.Port
@@ -914,7 +914,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		var links []wiringapi.ServerToSwitchLink
 		fallback := agent.IsFirstInRedundancyGroup()
 
-		if conn.MCLAG != nil {
+		if conn.MCLAG != nil { //nolint:gocritic
 			connType = "MCLAG"
 			if conn.MCLAG.MTU != 0 {
 				mtu = pointer.To(conn.MCLAG.MTU) //nolint:ineffassign,staticcheck
@@ -1367,7 +1367,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if vni == 0 || !ok {
 				return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
 			}
-			vni = vni % 100
+			vni %= 100
 
 			spec.PrefixLists[vpcSubnetsPrefixListName(vpcName)].Prefixes[vni] = &dozer.SpecPrefixListEntry{
 				Prefix: dozer.SpecPrefixListPrefix{
@@ -1560,7 +1560,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		ifaces := []string{}
-		if conn.MCLAG != nil {
+		if conn.MCLAG != nil { //nolint:gocritic
 			for _, link := range conn.MCLAG.Links {
 				if link.Switch.DeviceName() != agent.Name {
 					continue

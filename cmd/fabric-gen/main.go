@@ -109,6 +109,6 @@ func main() {
 
 	if err := app.Run(os.Args); err != nil {
 		slog.Error("Failed", "err", err.Error())
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic
 	}
 }

@@ -38,7 +38,7 @@ func (out *LLDPOut) MarshalText() (string, error) {
 
 	red := color.New(color.FgRed).SprintFunc()
 	if noColor {
-		red = func(a ...interface{}) string { return fmt.Sprint(a...) }
+		red = fmt.Sprint
 	}
 
 	str := &strings.Builder{}

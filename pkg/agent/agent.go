@@ -266,13 +266,15 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			// TODO check why channel gets closed
 			if !ok {
 				slog.Warn("K8s watch channel closed, restarting agent")
-				os.Exit(1)
+
+				return errors.New("k8s watch channel closed")
 			}
 
 			// TODO why are we getting nil events?
 			if event.Object == nil {
 				slog.Warn("Received nil object from K8s, restarting agent")
-				os.Exit(1)
+
+				return errors.New("k8s watch event object is nil")
 			}
 
 			// TODO handle bookmarks and delete events
@@ -305,7 +307,7 @@ func (svc *Service) setInstallAndRunIDs() error {
 
 	installIDFile := filepath.Join(svc.Basedir, "install-id")
 	installID, err := os.ReadFile(installIDFile)
-	if os.IsNotExist(err) {
+	if os.IsNotExist(err) { //nolint:gocritic
 		newInstallID := uuid.New().String()
 		err = os.WriteFile(installIDFile, []byte(newInstallID), 0o644) //nolint:gosec
 		if err != nil {
@@ -572,7 +574,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 
 	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true"})
 	if err != nil {
-		if errors.Is(err, common.ErrAgentUpgradeDownloadFailed) {
+		if errors.Is(err, common.ErrAgentUpgradeDownloadFailed) { //nolint:gocritic
 			// TODO properly retry it without restarting the agent
 			slog.Warn("Failed to download new agent version, restarting agent to retry", "err", err)
 
@@ -589,7 +591,8 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		}
 	} else if upgraded {
 		slog.Info("Agent upgraded, restarting")
-		os.Exit(0) // TODO graceful agent restart
+
+		os.Exit(0) //nolint:gocritic // TODO graceful agent restart
 	}
 
 	return nil

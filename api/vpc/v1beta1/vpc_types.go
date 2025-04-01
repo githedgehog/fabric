@@ -415,10 +415,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 					return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
 				}
 			}
-		} else {
-			if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
-				return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
-			}
+		} else if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
+			return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
 		}
 	}
 
