@@ -82,6 +82,8 @@ _Appears in:_
 | `lastAttemptGen` _integer_ | Generation of the last attempt to apply configuration |  |  |
 | `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
+| `lastDiff` _string_ | Last diff between the current and the desired state |  |  |
+| `lastError` _string_ | Last error message from the agent attempting to apply configuration |  |  |
 | `state` _[SwitchState](#switchstate)_ | Detailed switch state updated with each heartbeat |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
 

@@ -131,7 +131,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		}
 	}
 
-	err = svc.processAgent(ctx, agent, true)
+	_, err = svc.processAgent(ctx, agent, true)
 	if err != nil {
 		return errors.Wrap(err, "failed to process agent config from file")
 	}
@@ -215,7 +215,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			return nil
 		case <-enforceTicker.C:
 			slog.Debug("Enforcing config", "name", agent.Name)
-			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
+			_, err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, true)
 			if err != nil {
 				return errors.Wrap(err, "failed to process agent config from k8s (enforce)")
 			}
@@ -268,7 +268,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 			agent = event.Object.(*agentapi.Agent)
 
-			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
+			_, err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, false)
 			if err != nil {
 				return errors.Wrap(err, "failed to process agent config from k8s")
 			}
@@ -305,7 +305,7 @@ func (svc *Service) setInstallAndRunIDs() error {
 	return nil
 }
 
-func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
+func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) (string, error) {
 	start := time.Now()
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
@@ -313,7 +313,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	if !svc.SkipControlLink {
 		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
-			return errors.Wrap(err, "failed to ensure control link")
+			return "", errors.Wrap(err, "failed to ensure control link")
 		}
 		slog.Info("Control link configuration applied")
 	} else {
@@ -322,26 +322,26 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	if readyCheck {
 		if err := svc.processor.WaitReady(ctx); err != nil {
-			return errors.Wrap(err, "failed to wait for system status ready")
+			return "", errors.Wrap(err, "failed to wait for system status ready")
 		}
 	}
 
 	desired, err := svc.processor.PlanDesiredState(ctx, agent)
 	if err != nil {
-		return errors.Wrapf(err, "failed to plan spec")
+		return "", errors.Wrapf(err, "failed to plan spec")
 	}
 	slog.Debug("Desired state generated")
 
 	startActual := time.Now()
 	actual, err := svc.processor.LoadActualState(ctx, agent)
 	if err != nil {
-		return errors.Wrapf(err, "failed to load actual state")
+		return "", errors.Wrapf(err, "failed to load actual state")
 	}
 	slog.Debug("Actual state loaded", "took", time.Since(startActual))
 
 	actions, err := svc.processor.CalculateActions(ctx, actual, desired)
 	if err != nil {
-		return errors.Wrapf(err, "failed to calculate spec")
+		return "", errors.Wrapf(err, "failed to calculate spec")
 	}
 	slog.Debug("Actions calculated", "count", len(actions))
 
@@ -350,27 +350,27 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	desiredData, err := desired.MarshalYAML()
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal desired spec")
+		return "", errors.Wrapf(err, "failed to marshal desired spec")
 	}
 
 	err = os.WriteFile(filepath.Join(svc.Basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
 	if err != nil {
-		return errors.Wrapf(err, "failed to write desired spec")
+		return "", errors.Wrapf(err, "failed to write desired spec")
 	}
 
 	actualData, err := actual.MarshalYAML()
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal actual spec")
+		return "", errors.Wrapf(err, "failed to marshal actual spec")
 	}
 
 	err = os.WriteFile(filepath.Join(svc.Basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
 	if err != nil {
-		return errors.Wrapf(err, "failed to write actual spec")
+		return "", errors.Wrapf(err, "failed to write actual spec")
 	}
 
 	diff, err := dozer.SpecTextDiff(actualData, desiredData)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate diff")
+		return "", errors.Wrapf(err, "failed to generate diff")
 	}
 
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
@@ -387,14 +387,14 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	if svc.DryRun {
 		slog.Warn("Dry run, exiting")
 
-		return nil
+		return string(diff), nil
 	}
 
 	slog.Info("Applying actions", "count", len(actions))
 
 	warnings, err := svc.processor.ApplyActions(ctx, actions)
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply actions")
+		return string(diff), errors.Wrapf(err, "failed to apply actions")
 	}
 	for _, warning := range warnings {
 		slog.Warn("Action warning: " + warning)
@@ -404,14 +404,14 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 
 	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
-	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, exporterPort), "failed to ensure alloy installed")
+	return string(diff), errors.Wrapf(alloy.EnsureInstalled(ctx, agent, exporterPort), "failed to ensure alloy installed")
 }
 
-func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64, enforce bool) error {
+func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client, agent *agentapi.Agent, currentGen *int64, enforce bool) (catchDiff string, catchError error) { //nolint:nonamedreturns,unparam
 	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 
 	if !enforce && agent.Generation == *currentGen {
-		return nil
+		return "", nil
 	}
 
 	start := time.Now()
@@ -439,26 +439,54 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 		// demonstrating that we're going to try to apply config
 		agent.Status.LastAttemptGen = agent.Generation
 		agent.Status.LastAttemptTime = metav1.Time{Time: time.Now()}
+		agent.Status.LastDiff = ""
+		agent.Status.LastError = ""
 
 		err := kube.Status().Update(ctx, agent)
 		if err != nil {
-			return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
+			return "", errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
 		}
+
+		defer func() {
+			if catchError != nil {
+				apimeta.SetStatusCondition(&agent.Status.Conditions, metav1.Condition{
+					Type:               "Applied",
+					Status:             metav1.ConditionFalse,
+					Reason:             "ApplyFailed",
+					LastTransitionTime: metav1.Time{Time: time.Now()},
+					Message:            fmt.Sprintf("Config failed to apply, gen=%d", agent.Generation),
+				})
+				agent.Status.LastError = catchError.Error()
+				agent.Status.LastDiff = catchDiff
+
+				err := kube.Status().Update(ctx, agent) // TODO gracefully handle case if resourceVersion changed
+				if err != nil {
+					slog.Warn("Failed to update agent status after failed config processing", "err", err)
+				}
+			}
+		}()
 	}
 
 	err := svc.processActions(ctx, agent)
 	if err != nil {
-		return errors.Wrap(err, "failed to process agent actions from k8s")
+		catchError = errors.Wrap(err, "failed to process agent actions from k8s")
+
+		return "", catchError
 	}
 
-	err = svc.processAgent(ctx, agent, false)
+	diff, err := svc.processAgent(ctx, agent, false)
+	catchDiff = diff
 	if err != nil {
-		return errors.Wrap(err, "failed to process agent config loaded from k8s")
+		catchError = errors.Wrap(err, "failed to process agent config from k8s")
+
+		return "", catchError
 	}
 
 	err = svc.saveConfigToFile(agent)
 	if err != nil {
-		return errors.Wrap(err, "failed to save agent config to file")
+		catchError = errors.Wrap(err, "failed to save agent config to file")
+
+		return "", catchError
 	}
 
 	// report that we've been able to apply config
@@ -477,21 +505,24 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube client.Client
 	svc.reg.AgentMetrics.KubeApplyDuration.Observe(time.Since(start).Seconds())
 
 	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
-		return errors.Wrapf(err, "failed to update switch state")
+		catchError = errors.Wrapf(err, "failed to update switch state")
+
+		return "", catchError
 	}
 	if st := svc.reg.GetSwitchState(); st != nil {
 		agent.Status.State = *st
 	}
 	agent.Status.LastHeartbeat = metav1.Time{Time: time.Now()}
+	agent.Status.LastDiff = catchDiff
 
 	err = kube.Status().Update(ctx, agent)
 	if err != nil {
-		return errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
+		return "", errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
 	}
 
 	*currentGen = agent.Generation
 
-	return nil
+	return "", nil
 }
 
 func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) error {

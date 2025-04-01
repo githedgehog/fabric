@@ -145,6 +145,10 @@ type AgentStatus struct {
 	LastAppliedTime metav1.Time `json:"lastAppliedTime,omitempty"`
 	// Generation of the last successful configuration application
 	LastAppliedGen int64 `json:"lastAppliedGen,omitempty"`
+	// Last diff between the current and the desired state
+	LastDiff string `json:"lastDiff,omitempty"`
+	// Last error message from the agent attempting to apply configuration
+	LastError string `json:"lastError,omitempty"`
 	// Detailed switch state updated with each heartbeat
 	State SwitchState `json:"state,omitempty"`
 	// Status updates from the agent
