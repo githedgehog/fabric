@@ -62,7 +62,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/yaml"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -123,13 +122,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("reading registry password: %w", err)
 	}
-
-	loadedCfgData, err := yaml.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("marshalling loaded config: %w", err)
-	}
-
-	slog.Info("Config loaded", "config", string(loadedCfgData))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
