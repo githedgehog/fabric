@@ -23,7 +23,6 @@ linters:
     - contextcheck
     - depguard
     - dogsled
-    # - dupl
     - durationcheck
     - errchkjson
     - errname
@@ -34,7 +33,6 @@ linters:
     - gocheckcompilerdirectives
     - goconst
     - gocritic
-    # - gocyclo
     - err113
     - gofmt
     - goimports
