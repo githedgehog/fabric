@@ -2037,7 +2037,7 @@ spec:
                       builtBy:
                         description: NOS build user
                         type: string
-                      configDbVersion:
+                      configDBVersion:
                         description: NOS config DB version, such as "version_4_2_1"
                         type: string
                       distributionVersion:
@@ -2113,7 +2113,7 @@ spec:
                               type: boolean
                           type: object
                         type: object
-                      temperature:
+                      temperatures:
                         additionalProperties:
                           properties:
                             alarms:

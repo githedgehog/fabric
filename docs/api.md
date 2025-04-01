@@ -479,7 +479,7 @@ _Appears in:_
 | `buildCommit` _string_ | NOS build commit |  |  |
 | `buildDate` _string_ | NOS build date |  |  |
 | `builtBy` _string_ | NOS build user |  |  |
-| `configDbVersion` _string_ | NOS config DB version, such as "version_4_2_1" |  |  |
+| `configDBVersion` _string_ | NOS config DB version, such as "version_4_2_1" |  |  |
 | `distributionVersion` _string_ | Distribution version, such as "Debian 10.13" |  |  |
 | `hardwareVersion` _string_ | Hardware version, such as "X01" |  |  |
 | `hwskuVersion` _string_ | Hwsku version, such as "DellEMC-S5248f-P-25G-DPB" |  |  |
@@ -508,7 +508,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `fans` _object (keys:string, values:[SwitchStatePlatformFan](#switchstateplatformfan))_ |  |  |  |
 | `psus` _object (keys:string, values:[SwitchStatePlatformPSU](#switchstateplatformpsu))_ |  |  |  |
-| `temperature` _object (keys:string, values:[SwitchStatePlatformTemperature](#switchstateplatformtemperature))_ |  |  |  |
+| `temperatures` _object (keys:string, values:[SwitchStatePlatformTemperature](#switchstateplatformtemperature))_ |  |  |  |
 
 
 #### SwitchStatePlatformFan
