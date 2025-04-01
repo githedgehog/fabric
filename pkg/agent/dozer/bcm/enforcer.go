@@ -90,18 +90,18 @@ const (
 	ActionWeightInterfaceEthernetBaseUpdate
 	ActionWeightInterfaceEthernetSwitchedAccessUpdate
 	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
-	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
 	ActionWeightPortChannelConfigMACUpdate
 	ActionWeightPortChannelConfigFallbackUpdate
 
 	ActionWeightInterfaceSubinterfaceIPsDelete
-	ActionWeightVRFInterfaceDelete
+	ActionWeightVRFInterfaceDelete // Remove interface from the VRF
 	ActionWeightACLInterfaceDelete
 	ActionWeightInterfaceSubinterfaceDelete
-	ActionWeightInterfaceSubinterfaceUpdate
-	ActionWeightVRFInterfaceUpdate
+	ActionWeightInterfaceSubinterfaceUpdate // Set Subinterface VLAN and Static Anycast Gateway
+	ActionWeightVRFInterfaceUpdate          // Add interface to the VRF
 	ActionWeightInterfaceSubinterfaceIPsUpdate
+	ActionWeightInterfaceVLANAnycastGatewayUpdate // Set VLAN Static Anycast Gateway
 
 	ActionWeightLLDPInterfaceUpdate
 	ActionWeightNTP
