@@ -784,8 +784,8 @@ github.com/openconfig/goyang v1.6.2 h1:LVwwlVIIt4nmwacW67yBsxzP5DhDM94SOEMWod1hE
 github.com/openconfig/goyang v1.6.2/go.mod h1:jzlGg+yjRpOcq1Kg6q6cSiLGQK5hrNNMsUx0fFxm4U0=
 github.com/openconfig/grpctunnel v0.1.0 h1:EN99qtlExZczgQgp5ANnHRC/Rs62cAG+Tz2BQ5m/maM=
 github.com/openconfig/grpctunnel v0.1.0/go.mod h1:G04Pdu0pml98tdvXrvLaU+EBo3PxYfI9MYqpvdaEHLo=
-github.com/openconfig/ygot v0.29.22 h1:WEFDnfLNSLYpm0NCBdBpTRj3ox5jFtVnzb6hup5eJqc=
-github.com/openconfig/ygot v0.29.22/go.mod h1:YGp3UW3fow+xaCUn61h/nfgSiiUlm/Ft9fdyOy2ixVA=
+github.com/openconfig/ygot v0.30.0 h1:8ryuR8KzsJwl+9vUB7ROG62RIeRKwU2pCVGnO+EHHEs=
+github.com/openconfig/ygot v0.30.0/go.mod h1:FeioWeYqAWInURUh60kVVJBndB24DIfFBm665idBPfU=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0 h1:8SG7/vwALn54lVB/0yZ/MMwhFrPYtpEHQb2IpWsCzug=
