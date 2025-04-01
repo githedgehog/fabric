@@ -1550,6 +1550,13 @@ spec:
                 description: Time of the last attempt to apply configuration
                 format: date-time
                 type: string
+              lastDiff:
+                description: Last diff between the current and the desired state
+                type: string
+              lastError:
+                description: Last error message from the agent attempting to apply
+                  configuration
+                type: string
               lastHeartbeat:
                 description: Time of the last heartbeat from the agent
                 format: date-time
