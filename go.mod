@@ -2,6 +2,8 @@ module go.githedgehog.com/fabric
 
 go 1.24.0
 
+toolchain go1.24.1
+
 replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
 
 tool sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -25,7 +27,7 @@ require (
 	github.com/onsi/gomega v1.36.3
 	github.com/openconfig/gnmi v0.14.0
 	github.com/openconfig/gnmic v0.32.0
-	github.com/openconfig/ygot v0.29.22
+	github.com/openconfig/ygot v0.30.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.21.1
