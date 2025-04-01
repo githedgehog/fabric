@@ -25,7 +25,6 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
-	"go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/netlinkutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,7 +106,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		reservation.state = committed
 		reservation.expiry = time.Now().Add(leaseTime)
 
-		subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1beta1.DHCPAllocated{
+		subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = dhcpapi.DHCPAllocated{
 			IP:       reservation.address.IP.String(),
 			Expiry:   kmetav1.NewTime(reservation.expiry),
 			Hostname: reservation.hostname,
@@ -137,7 +136,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		hostname:   req.HostName(),
 	}
 
-	subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = v1beta1.DHCPAllocated{
+	subnet.dhcpSubnet.Status.Allocated[req.ClientHWAddr.String()] = dhcpapi.DHCPAllocated{
 		IP:       ipnet.IP.String(),
 		Expiry:   kmetav1.NewTime(time.Now().Add(leaseTime)),
 		Hostname: req.HostName(),
@@ -328,7 +327,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	vrfName := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)
 
 	// Add TFTP server Option Name
-	if len(subnet.dhcpSubnet.Spec.PXEURL) <= 0 &&
+	if len(subnet.dhcpSubnet.Spec.PXEURL) == 0 &&
 		(req.IsOptionRequested(dhcpv4.OptionTFTPServerName) || req.IsOptionRequested(dhcpv4.OptionBootfileName)) { // PxeURL is not specified return early with an error message
 		log.Errorf("Client Requested pxe but it is not configured circuitID %s vrfName %s macAddress %s", circuitID, vrfName, req.ClientHWAddr.String())
 
