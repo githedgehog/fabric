@@ -25,8 +25,9 @@ var EdgecoreDCS501 = wiringapi.SwitchProfile{
 		Name: "edgecore-dcs501",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Edgecore DCS501",
-		OtherNames:  []string{"Edgecore AS7712-32X"},
+		DisplayName:   "Edgecore DCS501",
+		OtherNames:    []string{"Edgecore AS7712-32X"},
+		SwitchSilicon: SiliconBroadcomTH,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         false,

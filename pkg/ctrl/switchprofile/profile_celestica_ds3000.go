@@ -25,7 +25,9 @@ var CelesticaDS3000 = wiringapi.SwitchProfile{
 		Name: "celestica-ds3000",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Celestica DS3000",
+		DisplayName:   "Celestica DS3000",
+		OtherNames:    []string{"Celestica Seastone2"},
+		SwitchSilicon: SiliconBroadcomTD3_X7_3_2T,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,

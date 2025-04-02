@@ -2029,6 +2029,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `displayName` _string_ | DisplayName defines the human-readable name of the switch |  |  |
 | `otherNames` _string array_ | OtherNames defines alternative names for the switch |  |  |
+| `switchSilicon` _string_ | SwitchSilicon defines the switch silicon name |  |  |
 | `features` _[SwitchProfileFeatures](#switchprofilefeatures)_ | Features defines the features supported by the switch |  |  |
 | `config` _[SwitchProfileConfig](#switchprofileconfig)_ | Config defines the switch-specific configuration options |  |  |
 | `ports` _object (keys:string, values:[SwitchProfilePort](#switchprofileport))_ | Ports defines the switch port configuration |  |  |

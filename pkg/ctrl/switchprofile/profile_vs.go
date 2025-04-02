@@ -25,7 +25,8 @@ var VS = wiringapi.SwitchProfile{
 		Name: meta.SwitchProfileVS,
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Virtual Switch",
+		DisplayName:   "Virtual Switch",
+		SwitchSilicon: SiliconVS,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,

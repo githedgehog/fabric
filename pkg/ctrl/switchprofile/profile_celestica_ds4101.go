@@ -25,7 +25,9 @@ var CelesticaDS4101 = wiringapi.SwitchProfile{
 		Name: "celestica-ds4101",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Celestica DS4101",
+		DisplayName:   "Celestica DS4101",
+		OtherNames:    []string{"Celestica Greystone"},
+		SwitchSilicon: SiliconBroadcomTH4G,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         false,

@@ -25,8 +25,9 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 		Name: "edgecore-eps203",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Edgecore EPS203",
-		OtherNames:  []string{"Edgecore AS4630-54NPE"},
+		DisplayName:   "Edgecore EPS203",
+		OtherNames:    []string{"Edgecore AS4630-54NPE"},
+		SwitchSilicon: SiliconBroadcomTD3_X3,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         true,
@@ -91,8 +92,8 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 			"E1/50": {NOSName: "Ethernet49", Label: "50", Profile: "SFP28-25G"},
 			"E1/51": {NOSName: "Ethernet50", Label: "51", Profile: "SFP28-25G"},
 			"E1/52": {NOSName: "Ethernet51", Label: "52", Profile: "SFP28-25G"}, // 4x SFP28 25G
-			"E1/53": {NOSName: "Ethernet52", Label: "53", Profile: "QSFP28-100G-nb"},
-			"E1/54": {NOSName: "Ethernet56", Label: "54", Profile: "QSFP28-100G-nb"}, // No breakouts but name is still adjusted by 4. 2x QSFP28 100G
+			"E1/53": {NOSName: "Ethernet52", Label: "53", Profile: "QSFP28-100G"},
+			"E1/54": {NOSName: "Ethernet56", Label: "54", Profile: "QSFP28-100G"}, // No breakouts but name is still adjusted by 4. 2x QSFP28 100G
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"RJ45-2.5G": {
@@ -117,7 +118,7 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 					Supported: []string{"1G", "10G", "25G"},
 				},
 			},
-			"QSFP28-100G-nb": {
+			"QSFP28-100G": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "100G",
 					Supported: []string{"40G", "100G"},

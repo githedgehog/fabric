@@ -25,7 +25,8 @@ var DellS5248FON = wiringapi.SwitchProfile{
 		Name: "dell-s5248f-on",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Dell S5248F-ON",
+		DisplayName:   "Dell S5248F-ON",
+		SwitchSilicon: SiliconBroadcomTD3_X7_3_2T,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,

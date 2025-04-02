@@ -34,7 +34,8 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 		{
 			name: "simple",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -147,7 +148,8 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 		{
 			name: "simple",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -256,7 +258,8 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 		{
 			name: "simple",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
 					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
@@ -293,7 +296,8 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 		{
 			name: "simple2",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
 					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
@@ -359,7 +363,8 @@ func TestSwitchProfileDefault(t *testing.T) {
 		{
 			name: "simple",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1":  {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -371,7 +376,7 @@ func TestSwitchProfileDefault(t *testing.T) {
 					"E1/7":  {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
 					"E1/8":  {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
 					"E1/9":  {NOSName: "1/9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "Ethernet28"},
-					"E1/10": {NOSName: "Ethernet42", Label: "10", Profile: "QSFP28-100G-nb"},
+					"E1/10": {NOSName: "Ethernet42", Label: "10", Profile: "QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix},
 				},
 				PortGroups: map[string]wiringapi.SwitchProfilePortGroup{
 					"1": {
@@ -405,7 +410,7 @@ func TestSwitchProfileDefault(t *testing.T) {
 							},
 						},
 					},
-					"QSFP28-100G-nb": {
+					"QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix: {
 						Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 							Default:   "100G",
 							Supported: []string{"10G", "25G", "50G", "100G"},
@@ -414,7 +419,7 @@ func TestSwitchProfileDefault(t *testing.T) {
 				},
 			},
 			want: map[string]string{
-				wiringapi.AnnotationPorts: "4xQSFP28-100G, 6xSFP28-25G",
+				wiringapi.AnnotationPorts: "6xSFP28-25G, 4xQSFP28-100G",
 			},
 		},
 	} {
@@ -518,7 +523,8 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 		{
 			name: "simple",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -590,7 +596,8 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 		{
 			name: "simple-no-switch",
 			sp: &wiringapi.SwitchProfileSpec{
-				DisplayName: "Test",
+				DisplayName:   "Test",
+				SwitchSilicon: "test",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},

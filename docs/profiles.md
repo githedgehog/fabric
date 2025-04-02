@@ -1,11 +1,41 @@
-# Switch Profiles Catalog
+# Switch Catalog
 
-The following is a list of all supported switches. Please, make sure to use the version of documentation that matches your environment to get an
-up-to-date list of supported switches, their features and port naming scheme.
+The following is a list of all supported switches with their supported capabilities and configuration. Please, make sure
+to use the version of documentation that matches your environment to get an up-to-date list of supported switches, their
+features and port naming scheme.
+
+
+| Switch | Supported Roles | Silicon | Ports |
+|--------|-----------------|---------|-------|
+| [Celestica DS3000 (Seastone2)](#celestica-ds3000) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
+| [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 1xSFP28-10G |
+| [Celestica DS4101 (Greystone)](#celestica-ds4101) | **spine** | Broadcom TH4G | 32xOSFP-2x400G, 2xSFP28-10G |
+| [Dell S5232F-ON](#dell-s5232f-on) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
+| [Dell S5248F-ON](#dell-s5248f-on) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 48xSFP28-25G, 8xQSFP28-100G |
+| [Dell Z9332F-ON](#dell-z9332f-on) | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 2xSFP28-10G |
+| [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | **spine**, **leaf** | Broadcom TD3-X7 2.0T | 48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G |
+| [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
+| [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | **spine** | Broadcom TH | 32xQSFP28-100G |
+| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **limited-leaf** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
+| [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
+
+!!! note
+    - Switches that support **leaf** role could be used for the collapsed-core topology as well
+    - Switches with **limited-leaf** role does not support some leaf features and are not supported in the
+      collapsed-core topology
+
 
 ## Celestica DS3000
 
-Profile Name (to use in switch.spec.profile): **celestica-ds3000**
+Profile Name (to use in switch object `.spec.profile`): **celestica-ds3000**
+
+Other names: Celestica Seastone2
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD3-X7 3.2T**
+
+Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 
 **Supported features:**
 
@@ -57,7 +87,15 @@ Label column is a port label on a physical switch.
 
 ## Celestica DS4000
 
-Profile Name (to use in switch.spec.profile): **celestica-ds4000**
+Profile Name (to use in switch object `.spec.profile`): **celestica-ds4000**
+
+Other names: Celestica Silverstone2
+
+**Supported roles**: **spine**
+
+Switch Silicon: **Broadcom TH3**
+
+Ports Summary: **32xQSFPDD-400G, 1xSFP28-10G**
 
 **Supported features:**
 
@@ -109,7 +147,15 @@ Label column is a port label on a physical switch.
 
 ## Celestica DS4101
 
-Profile Name (to use in switch.spec.profile): **celestica-ds4101**
+Profile Name (to use in switch object `.spec.profile`): **celestica-ds4101**
+
+Other names: Celestica Greystone
+
+**Supported roles**: **spine**
+
+Switch Silicon: **Broadcom TH4G**
+
+Ports Summary: **32xOSFP-2x400G, 2xSFP28-10G**
 
 **Supported features:**
 
@@ -162,7 +208,13 @@ Label column is a port label on a physical switch.
 
 ## Dell S5232F-ON
 
-Profile Name (to use in switch.spec.profile): **dell-s5232f-on**
+Profile Name (to use in switch object `.spec.profile`): **dell-s5232f-on**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD3-X7 3.2T**
+
+Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 
 **Supported features:**
 
@@ -215,7 +267,13 @@ Label column is a port label on a physical switch.
 
 ## Dell S5248F-ON
 
-Profile Name (to use in switch.spec.profile): **dell-s5248f-on**
+Profile Name (to use in switch object `.spec.profile`): **dell-s5248f-on**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD3-X7 3.2T**
+
+Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 
 **Supported features:**
 
@@ -290,7 +348,13 @@ Label column is a port label on a physical switch.
 
 ## Dell Z9332F-ON
 
-Profile Name (to use in switch.spec.profile): **dell-z9332f-on**
+Profile Name (to use in switch object `.spec.profile`): **dell-z9332f-on**
+
+**Supported roles**: **spine**
+
+Switch Silicon: **Broadcom TH3**
+
+Ports Summary: **32xQSFPDD-400G, 2xSFP28-10G**
 
 **Supported features:**
 
@@ -343,9 +407,15 @@ Label column is a port label on a physical switch.
 
 ## Edgecore DCS203
 
-Profile Name (to use in switch.spec.profile): **edgecore-dcs203**
+Profile Name (to use in switch object `.spec.profile`): **edgecore-dcs203**
 
 Other names: Edgecore AS7326-56X
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD3-X7 2.0T**
+
+Ports Summary: **48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G**
 
 **Supported features:**
 
@@ -422,9 +492,15 @@ Label column is a port label on a physical switch.
 
 ## Edgecore DCS204
 
-Profile Name (to use in switch.spec.profile): **edgecore-dcs204**
+Profile Name (to use in switch object `.spec.profile`): **edgecore-dcs204**
 
 Other names: Edgecore AS7726-32X
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD3-X7 3.2T**
+
+Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 
 **Supported features:**
 
@@ -477,9 +553,15 @@ Label column is a port label on a physical switch.
 
 ## Edgecore DCS501
 
-Profile Name (to use in switch.spec.profile): **edgecore-dcs501**
+Profile Name (to use in switch object `.spec.profile`): **edgecore-dcs501**
 
 Other names: Edgecore AS7712-32X
+
+**Supported roles**: **spine**
+
+Switch Silicon: **Broadcom TH**
+
+Ports Summary: **32xQSFP28-100G**
 
 **Supported features:**
 
@@ -530,9 +612,15 @@ Label column is a port label on a physical switch.
 
 ## Edgecore EPS203
 
-Profile Name (to use in switch.spec.profile): **edgecore-eps203**
+Profile Name (to use in switch object `.spec.profile`): **edgecore-eps203**
 
 Other names: Edgecore AS4630-54NPE
+
+**Supported roles**: **limited-leaf**
+
+Switch Silicon: **Broadcom TD3-X3**
+
+Ports Summary: **36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G**
 
 **Supported features:**
 
@@ -605,7 +693,13 @@ Label column is a port label on a physical switch.
 
 ## Supermicro SSE-C4632SB
 
-Profile Name (to use in switch.spec.profile): **supermicro-sse-c4632sb**
+Profile Name (to use in switch object `.spec.profile`): **supermicro-sse-c4632sb**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD3-X7 3.2T**
+
+Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 
 **Supported features:**
 
@@ -657,7 +751,15 @@ Label column is a port label on a physical switch.
 
 ## Virtual Switch
 
-Profile Name (to use in switch.spec.profile): **vs**
+Profile Name (to use in switch object `.spec.profile`): **vs**
+
+This is a virtual switch profile. It's for testing/demo purpose only with limited features and performance.
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **vs**
+
+Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 
 **Supported features:**
 
