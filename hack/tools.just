@@ -117,7 +117,7 @@ _goinstall PACKAGE VERSION BINNAME TARGET FLAGS="": _localbin
 #
 
 _license_headers: _addlicense
-  @{{addlicense}} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -ignore "vendor/**" -y 2024 .
+  @{{addlicense}} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -ignore "vendor/**" -y 2025 .
 
 # Run linter for GitHub Actions
 lint-gha: _actionlint

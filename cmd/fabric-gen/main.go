@@ -29,7 +29,7 @@ import (
 	"github.com/pkg/errors"
 	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
-	"go.githedgehog.com/fabric/pkg/gen/profilesref"
+	"go.githedgehog.com/fabric/pkg/gen"
 	"go.githedgehog.com/fabric/pkg/version"
 )
 
@@ -72,7 +72,7 @@ func main() {
 		Name:        "verbose",
 		Aliases:     []string{"v"},
 		Usage:       "verbose output (includes debug)",
-		Value:       true, // TODO disable debug by default
+		Value:       false,
 		Destination: &verbose,
 	}
 
@@ -92,15 +92,15 @@ func main() {
 					verboseFlag,
 					&cli.StringFlag{
 						Name:  "target",
-						Usage: "target file",
-						Value: "docs/profiles.md",
+						Usage: "target dir",
+						Value: "docs",
 					},
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose)
 				},
 				Action: func(cCtx *cli.Context) error {
-					return errors.Wrapf(profilesref.Generate(ctx, cCtx.String("target")),
+					return errors.Wrapf(gen.GenerateProfilesRef(ctx, cCtx.String("target")),
 						"failed to generate profiles reference")
 				},
 			},

@@ -25,8 +25,9 @@ var EdgecoreDCS204 = wiringapi.SwitchProfile{
 		Name: "edgecore-dcs204",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Edgecore DCS204",
-		OtherNames:  []string{"Edgecore AS7726-32X"},
+		DisplayName:   "Edgecore DCS204",
+		OtherNames:    []string{"Edgecore AS7726-32X"},
+		SwitchSilicon: SiliconBroadcomTD3_X7_3_2T,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,
@@ -68,7 +69,7 @@ var EdgecoreDCS204 = wiringapi.SwitchProfile{
 			"E1/29": {NOSName: "1/29", BaseNOSName: "Ethernet112", Label: "29", Profile: "QSFP28-100G"},
 			"E1/30": {NOSName: "1/30", BaseNOSName: "Ethernet116", Label: "30", Profile: "QSFP28-100G"},
 			"E1/31": {NOSName: "1/31", BaseNOSName: "Ethernet120", Label: "31", Profile: "QSFP28-100G"},
-			"E1/32": {NOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G-nb"}, // 32x QSFP28-100G, single port w/o breakout
+			"E1/32": {NOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix}, // 32x QSFP28-100G, single port w/o breakout
 			"E1/33": {NOSName: "Ethernet128", Label: "33", Profile: "SFP28-10G"},
 			"E1/34": {NOSName: "Ethernet129", Label: "34", Profile: "SFP28-10G"},
 		},
@@ -79,7 +80,7 @@ var EdgecoreDCS204 = wiringapi.SwitchProfile{
 					Supported: []string{"1G", "10G"},
 				},
 			},
-			"QSFP28-100G-nb": {
+			"QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix: {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "100G",
 					Supported: []string{"40G", "100G"},

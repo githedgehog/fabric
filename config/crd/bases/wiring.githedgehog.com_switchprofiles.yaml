@@ -200,6 +200,9 @@ spec:
                   type: object
                 description: Ports defines the switch port configuration
                 type: object
+              switchSilicon:
+                description: SwitchSilicon defines the switch silicon name
+                type: string
             type: object
           status:
             description: SwitchProfileStatus defines the observed state of SwitchProfile

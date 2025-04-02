@@ -39,6 +39,9 @@ const (
 	DataPortNOSNamePrefix       = "Ethernet"
 	BreakoutNOSNamePrefix       = "1/"
 	ONIEPortNamePrefix          = "eth"
+
+	// it's used to mark ports that are supposed to be breakout but not like last port of the 32 port switch being non-breakout
+	NonBreakoutPortExceptionSuffix = "-nb"
 )
 
 // Defines features supported by a specific switch which is later used for roles and Fabric API features usage validation
@@ -124,6 +127,8 @@ type SwitchProfileSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 	// OtherNames defines alternative names for the switch
 	OtherNames []string `json:"otherNames,omitempty"`
+	// SwitchSilicon defines the switch silicon name
+	SwitchSilicon string `json:"switchSilicon,omitempty"`
 	// Features defines the features supported by the switch
 	Features SwitchProfileFeatures `json:"features,omitempty"`
 	// Config defines the switch-specific configuration options
@@ -195,47 +200,10 @@ func (sp *SwitchProfile) Default() {
 		sp.Annotations = map[string]string{}
 	}
 
-	ports := map[string]int{}
-
-	for _, port := range sp.Spec.Ports {
-		if port.Management {
-			continue
-		}
-
-		profile := ""
-		if port.Profile != "" {
-			profile = port.Profile
-		}
-
-		if port.Group != "" {
-			group, exists := sp.Spec.PortGroups[port.Group]
-			if !exists {
-				continue
-			}
-
-			profile = group.Profile
-		}
-
-		if profile == "" {
-			continue
-		}
-
-		ports[strings.TrimSuffix(profile, "-nb")]++
+	portsStr, err := sp.Spec.GetPortsShortSummary()
+	if err == nil {
+		sp.Annotations[AnnotationPorts] = portsStr
 	}
-
-	portsStr := ""
-	profiles := lo.Keys(ports)
-	slices.Sort(profiles)
-	for _, profile := range profiles {
-		count := ports[profile]
-		if portsStr != "" {
-			portsStr += ", "
-		}
-
-		portsStr += fmt.Sprintf("%dx%s", count, profile)
-	}
-
-	sp.Annotations[AnnotationPorts] = portsStr
 }
 
 func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
@@ -258,6 +226,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 		if idx := slices.Index(sp.Spec.OtherNames, name); idx != curr {
 			return nil, errors.Errorf("otherNames must not contain duplicates")
 		}
+	}
+
+	if sp.Spec.SwitchSilicon == "" {
+		return nil, errors.Errorf("switchSilicon is required")
 	}
 
 	if sp.Spec.NOSType == "" {
@@ -978,4 +950,75 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 	}
 
 	return ports, nil
+}
+
+func (sp *SwitchProfileSpec) GetPortsShortSummary() (string, error) {
+	portCount := map[string]int{}
+	for _, port := range sp.Ports {
+		if port.Management {
+			continue
+		}
+
+		profile := ""
+		if port.Profile != "" {
+			profile = port.Profile
+		}
+
+		if port.Group != "" {
+			group, exists := sp.PortGroups[port.Group]
+			if !exists {
+				return "", errors.Errorf("port %q references non-existent group %q", port.NOSName, port.Group)
+			}
+
+			profile = group.Profile
+		}
+
+		if profile == "" {
+			return "", errors.Errorf("port %q must have a profile or group", port.NOSName)
+		}
+
+		portCount[strings.TrimSuffix(profile, NonBreakoutPortExceptionSuffix)]++
+	}
+
+	portTypes := lo.Keys(portCount)
+	slices.SortFunc(portTypes, func(a, b string) int {
+		return portCount[b] - portCount[a]
+	})
+
+	portsStr := ""
+	for _, profile := range portTypes {
+		count := portCount[profile]
+		if portsStr != "" {
+			portsStr += ", "
+		}
+
+		portsStr += fmt.Sprintf("%dx%s", count, profile)
+	}
+
+	return portsStr, nil
+}
+
+func (sp *SwitchProfileSpec) GetNameSummary() string {
+	summary := sp.DisplayName
+	otherNames := []string{}
+
+	nameParts := strings.Split(sp.DisplayName, " ")
+	if len(sp.OtherNames) > 0 {
+		for _, otherName := range sp.OtherNames {
+			for _, part := range nameParts {
+				otherName = strings.TrimPrefix(otherName, part+"")
+			}
+
+			otherName = strings.TrimSpace(otherName)
+			if otherName != "" {
+				otherNames = append(otherNames, otherName)
+			}
+		}
+	}
+
+	if len(otherNames) > 0 {
+		summary += " (" + strings.Join(otherNames, ", ") + ")"
+	}
+
+	return summary
 }

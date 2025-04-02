@@ -25,7 +25,9 @@ var CelesticaDS4000 = wiringapi.SwitchProfile{
 		Name: "celestica-ds4000",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Celestica DS4000",
+		DisplayName:   "Celestica DS4000",
+		OtherNames:    []string{"Celestica Silverstone2"},
+		SwitchSilicon: SiliconBroadcomTH3,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         false,

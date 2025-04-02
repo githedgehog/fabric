@@ -25,8 +25,9 @@ var EdgecoreDCS203 = wiringapi.SwitchProfile{
 		Name: "edgecore-dcs203",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Edgecore DCS203",
-		OtherNames:  []string{"Edgecore AS7326-56X"},
+		DisplayName:   "Edgecore DCS203",
+		OtherNames:    []string{"Edgecore AS7326-56X"},
+		SwitchSilicon: SiliconBroadcomTD3_X7_2_0T,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			VXLAN:         true,
@@ -92,7 +93,7 @@ var EdgecoreDCS203 = wiringapi.SwitchProfile{
 			"E1/53": {NOSName: "1/65", BaseNOSName: "Ethernet64", Label: "53", Profile: "QSFP28-100G"},
 			"E1/54": {NOSName: "1/69", BaseNOSName: "Ethernet68", Label: "54", Profile: "QSFP28-100G"},
 			"E1/55": {NOSName: "1/73", BaseNOSName: "Ethernet72", Label: "55", Profile: "QSFP28-100G"},
-			"E1/56": {NOSName: "Ethernet76", Label: "56", Profile: "QSFP28-100G-nb"}, // 8x QSFP28-100G, with last one not breakable
+			"E1/56": {NOSName: "Ethernet76", Label: "56", Profile: "QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix}, // 8x QSFP28-100G, with last one not breakable
 			"E1/57": {NOSName: "Ethernet80", Label: "57", Profile: "SFP28-10G"},
 			"E1/58": {NOSName: "Ethernet81", Label: "58", Profile: "SFP28-10G"}, // 2x SFP28-10G
 		},
@@ -127,7 +128,7 @@ var EdgecoreDCS203 = wiringapi.SwitchProfile{
 					Supported: []string{"1G", "10G"},
 				},
 			},
-			"QSFP28-100G-nb": {
+			"QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix: {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "100G",
 					Supported: []string{"40G", "100G"},

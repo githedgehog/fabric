@@ -25,7 +25,8 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 		Name: "dell-z9332f-on",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName: "Dell Z9332F-ON",
+		DisplayName:   "Dell Z9332F-ON",
+		SwitchSilicon: SiliconBroadcomTH3,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
 			VXLAN:         false,
