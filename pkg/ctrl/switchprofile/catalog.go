@@ -35,6 +35,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	CelesticaDS3000,
 	CelesticaDS4000,
 	CelesticaDS4101,
+	CelesticaDS5000,
 	EdgecoreDCS203,
 	EdgecoreDCS204,
 	EdgecoreDCS501,
