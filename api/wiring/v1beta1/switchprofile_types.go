@@ -524,6 +524,7 @@ var allowedPortSpeeds = map[string]bool{
 	"100G": true,
 	"200G": true,
 	"400G": true,
+	"800G": true,
 }
 
 func ValidatePortSpeed(speed string) error {

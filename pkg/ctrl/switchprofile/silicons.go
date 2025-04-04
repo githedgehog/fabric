@@ -11,4 +11,5 @@ const (
 	SiliconBroadcomTH          = "Broadcom TH"
 	SiliconBroadcomTH3         = "Broadcom TH3"
 	SiliconBroadcomTH4G        = "Broadcom TH4G"
+	SiliconBroadcomTH5         = "Broadcom TH5"
 )
