@@ -552,6 +552,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Re
 
 	loWorkaroundReqs := map[string]bool{}
 	for name, peering := range peerings {
+		if peering.Remote != "" {
+			continue
+		}
+
 		vpc1, vpc2, err := peering.VPCs()
 		if err != nil {
 			return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
