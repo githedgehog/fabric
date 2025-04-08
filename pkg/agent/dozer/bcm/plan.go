@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/netip"
 	"slices"
@@ -1806,6 +1807,15 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 		} else if slices.Contains(agent.Spec.Switch.Groups, peering.Remote) {
+			if vpc1Attached || vpc2Attached {
+				slog.Warn("Skipping remote VPCPeering because one of the VPCs is locally attached",
+					"vpcPeering", peeringName,
+					"vpc1", vpc1Name, "vpc1Attached", vpc1Attached,
+					"vpc2", vpc2Name, "vpc2Attached", vpc2Attached)
+
+				continue
+			}
+
 			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
 
