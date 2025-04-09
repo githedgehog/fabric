@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	clientcache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -51,35 +52,20 @@ func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilde
 
 // TODO cached version is minimal naive implementation with hanging go routine, need to be improved
 func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) { //nolint:contextcheck
-	var cfg *rest.Config
-	var err error
-
 	cancel := func() {}
-
-	if kubeconfigPath == "" {
-		if cfg, err = kctrl.GetConfig(); err != nil {
-			return cancel, nil, errors.Wrapf(err, "failed to get kubeconfig using default path or in-cluster config")
-		}
-	} else {
-		if cfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
-			nil,
-		).ClientConfig(); err != nil {
-			return cancel, nil, errors.Wrapf(err, "failed to load kubeconfig from %s", kubeconfigPath)
-		}
+	cfg, err := NewClientConfig(ctx, kubeconfigPath)
+	if err != nil {
+		return cancel, nil, errors.Wrapf(err, "failed to create kube config")
 	}
 
-	scheme := runtime.NewScheme()
+	scheme, err := NewScheme(schemeBuilders...)
+	if err != nil {
+		return cancel, nil, errors.Wrapf(err, "failed to create scheme")
+	}
 
 	if core {
 		if err := corev1.AddToScheme(scheme); err != nil {
 			return cancel, nil, errors.Wrapf(err, "failed to add core scheme to runtime")
-		}
-	}
-
-	for _, schemeBuilder := range schemeBuilders {
-		if err := schemeBuilder.AddToScheme(scheme); err != nil {
-			return cancel, nil, errors.Wrapf(err, "failed to add scheme %s to runtime", schemeBuilder.GroupVersion.String())
 		}
 	}
 
@@ -137,4 +123,50 @@ func cacheWatchErrorHandler(r *clientcache.Reflector, err error) {
 		clientcache.DefaultWatchErrorHandler(r, err)
 		panic(fmt.Errorf("kube controller runtime cache: failed to watch: %w", err))
 	}
+}
+
+func NewClientConfig(ctx context.Context, kubeconfigPath string) (*rest.Config, error) {
+	var cfg *rest.Config
+	var err error
+
+	if kubeconfigPath == "" {
+		if cfg, err = kctrl.GetConfig(); err != nil {
+			return nil, fmt.Errorf("getting kubeconfig using default path or in-cluster config: %w", err)
+		}
+	} else {
+		if cfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+			nil,
+		).ClientConfig(); err != nil {
+			return nil, fmt.Errorf("loading kubeconfig from %s: %w", kubeconfigPath, err)
+		}
+	}
+
+	return cfg, nil
+}
+
+func NewScheme(schemeBuilders ...*scheme.Builder) (*runtime.Scheme, error) {
+	scheme := runtime.NewScheme()
+
+	for _, schemeBuilder := range schemeBuilders {
+		if err := schemeBuilder.AddToScheme(scheme); err != nil {
+			return nil, fmt.Errorf("adding scheme %s to runtime: %w", schemeBuilder.GroupVersion.String(), err)
+		}
+	}
+
+	return scheme, nil
+}
+
+func NewClientset(ctx context.Context, kubeconfigPath string) (*kubernetes.Clientset, error) {
+	cfg, err := NewClientConfig(ctx, kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("creating kube config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("creating kubernetes client: %w", err)
+	}
+
+	return clientset, nil
 }
