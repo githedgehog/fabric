@@ -1,0 +1,52 @@
+# When we push a new tag to the repository, open a Pull Request to synchronize
+# the API reference documentation with the "docs" repository.
+
+name: "Push API docs"
+
+concurrency:
+  group: "ci-${{ github.ref_name }}"
+  cancel-in-progress: true
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  push-api-docs:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout 'fabric' repository"
+        uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
+          persist-credentials: "false"
+
+      - name: "Checkout 'docs' repository"
+        uses: "actions/checkout@v4"
+        with:
+          repository: "githedgehog/docs"
+          path: "project_documentation"
+          persist-credentials: "false"
+
+      - name: "Copy API reference from 'fabric' to 'docs'"
+        run: |
+          cp docs/api.md project_documentation/docs/reference/api.md
+
+      - name: "Create Pull Request"
+        uses: "peter-evans/create-pull-request@v5"
+        with:
+          token: "${{ secrets.DOCS_API_REF_UPDATE_TOKEN }}"
+          path: "project_documentation"
+          commit-message: |
+            Update API reference from ${{ github.repository }} tag ${{ github.ref_name }}.
+
+            This is an automated commit created by GitHub Actions workflow,
+            in the "${{ github.repository }}" repository.
+          signoff: true
+          title: "Update API reference from ${{ github.repository }} tag ${{ github.ref_name }}"
+          body: |
+            Update API reference from ${{ github.repository }} tag ${{ github.ref_name }}.
+
+            This is an automated Pull Requesst created by GitHub Actions workflow,
+            in the "${{ github.repository }}" repository.
