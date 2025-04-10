@@ -477,10 +477,6 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 		}
 
 		if profile.Breakout != nil {
-			if profile.AutoNegAllowed {
-				return nil, errors.Errorf("profile %q must not have auto-negotiation allowed with breakout", name)
-			}
-
 			if profile.Breakout.Default == "" {
 				return nil, errors.Errorf("profile %q must have a default breakout", name)
 			}
@@ -886,19 +882,58 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 	allowed, def := map[string]bool{}, map[string]bool{}
 
 	for portName, port := range sp.Ports {
-		if port.Management || port.Profile == "" {
+		if port.Management {
 			continue
 		}
 
-		profile, exists := sp.PortProfiles[port.Profile]
-		if !exists {
-			return nil, nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+		if port.Profile != "" { //nolint:gocritic
+			profile, exists := sp.PortProfiles[port.Profile]
+			if !exists {
+				return nil, nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+			}
+
+			if profile.Speed != nil { //nolint:gocritic
+				allowed[portName] = profile.AutoNegAllowed
+				def[portName] = profile.AutoNegDefault
+			} else if profile.Breakout != nil {
+				breakout := profile.Breakout.Default
+				if swBreakout, ok := sw.PortBreakouts[portName]; ok {
+					breakout = swBreakout
+				}
+
+				breakoutProfile, ok := profile.Breakout.Supported[breakout]
+				if !ok {
+					return nil, nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, breakout, port.Profile)
+				}
+
+				for idx := range breakoutProfile.Offsets {
+					allowed[fmt.Sprintf("%s/%d", portName, idx+1)] = profile.AutoNegAllowed
+					def[fmt.Sprintf("%s/%d", portName, idx+1)] = profile.AutoNegDefault
+				}
+			} else {
+				return nil, nil, errors.Errorf("port %q profile %q has no speed or breakout", portName, port.Profile)
+			}
+		} else if port.Group != "" {
+			// TODO implement autoneg for port groups - it may have to be configured per group
+
+			// group, ok := sp.PortGroups[port.Group]
+			// if !ok {
+			// 	return nil, nil, errors.Errorf("port %q references non-existent group %q", port.NOSName, port.Group)
+			// }
+
+			// profile, ok := sp.PortProfiles[group.Profile]
+			// if !ok {
+			// 	return nil, nil, errors.Errorf("group %q references non-existent profile %q", port.Group, group.Profile)
+			// }
+			// if profile.Speed != nil {
+			// 	allowed[portName] = profile.AutoNegAllowed
+			// 	def[portName] = profile.AutoNegDefault
+			// } else {
+			// 	return nil, nil, errors.Errorf("group %q references non-speed profile %q", port.Group, group.Profile)
+			// }
+		} else {
+			return nil, nil, errors.Errorf("port %q must have a profile or group", port.NOSName)
 		}
-
-		allowed[portName] = profile.AutoNegAllowed
-		def[portName] = profile.AutoNegDefault
-
-		// TODO impl for port groups and breakouts when allowed
 	}
 
 	return allowed, def, nil
