@@ -932,7 +932,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 
 			st := agentapi.SwitchStatePlatformTemperature{}
 
-			if temp.Temperature != nil {
+			if temp.Temperature != nil && *temp.Temperature != temperatureIgnore {
 				val, err := strconv.ParseFloat(*temp.Temperature, 64)
 				if err != nil {
 					slog.Warn("failed to parse temperature", "temperature", *temp.Temperature)
