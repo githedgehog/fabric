@@ -914,25 +914,9 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 				return nil, nil, errors.Errorf("port %q profile %q has no speed or breakout", portName, port.Profile)
 			}
 		} else if port.Group != "" {
-			// TODO implement autoneg for port groups - it may have to be configured per group
-
-			// group, ok := sp.PortGroups[port.Group]
-			// if !ok {
-			// 	return nil, nil, errors.Errorf("port %q references non-existent group %q", port.NOSName, port.Group)
-			// }
-
-			// profile, ok := sp.PortProfiles[group.Profile]
-			// if !ok {
-			// 	return nil, nil, errors.Errorf("group %q references non-existent profile %q", port.Group, group.Profile)
-			// }
-			// if profile.Speed != nil {
-			// 	allowed[portName] = profile.AutoNegAllowed
-			// 	def[portName] = profile.AutoNegDefault
-			// } else {
-			// 	return nil, nil, errors.Errorf("group %q references non-speed profile %q", port.Group, group.Profile)
-			// }
+			return nil, nil, errors.Errorf("autoneg isn't supported for port groups: %q", portName)
 		} else {
-			return nil, nil, errors.Errorf("port %q must have a profile or group", port.NOSName)
+			return nil, nil, errors.Errorf("port %q must have a profile or group", portName)
 		}
 	}
 
