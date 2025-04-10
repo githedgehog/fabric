@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
@@ -63,17 +64,17 @@ type SwitchOutPort struct {
 	BreakoutState  *agentapi.SwitchStateBreakout  `json:"breakoutState,omitempty"`
 }
 
-func (out *SwitchOut) MarshalText() (string, error) {
+func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	applied := ""
 	if !out.State.LastAppliedTime.IsZero() {
-		applied = humanize.Time(out.State.LastAppliedTime.Time)
+		applied = HumanizeTime(now, out.State.LastAppliedTime.Time)
 	}
 
 	heartbeat := ""
 	if !out.State.LastHeartbeat.IsZero() {
-		heartbeat = humanize.Time(out.State.LastHeartbeat.Time)
+		heartbeat = HumanizeTime(now, out.State.LastHeartbeat.Time)
 	}
 
 	str.WriteString(RenderTable(
@@ -159,7 +160,7 @@ func (out *SwitchOut) MarshalText() (string, error) {
 
 		lastClear := "-"
 		if !counters.LastClear.IsZero() {
-			lastClear = humanize.Time(counters.LastClear.Time)
+			lastClear = HumanizeTime(now, counters.LastClear.Time)
 		}
 
 		countersData = append(countersData, []string{

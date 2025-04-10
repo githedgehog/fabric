@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
@@ -71,7 +71,7 @@ type IPOutExternalPeering struct {
 	vpcapi.ExternalPeeringSpec `json:",inline"`
 }
 
-func (out *IPOut) MarshalText() (string, error) {
+func (out *IPOut) MarshalText(now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if out.IPv4Namespace != nil {
@@ -89,7 +89,7 @@ func (out *IPOut) MarshalText() (string, error) {
 
 		if out.VPCSubnet.DHCPLease != nil {
 			lease := out.VPCSubnet.DHCPLease
-			str.WriteString(fmt.Sprintf("DHCP Lease:\n  Hostname: %s\n  MAC: %s\n  Expiry: %s (%s)\n", lease.Hostname, lease.MAC, lease.Expiry, humanize.Time(lease.Expiry.Time)))
+			str.WriteString(fmt.Sprintf("DHCP Lease:\n  Hostname: %s\n  MAC: %s\n  Expiry: %s (%s)\n", lease.Hostname, lease.MAC, lease.Expiry, HumanizeTime(now, lease.Expiry.Time)))
 		}
 	} else if out.IPv4Namespace != nil {
 		str.WriteString("IP not found in any VPC subnet\n")

@@ -20,8 +20,8 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -49,7 +49,7 @@ type FabricOutSwitch struct {
 	Groups             []string    `json:"groups,omitempty"`
 }
 
-func (out *FabricOut) MarshalText() (string, error) {
+func (out *FabricOut) MarshalText(now time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	str.WriteString("Switches:\n")
@@ -58,12 +58,12 @@ func (out *FabricOut) MarshalText() (string, error) {
 	for _, sw := range out.Switches {
 		applied := ""
 		if !sw.State.LastAppliedTime.IsZero() {
-			applied = humanize.Time(sw.State.LastAppliedTime.Time)
+			applied = HumanizeTime(now, sw.State.LastAppliedTime.Time)
 		}
 
 		heartbeat := ""
 		if !sw.State.LastHeartbeat.IsZero() {
-			heartbeat = humanize.Time(sw.State.LastHeartbeat.Time)
+			heartbeat = HumanizeTime(now, sw.State.LastHeartbeat.Time)
 		}
 
 		swData = append(swData, []string{

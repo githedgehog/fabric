@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
@@ -32,7 +33,7 @@ type LLDPOut struct {
 	Errs      []error                                          `json:"errors"`
 }
 
-func (out *LLDPOut) MarshalText() (string, error) {
+func (out *LLDPOut) MarshalText(now time.Time) (string, error) {
 	// TODO pass to a marshal func?
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
 

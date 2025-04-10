@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
@@ -42,7 +43,7 @@ type ServerOut struct {
 	AttachedVPCs   map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
 }
 
-func (out *ServerOut) MarshalText() (string, error) {
+func (out *ServerOut) MarshalText(now time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	// TODO pass to a marshal func?
