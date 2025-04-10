@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
@@ -63,7 +64,7 @@ type OutLoopbackWorkaround struct {
 	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec `json:"externalPeerings,omitempty"`
 }
 
-func (out *ConnectionOut) MarshalText() (string, error) {
+func (out *ConnectionOut) MarshalText(now time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	data, err := kyaml.Marshal(out.Spec)

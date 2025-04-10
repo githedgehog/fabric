@@ -20,8 +20,8 @@ import (
 	"net"
 	"slices"
 	"strings"
+	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
@@ -44,7 +44,7 @@ type MACOutDHCPLease struct {
 	Hostname string       `json:"hostname,omitempty"`
 }
 
-func (out *MACOut) MarshalText() (string, error) {
+func (out *MACOut) MarshalText(now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if len(out.Ports) > 0 {
@@ -57,7 +57,7 @@ func (out *MACOut) MarshalText() (string, error) {
 
 	if len(out.DHCPLeases) > 0 {
 		for _, lease := range out.DHCPLeases {
-			str.WriteString(fmt.Sprintf("DHCP Lease for VPC Subnet %s:\n  Hostname: %s\n  Expiry: %s (%s)\n", lease.Subnet, lease.Hostname, lease.Expiry, humanize.Time(lease.Expiry.Time)))
+			str.WriteString(fmt.Sprintf("DHCP Lease for VPC Subnet %s:\n  Hostname: %s\n  Expiry: %s (%s)\n", lease.Subnet, lease.Hostname, lease.Expiry, HumanizeTime(now, lease.Expiry.Time)))
 		}
 	}
 

@@ -21,6 +21,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
@@ -54,7 +55,7 @@ type PortOut struct {
 	LoopbackWorkarounds map[string]*OutLoopbackWorkaround         `json:"loopbackWorkarounds,omitempty"` // if VPCLoopback conn
 }
 
-func (out *PortOut) MarshalText() (string, error) {
+func (out *PortOut) MarshalText(now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if out.ConnectionName != nil && out.Connection != nil {
@@ -72,7 +73,7 @@ func (out *PortOut) MarshalText() (string, error) {
 
 		lastClear := "-"
 		if !counters.LastClear.IsZero() {
-			lastClear = humanize.Time(counters.LastClear.Time)
+			lastClear = HumanizeTime(now, counters.LastClear.Time)
 		}
 
 		str.WriteString("\nPort Counters (↓ In ↑ Out):\n")

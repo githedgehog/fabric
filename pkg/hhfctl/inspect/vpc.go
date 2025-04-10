@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
@@ -43,7 +44,7 @@ type VPCOut struct {
 	Access           map[string]*apiutil.ReachableFromSubnet `json:"access,omitempty"`
 }
 
-func (out *VPCOut) MarshalText() (string, error) {
+func (out *VPCOut) MarshalText(now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	// TODO helper func

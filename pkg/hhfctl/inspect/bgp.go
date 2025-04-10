@@ -10,8 +10,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -34,7 +34,7 @@ type BGPOut struct {
 	Errs      []error                                                    `json:"errors"`
 }
 
-func (out *BGPOut) MarshalText() (string, error) {
+func (out *BGPOut) MarshalText(now time.Time) (string, error) {
 	// TODO pass to a marshal func?
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
 
@@ -76,7 +76,7 @@ func (out *BGPOut) MarshalText() (string, error) {
 					n.RemoteName,
 					n.ConnectionName,
 					s,
-					humanize.Time(n.LastEstablished.Time),
+					HumanizeTime(now, n.LastEstablished.Time),
 				})
 			}
 		}

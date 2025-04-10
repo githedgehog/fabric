@@ -21,7 +21,9 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/olekukonko/tablewriter"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -54,7 +56,7 @@ var OutputTypes = []OutputType{OutputTypeText, OutputTypeJSON, OutputTypeYAML}
 type In interface{}
 
 type Out interface {
-	MarshalText() (string, error)
+	MarshalText(now time.Time) (string, error)
 }
 
 type WithErrors interface {
@@ -91,15 +93,15 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 		return errors.Wrapf(err, "failed to run inspect function")
 	}
 
-	return Render(args.Output, w, out)
+	return Render(time.Now(), args.Output, w, out)
 }
 
-func Render[TOut Out](output OutputType, w io.Writer, out TOut) error {
+func Render[TOut Out](now time.Time, output OutputType, w io.Writer, out TOut) error {
 	var data []byte
 	var err error
 	switch output {
 	case OutputTypeText:
-		dataS, err := out.MarshalText()
+		dataS, err := out.MarshalText(now)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get marshal output as text")
 		}
@@ -165,4 +167,8 @@ func RenderTable(headers []string, data [][]string) string {
 	table.Render()
 
 	return str.String()
+}
+
+func HumanizeTime(now, then time.Time) string {
+	return humanize.RelTime(then, now, "ago", "from now")
 }
