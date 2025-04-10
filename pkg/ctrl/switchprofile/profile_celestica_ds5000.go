@@ -130,6 +130,8 @@ var CelesticaDS5000 = wiringapi.SwitchProfile{
 						"8x100G": {Offsets: []string{"0", "1", "2", "3", "4", "5", "6", "7"}},
 					},
 				},
+				AutoNegAllowed: true,
+				AutoNegDefault: false,
 			},
 		},
 	},
