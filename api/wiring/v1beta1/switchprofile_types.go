@@ -939,6 +939,34 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 	return allowed, def, nil
 }
 
+func (sp *SwitchProfileSpec) GetBreakoutDefaults(sw *SwitchSpec) (map[string]string, error) {
+	def := map[string]string{}
+
+	for portName, port := range sp.Ports {
+		if port.Management || port.Profile == "" {
+			continue
+		}
+
+		profile, exists := sp.PortProfiles[port.Profile]
+		if !exists {
+			return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+		}
+
+		if profile.Breakout == nil {
+			continue
+		}
+
+		breakout := profile.Breakout.Default
+		if swBreakout, ok := sw.PortBreakouts[portName]; ok {
+			breakout = swBreakout
+		}
+
+		def[portName] = breakout
+	}
+
+	return def, nil
+}
+
 func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bool, error) {
 	if sp == nil {
 		return nil, errors.Errorf("switch profile spec is nil")
