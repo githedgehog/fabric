@@ -106,12 +106,6 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		}
 	}
 
-	for name, mode := range agent.Spec.Switch.PortBreakouts {
-		spec.PortBreakouts[name] = &dozer.SpecPortBreakout{
-			Mode: mode,
-		}
-	}
-
 	err := planControlLink(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan management interface")
@@ -135,6 +129,10 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	err = planNTP(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan NTP")
+	}
+
+	if err := planBreakouts(agent, spec); err != nil {
+		return nil, errors.Wrap(err, "failed to plan breakouts")
 	}
 
 	err = planDefaultVRFWithBGP(agent, spec)
@@ -271,6 +269,27 @@ func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	spec.NTPServers[addr] = &dozer.SpecNTPServer{
 		Prefer: pointer.To(true),
+	}
+
+	return nil
+}
+
+func planBreakouts(agent *agentapi.Agent, spec *dozer.Spec) error {
+	def, err := agent.Spec.SwitchProfile.GetBreakoutDefaults(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrap(err, "failed to get breakout defaults")
+	}
+
+	for name, mode := range def {
+		spec.PortBreakouts[name] = &dozer.SpecPortBreakout{
+			Mode: mode,
+		}
+	}
+
+	for name, mode := range agent.Spec.Switch.PortBreakouts {
+		spec.PortBreakouts[name] = &dozer.SpecPortBreakout{
+			Mode: mode,
+		}
 	}
 
 	return nil
