@@ -925,6 +925,13 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 }
 
 func (sp *SwitchProfileSpec) GetBreakoutDefaults(sw *SwitchSpec) (map[string]string, error) {
+	if sp == nil {
+		return nil, errors.Errorf("switch profile spec is nil")
+	}
+	if sw == nil {
+		return nil, errors.Errorf("switch spec is nil")
+	}
+
 	def := map[string]string{}
 
 	for portName, port := range sp.Ports {
