@@ -13,7 +13,7 @@ on:
       - 'v*'
 
 jobs:
-  push-api-docs:
+  docs-update:
     runs-on: "ubuntu-latest"
     steps:
       - name: "Checkout 'fabric' repository"
@@ -29,7 +29,7 @@ jobs:
           path: "project_documentation"
           persist-credentials: "false"
 
-      - name: "Copy API reference from 'fabric' to 'docs'"
+      - name: "Copy docs from 'fabric' to 'docs'"
         run: |
           cp docs/api.md project_documentation/docs/reference/api.md
           cp docs/profiles.md project_documentation/docs/reference/profiles.md
