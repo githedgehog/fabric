@@ -193,6 +193,37 @@ jobs:
         with:
           limit-access-to-actor: true
 
+  build-api-ref:
+    # To do: Run only if docs/api.md is changed, but checking changed files
+    # probably takes just as long as running this job.
+    runs-on: lab-h
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build API reference documentation
+        run: |
+          image_name='ghcr.io/githedgehog/hhdocs'
+          image_version='20241202'
+          image="${image_name}:${image_version}"
+
+          # Create a new directory, copy docs/api.md
+          dir='./api-ref-build-test'
+          mkdir -p "${dir}/docs"
+          cp docs/api.md "${dir}/docs/"
+
+          # Create minimal mkdocs.yml config file; warn on broken links
+          echo 'site_name: API Reference Build Test' > "${dir}/mkdocs.yml"
+          echo 'validation:'                        >> "${dir}/mkdocs.yml"
+          echo '  absolute_links: warn'             >> "${dir}/mkdocs.yml"
+          echo '  unrecognized_links: warn'         >> "${dir}/mkdocs.yml"
+          echo '  anchors: warn'                    >> "${dir}/mkdocs.yml"
+
+          # Make sure that docs/api.md builds as HTML with no warnings
+          docker run --rm -v "${dir}":/docs "${image}" mkdocs build --strict
+
   publish:
     runs-on: lab-h
     if: startsWith(github.event.ref, 'refs/tags/v') && github.event_name == 'push'
