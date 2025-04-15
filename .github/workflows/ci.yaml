@@ -252,7 +252,7 @@ jobs:
         run: |
           go get go.githedgehog.com/fabric@${{ github.ref_name }}
           go mod tidy && go mod vendor && git add vendor
-          sed -i="" "s/^\tFabricVersion.*/\tFabricVersion=meta.Version(\"${{ github.ref_name }}\")/" pkg/fab/versions.go
+          sed -i "s/^\tFabricVersion.*/\tFabricVersion=meta.Version(\"${{ github.ref_name }}\")/" pkg/fab/versions.go
           go fmt pkg/fab/versions.go
 
       - name: Generate token for the fabricator repository
