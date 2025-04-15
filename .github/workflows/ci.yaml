@@ -238,6 +238,94 @@ jobs:
           files: |
             bin/hhfctl-*.tar.gz
 
+      # Bump fabric in the fabricator repository
+
+      - name: Checkout fabricator repository
+        uses: actions/checkout@v4
+        with:
+          repository: githedgehog/fabricator
+          path: fab-repo
+          persist-credentials: false
+
+      - name: Bump fabric in fabricator
+        working-directory: fab-repo
+        run: |
+          go get go.githedgehog.com/fabric@${{ github.ref_name }}
+          go mod tidy && go mod vendor && git add vendor
+          sed -i="" "s/^\tFabricVersion.*/\tFabricVersion=meta.Version(\"${{ github.ref_name }}\")/" pkg/fab/versions.go
+          go fmt pkg/fab/versions.go
+
+      - name: Generate token for the fabricator repository
+        uses: actions/create-github-app-token@v2
+        id: fab-app-token
+        with:
+          app-id: ${{ secrets.FAB_APP_ID }}
+          private-key: ${{ secrets.FAB_PRIVATE_KEY }}
+          repositories: |
+            fabricator
+
+      - name: Create Pull Request for fabricator
+        uses: peter-evans/create-pull-request@v5
+        id: fab-pr
+        with:
+          token: ${{ steps.fab-app-token.outputs.token }}
+          path: fab-repo
+          branch: pr/auto/fabric-bump
+          commit-message: |
+            bump: fabric to ${{ github.ref_name }}
+
+            This is an automated commit created by GitHub Actions workflow,
+            in the fabric repository.
+          signoff: true
+          title: "bump: fabric to ${{ github.ref_name }}"
+          body: |
+            This is an automated Pull Request created by GitHub Actions workflow,
+            in the fabric repository.
+
+      # Bump fabric docs in the docs repository
+
+      - name: Checkout docs repository
+        uses: actions/checkout@v4
+        with:
+          repository: githedgehog/docs
+          path: docs-repo
+          persist-credentials: false
+
+      - name: Copy docs from fabric to docs
+        run: |
+          cp docs/api.md docs-repo/docs/reference/api.md
+          cp docs/profiles.md docs-repo/docs/reference/profiles.md
+          cp docs/supported-devices.md docs-repo/docs/install-upgrade/supported-devices.md.gen
+
+      - name: Generate token for the docs repository
+        uses: actions/create-github-app-token@v2
+        id: docs-app-token
+        with:
+          app-id: ${{ secrets.DOCS_APP_ID }}
+          private-key: ${{ secrets.DOCS_PRIVATE_KEY }}
+          repositories: |
+            docs
+
+      - name: Create Pull Request for docs
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ steps.docs-app-token.outputs.token }}
+          path: docs-repo
+          branch: pr/auto/fabric-bump
+          commit-message: |
+            Update docs from fabric@${{ github.ref_name }}.
+
+            This is an automated commit created by GitHub Actions workflow,
+            in the fabric repository.
+          signoff: true
+          title: "Update docs from fabric@${{ github.ref_name }}"
+          body: |
+            This is an automated Pull Request created by GitHub Actions workflow,
+            in the fabric repository.
+
+            It should be merged only after fabric in the fabricator repository
+            master branch updated to the ${{ github.ref_name }}: ${{ steps.fab-pr.outputs.pull-request-url }}.
+
       - name: Setup tmate session for debug
         if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         uses: mxschmitt/action-tmate@v3
