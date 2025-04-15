@@ -15,6 +15,7 @@
 package switchprofile
 
 import (
+	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ var VS = wiringapi.SwitchProfile{
 		Config: wiringapi.SwitchProfileConfig{
 			MaxPathsEBGP: 16,
 		},
-		Ports:        DellS5248FON.Spec.Ports,
+		Ports:        lo.OmitBy(DellS5248FON.Spec.Ports, func(_ string, p wiringapi.SwitchProfilePort) bool { return p.BaseNOSName != "" }),
 		PortGroups:   DellS5248FON.Spec.PortGroups,
-		PortProfiles: DellS5248FON.Spec.PortProfiles,
+		PortProfiles: lo.OmitBy(DellS5248FON.Spec.PortProfiles, func(_ string, pp wiringapi.SwitchProfilePortProfile) bool { return pp.Breakout != nil }),
 	},
 }

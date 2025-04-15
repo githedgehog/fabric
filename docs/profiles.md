@@ -853,7 +853,7 @@ This is a virtual switch profile. It's for testing/demo purpose only with limite
 
 Switch Silicon: **vs**
 
-Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
+Ports Summary: **48xSFP28-25G**
 
 **Supported features:**
 
@@ -916,13 +916,5 @@ Label column is a port label on a physical switch.
 | E1/46 | 46 | Port Group | 12 | 25G | 10G, 25G |
 | E1/47 | 47 | Port Group | 12 | 25G | 10G, 25G |
 | E1/48 | 48 | Port Group | 12 | 25G | 10G, 25G |
-| E1/49 | 49 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/50 | 50 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/51 | 51 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/52 | 52 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/53 | 53 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/54 | 54 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/55 | 55 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
-| E1/56 | 56 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x25G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
 
 
