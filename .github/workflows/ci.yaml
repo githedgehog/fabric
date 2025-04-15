@@ -313,7 +313,7 @@ jobs:
           path: docs-repo
           branch: pr/auto/fabric-bump
           commit-message: |
-            Update docs from fabric@${{ github.ref_name }}.
+            Update docs from fabric@${{ github.ref_name }}
 
             This is an automated commit created by GitHub Actions workflow,
             in the fabric repository.
