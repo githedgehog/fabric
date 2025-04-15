@@ -1,7 +1,7 @@
 # When we push a new tag to the repository, open a Pull Request to synchronize
-# the API reference documentation with the "docs" repository.
+# the API reference and other documentation with the "docs" repository.
 
-name: "Push API docs"
+name: "Update docs"
 
 concurrency:
   group: "ci-${{ github.ref_name }}"
@@ -32,13 +32,15 @@ jobs:
       - name: "Copy API reference from 'fabric' to 'docs'"
         run: |
           cp docs/api.md project_documentation/docs/reference/api.md
+          cp docs/profiles.md project_documentation/docs/reference/profiles.md
+          cp docs/supported-devices.md project_documentation/docs/install-upgrade/supported-devices.md.gen
 
       - name: "Generate token for the 'docs' repository"
         uses: "actions/create-github-app-token@v2"
         id: "app-token"
         with:
-          app-id: "${{ secrets.APIREF_APP_ID }}"
-          private-key: "${{ secrets.APIREF_PRIVATE_KEY }}"
+          app-id: "${{ secrets.DOCS_APP_ID }}"
+          private-key: "${{ secrets.DOCS_PRIVATE_KEY }}"
           repositories: |
             docs
 
@@ -48,14 +50,15 @@ jobs:
           token: "${{ steps.app-token.outputs.token }}"
           path: "project_documentation"
           commit-message: |
-            Update API reference from ${{ github.repository }} tag ${{ github.ref_name }}.
+            Update docs from ${{ github.repository }}@${{ github.ref_name }}.
 
             This is an automated commit created by GitHub Actions workflow,
             in the "${{ github.repository }}" repository.
           signoff: true
-          title: "Update API reference from ${{ github.repository }} tag ${{ github.ref_name }}"
+          title: "Update docs from ${{ github.repository }}@${{ github.ref_name }}"
           body: |
-            Update API reference from ${{ github.repository }} tag ${{ github.ref_name }}.
-
-            This is an automated Pull Requesst created by GitHub Actions workflow,
+            This is an automated Pull Request created by GitHub Actions workflow,
             in the "${{ github.repository }}" repository.
+
+            It should be merged only after ${{ github.repository }} in the fabricator
+            repository master branch updated to the ${{ github.ref_name }}.
