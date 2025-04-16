@@ -293,7 +293,7 @@ jobs:
 
       - name: Copy docs from fabric to docs
         run: |
-          cp docs/api.md docs-repo/docs/reference/api.md
+          cp docs/api.md docs-repo/docs/reference/fabric-api.md.gen
           cp docs/profiles.md docs-repo/docs/reference/profiles.md
           cp docs/supported-devices.md docs-repo/docs/install-upgrade/supported-devices.md.gen
 
