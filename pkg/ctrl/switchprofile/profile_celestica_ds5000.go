@@ -33,7 +33,7 @@ var CelesticaDS5000 = wiringapi.SwitchProfile{
 			VXLAN:         true,
 			ACLs:          true,
 		},
-		NOSType:  meta.NOSTypeSONiCBCMBase,
+		NOSType:  meta.NOSTypeSONiCCLSBroadcom,
 		Platform: "x86-64-cls-ds5000-r0",
 		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{

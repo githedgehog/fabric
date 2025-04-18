@@ -33,7 +33,7 @@ var CelesticaDS4101 = wiringapi.SwitchProfile{
 			VXLAN:         false,
 			ACLs:          true,
 		},
-		NOSType:  meta.NOSTypeSONiCBCMBase,
+		NOSType:  meta.NOSTypeSONiCCLSBroadcom,
 		Platform: "x86_64-cel_ds4101-r0",
 		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
