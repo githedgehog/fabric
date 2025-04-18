@@ -1,1 +1,23 @@
-* @Frostman
+* @githedgehog/fabric-core
+
+# GitHub config and workflows
+.github @githedgehog/fabric-ci
+
+# Just and helpers
+/justfile @githedgehog/fabric-tools
+/hack/ @githedgehog/fabric-tools
+
+# Go modules & dependencies
+/go.* @githedgehog/fabric-tools
+/vendor/ @githedgehog/fabric-tools
+
+# Docs and tools to generate them
+/README.md @githedgehog/fabric-tools
+/docs/ @githedgehog/fabric-tools
+/cmd/fabric-gen/ @githedgehog/fabric-tools
+/pkg/gen/ @githedgehog/fabric-tools
+
+# Switch Profiles
+/pkg/ctrl/switchprofile/ @githedgehog/fabric-profiles
+
+CODEOWNERS @githedgehog/fabric-core
