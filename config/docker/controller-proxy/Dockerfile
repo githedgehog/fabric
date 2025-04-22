@@ -25,5 +25,5 @@ RUN ./configure LDFLAGS="-static" --enable-manpage_support=no && make
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /tinyproxy-${version_env}/src/tinyproxy /tinyproxy-${version_env}
-CMD ["/tinyproxy-${version_env}"]
+CMD ["/tinyproxy-${version_env}","-c /tinyproxy.conf"]
 
