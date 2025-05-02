@@ -388,6 +388,7 @@ type SpecPortChannelConfig struct {
 
 type SpecLSTGroup struct {
 	AllEVPNESDownstream *bool   `json:"allEvpnEsDownstream,omitempty"`
+	AllMCLAGDownstream  *bool   `json:"allMclagDownstream,omitempty"`
 	Timeout             *uint16 `json:"timeout,omitempty"`
 }
 

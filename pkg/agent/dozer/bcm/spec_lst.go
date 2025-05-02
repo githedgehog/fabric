@@ -44,6 +44,7 @@ var specLSTGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTGroup]{
 					Config: &oc.OpenconfigLstExt_Lst_LstGroups_LstGroup_Config{
 						Name:                pointer.To(name),
 						AllEvpnEsDownstream: value.AllEVPNESDownstream,
+						AllMclagsDownstream: value.AllMCLAGDownstream,
 						Timeout:             value.Timeout,
 					},
 				},
@@ -81,6 +82,7 @@ func unmarshalActualLSTGroups(ocVal *oc.OpenconfigLstExt_Lst_LstGroups) (map[str
 
 		lstGroups[name] = &dozer.SpecLSTGroup{
 			AllEVPNESDownstream: ocLSTGroup.Config.AllEvpnEsDownstream,
+			AllMCLAGDownstream:  ocLSTGroup.Config.AllMclagsDownstream,
 			Timeout:             ocLSTGroup.Config.Timeout,
 		}
 	}
