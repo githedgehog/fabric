@@ -1115,6 +1115,26 @@ func planVXLAN(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+func spineLinkTracking(agent *agentapi.Agent, spec *dozer.Spec) {
+	for _, conn := range agent.Spec.Connections {
+		if conn.Fabric == nil {
+			continue
+		}
+
+		for _, link := range conn.Fabric.Links {
+			if link.Leaf.DeviceName() != agent.Name {
+				continue
+			}
+
+			port := link.Leaf.LocalPortName()
+
+			spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
+				Groups: []string{LSTGroupSpineLink},
+			}
+		}
+	}
+}
+
 func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	ok := false
 	mclagPeerLinks := map[string]string{}
@@ -1225,6 +1245,14 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 		IPv4Unicast: pointer.To(true),
 	}
 
+	spec.LSTGroups[LSTGroupSpineLink] = &dozer.SpecLSTGroup{
+		AllEVPNESDownstream: nil,
+		AllMCLAGDownstream:  pointer.To(true),
+		Timeout:             pointer.To(uint16(180)),
+	}
+
+	spineLinkTracking(agent, spec)
+
 	return sourceIP == mclagSessionIP1, nil
 }
 
@@ -1240,26 +1268,11 @@ func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 
 	spec.LSTGroups[LSTGroupSpineLink] = &dozer.SpecLSTGroup{
 		AllEVPNESDownstream: pointer.To(true),
+		AllMCLAGDownstream:  nil,
 		Timeout:             pointer.To(uint16(180)),
 	}
 
-	for _, conn := range agent.Spec.Connections {
-		if conn.Fabric == nil {
-			continue
-		}
-
-		for _, link := range conn.Fabric.Links {
-			if link.Leaf.DeviceName() != agent.Name {
-				continue
-			}
-
-			port := link.Leaf.LocalPortName()
-
-			spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
-				Groups: []string{LSTGroupSpineLink},
-			}
-		}
-	}
+	spineLinkTracking(agent, spec)
 
 	return nil
 }
