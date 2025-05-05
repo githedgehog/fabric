@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vpc
+package ctrl
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -36,32 +40,29 @@ const (
 	VPCVNIMax    = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
 )
 
-// Reconciler reconciles a VPC object
-type Reconciler struct {
+type VPCReconciler struct {
 	kclient.Client
-	Scheme  *runtime.Scheme
-	Cfg     *meta.FabricConfig
-	LibMngr *librarian.Manager
+	cfg  *meta.FabricConfig
+	libr *librarian.Manager
 }
 
-func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
-	r := &Reconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Cfg:     cfg,
-		LibMngr: libMngr,
+func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+	r := &VPCReconciler{
+		Client: mgr.GetClient(),
+		cfg:    cfg,
+		libr:   libMngr,
 	}
 
 	// TODO only enqueue related VPCs
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
-		Named("vpc").
+		Named("VPC").
 		For(&vpcapi.VPC{}).
 		// It's enough to trigger just a single VPC update in this case as it'll update DHCP config for all VPCs
 		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOneVPC)).
 		Complete(r), "failed to setup vpc controller")
 }
 
-func (r *Reconciler) enqueueOneVPC(ctx context.Context, _ kclient.Object) []reconcile.Request {
+func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, _ kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	vpcs := &vpcapi.VPCList{}
@@ -96,10 +97,10 @@ func (r *Reconciler) enqueueOneVPC(ctx context.Context, _ kclient.Object) []reco
 
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
-func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	if err := r.LibMngr.UpdateVPCs(ctx, r.Client); err != nil {
+	if err := r.libr.UpdateVPCs(ctx, r.Client); err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error updating vpcs catalog")
 	}
 
@@ -127,4 +128,87 @@ func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Re
 	l.Info("vpc reconciled")
 
 	return kctrl.Result{}, nil
+}
+
+func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
+	err := r.deleteDHCPSubnets(ctx, kclient.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, vpc.Spec.Subnets)
+	if err != nil {
+		return errors.Wrapf(err, "error deleting obsolete dhcp subnets")
+	}
+
+	for subnetName, subnet := range vpc.Spec.Subnets {
+		if !subnet.DHCP.Enable || subnet.VLAN == 0 || subnet.DHCP.Range == nil {
+			continue
+		}
+
+		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: kmetav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
+		_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
+			pxeURL := ""
+			dnsServers := []string{}
+			timeServers := []string{}
+			mtu := uint16(9036) // TODO constant
+
+			if subnet.DHCP.Options != nil {
+				pxeURL = subnet.DHCP.Options.PXEURL
+				dnsServers = subnet.DHCP.Options.DNSServers
+				timeServers = subnet.DHCP.Options.TimeServers
+
+				if subnet.DHCP.Options.InterfaceMTU > 0 {
+					mtu = subnet.DHCP.Options.InterfaceMTU
+				}
+			}
+
+			dhcp.Labels = map[string]string{
+				vpcapi.LabelVPC:    vpc.Name,
+				vpcapi.LabelSubnet: subnetName,
+			}
+			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
+				Subnet:       fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock:    subnet.Subnet,
+				Gateway:      subnet.Gateway,
+				StartIP:      subnet.DHCP.Range.Start,
+				EndIP:        subnet.DHCP.Range.End,
+				VRF:          fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
+				CircuitID:    fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				PXEURL:       pxeURL,
+				DNSServers:   dnsServers,
+				TimeServers:  timeServers,
+				InterfaceMTU: mtu,
+			}
+
+			return nil
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error creating dhcp subnet for %s/%s", vpc.Name, subnetName)
+		}
+	}
+
+	return nil
+}
+
+func (r *VPCReconciler) deleteDHCPSubnets(ctx context.Context, vpcKey kclient.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
+	dhcpSubnets := &dhcpapi.DHCPSubnetList{}
+	err := r.List(ctx, dhcpSubnets, kclient.MatchingLabels{vpcapi.LabelVPC: vpcKey.Name})
+	if err != nil {
+		return errors.Wrapf(err, "error listing dhcp subnets")
+	}
+
+	for _, subnet := range dhcpSubnets.Items {
+		subnetName := "default"
+		parts := strings.Split(subnet.Spec.Subnet, "/")
+		if len(parts) == 2 {
+			subnetName = parts[1]
+		}
+
+		if _, exists := subnets[subnetName]; exists {
+			continue
+		}
+
+		err = r.Delete(ctx, &subnet)
+		if kclient.IgnoreNotFound(err) != nil {
+			return errors.Wrapf(err, "error deleting dhcp subnet %s", subnet.Name)
+		}
+	}
+
+	return nil
 }

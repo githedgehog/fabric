@@ -34,10 +34,8 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	agentctrl "go.githedgehog.com/fabric/pkg/ctrl/agent"
-	connectionctrl "go.githedgehog.com/fabric/pkg/ctrl/connection"
+	"go.githedgehog.com/fabric/pkg/ctrl"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
-	vpcctrl "go.githedgehog.com/fabric/pkg/ctrl/vpc"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"
 	connectionwh "go.githedgehog.com/fabric/pkg/webhook/connection"
@@ -166,16 +164,16 @@ func run() error {
 		return fmt.Errorf("registering default switch profiles: %w", err)
 	}
 
-	if err = agentctrl.SetupWithManager(mgr, cfg, libMngr, string(ca), string(username), string(password)); err != nil {
+	if err = ctrl.SetupAgentReconsilerWith(mgr, cfg, libMngr, string(ca), string(username), string(password)); err != nil {
 		return fmt.Errorf("setting up agent controller: %w", err)
 	}
-	if err = vpcctrl.SetupWithManager(mgr, cfg, libMngr); err != nil {
+	if err = ctrl.SetupVPCReconcilerWith(mgr, cfg, libMngr); err != nil {
 		return fmt.Errorf("setting up vpc controller: %w", err)
 	}
-	if err = connectionctrl.SetupWithManager(mgr, cfg, libMngr); err != nil {
+	if err = ctrl.SetupConnectionReconcilerWith(mgr, libMngr); err != nil {
 		return fmt.Errorf("setting up connection controller: %w", err)
 	}
-	if err = switchprofile.SetupWithManager(mgr, cfg, libMngr, profiles); err != nil {
+	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
 	}
 

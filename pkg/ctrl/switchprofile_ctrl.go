@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package switchprofile
+package ctrl
 
 import (
 	"context"
@@ -21,39 +21,36 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/manager/librarian"
-	"k8s.io/apimachinery/pkg/runtime"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-type Reconciler struct {
+type SwitchProfileReconciler struct {
 	kclient.Client
-	Scheme   *runtime.Scheme
-	Cfg      *meta.FabricConfig
-	Profiles *Default
+	cfg      *meta.FabricConfig
+	profiles *switchprofile.Default
 }
 
-func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Manager, profiles *Default) error {
-	r := &Reconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Cfg:      cfg,
-		Profiles: profiles,
+func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
+	if cfg == nil {
+		return errors.New("fabric config is nil")
 	}
 
-	if err := mgr.Add(&Initializer{
+	r := &SwitchProfileReconciler{
 		Client:   mgr.GetClient(),
-		Cfg:      cfg,
-		Profiles: profiles,
-	}); err != nil {
+		cfg:      cfg,
+		profiles: profiles,
+	}
+
+	if err := mgr.Add(r); err != nil {
 		return errors.Wrapf(err, "failed to add switch profile initializer")
 	}
 
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
-		Named("switchprofile").
+		Named("SwitchProfile").
 		For(&wiringapi.SwitchProfile{}).
 		Complete(r), "failed to setup switch profile controller")
 }
@@ -61,14 +58,14 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, _ *librarian.Ma
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
 
-func (r *Reconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
+func (r *SwitchProfileReconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	if !r.Profiles.IsInitialized() {
+	if !r.profiles.IsInitialized() {
 		return kctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	if err := r.Profiles.Enforce(ctx, r.Client, r.Cfg, true); err != nil {
+	if err := r.profiles.Enforce(ctx, r.Client, r.cfg, true); err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error enforcing switch profiles")
 	}
 
@@ -77,24 +74,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Resu
 	return kctrl.Result{}, nil
 }
 
-type Initializer struct {
-	Client   kclient.Client
-	Cfg      *meta.FabricConfig
-	Profiles *Default
-}
-
 var (
-	_ manager.Runnable               = (*Initializer)(nil)
-	_ manager.LeaderElectionRunnable = (*Initializer)(nil)
+	_ manager.Runnable               = (*SwitchProfileReconciler)(nil)
+	_ manager.LeaderElectionRunnable = (*SwitchProfileReconciler)(nil)
 )
 
-func (i *Initializer) Start(ctx context.Context) error {
+func (r *SwitchProfileReconciler) Start(ctx context.Context) error {
 	l := kctrllog.FromContext(ctx).WithValues("initializer", "switchprofile")
 	l.Info("SwitchProfile initial setup")
 
 	var err error
 	for attempt := 0; attempt < 60; attempt++ { // TODO think about more graceful way to handle this
-		err = i.Profiles.Enforce(ctx, i.Client, i.Cfg, true)
+		err = r.profiles.Enforce(ctx, r.Client, r.cfg, true)
 		if err == nil {
 			break
 		}
@@ -110,6 +101,6 @@ func (i *Initializer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (i *Initializer) NeedLeaderElection() bool {
+func (r *SwitchProfileReconciler) NeedLeaderElection() bool {
 	return true
 }
