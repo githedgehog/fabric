@@ -30,7 +30,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
-	"go.githedgehog.com/fabric/pkg/ctrl/common"
+	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -228,7 +228,7 @@ func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (
 					return nil, nil, fmt.Errorf("agent %s: %w", sw.Name, err)
 				}
 
-				secretName := common.AgentKubeconfigSecret(sw.Name)
+				secretName := ctrl.AgentKubeconfigSecret(sw.Name)
 				agentSecret := &corev1.Secret{}
 				if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: secretName, Namespace: agent.Namespace}, agentSecret); err != nil {
 					if kapierrors.IsNotFound(err) {
@@ -253,7 +253,7 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 		return fmt.Errorf("marshaling agent: %w", err)
 	}
 
-	kubeConfig, ok := secret.Data[common.AgentKubeconfigKey]
+	kubeConfig, ok := secret.Data[ctrl.AgentKubeconfigKey]
 	if !ok {
 		return fmt.Errorf("kubeconfig not found") //nolint:goerr113
 	}

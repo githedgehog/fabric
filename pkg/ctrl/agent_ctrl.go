@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package agent
+package ctrl
 
 import (
 	"bytes"
@@ -31,14 +31,12 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/ctrl/common"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,35 +47,61 @@ import (
 )
 
 const (
+	AgentPrefix        = "agent--"
+	AgentKubeconfigKey = "kubeconfig"
+)
+
+func AgentServiceAccount(agent string) string {
+	return AgentPrefix + agent
+}
+
+func AgentKubeconfigSecret(agent string) string {
+	return AgentPrefix + agent
+}
+
+const (
 	PortChanMin = 100
 	PortChanMax = 199
 )
 
-// Reconciler reconciles a Agent object
-type Reconciler struct {
+type AgentReconciler struct {
 	kclient.Client
-	Scheme   *runtime.Scheme
-	Cfg      *meta.FabricConfig
-	LibMngr  *librarian.Manager
-	CA       string
-	Username string
-	Password string
+	cfg         *meta.FabricConfig
+	libr        *librarian.Manager
+	regCA       string
+	regUsername string
+	regPassword string
 }
 
-func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
-	r := &Reconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Cfg:      cfg,
-		LibMngr:  libMngr,
-		CA:       ca,
-		Username: username,
-		Password: password,
+func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
+	if cfg == nil {
+		return errors.New("fabric config is nil")
+	}
+	if libMngr == nil {
+		return errors.New("librarian manager is nil")
+	}
+	if ca == "" {
+		return errors.New("reg ca is empty")
+	}
+	if username == "" {
+		return errors.New("reg username is empty")
+	}
+	if password == "" {
+		return errors.New("reg password is empty")
+	}
+
+	r := &AgentReconciler{
+		Client:      mgr.GetClient(),
+		cfg:         cfg,
+		libr:        libMngr,
+		regCA:       ca,
+		regUsername: username,
+		regPassword: password,
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
-		Named("agent").
+		Named("Agent").
 		For(&wiringapi.Switch{}).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
@@ -90,7 +114,7 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librar
 		Complete(r), "failed to setup agent controller")
 }
 
-func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj kclient.Object) []reconcile.Request {
+func (r *AgentReconciler) enqueueBySwitchListLabels(_ context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
@@ -115,7 +139,7 @@ func (r *Reconciler) enqueueBySwitchListLabels(_ context.Context, obj kclient.Ob
 	return res
 }
 
-func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
+func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
@@ -140,7 +164,7 @@ func (r *Reconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclien
 	return res
 }
 
-func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Object) []reconcile.Request {
+func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
@@ -211,7 +235,7 @@ func (r *Reconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Object)
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
-func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
 	sw := &wiringapi.Switch{}
@@ -526,7 +550,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Re
 
 	cat := &agentapi.CatalogSpec{}
 
-	err = r.LibMngr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns)
+	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
@@ -611,13 +635,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Re
 		}
 	}
 
-	err = r.LibMngr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq)
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
 
 	userCreds := []agentapi.UserCreds{}
-	for _, user := range r.Cfg.Users {
+	for _, user := range r.cfg.Users {
 		userCreds = append(userCreds, agentapi.UserCreds{
 			Name:     user.Name,
 			Password: user.Password,
@@ -663,40 +687,40 @@ func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Re
 		agent.Spec.AttachedVPCs = attachedVPCs
 		agent.Spec.Users = userCreds
 
-		agent.Spec.Version.CA = r.CA
-		agent.Spec.Version.Username = r.Username
-		agent.Spec.Version.Password = r.Password
+		agent.Spec.Version.CA = r.regCA
+		agent.Spec.Version.Username = r.regUsername
+		agent.Spec.Version.Password = r.regPassword
 
 		agent.Spec.Version.Default = version.Version
-		agent.Spec.Version.Repo = r.Cfg.AgentRepo
+		agent.Spec.Version.Repo = r.cfg.AgentRepo
 
-		agent.Spec.Version.AlloyRepo = r.Cfg.AlloyRepo
-		agent.Spec.Version.AlloyVersion = r.Cfg.AlloyVersion
+		agent.Spec.Version.AlloyRepo = r.cfg.AlloyRepo
+		agent.Spec.Version.AlloyVersion = r.cfg.AlloyVersion
 
 		agent.Spec.Catalog = *cat
 
 		agent.Spec.StatusUpdates = statusUpdates
 
 		agent.Spec.Config = agentapi.AgentSpecConfig{
-			DeploymentID:          r.Cfg.DeploymentID,
-			ControlVIP:            r.Cfg.ControlVIP,
-			BaseVPCCommunity:      r.Cfg.BaseVPCCommunity,
-			VPCLoopbackSubnet:     r.Cfg.VPCLoopbackSubnet,
-			FabricMTU:             r.Cfg.FabricMTU,
-			ServerFacingMTUOffset: r.Cfg.ServerFacingMTUOffset,
-			ESLAGMACBase:          r.Cfg.ESLAGMACBase,
-			ESLAGESIPrefix:        r.Cfg.ESLAGESIPrefix,
-			DefaultMaxPathsEBGP:   r.Cfg.DefaultMaxPathsEBGP,
-			MCLAGSessionSubnet:    r.Cfg.MCLAGSessionSubnet,
-			GatewayASN:            r.Cfg.GatewayASN,
+			DeploymentID:          r.cfg.DeploymentID,
+			ControlVIP:            r.cfg.ControlVIP,
+			BaseVPCCommunity:      r.cfg.BaseVPCCommunity,
+			VPCLoopbackSubnet:     r.cfg.VPCLoopbackSubnet,
+			FabricMTU:             r.cfg.FabricMTU,
+			ServerFacingMTUOffset: r.cfg.ServerFacingMTUOffset,
+			ESLAGMACBase:          r.cfg.ESLAGMACBase,
+			ESLAGESIPrefix:        r.cfg.ESLAGESIPrefix,
+			DefaultMaxPathsEBGP:   r.cfg.DefaultMaxPathsEBGP,
+			MCLAGSessionSubnet:    r.cfg.MCLAGSessionSubnet,
+			GatewayASN:            r.cfg.GatewayASN,
 		}
-		if r.Cfg.FabricMode == meta.FabricModeCollapsedCore {
+		if r.cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
-		} else if r.Cfg.FabricMode == meta.FabricModeSpineLeaf {
+		} else if r.cfg.FabricMode == meta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
 
-		agent.Spec.Alloy = r.Cfg.Alloy
+		agent.Spec.Alloy = r.cfg.Alloy
 
 		return nil
 	})
@@ -709,10 +733,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Re
 	return kctrl.Result{}, nil
 }
 
-func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.ObjectMeta) (*kctrl.Result, error) {
+func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.ObjectMeta) (*kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	saName := common.AgentServiceAccount(ag.Name)
+	saName := AgentServiceAccount(ag.Name)
 	sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
 	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil })
 	if err != nil {
@@ -791,11 +815,11 @@ func (r *Reconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.ObjectMet
 		return nil, errors.Wrapf(err, "error generating kubeconfig")
 	}
 
-	secretName := common.AgentKubeconfigSecret(ag.Name)
+	secretName := AgentKubeconfigSecret(ag.Name)
 	kubeconfigSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: secretName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, kubeconfigSecret, func() error {
 		kubeconfigSecret.StringData = map[string]string{
-			common.AgentKubeconfigKey: kubeconfig,
+			AgentKubeconfigKey: kubeconfig,
 		}
 
 		return nil
@@ -841,10 +865,10 @@ users:
 	}
 }
 
-func (r *Reconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
+func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	buf := &bytes.Buffer{}
 	err := genKubeconfigTmpl.Execute(buf, genKubeconfigTmplCfg{
-		Server: r.Cfg.APIServer,
+		Server: r.cfg.APIServer,
 		CA:     base64.StdEncoding.EncodeToString(secret.Data[corev1.ServiceAccountRootCAKey]),
 		Token:  string(secret.Data[corev1.ServiceAccountTokenKey]),
 	})
