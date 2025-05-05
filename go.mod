@@ -37,6 +37,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/vishvananda/netlink v1.3.0
 	go.githedgehog.com/fabric-bcm-ygot v0.4.0-4.4.2
+	go.githedgehog.com/gateway v0.3.0
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 	golang.org/x/sync v0.13.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1

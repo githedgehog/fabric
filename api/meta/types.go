@@ -84,6 +84,7 @@ type FabricConfig struct {
 	AllowExtraSwitchProfiles bool        `json:"allowExtraSwitchProfiles,omitempty"`
 	MCLAGSessionSubnet       string      `json:"mclagSessionSubnet,omitempty"`
 	GatewayASN               uint32      `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
+	GatewayAPISync           bool        `json:"gatewayAPISync,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
