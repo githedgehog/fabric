@@ -65,6 +65,32 @@ rules:
   - patch
   - update
 - apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - vpcinfoes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - vpcinfoes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - vpcinfoes/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - rolebindings

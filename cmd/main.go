@@ -50,9 +50,9 @@ import (
 	vpcwh "go.githedgehog.com/fabric/pkg/webhook/vpc"
 	vpcattachmentwh "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
 	vpcpeeringwh "go.githedgehog.com/fabric/pkg/webhook/vpcpeering"
+	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -62,18 +62,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	//+kubebuilder:scaffold:imports
 )
-
-var scheme = runtime.NewScheme()
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(agentapi.AddToScheme(scheme))
-	utilruntime.Must(wiringapi.AddToScheme(scheme))
-	utilruntime.Must(vpcapi.AddToScheme(scheme))
-	utilruntime.Must(dhcpapi.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
-}
 
 func main() {
 	// TODO make it configurable
@@ -120,6 +108,29 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("reading registry password: %w", err)
 	}
+
+	scheme := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding client-go scheme: %w", err)
+	}
+	if err := agentapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding agentapi scheme: %w", err)
+	}
+	if err := wiringapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding wiringapi scheme: %w", err)
+	}
+	if err := vpcapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding vpcapi scheme: %w", err)
+	}
+	if err := dhcpapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding dhcpapi scheme: %w", err)
+	}
+	if cfg.GatewayAPISync {
+		if err := gwapi.AddToScheme(scheme); err != nil {
+			return fmt.Errorf("adding gatewayapi scheme: %w", err)
+		}
+	}
+	//+kubebuilder:scaffold:scheme
 
 	mgr, err := kctrl.NewManager(kctrl.GetConfigOrDie(), kctrl.Options{
 		Scheme: scheme,
@@ -175,6 +186,11 @@ func run() error {
 	}
 	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
+	}
+	if cfg.GatewayAPISync {
+		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr); err != nil {
+			return fmt.Errorf("setting up gateway vpc sync controller: %w", err)
+		}
 	}
 
 	if err = connectionwh.SetupWithManager(mgr, cfg); err != nil {

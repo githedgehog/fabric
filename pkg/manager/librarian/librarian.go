@@ -361,3 +361,16 @@ func LoWReqForVPC(vpcPeeringName string) string {
 func LoWReqForExt(extPeeringName string) string {
 	return LoWorkaroundReqPrefixExt + extPeeringName
 }
+
+func (m *Manager) GetVPCVNI(ctx context.Context, kube kclient.Client, vpc string) (uint32, error) {
+	vpcsCat, err := m.getCatalog(ctx, kube, CatVPCs)
+	if err != nil {
+		return 0, errors.Errorf("failed to get VPCs catalog %s", CatVPCs)
+	}
+
+	if vni, exists := vpcsCat.Spec.VPCVNIs[vpc]; exists {
+		return vni, nil
+	}
+
+	return 0, errors.Errorf("failed to find VPC VNI for vpc %s", vpc)
+}
