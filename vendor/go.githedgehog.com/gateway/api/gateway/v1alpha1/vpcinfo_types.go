@@ -41,7 +41,7 @@ type VPCInfoStatus struct {
 // +kubebuilder:resource:path=vpcinfos,categories=hedgehog;hedgehog-gateway,shortName=gwvpc
 // +kubebuilder:printcolumn:name="InternalID",type=string,JSONPath=`.status.internalID`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
-// VPCInfo is the Schema for the vpcinfoes API.
+// VPCInfo is the Schema for the vpcinfos API.
 type VPCInfo struct {
 	kmetav1.TypeMeta   `json:",inline"`
 	kmetav1.ObjectMeta `json:"metadata,omitempty"`
