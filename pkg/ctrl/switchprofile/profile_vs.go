@@ -43,3 +43,21 @@ var VS = wiringapi.SwitchProfile{
 		PortProfiles: lo.OmitBy(DellS5248FON.Spec.PortProfiles, func(_ string, pp wiringapi.SwitchProfilePortProfile) bool { return pp.Breakout != nil }),
 	},
 }
+
+// Breakout ports are not supported on VS and should be ignored
+var ignoredNOSPorts = map[string]bool{
+	"Ethernet48": true,
+	"Ethernet52": true,
+	"Ethernet56": true,
+	"Ethernet60": true,
+	"Ethernet64": true,
+	"Ethernet68": true,
+	"Ethernet72": true,
+	"Ethernet76": true,
+}
+
+func VSIsIgnoredNOSPort(port string) bool {
+	_, ok := ignoredNOSPorts[port]
+
+	return ok
+}

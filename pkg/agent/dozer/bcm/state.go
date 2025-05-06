@@ -26,6 +26,7 @@ import (
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -63,7 +64,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to get breakout mapping")
 	}
 
-	if err := p.updateInterfaceMetrics(ctx, reg, swState, portMap); err != nil {
+	if err := p.updateInterfaceMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update interface metrics")
 	}
 
@@ -98,7 +99,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	return nil
 }
 
-func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
+func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	ifaces := &oc.OpenconfigInterfaces_Interfaces{}
 	err := p.client.Get(ctx, "/openconfig-interfaces:interfaces/interface", ifaces)
 	if err != nil {
@@ -122,8 +123,10 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 		if isManagement(ifaceNameRaw) || isPhysical(ifaceNameRaw) {
 			exists := false
 			ifaceName, exists = portMap[ifaceNameRaw]
-			if !exists {
+			if !exists && !(ag.Spec.Switch.Profile == switchprofile.VS.Name && switchprofile.VSIsIgnoredNOSPort(ifaceNameRaw)) {
 				slog.Warn("Port mapping not found, ignoring for metrics", "interface", ifaceNameRaw)
+
+				continue
 			}
 		}
 
@@ -305,6 +308,8 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 		transceiverName, exists := portMap[transceiverNameRaw]
 		if !exists {
 			slog.Warn("Port mapping not found, ignoring for metrics", "transceiver", transceiverNameRaw)
+
+			continue
 		}
 
 		ocSt := transceiver.State
@@ -583,6 +588,8 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 		ifaceNameTr, exists := portMap[ifaceName]
 		if !exists {
 			slog.Warn("Port mapping not found, ignoring for metrics", "lldpInterface", ifaceName)
+
+			continue
 		}
 
 		intSt := swState.Interfaces[ifaceNameTr]
@@ -1040,68 +1047,68 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 			transceiverName, exists := portMap[componentName]
 			if !exists {
 				slog.Warn("Port mapping not found, ignoring for metrics", "component", componentName)
+			} else {
+				if _, ok := swState.Interfaces[transceiverName]; !ok {
+					swState.Interfaces[transceiverName] = agentapi.SwitchStateInterface{}
+				}
+
+				stIf := swState.Interfaces[transceiverName]
+				if stIf.Transceiver == nil {
+					stIf.Transceiver = &agentapi.SwitchStateTransceiver{}
+				}
+				st := stIf.Transceiver
+
+				ocSt := component.Transceiver.State
+
+				operStatus, err := mapComponentOperStatus(component.State.OperStatus)
+				if err != nil {
+					return errors.Wrapf(err, "failed to map component oper status")
+				}
+
+				st.OperStatus = operStatus
+
+				if ocSt.DisplayName != nil {
+					st.Description = *ocSt.DisplayName
+				}
+
+				if ocSt.FormFactor > 0 {
+					st.FormFactor = ocSt.FormFactor.String()
+				}
+
+				if ocSt.ConnectorType > 0 {
+					st.ConnectorType = ocSt.ConnectorType.String()
+				}
+
+				if ocSt.Present > 0 {
+					st.Present = ocSt.Present.String()
+				}
+
+				if ocSt.CableLength != nil {
+					st.CableLength = *ocSt.CableLength
+				}
+
+				if ocSt.SerialNo != nil {
+					st.SerialNumber = *ocSt.SerialNo
+				}
+
+				if ocSt.Vendor != nil {
+					st.Vendor = *ocSt.Vendor
+				}
+
+				if ocSt.VendorPart != nil {
+					st.VendorPart = *ocSt.VendorPart
+				}
+
+				if ocSt.VendorOui != nil {
+					st.VendorOUI = *ocSt.VendorOui
+				}
+
+				if ocSt.VendorRev != nil {
+					st.VendorRev = *ocSt.VendorRev
+				}
+
+				swState.Interfaces[transceiverName] = stIf
 			}
-
-			if _, ok := swState.Interfaces[transceiverName]; !ok {
-				swState.Interfaces[transceiverName] = agentapi.SwitchStateInterface{}
-			}
-
-			stIf := swState.Interfaces[transceiverName]
-			if stIf.Transceiver == nil {
-				stIf.Transceiver = &agentapi.SwitchStateTransceiver{}
-			}
-			st := stIf.Transceiver
-
-			ocSt := component.Transceiver.State
-
-			operStatus, err := mapComponentOperStatus(component.State.OperStatus)
-			if err != nil {
-				return errors.Wrapf(err, "failed to map component oper status")
-			}
-
-			st.OperStatus = operStatus
-
-			if ocSt.DisplayName != nil {
-				st.Description = *ocSt.DisplayName
-			}
-
-			if ocSt.FormFactor > 0 {
-				st.FormFactor = ocSt.FormFactor.String()
-			}
-
-			if ocSt.ConnectorType > 0 {
-				st.ConnectorType = ocSt.ConnectorType.String()
-			}
-
-			if ocSt.Present > 0 {
-				st.Present = ocSt.Present.String()
-			}
-
-			if ocSt.CableLength != nil {
-				st.CableLength = *ocSt.CableLength
-			}
-
-			if ocSt.SerialNo != nil {
-				st.SerialNumber = *ocSt.SerialNo
-			}
-
-			if ocSt.Vendor != nil {
-				st.Vendor = *ocSt.Vendor
-			}
-
-			if ocSt.VendorPart != nil {
-				st.VendorPart = *ocSt.VendorPart
-			}
-
-			if ocSt.VendorOui != nil {
-				st.VendorOUI = *ocSt.VendorOui
-			}
-
-			if ocSt.VendorRev != nil {
-				st.VendorRev = *ocSt.VendorRev
-			}
-
-			swState.Interfaces[transceiverName] = stIf
 		}
 
 		if component.SoftwareModule != nil && component.SoftwareModule.State != nil {
