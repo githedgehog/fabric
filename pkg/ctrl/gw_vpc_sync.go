@@ -74,9 +74,9 @@ func (r *GwVPCSync) enqueueForVPCInfo(ctx context.Context, obj kclient.Object) [
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfoes,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfoes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfoes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
 
 func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
