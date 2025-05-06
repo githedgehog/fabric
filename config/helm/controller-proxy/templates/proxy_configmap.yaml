@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tinyproxyconf
+
+  data:
+    {{ (.Files.Glob "tinyproxy/tinyproxy.conf").AsConfig | indent 2 }}

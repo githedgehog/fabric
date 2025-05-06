@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: domainallowlist
+
+  data:
+    {{ (.Files.Glob "tinyproxy/filter.conf").AsConfig | indent 2 }}
