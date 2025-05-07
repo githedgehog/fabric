@@ -16,11 +16,11 @@ package ipv4ns
 
 import (
 	"context"
+	"net"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,12 +78,51 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(_ context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	oldNs := oldObj.(*vpcapi.IPv4Namespace)
-	newNs := newObj.(*vpcapi.IPv4Namespace)
+func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
+	// oldNs := oldObj.(*vpcapi.IPv4Namespace)
+	ns := newObj.(*vpcapi.IPv4Namespace)
 
-	if !equality.Semantic.DeepEqual(oldNs.Spec, newNs.Spec) {
-		return nil, errors.Errorf("IPv4Namespace spec is immutable")
+	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
+		return warn, errors.Wrapf(err, "failed to validate ipv4namespace")
+	}
+
+	nsSubnets := []*net.IPNet{}
+	for _, subnet := range ns.Spec.Subnets {
+		_, ipNet, err := net.ParseCIDR(subnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
+		}
+
+		nsSubnets = append(nsSubnets, ipNet)
+	}
+
+	vpcs := &vpcapi.VPCList{}
+	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: ns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
+	}
+
+	for _, vpc := range vpcs.Items {
+		for subnetName, subnetCfg := range vpc.Spec.Subnets {
+			_, vpcSubnet, err := net.ParseCIDR(subnetCfg.Subnet)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse vpc subnet %s", subnetCfg.Subnet)
+			}
+
+			ok := false
+			for _, nsSubnet := range nsSubnets {
+				if nsSubnet.Contains(vpcSubnet.IP) {
+					ok = true
+
+					break
+				}
+			}
+
+			if !ok {
+				return nil, errors.Errorf("existing vpc %s subnet %s (cidr %s) doesn't fit updated IPv4 namespace", vpc.Name, subnetName, subnetCfg.Subnet)
+			}
+		}
 	}
 
 	return nil, nil
