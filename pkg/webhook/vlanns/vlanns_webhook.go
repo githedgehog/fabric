@@ -21,7 +21,6 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,12 +78,27 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return nil, nil
 }
 
-func (w *Webhook) ValidateUpdate(_ context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	oldNs := oldObj.(*wiringapi.VLANNamespace)
-	newNs := newObj.(*wiringapi.VLANNamespace)
+func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
+	// oldNs := oldObj.(*wiringapi.VLANNamespace)
+	ns := newObj.(*wiringapi.VLANNamespace)
 
-	if !equality.Semantic.DeepEqual(oldNs.Spec, newNs.Spec) {
-		return nil, errors.Errorf("VLANNamespace spec is immutable")
+	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
+		return warn, errors.Wrapf(err, "failed to validate new vlannamespace")
+	}
+
+	vpcs := &vpcapi.VPCList{}
+	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: ns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
+	}
+
+	for _, vpc := range vpcs.Items {
+		for subnetName, subnetCfg := range vpc.Spec.Subnets {
+			if !ns.Spec.Contains(subnetCfg.VLAN) {
+				return nil, errors.Errorf("existing vpc %s subnet %s (vlan %d) doesn't fit updated VLAN namespace", vpc.Name, subnetName, subnetCfg.VLAN)
+			}
+		}
 	}
 
 	return nil, nil
