@@ -566,8 +566,11 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 			links[link.Switch.PortName()] = link.Server.PortName()
 		}
 
-		if len(switches) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mclag connection")
+		if len(switches) < 1 {
+			return nil, nil, nil, nil, errors.Errorf("at least one switch must be used for mclag connection")
+		}
+		if len(switches) > 2 {
+			return nil, nil, nil, nil, errors.Errorf("at most two switches must be used for mclag connection")
 		}
 		if len(servers) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one server must be used for mclag connection")
@@ -586,8 +589,8 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 			links[link.Switch.PortName()] = link.Server.PortName()
 		}
 
-		if len(switches) < 2 {
-			return nil, nil, nil, nil, errors.Errorf("at least two switches must be used for eslag connection")
+		if len(switches) < 1 {
+			return nil, nil, nil, nil, errors.Errorf("at least one switch must be used for eslag connection")
 		}
 		if len(switches) > 4 {
 			return nil, nil, nil, nil, errors.Errorf("at most four switches must be used for eslag connection")
