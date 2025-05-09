@@ -45,7 +45,7 @@ var VS = wiringapi.SwitchProfile{
 }
 
 // Breakout ports are not supported on VS and should be ignored
-var ignoredNOSPorts = map[string]bool{
+var vsIgnoredNOSPorts = map[string]bool{
 	"Ethernet48": true,
 	"Ethernet52": true,
 	"Ethernet56": true,
@@ -57,7 +57,25 @@ var ignoredNOSPorts = map[string]bool{
 }
 
 func VSIsIgnoredNOSPort(port string) bool {
-	_, ok := ignoredNOSPorts[port]
+	_, ok := vsIgnoredNOSPorts[port]
+
+	return ok
+}
+
+// Breakout ports are not supported on VS and should be ignored
+var vsIgnoredNOSComponents = map[string]bool{
+	"1/49": true,
+	"1/50": true,
+	"1/51": true,
+	"1/52": true,
+	"1/53": true,
+	"1/54": true,
+	"1/55": true,
+	"1/56": true,
+}
+
+func VSIsIgnoredComponent(name string) bool {
+	_, ok := vsIgnoredNOSComponents[name]
 
 	return ok
 }
