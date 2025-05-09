@@ -316,12 +316,17 @@ func main() {
 							usernameFlag,
 							verboseFlag,
 							nameFlag,
+							&cli.StringFlag{
+								Name:    "run",
+								Aliases: []string{"r"},
+								Usage:   "command to run",
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
-						Action: func(_ *cli.Context) error {
-							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSSH(ctx, name, username), "failed to ssh into the switch"))
+						Action: func(cCtx *cli.Context) error {
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSSH(ctx, name, username, cCtx.String("run")), "failed to ssh into the switch"))
 						},
 					},
 					{

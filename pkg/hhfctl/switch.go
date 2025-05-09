@@ -147,7 +147,7 @@ func SwitchIP(ctx context.Context, name string) error {
 	return nil
 }
 
-func SwitchSSH(ctx context.Context, name, username string) error {
+func SwitchSSH(ctx context.Context, name, username, run string) error {
 	if username == "" {
 		return fmt.Errorf("username is required") //nolint:goerr113
 	}
@@ -171,7 +171,7 @@ func SwitchSSH(ctx context.Context, name, username string) error {
 		return fmt.Errorf("parsing switch IP address: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "ssh", append(SSHQuietFlags, username+"@"+ip.Addr().String())...) //nolint:gosec
+	cmd := exec.CommandContext(ctx, "ssh", append(SSHQuietFlags, username+"@"+ip.Addr().String(), run)...) //nolint:gosec
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
