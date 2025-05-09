@@ -84,7 +84,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update platform metrics")
 	}
 
-	if err := p.updateComponentMetrics(ctx, reg, swState, portMap, breakoutMap); err != nil {
+	if err := p.updateComponentMetrics(ctx, reg, swState, agent, portMap, breakoutMap); err != nil {
 		return errors.Wrapf(err, "failed to update component metrics")
 	}
 
@@ -1000,7 +1000,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 	return nil
 }
 
-func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string, breakoutMap map[string]string) error {
+func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string, breakoutMap map[string]string) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/components", dev); err != nil {
 		return errors.Wrapf(err, "failed to get components")
@@ -1018,7 +1018,7 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 				}
 
 				breakoutName, exists := breakoutMap[componentName]
-				if !exists {
+				if !exists && !(ag.Spec.Switch.Profile == switchprofile.VS.Name && switchprofile.VSIsIgnoredComponent(componentName)) {
 					slog.Warn("Breakout mapping not found, ignoring for metrics", "component", componentName)
 				}
 
