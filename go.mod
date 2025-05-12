@@ -45,7 +45,7 @@ require (
 	k8s.io/apimachinery v0.32.4
 	k8s.io/client-go v0.32.4
 	k8s.io/klog/v2 v2.130.1
-	oras.land/oras-go/v2 v2.5.0
+	oras.land/oras-go/v2 v2.6.0
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -183,7 +183,7 @@ require (
 	github.com/openconfig/goyang v1.6.2 // indirect
 	github.com/openconfig/grpctunnel v0.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0 // indirect
+	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
