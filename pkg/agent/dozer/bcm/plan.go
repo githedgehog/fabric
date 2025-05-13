@@ -1248,7 +1248,7 @@ func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
 	spec.LSTGroups[LSTGroupSpineLink] = &dozer.SpecLSTGroup{
 		AllEVPNESDownstream: nil,
 		AllMCLAGDownstream:  pointer.To(true),
-		Timeout:             pointer.To(uint16(180)),
+		Timeout:             pointer.To(uint16(5)),
 	}
 
 	spineLinkTracking(agent, spec)
@@ -1269,7 +1269,7 @@ func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 	spec.LSTGroups[LSTGroupSpineLink] = &dozer.SpecLSTGroup{
 		AllEVPNESDownstream: pointer.To(true),
 		AllMCLAGDownstream:  nil,
-		Timeout:             pointer.To(uint16(180)),
+		Timeout:             pointer.To(uint16(60)),
 	}
 
 	spineLinkTracking(agent, spec)
