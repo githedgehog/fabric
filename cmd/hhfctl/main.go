@@ -225,6 +225,13 @@ func main() {
 								Usage:    "connection",
 								Required: true,
 							},
+							&cli.BoolFlag{
+								Name:     "nativeVLAN",
+								Aliases:  []string{"vlan"},
+								Usage:    "set to True for untagged traffic, otherwise traffic is tagged",
+								Required: false,
+								Value:    false,
+							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
@@ -235,6 +242,7 @@ func main() {
 								Name:       name,
 								VPCSubnet:  cCtx.String("vpc-subnet"),
 								Connection: cCtx.String("connection"),
+								NativeVLAN: cCtx.Bool("nativeVLAN"),
 							}), "failed to attach connection to vpc")
 						},
 					},
