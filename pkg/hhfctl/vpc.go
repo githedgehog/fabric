@@ -96,6 +96,7 @@ type VPCAttachOptions struct {
 	Name       string
 	VPCSubnet  string
 	Connection string
+	NativeVLAN bool
 }
 
 func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) error {
@@ -112,6 +113,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 		Spec: vpcapi.VPCAttachmentSpec{
 			Subnet:     options.VPCSubnet,
 			Connection: options.Connection,
+			NativeVLAN: options.NativeVLAN,
 		},
 	}
 
