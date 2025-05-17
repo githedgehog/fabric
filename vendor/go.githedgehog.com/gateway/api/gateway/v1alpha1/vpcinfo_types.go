@@ -18,17 +18,11 @@ type VPCInfoSpec struct {
 	Subnets map[string]*VPCInfoSubnet `json:"subnets,omitempty"`
 	// VNI is the VNI for the VPC
 	VNI uint32 `json:"vni,omitempty"`
-	// VRF (optional) is the VRF name for the VPC, if not specified, predictable VRF name is generated
-	VRF string `json:"vrf,omitempty"`
 }
 
 type VPCInfoSubnet struct {
 	// CIDR is the subnet CIDR block, such as "10.0.0.0/24"
 	CIDR string `json:"cidr,omitempty"`
-	// Gateway (optional) for the subnet, if not specified, the first IP (e.g. 10.0.0.1) in the subnet is used as the gateway
-	Gateway string `json:"gateway,omitempty"`
-	// VNI is the VNI for the subnet
-	VNI uint32 `json:"vni,omitempty"`
 }
 
 // VPCInfoStatus defines the observed state of VPCInfo.

@@ -5,6 +5,9 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
+	"maps"
+	"slices"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,8 +27,8 @@ type PeeringEntryExpose struct {
 }
 
 type PeeringEntry struct {
-	Expose  []PeeringEntryExpose  `json:"expose,omitempty"`
-	Ingress []PeeringEntryIngress `json:"ingress,omitempty"`
+	Expose []PeeringEntryExpose `json:"expose,omitempty"`
+	// Ingress []PeeringEntryIngress `json:"ingress,omitempty"`
 	// TODO add natType: stateful # as there are not enough IPs in the "as" pool
 	// TODO add metric: 0 # add 0 to the advertised route metrics
 }
@@ -41,17 +44,17 @@ type PeeringEntryAs struct {
 	Not  string `json:"not,omitempty"`
 }
 
-type PeeringEntryIngress struct {
-	Allow *PeeringEntryIngressAllow `json:"allow,omitempty"`
-	// TODO add deny?
-}
+// type PeeringEntryIngress struct {
+// Allow *PeeringEntryIngressAllow `json:"allow,omitempty"`
+// TODO add deny?
+// }
 
-type PeeringEntryIngressAllow struct {
-	// TODO add actual fields
-	// stateless: true
-	// 	 tcp:
-	//     srcPort: 443
-}
+// type PeeringEntryIngressAllow struct {
+// TODO add actual fields
+// stateless: true
+// 	 tcp:
+//     srcPort: 443
+// }
 
 // PeeringStatus defines the observed state of Peering.
 type PeeringStatus struct{}
@@ -82,10 +85,24 @@ func init() {
 }
 
 func (p *Peering) Default() {
-	// TODO add defaulting logic
+	if p.Labels == nil {
+		p.Labels = map[string]string{}
+	}
+
+	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
+	if len(vpcs) != 2 {
+		return
+	}
+
+	p.Labels[ListLabelVPC(vpcs[0])] = ListLabelValue
+	p.Labels[ListLabelVPC(vpcs[1])] = ListLabelValue
 }
 
 func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
-	// TODO add validation logic
+	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
+	if len(vpcs) != 2 {
+		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs)) //nolint:goerr113
+	}
+
 	return nil
 }

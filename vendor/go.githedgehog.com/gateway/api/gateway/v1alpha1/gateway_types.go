@@ -18,6 +18,8 @@ import (
 type GatewaySpec struct {
 	// ProtocolIP is used as a loopback IP and BGP Router ID
 	ProtocolIP string `json:"protocolIP,omitempty"`
+	// VTEP IP to be used by the gateway
+	VTEPIP string `json:"vtepIP,omitempty"`
 	// ASN is the ASN of the gateway
 	ASN uint32 `json:"asn,omitempty"`
 	// Interfaces is a map of interface names to their configurations
@@ -81,6 +83,17 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 	}
 	if !protoIP.Addr().Is4() {
 		return fmt.Errorf("ProtocolIP %s must be an IPv4 address", gw.Spec.ProtocolIP) //nolint:goerr113
+	}
+
+	vtepIP, err := netip.ParsePrefix(gw.Spec.VTEPIP)
+	if err != nil {
+		return fmt.Errorf("invalid VTEPIP %s: %w", gw.Spec.VTEPIP, err)
+	}
+	if vtepIP.Bits() != 32 {
+		return fmt.Errorf("VTEPIP %s must be a /32 prefix", gw.Spec.VTEPIP) //nolint:goerr113
+	}
+	if !vtepIP.Addr().Is4() {
+		return fmt.Errorf("VTEPIP %s must be an IPv4 address", gw.Spec.VTEPIP) //nolint:goerr113
 	}
 
 	if gw.Spec.ASN == 0 {
