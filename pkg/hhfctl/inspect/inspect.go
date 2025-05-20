@@ -25,6 +25,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
@@ -151,20 +153,47 @@ func Render[TOut Out](now time.Time, output OutputType, w io.Writer, out TOut) e
 func RenderTable(headers []string, data [][]string) string {
 	str := &strings.Builder{}
 
-	table := tablewriter.NewWriter(str)
-	table.SetHeader(headers)
-	table.SetAutoWrapText(true)
-	table.SetAutoFormatHeaders(true)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetHeaderLine(false)
-	table.SetTablePadding("\t")
-	table.SetNoWhiteSpace(true)
-	table.AppendBulk(data)
-	table.Render()
+	cfg := tablewriter.Config{
+		Row: tw.CellConfig{
+			Formatting: tw.CellFormatting{
+				AutoWrap:  tw.WrapNormal,
+				Alignment: tw.AlignLeft,
+			},
+			Padding: tw.CellPadding{Global: tw.Padding{Right: "    "}},
+		},
+		Header: tw.CellConfig{
+			Formatting: tw.CellFormatting{
+				AutoWrap:  tw.WrapNormal,
+				Alignment: tw.AlignLeft,
+			},
+			Padding: tw.CellPadding{Global: tw.Padding{Right: "    "}},
+		},
+	}
+	rendition := tw.Rendition{
+		Borders: tw.BorderNone,
+		Settings: tw.Settings{
+			Lines:      tw.LinesNone,
+			Separators: tw.SeparatorsNone,
+		},
+	}
+
+	table := tablewriter.NewTable(str,
+		tablewriter.WithRenderer(renderer.NewBlueprint(rendition)),
+		tablewriter.WithConfig(cfg),
+	)
+	table.Header(headers)
+	err := table.Bulk(data)
+	if err != nil {
+		slog.Error("Error in adding bulk data to table", "error", err)
+
+		return "Error"
+	}
+	err = table.Render()
+	if err != nil {
+		slog.Error("Error in table rendering", "error", err)
+
+		return "Error"
+	}
 
 	return str.String()
 }
