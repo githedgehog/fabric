@@ -672,6 +672,7 @@ _Appears in:_
 | `gateway` _string_ | Gateway, such as 10.10.10.1 |  |  |
 | `startIP` _string_ | Start IP from the CIDRBlock to allocate IPs, such as 10.10.10.10 |  |  |
 | `endIP` _string_ | End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99 |  |  |
+| `leaseTimeSeconds` _integer_ | Lease time in seconds, such as 3600 |  |  |
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |  |  |
 | `circuitID` _string_ | VLAN ID to identify specific subnet within the VPC, such as "Vlan1000" as it's named on switch |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
@@ -1123,6 +1124,7 @@ _Appears in:_
 | `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
 | `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
 | `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
+| `leaseTimeSeconds` _integer_ | Lease time in seconds, such as 3600 |  |  |
 
 
 #### VPCDHCPRange

@@ -36,6 +36,9 @@ type DHCPSubnetSpec struct {
 	StartIP string `json:"startIP"`
 	// End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
 	EndIP string `json:"endIP"`
+	// Lease time in seconds, such as 3600
+	// +kubebuilder:validation:Minimum: 1
+	LeaseTimeSeconds uint32 `json:"leaseTimeSeconds"`
 	// VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch
 	VRF string `json:"vrf"`
 	// VLAN ID to identify specific subnet within the VPC, such as "Vlan1000" as it's named on switch

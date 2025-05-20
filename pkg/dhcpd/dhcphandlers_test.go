@@ -65,7 +65,9 @@ func Test_handleDiscover4(t *testing.T) {
 					)
 					pluginHdl.dhcpSubnets.subnets[VrfV12+Vlan2000] = &ManagedSubnet{
 						dhcpSubnet: &dhcpapi.DHCPSubnet{
-							Spec: dhcpapi.DHCPSubnetSpec{},
+							Spec: dhcpapi.DHCPSubnetSpec{
+								LeaseTimeSeconds: 1560,
+							},
 						},
 						pool: pool,
 						allocations: &ipallocations{
