@@ -106,6 +106,9 @@ type VPCDHCPOptions struct {
 	// +kubebuilder:validation:Maximum: 9036
 	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	InterfaceMTU uint16 `json:"interfaceMTU"`
+	// Lease time in seconds, such as 3600
+	// +kubebuilder:validation:Minimum: 1
+	LeaseTimeSeconds uint32 `json:"leaseTimeSeconds"`
 }
 
 // VPCStaticRoute defines the static route for the VPC
@@ -240,7 +243,8 @@ func (vpc *VPC) Default() {
 
 		if subnet.DHCP.Options != nil {
 			if subnet.DHCP.Options.PXEURL == "" && subnet.DHCP.Options.DNSServers == nil &&
-				subnet.DHCP.Options.TimeServers == nil && subnet.DHCP.Options.InterfaceMTU == 0 {
+				subnet.DHCP.Options.TimeServers == nil && subnet.DHCP.Options.InterfaceMTU == 0 &&
+				subnet.DHCP.Options.LeaseTimeSeconds == 0 {
 				subnet.DHCP.Options = nil
 
 				continue
@@ -258,6 +262,11 @@ func (vpc *VPC) Default() {
 			if subnet.DHCP.Options.TimeServers == nil {
 				subnet.DHCP.Options.TimeServers = []string{}
 			}
+
+			if subnet.DHCP.Options.LeaseTimeSeconds == 0 {
+				subnet.DHCP.Options.LeaseTimeSeconds = 3600 // TODO Magic number should be named constant somewhere.
+			}
+
 			slices.Sort(subnet.DHCP.Options.TimeServers)
 		}
 	}
@@ -351,6 +360,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			if subnetCfg.DHCP.Options.InterfaceMTU > 0 {
 				return nil, errors.Errorf("subnet %s: InterfaceMTU is set but dhcp is disabled", subnetName)
 			}
+
+			if subnetCfg.DHCP.Options.LeaseTimeSeconds > 0 {
+				return nil, errors.Errorf("subnet %s: LeaseTimeSeconds is set but dhcp is disabled", subnetName)
+			}
 		}
 
 		if subnetCfg.DHCP.Enable {
@@ -414,6 +427,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				if subnetCfg.DHCP.Options.InterfaceMTU > 9036 {
 					return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
 				}
+				if subnetCfg.DHCP.Options.LeaseTimeSeconds < 1 {
+					return nil, errors.Errorf("subnet %s: LeaseTimeSeconds cannot be set smaller than 1", subnetName)
+				}
+				// TODO: max lease time?
 			}
 		} else if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
 			return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")

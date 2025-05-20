@@ -113,6 +113,10 @@ spec:
                   server will send to the clients. It is dependent on the client to
                   honor this option.
                 type: integer
+              leaseTimeSeconds:
+                description: Lease time in seconds, such as 3600
+                format: int32
+                type: integer
               pxeURL:
                 description: PXEURL (optional) to identify the pxe server to use to
                   boot hosts connected to this segment such as http://10.10.10.99/bootfilename
@@ -145,6 +149,7 @@ spec:
             - endIP
             - gateway
             - interfaceMTU
+            - leaseTimeSeconds
             - pxeURL
             - startIP
             - subnet

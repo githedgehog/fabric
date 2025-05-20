@@ -128,6 +128,10 @@ spec:
                                 that the dhcp server will send to the clients. It
                                 is dependent on the client to honor this option.
                               type: integer
+                            leaseTimeSeconds:
+                              description: Lease time in seconds, such as 3600
+                              format: int32
+                              type: integer
                             pxeURL:
                               description: PXEURL (optional) to identify the pxe server
                                 to use to boot hosts connected to this segment such
@@ -143,6 +147,7 @@ spec:
                               type: array
                           required:
                           - interfaceMTU
+                          - leaseTimeSeconds
                           type: object
                         range:
                           description: Range (optional) is the DHCP range for the

@@ -184,6 +184,11 @@ func main() {
 								Aliases: []string{"dhcp-end"},
 								Usage:   "dhcp range end",
 							},
+							&cli.StringFlag{
+								Name:    "dhcp-lease-time",
+								Aliases: []string{"dhcp-lease"},
+								Usage:   "dhcp lease time in seconds",
+							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
@@ -201,7 +206,8 @@ func main() {
 										End:   cCtx.String("dhcp-range-end"),
 									},
 									Options: &vpcapi.VPCDHCPOptions{
-										PXEURL: cCtx.String("dhcp-pxe-url"),
+										PXEURL:           cCtx.String("dhcp-pxe-url"),
+										LeaseTimeSeconds: uint32(cCtx.Uint("dhcp-lease-time")), //nolint:gosec
 									},
 								},
 							}), "failed to create vpc")

@@ -36,8 +36,10 @@ import (
 )
 
 const (
-	VPCVNIOffset = 100
-	VPCVNIMax    = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+	VPCVNIOffset     = 100
+	VPCVNIMax        = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+	DefaultMTU       = 9036
+	DefaultLeaseTime = 3600
 )
 
 type VPCReconciler struct {
@@ -146,7 +148,8 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 			pxeURL := ""
 			dnsServers := []string{}
 			timeServers := []string{}
-			mtu := uint16(9036) // TODO constant
+			mtu := uint16(DefaultMTU)
+			leaseTime := uint32(DefaultLeaseTime)
 
 			if subnet.DHCP.Options != nil {
 				pxeURL = subnet.DHCP.Options.PXEURL
@@ -156,6 +159,10 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				if subnet.DHCP.Options.InterfaceMTU > 0 {
 					mtu = subnet.DHCP.Options.InterfaceMTU
 				}
+
+				if subnet.DHCP.Options.LeaseTimeSeconds > 0 {
+					leaseTime = subnet.DHCP.Options.LeaseTimeSeconds
+				}
 			}
 
 			dhcp.Labels = map[string]string{
@@ -163,17 +170,18 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				vpcapi.LabelSubnet: subnetName,
 			}
 			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
-				Subnet:       fmt.Sprintf("%s/%s", vpc.Name, subnetName),
-				CIDRBlock:    subnet.Subnet,
-				Gateway:      subnet.Gateway,
-				StartIP:      subnet.DHCP.Range.Start,
-				EndIP:        subnet.DHCP.Range.End,
-				VRF:          fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
-				CircuitID:    fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
-				PXEURL:       pxeURL,
-				DNSServers:   dnsServers,
-				TimeServers:  timeServers,
-				InterfaceMTU: mtu,
+				Subnet:           fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock:        subnet.Subnet,
+				Gateway:          subnet.Gateway,
+				StartIP:          subnet.DHCP.Range.Start,
+				EndIP:            subnet.DHCP.Range.End,
+				LeaseTimeSeconds: leaseTime,
+				VRF:              fmt.Sprintf("VrfV%s", vpc.Name),    // TODO move to utils
+				CircuitID:        fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				PXEURL:           pxeURL,
+				DNSServers:       dnsServers,
+				TimeServers:      timeServers,
+				InterfaceMTU:     mtu,
 			}
 
 			return nil

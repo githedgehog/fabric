@@ -59,6 +59,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 	if err != nil {
 		return errors.Wrapf(err, "handleDiscover4: failed to allocate ip")
 	}
+	leaseTime := time.Duration(subnet.dhcpSubnet.Spec.LeaseTimeSeconds) * time.Second
 
 	subnet.allocations.allocation[req.ClientHWAddr.String()] = &ipreservation{
 		address:    ipnet,
@@ -101,6 +102,8 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 	defer func() {
 		subnet.Unlock()
 	}()
+
+	leaseTime := time.Duration(subnet.dhcpSubnet.Spec.LeaseTimeSeconds) * time.Second
 
 	if reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]; ok {
 		reservation.state = committed
@@ -270,6 +273,8 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet, ipnet net.I
 	if len(routes) == 0 {
 		return errors.New("handleDiscover4: no route found")
 	}
+
+	leaseTime := time.Duration(subnet.dhcpSubnet.Spec.LeaseTimeSeconds) * time.Second
 
 	resp.YourIPAddr = ipnet.IP
 	resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))

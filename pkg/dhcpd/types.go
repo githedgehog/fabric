@@ -24,10 +24,7 @@ import (
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
-var (
-	leaseTime              = 3600 * time.Second
-	pendingDiscoverTimeout = 5000 * time.Millisecond
-)
+var pendingDiscoverTimeout = 5000 * time.Millisecond
 
 type reservationState uint32
 
