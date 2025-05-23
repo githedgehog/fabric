@@ -1306,6 +1306,27 @@ func ipnsVrfName(ipnsName string) string {
 	return vrfName("I" + ipnsName)
 }
 
+// normalize nexthops as we get them in an inconsistent order, and otherwise
+// this can cause a diff when there is none
+func NextHopCompare(a, b dozer.SpecVRFStaticRouteNextHop) int {
+	if a.IP < b.IP {
+		return -1
+	} else if a.IP > b.IP {
+		return 1
+	}
+	if a.Interface == nil && b.Interface != nil {
+		return -1
+	}
+	if a.Interface != nil && b.Interface == nil {
+		return 1
+	}
+	if a.Interface != nil && b.Interface != nil {
+		return strings.Compare(*a.Interface, *b.Interface)
+	}
+
+	return 0
+}
+
 func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	spec.PrefixLists[PrefixListVPCLoopback] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
@@ -1554,6 +1575,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				for _, nextHop := range route.NextHops {
 					nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
 				}
+				slices.SortStableFunc(nextHops, NextHopCompare)
 
 				spec.VRFs[vrfName].StaticRoutes[route.Prefix] = &dozer.SpecVRFStaticRoute{
 					NextHops: nextHops,
