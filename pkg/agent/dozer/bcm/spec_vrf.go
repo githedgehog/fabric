@@ -17,6 +17,7 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -860,6 +861,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							})
 						}
 					}
+					slices.SortStableFunc(nextHops, NextHopCompare)
 
 					staticRoutes[prefix] = &dozer.SpecVRFStaticRoute{
 						NextHops: nextHops,
