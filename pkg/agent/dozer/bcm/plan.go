@@ -1808,15 +1808,15 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		vpc2Attached := agent.Spec.AttachedVPCs[vpc2Name]
 
 		if peering.Remote == "" {
-			if vpc1Attached && !vpc2Attached {
+			if vpc1Attached && !vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
 				spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
 			}
 
-			if !vpc1Attached && vpc2Attached {
+			if !vpc1Attached && vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
 				spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
 			}
 
-			if vpc1Attached && vpc2Attached {
+			if vpc1Attached && vpc2Attached && agent.Spec.Config.LoopbackWorkaround {
 				sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForVPC(peeringName))
 				if err != nil {
 					return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
@@ -2214,7 +2214,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 		ipnsVrf := ipnsVrfName(external.IPv4Namespace)
 		vpcVrf := vpcVrfName(vpcName)
 
-		if !attachedVPCs[vpcName] {
+		if !attachedVPCs[vpcName] || !agent.Spec.Config.LoopbackWorkaround {
 			prefixes := map[uint32]*dozer.SpecPrefixListEntry{}
 			for _, prefix := range peering.Permit.External.Prefixes {
 				idx := agent.Spec.Catalog.SubnetIDs[prefix.Prefix]

@@ -261,6 +261,8 @@ spec:
                   gatewayASN:
                     format: int32
                     type: integer
+                  loopbackWorkaround:
+                    type: boolean
                   mclagSessionSubnet:
                     type: string
                   serverFacingMTUOffset:

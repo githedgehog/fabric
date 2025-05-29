@@ -575,28 +575,30 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 
 	loWorkaroundReqs := map[string]bool{}
-	for name, peering := range peerings {
-		if peering.Remote != "" {
-			continue
-		}
+	if r.cfg.LoopbackWorkaround {
+		for name, peering := range peerings {
+			if peering.Remote != "" {
+				continue
+			}
 
-		vpc1, vpc2, err := peering.VPCs()
-		if err != nil {
-			return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
-		}
+			vpc1, vpc2, err := peering.VPCs()
+			if err != nil {
+				return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
+			}
 
-		if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
-			continue
-		}
+			if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
+				continue
+			}
 
-		loWorkaroundReqs[librarian.LoWReqForVPC(name)] = true
-	}
-	for name, peering := range externalPeerings {
-		if !attachedVPCs[peering.Permit.VPC.Name] {
-			continue
+			loWorkaroundReqs[librarian.LoWReqForVPC(name)] = true
 		}
+		for name, peering := range externalPeerings {
+			if !attachedVPCs[peering.Permit.VPC.Name] {
+				continue
+			}
 
-		loWorkaroundReqs[librarian.LoWReqForExt(name)] = true
+			loWorkaroundReqs[librarian.LoWReqForExt(name)] = true
+		}
 	}
 
 	externalsReq := map[string]bool{}
@@ -713,6 +715,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			DefaultMaxPathsEBGP:   r.cfg.DefaultMaxPathsEBGP,
 			MCLAGSessionSubnet:    r.cfg.MCLAGSessionSubnet,
 			GatewayASN:            r.cfg.GatewayASN,
+			LoopbackWorkaround:    r.cfg.LoopbackWorkaround,
 		}
 		if r.cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}

@@ -85,6 +85,7 @@ type FabricConfig struct {
 	MCLAGSessionSubnet       string      `json:"mclagSessionSubnet,omitempty"`
 	GatewayASN               uint32      `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
 	GatewayAPISync           bool        `json:"gatewayAPISync,omitempty"`
+	LoopbackWorkaround       bool        `json:"loopbackWorkaround,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
