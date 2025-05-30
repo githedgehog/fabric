@@ -117,6 +117,10 @@ type VPCStaticRoute struct {
 	Prefix string `json:"prefix,omitempty"`
 	// NextHops for the static route (at least one is required), e.g. 10.99.0.0
 	NextHops []string `json:"nextHops,omitempty"`
+	// Subnet this route refers to (optional). If specified, the route is only applied on leaves with attachments to this subnet
+	Subnet string `json:"subnet,omitempty"`
+	// Whether to redistribute this route to the VPC routing table (default: false)
+	Redistribute bool `json:"redistribute,omitempty"`
 }
 
 // VPCStatus defines the observed state of VPC
