@@ -53,7 +53,11 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 }
 
 var specRouteMapBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
-	Summary:      "Route Maps Base %s",
+	Summary:   "Route Maps Base %s",
+	NoReplace: true, // we don't want to replace the whole route map, just update the statements
+	Getter: func(name string, value *dozer.SpecRouteMap) any {
+		return name // we do only care about the name of the route map
+	},
 	UpdateWeight: ActionWeightRouteMapUpdate,
 	DeleteWeight: ActionWeightRouteMapDelete,
 	Marshal: func(name string, _ *dozer.SpecRouteMap) (ygot.ValidatedGoStruct, error) {
