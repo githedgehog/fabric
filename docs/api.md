@@ -452,6 +452,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
 | `chassisID` _string_ |  |  |  |
 | `systemName` _string_ |  |  |  |
 | `systemDescription` _string_ |  |  |  |

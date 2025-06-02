@@ -280,6 +280,7 @@ type SwitchStateBreakout struct {
 }
 
 type SwitchStateLLDPNeighbor struct {
+	Name              string `json:"name,omitempty"`
 	ChassisID         string `json:"chassisID,omitempty"`
 	SystemName        string `json:"systemName,omitempty"`
 	SystemDescription string `json:"systemDescription,omitempty"`

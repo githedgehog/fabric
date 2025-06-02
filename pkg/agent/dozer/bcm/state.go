@@ -535,12 +535,11 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 			if neighbour.State == nil {
 				continue
 			}
-			if neighbourName != ifaceName {
-				slog.Warn("LLDP neighbor name does not match interface name", "interface", ifaceName, "neighbour", neighbourName)
-			}
 
 			nSt := neighbour.State
-			st := agentapi.SwitchStateLLDPNeighbor{}
+			st := agentapi.SwitchStateLLDPNeighbor{
+				Name: neighbourName,
+			}
 
 			if nSt.ChassisId != nil {
 				st.ChassisID = *nSt.ChassisId
