@@ -889,7 +889,7 @@ github.com/openconfig/goyang/pkg/yang
 # github.com/openconfig/grpctunnel v0.1.0
 ## explicit; go 1.20
 github.com/openconfig/grpctunnel/proto/tunnel
-# github.com/openconfig/ygot v0.29.22
+# github.com/openconfig/ygot v0.32.0
 ## explicit; go 1.23.4
 github.com/openconfig/ygot/internal/yreflect
 github.com/openconfig/ygot/util
