@@ -183,9 +183,7 @@ var marshalSpecInterfaceBaseEnforcer = func(name string, value *dozer.SpecInterf
 	if isVLAN(name) {
 		val.RoutedVlan = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan{
 			Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4{
-				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{
-					Enabled: pointer.To(true),
-				},
+				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{},
 			},
 		}
 	}
@@ -651,7 +649,7 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 					}
 
 					if ocIface.RoutedVlan.Ipv4.Config != nil {
-						iface.Enabled = ocIface.RoutedVlan.Ipv4.Config.Enabled
+						iface.Enabled = pointer.To(true) // just to keep track of the fact that there is a config for it
 					}
 				}
 				if ocIface.RoutedVlan.Ipv4.SagIpv4 != nil && ocIface.RoutedVlan.Ipv4.SagIpv4.Config != nil {
