@@ -99,6 +99,15 @@ spec:
                     prefix:
                       description: Prefix for the static route (mandatory), e.g. 10.42.0.0/24
                       type: string
+                    redistribute:
+                      description: 'Whether to redistribute this route to the VPC
+                        routing table (default: false)'
+                      type: boolean
+                    subnet:
+                      description: Subnet this route refers to (optional). If specified,
+                        the route is only applied on leaves with attachments to this
+                        subnet
+                      type: string
                   type: object
                 type: array
               subnets:

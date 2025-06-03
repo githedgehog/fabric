@@ -1386,6 +1386,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
 
+		spec.PrefixLists[vpcStaticRoutePrefixListName(vpcName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+		}
+
 		extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
 		if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
 			spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
@@ -1517,6 +1521,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
+				"15": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(vpcStaticRoutePrefixListName(vpcName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
 			},
 		}
 
@@ -1570,7 +1580,26 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		if agent.Spec.AttachedVPCs[vpcName] {
+			srPrefixIdx := uint32(1)
+			// look ahead which subnets are attached to this switch for this VPC
+			attachedSubnets := []string{}
+			for _, attach := range agent.Spec.VPCAttachments {
+				if attach.VPCName() != vpcName {
+					continue
+				}
+				subnetName := attach.SubnetName()
+				_, exists := vpc.Subnets[subnetName]
+				if !exists {
+					return errors.Errorf("VPC %s subnet %s not found", vpcName, subnetName)
+				}
+				attachedSubnets = append(attachedSubnets, subnetName)
+			}
+
 			for _, route := range vpc.StaticRoutes {
+				// skip routes for subnets that are not attached to this switch
+				if route.Subnet != "" && !slices.Contains(attachedSubnets, route.Subnet) {
+					continue
+				}
 				nextHops := []dozer.SpecVRFStaticRouteNextHop{}
 				for _, nextHop := range route.NextHops {
 					nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
@@ -1579,6 +1608,16 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 				spec.VRFs[vrfName].StaticRoutes[route.Prefix] = &dozer.SpecVRFStaticRoute{
 					NextHops: nextHops,
+				}
+
+				if route.Redistribute {
+					spec.PrefixLists[vpcStaticRoutePrefixListName(vpcName)].Prefixes[srPrefixIdx] = &dozer.SpecPrefixListEntry{
+						Prefix: dozer.SpecPrefixListPrefix{
+							Prefix: route.Prefix,
+						},
+						Action: dozer.SpecPrefixListActionPermit,
+					}
+					srPrefixIdx++
 				}
 			}
 		}
@@ -2516,6 +2555,10 @@ func vpcStaticExtSubnetsPrefixListName(vpc string) string {
 
 func vpcExtPrefixesPrefixListName(vpc string) string {
 	return fmt.Sprintf("vpc-ext-prefixes--%s", vpc)
+}
+
+func vpcStaticRoutePrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-subnet-static--%s", vpc)
 }
 
 func ipnsEgressAccessList(ipns string) string {

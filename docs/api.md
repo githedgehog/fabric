@@ -1255,6 +1255,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `prefix` _string_ | Prefix for the static route (mandatory), e.g. 10.42.0.0/24 |  |  |
 | `nextHops` _string array_ | NextHops for the static route (at least one is required), e.g. 10.99.0.0 |  |  |
+| `subnet` _string_ | Subnet this route refers to (optional). If specified, the route is only applied on leaves with attachments to this subnet |  |  |
+| `redistribute` _boolean_ | Whether to redistribute this route to the VPC routing table (default: false) |  |  |
 
 
 #### VPCStatus
