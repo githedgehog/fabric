@@ -56,7 +56,11 @@ var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList
 }
 
 var specPrefixListBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList]{
-	Summary:      "Prefix List Base %s",
+	Summary:   "Prefix List Base %s",
+	NoReplace: true, // we don't want to replace the whole prefix list, just update the entries
+	Getter: func(name string, value *dozer.SpecPrefixList) any {
+		return name // we do only care about the name of the prefix list
+	},
 	UpdateWeight: ActionWeightPrefixListUpdate,
 	DeleteWeight: ActionWeightPrefixListDelete,
 	Marshal: func(name string, _ *dozer.SpecPrefixList) (ygot.ValidatedGoStruct, error) {
