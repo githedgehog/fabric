@@ -239,6 +239,7 @@ type SpecRouteMapStatement struct {
 }
 
 type SpecRouteMapConditions struct {
+	AttachedHost           *bool   `json:"attachedHost,omitempty"`
 	DirectlyConnected      *bool   `json:"directlyConnected,omitempty"`
 	MatchEVPNDefaultRoute  *bool   `json:"matchEvpnDefaultRoute,omitempty"`
 	MatchEVPNVNI           *uint32 `json:"matchEvpnVni,omitempty"`
