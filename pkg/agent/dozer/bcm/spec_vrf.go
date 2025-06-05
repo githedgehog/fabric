@@ -536,6 +536,8 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
 		} else if key == dozer.SpecVRFBGPTableConnectionStatic {
 			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC
+		} else if key == dozer.SpecVRFBGPTableConnectionAttachedHost {
+			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST
 		} else {
 			return nil, errors.Errorf("unknown table connection key %s", key)
 		}
@@ -814,10 +816,15 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					continue
 				}
 
-				name := dozer.SpecVRFBGPTableConnectionStatic
-				if key.SrcProtocol == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
+				name := ""
+				switch key.SrcProtocol { //nolint:exhaustive
+				case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED:
 					name = dozer.SpecVRFBGPTableConnectionConnected
-				} else if key.SrcProtocol != oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC {
+				case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC:
+					name = dozer.SpecVRFBGPTableConnectionStatic
+				case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST:
+					name = dozer.SpecVRFBGPTableConnectionAttachedHost
+				default:
 					continue
 				}
 
