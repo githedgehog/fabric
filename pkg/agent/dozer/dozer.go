@@ -285,8 +285,9 @@ const (
 )
 
 const (
-	SpecVRFBGPTableConnectionConnected = "connected"
-	SpecVRFBGPTableConnectionStatic    = "static"
+	SpecVRFBGPTableConnectionConnected    = "connected"
+	SpecVRFBGPTableConnectionStatic       = "static"
+	SpecVRFBGPTableConnectionAttachedHost = "attachedhost"
 )
 
 type SpecVRFBGPImportVRF struct{}
