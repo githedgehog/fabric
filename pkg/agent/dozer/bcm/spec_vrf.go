@@ -82,6 +82,12 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf ethernet segments")
 		}
 
+		actualAttachedHosts, desiredAttachedHosts := ValueOrNil(actual, desired,
+			func(value *dozer.SpecVRF) *dozer.SpecVRFAttachedHost { return value.AttachedHost })
+		if err := specVRFAttachedHostEnforcer.Handle(basePath, name, actualAttachedHosts, desiredAttachedHosts, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf attached hosts")
+		}
+
 		return nil
 	},
 }
@@ -616,6 +622,37 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 	},
 }
 
+var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAttachedHost]{
+	Summary:      "VRF attached host",
+	Path:         "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host",
+	UpdateWeight: ActionWeightVRFStaticRouteUpdate, // TODO
+	DeleteWeight: ActionWeightVRFStaticRouteDelete, // TODO
+	Marshal: func(name string, value *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
+		ifaces := map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{}
+		for _, iface := range value.Interfaces {
+			ifaces[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key{
+				InterfaceId:   iface,
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+			}] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{
+				InterfaceId:   pointer.To(iface),
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Config{
+					InterfaceId:   pointer.To(iface),
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				},
+			}
+		}
+
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+			AttachedHost: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost{
+				Interfaces: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces{
+					Interface: ifaces,
+				},
+			},
+		}, nil
+	},
+}
+
 func loadActualVRFs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{}
 	err := client.Get(ctx, "/network-instances/network-instance", ocVal)
@@ -656,13 +693,27 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 		}
+		var attachedHost *dozer.SpecVRFAttachedHost
+
 		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
+			attachedHostProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
+				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST,
+				Name:       "attached-host",
+			}]
+			if attachedHostProto != nil && attachedHostProto.AttachedHost != nil {
+				attachedHost = &dozer.SpecVRFAttachedHost{}
+				if attachedHostProto.AttachedHost.Interfaces != nil {
+					for ifaceName := range attachedHostProto.AttachedHost.Interfaces.Interface {
+						attachedHost.Interfaces = append(attachedHost.Interfaces, ifaceName.InterfaceId)
+					}
+				}
+			}
+
 			bgpProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
 				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 				Name:       "bgp",
 			}]
-
 			if bgpProto != nil && bgpProto.Bgp != nil {
 				bgpConfig := bgpProto.Bgp
 
@@ -932,6 +983,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			StaticRoutes:     staticRoutes,
 			EVPNMH:           evpnMH,
 			EthernetSegments: es,
+			AttachedHost:     attachedHost,
 		}
 	}
 
