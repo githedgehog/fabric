@@ -16,6 +16,7 @@ package dozer
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 
@@ -154,6 +155,7 @@ type SpecVRF struct {
 	StaticRoutes     map[string]*SpecVRFStaticRoute     `json:"staticRoutes,omitempty"`
 	EthernetSegments map[string]*SpecVRFEthernetSegment `json:"ethernetSegments,omitempty"`
 	EVPNMH           SpecVRFEVPNMH                      `json:"evpnMH,omitempty"`
+	AttachedHost     *SpecVRFAttachedHost               `json:"attachedHost,omitempty"`
 }
 
 type SpecVRFInterface struct{}
@@ -227,6 +229,10 @@ type SpecVRFEVPNMH struct {
 	StartupDelay *uint32 `json:"startupDelay,omitempty"`
 }
 
+type SpecVRFAttachedHost struct {
+	Interfaces []string `json:"interfaces,omitempty"`
+}
+
 type SpecRouteMap struct {
 	Statements map[string]*SpecRouteMapStatement `json:"statements,omitempty"`
 }
@@ -239,6 +245,7 @@ type SpecRouteMapStatement struct {
 }
 
 type SpecRouteMapConditions struct {
+	AttachedHost           *bool   `json:"attachedHost,omitempty"`
 	DirectlyConnected      *bool   `json:"directlyConnected,omitempty"`
 	MatchEVPNDefaultRoute  *bool   `json:"matchEvpnDefaultRoute,omitempty"`
 	MatchEVPNVNI           *uint32 `json:"matchEvpnVni,omitempty"`
@@ -284,8 +291,9 @@ const (
 )
 
 const (
-	SpecVRFBGPTableConnectionConnected = "connected"
-	SpecVRFBGPTableConnectionStatic    = "static"
+	SpecVRFBGPTableConnectionConnected    = "connected"
+	SpecVRFBGPTableConnectionStatic       = "static"
+	SpecVRFBGPTableConnectionAttachedHost = "attachedhost"
 )
 
 type SpecVRFBGPImportVRF struct{}
@@ -425,6 +433,12 @@ func (s *Spec) Normalize() {
 			}
 		}
 	}
+
+	for _, vrf := range s.VRFs {
+		if vrf.AttachedHost != nil {
+			slices.Sort(vrf.AttachedHost.Interfaces)
+		}
+	}
 }
 
 func (s *Spec) CleanupSensetive() {
@@ -492,6 +506,7 @@ var (
 	_ SpecPart = (*SpecVRFTableConnection)(nil)
 	_ SpecPart = (*SpecVRFStaticRoute)(nil)
 	_ SpecPart = (*SpecVRFEthernetSegment)(nil)
+	_ SpecPart = (*SpecVRFAttachedHost)(nil)
 	_ SpecPart = (*SpecRouteMap)(nil)
 	_ SpecPart = (*SpecRouteMapStatement)(nil)
 	_ SpecPart = (*SpecPrefixList)(nil)
@@ -600,6 +615,10 @@ func (s *SpecVRFStaticRoute) IsNil() bool {
 }
 
 func (s *SpecVRFEthernetSegment) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecVRFAttachedHost) IsNil() bool {
 	return s == nil
 }
 
