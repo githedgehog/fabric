@@ -52,6 +52,7 @@ const (
 	AnycastMAC                     = "00:00:00:11:11:11"
 	RouteMapMaxStatement           = 65535
 	RouteMapBlockEVPNDefaultRemote = "evpn-default-remote-block"
+	RouteMapFilterAttachedHost     = "filter-attached-hosts"
 	PrefixListAny                  = "any-prefix"
 	PrefixListVPCLoopback          = "vpc-loopback-prefix"
 	NoCommunity                    = "no-community"
@@ -1344,6 +1345,21 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		Members: []string{"REGEX:^$"},
 	}
 
+	spec.RouteMaps[RouteMapFilterAttachedHost] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{
+					AttachedHost: pointer.To(true),
+				},
+				Result: dozer.SpecRouteMapResultReject,
+			},
+			"20": {
+				Conditions: dozer.SpecRouteMapConditions{},
+				Result:     dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
+
 	for vpcName, vpc := range agent.Spec.VPCs {
 		vrfName := vpcVrfName(vpcName)
 
@@ -1366,6 +1382,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 		if spec.VRFs[vrfName].StaticRoutes == nil {
 			spec.VRFs[vrfName].StaticRoutes = map[string]*dozer.SpecVRFStaticRoute{}
+		}
+		if spec.VRFs[vrfName].AttachedHost == nil {
+			spec.VRFs[vrfName].AttachedHost = &dozer.SpecVRFAttachedHost{}
 		}
 
 		peerComm, err := communityForVPC(agent, vpcName)
@@ -1538,8 +1557,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 			L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-				Enabled:              agent.IsSpineLeaf(),
-				AdvertiseIPv4Unicast: pointer.To(true),
+				Enabled:                       agent.IsSpineLeaf(),
+				AdvertiseIPv4Unicast:          pointer.To(true),
+				AdvertiseIPv4UnicastRouteMaps: []string{RouteMapFilterAttachedHost},
 			},
 		}
 		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
@@ -1549,6 +1569,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			dozer.SpecVRFBGPTableConnectionStatic: {
 				ImportPolicies: []string{vpcRedistributeStaticRouteMap},
 			},
+			dozer.SpecVRFBGPTableConnectionAttachedHost: {},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
@@ -1935,6 +1956,10 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 	}
 
 	spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
+
+	if !slices.Contains(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface) {
+		spec.VRFs[vrfName].AttachedHost.Interfaces = append(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface)
+	}
 
 	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)
 	spec.ACLInterfaces[subnetIface] = &dozer.SpecACLInterface{
