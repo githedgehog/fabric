@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"maps"
+	"net/netip"
 	"slices"
 	"strings"
 
@@ -32,6 +33,16 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// VPCAttachmentVIPs defines a list of IPs that are reachable through the VPC attachment.
+type VPCAttachmentVIPs struct {
+	// Prefixes is a list of IPv4 prefixes that should be reachable by the fabric via the VPC attachment,
+	// e.g. on the loopback interface of the server.
+	Prefixes []string `json:"prefixes,omitempty"`
+	// Gateway is the IP address on the server's attachment interface to be used as nexthop
+	// in order to reach the VIPs. It should be statically assigned
+	Gateway string `json:"gateway,omitempty"`
+}
+
 // VPCAttachmentSpec defines the desired state of VPCAttachment
 type VPCAttachmentSpec struct {
 	// Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default"
@@ -40,6 +51,8 @@ type VPCAttachmentSpec struct {
 	Connection string `json:"connection,omitempty"`
 	// NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet
 	NativeVLAN bool `json:"nativeVLAN,omitempty"`
+	// VIPs is a list of IPs that are reachable through the VPC attachment.
+	VIPs VPCAttachmentVIPs `json:"vips,omitempty"`
 }
 
 // VPCAttachmentStatus defines the observed state of VPCAttachment
@@ -161,6 +174,23 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 
 	if attach.Spec.Connection == "" {
 		return nil, errors.Errorf("connection is required")
+	}
+
+	if len(attach.Spec.VIPs.Prefixes) > 0 {
+		for _, prefix := range attach.Spec.VIPs.Prefixes {
+			p, parseErr := netip.ParsePrefix(prefix)
+			if parseErr != nil {
+				return nil, errors.Errorf("invalid VIP prefix %q: %v", prefix, parseErr)
+			}
+			if !p.Addr().Is4() {
+				return nil, errors.Errorf("invalid VIP prefix %q, only IPv4 prefixes are supported", prefix)
+			}
+		}
+		if _, err := netip.ParseAddr(attach.Spec.VIPs.Gateway); err != nil {
+			return nil, errors.Errorf("invalid VIP gateway %q: %v", attach.Spec.VIPs.Gateway, err)
+		}
+	} else if attach.Spec.VIPs.Gateway != "" {
+		return nil, errors.Errorf("VIPs are not specified, but VIP gateway is set to %q", attach.Spec.VIPs.Gateway)
 	}
 
 	if kube != nil {

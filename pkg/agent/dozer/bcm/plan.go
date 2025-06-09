@@ -1386,6 +1386,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
 
+		spec.PrefixLists[vpcAttachVipsPrefixListName(vpcName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+		}
+
 		extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
 		if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
 			spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
@@ -1514,6 +1518,12 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				"10": {
 					Conditions: dozer.SpecRouteMapConditions{
 						MatchPrefixList: pointer.To(vpcExtPrefixesPrefixListName(vpcName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+				"15": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(vpcAttachVipsPrefixListName(vpcName)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -1663,6 +1673,31 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, vlanStr) {
 					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, vlanStr)
 				}
+			}
+		}
+
+		vrfName := vpcVrfName(vpcName)
+		for _, prefix := range attach.VIPs.Prefixes {
+			sr, ok := spec.VRFs[vrfName].StaticRoutes[prefix]
+			if !ok {
+				sr = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{},
+				}
+			}
+			nextHop := dozer.SpecVRFStaticRouteNextHop{
+				IP: attach.VIPs.Gateway,
+			}
+			sr.NextHops = append(sr.NextHops, nextHop)
+			slices.SortStableFunc(sr.NextHops, NextHopCompare)
+			spec.VRFs[vrfName].StaticRoutes[prefix] = sr
+
+			//TODO: librarian?
+			idx := uint32(len(spec.PrefixLists[vpcAttachVipsPrefixListName(vpcName)].Prefixes) + 1) //nolint:gosec
+			spec.PrefixLists[vpcAttachVipsPrefixListName(vpcName)].Prefixes[idx] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: prefix,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
 			}
 		}
 	}
@@ -2516,6 +2551,10 @@ func vpcStaticExtSubnetsPrefixListName(vpc string) string {
 
 func vpcExtPrefixesPrefixListName(vpc string) string {
 	return fmt.Sprintf("vpc-ext-prefixes--%s", vpc)
+}
+
+func vpcAttachVipsPrefixListName(vpc string) string {
+	return fmt.Sprintf("vpc-attach-vips--%s", vpc)
 }
 
 func ipnsEgressAccessList(ipns string) string {

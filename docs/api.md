@@ -1074,6 +1074,7 @@ _Appears in:_
 | `subnet` _string_ | Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default" |  |  |
 | `connection` _string_ | Connection is the name of the connection to attach to the VPC |  |  |
 | `nativeVLAN` _boolean_ | NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet |  |  |
+| `vips` _[VPCAttachmentVIPs](#vpcattachmentvips)_ | VIPs is a list of IPs that are reachable through the VPC attachment. |  |  |
 
 
 #### VPCAttachmentStatus
@@ -1087,6 +1088,23 @@ VPCAttachmentStatus defines the observed state of VPCAttachment
 _Appears in:_
 - [VPCAttachment](#vpcattachment)
 
+
+
+#### VPCAttachmentVIPs
+
+
+
+VPCAttachmentVIPs defines a list of IPs that are reachable through the VPC attachment.
+
+
+
+_Appears in:_
+- [VPCAttachmentSpec](#vpcattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefixes` _string array_ | Prefixes is a list of IPv4 prefixes that should be reachable by the fabric via the VPC attachment,<br />e.g. on the loopback interface of the server. |  |  |
+| `gateway` _string_ | Gateway is the IP address on the server's attachment interface to be used as nexthop<br />in order to reach the VIPs. It should be statically assigned |  |  |
 
 
 #### VPCDHCP
