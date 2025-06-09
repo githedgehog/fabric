@@ -1549,6 +1549,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			dozer.SpecVRFBGPTableConnectionStatic: {
 				ImportPolicies: []string{vpcRedistributeStaticRouteMap},
 			},
+			dozer.SpecVRFBGPTableConnectionAttachedHost: {
+				// TODO: do we need a route map here?
+			},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
@@ -1664,6 +1667,16 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, vlanStr)
 				}
 			}
+		}
+
+		vrfName := vpcVrfName(vpcName)
+		if spec.VRFs[vrfName].AttachedHost == nil {
+			spec.VRFs[vrfName].AttachedHost = &dozer.SpecVRFAttachedHost{}
+		}
+
+		vlanIface := vlanName(subnet.VLAN)
+		if !slices.Contains(spec.VRFs[vrfName].AttachedHost.Interfaces, vlanIface) {
+			spec.VRFs[vrfName].AttachedHost.Interfaces = append(spec.VRFs[vrfName].AttachedHost.Interfaces, vlanIface)
 		}
 	}
 
