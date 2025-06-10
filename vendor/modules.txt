@@ -308,8 +308,8 @@ github.com/cespare/xxhash/v2
 # github.com/chappjc/logrus-prefix v0.0.0-20180227015900-3a1d64819adb
 ## explicit
 github.com/chappjc/logrus-prefix
-# github.com/cloudflare/circl v1.3.7
-## explicit; go 1.19
+# github.com/cloudflare/circl v1.6.1
+## explicit; go 1.22.0
 github.com/cloudflare/circl/dh/x25519
 github.com/cloudflare/circl/dh/x448
 github.com/cloudflare/circl/ecc/goldilocks
