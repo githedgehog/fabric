@@ -96,11 +96,13 @@ const (
 	ActionWeightPortChannelConfigFallbackUpdate
 
 	ActionWeightInterfaceSubinterfaceIPsDelete
+	ActionWeightVRFAttchedHostDelete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightACLInterfaceDelete
 	ActionWeightInterfaceSubinterfaceDelete
 	ActionWeightInterfaceSubinterfaceUpdate
 	ActionWeightVRFInterfaceUpdate
+	ActionWeightVRFAttchedHostUpdate
 	ActionWeightInterfaceSubinterfaceIPsUpdate
 
 	ActionWeightLLDPInterfaceUpdate
