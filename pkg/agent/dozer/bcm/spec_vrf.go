@@ -625,8 +625,8 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAttachedHost]{
 	Summary:      "VRF attached host",
 	Path:         "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host",
-	UpdateWeight: ActionWeightVRFStaticRouteUpdate, // TODO
-	DeleteWeight: ActionWeightVRFStaticRouteDelete, // TODO
+	UpdateWeight: ActionWeightVRFAttchedHostUpdate,
+	DeleteWeight: ActionWeightVRFAttchedHostDelete,
 	Marshal: func(name string, value *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
 		ifaces := map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{}
 		for _, iface := range value.Interfaces {
