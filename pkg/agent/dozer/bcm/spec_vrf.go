@@ -697,26 +697,21 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
-			attachedHostProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST,
-				Name:       "attached-host",
-			}]
-			if attachedHostProto != nil && attachedHostProto.AttachedHost != nil {
-				attachedHost = &dozer.SpecVRFAttachedHost{}
-				if attachedHostProto.AttachedHost.Interfaces != nil {
-					for ifaceName := range attachedHostProto.AttachedHost.Interfaces.Interface {
-						attachedHost.Interfaces = append(attachedHost.Interfaces, ifaceName.InterfaceId)
-					}
-				}
-			}
-
 			bgpProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
 				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 				Name:       "bgp",
 			}]
 			if bgpProto != nil && bgpProto.Bgp != nil {
-				bgpConfig := bgpProto.Bgp
+				if bgpProto.AttachedHost != nil {
+					attachedHost = &dozer.SpecVRFAttachedHost{}
+					if bgpProto.AttachedHost.Interfaces != nil {
+						for ifaceName := range bgpProto.AttachedHost.Interfaces.Interface {
+							attachedHost.Interfaces = append(attachedHost.Interfaces, ifaceName.InterfaceId)
+						}
+					}
+				}
 
+				bgpConfig := bgpProto.Bgp
 				if bgpConfig.Global != nil && bgpConfig.Global.Config != nil {
 					bgpOk = true
 
