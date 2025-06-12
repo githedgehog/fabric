@@ -52,30 +52,28 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 	sps := map[string]*wiringapi.SwitchProfile{}
 	swSP := map[string]*wiringapi.SwitchProfile{}
 	swNOS2API := map[string]map[string]string{}
-	spNOS2API := map[string]map[string]string{}
 
 	swList := &wiringapi.SwitchList{}
 	if err := kube.List(ctx, swList); err != nil {
 		return nil, fmt.Errorf("listing switches: %w", err)
 	}
 	for _, sw := range swList.Items {
-		if _, ok := spNOS2API[sw.Spec.Profile]; !ok {
-			sp := &wiringapi.SwitchProfile{}
+		sp, ok := sps[sw.Spec.Profile]
+		if !ok {
+			sp = &wiringapi.SwitchProfile{}
 			if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp); err != nil {
 				return nil, fmt.Errorf("getting switch profile %s: %w", sw.Spec.Profile, err)
 			}
-
-			ports, err := sp.Spec.GetNOS2APIPortsFor(&sw.Spec)
-			if err != nil {
-				return nil, fmt.Errorf("getting NOS ports mapping for %s: %w", sw.Name, err)
-			}
-
 			sps[sp.Name] = sp
-			spNOS2API[sp.Name] = ports
+		}
+		swSP[sw.Name] = sp
+
+		ports, err := sp.Spec.GetNOS2APIPortsFor(&sw.Spec)
+		if err != nil {
+			return nil, fmt.Errorf("getting NOS ports mapping for %s: %w", sw.Name, err)
 		}
 
-		swSP[sw.Name] = sps[sw.Spec.Profile]
-		swNOS2API[sw.Name] = spNOS2API[sw.Spec.Profile]
+		swNOS2API[sw.Name] = ports
 	}
 
 	conns := &wiringapi.ConnectionList{}
