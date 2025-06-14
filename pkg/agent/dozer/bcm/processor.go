@@ -39,10 +39,10 @@ type BroadcomProcessor struct {
 
 var _ dozer.Processor = &BroadcomProcessor{}
 
-func Processor(client *gnmi.Client) *BroadcomProcessor {
+func Processor(client *gnmi.Client) (*BroadcomProcessor, error) {
 	return &BroadcomProcessor{
 		client: client,
-	}
+	}, initCompat()
 }
 
 func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
