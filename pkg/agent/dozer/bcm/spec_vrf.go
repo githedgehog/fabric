@@ -82,6 +82,12 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 			return errors.Wrap(err, "failed to handle vrf ethernet segments")
 		}
 
+		actualAttachedHosts, desiredAttachedHosts := ValueOrNil(actual, desired,
+			func(value *dozer.SpecVRF) *dozer.SpecVRFAttachedHost { return value.AttachedHost })
+		if err := specVRFAttachedHostEnforcer.Handle(basePath, name, actualAttachedHosts, desiredAttachedHosts, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf attached hosts")
+		}
+
 		return nil
 	},
 }
@@ -533,9 +539,11 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 		var proto oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE
 
 		if key == dozer.SpecVRFBGPTableConnectionConnected {
-			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
+			proto = Compat_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
 		} else if key == dozer.SpecVRFBGPTableConnectionStatic {
-			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC
+			proto = Compat_INSTALL_PROTOCOL_TYPE_STATIC
+		} else if key == dozer.SpecVRFBGPTableConnectionAttachedHost {
+			proto = Compat_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST
 		} else {
 			return nil, errors.Errorf("unknown table connection key %s", key)
 		}
@@ -544,15 +552,15 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 			TableConnection: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection{
 				{
 					SrcProtocol:   proto,
-					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					DstProtocol:   Compat_INSTALL_PROTOCOL_TYPE_BGP,
 					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
 				}: {
 					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
 					SrcProtocol:   proto,
-					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					DstProtocol:   Compat_INSTALL_PROTOCOL_TYPE_BGP,
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Config{
 						AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
-						DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						DstProtocol:   Compat_INSTALL_PROTOCOL_TYPE_BGP,
 						SrcProtocol:   proto,
 						ImportPolicy:  value.ImportPolicies,
 					},
@@ -614,6 +622,37 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 	},
 }
 
+var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAttachedHost]{
+	Summary:      "VRF attached host",
+	Path:         "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host",
+	UpdateWeight: ActionWeightVRFAttchedHostUpdate,
+	DeleteWeight: ActionWeightVRFAttchedHostDelete,
+	Marshal: func(name string, value *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
+		ifaces := map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{}
+		for _, iface := range value.Interfaces {
+			ifaces[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key{
+				InterfaceId:   iface,
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+			}] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{
+				InterfaceId:   pointer.To(iface),
+				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Config{
+					InterfaceId:   pointer.To(iface),
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				},
+			}
+		}
+
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+			AttachedHost: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost{
+				Interfaces: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces{
+					Interface: ifaces,
+				},
+			},
+		}, nil
+	},
+}
+
 func loadActualVRFs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{}
 	err := client.Get(ctx, "/network-instances/network-instance", ocVal)
@@ -654,16 +693,25 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 		}
+		var attachedHost *dozer.SpecVRFAttachedHost
+
 		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
 			bgpProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				Identifier: Compat_INSTALL_PROTOCOL_TYPE_BGP,
 				Name:       "bgp",
 			}]
-
 			if bgpProto != nil && bgpProto.Bgp != nil {
-				bgpConfig := bgpProto.Bgp
+				if bgpProto.AttachedHost != nil {
+					attachedHost = &dozer.SpecVRFAttachedHost{}
+					if bgpProto.AttachedHost.Interfaces != nil {
+						for ifaceName := range bgpProto.AttachedHost.Interfaces.Interface {
+							attachedHost.Interfaces = append(attachedHost.Interfaces, ifaceName.InterfaceId)
+						}
+					}
+				}
 
+				bgpConfig := bgpProto.Bgp
 				if bgpConfig.Global != nil && bgpConfig.Global.Config != nil {
 					bgpOk = true
 
@@ -804,7 +852,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 		if ocVRF.TableConnections != nil {
 			for key, tableConnection := range ocVRF.TableConnections.TableConnection {
-				if key.DstProtocol != oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP {
+				if key.DstProtocol != Compat_INSTALL_PROTOCOL_TYPE_BGP {
 					continue
 				}
 				if key.AddressFamily != oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4 {
@@ -814,10 +862,15 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					continue
 				}
 
-				name := dozer.SpecVRFBGPTableConnectionStatic
-				if key.SrcProtocol == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
+				name := ""
+				switch key.SrcProtocol { //nolint:exhaustive
+				case Compat_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED:
 					name = dozer.SpecVRFBGPTableConnectionConnected
-				} else if key.SrcProtocol != oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC {
+				case Compat_INSTALL_PROTOCOL_TYPE_STATIC:
+					name = dozer.SpecVRFBGPTableConnectionStatic
+				case Compat_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST:
+					name = dozer.SpecVRFBGPTableConnectionAttachedHost
+				default:
 					continue
 				}
 
@@ -831,7 +884,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
 			staticProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
+				Identifier: Compat_INSTALL_PROTOCOL_TYPE_STATIC,
 				Name:       "static",
 			}]
 			if staticProto != nil && staticProto.StaticRoutes != nil {
@@ -925,6 +978,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			StaticRoutes:     staticRoutes,
 			EVPNMH:           evpnMH,
 			EthernetSegments: es,
+			AttachedHost:     attachedHost,
 		}
 	}
 

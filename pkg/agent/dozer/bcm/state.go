@@ -611,7 +611,7 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 		}
 
 		bgpProto := vrf.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-			Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+			Identifier: Compat_INSTALL_PROTOCOL_TYPE_BGP,
 			Name:       "bgp",
 		}]
 		if bgpProto == nil || bgpProto.Bgp == nil || bgpProto.Bgp.Neighbors == nil {
