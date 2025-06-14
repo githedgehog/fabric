@@ -62,6 +62,11 @@ const (
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
+	// workaround to deal with attached hosts only being supported in 4.5.0 and later
+	if sonicVersionCurr.Compare(sonicVersion450) < 0 {
+		agent.Spec.Config.LoopbackWorkaround = true
+	}
+
 	spec := &dozer.Spec{
 		ZTP:             pointer.To(false),
 		Hostname:        pointer.To(agent.Name),
@@ -1083,8 +1088,8 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 	spec.VRFs[VRFDefault].TableConnections = map[string]*dozer.SpecVRFTableConnection{
-		dozer.SpecVRFBGPTableConnectionConnected: {},
-		dozer.SpecVRFBGPTableConnectionStatic:    {},
+		string(dozer.SpecVRFBGPTableConnectionConnected): {},
+		string(dozer.SpecVRFBGPTableConnectionStatic):    {},
 	}
 
 	return nil
@@ -1563,13 +1568,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 		spec.VRFs[vrfName].TableConnections = map[string]*dozer.SpecVRFTableConnection{
-			dozer.SpecVRFBGPTableConnectionConnected: {
+			string(dozer.SpecVRFBGPTableConnectionConnected): {
 				ImportPolicies: []string{vpcRedistributeConnectedRouteMap},
 			},
-			dozer.SpecVRFBGPTableConnectionStatic: {
+			string(dozer.SpecVRFBGPTableConnectionStatic): {
 				ImportPolicies: []string{vpcRedistributeStaticRouteMap},
 			},
-			dozer.SpecVRFBGPTableConnectionAttachedHost: {},
+			string(dozer.SpecVRFBGPTableConnectionAttachedHost): {},
 		}
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 

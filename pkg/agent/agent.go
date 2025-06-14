@@ -127,7 +127,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	defer svc.gnmiClient.Close()
 
-	svc.processor = bcm.Processor(svc.gnmiClient)
+	svc.processor, err = bcm.Processor(svc.gnmiClient)
+	if err != nil {
+		return errors.Wrap(err, "failed to create BCM processor")
+	}
 
 	if !svc.DryRun && !svc.ApplyOnce {
 		err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
