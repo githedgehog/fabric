@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/openconfig/gnmic/api"
@@ -191,14 +192,25 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 				return nil, errors.Errorf("unsupported gnmi action %+v", act)
 			}
 
-			req, err := api.NewSetRequest(options...)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create GNMI set request")
-			}
+			for attempt := 0; attempt < 50; attempt++ {
+				req, err := api.NewSetRequest(options...)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot create GNMI set request")
+				}
 
-			err = p.client.Set(ctx, req)
-			if err != nil {
-				return nil, errors.Wrapf(err, "GNMI set request failed")
+				if err := p.client.Set(ctx, req); err != nil {
+					// workaround for port breakout being still in progress when configuring interfaces
+					if strings.Contains(err.Error(), "Port breakout is in progress") {
+						slog.Warn("Port breakout is in progress, retrying in 2 seconds")
+						time.Sleep(2 * time.Second)
+
+						continue // retry
+					}
+
+					return nil, errors.Wrapf(err, "GNMI set request failed")
+				}
+
+				break // retries
 			}
 		}
 
