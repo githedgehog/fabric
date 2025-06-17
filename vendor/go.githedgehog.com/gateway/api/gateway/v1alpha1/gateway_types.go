@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/netip"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +21,8 @@ type GatewaySpec struct {
 	ProtocolIP string `json:"protocolIP,omitempty"`
 	// VTEP IP to be used by the gateway
 	VTEPIP string `json:"vtepIP,omitempty"`
+	// VTEP MAC address to be used by the gateway
+	VTEPMAC string `json:"vtepMAC,omitempty"`
 	// ASN is the ASN of the gateway
 	ASN uint32 `json:"asn,omitempty"`
 	// Interfaces is a map of interface names to their configurations
@@ -30,12 +33,14 @@ type GatewaySpec struct {
 
 // GatewayInterface defines the configuration for a gateway interface
 type GatewayInterface struct {
-	// IP is the IP address to assign to the interface
-	IP string `json:"ip,omitempty"`
+	// IPs is the list of IP address to assign to the interface
+	IPs []string `json:"ips,omitempty"`
 }
 
 // GatewayBGPNeighbor defines the configuration for a BGP neighbor
 type GatewayBGPNeighbor struct {
+	// Source is the source interface for the BGP neighbor configuration
+	Source string `json:"source,omitempty"`
 	// IP is the IP address of the BGP neighbor
 	IP string `json:"ip,omitempty"`
 	// ASN is the remote ASN of the BGP neighbor
@@ -96,6 +101,13 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 		return fmt.Errorf("VTEPIP %s must be an IPv4 address", gw.Spec.VTEPIP) //nolint:goerr113
 	}
 
+	if gw.Spec.VTEPMAC == "" {
+		return fmt.Errorf("VTEPMAC must be set") //nolint:goerr113
+	}
+	if _, err := net.ParseMAC(gw.Spec.VTEPMAC); err != nil {
+		return fmt.Errorf("invalid VTEPMAC %s: %w", gw.Spec.VTEPMAC, err)
+	}
+
 	if gw.Spec.ASN == 0 {
 		return fmt.Errorf("ASN must be set") //nolint:goerr113
 	}
@@ -104,15 +116,17 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 		return fmt.Errorf("at least one interface must be defined") //nolint:goerr113
 	}
 	for name, iface := range gw.Spec.Interfaces {
-		if iface.IP == "" {
-			return fmt.Errorf("interface %s must have an IP address", name) //nolint:goerr113
+		if len(iface.IPs) == 0 {
+			return fmt.Errorf("interface %s must have at least one IP address", name) //nolint:goerr113
 		}
-		ifaceIP, err := netip.ParsePrefix(iface.IP)
-		if err != nil {
-			return fmt.Errorf("invalid interface IP %s: %w", iface.IP, err)
-		}
-		if !ifaceIP.Addr().Is4() {
-			return fmt.Errorf("interface %s IP %s must be an IPv4 address", name, iface.IP) //nolint:goerr113
+		for _, ifaceIP := range iface.IPs {
+			ifaceIP, err := netip.ParsePrefix(ifaceIP)
+			if err != nil {
+				return fmt.Errorf("invalid interface %s IP %s: %w", name, ifaceIP, err)
+			}
+			if !ifaceIP.Addr().Is4() {
+				return fmt.Errorf("interface %s IP %s must be an IPv4 address", name, ifaceIP) //nolint:goerr113
+			}
 		}
 	}
 
