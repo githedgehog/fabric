@@ -63,7 +63,8 @@ const (
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
 	// workaround to deal with attached hosts only being supported in 4.5.0 and later
-	if sonicVersionCurr.Compare(sonicVersion450) < 0 {
+	if !agent.Spec.Config.LoopbackWorkaround && sonicVersionCurr.Compare(sonicVersion450) < 0 {
+		slog.Warn("Enabling loopback workaround, please upgrade SONiC to 4.5.0 or later")
 		agent.Spec.Config.LoopbackWorkaround = true
 	}
 
@@ -1352,17 +1353,20 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	spec.RouteMaps[RouteMapFilterAttachedHost] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
-			"10": {
-				Conditions: dozer.SpecRouteMapConditions{
-					AttachedHost: pointer.To(true),
-				},
-				Result: dozer.SpecRouteMapResultReject,
-			},
-			"20": {
+			"100": {
 				Conditions: dozer.SpecRouteMapConditions{},
 				Result:     dozer.SpecRouteMapResultAccept,
 			},
 		},
+	}
+
+	if !agent.Spec.Config.LoopbackWorkaround {
+		spec.RouteMaps[RouteMapFilterAttachedHost].Statements["10"] = &dozer.SpecRouteMapStatement{
+			Conditions: dozer.SpecRouteMapConditions{
+				AttachedHost: pointer.To(true),
+			},
+			Result: dozer.SpecRouteMapResultReject,
+		}
 	}
 
 	for vpcName, vpc := range agent.Spec.VPCs {
@@ -1388,8 +1392,10 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if spec.VRFs[vrfName].StaticRoutes == nil {
 			spec.VRFs[vrfName].StaticRoutes = map[string]*dozer.SpecVRFStaticRoute{}
 		}
-		if spec.VRFs[vrfName].AttachedHost == nil {
-			spec.VRFs[vrfName].AttachedHost = &dozer.SpecVRFAttachedHost{}
+		if !agent.Spec.Config.LoopbackWorkaround {
+			if spec.VRFs[vrfName].AttachedHost == nil {
+				spec.VRFs[vrfName].AttachedHost = &dozer.SpecVRFAttachedHost{}
+			}
 		}
 
 		peerComm, err := communityForVPC(agent, vpcName)
@@ -1574,8 +1580,11 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			string(dozer.SpecVRFBGPTableConnectionStatic): {
 				ImportPolicies: []string{vpcRedistributeStaticRouteMap},
 			},
-			string(dozer.SpecVRFBGPTableConnectionAttachedHost): {},
 		}
+		if !agent.Spec.Config.LoopbackWorkaround {
+			spec.VRFs[vrfName].TableConnections[string(dozer.SpecVRFBGPTableConnectionAttachedHost)] = &dozer.SpecVRFTableConnection{}
+		}
+
 		spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
 		if agent.IsSpineLeaf() {
@@ -1962,8 +1971,10 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 
 	spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
 
-	if !slices.Contains(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface) {
-		spec.VRFs[vrfName].AttachedHost.Interfaces = append(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface)
+	if !agent.Spec.Config.LoopbackWorkaround {
+		if !slices.Contains(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface) {
+			spec.VRFs[vrfName].AttachedHost.Interfaces = append(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface)
+		}
 	}
 
 	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)
