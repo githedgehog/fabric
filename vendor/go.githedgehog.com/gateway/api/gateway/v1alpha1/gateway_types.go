@@ -35,6 +35,8 @@ type GatewaySpec struct {
 type GatewayInterface struct {
 	// IPs is the list of IP address to assign to the interface
 	IPs []string `json:"ips,omitempty"`
+	// MTU for the interface
+	MTU uint32 `json:"mtu,omitempty"`
 }
 
 // GatewayBGPNeighbor defines the configuration for a BGP neighbor
