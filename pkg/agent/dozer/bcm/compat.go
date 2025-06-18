@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 )
 
 const (
@@ -21,11 +20,6 @@ var (
 	sonicVersionCurr  *semver.Version
 	sonicVersion450   *semver.Version
 	compatInitialized = false
-
-	Compat_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST      oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST      //nolint:revive,stylecheck
-	Compat_INSTALL_PROTOCOL_TYPE_BGP                oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP                //nolint:revive,stylecheck
-	Compat_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED //nolint:revive,stylecheck
-	Compat_INSTALL_PROTOCOL_TYPE_STATIC             oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC             //nolint:revive,stylecheck
 )
 
 // Ugly temporary compatibility fix for sonic versions using singleton to avoid refactoring processor code
@@ -63,13 +57,6 @@ func initCompat() error {
 	sonicVersion450, err = semver.NewVersion("4.5.0")
 	if err != nil {
 		return fmt.Errorf("parsing sonic version 4.5.0: %w", err)
-	}
-
-	if sonicVersionCurr.Compare(sonicVersion450) < 0 {
-		Compat_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST = 0
-		Compat_INSTALL_PROTOCOL_TYPE_BGP = 1
-		Compat_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED = 3
-		Compat_INSTALL_PROTOCOL_TYPE_STATIC = 15
 	}
 
 	compatInitialized = true
