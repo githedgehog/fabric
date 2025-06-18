@@ -540,11 +540,11 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 		var proto oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE
 
 		if key == dozer.SpecVRFBGPTableConnectionConnected {
-			proto = Compat_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
+			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
 		} else if key == dozer.SpecVRFBGPTableConnectionStatic {
-			proto = Compat_INSTALL_PROTOCOL_TYPE_STATIC
+			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC
 		} else if key == dozer.SpecVRFBGPTableConnectionAttachedHost {
-			proto = Compat_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST
+			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST
 		} else {
 			return nil, errors.Errorf("unknown table connection key %s", key)
 		}
@@ -553,15 +553,15 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 			TableConnection: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection{
 				{
 					SrcProtocol:   proto,
-					DstProtocol:   Compat_INSTALL_PROTOCOL_TYPE_BGP,
+					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
 				}: {
 					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
 					SrcProtocol:   proto,
-					DstProtocol:   Compat_INSTALL_PROTOCOL_TYPE_BGP,
+					DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_TableConnections_TableConnection_Config{
 						AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
-						DstProtocol:   Compat_INSTALL_PROTOCOL_TYPE_BGP,
+						DstProtocol:   oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						SrcProtocol:   proto,
 						ImportPolicy:  value.ImportPolicies,
 					},
@@ -699,7 +699,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
 			bgpProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-				Identifier: Compat_INSTALL_PROTOCOL_TYPE_BGP,
+				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 				Name:       "bgp",
 			}]
 			if bgpProto != nil && bgpProto.Bgp != nil {
@@ -853,7 +853,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 		if ocVRF.TableConnections != nil {
 			for key, tableConnection := range ocVRF.TableConnections.TableConnection {
-				if key.DstProtocol != Compat_INSTALL_PROTOCOL_TYPE_BGP {
+				if key.DstProtocol != oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP {
 					continue
 				}
 				if key.AddressFamily != oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4 {
@@ -865,11 +865,11 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 				name := ""
 				switch key.SrcProtocol { //nolint:exhaustive
-				case Compat_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED:
+				case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED:
 					name = dozer.SpecVRFBGPTableConnectionConnected
-				case Compat_INSTALL_PROTOCOL_TYPE_STATIC:
+				case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC:
 					name = dozer.SpecVRFBGPTableConnectionStatic
-				case Compat_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST:
+				case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST:
 					name = dozer.SpecVRFBGPTableConnectionAttachedHost
 				default:
 					continue
@@ -885,7 +885,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
 			staticProto := ocVRF.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-				Identifier: Compat_INSTALL_PROTOCOL_TYPE_STATIC,
+				Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC,
 				Name:       "static",
 			}]
 			if staticProto != nil && staticProto.StaticRoutes != nil {
