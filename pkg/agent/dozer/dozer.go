@@ -16,7 +16,6 @@ package dozer
 
 import (
 	"context"
-	"slices"
 	"sort"
 	"strings"
 
@@ -155,7 +154,7 @@ type SpecVRF struct {
 	StaticRoutes     map[string]*SpecVRFStaticRoute     `json:"staticRoutes,omitempty"`
 	EthernetSegments map[string]*SpecVRFEthernetSegment `json:"ethernetSegments,omitempty"`
 	EVPNMH           SpecVRFEVPNMH                      `json:"evpnMH,omitempty"`
-	AttachedHost     *SpecVRFAttachedHost               `json:"attachedHost,omitempty"`
+	AttachedHosts    map[string]*SpecVRFAttachedHost    `json:"attachedHosts,omitempty"`
 }
 
 type SpecVRFInterface struct{}
@@ -229,9 +228,7 @@ type SpecVRFEVPNMH struct {
 	StartupDelay *uint32 `json:"startupDelay,omitempty"`
 }
 
-type SpecVRFAttachedHost struct {
-	Interfaces []string `json:"interfaces,omitempty"`
-}
+type SpecVRFAttachedHost struct{}
 
 type SpecRouteMap struct {
 	Statements map[string]*SpecRouteMapStatement `json:"statements,omitempty"`
@@ -431,12 +428,6 @@ func (s *Spec) Normalize() {
 			if _, exists := iface.Subinterfaces[0]; !exists {
 				iface.Subinterfaces[0] = &SpecSubinterface{}
 			}
-		}
-	}
-
-	for _, vrf := range s.VRFs {
-		if vrf.AttachedHost != nil {
-			slices.Sort(vrf.AttachedHost.Interfaces)
 		}
 	}
 }

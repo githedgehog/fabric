@@ -1392,10 +1392,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if spec.VRFs[vrfName].StaticRoutes == nil {
 			spec.VRFs[vrfName].StaticRoutes = map[string]*dozer.SpecVRFStaticRoute{}
 		}
-		if !agent.Spec.Config.LoopbackWorkaround {
-			if spec.VRFs[vrfName].AttachedHost == nil {
-				spec.VRFs[vrfName].AttachedHost = &dozer.SpecVRFAttachedHost{}
-			}
+		if spec.VRFs[vrfName].AttachedHosts == nil {
+			spec.VRFs[vrfName].AttachedHosts = map[string]*dozer.SpecVRFAttachedHost{}
 		}
 
 		peerComm, err := communityForVPC(agent, vpcName)
@@ -1972,9 +1970,7 @@ func planVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 	spec.VRFs[vrfName].Interfaces[subnetIface] = &dozer.SpecVRFInterface{}
 
 	if !agent.Spec.Config.LoopbackWorkaround {
-		if !slices.Contains(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface) {
-			spec.VRFs[vrfName].AttachedHost.Interfaces = append(spec.VRFs[vrfName].AttachedHost.Interfaces, subnetIface)
-		}
+		spec.VRFs[vrfName].AttachedHosts[subnetIface] = &dozer.SpecVRFAttachedHost{}
 	}
 
 	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)

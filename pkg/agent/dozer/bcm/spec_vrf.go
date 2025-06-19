@@ -83,8 +83,8 @@ var specVRFEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRF]{
 		}
 
 		actualAttachedHosts, desiredAttachedHosts := ValueOrNil(actual, desired,
-			func(value *dozer.SpecVRF) *dozer.SpecVRFAttachedHost { return value.AttachedHost })
-		if err := specVRFAttachedHostEnforcer.Handle(basePath, name, actualAttachedHosts, desiredAttachedHosts, actions); err != nil {
+			func(value *dozer.SpecVRF) map[string]*dozer.SpecVRFAttachedHost { return value.AttachedHosts })
+		if err := specVRFAttachedHostsEnforcer.Handle(basePath, actualAttachedHosts, desiredAttachedHosts, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrf attached hosts")
 		}
 
@@ -623,31 +623,30 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 	},
 }
 
+var specVRFAttachedHostsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVRFAttachedHost]{
+	Summary:      "VRF attached hosts",
+	ValueHandler: specVRFAttachedHostEnforcer,
+}
+
 var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAttachedHost]{
-	Summary:      "VRF attached host",
-	Path:         "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host",
+	Summary: "VRF attached host",
+	Path:    "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=%s]",
+	// CreatePath:   "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface",
 	UpdateWeight: ActionWeightVRFAttachedHostUpdate,
 	DeleteWeight: ActionWeightVRFAttachedHostDelete,
-	Marshal: func(name string, value *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
-		ifaces := map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{}
-		for _, iface := range value.Interfaces {
-			ifaces[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key{
-				InterfaceId:   iface,
-				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
-			}] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{
-				InterfaceId:   pointer.To(iface),
-				AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
-				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Config{
+	Marshal: func(iface string, value *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces{
+			Interface: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{
+				{
+					InterfaceId:   iface,
+					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+				}: {
 					InterfaceId:   pointer.To(iface),
 					AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
-				},
-			}
-		}
-
-		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
-			AttachedHost: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost{
-				Interfaces: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces{
-					Interface: ifaces,
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Config{
+						InterfaceId:   pointer.To(iface),
+						AddressFamily: oc.OpenconfigTypes_ADDRESS_FAMILY_IPV4,
+					},
 				},
 			},
 		}, nil
@@ -694,7 +693,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 			},
 		}
-		var attachedHost *dozer.SpecVRFAttachedHost
+		var attachedHosts map[string]*dozer.SpecVRFAttachedHost
 
 		bgpOk := false
 		if ocVRF.Protocols != nil && ocVRF.Protocols.Protocol != nil {
@@ -704,10 +703,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			}]
 			if bgpProto != nil && bgpProto.Bgp != nil {
 				if bgpProto.AttachedHost != nil {
-					attachedHost = &dozer.SpecVRFAttachedHost{}
+					attachedHosts = map[string]*dozer.SpecVRFAttachedHost{}
 					if bgpProto.AttachedHost.Interfaces != nil {
-						for ifaceName := range bgpProto.AttachedHost.Interfaces.Interface {
-							attachedHost.Interfaces = append(attachedHost.Interfaces, ifaceName.InterfaceId)
+						for ifaceKey := range bgpProto.AttachedHost.Interfaces.Interface {
+							attachedHosts[ifaceKey.InterfaceId] = &dozer.SpecVRFAttachedHost{}
 						}
 					}
 				}
@@ -979,7 +978,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			StaticRoutes:     staticRoutes,
 			EVPNMH:           evpnMH,
 			EthernetSegments: es,
-			AttachedHost:     attachedHost,
+			AttachedHosts:    attachedHosts,
 		}
 	}
 
