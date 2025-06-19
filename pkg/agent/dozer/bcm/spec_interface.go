@@ -89,10 +89,6 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 			return errors.Wrap(err, "failed to handle interface switched trunk")
 		}
 
-		if err := specInterfaceNATZoneEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
-			return errors.Wrap(err, "failed to handle interface NAT zone")
-		}
-
 		if err := specInterfacesPortChannelSwitchedAccessEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle port channel switched access")
 		}
@@ -415,24 +411,6 @@ var specInterfaceEthernetSwitchedTrunkEnforcer = &DefaultValueEnforcer[string, *
 	},
 }
 
-var specInterfaceNATZoneEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
-	Summary:      "Interface %s NAT zone",
-	Getter:       func(_ string, value *dozer.SpecInterface) any { return value.NATZone },
-	Path:         "/nat-zone",
-	NoReplace:    true,
-	UpdateWeight: ActionWeightInterfaceNATZoneUpdate,
-	DeleteWeight: ActionWeightInterfaceNATZoneDelete,
-	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
-		return &oc.OpenconfigInterfaces_Interfaces_Interface{
-			NatZone: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone{
-				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_NatZone_Config{
-					NatZone: value.NATZone,
-				},
-			},
-		}, nil
-	},
-}
-
 var specInterfacesPortChannelSwitchedAccessEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "PortChannel %s Switched Access VLAN",
 	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPortChannel(name) },
@@ -692,12 +670,6 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 				return nil, errors.Wrapf(err, "failed to unmarshal trunk VLANs")
 			}
 			iface.AccessVLAN = ocIface.Aggregation.SwitchedVlan.Config.AccessVlan
-		}
-
-		if ocIface.NatZone != nil && ocIface.NatZone.Config != nil {
-			if ocIface.NatZone.Config.NatZone != nil && *ocIface.NatZone.Config.NatZone != 0 {
-				iface.NATZone = ocIface.NatZone.Config.NatZone
-			}
 		}
 
 		if isPhysical(name) && iface.Enabled != nil && !*iface.Enabled && (iface.Description == nil || *iface.Description == "") {
