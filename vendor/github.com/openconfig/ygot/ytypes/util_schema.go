@@ -179,7 +179,7 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 		return nil, err
 	}
 	n, err := removeNonDataPathElements(parentSchema, schema, out)
-	util.DbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	// util.DbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
 	return n, err
 }
 
@@ -189,7 +189,7 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 func shadowDataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][]string, error) {
 	out := util.ShadowSchemaPaths(f)
 	n, err := removeNonDataPathElements(parentSchema, schema, out)
-	util.DbgPrint("have shadow paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	// util.DbgPrint("have shadow paths %v, removing non-data from %s -> %v", out, schema.Name, n)
 	return n, err
 }
 
@@ -297,7 +297,6 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 // It returns empty string and nil error if the field does not exist in the
 // parent struct.
 func schemaToStructFieldName(schema *yang.Entry, parent interface{}, preferShadowPath bool) (string, *yang.Entry, error) {
-
 	v := reflect.ValueOf(parent)
 	if util.IsNilOrInvalidValue(v) {
 		return "", nil, fmt.Errorf("parent field is nil in schemaToStructFieldName for node %s", schema.Name)
