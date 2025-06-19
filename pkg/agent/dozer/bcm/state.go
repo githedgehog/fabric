@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openconfig/gnmic/api"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -101,7 +102,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 
 func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	ifaces := &oc.OpenconfigInterfaces_Interfaces{}
-	err := p.client.Get(ctx, "/openconfig-interfaces:interfaces/interface", ifaces)
+	err := p.client.Get(ctx, "/interfaces/interface", ifaces)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get interfaces")
 	}
@@ -600,27 +601,24 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 }
 
 func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
-	vrfs := &oc.OpenconfigNetworkInstance_NetworkInstances{}
-	if err := p.client.Get(ctx, "/network-instances/network-instance", vrfs); err != nil {
-		return errors.Wrapf(err, "failed to get vrfs")
+	sonicVRFs := &oc.SonicVrf_SonicVrf_VRF{}
+	if err := p.client.Get(ctx, "/sonic-vrf/VRF/VRF_LIST", sonicVRFs, api.DataTypeCONFIG()); err != nil {
+		return errors.Wrapf(err, "failed to get vrfs list")
 	}
 
-	for vrfName, vrf := range vrfs.NetworkInstance {
-		if vrf.Protocols == nil || vrf.Protocols.Protocol == nil {
+	for vrfName := range sonicVRFs.VRF_LIST {
+		if vrfName != VRFDefault && !strings.HasPrefix(vrfName, "VrfI") && !strings.HasPrefix(vrfName, "VrfE") {
 			continue
 		}
 
-		bgpProto := vrf.Protocols.Protocol[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key{
-			Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
-			Name:       "bgp",
-		}]
-		if bgpProto == nil || bgpProto.Bgp == nil || bgpProto.Bgp.Neighbors == nil {
-			continue
+		neighs := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{}
+		path := fmt.Sprintf("/network-instances/network-instance[name=%s]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor", vrfName)
+		if err := p.client.Get(ctx, path, neighs); err != nil {
+			return errors.Wrapf(err, "failed to get bgp neighbors for vrf %s", vrfName)
 		}
 
 		vrfSt := map[string]agentapi.SwitchStateBGPNeighbor{}
-
-		for neighborAddress, neighbor := range bgpProto.Bgp.Neighbors.Neighbor {
+		for neighborAddress, neighbor := range neighs.Neighbor {
 			if neighbor.State == nil {
 				continue
 			}
