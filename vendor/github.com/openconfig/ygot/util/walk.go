@@ -248,7 +248,7 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 				nn.Schema = FirstChild(ni.Schema, p)
 				if nn.Schema == nil {
 					e := fmt.Errorf("forEachFieldInternal could not find child schema with path %v from schema name %s", p, ni.Schema.Name)
-					DbgPrint(e.Error())
+					// DbgPrint(e.Error())
 					// TODO(wenovus) Consider making this into an error.
 					log.Errorln(e)
 					continue

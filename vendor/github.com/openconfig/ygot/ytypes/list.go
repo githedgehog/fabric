@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
@@ -41,7 +40,7 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
+	// util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
 
 	kind := reflect.TypeOf(value).Kind()
 	orderedMap, isOrderedMap := value.(ygot.GoOrderedMap)
@@ -133,7 +132,6 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 	var elementKeyValue interface{}
 	if structElems.FieldByName(keyFieldName).Kind() == reflect.Ptr && !structElems.FieldByName(keyFieldName).IsNil() {
 		elementKeyValue = structElems.FieldByName(keyFieldName).Elem().Interface()
-
 	} else {
 		elementKeyValue = structElems.FieldByName(keyFieldName).Interface()
 	}
@@ -299,7 +297,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		return err
 	}
 
-	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonList), jsonList, parent, schema.Name)
+	// util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonList), jsonList, parent, schema.Name)
 
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)
@@ -350,7 +348,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		var err error
 		jt := le.(map[string]interface{})
 		newVal := reflect.New(listElementType.Elem())
-		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
+		// util.DbgPrint("creating a new list element val of type %v", newVal.Type())
 		if err := unmarshalStruct(schema, newVal.Interface(), jt, enc, opts...); err != nil {
 			return err
 		}
@@ -386,7 +384,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 			return err
 		}
 	}
-	util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
+	// util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
 
 	return nil
 }
@@ -511,7 +509,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			if !nv.IsValid() {
 				return reflect.ValueOf(nil), fmt.Errorf("%v field doesn't have a valid value", kfn)
 			}
-			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
+			// util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
 			newKeyField := newKey.FieldByName(kfn)
 			if !nv.Type().AssignableTo(newKeyField.Type()) {
 				return reflect.ValueOf(nil), fmt.Errorf("multi-key %v is not assignable to %v", nv.Type(), newKeyField.Type())
@@ -528,7 +526,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 	if err != nil {
 		return reflect.ValueOf(nil), err
 	}
-	util.DbgPrint("key value is %v.", kv)
+	// util.DbgPrint("key value is %v.", kv)
 
 	rvKey := reflect.ValueOf(kv)
 
@@ -576,7 +574,6 @@ func insertAndGetKey(schema *yang.Entry, root interface{}, keys map[string]strin
 // that in the latter case the target is a struct ptr. The supplied opts control
 // the behaviour of the unmarshal function.
 func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, value interface{}, opts ...UnmarshalOpt) error {
-
 	if !util.IsTypeStructPtr(reflect.TypeOf(parent)) {
 		return fmt.Errorf("unmarshalContainerWithListSchema value %v, type %T, into parent type %T, schema name %s: parent must be a struct ptr",
 			value, value, parent, schema.Name)

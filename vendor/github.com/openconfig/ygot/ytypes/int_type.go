@@ -20,7 +20,6 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.2.
@@ -84,7 +83,7 @@ func validateInt(schema *yang.Entry, value interface{}) error {
 		return err
 	}
 
-	util.DbgPrint("validateInt type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+	// util.DbgPrint("validateInt type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
 
 	kind := schema.Type.Kind
 
@@ -115,7 +114,7 @@ func validateIntSlice(schema *yang.Entry, value interface{}) error {
 		return err
 	}
 
-	util.DbgPrint("validateIntSlice type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+	// util.DbgPrint("validateIntSlice type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
 
 	kind := schema.Type.Kind
 	val := reflect.ValueOf(value)

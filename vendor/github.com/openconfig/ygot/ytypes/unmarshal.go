@@ -125,7 +125,7 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 	if schema == nil {
 		return fmt.Errorf("nil schema for parent type %T, value %v (%T)", parent, value, value)
 	}
-	util.DbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
+	// util.DbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
 
 	if enc == GNMIEncoding && !(schema.IsLeaf() || schema.IsLeafList()) {
 		return errors.New("unmarshalling a non leaf node isn't supported in GNMIEncoding mode")

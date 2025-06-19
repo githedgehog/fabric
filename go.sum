@@ -130,6 +130,8 @@ github.com/Azure/go-autorest/tracing v0.6.0/go.mod h1:+vhtPC754Xsa23ID7GlGsrdKBp
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
+github.com/Frostman/ygot v0.32.0-hh1 h1:qFTLQkU840scb+7Vc0WIpznONA4H5xuc8o3HpXw/d14=
+github.com/Frostman/ygot v0.32.0-hh1/go.mod h1:sMTAECRlEmETQ36XaAbWav5AFrR6EZlNNcHyZ7KHBDE=
 github.com/GoogleCloudPlatform/cloudsql-proxy v1.29.0/go.mod h1:spvB9eLJH9dutlbPSRmHvSXXHOwGRyeXh1jVdquA2G8=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.27.0 h1:ErKg/3iS1AKcTkf3yixlZ54f9U1rljCkQyEXWUnIUxc=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.27.0/go.mod h1:yAZHSGnqScoU556rBOVkwLze6WP5N+U11RHuWaGVxwY=
@@ -790,8 +792,6 @@ github.com/openconfig/goyang v1.6.2 h1:LVwwlVIIt4nmwacW67yBsxzP5DhDM94SOEMWod1hE
 github.com/openconfig/goyang v1.6.2/go.mod h1:jzlGg+yjRpOcq1Kg6q6cSiLGQK5hrNNMsUx0fFxm4U0=
 github.com/openconfig/grpctunnel v0.1.0 h1:EN99qtlExZczgQgp5ANnHRC/Rs62cAG+Tz2BQ5m/maM=
 github.com/openconfig/grpctunnel v0.1.0/go.mod h1:G04Pdu0pml98tdvXrvLaU+EBo3PxYfI9MYqpvdaEHLo=
-github.com/openconfig/ygot v0.32.0 h1:zGYVk/T7hgcMuxhxH5bN5tFxy3VhHlLN6ZabSeTATtk=
-github.com/openconfig/ygot v0.32.0/go.mod h1:sMTAECRlEmETQ36XaAbWav5AFrR6EZlNNcHyZ7KHBDE=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=

@@ -4,6 +4,8 @@ go 1.24.2
 
 replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
 
+replace github.com/openconfig/ygot => github.com/Frostman/ygot v0.32.0-hh1
+
 tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (

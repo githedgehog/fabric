@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 
 	log "github.com/golang/glog"
@@ -172,7 +171,7 @@ func IsStructValueWithNFields(v reflect.Value, n int) bool {
 
 // InsertIntoSlice inserts value into parent which must be a slice ptr.
 func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
-	DbgPrint("InsertIntoSlice into parent type %T with value %v, type %T", parentSlice, ValueStrDebug(value), value)
+	// DbgPrint("InsertIntoSlice into parent type %T with value %v, type %T", parentSlice, ValueStrDebug(value), value)
 
 	pv := reflect.ValueOf(parentSlice)
 	t := reflect.TypeOf(parentSlice)
@@ -183,15 +182,15 @@ func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 	}
 
 	pv.Elem().Set(reflect.Append(pv.Elem(), v))
-	DbgPrint("new list: %v\n", pv.Elem().Interface())
+	// DbgPrint("new list: %v\n", pv.Elem().Interface())
 
 	return nil
 }
 
 // InsertIntoMap inserts value with key into parent which must be a map.
 func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) error {
-	DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
-		parentMap, ValueStrDebug(key), key, pretty.Sprint(value), value)
+	// DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
+	// parentMap, ValueStrDebug(key), key, pretty.Sprint(value), value)
 
 	v := reflect.ValueOf(parentMap)
 	t := reflect.TypeOf(parentMap)
@@ -211,7 +210,7 @@ func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) er
 // nil) in parentStruct, with value fieldValue. If the field is a slice,
 // fieldValue is appended.
 func UpdateField(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
-	DbgPrint("UpdateField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStrDebug(fieldValue))
+	// DbgPrint("UpdateField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStrDebug(fieldValue))
 
 	if IsValueNil(parentStruct) {
 		return fmt.Errorf("parent is nil in UpdateField for field %s", fieldName)
@@ -239,7 +238,7 @@ func UpdateField(parentStruct interface{}, fieldName string, fieldValue interfac
 // If the struct field type is a ptr and the value is non-ptr, the field is
 // populated with the corresponding ptr type.
 func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
-	DbgPrint("InsertIntoStruct field %s of parent type %T with value %v", fieldName, parentStruct, ValueStrDebug(fieldValue))
+	// DbgPrint("InsertIntoStruct field %s of parent type %T with value %v", fieldName, parentStruct, ValueStrDebug(fieldValue))
 
 	v, t := reflect.ValueOf(fieldValue), reflect.TypeOf(fieldValue)
 	pv, pt := reflect.ValueOf(parentStruct), reflect.TypeOf(parentStruct)
@@ -294,7 +293,7 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 // InsertIntoSliceStructField inserts fieldValue into a field of type slice in
 // parentStruct called fieldName (which must exist, but may be nil).
 func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
-	DbgPrint("InsertIntoSliceStructField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStrDebug(fieldValue))
+	// DbgPrint("InsertIntoSliceStructField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStrDebug(fieldValue))
 
 	v, t := reflect.ValueOf(fieldValue), reflect.TypeOf(fieldValue)
 	pv, pt := reflect.ValueOf(parentStruct), reflect.TypeOf(parentStruct)
@@ -334,7 +333,7 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 // given key. If the key already exists in the map, the corresponding value is
 // updated.
 func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, fieldValue interface{}) error {
-	DbgPrint("InsertIntoMapStructField field %s of parent type %T with key %v, value %v", fieldName, parentStruct, key, ValueStrDebug(fieldValue))
+	// DbgPrint("InsertIntoMapStructField field %s of parent type %T with key %v, value %v", fieldName, parentStruct, key, ValueStrDebug(fieldValue))
 
 	v := reflect.ValueOf(parentStruct)
 	t := reflect.TypeOf(parentStruct)
@@ -480,9 +479,9 @@ func ChildSchemaPreferShadow(schema *yang.Entry, f reflect.StructField) (*yang.E
 // path values from the "shadow-path" tag are used; if the field doesn't have
 // the "shadow-path" tag, then the path values from the "path" tag are used.
 func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath bool) (*yang.Entry, error) {
-	pathTag, _ := f.Tag.Lookup("path")
-	shadowPathTag, _ := f.Tag.Lookup("shadow-path")
-	DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag %s\n", schema.Name, f.Name, pathTag, shadowPathTag)
+	// pathTag, _ := f.Tag.Lookup("path")
+	// shadowPathTag, _ := f.Tag.Lookup("shadow-path")
+	// DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag %s\n", schema.Name, f.Name, pathTag, shadowPathTag)
 	p, err := relativeSchemaPath(f, preferShadowPath)
 	if err != nil {
 		return nil, err
@@ -495,14 +494,14 @@ func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath boo
 	if schema.IsContainer() && len(p) > 1 && p[0] == schema.Name {
 		p = p[1:]
 	}
-	DbgSchema("RelativeSchemaPath yields %v\n", p)
+	// DbgSchema("RelativeSchemaPath yields %v\n", p)
 	// For empty path, return the parent schema.
 	childSchema := schema
 	foundSchema := true
 	// Traverse the returned schema path to get the child schema.
-	DbgSchema("traversing schema Dirs...")
+	// DbgSchema("traversing schema Dirs...")
 	for ; len(p) > 0; p = p[1:] {
-		DbgSchema("/%s", p[0])
+		// DbgSchema("/%s", p[0])
 		p := StripModulePrefix(p[0])
 		ns, ok := childSchema.Dir[p]
 		if !ok {
@@ -512,10 +511,10 @@ func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath boo
 		childSchema = ns
 	}
 	if foundSchema {
-		DbgSchema(" - found\n")
+		// DbgSchema(" - found\n")
 		return childSchema, nil
 	}
-	DbgSchema(" - not found\n")
+	// DbgSchema(" - not found\n")
 
 	// Path is not null and was not found in the schema. It could be inside a
 	// choice/case schema element which is not represented in the path tags.
@@ -532,19 +531,19 @@ func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath boo
 	}
 	entries := FindFirstNonChoiceOrCase(schema)
 
-	DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
+	// DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
 	for path, entry := range entries {
 		splitPath := SplitPath(path)
 		name := splitPath[len(splitPath)-1]
-		DbgSchema("%s ? ", name)
+		// DbgSchema("%s ? ", name)
 
 		if StripModulePrefix(name) == p[0] {
-			DbgSchema(" - match\n")
+			// DbgSchema(" - match\n")
 			return entry, nil
 		}
 	}
 
-	DbgSchema(" - no matches\n")
+	// DbgSchema(" - no matches\n")
 	return nil, nil
 }
 
@@ -835,7 +834,7 @@ func getNodesInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]i
 	}
 
 	Indent()
-	DbgPrint("GetNode next path %v, value %v", path.GetElem()[0], ValueStrDebug(root))
+	// DbgPrint("GetNode next path %v, value %v", path.GetElem()[0], ValueStrDebug(root))
 
 	switch {
 	case schema.IsContainer() || (schema.IsList() && IsTypeStructPtr(reflect.TypeOf(root))):
@@ -854,7 +853,7 @@ func getNodesInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]i
 // type and matches each field against the first path element in path. If a
 // field matches, it recurses into that field with the remaining path.
 func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
-	DbgPrint("getNodesContainer: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStrDebug(root))
+	// DbgPrint("getNodesContainer: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStrDebug(root))
 
 	rv := reflect.ValueOf(root)
 	if !IsValueStructPtr(rv) {
@@ -881,7 +880,7 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 		}
 
 		ps, err := SchemaPaths(ft)
-		DbgPrint("check field name %s, paths %v", cschema.Name, ps)
+		// DbgPrint("check field name %s, paths %v", cschema.Name, ps)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -906,7 +905,7 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 // PathElem of the Path. If the key matches, it recurses into that field with
 // the remaining path. If empty key is specified, all list elements match.
 func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
-	DbgPrint("getNodesList: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStrDebug(root))
+	// DbgPrint("getNodesList: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStrDebug(root))
 
 	rv := reflect.ValueOf(root)
 	if schema.Key == "" {
@@ -918,7 +917,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 	}
 	emptyKey := false
 	if len(path.GetElem()[0].GetKey()) == 0 {
-		DbgPrint("path %v at %T points to list with empty wildcard key", path, root)
+		// DbgPrint("path %v at %T points to list with empty wildcard key", path, root)
 		emptyKey = true
 	}
 
@@ -931,7 +930,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 	// Iterate through all the map keys to see if any match the path.
 	for _, k := range rv.MapKeys() {
 		ev := rv.MapIndex(k)
-		DbgPrint("checking key %v, value %v", k.Interface(), ValueStrDebug(ev.Interface()))
+		// DbgPrint("checking key %v, value %v", k.Interface(), ValueStrDebug(ev.Interface()))
 		match := true
 		if !emptyKey { // empty key matches everything.
 			if !IsValueStruct(k) {
@@ -951,7 +950,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 				// off from the specification -- only that it works to uniquely identify
 				// the key value.
 				match = (fmt.Sprint(kv) == pathKey)
-				DbgPrint("check simple key value %s==%s ? %t", kv, pathKey, match)
+				// DbgPrint("check simple key value %s==%s ? %t", kv, pathKey, match)
 			} else {
 				// Must compare all the key fields.
 				for i := 0; i < k.NumField(); i++ {
@@ -981,7 +980,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 						match = false
 						break
 					}
-					DbgPrint("key field value %s matches", pathKey)
+					// DbgPrint("key field value %s matches", pathKey)
 				}
 			}
 		}
@@ -989,7 +988,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 		if match {
 			// Pass in the list schema, but the actual selected element
 			// rather than the whole list.
-			DbgPrint("key matches")
+			// DbgPrint("key matches")
 			n, s, err := getNodesInternal(schema, ev.Interface(), PopGNMIPath(path))
 			if err != nil {
 				return nil, nil, err
