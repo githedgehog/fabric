@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openconfig/gnmic/api"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -655,7 +656,7 @@ var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAt
 
 func loadActualVRFs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{}
-	err := client.Get(ctx, "/network-instances/network-instance", ocVal)
+	err := client.Get(ctx, "/network-instances/network-instance", ocVal, api.DataTypeCONFIG())
 	if err != nil {
 		return errors.Wrapf(err, "failed to read vrfs")
 	}
