@@ -209,32 +209,7 @@ func (c *Client) Get(ctx context.Context, path string, dest ygot.ValidatedGoStru
 	}
 
 	val := getResp.Notification[0].Update[0].Val.GetJsonIetfVal()
-	if err := UnmarshalWithOpts(val, dest); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal response for: %s", path)
-	}
-
-	return nil
-}
-
-func (c *Client) GetWithOpts(ctx context.Context, path string, dest ygot.ValidatedGoStruct, extract bool, options ...api.GNMIOption) error {
-	getReq, err := api.NewGetRequest(append(options, api.Encoding(JSONIETFEncoding), api.Path(path))...)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create get request for: %s", path)
-	}
-
-	getResp, err := c.tg.Get(ctx, getReq)
-	if err != nil {
-		return errors.Wrapf(err, "get request failed for: %s", path)
-	}
-
-	// TODO drop extract opt?
-	opts := []ytypes.UnmarshalOpt{}
-	if extract {
-		opts = append(opts, ExtractOpt{})
-	}
-
-	val := getResp.Notification[0].Update[0].Val.GetJsonIetfVal()
-	if err := UnmarshalWithOpts(val, dest, opts...); err != nil {
+	if err := Unmarshal(val, dest); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal response for: %s", path)
 	}
 
@@ -250,46 +225,19 @@ func Marshal(value ygot.ValidatedGoStruct) (map[string]any, error) {
 	return data, nil
 }
 
-func Unmarshal(data []byte, dest ygot.ValidatedGoStruct) error {
-	return UnmarshalWithOpts(data, dest)
-}
-
-func UnmarshalWithOpts(data []byte, dest ygot.ValidatedGoStruct, opts ...ytypes.UnmarshalOpt) error {
+func Unmarshal(data []byte, dest ygot.ValidatedGoStruct, opts ...ytypes.UnmarshalOpt) error {
 	typeName := reflect.TypeOf(dest).Elem().Name()
 	schema, ok := oc.SchemaTree[typeName]
 	if !ok {
 		return errors.Errorf("no schema for type %s", typeName)
 	}
 
-	var jsonTree map[string]interface{}
+	var jsonTree interface{}
 	if err := json.Unmarshal(data, &jsonTree); err != nil {
 		return errors.Wrapf(err, "can't json unmarshal for type %s", typeName)
 	}
 
 	opts = append(opts, &ytypes.IgnoreExtraFields{})
 
-	if hasExtractOpt(opts) {
-		container := dest.ΛBelongingModule() + ":" + schema.Name
-		if val, exists := jsonTree[container]; exists {
-			return errors.Wrapf(ytypes.Unmarshal(schema, dest, val, opts...), "error extracting from container %s", container)
-		}
-
-		return errors.Errorf("can't extract from container %s", container)
-	}
-
 	return errors.Wrapf(ytypes.Unmarshal(schema, dest, jsonTree, opts...), "error unmarshaling for type %s", typeName)
 }
-
-func hasExtractOpt(opts []ytypes.UnmarshalOpt) bool {
-	for _, o := range opts {
-		if _, ok := o.(ExtractOpt); ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-type ExtractOpt struct{}
-
-func (ExtractOpt) IsUnmarshalOpt() {}
