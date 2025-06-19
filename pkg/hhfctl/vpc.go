@@ -97,6 +97,8 @@ type VPCAttachOptions struct {
 	VPCSubnet  string
 	Connection string
 	NativeVLAN bool
+	VIPs       []string
+	VIPGateway string
 }
 
 func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) error {
@@ -115,6 +117,13 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 			Connection: options.Connection,
 			NativeVLAN: options.NativeVLAN,
 		},
+	}
+	if len(options.VIPs) > 0 {
+		if options.VIPGateway == "" {
+			return fmt.Errorf("VIPGateway is required when VIPs are specified") //nolint:err113
+		}
+		attach.Spec.VIPs.Prefixes = options.VIPs
+		attach.Spec.VIPs.Gateway = options.VIPGateway
 	}
 
 	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)

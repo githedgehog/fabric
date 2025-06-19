@@ -238,6 +238,17 @@ func main() {
 								Required: false,
 								Value:    false,
 							},
+							&cli.StringSliceFlag{
+								Name:     "vip",
+								Usage:    "VIP address to attach to the VPC",
+								Required: false,
+							},
+							&cli.StringFlag{
+								Name:     "vip-gateway",
+								Aliases:  []string{"gateway"},
+								Usage:    "IP Gateway for the VIPs",
+								Required: false,
+							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
@@ -249,6 +260,8 @@ func main() {
 								VPCSubnet:  cCtx.String("vpc-subnet"),
 								Connection: cCtx.String("connection"),
 								NativeVLAN: cCtx.Bool("nativeVLAN"),
+								VIPs:       cCtx.StringSlice("vip"),
+								VIPGateway: cCtx.String("vip-gateway"),
 							}), "failed to attach connection to vpc")
 						},
 					},

@@ -69,6 +69,23 @@ spec:
                 description: Subnet is the full name of the VPC subnet to attach to,
                   such as "vpc-1/default"
                 type: string
+              vips:
+                description: VIPs is a list of IPs that are reachable through the
+                  VPC attachment.
+                properties:
+                  gateway:
+                    description: |-
+                      Gateway is the IP address on the server's attachment interface to be used as nexthop
+                      in order to reach the VIPs. It should be statically assigned
+                    type: string
+                  prefixes:
+                    description: |-
+                      Prefixes is a list of IPv4 prefixes that should be reachable by the fabric via the VPC attachment,
+                      e.g. on the loopback interface of the server.
+                    items:
+                      type: string
+                    type: array
+                type: object
             type: object
           status:
             description: Status is the observed state of the VPCAttachment

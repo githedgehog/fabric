@@ -133,7 +133,7 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		in, out := &in.VPCAttachments, &out.VPCAttachments
 		*out = make(map[string]vpcv1beta1.VPCAttachmentSpec, len(*in))
 		for key, val := range *in {
-			(*out)[key] = val
+			(*out)[key] = *val.DeepCopy()
 		}
 	}
 	if in.VPCPeerings != nil {
