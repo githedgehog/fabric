@@ -681,7 +681,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 		}
 
 		interfaces := map[string]*dozer.SpecVRFInterface{}
-		if ocVRF.Interfaces != nil && name != "default" { // all interfaces are in the default VRF implicitly
+		if ocVRF.Interfaces != nil && name != VRFDefault { // all interfaces are in the default VRF implicitly
 			for ifaceName := range ocVRF.Interfaces.Interface {
 				interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 			}
@@ -934,7 +934,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 			}
 
 			// only get ethernet segments from the default VRF
-			if name == "default" && ocVRF.Evpn.EthernetSegments != nil {
+			if name == VRFDefault && ocVRF.Evpn.EthernetSegments != nil {
 				for name, ocES := range ocVRF.Evpn.EthernetSegments.EthernetSegment {
 					if ocES.Config == nil {
 						continue
