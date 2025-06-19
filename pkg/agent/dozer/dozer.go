@@ -16,6 +16,7 @@ package dozer
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 
@@ -429,6 +430,10 @@ func (s *Spec) Normalize() {
 				iface.Subinterfaces[0] = &SpecSubinterface{}
 			}
 		}
+	}
+
+	for _, comm := range s.CommunityLists {
+		slices.Sort(comm.Members)
 	}
 }
 
