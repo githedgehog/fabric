@@ -97,10 +97,6 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle acl interfaces")
 		}
 
-		if err := specNATsEnforcer.Handle(basePath, actual.NATs, desired.NATs, actions); err != nil {
-			return errors.Wrap(err, "failed to handle nats")
-		}
-
 		if err := specVRFsEnforcer.Handle(basePath, actual.VRFs, desired.VRFs, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrfs")
 		}
@@ -200,10 +196,6 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Cli
 
 	if err := loadActualDHCPRelays(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load dhcp relay interfaces")
-	}
-
-	if err := loadActualNATs(ctx, client, spec); err != nil {
-		return errors.Wrapf(err, "failed to load nat instances")
 	}
 
 	if err := loadActualACLs(ctx, client, spec); err != nil {

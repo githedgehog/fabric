@@ -94,7 +94,6 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		PrefixLists:        map[string]*dozer.SpecPrefixList{},
 		CommunityLists:     map[string]*dozer.SpecCommunityList{},
 		DHCPRelays:         map[string]*dozer.SpecDHCPRelay{},
-		NATs:               map[uint32]*dozer.SpecNAT{},
 		ACLs:               map[string]*dozer.SpecACL{},
 		ACLInterfaces:      map[string]*dozer.SpecACLInterface{},
 		VXLANTunnels:       map[string]*dozer.SpecVXLANTunnel{},

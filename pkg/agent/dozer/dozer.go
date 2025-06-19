@@ -62,7 +62,6 @@ type Spec struct {
 	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
 	CommunityLists     map[string]*SpecCommunityList     `json:"communityLists,omitempty"`
 	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
-	NATs               map[uint32]*SpecNAT               `json:"nats,omitempty"`
 	ACLs               map[string]*SpecACL               `json:"acls,omitempty"`
 	ACLInterfaces      map[string]*SpecACLInterface      `json:"aclInterfaces,omitempty"`
 	VXLANTunnels       map[string]*SpecVXLANTunnel       `json:"vxlanTunnels,omitempty"`
@@ -113,7 +112,6 @@ type SpecInterface struct {
 	Description        *string                      `json:"description,omitempty"`
 	Enabled            *bool                        `json:"enabled,omitempty"`
 	PortChannel        *string                      `json:"portChannel,omitempty"`
-	NATZone            *uint8                       `json:"natZone,omitempty"`
 	AccessVLAN         *uint16                      `json:"accessVLAN,omitempty"`
 	TrunkVLANs         []string                     `json:"trunkVLANs,omitempty"`
 	MTU                *uint16                      `json:"mtu,omitempty"`
@@ -303,35 +301,6 @@ type SpecDHCPRelay struct {
 	VRFSelect       bool     `json:"vrfSelect,omitempty"`
 }
 
-type SpecNAT struct {
-	Enable   *bool                      `json:"enable,omitempty"`
-	Pools    map[string]*SpecNATPool    `json:"pools,omitempty"`
-	Bindings map[string]*SpecNATBinding `json:"bindings,omitempty"`
-	Static   map[string]*SpecNATEntry   `json:"static,omitempty"` // external -> internal
-}
-
-type SpecNATPool struct {
-	Range *string `json:"range,omitempty"`
-}
-
-type SpecNATBinding struct {
-	Pool *string     `json:"pool,omitempty"`
-	Type SpecNATType `json:"type,omitempty"`
-}
-
-type SpecNATEntry struct {
-	InternalAddress *string     `json:"internalAddress,omitempty"`
-	Type            SpecNATType `json:"type,omitempty"`
-}
-
-type SpecNATType string
-
-const (
-	SpecNATTypeUnset SpecNATType = ""
-	SpecNATTypeDNAT  SpecNATType = "DNAT"
-	SpecNATTypeSNAT  SpecNATType = "SNAT"
-)
-
 type SpecACL struct {
 	Description *string                  `json:"description,omitempty"`
 	Entries     map[uint32]*SpecACLEntry `json:"entries,omitempty"`
@@ -509,10 +478,6 @@ var (
 	_ SpecPart = (*SpecPrefixListEntry)(nil)
 	_ SpecPart = (*SpecCommunityList)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
-	_ SpecPart = (*SpecNAT)(nil)
-	_ SpecPart = (*SpecNATPool)(nil)
-	_ SpecPart = (*SpecNATBinding)(nil)
-	_ SpecPart = (*SpecNATEntry)(nil)
 	_ SpecPart = (*SpecACL)(nil)
 	_ SpecPart = (*SpecACLEntry)(nil)
 	_ SpecPart = (*SpecACLInterface)(nil)
@@ -639,22 +604,6 @@ func (s *SpecCommunityList) IsNil() bool {
 }
 
 func (s *SpecDHCPRelay) IsNil() bool {
-	return s == nil
-}
-
-func (s *SpecNAT) IsNil() bool {
-	return s == nil
-}
-
-func (s *SpecNATPool) IsNil() bool {
-	return s == nil
-}
-
-func (s *SpecNATBinding) IsNil() bool {
-	return s == nil
-}
-
-func (s *SpecNATEntry) IsNil() bool {
 	return s == nil
 }
 
