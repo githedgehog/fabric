@@ -1100,7 +1100,7 @@ go.etcd.io/bbolt
 # go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
-# go.githedgehog.com/gateway v0.9.0
+# go.githedgehog.com/gateway v0.10.0
 ## explicit; go 1.24.2
 go.githedgehog.com/gateway/api/gateway/v1alpha1
 # go.opencensus.io v0.24.0
