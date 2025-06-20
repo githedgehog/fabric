@@ -25,6 +25,8 @@ type GatewaySpec struct {
 	VTEPMAC string `json:"vtepMAC,omitempty"`
 	// ASN is the ASN of the gateway
 	ASN uint32 `json:"asn,omitempty"`
+	// VTEPMTU is the MTU for the VTEP interface
+	VTEPMTU uint32 `json:"vtepMTU,omitempty"`
 	// Interfaces is a map of interface names to their configurations
 	Interfaces map[string]GatewayInterface `json:"interfaces,omitempty"`
 	// Neighbors is a list of BGP neighbors
