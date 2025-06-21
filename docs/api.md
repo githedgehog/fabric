@@ -1145,6 +1145,23 @@ _Appears in:_
 | `end` _string_ | End is the end IP address of the DHCP range |  |  |
 
 
+#### VPCMode
+
+_Underlying type:_ _string_
+
+VPCMode defines how VPCs are configured on the switches
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `l3` |  |
+
+
 #### VPCPeer
 
 
@@ -1231,6 +1248,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `mode` _[VPCMode](#vpcmode)_ | Mode is the VPC mode that defines how the VPCs are configured on the switches |  |  |
 | `subnets` _object (keys:string, values:[VPCSubnet](#vpcsubnet))_ | Subnets is the list of VPC subnets to configure |  |  |
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used) |  |  |
 | `vlanNamespace` _string_ | VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used) |  |  |
