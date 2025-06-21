@@ -1344,6 +1344,10 @@ spec:
                       description: IPv4Namespace is the name of the IPv4Namespace
                         this VPC belongs to (if not specified, "default" is used)
                       type: string
+                    mode:
+                      description: Mode is the VPC mode that defines how the VPCs
+                        are configured on the switches
+                      type: string
                     permit:
                       description: |-
                         Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.

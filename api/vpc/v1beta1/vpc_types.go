@@ -38,6 +38,8 @@ import (
 // VPCSpec defines the desired state of VPC.
 // At least one subnet is required.
 type VPCSpec struct {
+	// Mode is the VPC mode that defines how the VPCs are configured on the switches
+	Mode VPCMode `json:"mode,omitempty"`
 	// Subnets is the list of VPC subnets to configure
 	Subnets map[string]*VPCSubnet `json:"subnets,omitempty"`
 	// IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used)
@@ -55,6 +57,14 @@ type VPCSpec struct {
 	// StaticRoutes is the list of additional static routes for the VPC
 	StaticRoutes []VPCStaticRoute `json:"staticRoutes,omitempty"`
 }
+
+// VPCMode defines how VPCs are configured on the switches
+type VPCMode string
+
+const (
+	VPCModeDefault VPCMode = ""
+	VPCModeL3      VPCMode = "l3"
+)
 
 // VPCSubnet defines the VPC subnet configuration
 type VPCSubnet struct {
