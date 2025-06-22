@@ -55,6 +55,8 @@ type DHCPSubnetSpec struct {
 	InterfaceMTU uint16 `json:"interfaceMTU"`
 	// DefaultURL (optional) is the option 114 "default-url" to be sent to the clients
 	DefaultURL string `json:"defaultURL"`
+	// L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients
+	L3Mode bool `json:"l3Mode,omitempty"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet

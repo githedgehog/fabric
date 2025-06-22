@@ -216,6 +216,9 @@ func getSubnetInfo(req *dhcpv4.DHCPv4) (*ManagedSubnet, error) {
 		if len(vrfName) > 1 {
 			vrfName = vrfName[1:]
 		}
+		if vrfName == "" {
+			vrfName = "default"
+		}
 	}
 
 	pluginHdl.dhcpSubnets.Lock()
@@ -278,9 +281,15 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet, ipnet net.I
 
 	resp.YourIPAddr = ipnet.IP
 	resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
-	resp.Options.Update(dhcpv4.OptSubnetMask(ipnet.Mask))
 	resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
 	resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
+
+	switch {
+	case subnet.dhcpSubnet.Spec.L3Mode:
+		resp.Options.Update(dhcpv4.OptSubnetMask(net.IPv4Mask(255, 255, 255, 255)))
+	default:
+		resp.Options.Update(dhcpv4.OptSubnetMask(ipnet.Mask))
+	}
 
 	if len(subnet.dhcpSubnet.Spec.DNSServers) > 0 {
 		ips := make([]net.IP, len(subnet.dhcpSubnet.Spec.DNSServers))
