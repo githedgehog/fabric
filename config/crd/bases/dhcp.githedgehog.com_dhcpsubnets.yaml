@@ -113,6 +113,10 @@ spec:
                   server will send to the clients. It is dependent on the client to
                   honor this option.
                 type: integer
+              l3Mode:
+                description: L3 mode is used to indicate that this subnet is for a
+                  VPC in L3 mode meaning that /32 should be advertised to the clients
+                type: boolean
               leaseTimeSeconds:
                 description: Lease time in seconds, such as 3600
                 format: int32
