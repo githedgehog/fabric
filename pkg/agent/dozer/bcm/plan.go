@@ -1523,7 +1523,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		if vpc1.Mode != vpc2.Mode {
-			slog.Warn("VPC peering between VPCs with different modes", "vpc1", vpc1Name, "vpc2", vpc2Name, "mode1", vpc1.Mode, "mode2", vpc2.Mode)
+			slog.Warn("Skipping VPCPeering between VPCs with different modes", "vpc1", vpc1Name, "vpc2", vpc2Name, "mode1", vpc1.Mode, "mode2", vpc2.Mode)
 
 			continue // skip peering between VPCs with different modes
 		}
@@ -1534,11 +1534,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to plan VPC peering %s", peeringName)
 			}
 		case vpcapi.VPCModeL3:
-			// TODO implement L3 VPC mode
+			if err := planL3VPCPeering(agent, spec, peeringName, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
+				return errors.Wrapf(err, "failed to plan L3 VPC peering %s", peeringName)
+			}
 		}
 	}
 
-	// cleanup empty (only a single permit) ACLs for all VPC/subnets
+	// cleanup empty (only a single permit) ACLs for all VPC/subnets in default mode
 	for vpcName, vpc := range agent.Spec.VPCs {
 		if vpc.Mode != vpcapi.VPCModeDefault {
 			continue
@@ -2021,6 +2023,92 @@ func planDefaultVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName 
 	return nil
 }
 
+func planL3VPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
+	if peering.Remote != "" {
+		slog.Warn("Skipping remote peering for VPCs with L3 mode", "peering", peeringName, "vpc1", vpc1Name, "vpc2", vpc2Name)
+
+		return nil
+	}
+
+	vpc1Allow := map[string]map[string]bool{}
+	vpc2Allow := map[string]map[string]bool{}
+	for vpc1SubnetName := range vpc1.Subnets {
+		vpc1Allow[vpc1SubnetName] = map[string]bool{}
+	}
+	for vpc2SubnetName := range vpc2.Subnets {
+		vpc2Allow[vpc2SubnetName] = map[string]bool{}
+	}
+
+	for _, permitPolicy := range peering.Permit {
+		vpc1Subnets := permitPolicy[vpc1Name].Subnets
+		if len(vpc1Subnets) == 0 {
+			for subnetName := range vpc1.Subnets {
+				vpc1Subnets = append(vpc1Subnets, subnetName)
+			}
+		}
+
+		vpc2Subnets := permitPolicy[vpc2Name].Subnets
+		if len(vpc2Subnets) == 0 {
+			for subnetName := range vpc2.Subnets {
+				vpc2Subnets = append(vpc2Subnets, subnetName)
+			}
+		}
+
+		for _, vpc1SubnetName := range vpc1Subnets {
+			for _, vpc2SubnetName := range vpc2Subnets {
+				vpc1Allow[vpc1SubnetName][vpc2SubnetName] = true
+				vpc2Allow[vpc2SubnetName][vpc1SubnetName] = true
+			}
+		}
+	}
+
+	if err := addL3VPCFilteringACLEntryiesForVPC(agent, spec, vpc1Name, vpc2Name, vpc2, vpc1Allow); err != nil {
+		return errors.Wrapf(err, "failed to add VPC filtering ACL entries for VPC %s", vpc1Name)
+	}
+	if err := addL3VPCFilteringACLEntryiesForVPC(agent, spec, vpc2Name, vpc1Name, vpc1, vpc2Allow); err != nil {
+		return errors.Wrapf(err, "failed to add VPC filtering ACL entries for VPC %s", vpc2Name)
+	}
+
+	return nil
+}
+
+func addL3VPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vpc2Name string, vpc2 vpcapi.VPCSpec, vpc1Allow map[string]map[string]bool) error {
+	for vpc1SubnetName, vpc1SubnetAllow := range vpc1Allow {
+		for vpc2SubnetName, allow := range vpc1SubnetAllow {
+			if !allow {
+				continue
+			}
+
+			vpc2Subnet, ok := vpc2.Subnets[vpc2SubnetName]
+			if !ok {
+				return errors.Errorf("VPC %s subnet %s not found", vpc2Name, vpc2SubnetName)
+			}
+
+			subnetID := agent.Spec.Catalog.SubnetIDs[vpc2Subnet.Subnet]
+			// TODO dedup
+			if subnetID == 0 {
+				return errors.Errorf("no subnet id found for vpc %s subnet %s", vpc2Name, vpc2SubnetName)
+			}
+			if subnetID < 100 {
+				return errors.Errorf("subnet id for vpc %s subnet %s is too small", vpc2Name, vpc2SubnetName)
+			}
+			if subnetID >= 65000 {
+				return errors.Errorf("subnet id for vpc %s subnet %s is too large", vpc2Name, vpc2SubnetName)
+			}
+
+			aclName := vpcFilteringAccessListName(vpc1Name, vpc1SubnetName)
+			if spec.ACLs[aclName] != nil {
+				spec.ACLs[aclName].Entries[subnetID] = &dozer.SpecACLEntry{
+					DestinationAddress: pointer.To(vpc2Subnet.Subnet),
+					Action:             dozer.SpecACLEntryActionAccept,
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func planDefaultVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) error {
 	vrfName := vpcVrfName(vpcName)
 
@@ -2050,7 +2138,7 @@ func planDefaultVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName strin
 		Ingress: pointer.To(vpcFilteringACL),
 	}
 
-	spec.ACLs[vpcFilteringACL], err = buildVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
+	spec.ACLs[vpcFilteringACL], err = buildDefaultVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
 	if err != nil {
 		return errors.Wrapf(err, "failed to plan VPC filtering ACL for VPC %s subnet %s", vpcName, subnetName)
 	}
@@ -2113,6 +2201,16 @@ func planL3VPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vp
 
 	spec.VRFs[VRFDefault].AttachedHosts[subnetIface] = &dozer.SpecVRFAttachedHost{}
 
+	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)
+	spec.ACLInterfaces[subnetIface] = &dozer.SpecACLInterface{
+		Ingress: pointer.To(vpcFilteringACL),
+	}
+
+	spec.ACLs[vpcFilteringACL], err = buildL3VPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to plan VPC filtering ACL for VPC %s subnet %s", vpcName, subnetName)
+	}
+
 	if subnet.DHCP.Enable || subnet.DHCP.Relay != "" {
 		var dhcpRelayIP net.IP
 
@@ -2139,7 +2237,7 @@ func planL3VPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vp
 	return nil
 }
 
-func buildVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) (*dozer.SpecACL, error) {
+func buildDefaultVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) (*dozer.SpecACL, error) {
 	acl := &dozer.SpecACL{
 		Entries: map[uint32]*dozer.SpecACLEntry{
 			65535: {
@@ -2248,17 +2346,17 @@ func extendVPCFilteringACL(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vp
 		}
 	}
 
-	if err := addVPCFilteringACLEntryiesForVPC(agent, spec, vpc1Name, vpc2Name, vpc2, vpc1Deny); err != nil {
+	if err := addDefaultVPCFilteringACLEntryiesForVPC(agent, spec, vpc1Name, vpc2Name, vpc2, vpc1Deny); err != nil {
 		return errors.Wrapf(err, "failed to add VPC filtering ACL entries for VPC %s", vpc1Name)
 	}
-	if err := addVPCFilteringACLEntryiesForVPC(agent, spec, vpc2Name, vpc1Name, vpc1, vpc2Deny); err != nil {
+	if err := addDefaultVPCFilteringACLEntryiesForVPC(agent, spec, vpc2Name, vpc1Name, vpc1, vpc2Deny); err != nil {
 		return errors.Wrapf(err, "failed to add VPC filtering ACL entries for VPC %s", vpc2Name)
 	}
 
 	return nil
 }
 
-func addVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vpc2Name string, vpc2 vpcapi.VPCSpec, vpc1Deny map[string]map[string]bool) error {
+func addDefaultVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vpc2Name string, vpc2 vpcapi.VPCSpec, vpc1Deny map[string]map[string]bool) error {
 	for vpc1SubnetName, vpc1SubnetDeny := range vpc1Deny {
 		for vpc2SubnetName, deny := range vpc1SubnetDeny {
 			if !deny {
@@ -2293,6 +2391,76 @@ func addVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, v
 	}
 
 	return nil
+}
+
+func buildL3VPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) (*dozer.SpecACL, error) {
+	acl := &dozer.SpecACL{
+		Entries: map[uint32]*dozer.SpecACLEntry{
+			65535: {
+				Action: dozer.SpecACLEntryActionDrop,
+			},
+		},
+	}
+
+	if !vpc.IsSubnetRestricted(subnetName) {
+		acl.Entries[1] = &dozer.SpecACLEntry{
+			SourceAddress:      pointer.To(subnet.Subnet),
+			DestinationAddress: pointer.To(subnet.Subnet),
+			Action:             dozer.SpecACLEntryActionAccept,
+		}
+	}
+
+	allowSubnets := map[string]bool{}
+
+	if !vpc.IsSubnetIsolated(subnetName) {
+		for otherSubnetName, otherSubnet := range vpc.Subnets {
+			if otherSubnetName == subnetName {
+				continue
+			}
+
+			if !vpc.IsSubnetIsolated(otherSubnetName) {
+				allowSubnets[otherSubnet.Subnet] = true
+			}
+		}
+	}
+
+	for permitIdx, permitPolicy := range vpc.Permit {
+		if !slices.Contains(permitPolicy, subnetName) {
+			continue
+		}
+
+		for _, otherSubnetName := range permitPolicy {
+			if otherSubnetName == subnetName {
+				continue
+			}
+
+			if otherSubnet, ok := vpc.Subnets[otherSubnetName]; ok {
+				allowSubnets[otherSubnet.Subnet] = true
+			} else {
+				return nil, errors.Errorf("permit policy #%d: subnet %s not found in VPC %s", permitIdx, otherSubnetName, vpcName)
+			}
+		}
+	}
+
+	for subnet := range allowSubnets {
+		subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
+		if subnetID == 0 {
+			return nil, errors.Errorf("no subnet id found for vpc %s subnet %s", vpcName, subnet)
+		}
+		if subnetID < 100 {
+			return nil, errors.Errorf("subnet id for vpc %s subnet %s is too small", vpcName, subnet)
+		}
+		if subnetID >= 65000 {
+			return nil, errors.Errorf("subnet id for vpc %s subnet %s is too large", vpcName, subnet)
+		}
+
+		acl.Entries[subnetID] = &dozer.SpecACLEntry{
+			DestinationAddress: pointer.To(subnet),
+			Action:             dozer.SpecACLEntryActionAccept,
+		}
+	}
+
+	return acl, nil
 }
 
 func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
