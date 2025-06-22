@@ -88,6 +88,7 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 				TableConnections: map[string]*dozer.SpecVRFTableConnection{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
 				EthernetSegments: map[string]*dozer.SpecVRFEthernetSegment{},
+				AttachedHosts:    map[string]*dozer.SpecVRFAttachedHost{},
 			},
 		},
 		RouteMaps:          map[string]*dozer.SpecRouteMap{},
@@ -1088,8 +1089,9 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 	spec.VRFs[VRFDefault].TableConnections = map[string]*dozer.SpecVRFTableConnection{
-		string(dozer.SpecVRFBGPTableConnectionConnected): {},
-		string(dozer.SpecVRFBGPTableConnectionStatic):    {},
+		string(dozer.SpecVRFBGPTableConnectionConnected):    {},
+		string(dozer.SpecVRFBGPTableConnectionStatic):       {},
+		string(dozer.SpecVRFBGPTableConnectionAttachedHost): {}, // TODO add routemap to only redistribute L3 VPCs
 	}
 
 	return nil
@@ -1375,7 +1377,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to plan VPC %s", vpcName)
 			}
 		case vpcapi.VPCModeL3:
-			// TODO implement L3 VPC mode
+			if err := planL3VPC(agent, spec, vpcName, vpc); err != nil {
+				return errors.Wrapf(err, "failed to plan L3 VPC %s", vpcName)
+			}
 		}
 	}
 
@@ -1394,12 +1398,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		switch vpc.Mode {
 		case vpcapi.VPCModeDefault:
-			err := planDefaultVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet)
-			if err != nil {
+			if err := planDefaultVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
 				return errors.Wrapf(err, "failed to plan VPC %s subnet %s", vpcName, subnetName)
 			}
 		case vpcapi.VPCModeL3:
-			// TODO implement L3 VPC mode
+			if err := planL3VPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
+				return errors.Wrapf(err, "failed to plan L3 VPC %s subnet %s", vpcName, subnetName)
+			}
 		}
 
 		conn, exists := agent.Spec.Connections[attach.Connection]
@@ -1496,7 +1501,9 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to plan VPC %s subnet %s for configuredSubnets", vpcName, subnetName)
 			}
 		case vpcapi.VPCModeL3:
-			// TODO implement L3 VPC mode
+			if err := planL3VPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
+				return errors.Wrapf(err, "failed to plan L3 VPC %s subnet %s for configuredSubnets", vpcName, subnetName)
+			}
 		}
 	}
 
@@ -1811,6 +1818,26 @@ func planDefaultVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc
 	return nil
 }
 
+func planL3VPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec) error { //nolint:unparam
+	// TODO extra validate static routes to avoid conflicts with other VPCs or control plane
+
+	if agent.Spec.AttachedVPCs[vpcName] {
+		for _, route := range vpc.StaticRoutes {
+			nextHops := []dozer.SpecVRFStaticRouteNextHop{}
+			for _, nextHop := range route.NextHops {
+				nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
+			}
+			slices.SortStableFunc(nextHops, NextHopCompare)
+
+			spec.VRFs[VRFDefault].StaticRoutes[route.Prefix] = &dozer.SpecVRFStaticRoute{
+				NextHops: nextHops,
+			}
+		}
+	}
+
+	return nil
+}
+
 func planDefaultVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
 	peerComm, err := communityForVPC(agent, vpc2Name)
 	if err != nil {
@@ -2062,6 +2089,50 @@ func planDefaultVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName strin
 			RelayAddress:    []string{dhcpRelayIP.String()},
 			LinkSelect:      true,
 			VRFSelect:       true,
+		}
+	}
+
+	return nil
+}
+
+func planL3VPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) error {
+	subnetCIDR, err := iputil.ParseCIDR(subnet.Subnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse subnet %s for VPC %s", subnet.Subnet, vpcName)
+	}
+	prefixLen, _ := subnetCIDR.Subnet.Mask.Size()
+
+	subnetIface := vlanName(subnet.VLAN)
+	spec.Interfaces[subnetIface] = &dozer.SpecInterface{
+		Enabled:     pointer.To(true),
+		Description: pointer.To(fmt.Sprintf("VPC %s/%s", vpcName, subnetName)),
+		VLANAnycastGateway: []string{
+			fmt.Sprintf("%s/%d", subnet.Gateway, prefixLen),
+		},
+	}
+
+	spec.VRFs[VRFDefault].AttachedHosts[subnetIface] = &dozer.SpecVRFAttachedHost{}
+
+	if subnet.DHCP.Enable || subnet.DHCP.Relay != "" {
+		var dhcpRelayIP net.IP
+
+		if subnet.DHCP.Enable {
+			dhcpRelayIP, _, err = net.ParseCIDR(agent.Spec.Config.ControlVIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
+			}
+		} else {
+			dhcpRelayIP, _, err = net.ParseCIDR(subnet.DHCP.Relay)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", subnet.DHCP.Relay, vpcName)
+			}
+		}
+
+		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
+			SourceInterface: pointer.To(MgmtIface),
+			RelayAddress:    []string{dhcpRelayIP.String()},
+			LinkSelect:      true,
+			VRFSelect:       true, // just for consistency, not used in L3 VPCs as it's always in a default VRF
 		}
 	}
 
