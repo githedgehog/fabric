@@ -1,0 +1,46 @@
+name: Govulncheck Security Scan
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  govulncheck:
+    runs-on: lab
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck -show verbose ./...
+
+      - name: Generate SARIF file
+        if: always()
+        run: |
+          if [ $? -ne 0 ]; then
+            echo "Full scan failed, running mod-only scan"
+            govulncheck -format=sarif -scan=gomod ./... > govulncheck.sarif
+          else
+            govulncheck -format=sarif ./... > govulncheck.sarif
+          fi
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: govulncheck.sarif
+          category: govulncheck
