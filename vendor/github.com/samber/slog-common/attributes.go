@@ -60,6 +60,16 @@ func AttrsToMap(attrs ...slog.Attr) map[string]any {
 	return output
 }
 
+func RecordToAttrsMap(r slog.Record) map[string]any {
+	attrs := make([]slog.Attr, r.NumAttrs())
+	r.Attrs(func(attr slog.Attr) bool {
+		attrs = append(attrs, attr)
+		return true
+	})
+
+	return AttrsToMap(attrs...)
+}
+
 func groupValuesByKey(attrs []slog.Attr) map[string][]slog.Value {
 	result := map[string][]slog.Value{}
 
