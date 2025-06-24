@@ -189,6 +189,11 @@ func main() {
 								Aliases: []string{"dhcp-lease"},
 								Usage:   "dhcp lease time in seconds",
 							},
+							&cli.StringFlag{
+								Name:    "vpc-mode",
+								Aliases: []string{"mode"},
+								Usage:   "vpc mode, e.g. empty for l2vni (default), l3vni etc.",
+							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
@@ -210,6 +215,7 @@ func main() {
 										LeaseTimeSeconds: uint32(cCtx.Uint("dhcp-lease-time")), //nolint:gosec
 									},
 								},
+								Mode: vpcapi.VPCMode(cCtx.String("vpc-mode")),
 							}), "failed to create vpc")
 						},
 					},
