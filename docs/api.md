@@ -1150,7 +1150,7 @@ _Appears in:_
 
 _Underlying type:_ _string_
 
-VPCMode defines how VPCs are configured on the switches
+VPCMode defines how VPCs are implemented on the switches
 
 
 
@@ -1159,8 +1159,9 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `` |  |
-| `l3` |  |
+| `` | L2VNI: L2VPN EVPN with VRF per VPC and L2VNI per VPC subnet<br /> |
+| `l3vni` | L3VNI: L2VPN EVPN with VRF per VPC and only L3VNI per VPC, hosts should have /32 IP addresses in the VPC subnets<br /> |
+| `l3flat` | (EXPERIMENTAL) L3Flat: All VPCs are configured within default VRF and ACLs are used for isolation and VPC peerings, hosts should have /32 IP addresses in the VPC subnets<br /> |
 
 
 #### VPCPeer
