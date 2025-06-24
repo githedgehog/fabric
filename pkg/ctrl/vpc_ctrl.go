@@ -167,7 +167,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 
 			vrf := ""
 			switch vpc.Spec.Mode {
-			case vpcapi.VPCModeDefault, vpcapi.VPCModeL3VNI:
+			case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
 				vrf = fmt.Sprintf("VrfV%s", vpc.Name) // TODO move to utils
 			case vpcapi.VPCModeL3Flat:
 				vrf = "default"

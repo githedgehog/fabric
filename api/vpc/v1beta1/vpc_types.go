@@ -63,7 +63,7 @@ type VPCMode string
 
 const (
 	// L2VNI: L2VPN EVPN with VRF per VPC and L2VNI per VPC subnet
-	VPCModeDefault VPCMode = ""
+	VPCModeL2VNI VPCMode = ""
 	// L3VNI: L2VPN EVPN with VRF per VPC and only L3VNI per VPC, hosts should have /32 IP addresses in the VPC subnets
 	VPCModeL3VNI VPCMode = "l3vni"
 	// (EXPERIMENTAL) L3Flat: All VPCs are configured within default VRF and ACLs are used for isolation and VPC peerings, hosts should have /32 IP addresses in the VPC subnets
@@ -71,7 +71,7 @@ const (
 )
 
 var VPCModes = []VPCMode{
-	VPCModeDefault,
+	VPCModeL2VNI,
 	VPCModeL3VNI,
 	VPCModeL3Flat,
 }

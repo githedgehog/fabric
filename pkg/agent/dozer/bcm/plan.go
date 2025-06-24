@@ -1379,13 +1379,13 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	for vpcName, vpc := range agent.Spec.VPCs {
-		if vpc.Mode != vpcapi.VPCModeDefault && sonicVersionCurr.Compare(sonicVersion450) < 0 {
+		if vpc.Mode != vpcapi.VPCModeL2VNI && sonicVersionCurr.Compare(sonicVersion450) < 0 {
 			return errors.Errorf("VPC %s mode %s is not supported on SONiC version %s", vpcName, vpc.Mode, sonicVersionCurr)
 		}
 
 		switch vpc.Mode {
-		case vpcapi.VPCModeDefault, vpcapi.VPCModeL3VNI:
-			if err := planDefaultVPC(agent, spec, vpcName, vpc); err != nil {
+		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
+			if err := planVNIVPC(agent, spec, vpcName, vpc); err != nil {
 				return errors.Wrapf(err, "failed to plan VPC %s", vpcName)
 			}
 		case vpcapi.VPCModeL3Flat:
@@ -1409,8 +1409,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		switch vpc.Mode {
-		case vpcapi.VPCModeDefault, vpcapi.VPCModeL3VNI:
-			if err := planDefaultVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
+		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
+			if err := planVNIVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
 				return errors.Wrapf(err, "failed to plan VPC %s subnet %s", vpcName, subnetName)
 			}
 		case vpcapi.VPCModeL3Flat:
@@ -1508,8 +1508,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		switch vpc.Mode {
-		case vpcapi.VPCModeDefault, vpcapi.VPCModeL3VNI:
-			if err := planDefaultVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
+		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
+			if err := planVNIVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
 				return errors.Wrapf(err, "failed to plan VPC %s subnet %s for configuredSubnets", vpcName, subnetName)
 			}
 		case vpcapi.VPCModeL3Flat:
@@ -1541,8 +1541,8 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		switch vpc1.Mode {
-		case vpcapi.VPCModeDefault, vpcapi.VPCModeL3VNI:
-			if err := planDefaultVPCPeering(agent, spec, peeringName, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
+		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
+			if err := planVNIVPCPeering(agent, spec, peeringName, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
 				return errors.Wrapf(err, "failed to plan VPC peering %s", peeringName)
 			}
 		case vpcapi.VPCModeL3Flat:
@@ -1554,7 +1554,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	for vpcName, vpc := range agent.Spec.VPCs {
 		switch vpc.Mode {
-		case vpcapi.VPCModeDefault, vpcapi.VPCModeL3VNI:
+		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
 			// cleanup empty (only a single permit) ACLs for all VPC/subnets
 			for subnetName, subnet := range vpc.Subnets {
 				aclName := vpcFilteringAccessListName(vpcName, subnetName)
@@ -1583,7 +1583,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planDefaultVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec) error {
+func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec) error {
 	vrfName := vpcVrfName(vpcName)
 
 	irbVLAN := agent.Spec.Catalog.IRBVLANs[vpcName]
@@ -1784,7 +1784,7 @@ func planDefaultVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc
 			AdvertiseIPv4Unicast: pointer.To(true),
 		},
 	}
-	if vpc.Mode == vpcapi.VPCModeDefault {
+	if vpc.Mode == vpcapi.VPCModeL2VNI {
 		spec.VRFs[vrfName].BGP.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = []string{RouteMapFilterAttachedHost}
 	}
 
@@ -1856,7 +1856,7 @@ func planL3FlatVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 	return nil
 }
 
-func planDefaultVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
+func planVNIVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
 	peerComm, err := communityForVPC(agent, vpc2Name)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get community for VPC %s", vpc2Name)
@@ -2125,7 +2125,7 @@ func addL3FlatVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.S
 	return nil
 }
 
-func planDefaultVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) error {
+func planVNIVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) error {
 	vrfName := vpcVrfName(vpcName)
 
 	subnetCIDR, err := iputil.ParseCIDR(subnet.Subnet)
@@ -2154,7 +2154,7 @@ func planDefaultVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName strin
 		Ingress: pointer.To(vpcFilteringACL),
 	}
 
-	spec.ACLs[vpcFilteringACL], err = buildDefaultVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
+	spec.ACLs[vpcFilteringACL], err = buildVNIVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
 	if err != nil {
 		return errors.Wrapf(err, "failed to plan VPC filtering ACL for VPC %s subnet %s", vpcName, subnetName)
 	}
@@ -2162,7 +2162,7 @@ func planDefaultVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName strin
 	if agent.IsSpineLeaf() {
 		spec.SuppressVLANNeighs[subnetIface] = &dozer.SpecSuppressVLANNeigh{}
 
-		if vpc.Mode == vpcapi.VPCModeDefault {
+		if vpc.Mode == vpcapi.VPCModeL2VNI {
 			subnetVNI, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
 			if subnetVNI == 0 || !ok {
 				return errors.Errorf("VNI for VPC %s subnet %s not found", vpcName, subnetName)
@@ -2255,7 +2255,7 @@ func planL3FlatVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string
 	return nil
 }
 
-func buildDefaultVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) (*dozer.SpecACL, error) {
+func buildVNIVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet) (*dozer.SpecACL, error) {
 	acl := &dozer.SpecACL{
 		Entries: map[uint32]*dozer.SpecACLEntry{
 			65535: {
@@ -2364,17 +2364,17 @@ func extendVPCFilteringACL(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vp
 		}
 	}
 
-	if err := addDefaultVPCFilteringACLEntryiesForVPC(agent, spec, vpc1Name, vpc2Name, vpc2, vpc1Deny); err != nil {
+	if err := addVNIVPCFilteringACLEntryiesForVPC(agent, spec, vpc1Name, vpc2Name, vpc2, vpc1Deny); err != nil {
 		return errors.Wrapf(err, "failed to add VPC filtering ACL entries for VPC %s", vpc1Name)
 	}
-	if err := addDefaultVPCFilteringACLEntryiesForVPC(agent, spec, vpc2Name, vpc1Name, vpc1, vpc2Deny); err != nil {
+	if err := addVNIVPCFilteringACLEntryiesForVPC(agent, spec, vpc2Name, vpc1Name, vpc1, vpc2Deny); err != nil {
 		return errors.Wrapf(err, "failed to add VPC filtering ACL entries for VPC %s", vpc2Name)
 	}
 
 	return nil
 }
 
-func addDefaultVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vpc2Name string, vpc2 vpcapi.VPCSpec, vpc1Deny map[string]map[string]bool) error {
+func addVNIVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.Spec, vpc1Name, vpc2Name string, vpc2 vpcapi.VPCSpec, vpc1Deny map[string]map[string]bool) error {
 	for vpc1SubnetName, vpc1SubnetDeny := range vpc1Deny {
 		for vpc2SubnetName, deny := range vpc1SubnetDeny {
 			if !deny {
