@@ -58,13 +58,23 @@ type VPCSpec struct {
 	StaticRoutes []VPCStaticRoute `json:"staticRoutes,omitempty"`
 }
 
-// VPCMode defines how VPCs are configured on the switches
+// VPCMode defines how VPCs are implemented on the switches
 type VPCMode string
 
 const (
+	// L2VNI: L2VPN EVPN with VRF per VPC and L2VNI per VPC subnet
 	VPCModeDefault VPCMode = ""
-	VPCModeL3      VPCMode = "l3"
+	// L3VNI: L2VPN EVPN with VRF per VPC and only L3VNI per VPC, hosts should have /32 IP addresses in the VPC subnets
+	VPCModeL3VNI VPCMode = "l3vni"
+	// (EXPERIMENTAL) L3Flat: All VPCs are configured within default VRF and ACLs are used for isolation and VPC peerings, hosts should have /32 IP addresses in the VPC subnets
+	VPCModeL3Flat VPCMode = "l3flat"
 )
+
+var VPCModes = []VPCMode{
+	VPCModeDefault,
+	VPCModeL3VNI,
+	VPCModeL3Flat,
+}
 
 // VPCSubnet defines the VPC subnet configuration
 type VPCSubnet struct {
@@ -301,6 +311,13 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	}
 	if len(vpc.Spec.Subnets) > 20 {
 		return nil, errors.Errorf("too many subnets, max is 20")
+	}
+	if !slices.Contains(VPCModes, vpc.Spec.Mode) {
+		return nil, errors.Errorf("invalid mode %s, must be one of %v", vpc.Spec.Mode, VPCModes)
+	}
+	// TODO remove L3Flat mode or make experimental flag for it
+	if vpc.Spec.Mode == VPCModeL3Flat {
+		return nil, errors.Errorf("L3Flat mode is not supported yet")
 	}
 
 	subnets := []*net.IPNet{}
