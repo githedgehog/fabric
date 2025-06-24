@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -34,9 +35,13 @@ type VPCCreateOptions struct {
 	Subnet string
 	VLAN   uint16
 	DHCP   vpcapi.VPCDHCP
+	Mode   vpcapi.VPCMode
 }
 
 func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
+	if !slices.Contains(vpcapi.VPCModes, options.Mode) {
+		return fmt.Errorf("invalid mode %s, must be one of %v", options.Mode, vpcapi.VPCModes) //nolint:err113
+	}
 	vpc := &vpcapi.VPC{
 		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      options.Name,
@@ -50,6 +55,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 					DHCP:   options.DHCP,
 				},
 			},
+			Mode: options.Mode,
 		},
 	}
 
