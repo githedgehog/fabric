@@ -239,6 +239,10 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 			return nil, errors.Wrapf(err, "failed to get VPC %s", vpc2Name) // TODO replace with some internal error to not expose to the user
 		}
 
+		if vpc1.Spec.Mode != vpc2.Spec.Mode {
+			return nil, errors.Errorf("peering is only allowed between VPCs with the same mode")
+		}
+
 		for _, permit := range peering.Spec.Permit {
 			for vpcName, vpcPeer := range permit {
 				vpc := vpc1
