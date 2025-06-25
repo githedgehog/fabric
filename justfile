@@ -26,7 +26,8 @@ lint: _lint _golangci_lint
 lint-fix: _lint _golangci_lint
   {{golangci_lint}} run --show-stats --fix ./...
 
-go_flags := "--tags containers_image_openpgp,containers_image_storage_stub -ldflags=\"-w -s -X go.githedgehog.com/fabric/pkg/version.Version=" + version + "\""
+go_base_flags := "--tags containers_image_openpgp,containers_image_storage_stub"
+go_flags := go_base_flags + " -ldflags=\"-w -s -X go.githedgehog.com/fabric/pkg/version.Version=" + version + "\""
 go_build := "go build " + go_flags
 go_linux_build := "GOOS=linux GOARCH=amd64 " + go_build
 
@@ -115,3 +116,8 @@ test-api: _helm-fabric-api
 # Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
 patch: && version
   kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"fabric":{"api":"{{version}}","agent":"{{version}}","boot":"{{version}}","controller":"{{version}}","ctl":"{{version}}","dhcpd":"{{version}}","proxyChart":"{{version}}"}}}}}'
+
+# Run specified command with args with minimal Go flags (no version provided)
+run cmd *args:
+  @echo "Running: {{cmd}} {{args}} (run gen manually if needed)"
+  @go run {{go_base_flags}} ./cmd/{{cmd}} {{args}}
