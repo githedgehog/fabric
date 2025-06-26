@@ -634,6 +634,23 @@ _Appears in:_
 | `hostname` _string_ | Hostname from DHCP request |  |  |
 
 
+#### DHCPRoute
+
+
+
+
+
+
+
+_Appears in:_
+- [DHCPSubnetSpec](#dhcpsubnetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `destination` _string_ | Destination is the destination prefix for the route |  |  |
+| `gateway` _string_ | Gateway is the gateway IP address for the route |  |  |
+
+
 #### DHCPSubnet
 
 
@@ -682,6 +699,8 @@ _Appears in:_
 | `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
 | `defaultURL` _string_ | DefaultURL (optional) is the option 114 "default-url" to be sent to the clients |  |  |
 | `l3Mode` _boolean_ | L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients |  |  |
+| `disableDefaultRoute` _boolean_ | Disable default route advertisement in DHCP |  |  |
+| `advertisedRoutes` _[DHCPRoute](#dhcproute) array_ | AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP |  |  |
 
 
 #### DHCPSubnetStatus
@@ -1127,6 +1146,8 @@ _Appears in:_
 | `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
 | `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
 | `leaseTimeSeconds` _integer_ | Lease time in seconds, such as 3600 |  |  |
+| `disableDefaultRoute` _boolean_ | Disable default route advertisement. For L3VNI VPCs, a classless static route to the VPC subnet<br />will be advertised if this option is enabled. |  |  |
+| `advertisedRoutes` _[VPCDHCPRoute](#vpcdhcproute) array_ | Advertise custom routes to the clients via the classless static route option. If non-empty,<br />and unless the disable default route flag is enabled, a default route via the VPC gateway<br />will be added automatically. |  | Optional: \{\} <br /> |
 
 
 #### VPCDHCPRange
@@ -1144,6 +1165,23 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `start` _string_ | Start is the start IP address of the DHCP range |  |  |
 | `end` _string_ | End is the end IP address of the DHCP range |  |  |
+
+
+#### VPCDHCPRoute
+
+
+
+
+
+
+
+_Appears in:_
+- [VPCDHCPOptions](#vpcdhcpoptions)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `destination` _string_ | Destination is the destination prefix for the route |  |  |
+| `gateway` _string_ | Gateway is the gateway IP address for the route |  |  |
 
 
 #### VPCMode

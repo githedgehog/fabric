@@ -24,6 +24,13 @@ const (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type DHCPRoute struct {
+	// Destination is the destination prefix for the route
+	Destination string `json:"destination,omitempty"`
+	// Gateway is the gateway IP address for the route
+	Gateway string `json:"gateway,omitempty"`
+}
+
 // DHCPSubnetSpec defines the desired state of DHCPSubnet
 type DHCPSubnetSpec struct {
 	// Full VPC subnet name (including VPC name), such as "vpc-0/default"
@@ -57,6 +64,10 @@ type DHCPSubnetSpec struct {
 	DefaultURL string `json:"defaultURL"`
 	// L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients
 	L3Mode bool `json:"l3Mode,omitempty"`
+	// Disable default route advertisement in DHCP
+	DisableDefaultRoute bool `json:"disableDefaultRoute,omitempty"`
+	// AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP
+	AdvertisedRoutes []DHCPRoute `json:"advertisedRoutes,omitempty"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet

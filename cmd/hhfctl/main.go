@@ -194,12 +194,34 @@ func main() {
 								Aliases: []string{"mode"},
 								Usage:   "vpc mode, e.g. empty for l2vni (default), l3vni etc.",
 							},
+							&cli.BoolFlag{
+								Name:    "dhcp-disable-default-route",
+								Aliases: []string{"dhcp-no-default"},
+								Usage:   "disable default route advertisement in dhcp",
+							},
+							&cli.StringSliceFlag{
+								Name:  "dhcp-advertised-routes",
+								Usage: "custom routes to advertise in dhcp, in the format prefix-gateway, e.g. 8.8.8.0/24-192.168.1.1",
+							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
 						Action: func(cCtx *cli.Context) error {
+							cliRoutes := cCtx.StringSlice("dhcp-advertised-routes")
+							advertisedRoutes := make([]vpcapi.VPCDHCPRoute, 0, len(cliRoutes))
+							for _, route := range cliRoutes {
+								parts := strings.Split(route, "-")
+								if len(parts) != 2 {
+									return cli.Exit(fmt.Sprintf("invalid dhcp-advertised-routes format: %s, expected prefix-gateway", route), 1)
+								}
+								advertisedRoutes = append(advertisedRoutes, vpcapi.VPCDHCPRoute{
+									Destination: parts[0],
+									Gateway:     parts[1],
+								})
+							}
+
 							return errors.Wrapf(hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
@@ -211,8 +233,10 @@ func main() {
 										End:   cCtx.String("dhcp-range-end"),
 									},
 									Options: &vpcapi.VPCDHCPOptions{
-										PXEURL:           cCtx.String("dhcp-pxe-url"),
-										LeaseTimeSeconds: uint32(cCtx.Uint("dhcp-lease-time")), //nolint:gosec
+										PXEURL:              cCtx.String("dhcp-pxe-url"),
+										LeaseTimeSeconds:    uint32(cCtx.Uint("dhcp-lease-time")), //nolint:gosec
+										DisableDefaultRoute: cCtx.Bool("dhcp-disable-default-route"),
+										AdvertisedRoutes:    advertisedRoutes,
 									},
 								},
 								Mode: vpcapi.VPCMode(cCtx.String("vpc-mode")),
