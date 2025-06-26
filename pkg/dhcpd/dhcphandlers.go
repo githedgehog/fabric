@@ -277,7 +277,13 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet, ipnet net.I
 		return errors.New("handleDiscover4: no route found")
 	}
 
+	// With l3vni VPCs, send a short lease time on the first request to trigger
+	// a renewal, which will carry the IP address and MAC of the server and make the
+	// leaf learn it. On renewals (and in other VPC modes), send the configured lease time.
 	leaseTime := time.Duration(subnet.dhcpSubnet.Spec.LeaseTimeSeconds) * time.Second
+	if subnet.dhcpSubnet.Spec.L3Mode && req.ClientIPAddr.IsUnspecified() {
+		leaseTime = 10 * time.Second
+	}
 
 	resp.YourIPAddr = ipnet.IP
 	resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
