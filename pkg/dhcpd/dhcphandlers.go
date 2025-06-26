@@ -287,7 +287,15 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet, ipnet net.I
 
 	resp.YourIPAddr = ipnet.IP
 	resp.Options.Update(dhcpv4.OptIPAddressLeaseTime(leaseTime))
-	resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
+	// From RFC3442: When a DHCP client requests the Classless Static Routes option and
+	// also requests either or both of the Router option and the Static
+	// Routes option, and the DHCP server is sending Classless Static Routes
+	// options to that client, the server SHOULD NOT include the Router or
+	// Static Routes options.
+	if !subnet.dhcpSubnet.Spec.DisableDefaultRoute && (!req.IsOptionRequested(dhcpv4.OptionClasslessStaticRoute) ||
+		len(subnet.dhcpSubnet.Spec.AdvertisedRoutes) == 0) {
+		resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.dhcpSubnet.Spec.Gateway)))
+	}
 	resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
 
 	switch {
@@ -331,6 +339,50 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet, ipnet net.I
 				Data: []byte(subnet.dhcpSubnet.Spec.DefaultURL),
 			},
 		})
+	}
+
+	// we want to advertise classless static routes:
+	// - if the dhcp client requested them (prerequisite) AND
+	// - EITHER the user has configured some routes to advertise
+	// - OR the user disabled the default route for an L3VNI mode VPC, as we need to advertise at least the VPC subnet
+	if req.IsOptionRequested(dhcpv4.OptionClasslessStaticRoute) && (len(subnet.dhcpSubnet.Spec.AdvertisedRoutes) > 0 ||
+		(subnet.dhcpSubnet.Spec.DisableDefaultRoute && subnet.dhcpSubnet.Spec.L3Mode)) {
+		routes := dhcpv4.Routes{}
+		// advertise a default route here unless it was disabled
+		if !subnet.dhcpSubnet.Spec.DisableDefaultRoute {
+			routes = append(routes, &dhcpv4.Route{
+				Dest: &net.IPNet{
+					IP:   net.IPv4zero,
+					Mask: net.IPv4Mask(0, 0, 0, 0),
+				},
+				Router: net.ParseIP(subnet.dhcpSubnet.Spec.Gateway),
+			})
+		} else if subnet.dhcpSubnet.Spec.L3Mode {
+			// in L3 mode, we need to advertise the VPC subnet as a classless static route
+			_, prefix, err := net.ParseCIDR(subnet.dhcpSubnet.Spec.CIDRBlock)
+			if err != nil {
+				return errors.Wrapf(err, "handleDiscover4: failed to parse VPC subnet CIDR block %s", subnet.dhcpSubnet.Spec.CIDRBlock)
+			}
+			routes = append(routes, &dhcpv4.Route{
+				Dest:   prefix,
+				Router: net.ParseIP(subnet.dhcpSubnet.Spec.Gateway),
+			})
+		}
+		for _, advertisedRoute := range subnet.dhcpSubnet.Spec.AdvertisedRoutes {
+			_, prefix, err := net.ParseCIDR(advertisedRoute.Destination)
+			if err != nil {
+				return errors.Wrapf(err, "handleDiscover4: failed to parse advertised route prefix %s", advertisedRoute.Destination)
+			}
+			gateway := net.ParseIP(advertisedRoute.Gateway)
+			if gateway == nil {
+				return errors.Wrapf(err, "handleDiscover4: failed to parse advertised route gateway %s", advertisedRoute.Gateway)
+			}
+			routes = append(routes, &dhcpv4.Route{
+				Dest:   prefix,
+				Router: gateway,
+			})
+		}
+		resp.Options.Update(dhcpv4.OptClasslessStaticRoute(routes...))
 	}
 
 	addPxeInfo(req, resp, subnet)

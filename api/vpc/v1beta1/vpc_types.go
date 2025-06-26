@@ -112,6 +112,29 @@ type VPCDHCPRange struct {
 	End string `json:"end,omitempty"`
 }
 
+type VPCDHCPRoute struct {
+	// Destination is the destination prefix for the route
+	Destination string `json:"destination,omitempty"`
+	// Gateway is the gateway IP address for the route
+	Gateway string `json:"gateway,omitempty"`
+}
+
+// sorting function for VPCDHCPRoute
+func VPCDHCPRouteCompare(a, b VPCDHCPRoute) int {
+	if a.Destination < b.Destination {
+		return -1
+	} else if a.Destination > b.Destination {
+		return 1
+	}
+	if a.Gateway < b.Gateway {
+		return -1
+	} else if a.Gateway > b.Gateway {
+		return 1
+	}
+
+	return 0
+}
+
 // VPCDHCPOptions defines the DHCP options for the subnet if DHCP server is enabled
 type VPCDHCPOptions struct {
 	// PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported
@@ -129,6 +152,14 @@ type VPCDHCPOptions struct {
 	// Lease time in seconds, such as 3600
 	// +kubebuilder:validation:Minimum: 1
 	LeaseTimeSeconds uint32 `json:"leaseTimeSeconds"`
+	// Disable default route advertisement. For L3VNI VPCs, a classless static route to the VPC subnet
+	// will be advertised if this option is enabled.
+	DisableDefaultRoute bool `json:"disableDefaultRoute,omitempty"`
+	// Advertise custom routes to the clients via the classless static route option. If non-empty,
+	// and unless the disable default route flag is enabled, a default route via the VPC gateway
+	// will be added automatically.
+	// +kubebuilder:validation:Optional
+	AdvertisedRoutes []VPCDHCPRoute `json:"advertisedRoutes,omitempty"`
 }
 
 // VPCStaticRoute defines the static route for the VPC
@@ -264,7 +295,8 @@ func (vpc *VPC) Default() {
 		if subnet.DHCP.Options != nil {
 			if subnet.DHCP.Options.PXEURL == "" && subnet.DHCP.Options.DNSServers == nil &&
 				subnet.DHCP.Options.TimeServers == nil && subnet.DHCP.Options.InterfaceMTU == 0 &&
-				subnet.DHCP.Options.LeaseTimeSeconds == 0 {
+				subnet.DHCP.Options.LeaseTimeSeconds == 0 && !subnet.DHCP.Options.DisableDefaultRoute &&
+				subnet.DHCP.Options.AdvertisedRoutes == nil {
 				subnet.DHCP.Options = nil
 
 				continue
@@ -282,12 +314,16 @@ func (vpc *VPC) Default() {
 			if subnet.DHCP.Options.TimeServers == nil {
 				subnet.DHCP.Options.TimeServers = []string{}
 			}
+			slices.Sort(subnet.DHCP.Options.TimeServers)
 
 			if subnet.DHCP.Options.LeaseTimeSeconds == 0 {
 				subnet.DHCP.Options.LeaseTimeSeconds = 3600 // TODO Magic number should be named constant somewhere.
 			}
 
-			slices.Sort(subnet.DHCP.Options.TimeServers)
+			if subnet.DHCP.Options.AdvertisedRoutes == nil {
+				subnet.DHCP.Options.AdvertisedRoutes = []VPCDHCPRoute{}
+			}
+			slices.SortStableFunc(subnet.DHCP.Options.AdvertisedRoutes, VPCDHCPRouteCompare)
 		}
 	}
 }
@@ -391,6 +427,14 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			if subnetCfg.DHCP.Options.LeaseTimeSeconds > 0 {
 				return nil, errors.Errorf("subnet %s: LeaseTimeSeconds is set but dhcp is disabled", subnetName)
 			}
+
+			if subnetCfg.DHCP.Options.DisableDefaultRoute {
+				return nil, errors.Errorf("subnet %s: DisableDefaultRoute is set but dhcp is disabled", subnetName)
+			}
+
+			if len(subnetCfg.DHCP.Options.AdvertisedRoutes) > 0 {
+				return nil, errors.Errorf("subnet %s: AdvertisedRoutes is set but dhcp is disabled", subnetName)
+			}
 		}
 
 		if subnetCfg.DHCP.Enable {
@@ -458,6 +502,28 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 					return nil, errors.Errorf("subnet %s: LeaseTimeSeconds cannot be set smaller than 1", subnetName)
 				}
 				// TODO: max lease time?
+
+				for _, advertisedRoute := range subnetCfg.DHCP.Options.AdvertisedRoutes {
+					if advertisedRoute.Destination == "" {
+						return nil, errors.Errorf("subnet %s: advertised route destination is required", subnetName)
+					}
+					if advertisedRoute.Gateway == "" {
+						return nil, errors.Errorf("subnet %s: advertised route gateway is required", subnetName)
+					}
+
+					_, _, err := net.ParseCIDR(advertisedRoute.Destination)
+					if err != nil {
+						return nil, errors.Wrapf(err, "subnet %s: failed to parse advertised route destination %s", subnetName, advertisedRoute.Destination)
+					}
+
+					gwIP := net.ParseIP(advertisedRoute.Gateway)
+					if gwIP == nil {
+						return nil, errors.Errorf("subnet %s: invalid advertised route gateway %s", subnetName, advertisedRoute.Gateway)
+					}
+					if !ipNet.Contains(gwIP) {
+						return nil, errors.Errorf("subnet %s: advertised route gateway %s is not in the subnet", subnetName, advertisedRoute.Gateway)
+					}
+				}
 			}
 		} else if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
 			return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")

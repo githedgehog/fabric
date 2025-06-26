@@ -85,6 +85,19 @@ spec:
           spec:
             description: Spec is the desired state of the DHCPSubnet
             properties:
+              advertisedRoutes:
+                description: AdvertisedRoutes (optional) is a list of custom routes
+                  to advertise in DHCP
+                items:
+                  properties:
+                    destination:
+                      description: Destination is the destination prefix for the route
+                      type: string
+                    gateway:
+                      description: Gateway is the gateway IP address for the route
+                      type: string
+                  type: object
+                type: array
               cidrBlock:
                 description: CIDR block to use for VPC subnet, such as "10.10.10.0/24"
                 type: string
@@ -96,6 +109,9 @@ spec:
                 description: DefaultURL (optional) is the option 114 "default-url"
                   to be sent to the clients
                 type: string
+              disableDefaultRoute:
+                description: Disable default route advertisement in DHCP
+                type: boolean
               dnsServers:
                 description: 'DNSservers (optional) to configure Domain Name Servers
                   for this particular segment such as: 10.10.10.1, 10.10.10.2'

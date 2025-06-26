@@ -150,11 +150,20 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 			timeServers := []string{}
 			mtu := uint16(DefaultMTU)
 			leaseTime := uint32(DefaultLeaseTime)
+			advertisedRoutes := []dhcpapi.DHCPRoute{}
+			disableDefaultRoute := false
 
 			if subnet.DHCP.Options != nil {
 				pxeURL = subnet.DHCP.Options.PXEURL
 				dnsServers = subnet.DHCP.Options.DNSServers
 				timeServers = subnet.DHCP.Options.TimeServers
+				for _, route := range subnet.DHCP.Options.AdvertisedRoutes {
+					advertisedRoutes = append(advertisedRoutes, dhcpapi.DHCPRoute{
+						Destination: route.Destination,
+						Gateway:     route.Gateway,
+					})
+				}
+				disableDefaultRoute = subnet.DHCP.Options.DisableDefaultRoute
 
 				if subnet.DHCP.Options.InterfaceMTU > 0 {
 					mtu = subnet.DHCP.Options.InterfaceMTU
@@ -178,19 +187,21 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				vpcapi.LabelSubnet: subnetName,
 			}
 			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
-				Subnet:           fmt.Sprintf("%s/%s", vpc.Name, subnetName),
-				CIDRBlock:        subnet.Subnet,
-				Gateway:          subnet.Gateway,
-				StartIP:          subnet.DHCP.Range.Start,
-				EndIP:            subnet.DHCP.Range.End,
-				LeaseTimeSeconds: leaseTime,
-				VRF:              vrf,
-				CircuitID:        fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
-				PXEURL:           pxeURL,
-				DNSServers:       dnsServers,
-				TimeServers:      timeServers,
-				InterfaceMTU:     mtu,
-				L3Mode:           vpc.Spec.Mode == vpcapi.VPCModeL3Flat || vpc.Spec.Mode == vpcapi.VPCModeL3VNI,
+				Subnet:              fmt.Sprintf("%s/%s", vpc.Name, subnetName),
+				CIDRBlock:           subnet.Subnet,
+				Gateway:             subnet.Gateway,
+				StartIP:             subnet.DHCP.Range.Start,
+				EndIP:               subnet.DHCP.Range.End,
+				LeaseTimeSeconds:    leaseTime,
+				VRF:                 vrf,
+				CircuitID:           fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				PXEURL:              pxeURL,
+				DNSServers:          dnsServers,
+				TimeServers:         timeServers,
+				InterfaceMTU:        mtu,
+				L3Mode:              vpc.Spec.Mode == vpcapi.VPCModeL3Flat || vpc.Spec.Mode == vpcapi.VPCModeL3VNI,
+				DisableDefaultRoute: disableDefaultRoute,
+				AdvertisedRoutes:    advertisedRoutes,
 			}
 
 			return nil

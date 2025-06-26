@@ -1392,6 +1392,28 @@ spec:
                                 description: Options (optional) is the DHCP options
                                   for the subnet if DHCP server is enabled
                                 properties:
+                                  advertisedRoutes:
+                                    description: |-
+                                      Advertise custom routes to the clients via the classless static route option. If non-empty,
+                                      and unless the disable default route flag is enabled, a default route via the VPC gateway
+                                      will be added automatically.
+                                    items:
+                                      properties:
+                                        destination:
+                                          description: Destination is the destination
+                                            prefix for the route
+                                          type: string
+                                        gateway:
+                                          description: Gateway is the gateway IP address
+                                            for the route
+                                          type: string
+                                      type: object
+                                    type: array
+                                  disableDefaultRoute:
+                                    description: |-
+                                      Disable default route advertisement. For L3VNI VPCs, a classless static route to the VPC subnet
+                                      will be advertised if this option is enabled.
+                                    type: boolean
                                   dnsServers:
                                     description: 'DNSservers (optional) to configure
                                       Domain Name Servers for this particular segment
