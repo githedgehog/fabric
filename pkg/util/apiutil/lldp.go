@@ -34,7 +34,7 @@ type LLDPNeighborStatus struct {
 	ConnectionType string           `json:"connectionType,omitempty"`
 	Type           LLDPNeighborType `json:"type,omitempty"`
 	Expected       LLDPNeighbor     `json:"expected,omitempty"`
-	Actual         LLDPNeighbor     `json:"actual,omitempty"`
+	Actual         []LLDPNeighbor   `json:"actual,omitempty"`
 }
 
 func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {
@@ -180,11 +180,11 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				}
 			}
 
-			status.Actual = LLDPNeighbor{
+			status.Actual = append(status.Actual, LLDPNeighbor{
 				Name:        neighbor.SystemName,
 				Description: neighbor.SystemDescription,
 				Port:        port,
-			}
+			})
 
 			out[ifaceName] = status
 		}
