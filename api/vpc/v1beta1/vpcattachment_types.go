@@ -212,6 +212,27 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			if !slices.Contains(sw.Spec.VLANNamespaces, vpc.Spec.VLANNamespace) {
 				return nil, errors.Errorf("switch %s used in connection doesn't have vlan namespace %s", switchName, vpc.Spec.VLANNamespace)
 			}
+
+			sp := &wiringapi.SwitchProfile{}
+			err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: attach.Namespace}, sp)
+			if kapierrors.IsNotFound(err) {
+				return nil, errors.Errorf("switch profile %s used in switch %s not found", sw.Spec.Profile, switchName)
+			}
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get switch profile %s used in switch %s", sw.Spec.Profile, switchName) // TODO replace with some internal error to not expose to the user
+			}
+			spf := sp.Spec.Features
+
+			switch vpc.Spec.Mode {
+			case VPCModeL2VNI:
+				if !spf.L2VNI || !spf.L3VNI {
+					return nil, errors.Errorf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile)
+				}
+			case VPCModeL3VNI, VPCModeL3Flat:
+				if !spf.L3VNI {
+					return nil, errors.Errorf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile)
+				}
+			}
 		}
 
 		attaches := &VPCAttachmentList{}
