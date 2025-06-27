@@ -377,6 +377,19 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		if sw.Spec.RoCEv2 && !sp.Spec.Features.RoCEv2 {
 			return nil, errors.Errorf("RoCEv2 is not supported on switch profile %s", sw.Spec.Profile)
 		}
+
+		switch sw.Spec.Redundancy.Type {
+		case meta.RedundancyTypeNone:
+			// No redundancy, nothing to check
+		case meta.RedundancyTypeMCLAG:
+			if !sp.Spec.Features.MCLAG {
+				return nil, errors.Errorf("MCLAG is not supported on switch profile %s", sw.Spec.Profile)
+			}
+		case meta.RedundancyTypeESLAG:
+			if !sp.Spec.Features.ESLAG {
+				return nil, errors.Errorf("ESLAG is not supported on switch profile %s", sw.Spec.Profile)
+			}
+		}
 	}
 
 	return nil, nil
