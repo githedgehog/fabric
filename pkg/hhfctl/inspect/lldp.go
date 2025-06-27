@@ -58,28 +58,38 @@ func (out *LLDPOut) MarshalText(now time.Time) (string, error) {
 			}
 
 			n := out.Neighbors[swName][port]
+			sn := ""
+			sp := ""
+			sd := ""
 
-			sn := n.Actual.Name
-			if n.Expected.Name != n.Actual.Name {
-				sn += "←→" + n.Expected.Name
-				if n.Type != apiutil.LLDPNeighborTypeExternal {
-					sn = red(sn)
+			for _, actual := range n.Actual {
+				sn = actual.Name
+				sp = actual.Port
+				sd = actual.Description
+
+				if n.Expected.Name != actual.Name {
+					sn = actual.Name + "←→" + n.Expected.Name
+					if n.Type != apiutil.LLDPNeighborTypeExternal {
+						sn = red(sn)
+					}
 				}
-			}
 
-			sp := n.Actual.Port
-			if n.Expected.Port != n.Actual.Port {
-				sp += "←→" + n.Expected.Port
-				if n.Type != apiutil.LLDPNeighborTypeExternal {
-					sp = red(sp)
+				if n.Expected.Port != actual.Port {
+					sp = actual.Port + "←→" + n.Expected.Port
+					if n.Type != apiutil.LLDPNeighborTypeExternal {
+						sp = red(sp)
+					}
 				}
-			}
 
-			sd := n.Actual.Description
-			if n.Expected.Description != n.Actual.Description {
-				sd += "←→" + n.Expected.Description
-				if n.Type != apiutil.LLDPNeighborTypeExternal {
-					sd = red(sd)
+				if n.Expected.Description != actual.Description {
+					sd = actual.Description + "←→" + n.Expected.Description
+					if n.Type != apiutil.LLDPNeighborTypeExternal {
+						sd = red(sd)
+					}
+				}
+
+				if n.Expected.Name == actual.Name {
+					break
 				}
 			}
 
@@ -142,16 +152,31 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 			out.Neighbors[sw.Name][name] = n
 
 			if in.Strict && n.Type != apiutil.LLDPNeighborTypeExternal && (in.GatewayStrict || n.Type != apiutil.LLDPNeighborTypeGateway) {
-				if n.Expected.Name != n.Actual.Name {
-					out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q, got %q", sw.Name, name, n.Expected.Name, n.Actual.Name)) //nolint:goerr113
+				found := false
+				unexpected := []string{}
+
+				for _, actual := range n.Actual {
+					if n.Expected.Name == actual.Name {
+						found = true
+
+						if n.Expected.Port != actual.Port {
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", sw.Name, name, n.Expected.Port, actual.Port)) //nolint:goerr113
+						}
+
+						if n.Expected.Description != "" && n.Expected.Description != actual.Description {
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", sw.Name, name, n.Expected.Description, actual.Description)) //nolint:goerr113
+						}
+					} else {
+						unexpected = append(unexpected, actual.Name)
+					}
 				}
 
-				if n.Expected.Port != n.Actual.Port {
-					out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", sw.Name, name, n.Expected.Port, n.Actual.Port)) //nolint:goerr113
-				}
-
-				if n.Expected.Description != "" && n.Expected.Description != n.Actual.Description {
-					out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", sw.Name, name, n.Expected.Description, n.Actual.Description)) //nolint:goerr113
+				if !found {
+					if len(unexpected) == 0 {
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found", sw.Name, name, n.Expected.Name)) //nolint:goerr113
+					} else {
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found, but found: %v", sw.Name, name, n.Expected.Name, unexpected)) //nolint:goerr113
+					}
 				}
 			}
 		}
