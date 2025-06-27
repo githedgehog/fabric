@@ -30,8 +30,12 @@ var CelesticaDS3000 = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconBroadcomTD3_X7_3_2T,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
-			VXLAN:         true,
 			ACLs:          true,
+			L2VNI:         true,
+			L3VNI:         true,
+			RoCEv2:        true,
+			MCLAG:         true,
+			ESLAG:         true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-cel_seastone_2-r0",

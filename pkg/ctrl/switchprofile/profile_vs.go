@@ -30,8 +30,12 @@ var VS = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconVS,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
-			VXLAN:         true,
 			ACLs:          false,
+			L2VNI:         true,
+			L3VNI:         true,
+			RoCEv2:        true,
+			MCLAG:         true,
+			ESLAG:         true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMVS,
 		Platform: "x86_64-kvm_x86_64-r0",

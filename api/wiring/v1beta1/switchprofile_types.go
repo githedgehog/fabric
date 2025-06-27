@@ -48,10 +48,18 @@ const (
 type SwitchProfileFeatures struct {
 	// Subinterfaces defines if switch supports subinterfaces
 	Subinterfaces bool `json:"subinterfaces,omitempty"`
-	// VXLAN defines if switch supports VXLANs
-	VXLAN bool `json:"vxlan,omitempty"`
 	// ACLs defines if switch supports ACLs
 	ACLs bool `json:"acls,omitempty"`
+	// L2VNI defines if switch supports L2 VNIs
+	L2VNI bool `json:"l2vni,omitempty"`
+	// L3VNI defines if switch supports L3 VNIs
+	L3VNI bool `json:"l3vni,omitempty"`
+	// RoCEv2 defines if switch supports RoCEv2 over VXLAN and related features used by the fabric
+	RoCEv2 bool `json:"rocev2,omitempty"`
+	// MCLAG defines if switch supports MCLAG (with VXLAN)
+	MCLAG bool `json:"mclag,omitempty"`
+	// ESLAG defines if switch supports ESLAG (ESI multi-homing)
+	ESLAG bool `json:"eslag,omitempty"`
 }
 
 // Defines switch-specific configuration options
@@ -131,6 +139,8 @@ type SwitchProfileSpec struct {
 	SwitchSilicon string `json:"switchSilicon,omitempty"`
 	// Features defines the features supported by the switch
 	Features SwitchProfileFeatures `json:"features,omitempty"`
+	// Notes is a free-form field for any additional information about the switch
+	Notes string `json:"notes,omitempty"`
 	// Config defines the switch-specific configuration options
 	Config SwitchProfileConfig `json:"config,omitempty"`
 	// Ports defines the switch port configuration

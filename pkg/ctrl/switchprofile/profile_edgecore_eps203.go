@@ -30,9 +30,14 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconBroadcomTD3_X3,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
-			VXLAN:         true,
 			ACLs:          true,
+			L2VNI:         true,
+			L3VNI:         true,
+			RoCEv2:        false,
+			MCLAG:         true,
+			ESLAG:         true,
 		},
+		Notes:    "Doesn't support StaticExternals and ExternalAttachments with VLANs due to the lack of subinterfaces support.",
 		NOSType:  meta.NOSTypeSONiCBCMCampus,
 		Platform: "x86_64-accton_as4630_54npe-r0",
 		Config: wiringapi.SwitchProfileConfig{

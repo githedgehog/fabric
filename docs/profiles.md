@@ -10,19 +10,20 @@ features and port naming scheme.
 | [Celestica DS3000 (Seastone2)](#celestica-ds3000) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
 | [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 1xSFP28-10G |
 | [Celestica DS4101 (Greystone)](#celestica-ds4101) | **spine** | Broadcom TH4G | 32xOSFP-2x400G, 2xSFP28-10G |
-| [Celestica DS5000 (Moonstone)](#celestica-ds5000) | **spine**, **limited-leaf** | Broadcom TH5 | 64xOSFP-800G, 2xSFP28-25G |
+| [Celestica DS5000 (Moonstone)](#celestica-ds5000) | **spine**, **leaf (l3-only)** | Broadcom TH5 | 64xOSFP-800G, 2xSFP28-25G |
 | [Dell S5232F-ON](#dell-s5232f-on) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
 | [Dell S5248F-ON](#dell-s5248f-on) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 48xSFP28-25G, 8xQSFP28-100G |
 | [Dell Z9332F-ON](#dell-z9332f-on) | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 2xSFP28-10G |
 | [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | **spine**, **leaf** | Broadcom TD3-X7 2.0T | 48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G |
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | **spine** | Broadcom TH | 32xQSFP28-100G |
-| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **limited-leaf** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
+| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **leaf (limited)** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
 
 !!! note
     - Switches that support **leaf** role could be used for the collapsed-core topology as well
-    - Switches with **limited-leaf** role does not support some leaf features and are not supported in the
+		- Switches with **leaf (l3-only)** role only support L3 VPC modes
+    - Switches with **leaf (limited)** role does not support some leaf features and are not supported in the
       collapsed-core topology
 
 
@@ -41,8 +42,12 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -101,8 +106,12 @@ Ports Summary: **32xQSFPDD-400G, 1xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: false
-- VXLAN: false
 - ACLs: true
+- L2VNI: false
+- L3VNI: false
+- RoCEv2: true
+- MCLAG: false
+- ESLAG: false
 
 **Available Ports:**
 
@@ -161,8 +170,12 @@ Ports Summary: **32xOSFP-2x400G, 2xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: false
-- VXLAN: false
 - ACLs: true
+- L2VNI: false
+- L3VNI: false
+- RoCEv2: true
+- MCLAG: false
+- ESLAG: false
 
 **Available Ports:**
 
@@ -213,17 +226,23 @@ Profile Name (to use in switch object `.spec.profile`): **celestica-ds5000**
 
 Other names: Celestica Moonstone
 
-**Supported roles**: **spine**, **limited-leaf**
+**Supported roles**: **spine**, **leaf (l3-only)**
 
 Switch Silicon: **Broadcom TH5**
 
 Ports Summary: **64xOSFP-800G, 2xSFP28-25G**
 
+Notes: Doesn't support non-L3 VPC modes due to the lack of L2VNI support.
+
 **Supported features:**
 
-- Subinterfaces: false
-- VXLAN: true
+- Subinterfaces: true
 - ACLs: true
+- L2VNI: false
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: false
+- ESLAG: false
 
 **Available Ports:**
 
@@ -313,8 +332,12 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -372,8 +395,12 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -453,8 +480,12 @@ Ports Summary: **32xQSFPDD-400G, 2xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: false
-- VXLAN: false
 - ACLs: true
+- L2VNI: false
+- L3VNI: false
+- RoCEv2: true
+- MCLAG: false
+- ESLAG: false
 
 **Available Ports:**
 
@@ -514,8 +545,12 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -599,8 +634,12 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -660,8 +699,12 @@ Ports Summary: **32xQSFP28-100G**
 **Supported features:**
 
 - Subinterfaces: false
-- VXLAN: false
 - ACLs: true
+- L2VNI: false
+- L3VNI: false
+- RoCEv2: false
+- MCLAG: false
+- ESLAG: false
 
 **Available Ports:**
 
@@ -710,17 +753,23 @@ Profile Name (to use in switch object `.spec.profile`): **edgecore-eps203**
 
 Other names: Edgecore AS4630-54NPE
 
-**Supported roles**: **limited-leaf**
+**Supported roles**: **leaf (limited)**
 
 Switch Silicon: **Broadcom TD3-X3**
 
 Ports Summary: **36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G**
 
+Notes: Doesn't support StaticExternals and ExternalAttachments with VLANs due to the lack of subinterfaces support.
+
 **Supported features:**
 
 - Subinterfaces: false
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: false
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -798,8 +847,12 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 
@@ -858,8 +911,12 @@ Ports Summary: **48xSFP28-25G**
 **Supported features:**
 
 - Subinterfaces: true
-- VXLAN: true
 - ACLs: false
+- L2VNI: true
+- L3VNI: true
+- RoCEv2: true
+- MCLAG: true
+- ESLAG: true
 
 **Available Ports:**
 

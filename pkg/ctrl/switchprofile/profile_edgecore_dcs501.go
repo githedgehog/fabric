@@ -30,8 +30,12 @@ var EdgecoreDCS501 = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconBroadcomTH,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
-			VXLAN:         false,
 			ACLs:          true,
+			L2VNI:         false,
+			L3VNI:         false,
+			RoCEv2:        false,
+			MCLAG:         false,
+			ESLAG:         false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-accton_as7712_32x-r0",

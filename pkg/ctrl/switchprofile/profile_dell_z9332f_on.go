@@ -29,8 +29,12 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconBroadcomTH3,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
-			VXLAN:         false,
 			ACLs:          true,
+			L2VNI:         false,
+			L3VNI:         false,
+			RoCEv2:        true,
+			MCLAG:         false,
+			ESLAG:         false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-dellemc_z9332f_d1508-r0",

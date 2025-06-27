@@ -30,8 +30,12 @@ var CelesticaDS4101 = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconBroadcomTH4G,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
-			VXLAN:         false,
 			ACLs:          true,
+			L2VNI:         false,
+			L3VNI:         false,
+			RoCEv2:        true,
+			MCLAG:         false,
+			ESLAG:         false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-cel_ds4101-r0",
