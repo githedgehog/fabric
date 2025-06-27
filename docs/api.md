@@ -2188,6 +2188,7 @@ _Appears in:_
 | `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
 | `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
+| `rocev2` _boolean_ | RoCEv2 is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
 
 
 #### SwitchStatus
