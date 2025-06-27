@@ -121,7 +121,7 @@ var CelesticaDS5000 = wiringapi.SwitchProfile{
 						"1x200G": {Offsets: []string{"0"}},
 						"1x400G": {Offsets: []string{"0"}},
 						"1x800G": {Offsets: []string{"0"}},
-						"2x50G":  {Offsets: []string{"0", "4"}},
+						"2x50G":  {Offsets: []string{"0", "2"}},
 						"2x100G": {Offsets: []string{"0", "4"}},
 						"2x200G": {Offsets: []string{"0", "4"}},
 						"2x400G": {Offsets: []string{"0", "4"}},
