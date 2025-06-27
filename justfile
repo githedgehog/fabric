@@ -81,11 +81,11 @@ _helm-fabric: _kustomize _helm _helmify _kube_gen
   {{helm}} lint config/helm/fabric-{{version}}.tgz
 
 # Build all K8s artifacts (images and charts)
-kube-build: build (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") (_helm-build "fabric-proxy") && version
+kube-build: build (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") && version
   # Docker images and Helm charts built
 
 # Push all K8s artifacts (images and charts)
-kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") (_helm-push "fabric-proxy") && version
+kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") && version
   # Docker images and Helm charts pushed
 
 # Push all K8s artifacts (images and charts) and binaries
