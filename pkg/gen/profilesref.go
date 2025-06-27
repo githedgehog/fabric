@@ -55,7 +55,8 @@ features and port naming scheme.
 	roleNote = `
 !!! note
     - Switches that support **leaf** role could be used for the collapsed-core topology as well
-    - Switches with **limited-leaf** role does not support some leaf features and are not supported in the
+		- Switches with **leaf (l3-only)** role only support L3 VPC modes
+    - Switches with **leaf (limited)** role does not support some leaf features and are not supported in the
       collapsed-core topology
 `
 )
@@ -144,10 +145,18 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		}
 		resCatalog += "Ports Summary: **" + portSummary + "**\n\n"
 
+		if sp.Spec.Notes != "" {
+			resCatalog += "Notes: " + sp.Spec.Notes + "\n\n"
+		}
+
 		resCatalog += "**Supported features:**\n\n"
 		resCatalog += "- Subinterfaces: " + strconv.FormatBool(sp.Spec.Features.Subinterfaces) + "\n"
-		resCatalog += "- VXLAN: " + strconv.FormatBool(sp.Spec.Features.VXLAN) + "\n"
 		resCatalog += "- ACLs: " + strconv.FormatBool(sp.Spec.Features.ACLs) + "\n"
+		resCatalog += "- L2VNI: " + strconv.FormatBool(sp.Spec.Features.L2VNI) + "\n"
+		resCatalog += "- L3VNI: " + strconv.FormatBool(sp.Spec.Features.L3VNI) + "\n"
+		resCatalog += "- RoCEv2: " + strconv.FormatBool(sp.Spec.Features.RoCEv2) + "\n"
+		resCatalog += "- MCLAG: " + strconv.FormatBool(sp.Spec.Features.MCLAG) + "\n"
+		resCatalog += "- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n"
 		resCatalog += "\n"
 
 		resCatalog += "**Available Ports:**\n\n"
@@ -188,10 +197,16 @@ func getRolesHint(sp *wiringapi.SwitchProfile) string {
 	if sp.Name != switchprofile.EdgecoreEPS203.Name {
 		roles = append(roles, "spine")
 	}
-	if sp.Spec.Features.VXLAN && sp.Spec.Features.Subinterfaces {
+
+	f := sp.Spec.Features
+
+	switch {
+	case f.L2VNI && f.L3VNI && f.Subinterfaces:
 		roles = append(roles, "leaf")
-	} else if sp.Spec.Features.VXLAN && !sp.Spec.Features.Subinterfaces {
-		roles = append(roles, "limited-leaf")
+	case !f.L2VNI && f.L3VNI && f.Subinterfaces:
+		roles = append(roles, "leaf (l3-only)")
+	case f.L2VNI && f.L3VNI && !f.Subinterfaces:
+		roles = append(roles, "leaf (limited)")
 	}
 
 	return strings.Join(lo.Map(roles, func(item string, _ int) string {

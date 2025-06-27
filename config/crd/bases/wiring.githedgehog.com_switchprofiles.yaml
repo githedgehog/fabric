@@ -76,15 +76,32 @@ spec:
                   acls:
                     description: ACLs defines if switch supports ACLs
                     type: boolean
+                  eslag:
+                    description: ESLAG defines if switch supports ESLAG (ESI multi-homing)
+                    type: boolean
+                  l2vni:
+                    description: L2VNI defines if switch supports L2 VNIs
+                    type: boolean
+                  l3vni:
+                    description: L3VNI defines if switch supports L3 VNIs
+                    type: boolean
+                  mclag:
+                    description: MCLAG defines if switch supports MCLAG (with VXLAN)
+                    type: boolean
+                  rocev2:
+                    description: RoCEv2 defines if switch supports RoCEv2 over VXLAN
+                      and related features used by the fabric
+                    type: boolean
                   subinterfaces:
                     description: Subinterfaces defines if switch supports subinterfaces
-                    type: boolean
-                  vxlan:
-                    description: VXLAN defines if switch supports VXLANs
                     type: boolean
                 type: object
               nosType:
                 description: NOSType defines the NOS type to be used for the switch
+                type: string
+              notes:
+                description: Notes is a free-form field for any additional information
+                  about the switch
                 type: string
               otherNames:
                 description: OtherNames defines alternative names for the switch

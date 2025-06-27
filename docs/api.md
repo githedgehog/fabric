@@ -1960,8 +1960,12 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `subinterfaces` _boolean_ | Subinterfaces defines if switch supports subinterfaces |  |  |
-| `vxlan` _boolean_ | VXLAN defines if switch supports VXLANs |  |  |
 | `acls` _boolean_ | ACLs defines if switch supports ACLs |  |  |
+| `l2vni` _boolean_ | L2VNI defines if switch supports L2 VNIs |  |  |
+| `l3vni` _boolean_ | L3VNI defines if switch supports L3 VNIs |  |  |
+| `rocev2` _boolean_ | RoCEv2 defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
+| `mclag` _boolean_ | MCLAG defines if switch supports MCLAG (with VXLAN) |  |  |
+| `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
 
 
 #### SwitchProfilePort
@@ -2092,6 +2096,7 @@ _Appears in:_
 | `otherNames` _string array_ | OtherNames defines alternative names for the switch |  |  |
 | `switchSilicon` _string_ | SwitchSilicon defines the switch silicon name |  |  |
 | `features` _[SwitchProfileFeatures](#switchprofilefeatures)_ | Features defines the features supported by the switch |  |  |
+| `notes` _string_ | Notes is a free-form field for any additional information about the switch |  |  |
 | `config` _[SwitchProfileConfig](#switchprofileconfig)_ | Config defines the switch-specific configuration options |  |  |
 | `ports` _object (keys:string, values:[SwitchProfilePort](#switchprofileport))_ | Ports defines the switch port configuration |  |  |
 | `portGroups` _object (keys:string, values:[SwitchProfilePortGroup](#switchprofileportgroup))_ | PortGroups defines the switch port group configuration |  |  |

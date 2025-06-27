@@ -30,8 +30,12 @@ var EdgecoreDCS203 = wiringapi.SwitchProfile{
 		SwitchSilicon: SiliconBroadcomTD3_X7_2_0T,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
-			VXLAN:         true,
 			ACLs:          true,
+			L2VNI:         true,
+			L3VNI:         true,
+			RoCEv2:        true,
+			MCLAG:         true,
+			ESLAG:         true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-accton_as7326_56x-r0",
