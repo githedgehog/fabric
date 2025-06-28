@@ -31,6 +31,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -443,6 +444,34 @@ func main() {
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchReinstall(ctx, name), "failed to reinstall switch"))
+						},
+					},
+					{
+						Name:  "roce",
+						Usage: "Set RoCE mode on the switch (automatically reboots switch)",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							yesFlag,
+							&cli.BoolFlag{
+								Name:  "set",
+								Usage: "Enable or disable RoCE mode, keep empty to toggle",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							if err := yesCheck(cCtx); err != nil {
+								return wrapErrWithPressToContinue(err)
+							}
+
+							var value *bool
+							if cCtx.IsSet("set") {
+								value = pointer.To(cCtx.Bool("set"))
+							}
+
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchRoCE(ctx, name, value), "failed to set roce mode"))
 						},
 					},
 				},
