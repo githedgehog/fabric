@@ -1967,6 +1967,7 @@ _Appears in:_
 | `roce` _boolean_ | RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
 | `mclag` _boolean_ | MCLAG defines if switch supports MCLAG (with VXLAN) |  |  |
 | `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
+| `vxlan` _boolean_ | Deprecated: use L2VNI and L3VNI instead as more precise features |  |  |
 
 
 #### SwitchProfilePort
