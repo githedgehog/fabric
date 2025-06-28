@@ -477,6 +477,30 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 		return errors.Wrap(err, "failed to save agent config to file")
 	}
 
+	roce, err := svc.processor.GetRoCE(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get RoCE state")
+	}
+	if roce != agent.Spec.Switch.RoCE {
+		slog.Info("Requesting RoCE mode change, switch will reboot automatically...", "roce", agent.Spec.Switch.RoCE)
+
+		for attempt := 0; attempt < 5; attempt++ {
+			if err := svc.processor.SetRoCE(ctx, agent.Spec.Switch.RoCE); err != nil {
+				slog.Warn("Failed to set RoCE state, retrying", "error", err, "desired", agent.Spec.Switch.RoCE)
+				time.Sleep(5 * time.Second)
+
+				continue
+			}
+
+			break // retries
+		}
+
+		slog.Info("Waiting for switch to reboot after RoCE change, it may take a while...")
+		time.Sleep(5 * time.Minute)
+
+		return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:goerr113
+	}
+
 	// report that we've been able to apply config
 	agent.Status.LastAppliedGen = agent.Generation
 	agent.Status.LastAppliedTime = kmetav1.Time{Time: time.Now()}

@@ -32,7 +32,7 @@ var DellS5232FON = wiringapi.SwitchProfile{
 			ACLs:          true,
 			L2VNI:         true,
 			L3VNI:         true,
-			RoCEv2:        true,
+			RoCE:          true,
 			MCLAG:         true,
 			ESLAG:         true,
 		},

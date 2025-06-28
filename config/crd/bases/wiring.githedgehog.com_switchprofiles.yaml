@@ -88,8 +88,8 @@ spec:
                   mclag:
                     description: MCLAG defines if switch supports MCLAG (with VXLAN)
                     type: boolean
-                  rocev2:
-                    description: RoCEv2 defines if switch supports RoCEv2 over VXLAN
+                  roce:
+                    description: RoCE defines if switch supports RoCEv2 over VXLAN
                       and related features used by the fabric
                     type: boolean
                   subinterfaces:

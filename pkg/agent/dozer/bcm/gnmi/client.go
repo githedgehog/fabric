@@ -15,10 +15,15 @@
 package gnmi
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -37,7 +42,8 @@ import (
 const (
 	JSONIETFEncoding  = "json_ietf"
 	Target            = "sonic"
-	DefaultAddress    = "127.0.0.1:8080"
+	GNMIAPIAddress    = "127.0.0.1:8080"
+	RestAPIAddress    = "https://127.0.0.1:443/restconf/operations"
 	AgentUser         = "hhagent"
 	AgentPasswordFile = "agent-passwd"
 )
@@ -48,7 +54,10 @@ var (
 )
 
 type Client struct {
-	tg *target.Target
+	tg       *target.Target
+	address  string
+	username string
+	password string
 }
 
 func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool) (*Client, error) {
@@ -82,23 +91,37 @@ func NewInSONiC(ctx context.Context, basedir string, skipAgentUserCreation bool)
 		return nil, errors.Wrap(err, "cannot read password file")
 	}
 
-	return New(ctx, DefaultAddress, AgentUser, string(password))
+	return New(ctx, GNMIAPIAddress, AgentUser, string(password))
 }
 
 func New(ctx context.Context, address, username, password string) (*Client, error) {
-	tg, err := createGNMIClient(ctx, address, username, password)
+	client := &Client{
+		address:  address,
+		username: username,
+		password: password,
+	}
+
+	if err := client.Connect(ctx); err != nil {
+		return nil, errors.Wrapf(err, "cannot connect to %s@%s", username, address)
+	}
+
+	return client, nil
+}
+
+func (c *Client) Connect(ctx context.Context) error {
+	tg, err := createGNMIClient(ctx, c.address, c.username, c.password)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = tg.Capabilities(ctx) // TODO maybe check capabilities?
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get capabilities for %s@%s", username, address)
+		return errors.Wrapf(err, "cannot get capabilities for %s@%s", c.username, c.address)
 	}
 
-	return &Client{
-		tg: tg,
-	}, nil
+	c.tg = tg
+
+	return nil
 }
 
 func (c *Client) Close() error {
@@ -107,6 +130,14 @@ func (c *Client) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Client) Reconnect(ctx context.Context) error {
+	if err := c.Close(); err != nil {
+		slog.Warn("Failed to close GNMI client", "err", err)
+	}
+
+	return c.Connect(ctx)
 }
 
 func newAgentUser(ctx context.Context) ([]byte, error) {
@@ -143,7 +174,7 @@ func newAgentUser(ctx context.Context) ([]byte, error) {
 	var lastError error
 	for _, user := range DefaultUsers {
 		for _, password := range DefaultPasswords {
-			defC, err := New(ctx, DefaultAddress, user, password)
+			defC, err := New(ctx, GNMIAPIAddress, user, password)
 			if err != nil {
 				lastError = errors.Wrapf(err, "cannot init client with %s", user)
 				slog.Debug("cannot init client", "user", user, "err", err)
@@ -240,4 +271,47 @@ func Unmarshal(data []byte, dest ygot.ValidatedGoStruct, opts ...ytypes.Unmarsha
 	opts = append(opts, &ytypes.IgnoreExtraFields{})
 
 	return errors.Wrapf(ytypes.Unmarshal(schema, dest, jsonTree, opts...), "error unmarshaling for type %s", typeName)
+}
+
+var ErrReqFailed = errors.New("request failed")
+
+func (c *Client) CallOperation(ctx context.Context, path string, paylod []byte) ([]byte, error) {
+	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
+	baseTransport.TLSClientConfig = &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: true, //nolint:gosec // TODO properly setup SONiC TLS
+	}
+	client := &http.Client{
+		Transport: baseTransport,
+		Timeout:   30 * time.Second,
+	}
+
+	reqURL, err := url.JoinPath(RestAPIAddress, path)
+	if err != nil {
+		return nil, fmt.Errorf("joining path %s with rest api address %s: %w", path, RestAPIAddress, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(paylod))
+	if err != nil {
+		return nil, fmt.Errorf("creating http request to %s: %w", reqURL, err)
+	}
+	req.Header.Set("Content-Type", "application/yang-data+json")
+	req.SetBasicAuth(AgentUser, c.password)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("doing http request to %s: %w", reqURL, err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response body from %s: %w", reqURL, err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return respBody, fmt.Errorf("%w: http request to %s failed with status code %d", ErrReqFailed, reqURL, resp.StatusCode)
+	}
+
+	return respBody, nil
 }

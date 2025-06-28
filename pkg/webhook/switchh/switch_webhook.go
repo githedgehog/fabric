@@ -87,7 +87,7 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, new
 		return warns, errors.Wrapf(err, "error validating switch")
 	}
 
-	if (oldSw.Spec.RoCEv2 || newSw.Spec.RoCEv2) && !reflect.DeepEqual(oldSw.Spec.PortBreakouts, newSw.Spec.PortBreakouts) {
+	if (oldSw.Spec.RoCE || newSw.Spec.RoCE) && !reflect.DeepEqual(oldSw.Spec.PortBreakouts, newSw.Spec.PortBreakouts) {
 		return warns, errors.New("port breakouts cannot be changed when RoCEv2 is enabled")
 	}
 

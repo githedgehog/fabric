@@ -33,7 +33,7 @@ var EdgecoreDCS501 = wiringapi.SwitchProfile{
 			ACLs:          true,
 			L2VNI:         false,
 			L3VNI:         false,
-			RoCEv2:        false,
+			RoCE:          false,
 			MCLAG:         false,
 			ESLAG:         false,
 		},

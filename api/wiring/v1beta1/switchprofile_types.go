@@ -54,8 +54,8 @@ type SwitchProfileFeatures struct {
 	L2VNI bool `json:"l2vni,omitempty"`
 	// L3VNI defines if switch supports L3 VNIs
 	L3VNI bool `json:"l3vni,omitempty"`
-	// RoCEv2 defines if switch supports RoCEv2 over VXLAN and related features used by the fabric
-	RoCEv2 bool `json:"rocev2,omitempty"`
+	// RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric
+	RoCE bool `json:"roce,omitempty"`
 	// MCLAG defines if switch supports MCLAG (with VXLAN)
 	MCLAG bool `json:"mclag,omitempty"`
 	// ESLAG defines if switch supports ESLAG (ESI multi-homing)

@@ -152,8 +152,8 @@ spec:
                     - eslag
                     type: string
                 type: object
-              rocev2:
-                description: RoCEv2 is a flag to enable RoCEv2 support on the switch
+              roce:
+                description: RoCE is a flag to enable RoCEv2 support on the switch
                   which includes lossless queues and QoS configuration
                 type: boolean
               role:

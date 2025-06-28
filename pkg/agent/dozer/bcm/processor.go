@@ -17,6 +17,7 @@ package bcm
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/openconfig/gnmic/api"
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
@@ -164,7 +166,7 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 		if act.CustomFunc != nil {
 			slog.Debug("Action", "idx", idx, "weight", act.Weight, "summary", action.Summary())
 
-			err := act.CustomFunc()
+			err := act.CustomFunc(ctx, p.client)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to run custom action")
 			}
@@ -218,4 +220,51 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 	}
 
 	return nil, nil
+}
+
+func (p *BroadcomProcessor) GetRoCE(ctx context.Context) (bool, error) {
+	ocVal := &oc.SonicSwitch_SonicSwitch_SWITCH{}
+	err := p.client.Get(ctx, "/sonic-switch/SWITCH/SWITCH_LIST[switch=switch]", ocVal)
+	if err != nil {
+		return false, fmt.Errorf("reading RoCE state: %w", err) //nolint:goerr113
+	}
+
+	for key, sw := range ocVal.SWITCH_LIST {
+		if key != oc.SonicSwitch_SonicSwitch_SWITCH_SWITCH_LIST_Switch_switch {
+			continue
+		}
+
+		if sw.RoceEnable != nil {
+			return *sw.RoceEnable, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (p *BroadcomProcessor) SetRoCE(ctx context.Context, val bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	action := "ENABLE"
+	if !val {
+		action = "DISABLE"
+	}
+
+	resp, err := p.client.CallOperation(ctx, "openconfig-qos-private:qos-roce-config",
+		[]byte(fmt.Sprintf(`{"openconfig-qos-private:input":{"operation":"%s"}}`, action)))
+
+	// it just hangs so timeout is expected
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		slog.Warn("RoCE set operation failed", "error", err, "data", string(resp), "action", action)
+
+		return fmt.Errorf("calling RoCE set operation: %w", err)
+	}
+	if err == nil {
+		slog.Warn("RoCE set operation unexpected result", "data", string(resp), "action", action)
+
+		return fmt.Errorf("unexpected response from RoCE set operation") //nolint:goerr113
+	}
+
+	return nil
 }

@@ -1119,6 +1119,7 @@ func planVXLAN(agent *agentapi.Agent, spec *dozer.Spec) error {
 		VTEPFabric: {
 			SourceIP:        pointer.To(ip.String()),
 			SourceInterface: pointer.To(LoopbackVTEP),
+			QoSUniform:      pointer.To(agent.Spec.Switch.RoCE),
 		},
 	}
 
