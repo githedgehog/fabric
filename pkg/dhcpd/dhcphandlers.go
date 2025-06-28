@@ -375,7 +375,7 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet, ipnet net.I
 			}
 			gateway := net.ParseIP(advertisedRoute.Gateway)
 			if gateway == nil {
-				return errors.Wrapf(err, "handleDiscover4: failed to parse advertised route gateway %s", advertisedRoute.Gateway)
+				return errors.Errorf("handleDiscover4: failed to parse advertised route gateway %s", advertisedRoute.Gateway)
 			}
 			routes = append(routes, &dhcpv4.Route{
 				Dest:   prefix,
