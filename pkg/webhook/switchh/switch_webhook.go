@@ -16,6 +16,7 @@ package switchh
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -77,8 +78,8 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	// oldSw := oldObj.(*wiringapi.Switch)
+func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
+	oldSw := oldObj.(*wiringapi.Switch)
 	newSw := newObj.(*wiringapi.Switch)
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
@@ -86,7 +87,11 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 		return warns, errors.Wrapf(err, "error validating switch")
 	}
 
-	return nil, nil
+	if (oldSw.Spec.RoCEv2 || newSw.Spec.RoCEv2) && !reflect.DeepEqual(oldSw.Spec.PortBreakouts, newSw.Spec.PortBreakouts) {
+		return warns, errors.New("port breakouts cannot be changed when RoCEv2 is enabled")
+	}
+
+	return warns, nil
 }
 
 func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
