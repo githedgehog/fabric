@@ -42,10 +42,10 @@ spec:
       type: date
     - jsonPath: .status.lastAppliedGen
       name: AppliedG
-      type: string
+      type: integer
     - jsonPath: .metadata.generation
       name: CurrentG
-      type: string
+      type: integer
     - jsonPath: .status.version
       name: Version
       type: string
@@ -60,15 +60,15 @@ spec:
     - jsonPath: .status.lastAttemptGen
       name: AttemptG
       priority: 2
-      type: string
+      type: integer
     - jsonPath: .spec.switch.roce
       name: RoCE
       priority: 3
-      type: string
+      type: boolean
     - jsonPath: .status.state.roce
       name: CurrRoCE
       priority: 3
-      type: string
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       priority: 10

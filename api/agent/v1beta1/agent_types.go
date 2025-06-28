@@ -521,14 +521,14 @@ type SwitchStateCRMStats struct {
 // +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.state.nos.asicVersion`,priority=1
 // +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=1
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
-// +kubebuilder:printcolumn:name="AppliedG",type=string,JSONPath=`.status.lastAppliedGen`,priority=0
-// +kubebuilder:printcolumn:name="CurrentG",type=string,JSONPath=`.metadata.generation`,priority=0
+// +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0
+// +kubebuilder:printcolumn:name="CurrentG",type=integer,JSONPath=`.metadata.generation`,priority=0
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
 // +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.state.nos.softwareVersion`,priority=1
 // +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
-// +kubebuilder:printcolumn:name="AttemptG",type=string,JSONPath=`.status.lastAttemptGen`,priority=2
-// +kubebuilder:printcolumn:name="RoCE",type=string,JSONPath=`.spec.switch.roce`,priority=3
-// +kubebuilder:printcolumn:name="CurrRoCE",type=string,JSONPath=`.status.state.roce`,priority=3
+// +kubebuilder:printcolumn:name="AttemptG",type=integer,JSONPath=`.status.lastAttemptGen`,priority=2
+// +kubebuilder:printcolumn:name="RoCE",type=boolean,JSONPath=`.spec.switch.roce`,priority=3
+// +kubebuilder:printcolumn:name="CurrRoCE",type=boolean,JSONPath=`.status.state.roce`,priority=3
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Agent is an internal API object used by the controller to pass all relevant information to the agent running on a
 // specific switch in order to fully configure it and manage its lifecycle. It is not intended to be used directly by
