@@ -33,15 +33,12 @@ spec:
     - jsonPath: .spec.groups
       name: Groups
       type: string
-    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/location
-      name: LocationUUID
-      type: string
-    - jsonPath: .spec.portGroupSpeeds
-      name: PortGroups
+    - jsonPath: .spec.redundancy
+      name: Redundancy
       priority: 1
       type: string
-    - jsonPath: .spec.portBreakouts
-      name: Breakouts
+    - jsonPath: .spec.boot
+      name: Boot
       priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
