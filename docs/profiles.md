@@ -45,7 +45,7 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 
@@ -109,7 +109,7 @@ Ports Summary: **32xQSFPDD-400G, 1xSFP28-10G**
 - ACLs: true
 - L2VNI: false
 - L3VNI: false
-- RoCEv2: true
+- RoCE: true
 - MCLAG: false
 - ESLAG: false
 
@@ -173,7 +173,7 @@ Ports Summary: **32xOSFP-2x400G, 2xSFP28-10G**
 - ACLs: true
 - L2VNI: false
 - L3VNI: false
-- RoCEv2: true
+- RoCE: true
 - MCLAG: false
 - ESLAG: false
 
@@ -240,7 +240,7 @@ Notes: Doesn't support non-L3 VPC modes due to the lack of L2VNI support.
 - ACLs: true
 - L2VNI: false
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: false
 - ESLAG: false
 
@@ -335,7 +335,7 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 
@@ -398,7 +398,7 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 
@@ -483,7 +483,7 @@ Ports Summary: **32xQSFPDD-400G, 2xSFP28-10G**
 - ACLs: true
 - L2VNI: false
 - L3VNI: false
-- RoCEv2: true
+- RoCE: true
 - MCLAG: false
 - ESLAG: false
 
@@ -548,7 +548,7 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G**
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 
@@ -637,7 +637,7 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 
@@ -702,7 +702,7 @@ Ports Summary: **32xQSFP28-100G**
 - ACLs: true
 - L2VNI: false
 - L3VNI: false
-- RoCEv2: false
+- RoCE: false
 - MCLAG: false
 - ESLAG: false
 
@@ -767,7 +767,7 @@ Notes: Doesn't support StaticExternals and ExternalAttachments with VLANs due to
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: false
+- RoCE: false
 - MCLAG: true
 - ESLAG: true
 
@@ -850,7 +850,7 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 
@@ -914,7 +914,7 @@ Ports Summary: **48xSFP28-25G**
 - ACLs: false
 - L2VNI: true
 - L3VNI: true
-- RoCEv2: true
+- RoCE: true
 - MCLAG: true
 - ESLAG: true
 

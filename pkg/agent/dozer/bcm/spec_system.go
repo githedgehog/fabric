@@ -312,7 +312,7 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 			if err := actions.Add(&Action{
 				ASummary: fmt.Sprintf("User %s authorized keys", name),
 				Weight:   ActionWeightUserAuthorizedKeys,
-				CustomFunc: func() error {
+				CustomFunc: func(_ context.Context, _ *gnmi.Client) error {
 					osUser, err := osuser.Lookup(name)
 					if err != nil {
 						return errors.Wrapf(err, "failed to lookup user %s", name)

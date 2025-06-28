@@ -38,6 +38,8 @@ type Processor interface {
 	Reboot(ctx context.Context, force bool) error
 	Reinstall(ctx context.Context) error
 	FactoryReset(ctx context.Context) error
+	GetRoCE(ctx context.Context) (bool, error)
+	SetRoCE(ctx context.Context, enable bool) error
 }
 
 type Action interface {
@@ -338,6 +340,7 @@ type SpecACLInterface struct {
 type SpecVXLANTunnel struct {
 	SourceIP        *string `json:"sourceIP,omitempty"`
 	SourceInterface *string `json:"sourceInterface,omitempty"`
+	QoSUniform      *bool   `json:"qosUniform,omitempty"`
 }
 
 type SpecVXLANEVPNNVO struct {

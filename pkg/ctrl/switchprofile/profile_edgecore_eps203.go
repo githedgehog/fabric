@@ -33,7 +33,7 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 			ACLs:          true,
 			L2VNI:         true,
 			L3VNI:         true,
-			RoCEv2:        false,
+			RoCE:          false,
 			MCLAG:         true,
 			ESLAG:         true,
 		},

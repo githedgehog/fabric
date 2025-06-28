@@ -206,6 +206,7 @@ _Appears in:_
 | `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#map[string]switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
+| `roce` _boolean_ | State of the roce configuration |  |  |
 
 
 #### SwitchStateBGPNeighbor
@@ -1963,7 +1964,7 @@ _Appears in:_
 | `acls` _boolean_ | ACLs defines if switch supports ACLs |  |  |
 | `l2vni` _boolean_ | L2VNI defines if switch supports L2 VNIs |  |  |
 | `l3vni` _boolean_ | L3VNI defines if switch supports L3 VNIs |  |  |
-| `rocev2` _boolean_ | RoCEv2 defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
+| `roce` _boolean_ | RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
 | `mclag` _boolean_ | MCLAG defines if switch supports MCLAG (with VXLAN) |  |  |
 | `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
 
@@ -2188,7 +2189,7 @@ _Appears in:_
 | `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
 | `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
-| `rocev2` _boolean_ | RoCEv2 is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
+| `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
 
 
 #### SwitchStatus

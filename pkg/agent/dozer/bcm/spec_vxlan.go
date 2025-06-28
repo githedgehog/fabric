@@ -40,12 +40,18 @@ var specVXLANTunnelEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANTunn
 	UpdateWeight: ActionWeightVXLANTunnelUpdate,
 	DeleteWeight: ActionWeightVXLANTunnelDelete,
 	Marshal: func(name string, value *dozer.SpecVXLANTunnel) (ygot.ValidatedGoStruct, error) {
+		qos := oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST_QosMode_UNSET
+		if value.QoSUniform != nil && *value.QoSUniform {
+			qos = oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST_QosMode_uniform
+		}
+
 		return &oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL{
 			VXLAN_TUNNEL_LIST: map[string]*oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST{
 				name: {
 					Name:    pointer.To(name),
 					SrcIp:   value.SourceIP,
 					SrcIntf: value.SourceInterface,
+					QosMode: qos,
 				},
 			},
 		}, nil
@@ -160,6 +166,7 @@ func unmarshalActualVXLANs(ocVal *oc.SonicVxlan_SonicVxlan) (map[string]*dozer.S
 			vxlanTunnels[name] = &dozer.SpecVXLANTunnel{
 				SourceIP:        vxlanTunnel.SrcIp,
 				SourceInterface: vxlanTunnel.SrcIntf,
+				QoSUniform:      pointer.To(vxlanTunnel.QosMode == oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST_QosMode_uniform),
 			}
 		}
 	}

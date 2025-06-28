@@ -937,9 +937,9 @@ spec:
                         - eslag
                         type: string
                     type: object
-                  rocev2:
-                    description: RoCEv2 is a flag to enable RoCEv2 support on the
-                      switch which includes lossless queues and QoS configuration
+                  roce:
+                    description: RoCE is a flag to enable RoCEv2 support on the switch
+                      which includes lossless queues and QoS configuration
                     type: boolean
                   role:
                     description: Role is the role of the switch, could be spine, server-leaf
@@ -999,9 +999,9 @@ spec:
                         description: MCLAG defines if switch supports MCLAG (with
                           VXLAN)
                         type: boolean
-                      rocev2:
-                        description: RoCEv2 defines if switch supports RoCEv2 over
-                          VXLAN and related features used by the fabric
+                      roce:
+                        description: RoCE defines if switch supports RoCEv2 over VXLAN
+                          and related features used by the fabric
                         type: boolean
                       subinterfaces:
                         description: Subinterfaces defines if switch supports subinterfaces
@@ -1223,8 +1223,8 @@ spec:
                           - eslag
                           type: string
                       type: object
-                    rocev2:
-                      description: RoCEv2 is a flag to enable RoCEv2 support on the
+                    roce:
+                      description: RoCE is a flag to enable RoCEv2 support on the
                         switch which includes lossless queues and QoS configuration
                       type: boolean
                     role:
@@ -2195,6 +2195,9 @@ spec:
                           type: object
                         type: object
                     type: object
+                  roce:
+                    description: State of the roce configuration
+                    type: boolean
                 type: object
               statusUpdates:
                 description: Status updates from the agent

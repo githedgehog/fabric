@@ -111,8 +111,8 @@ type SwitchSpec struct {
 	Boot SwitchBoot `json:"boot,omitempty"`
 	// EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not
 	EnableAllPorts bool `json:"enableAllPorts,omitempty"`
-	// RoCEv2 is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration
-	RoCEv2 bool `json:"rocev2,omitempty"`
+	// RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration
+	RoCE bool `json:"roce,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
@@ -374,7 +374,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
-		if sw.Spec.RoCEv2 && !sp.Spec.Features.RoCEv2 {
+		if sw.Spec.RoCE && !sp.Spec.Features.RoCE {
 			return nil, errors.Errorf("RoCEv2 is not supported on switch profile %s", sw.Spec.Profile)
 		}
 

@@ -168,6 +168,8 @@ type SwitchState struct {
 	Platform SwitchStatePlatform `json:"platform,omitempty"`
 	// State of the critical resources (ACLs, routes, etc.)
 	CriticalResources SwitchStateCRM `json:"criticalResources,omitempty"`
+	// State of the roce configuration
+	RoCE bool `json:"roce,omitempty"`
 }
 
 type SwitchStateInterface struct {

@@ -33,7 +33,7 @@ var VS = wiringapi.SwitchProfile{
 			ACLs:          false,
 			L2VNI:         true,
 			L3VNI:         true,
-			RoCEv2:        true,
+			RoCE:          true,
 			MCLAG:         true,
 			ESLAG:         true,
 		},

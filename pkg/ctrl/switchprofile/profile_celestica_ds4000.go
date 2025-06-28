@@ -33,7 +33,7 @@ var CelesticaDS4000 = wiringapi.SwitchProfile{
 			ACLs:          true,
 			L2VNI:         false,
 			L3VNI:         false,
-			RoCEv2:        true,
+			RoCE:          true,
 			MCLAG:         false,
 			ESLAG:         false,
 		},

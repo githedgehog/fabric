@@ -65,6 +65,12 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to get breakout mapping")
 	}
 
+	roce, err := p.GetRoCE(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get roce")
+	}
+	swState.RoCE = roce
+
 	if err := p.updateInterfaceMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update interface metrics")
 	}

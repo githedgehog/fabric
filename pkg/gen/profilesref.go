@@ -154,7 +154,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		resCatalog += "- ACLs: " + strconv.FormatBool(sp.Spec.Features.ACLs) + "\n"
 		resCatalog += "- L2VNI: " + strconv.FormatBool(sp.Spec.Features.L2VNI) + "\n"
 		resCatalog += "- L3VNI: " + strconv.FormatBool(sp.Spec.Features.L3VNI) + "\n"
-		resCatalog += "- RoCEv2: " + strconv.FormatBool(sp.Spec.Features.RoCEv2) + "\n"
+		resCatalog += "- RoCE: " + strconv.FormatBool(sp.Spec.Features.RoCE) + "\n"
 		resCatalog += "- MCLAG: " + strconv.FormatBool(sp.Spec.Features.MCLAG) + "\n"
 		resCatalog += "- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n"
 		resCatalog += "\n"
