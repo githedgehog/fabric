@@ -145,6 +145,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle port channel configs")
 		}
 
+		if err := specECMPRoCEEnforcer.Handle(basePath, "", actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle ecmp roce")
+		}
+
 		return nil
 	},
 }
@@ -244,6 +248,10 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Cli
 
 	if err := loadActualPortChannelConfigs(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load port channel configs")
+	}
+
+	if err := loadActualECMPRoCE(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load ecmp roce")
 	}
 
 	return nil

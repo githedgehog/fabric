@@ -157,6 +157,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		resCatalog += "- RoCE: " + strconv.FormatBool(sp.Spec.Features.RoCE) + "\n"
 		resCatalog += "- MCLAG: " + strconv.FormatBool(sp.Spec.Features.MCLAG) + "\n"
 		resCatalog += "- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n"
+		resCatalog += "- ECMP RoCE QPN hashing: " + strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN) + "\n"
 		resCatalog += "\n"
 
 		resCatalog += "**Available Ports:**\n\n"

@@ -71,6 +71,7 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	spec := &dozer.Spec{
 		ZTP:             pointer.To(false),
 		Hostname:        pointer.To(agent.Name),
+		ECMPRoCEQPN:     pointer.To(agent.Spec.Switch.ECMP.RoCEQPN),
 		LLDP:            &dozer.SpecLLDP{},
 		LLDPInterfaces:  map[string]*dozer.SpecLLDPInterface{},
 		NTP:             &dozer.SpecNTP{},

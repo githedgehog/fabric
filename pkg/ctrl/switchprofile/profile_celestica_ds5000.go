@@ -36,6 +36,7 @@ var CelesticaDS5000 = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         false,
 			ESLAG:         false,
+			ECMPRoCEQPN:   true,
 		},
 		Notes:    "Doesn't support non-L3 VPC modes due to the lack of L2VNI support.",
 		NOSType:  meta.NOSTypeSONiCBCMBase,

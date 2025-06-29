@@ -36,6 +36,7 @@ var CelesticaDS4000 = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         false,
 			ESLAG:         false,
+			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-cel_silverstone-r0",

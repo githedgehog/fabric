@@ -76,6 +76,9 @@ spec:
                   acls:
                     description: ACLs defines if switch supports ACLs
                     type: boolean
+                  ecmpRoCEQPN:
+                    description: ECMPRoCEQPN defines if switch supports ECMP QPN hashing
+                    type: boolean
                   eslag:
                     description: ESLAG defines if switch supports ESLAG (ESI multi-homing)
                     type: boolean

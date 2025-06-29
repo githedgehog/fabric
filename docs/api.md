@@ -1867,6 +1867,22 @@ _Appears in:_
 | `mac` _string_ | Identify switch by MAC address of the management port |  |  |
 
 
+#### SwitchECMP
+
+
+
+SwitchECMP is a struct that defines the ECMP configuration for the switch
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `roceQPN` _boolean_ | RoCEQPN is a flag to enable RoCE QPN hashing |  |  |
+
+
 #### SwitchGroup
 
 
@@ -1967,6 +1983,7 @@ _Appears in:_
 | `roce` _boolean_ | RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
 | `mclag` _boolean_ | MCLAG defines if switch supports MCLAG (with VXLAN) |  |  |
 | `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
+| `ecmpRoCEQPN` _boolean_ | ECMPRoCEQPN defines if switch supports ECMP QPN hashing |  |  |
 | `vxlan` _boolean_ | Deprecated: use L2VNI and L3VNI instead as more precise features |  |  |
 
 
@@ -2191,6 +2208,7 @@ _Appears in:_
 | `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
 | `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
+| `ecmp` _[SwitchECMP](#switchecmp)_ | ECMP is the ECMP configuration for the switch |  |  |
 
 
 #### SwitchStatus
