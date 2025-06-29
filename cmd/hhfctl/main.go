@@ -474,6 +474,34 @@ func main() {
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchRoCE(ctx, name, value), "failed to set roce mode"))
 						},
 					},
+					{
+						Name:  "ecmp-roce-qpn",
+						Usage: "Set ECPM RoCE QPN hashing",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							yesFlag,
+							&cli.BoolFlag{
+								Name:  "set",
+								Usage: "Enable or disable ECMP RoCE QPN hashing, keep empty to toggle",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							if err := yesCheck(cCtx); err != nil {
+								return wrapErrWithPressToContinue(err)
+							}
+
+							var value *bool
+							if cCtx.IsSet("set") {
+								value = pointer.To(cCtx.Bool("set"))
+							}
+
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchECMPRoCEQPN(ctx, name, value), "failed to set ecmp roce qpn"))
+						},
+					},
 				},
 			},
 			{

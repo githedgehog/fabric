@@ -206,6 +206,8 @@ const (
 	ActionWeightPrefixListDelete
 	ActionWeightCommunityListDelete
 
+	ActionWeightECMPRoCE
+
 	ActionWeightMax // keep it last
 )
 

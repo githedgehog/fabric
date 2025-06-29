@@ -48,6 +48,7 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -112,6 +113,7 @@ Ports Summary: **32xQSFPDD-400G, 1xSFP28-10G**
 - RoCE: true
 - MCLAG: false
 - ESLAG: false
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -176,6 +178,7 @@ Ports Summary: **32xOSFP-2x400G, 2xSFP28-10G**
 - RoCE: true
 - MCLAG: false
 - ESLAG: false
+- ECMP RoCE QPN hashing: true
 
 **Available Ports:**
 
@@ -243,6 +246,7 @@ Notes: Doesn't support non-L3 VPC modes due to the lack of L2VNI support.
 - RoCE: true
 - MCLAG: false
 - ESLAG: false
+- ECMP RoCE QPN hashing: true
 
 **Available Ports:**
 
@@ -338,6 +342,7 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -401,6 +406,7 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -486,6 +492,7 @@ Ports Summary: **32xQSFPDD-400G, 2xSFP28-10G**
 - RoCE: true
 - MCLAG: false
 - ESLAG: false
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -551,6 +558,7 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -640,6 +648,7 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -705,6 +714,7 @@ Ports Summary: **32xQSFP28-100G**
 - RoCE: false
 - MCLAG: false
 - ESLAG: false
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -770,6 +780,7 @@ Notes: Doesn't support StaticExternals and ExternalAttachments with VLANs due to
 - RoCE: false
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -853,6 +864,7 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 
@@ -917,6 +929,7 @@ Ports Summary: **48xSFP28-25G**
 - RoCE: true
 - MCLAG: true
 - ESLAG: true
+- ECMP RoCE QPN hashing: false
 
 **Available Ports:**
 

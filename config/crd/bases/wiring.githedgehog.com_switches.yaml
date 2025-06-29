@@ -87,6 +87,13 @@ spec:
               description:
                 description: Description is a description of the switch
                 type: string
+              ecmp:
+                description: ECMP is the ECMP configuration for the switch
+                properties:
+                  roceQPN:
+                    description: RoCEQPN is a flag to enable RoCE QPN hashing
+                    type: boolean
+                type: object
               enableAllPorts:
                 description: EnableAllPorts is a flag to enable all ports on the switch
                   regardless of them being used or not
