@@ -881,6 +881,13 @@ spec:
                   description:
                     description: Description is a description of the switch
                     type: string
+                  ecmp:
+                    description: ECMP is the ECMP configuration for the switch
+                    properties:
+                      roceQPN:
+                        description: RoCEQPN is a flag to enable RoCE QPN hashing
+                        type: boolean
+                    type: object
                   enableAllPorts:
                     description: EnableAllPorts is a flag to enable all ports on the
                       switch regardless of them being used or not
@@ -993,6 +1000,10 @@ spec:
                     properties:
                       acls:
                         description: ACLs defines if switch supports ACLs
+                        type: boolean
+                      ecmpRoCEQPN:
+                        description: ECMPRoCEQPN defines if switch supports ECMP QPN
+                          hashing
                         type: boolean
                       eslag:
                         description: ESLAG defines if switch supports ESLAG (ESI multi-homing)
@@ -1169,6 +1180,13 @@ spec:
                     description:
                       description: Description is a description of the switch
                       type: string
+                    ecmp:
+                      description: ECMP is the ECMP configuration for the switch
+                      properties:
+                        roceQPN:
+                          description: RoCEQPN is a flag to enable RoCE QPN hashing
+                          type: boolean
+                      type: object
                     enableAllPorts:
                       description: EnableAllPorts is a flag to enable all ports on
                         the switch regardless of them being used or not
