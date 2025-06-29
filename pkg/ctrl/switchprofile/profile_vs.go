@@ -36,6 +36,7 @@ var VS = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         true,
 			ESLAG:         true,
+			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMVS,
 		Platform: "x86_64-kvm_x86_64-r0",

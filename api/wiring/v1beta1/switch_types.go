@@ -113,6 +113,14 @@ type SwitchSpec struct {
 	EnableAllPorts bool `json:"enableAllPorts,omitempty"`
 	// RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration
 	RoCE bool `json:"roce,omitempty"`
+	// ECMP is the ECMP configuration for the switch
+	ECMP SwitchECMP `json:"ecmp,omitempty"`
+}
+
+// SwitchECMP is a struct that defines the ECMP configuration for the switch
+type SwitchECMP struct {
+	// RoCEQPN is a flag to enable RoCE QPN hashing
+	RoCEQPN bool `json:"roceQPN,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
@@ -375,6 +383,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 
 		if sw.Spec.RoCE && !sp.Spec.Features.RoCE {
 			return nil, errors.Errorf("RoCEv2 is not supported on switch profile %s", sw.Spec.Profile)
+		}
+
+		if sw.Spec.ECMP.RoCEQPN && !sp.Spec.Features.ECMPRoCEQPN {
+			return nil, errors.Errorf("ECMP RoCE QPN hashing is not supported on switch profile %s", sw.Spec.Profile)
 		}
 
 		switch sw.Spec.Redundancy.Type {
