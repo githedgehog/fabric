@@ -60,6 +60,8 @@ type SwitchProfileFeatures struct {
 	MCLAG bool `json:"mclag,omitempty"`
 	// ESLAG defines if switch supports ESLAG (ESI multi-homing)
 	ESLAG bool `json:"eslag,omitempty"`
+	// ECMPRoCEQPN defines if switch supports ECMP QPN hashing
+	ECMPRoCEQPN bool `json:"ecmpRoCEQPN,omitempty"`
 
 	// Deprecated: use L2VNI and L3VNI instead as more precise features
 	VXLAN bool `json:"vxlan,omitempty"`

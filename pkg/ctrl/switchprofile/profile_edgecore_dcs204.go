@@ -36,6 +36,7 @@ var EdgecoreDCS204 = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         true,
 			ESLAG:         true,
+			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-accton_as7726_32x-r0",

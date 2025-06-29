@@ -529,6 +529,7 @@ type SwitchStateCRMStats struct {
 // +kubebuilder:printcolumn:name="AttemptG",type=integer,JSONPath=`.status.lastAttemptGen`,priority=2
 // +kubebuilder:printcolumn:name="RoCE",type=boolean,JSONPath=`.spec.switch.roce`,priority=3
 // +kubebuilder:printcolumn:name="CurrRoCE",type=boolean,JSONPath=`.status.state.roce`,priority=3
+// +kubebuilder:printcolumn:name="ECMPQPN",type=boolean,JSONPath=`.spec.switch.ecmp.roceQPN`,priority=3
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Agent is an internal API object used by the controller to pass all relevant information to the agent running on a
 // specific switch in order to fully configure it and manage its lifecycle. It is not intended to be used directly by

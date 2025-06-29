@@ -35,6 +35,7 @@ var DellS5232FON = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         true,
 			ESLAG:         true,
+			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-dellemc_s5232f_c3538-r0",

@@ -74,6 +74,7 @@ type Spec struct {
 	PortChannelConfigs map[string]*SpecPortChannelConfig `json:"portChannelConfigs,omitempty"`
 	LSTGroups          map[string]*SpecLSTGroup          `json:"lstGroups,omitempty"`
 	LSTInterfaces      map[string]*SpecLSTInterface      `json:"lstInterfaces,omitempty"`
+	ECMPRoCEQPN        *bool                             `json:"ecmpRoCEQPN,omitempty"`
 }
 
 type SpecLLDP struct {
