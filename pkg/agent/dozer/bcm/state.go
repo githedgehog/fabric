@@ -185,7 +185,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			}
 		}
 
-		if st.Counters != nil {
+		if ifState.Enabled && st.Counters != nil {
 			ifState.Counters = &agentapi.SwitchStateInterfaceCounters{}
 
 			reg.InterfaceCounters.InBitsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InBitsPerSecond))
@@ -334,6 +334,21 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 			ifaceName = "CPU"
 		}
 
+		ifaceSt, found := swState.Interfaces[ifaceName]
+		if isCPU(ifaceNameRaw) {
+			ifaceSt = agentapi.SwitchStateInterface{
+				Enabled: true,
+			}
+		} else if !found {
+			slog.Warn("Interface not found in switch state, skipping queue metrics", "interface", ifaceNameRaw)
+
+			continue
+		}
+
+		if !ifaceSt.Enabled {
+			continue
+		}
+
 		queues := map[string]agentapi.SwitchStateInterfaceCountersQueue{}
 		for _, queue := range iface.Output.Queues.Queue {
 			if queue.State == nil || queue.State.Name == nil || queue.State.TrafficType == nil {
@@ -454,24 +469,11 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 			continue
 		}
 
-		if iface, found := swState.Interfaces[ifaceName]; found {
-			if iface.Counters == nil {
-				iface.Counters = &agentapi.SwitchStateInterfaceCounters{}
-			}
-
-			iface.Counters.Queues = queues
-			swState.Interfaces[ifaceName] = iface
-		} else if isCPU(ifaceNameRaw) {
-			swState.Interfaces[ifaceName] = agentapi.SwitchStateInterface{
-				Counters: &agentapi.SwitchStateInterfaceCounters{
-					Queues: queues,
-				},
-			}
-		} else {
-			slog.Warn("Interface not found in switch state, skipping queue metrics", "interface", ifaceNameRaw)
-
-			continue
+		if ifaceSt.Counters == nil {
+			ifaceSt.Counters = &agentapi.SwitchStateInterfaceCounters{}
 		}
+		ifaceSt.Counters.Queues = queues
+		swState.Interfaces[ifaceName] = ifaceSt
 	}
 
 	return nil
