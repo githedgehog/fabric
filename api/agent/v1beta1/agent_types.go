@@ -185,17 +185,32 @@ type SwitchStateInterface struct {
 }
 
 type SwitchStateInterfaceCounters struct {
-	InBitsPerSecond  float64      `json:"inBitsPerSecond,omitempty"`
-	InDiscards       uint64       `json:"inDiscards,omitempty"`
-	InErrors         uint64       `json:"inErrors,omitempty"`
-	InPktsPerSecond  float64      `json:"inPktsPerSecond,omitempty"`
-	InUtilization    uint8        `json:"inUtilization,omitempty"`
-	LastClear        kmetav1.Time `json:"lastClear,omitempty"`
-	OutBitsPerSecond float64      `json:"outBitsPerSecond,omitempty"`
-	OutDiscards      uint64       `json:"outDiscards,omitempty"`
-	OutErrors        uint64       `json:"outErrors,omitempty"`
-	OutPktsPerSecond float64      `json:"outPktsPerSecond,omitempty"`
-	OutUtilization   uint8        `json:"outUtilization,omitempty"`
+	InBits           uint64                                       `json:"inBits,omitempty"`
+	InBitsPerSecond  float64                                      `json:"inBitsPerSecond,omitempty"`
+	InDiscards       uint64                                       `json:"inDiscards,omitempty"`
+	InErrors         uint64                                       `json:"inErrors,omitempty"`
+	InPktsPerSecond  float64                                      `json:"inPktsPerSecond,omitempty"`
+	InUtilization    uint8                                        `json:"inUtilization,omitempty"`
+	LastClear        kmetav1.Time                                 `json:"lastClear,omitempty"`
+	OutBits          uint64                                       `json:"outBits,omitempty"`
+	OutBitsPerSecond float64                                      `json:"outBitsPerSecond,omitempty"`
+	OutDiscards      uint64                                       `json:"outDiscards,omitempty"`
+	OutErrors        uint64                                       `json:"outErrors,omitempty"`
+	OutPktsPerSecond float64                                      `json:"outPktsPerSecond,omitempty"`
+	OutUtilization   uint8                                        `json:"outUtilization,omitempty"`
+	Queues           map[string]SwitchStateInterfaceCountersQueue `json:"queues,omitempty"`
+}
+
+type SwitchStateInterfaceCountersQueue struct {
+	DroppedBits           uint64 `json:"droppedBits,omitempty"`
+	DroppedPkts           uint64 `json:"droppedPkts,omitempty"`
+	ECNMarkedBits         uint64 `json:"ecnMarkedBits,omitempty"`
+	ECNMarkedPkts         uint64 `json:"ecnMarkedPkts,omitempty"`
+	TransmitBits          uint64 `json:"transmitBits,omitempty"`
+	TransmitBitsPerSecond uint64 `json:"transmitBitsPerSecond,omitempty"`
+	TransmitPkts          uint64 `json:"transmitPkts,omitempty"`
+	TransmitPktsPerSecond uint64 `json:"transmitPktsPerSecond,omitempty"`
+	WREDDroppedPkts       uint64 `json:"wredDroppedPkts,omitempty"`
 }
 
 type AdminStatus string

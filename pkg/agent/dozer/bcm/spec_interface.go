@@ -34,6 +34,7 @@ const (
 	IfacePrefixPhysical      = "Ethernet"
 	IfacePrefixVLAN          = "Vlan"
 	IfacePrefixPortChannel   = "PortChannel"
+	IfaceCPU                 = "CPU"
 	IfaceDisabledDescription = "Disabled by Fabric"
 )
 
@@ -51,6 +52,10 @@ func isVLAN(name string) bool {
 
 func isPortChannel(name string) bool {
 	return strings.HasPrefix(name, IfacePrefixPortChannel)
+}
+
+func isCPU(name string) bool {
+	return name == IfaceCPU
 }
 
 var specInterfacesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecInterface]{
