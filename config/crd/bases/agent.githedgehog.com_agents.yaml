@@ -2023,6 +2023,9 @@ spec:
                           type: string
                         counters:
                           properties:
+                            inBits:
+                              format: int64
+                              type: integer
                             inBitsPerSecond:
                               type: number
                             inDiscards:
@@ -2038,6 +2041,9 @@ spec:
                             lastClear:
                               format: date-time
                               type: string
+                            outBits:
+                              format: int64
+                              type: integer
                             outBitsPerSecond:
                               type: number
                             outDiscards:
@@ -2050,6 +2056,38 @@ spec:
                               type: number
                             outUtilization:
                               type: integer
+                            queues:
+                              additionalProperties:
+                                properties:
+                                  droppedBits:
+                                    format: int64
+                                    type: integer
+                                  droppedPkts:
+                                    format: int64
+                                    type: integer
+                                  ecnMarkedBits:
+                                    format: int64
+                                    type: integer
+                                  ecnMarkedPkts:
+                                    format: int64
+                                    type: integer
+                                  transmitBits:
+                                    format: int64
+                                    type: integer
+                                  transmitBitsPerSecond:
+                                    format: int64
+                                    type: integer
+                                  transmitPkts:
+                                    format: int64
+                                    type: integer
+                                  transmitPktsPerSecond:
+                                    format: int64
+                                    type: integer
+                                  wredDroppedPkts:
+                                    format: int64
+                                    type: integer
+                                type: object
+                              type: object
                           type: object
                         enabled:
                           type: boolean

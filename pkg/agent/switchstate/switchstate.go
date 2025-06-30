@@ -59,29 +59,47 @@ type InterfaceMetrics struct {
 }
 
 type InterfaceCounters struct {
-	InBitsPerSecond    *prometheus.GaugeVec
-	InBroadcastPkts    *prometheus.GaugeVec
-	InDiscards         *prometheus.GaugeVec
-	InErrors           *prometheus.GaugeVec
-	InMulticastPkts    *prometheus.GaugeVec
-	InOctets           *prometheus.GaugeVec
-	InOctetsPerSecond  *prometheus.GaugeVec
-	InPkts             *prometheus.GaugeVec
-	InPktsPerSecond    *prometheus.GaugeVec
-	InUnicastPkts      *prometheus.GaugeVec
-	InUtilization      *prometheus.GaugeVec
-	LastClear          *prometheus.GaugeVec
-	OutBitsPerSecond   *prometheus.GaugeVec
-	OutBroadcastPkts   *prometheus.GaugeVec
-	OutDiscards        *prometheus.GaugeVec
-	OutErrors          *prometheus.GaugeVec
-	OutMulticastPkts   *prometheus.GaugeVec
-	OutOctets          *prometheus.GaugeVec
-	OutOctetsPerSecond *prometheus.GaugeVec
-	OutPkts            *prometheus.GaugeVec
-	OutPktsPerSecond   *prometheus.GaugeVec
-	OutUnicastPkts     *prometheus.GaugeVec
-	OutUtilization     *prometheus.GaugeVec
+	InBits                       *prometheus.GaugeVec
+	InBitsPerSecond              *prometheus.GaugeVec
+	InBroadcastPkts              *prometheus.GaugeVec
+	InDiscards                   *prometheus.GaugeVec
+	InErrors                     *prometheus.GaugeVec
+	InMulticastPkts              *prometheus.GaugeVec
+	InOctets                     *prometheus.GaugeVec
+	InOctetsPerSecond            *prometheus.GaugeVec
+	InPkts                       *prometheus.GaugeVec
+	InPktsPerSecond              *prometheus.GaugeVec
+	InUnicastPkts                *prometheus.GaugeVec
+	InUtilization                *prometheus.GaugeVec
+	LastClear                    *prometheus.GaugeVec
+	OutBits                      *prometheus.GaugeVec
+	OutBitsPerSecond             *prometheus.GaugeVec
+	OutBroadcastPkts             *prometheus.GaugeVec
+	OutDiscards                  *prometheus.GaugeVec
+	OutErrors                    *prometheus.GaugeVec
+	OutMulticastPkts             *prometheus.GaugeVec
+	OutOctets                    *prometheus.GaugeVec
+	OutOctetsPerSecond           *prometheus.GaugeVec
+	OutPkts                      *prometheus.GaugeVec
+	OutPktsPerSecond             *prometheus.GaugeVec
+	OutUnicastPkts               *prometheus.GaugeVec
+	OutUtilization               *prometheus.GaugeVec
+	QueueDroppedBits             *prometheus.GaugeVec
+	QueueDroppedOctets           *prometheus.GaugeVec
+	QueueDroppedPkts             *prometheus.GaugeVec
+	QueueECNMarkedBits           *prometheus.GaugeVec
+	QueueECNMarkedOctets         *prometheus.GaugeVec
+	QueueECNMarkedPkts           *prometheus.GaugeVec
+	QueuePeriodicWatermark       *prometheus.GaugeVec
+	QueuePersistentWatermark     *prometheus.GaugeVec
+	QueueTransmitBits            *prometheus.GaugeVec
+	QueueTransmitBitsPerSecond   *prometheus.GaugeVec
+	QueueTransmitOctets          *prometheus.GaugeVec
+	QueueTransmitOctetsPerSecond *prometheus.GaugeVec
+	QueueTransmitPkts            *prometheus.GaugeVec
+	QueueTransmitPktsPerSecond   *prometheus.GaugeVec
+	QueueWatermark               *prometheus.GaugeVec
+	QueueWREDDroppedPkts         *prometheus.GaugeVec
 }
 
 type TransceiverMetrics struct {
@@ -258,6 +276,16 @@ func NewRegistry() *Registry {
 		}, []string{"interface"})
 	}
 
+	newInterfaceQueueGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"interface", "queue"})
+	}
+
 	newTransceiverGaugeVec := func(name string, help string) *prometheus.GaugeVec {
 		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace:   MetricNamespace,
@@ -329,29 +357,47 @@ func NewRegistry() *Registry {
 			RateInterval: newInterfaceGaugeVec("interface_rate_interval", "Rate interval for interface counters"),
 		},
 		InterfaceCounters: InterfaceCounters{
-			InBitsPerSecond:    newInterfaceGaugeVec("interface_in_bits_per_second", "Incoming bits per second"),
-			InBroadcastPkts:    newInterfaceGaugeVec("interface_in_broadcast_pkts", "Incoming broadcast packets"),
-			InDiscards:         newInterfaceGaugeVec("interface_in_discards", "Incoming discards"),
-			InErrors:           newInterfaceGaugeVec("interface_in_errors", "Incoming errors"),
-			InMulticastPkts:    newInterfaceGaugeVec("interface_in_multicast_pkts", "Incoming multicast packets"),
-			InOctets:           newInterfaceGaugeVec("interface_in_octets", "Incoming octets"),
-			InOctetsPerSecond:  newInterfaceGaugeVec("interface_in_octets_per_second", "Incoming octets per second"),
-			InPkts:             newInterfaceGaugeVec("interface_in_pkts", "Incoming packets"),
-			InPktsPerSecond:    newInterfaceGaugeVec("interface_in_pkts_per_second", "Incoming packets per second"),
-			InUnicastPkts:      newInterfaceGaugeVec("interface_in_unicast_pkts", "Incoming unicast packets"),
-			InUtilization:      newInterfaceGaugeVec("interface_in_utilization", "Incoming utilization"),
-			LastClear:          newInterfaceGaugeVec("interface_last_clear", "Time of last counter clear"),
-			OutBitsPerSecond:   newInterfaceGaugeVec("interface_out_bits_per_second", "Outgoing bits per second"),
-			OutBroadcastPkts:   newInterfaceGaugeVec("interface_out_broadcast_pkts", "Outgoing broadcast packets"),
-			OutDiscards:        newInterfaceGaugeVec("interface_out_discards", "Outgoing discards"),
-			OutErrors:          newInterfaceGaugeVec("interface_out_errors", "Outgoing errors"),
-			OutMulticastPkts:   newInterfaceGaugeVec("interface_out_multicast_pkts", "Outgoing multicast packets"),
-			OutOctets:          newInterfaceGaugeVec("interface_out_octets", "Outgoing octets"),
-			OutOctetsPerSecond: newInterfaceGaugeVec("interface_out_octets_per_second", "Outgoing octets per second"),
-			OutPkts:            newInterfaceGaugeVec("interface_out_pkts", "Outgoing packets"),
-			OutPktsPerSecond:   newInterfaceGaugeVec("interface_out_pkts_per_second", "Outgoing packets per second"),
-			OutUnicastPkts:     newInterfaceGaugeVec("interface_out_unicast_pkts", "Outgoing unicast packets"),
-			OutUtilization:     newInterfaceGaugeVec("interface_out_utilization", "Outgoing utilization"),
+			InBits:                       newInterfaceGaugeVec("interface_in_bits", "Incoming bits"),
+			InBitsPerSecond:              newInterfaceGaugeVec("interface_in_bits_per_second", "Incoming bits per second"),
+			InBroadcastPkts:              newInterfaceGaugeVec("interface_in_broadcast_pkts", "Incoming broadcast packets"),
+			InDiscards:                   newInterfaceGaugeVec("interface_in_discards", "Incoming discards"),
+			InErrors:                     newInterfaceGaugeVec("interface_in_errors", "Incoming errors"),
+			InMulticastPkts:              newInterfaceGaugeVec("interface_in_multicast_pkts", "Incoming multicast packets"),
+			InOctets:                     newInterfaceGaugeVec("interface_in_octets", "Incoming octets"),
+			InOctetsPerSecond:            newInterfaceGaugeVec("interface_in_octets_per_second", "Incoming octets per second"),
+			InPkts:                       newInterfaceGaugeVec("interface_in_pkts", "Incoming packets"),
+			InPktsPerSecond:              newInterfaceGaugeVec("interface_in_pkts_per_second", "Incoming packets per second"),
+			InUnicastPkts:                newInterfaceGaugeVec("interface_in_unicast_pkts", "Incoming unicast packets"),
+			InUtilization:                newInterfaceGaugeVec("interface_in_utilization", "Incoming utilization"),
+			LastClear:                    newInterfaceGaugeVec("interface_last_clear", "Time of last counter clear"),
+			OutBits:                      newInterfaceGaugeVec("interface_out_bits", "Outgoing bits"),
+			OutBitsPerSecond:             newInterfaceGaugeVec("interface_out_bits_per_second", "Outgoing bits per second"),
+			OutBroadcastPkts:             newInterfaceGaugeVec("interface_out_broadcast_pkts", "Outgoing broadcast packets"),
+			OutDiscards:                  newInterfaceGaugeVec("interface_out_discards", "Outgoing discards"),
+			OutErrors:                    newInterfaceGaugeVec("interface_out_errors", "Outgoing errors"),
+			OutMulticastPkts:             newInterfaceGaugeVec("interface_out_multicast_pkts", "Outgoing multicast packets"),
+			OutOctets:                    newInterfaceGaugeVec("interface_out_octets", "Outgoing octets"),
+			OutOctetsPerSecond:           newInterfaceGaugeVec("interface_out_octets_per_second", "Outgoing octets per second"),
+			OutPkts:                      newInterfaceGaugeVec("interface_out_pkts", "Outgoing packets"),
+			OutPktsPerSecond:             newInterfaceGaugeVec("interface_out_pkts_per_second", "Outgoing packets per second"),
+			OutUnicastPkts:               newInterfaceGaugeVec("interface_out_unicast_pkts", "Outgoing unicast packets"),
+			OutUtilization:               newInterfaceGaugeVec("interface_out_utilization", "Outgoing utilization"),
+			QueueDroppedBits:             newInterfaceQueueGaugeVec("interface_queue_dropped_bits", "Queue dropped bits"),
+			QueueDroppedOctets:           newInterfaceQueueGaugeVec("interface_queue_dropped_octets", "Queue dropped octets"),
+			QueueDroppedPkts:             newInterfaceQueueGaugeVec("interface_queue_dropped_pkts", "Queue dropped packets"),
+			QueueECNMarkedBits:           newInterfaceQueueGaugeVec("interface_queue_ecn_marked_bits", "Queue ECN marked bits"),
+			QueueECNMarkedOctets:         newInterfaceQueueGaugeVec("interface_queue_ecn_marked_octets", "Queue ECN marked octets"),
+			QueueECNMarkedPkts:           newInterfaceQueueGaugeVec("interface_queue_ecn_marked_pkts", "Queue ECN marked packets"),
+			QueuePeriodicWatermark:       newInterfaceQueueGaugeVec("interface_queue_periodic_watermark", "Queue periodic watermark"),
+			QueuePersistentWatermark:     newInterfaceQueueGaugeVec("interface_queue_persistent_watermark", "Queue persistent watermark"),
+			QueueTransmitBits:            newInterfaceQueueGaugeVec("interface_queue_transmit_bits", "Queue transmit bits"),
+			QueueTransmitBitsPerSecond:   newInterfaceQueueGaugeVec("interface_queue_transmit_bits_per_second", "Queue transmit bits per second"),
+			QueueTransmitOctets:          newInterfaceQueueGaugeVec("interface_queue_transmit_octets", "Queue transmit octets"),
+			QueueTransmitOctetsPerSecond: newInterfaceQueueGaugeVec("interface_queue_transmit_octets_per_second", "Queue transmit octets per second"),
+			QueueTransmitPkts:            newInterfaceQueueGaugeVec("interface_queue_transmit_pkts", "Queue transmit packets"),
+			QueueTransmitPktsPerSecond:   newInterfaceQueueGaugeVec("interface_queue_transmit_pkts_per_second", "Queue transmit packets per second"),
+			QueueWatermark:               newInterfaceQueueGaugeVec("interface_queue_watermark", "Queue watermark"),
+			QueueWREDDroppedPkts:         newInterfaceQueueGaugeVec("interface_queue_wred_dropped_pkts", "Queue WRED dropped packets"),
 		},
 		TransceiverMetrics: TransceiverMetrics{
 			AlarmRxPowerHi:   newTransceiverGaugeVec("transceiver_alarm_rx_power_hi", "Alarm rx power hi"),

@@ -75,6 +75,10 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update interface metrics")
 	}
 
+	if err := p.updateInterfaceQueuesMetrics(ctx, reg, swState, agent, portMap); err != nil {
+		return errors.Wrapf(err, "failed to update interface queues metrics")
+	}
+
 	if err := p.updateTransceiverMetrics(ctx, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update transceiver metrics")
 	}
@@ -207,6 +211,8 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 
 			if st.Counters.InOctets != nil {
 				reg.InterfaceCounters.InOctets.WithLabelValues(ifaceName).Set(float64(*st.Counters.InOctets))
+				reg.InterfaceCounters.InBits.WithLabelValues(ifaceName).Set(float64(*st.Counters.InOctets * 8))
+				ifState.Counters.InBits = *st.Counters.InOctets * 8
 			}
 
 			reg.InterfaceCounters.InOctetsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InOctetsPerSecond))
@@ -257,6 +263,8 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 
 			if st.Counters.OutOctets != nil {
 				reg.InterfaceCounters.OutOctets.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutOctets))
+				reg.InterfaceCounters.OutBits.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutOctets * 8))
+				ifState.Counters.OutBits = *st.Counters.OutOctets * 8
 			}
 
 			reg.InterfaceCounters.OutOctetsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutOctetsPerSecond))
@@ -288,6 +296,182 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 		}
 
 		swState.Interfaces[ifaceName] = ifState
+	}
+
+	return nil
+}
+
+func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
+	ifaces := &oc.OpenconfigQos_Qos_Interfaces{}
+	err := p.client.Get(ctx, "/qos/interfaces/interface", ifaces)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get qos interfaces")
+	}
+
+	for ifaceNameRaw, iface := range ifaces.Interface {
+		if !isPhysical(ifaceNameRaw) && !isCPU(ifaceNameRaw) {
+			continue
+		}
+
+		if strings.Contains(ifaceNameRaw, ".") || strings.Contains(ifaceNameRaw, "|") {
+			continue
+		}
+
+		if iface.Output == nil || iface.Output.Queues == nil || len(iface.Output.Queues.Queue) == 0 {
+			continue
+		}
+
+		ifaceName := ifaceNameRaw
+		if isPhysical(ifaceNameRaw) {
+			exists := false
+			ifaceName, exists = portMap[ifaceNameRaw]
+			if !exists && !(ag.Spec.Switch.Profile == switchprofile.VS.Name && switchprofile.VSIsIgnoredNOSPort(ifaceNameRaw)) {
+				slog.Warn("Port mapping not found, ignoring for queue metrics", "interface", ifaceNameRaw)
+
+				continue
+			}
+		} else if isCPU(ifaceNameRaw) {
+			ifaceName = "CPU"
+		}
+
+		queues := map[string]agentapi.SwitchStateInterfaceCountersQueue{}
+		for _, queue := range iface.Output.Queues.Queue {
+			if queue.State == nil || queue.State.Name == nil || queue.State.TrafficType == nil {
+				continue
+			}
+
+			parts := strings.SplitN(*queue.State.Name, ":", 2)
+			if len(parts) != 2 {
+				slog.Warn("Queue name does not have expected format", "queueName", *queue.State.Name, "interface", ifaceNameRaw)
+
+				continue
+			}
+			qName := *queue.State.TrafficType + parts[1]
+			if _, exists := queues[qName]; exists {
+				slog.Warn("Queue with the same name already exists, skipping", "queueName", qName, "interface", ifaceNameRaw)
+
+				continue
+			}
+
+			qCounters := agentapi.SwitchStateInterfaceCountersQueue{}
+			nonZero := false
+			if queue.State.DroppedOctets != nil {
+				val := *queue.State.DroppedOctets
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueDroppedBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueDroppedOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.DroppedBits = val * 8
+			}
+
+			if queue.State.DroppedPkts != nil {
+				val := *queue.State.DroppedPkts
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueDroppedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.DroppedPkts = val
+			}
+
+			if queue.State.EcnMarkedOctets != nil {
+				val := *queue.State.EcnMarkedOctets
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueECNMarkedBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueECNMarkedOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.ECNMarkedBits = val * 8
+			}
+
+			if queue.State.EcnMarkedPkts != nil {
+				val := *queue.State.EcnMarkedPkts
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueECNMarkedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.ECNMarkedPkts = val
+			}
+
+			if queue.State.PeriodicWatermark != nil {
+				val := *queue.State.PeriodicWatermark
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueuePeriodicWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+			}
+
+			if queue.State.PersistentWatermark != nil {
+				val := *queue.State.PersistentWatermark
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueuePersistentWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+			}
+
+			if queue.State.TransmitBitsPerSecond != nil {
+				val := *queue.State.TransmitBitsPerSecond
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueTransmitBitsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.TransmitBitsPerSecond = val
+			}
+
+			if queue.State.TransmitOctets != nil {
+				val := *queue.State.TransmitOctets
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueTransmitOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
+				qCounters.TransmitBits = val * 8
+			}
+
+			if queue.State.TransmitOctetsPerSecond != nil {
+				val := *queue.State.TransmitOctetsPerSecond
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueTransmitOctetsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+			}
+
+			if queue.State.TransmitPkts != nil {
+				val := *queue.State.TransmitPkts
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueTransmitPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.TransmitPkts = val
+			}
+
+			if queue.State.TransmitPktsPerSecond != nil {
+				val := *queue.State.TransmitPktsPerSecond
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueTransmitPktsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.TransmitPktsPerSecond = val
+			}
+
+			if queue.State.Watermark != nil {
+				val := *queue.State.Watermark
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+			}
+
+			if queue.State.WredDroppedPkts != nil {
+				val := *queue.State.WredDroppedPkts
+				nonZero = nonZero || val != 0
+				reg.InterfaceCounters.QueueWREDDroppedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				qCounters.WREDDroppedPkts = val
+			}
+
+			if nonZero {
+				queues[qName] = qCounters
+			}
+		}
+
+		if len(queues) == 0 {
+			continue
+		}
+
+		if iface, found := swState.Interfaces[ifaceName]; found {
+			if iface.Counters == nil {
+				iface.Counters = &agentapi.SwitchStateInterfaceCounters{}
+			}
+
+			iface.Counters.Queues = queues
+			swState.Interfaces[ifaceName] = iface
+		} else if isCPU(ifaceNameRaw) {
+			swState.Interfaces[ifaceName] = agentapi.SwitchStateInterface{
+				Counters: &agentapi.SwitchStateInterfaceCounters{
+					Queues: queues,
+				},
+			}
+		} else {
+			slog.Warn("Interface not found in switch state, skipping queue metrics", "interface", ifaceNameRaw)
+
+			continue
+		}
 	}
 
 	return nil

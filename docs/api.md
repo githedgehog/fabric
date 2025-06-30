@@ -427,17 +427,44 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `inBits` _integer_ |  |  |  |
 | `inBitsPerSecond` _float_ |  |  |  |
 | `inDiscards` _integer_ |  |  |  |
 | `inErrors` _integer_ |  |  |  |
 | `inPktsPerSecond` _float_ |  |  |  |
 | `inUtilization` _integer_ |  |  |  |
 | `lastClear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `outBits` _integer_ |  |  |  |
 | `outBitsPerSecond` _float_ |  |  |  |
 | `outDiscards` _integer_ |  |  |  |
 | `outErrors` _integer_ |  |  |  |
 | `outPktsPerSecond` _float_ |  |  |  |
 | `outUtilization` _integer_ |  |  |  |
+| `queues` _object (keys:string, values:[SwitchStateInterfaceCountersQueue](#switchstateinterfacecountersqueue))_ |  |  |  |
+
+
+#### SwitchStateInterfaceCountersQueue
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterfaceCounters](#switchstateinterfacecounters)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `droppedBits` _integer_ |  |  |  |
+| `droppedPkts` _integer_ |  |  |  |
+| `ecnMarkedBits` _integer_ |  |  |  |
+| `ecnMarkedPkts` _integer_ |  |  |  |
+| `transmitBits` _integer_ |  |  |  |
+| `transmitBitsPerSecond` _integer_ |  |  |  |
+| `transmitPkts` _integer_ |  |  |  |
+| `transmitPktsPerSecond` _integer_ |  |  |  |
+| `wredDroppedPkts` _integer_ |  |  |  |
 
 
 #### SwitchStateLLDPNeighbor
