@@ -283,6 +283,10 @@ func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planBreakouts(agent *agentapi.Agent, spec *dozer.Spec) error {
+	if agent.Spec.Switch.RoCE {
+		return nil // no breakouts config when RoCE is enabled
+	}
+
 	def, err := agent.Spec.SwitchProfile.GetBreakoutDefaults(&agent.Spec.Switch)
 	if err != nil {
 		return errors.Wrap(err, "failed to get breakout defaults")
