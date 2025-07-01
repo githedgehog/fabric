@@ -16,6 +16,7 @@ package switchprofile
 
 import (
 	"context"
+	"slices"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -42,6 +43,13 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	EdgecoreEPS203,
 	SupermicroSSEC4632SB,
 	VS,
+}
+
+var sonicCLSPlusSwitchProfiles = []wiringapi.SwitchProfile{
+	CLSPCelesticaDS3000,
+	CLSPCelesticaDS4000,
+	CLSPCelesticaDS4101,
+	CLSPCelesticaDS5000,
 }
 
 type Default struct {
@@ -79,7 +87,12 @@ func (d *Default) Register(ctx context.Context, kube kclient.Reader, cfg *meta.F
 }
 
 func (d *Default) RegisterAll(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) error {
-	for _, sp := range defaultSwitchProfiles {
+	profiles := slices.Clone(defaultSwitchProfiles)
+	if cfg != nil && cfg.IncludeSONiCCLSPlus {
+		profiles = append(profiles, sonicCLSPlusSwitchProfiles...)
+	}
+
+	for _, sp := range profiles {
 		if err := d.Register(ctx, kube, cfg, sp); err != nil {
 			return errors.Wrapf(err, "failed to register switch profile %q", sp.Name)
 		}
