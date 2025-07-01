@@ -94,12 +94,86 @@ func (out *PortOut) MarshalText(now time.Time) (string, error) {
 				},
 			},
 		))
+
+		str.WriteString("\n")
+
+		if len(counters.Queues) > 0 {
+			str.WriteString("Port Queue Counters:\n")
+
+			sortedQueueNames := lo.Keys(counters.Queues)
+			slices.SortFunc(sortedQueueNames, func(a, b string) int {
+				if strings.HasPrefix(a, "UC") && strings.HasPrefix(b, "MC") {
+					return -1 // UC queues come before MC queues
+				}
+
+				return strings.Compare(a, b)
+			})
+
+			queueData := [][]string{}
+			for _, queueName := range sortedQueueNames {
+				queue := counters.Queues[queueName]
+				queueData = append(queueData, []string{
+					queueName,
+					humanize.CommafWithDigits(float64(queue.TransmitPkts), 0),
+					humanize.CommafWithDigits(float64(queue.TransmitBits), 0),
+					humanize.CommafWithDigits(float64(queue.TransmitPktsPerSecond), 0),
+					humanize.CommafWithDigits(float64(queue.TransmitBitsPerSecond), 0),
+					humanize.CommafWithDigits(float64(queue.DroppedPkts), 0),
+					humanize.CommafWithDigits(float64(queue.DroppedBits), 0),
+				})
+			}
+			str.WriteString(RenderTable(
+				[]string{"Q", "Pkts", "Bits", "Pkts/sec", "Bits/sec", "Drop pkts", "Drop bits"},
+				queueData,
+			))
+
+			str.WriteString("\nWRED ECN Counters:\n")
+
+			queueData = [][]string{}
+			for _, queueName := range sortedQueueNames {
+				queue := counters.Queues[queueName]
+				queueData = append(queueData, []string{
+					queueName,
+					humanize.CommafWithDigits(float64(queue.WREDDroppedPkts), 0),
+					humanize.CommafWithDigits(float64(queue.ECNMarkedPkts), 0),
+					humanize.CommafWithDigits(float64(queue.ECNMarkedBits), 0),
+				})
+			}
+			str.WriteString(RenderTable(
+				[]string{"Q", "WRED Dropped pkts", "ECN Marked pkts", "ECN Marked bits"},
+				queueData,
+			))
+
+			str.WriteString("\n")
+		}
 	}
 
 	if out.BreakoutState != nil {
 		str.WriteString("Breakout State:\n")
 		str.WriteString(fmt.Sprintf("  Mode: %s\n", out.BreakoutState.Mode))
 		str.WriteString(fmt.Sprintf("  Status: %s\n", out.BreakoutState.Status))
+
+		str.WriteString("\n")
+	}
+
+	if out.InterfaceState != nil && out.InterfaceState.Transceiver != nil && out.InterfaceState.Transceiver.OperStatus != "" {
+		str.WriteString(fmt.Sprintf("Transceiver: %s\n", out.InterfaceState.Transceiver.OperStatus))
+		str.WriteString(fmt.Sprintf("  Description: %s\n", out.InterfaceState.Transceiver.Description))
+		str.WriteString(fmt.Sprintf("  FormFactor: %s / %s\n", out.InterfaceState.Transceiver.FormFactor, out.InterfaceState.Transceiver.ConnectorType))
+		str.WriteString(fmt.Sprintf("  CableClass: %s\n", out.InterfaceState.Transceiver.CableClass))
+		if out.InterfaceState.Transceiver.CableLength != 0 {
+			str.WriteString(fmt.Sprintf("  CableLength: %sm\n", humanize.CommafWithDigits(out.InterfaceState.Transceiver.CableLength, 0)))
+		}
+		str.WriteString(fmt.Sprintf("  SerialNumber: %s\n", out.InterfaceState.Transceiver.SerialNumber))
+		str.WriteString(fmt.Sprintf("  Vendor: %q part %q rev %q\n", out.InterfaceState.Transceiver.Vendor, out.InterfaceState.Transceiver.VendorPart, out.InterfaceState.Transceiver.VendorRev))
+		if out.InterfaceState.Transceiver.Voltage != 0 {
+			str.WriteString(fmt.Sprintf("  Voltage: %s\n", humanize.CommafWithDigits(out.InterfaceState.Transceiver.Voltage, 2)))
+		}
+		if out.InterfaceState.Transceiver.Temperature != 0 {
+			str.WriteString(fmt.Sprintf("  Temperature: %s\n", humanize.CommafWithDigits(out.InterfaceState.Transceiver.Temperature, 2)))
+		}
+
+		str.WriteString("\n")
 	}
 
 	if len(out.VPCAttachments) > 0 {
@@ -136,6 +210,8 @@ func (out *PortOut) MarshalText(now time.Time) (string, error) {
 			[]string{"Name", "VPCSubnet", "Subnet", "VLAN"},
 			attachData,
 		))
+
+		str.WriteString("\n")
 	}
 
 	if len(out.ExternalAttachments) > 0 {
@@ -155,6 +231,8 @@ func (out *PortOut) MarshalText(now time.Time) (string, error) {
 			[]string{"Name", "External"},
 			attachData,
 		))
+
+		str.WriteString("\n")
 	}
 
 	if len(out.LoopbackWorkarounds) > 0 {
@@ -267,17 +345,25 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 
 	portName := strings.SplitN(in.Port, "/", 2)[1]
 
-	if agent.Status.State.Interfaces != nil {
-		state, exists := agent.Status.State.Interfaces[portName]
-		if exists {
-			out.InterfaceState = &state
-		}
-	}
-
 	if agent.Status.State.Breakouts != nil {
 		state, exists := agent.Status.State.Breakouts[portName]
 		if exists {
 			out.BreakoutState = &state
+		}
+
+		if agent.Status.State.Interfaces != nil {
+			if state, exists := agent.Status.State.Interfaces[portName+"/1"]; exists {
+				out.InterfaceState = &agentapi.SwitchStateInterface{
+					Transceiver: state.Transceiver,
+				}
+			}
+		}
+	}
+
+	if agent.Status.State.Interfaces != nil {
+		state, exists := agent.Status.State.Interfaces[portName]
+		if exists {
+			out.InterfaceState = &state
 		}
 	}
 
