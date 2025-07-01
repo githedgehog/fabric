@@ -287,6 +287,15 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 	if in.Port == "" {
 		return nil, errors.New("port is required")
 	}
+	parts := strings.SplitN(in.Port, "/", 2)
+	if len(parts) != 2 {
+		return nil, errors.New("port must be in format <switch-name>/<port-name>")
+	}
+	swName := parts[0]
+	portName := parts[1]
+	if swName == "" || portName == "" {
+		return nil, errors.New("port must be in format <switch-name>/<port-name>")
+	}
 
 	out := &PortOut{
 		VPCAttachments:      map[string]*vpcapi.VPCAttachmentSpec{},
@@ -314,8 +323,6 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 		out.Connection = pointer.To(conn.Spec)
 	}
 
-	swName := strings.SplitN(in.Port, "/", 2)[0]
-
 	skip := false
 	sw := &wiringapi.Switch{}
 	if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
@@ -342,8 +349,6 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 
 		return out, nil
 	}
-
-	portName := strings.SplitN(in.Port, "/", 2)[1]
 
 	if agent.Status.State.Breakouts != nil {
 		state, exists := agent.Status.State.Breakouts[portName]
