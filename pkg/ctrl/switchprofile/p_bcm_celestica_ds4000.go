@@ -1,16 +1,5 @@
-// Copyright 2023 Hedgehog
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
 
 package switchprofile
 
@@ -20,12 +9,13 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var DellZ9332FON = wiringapi.SwitchProfile{
+var CelesticaDS4000 = wiringapi.SwitchProfile{
 	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "dell-z9332f-on",
+		Name: "celestica-ds4000",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName:   "Dell Z9332F-ON",
+		DisplayName:   "Celestica DS4000",
+		OtherNames:    []string{"Celestica Silverstone2"},
 		SwitchSilicon: SiliconBroadcomTH3,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: false,
@@ -38,7 +28,7 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
-		Platform: "x86_64-dellemc_z9332f_d1508-r0",
+		Platform: "x86_64-cel_silverstone-r0",
 		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
@@ -74,8 +64,7 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 			"E1/30": {NOSName: "1/30", BaseNOSName: "Ethernet232", Label: "30", Profile: "QSFPDD-400G"},
 			"E1/31": {NOSName: "1/31", BaseNOSName: "Ethernet240", Label: "31", Profile: "QSFPDD-400G"},
 			"E1/32": {NOSName: "1/32", BaseNOSName: "Ethernet248", Label: "32", Profile: "QSFPDD-400G"}, // 32x QSFPDD-400G
-			"E1/33": {NOSName: "Ethernet256", Label: "M1", Profile: "SFP28-10G"},                        // 1x SFP28-10G
-			"E1/34": {NOSName: "Ethernet257", Label: "M2", Profile: "SFP28-10G"},                        // 1x SFP28-10G
+			"E1/33": {NOSName: "Ethernet256", Label: "33", Profile: "SFP28-10G"},                        // 1x SFP28-10G
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"SFP28-10G": {
@@ -89,10 +78,8 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 					Default: "1x400G",
 					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
 						"1x400G": {Offsets: []string{"0"}},
-						"1x200G": {Offsets: []string{"0"}},
 						"1x100G": {Offsets: []string{"0"}},
 						"1x40G":  {Offsets: []string{"0"}},
-						"1x50G":  {Offsets: []string{"0"}},
 						"1x25G":  {Offsets: []string{"0"}},
 						"1x10G":  {Offsets: []string{"0"}},
 						"2x200G": {Offsets: []string{"0", "4"}},

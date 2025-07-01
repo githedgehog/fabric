@@ -86,6 +86,7 @@ type FabricConfig struct {
 	GatewayASN               uint32      `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
 	GatewayAPISync           bool        `json:"gatewayAPISync,omitempty"`
 	LoopbackWorkaround       bool        `json:"loopbackWorkaround,omitempty"`
+	IncludeSONiCCLSPlus      bool        `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
 
 	reservedSubnets []*net.IPNet
 }
@@ -105,15 +106,19 @@ var FabricModes = []FabricMode{
 type NOSType string
 
 const (
-	NOSTypeSONiCBCMBase   NOSType = "sonic-bcm-base"
-	NOSTypeSONiCBCMCampus NOSType = "sonic-bcm-campus"
-	NOSTypeSONiCBCMVS     NOSType = "sonic-bcm-vs"
+	NOSTypeSONiCBCMBase         NOSType = "sonic-bcm-base"
+	NOSTypeSONiCBCMCampus       NOSType = "sonic-bcm-campus"
+	NOSTypeSONiCBCMVS           NOSType = "sonic-bcm-vs"
+	NOSTypeSONiCCLSPlusBroadcom NOSType = "sonic-cls-plus-broadcom"
+	NOSTypeSONiCCLSPlusMarvell  NOSType = "sonic-cls-plus-marvell"
 )
 
 var NOSTypes = []NOSType{
 	NOSTypeSONiCBCMBase,
 	NOSTypeSONiCBCMCampus,
 	NOSTypeSONiCBCMVS,
+	NOSTypeSONiCCLSPlusBroadcom,
+	NOSTypeSONiCCLSPlusMarvell,
 }
 
 func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {

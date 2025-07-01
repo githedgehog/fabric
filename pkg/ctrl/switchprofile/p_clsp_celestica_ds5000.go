@@ -1,16 +1,5 @@
-// Copyright 2023 Hedgehog
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
 
 package switchprofile
 
@@ -20,15 +9,15 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var CelesticaDS5000 = wiringapi.SwitchProfile{
+var CLSPCelesticaDS5000 = wiringapi.SwitchProfile{
 	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "celestica-ds5000",
+		Name: "celestica-ds5000-clsp",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Celestica DS5000",
 		OtherNames:    []string{"Celestica Moonstone"},
 		SwitchSilicon: SiliconBroadcomTH5,
-		Features: wiringapi.SwitchProfileFeatures{
+		Features: wiringapi.SwitchProfileFeatures{ // TODO update
 			Subinterfaces: true,
 			ACLs:          true,
 			L2VNI:         false,
@@ -38,9 +27,9 @@ var CelesticaDS5000 = wiringapi.SwitchProfile{
 			ESLAG:         false,
 			ECMPRoCEQPN:   true,
 		},
-		Notes:    "Doesn't support non-L3 VPC modes due to the lack of L2VNI support.",
-		NOSType:  meta.NOSTypeSONiCBCMBase,
-		Platform: "x86-64-cls-ds5000-r0",
+		Notes:    "Doesn't support non-L3 VPC modes due to the lack of L2VNI support.", // TODO get rid of or update
+		NOSType:  meta.NOSTypeSONiCCLSPlusBroadcom,
+		Platform: "x86-64-cls-ds5000-r0", // TODO get rid of or update
 		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
