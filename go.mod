@@ -10,7 +10,7 @@ tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (
 	github.com/0x5a17ed/uefi v0.7.0
-	github.com/Masterminds/semver/v3 v3.3.1
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/bits-and-blooms/bitset v1.22.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
