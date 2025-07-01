@@ -185,6 +185,10 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			return nil, errors.Wrapf(err, "failed to get connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
 		}
 
+		if conn.Spec.ESLAG != nil && vpc.Spec.Mode != VPCModeL2VNI {
+			return nil, errors.Errorf("vpc mode %s is not supported for ESLAG connections", vpc.Spec.Mode)
+		}
+
 		var switchNames []string
 		if conn.Spec.Unbundled != nil || conn.Spec.Bundled == nil || conn.Spec.MCLAG == nil {
 			switchNames, _, _, _, err = conn.Spec.Endpoints()
