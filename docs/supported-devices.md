@@ -1,6 +1,7 @@
 
 | Switch | Supported Roles | Silicon | Ports |
 |--------|-----------------|---------|-------|
+| Celestica DS2000 (Questone 2a) | **spine**, **leaf** | Broadcom TD3-X5 2.0T | 48xSFP28-25G, 8xQSFP28-100G |
 | Celestica DS3000 (Seastone2) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
 | Celestica DS4000 (Silverstone2) | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 1xSFP28-10G |
 | Celestica DS4101 (Greystone) | **spine** | Broadcom TH4G | 32xOSFP-2x400G, 2xSFP28-10G |
