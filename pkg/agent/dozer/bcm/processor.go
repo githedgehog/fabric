@@ -42,10 +42,12 @@ type BroadcomProcessor struct {
 
 var _ dozer.Processor = &BroadcomProcessor{}
 
-func Processor(client *gnmi.Client) (*BroadcomProcessor, error) {
-	return &BroadcomProcessor{
-		client: client,
-	}, initCompat()
+func Processor() (*BroadcomProcessor, error) {
+	return &BroadcomProcessor{}, initCompat()
+}
+
+func (p *BroadcomProcessor) SetClient(client *gnmi.Client) {
+	p.client = client
 }
 
 func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
@@ -132,6 +134,10 @@ func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
 }
 
 func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
+	if p.client == nil {
+		return nil, errors.New("gnmi client is not set")
+	}
+
 	spec := &dozer.Spec{}
 
 	if err := loadActualSpec(ctx, agent, p.client, spec); err != nil {
@@ -160,6 +166,10 @@ func (p *BroadcomProcessor) CalculateActions(_ context.Context, actual, desired 
 }
 
 func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Action) ([]string, error) {
+	if p.client == nil {
+		return nil, errors.New("gnmi client is not set")
+	}
+
 	for idx, action := range actions {
 		act := action.(*Action)
 
