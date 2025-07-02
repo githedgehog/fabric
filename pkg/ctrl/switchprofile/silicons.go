@@ -6,6 +6,7 @@ package switchprofile
 const (
 	SiliconVS                  = "vs"
 	SiliconBroadcomTD3_X3      = "Broadcom TD3-X3"      //nolint:revive,stylecheck
+	SiliconBroadcomTD3_X5      = "Broadcom TD3-X5 2.0T" //nolint:revive,stylecheck
 	SiliconBroadcomTD3_X7_2_0T = "Broadcom TD3-X7 2.0T" //nolint:revive,stylecheck
 	SiliconBroadcomTD3_X7_3_2T = "Broadcom TD3-X7 3.2T" //nolint:revive,stylecheck
 	SiliconBroadcomTH          = "Broadcom TH"

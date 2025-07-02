@@ -33,6 +33,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	DellS5232FON,
 	DellS5248FON,
 	DellZ9332FON,
+	CelesticaDS2000,
 	CelesticaDS3000,
 	CelesticaDS4000,
 	CelesticaDS4101,
