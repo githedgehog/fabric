@@ -353,6 +353,13 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		}
 	}
 
+	// Workaround to make sure we have an actual RoCE state in the agent status before planning the desired state
+	roce, err := svc.processor.GetRoCE(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get RoCE state")
+	}
+	agent.Status.State.RoCE = roce
+
 	desired, err := svc.processor.PlanDesiredState(ctx, agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to plan spec")
