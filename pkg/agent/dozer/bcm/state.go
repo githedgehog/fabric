@@ -38,6 +38,10 @@ const (
 )
 
 func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error {
+	if p.client == nil {
+		return errors.Errorf("gnmi client is not set")
+	}
+
 	start := time.Now()
 
 	swState := &agentapi.SwitchState{

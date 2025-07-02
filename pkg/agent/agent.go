@@ -110,6 +110,19 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
+	bcmProcessor, err := bcm.Processor()
+	if err != nil {
+		return errors.Wrap(err, "failed to create BCM processor")
+	}
+	svc.processor = bcmProcessor
+
+	if !svc.DryRun && !svc.SkipControlLink {
+		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
+			return errors.Wrap(err, "failed to ensure control link at startup")
+		}
+		slog.Info("Initial control link configuration applied")
+	}
+
 	retriesStart := time.Now()
 	for time.Since(retriesStart) < 10*time.Minute {
 		svc.gnmiClient, err = getClient()
@@ -126,11 +139,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		return errors.Wrap(err, "failed to create gNMI client after retries")
 	}
 	defer svc.gnmiClient.Close()
-
-	svc.processor, err = bcm.Processor(svc.gnmiClient)
-	if err != nil {
-		return errors.Wrap(err, "failed to create BCM processor")
-	}
+	bcmProcessor.SetClient(svc.gnmiClient)
 
 	if !svc.DryRun && !svc.ApplyOnce {
 		err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
