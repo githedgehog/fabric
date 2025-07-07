@@ -1,0 +1,205 @@
+name: VLAB
+
+concurrency:
+  group: vlab-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Which test to run'
+        type: choice
+        options:
+          - 'vlab'
+          - 'matrix'
+          - 'vlab-upgrade'
+          - 'hlab'
+          - 'all'
+        default: 'vlab'
+      debug_enabled:
+        type: boolean
+        description: "Enable tmate debugging"
+        required: false
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  ORG: githedgehog
+
+jobs:
+  build-fabric-artifacts:
+    permissions:
+      contents: read
+      packages: write
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:vlab') || contains(github.event.pull_request.labels.*.name, 'ci:hlab') || contains(github.event.pull_request.labels.*.name, 'ci:vlab-matrix') || contains(github.event.pull_request.labels.*.name, 'ci:vlab-upgrade') || contains(github.event.pull_request.labels.*.name, 'ci:all') }}
+    runs-on: lab
+    outputs:
+      image_tag: ${{ steps.tag-image.outputs.image_tag }}
+      test_type: ${{ steps.determine-test-type.outputs.test_type }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Determine test type from labels
+        id: determine-test-type
+        run: |
+          LABELS="${{ toJSON(github.event.pull_request.labels.*.name) }}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "test_type=${{ github.event.inputs.test_type }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if echo "$LABELS" | grep -q "ci:all"; then
+            echo "test_type=all" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "ci:vlab-upgrade"; then
+            echo "test_type=vlab-upgrade" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "ci:vlab-matrix"; then
+            echo "test_type=matrix" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "ci:hlab"; then
+            echo "test_type=hlab" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "ci:vlab"; then
+            echo "test_type=vlab" >> $GITHUB_OUTPUT
+          else
+            echo "test_type=vlab" >> $GITHUB_OUTPUT
+            echo "No test labels found, defaulting to vlab"
+          fi
+
+      - name: Generate unique image tag
+        id: tag-image
+        run: |
+          FABRIC_VERSION=$(git describe --tags --match="v*" --abbrev=0 2>/dev/null || echo "v0.0.0")
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER="0"
+          fi
+
+          TAG="${FABRIC_VERSION}-pr.${PR_NUMBER}.${GITHUB_SHA::8}"
+          echo "image_tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build fabric components
+        run: |
+          just --timestamp oci_repo=ghcr.io oci_prefix=${{ env.ORG }}/fabric version="${{ steps.tag-image.outputs.image_tag }}" push
+
+      - name: Setup tmate session for debug
+        if: failure() && github.event.inputs.debug_enabled == true
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          limit-access-to-actor: true
+
+  vlab:
+    needs: [build-fabric-artifacts]
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:vlab') || contains(github.event.pull_request.labels.*.name, 'ci:hlab') || contains(github.event.pull_request.labels.*.name, 'ci:vlab-matrix') || contains(github.event.pull_request.labels.*.name, 'ci:vlab-upgrade') || contains(github.event.pull_request.labels.*.name, 'ci:all') }}
+    name: "Run VLAB Tests (${{ needs.build-fabric-artifacts.outputs.test_type }})"
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    uses: githedgehog/fabricator/.github/workflows/reusable-vlab.yaml@7ce2e9e0f15ad2978e3a2bb9cf8ad156dfeb1219
+    with:
+      component_name: fabric
+      commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      go_module_path: go.githedgehog.com/fabric
+      fabric_version: ${{ needs.build-fabric-artifacts.outputs.image_tag }}
+      test_type: ${{ needs.build-fabric-artifacts.outputs.test_type }}
+      debug_enabled: ${{ github.event.inputs.debug_enabled == true }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  summary:
+    needs: [build-fabric-artifacts, vlab]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:vlab') || contains(github.event.pull_request.labels.*.name, 'ci:hlab') || contains(github.event.pull_request.labels.*.name, 'ci:vlab-matrix') || contains(github.event.pull_request.labels.*.name, 'ci:vlab-upgrade') || contains(github.event.pull_request.labels.*.name, 'ci:all')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Generate test summary
+        run: |
+          TEST_RESULT="${{ needs.vlab.result || 'unknown' }}"
+          TEST_TYPE="${{ needs.build-fabric-artifacts.outputs.test_type }}"
+          FABRIC_VERSION="${{ needs.build-fabric-artifacts.outputs.image_tag }}"
+
+          echo "## VLAB Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Component:** fabric" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.event.pull_request.head.sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Fabric version:** \`${FABRIC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Test type:** \`${TEST_TYPE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${TEST_RESULT}" == "failure" ]]; then
+            echo "**Status:** FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "STATUS: FAILED"
+            echo "Tests failed"
+            exit 1
+          elif [[ "${TEST_RESULT}" == "cancelled" ]]; then
+            echo "**Status:** CANCELLED" >> $GITHUB_STEP_SUMMARY
+            echo "STATUS: CANCELLED"
+            echo "Tests were cancelled"
+            exit 1
+          elif [[ "${TEST_RESULT}" == "success" ]]; then
+            echo "**Status:** PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "STATUS: PASSED"
+          else
+            echo "**Status:** UNKNOWN (${TEST_RESULT})" >> $GITHUB_STEP_SUMMARY
+            echo "STATUS: UNKNOWN (${TEST_RESULT})"
+            exit 1
+          fi
+
+      - name: Post PR comment
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const testResult = '${{ needs.vlab.result }}';
+            const testType = '${{ needs.build-fabric-artifacts.outputs.test_type }}';
+            const fabricVersion = '${{ needs.build-fabric-artifacts.outputs.image_tag }}';
+
+            let body = `## VLAB Results\n\n`;
+
+            const overallStatus = testResult === 'failure' ? 'FAILED' : 'PASSED';
+            body += `**Overall Status:** **${overallStatus}**\n\n`;
+
+            body += `**Test Configuration:**\n`;
+            body += `- Test type: \`${testType}\`\n`;
+            body += `- Fabric version: \`${fabricVersion}\`\n`;
+            body += `- Commit: \`${{ github.event.pull_request.head.sha || github.sha }}\`\n\n`;
+
+            body += `**Links:**\n`;
+            body += `- [View detailed results](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId})\n\n`;
+
+            if (testResult === 'failure') {
+              body += `**Next Steps:**\n`;
+              body += `- Check the [workflow logs](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}) for failure details\n`;
+              body += `- Re-run tests by pushing a new commit or adding the \`ci:vlab\` label\n`;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body
+            });
