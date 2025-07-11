@@ -49,7 +49,7 @@ cloud.google.com/go/storage/experimental
 cloud.google.com/go/storage/internal
 cloud.google.com/go/storage/internal/apiv2
 cloud.google.com/go/storage/internal/apiv2/storagepb
-# dario.cat/mergo v1.0.0
+# dario.cat/mergo v1.0.1
 ## explicit; go 1.13
 dario.cat/mergo
 # github.com/0x5a17ed/itkit v0.7.0
@@ -1101,7 +1101,7 @@ go.etcd.io/bbolt
 # go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
-# go.githedgehog.com/gateway v0.13.0
+# go.githedgehog.com/gateway v0.14.0
 ## explicit; go 1.24.2
 go.githedgehog.com/gateway/api/gateway/v1alpha1
 # go.opencensus.io v0.24.0
