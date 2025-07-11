@@ -172,7 +172,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
-				neigh.Port = link.Spine.LocalPortName()
+				neigh.Port = link.Switch.LocalPortName()
 
 				out["default"][ip] = neigh
 			}

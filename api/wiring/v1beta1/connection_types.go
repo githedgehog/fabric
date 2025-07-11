@@ -172,8 +172,8 @@ type ConnGatewayLinkGateway struct {
 
 // GatewayLink defines the gateway connection link
 type GatewayLink struct {
-	// Spine is the spine side of the gateway link
-	Spine ConnFabricLinkSwitch `json:"spine,omitempty"`
+	// Switch is the switch (spine or leaf) side of the gateway link
+	Switch ConnFabricLinkSwitch `json:"switch,omitempty"`
 	// Gateway is the gateway side of the gateway link
 	Gateway ConnGatewayLinkGateway `json:"gateway,omitempty"`
 }
@@ -403,7 +403,7 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 			right = []string{connSpec.Fabric.Links[0].Leaf.DeviceName()}
 		} else if connSpec.Gateway != nil {
 			role = "gateway"
-			left = connSpec.Gateway.Links[0].Spine.DeviceName()
+			left = connSpec.Gateway.Links[0].Switch.DeviceName()
 			right = []string{connSpec.Gateway.Links[0].Gateway.DeviceName()}
 		} else if connSpec.VPCLoopback != nil {
 			role = "vpc-loopback"
@@ -622,11 +622,11 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		nonNills++
 
 		for _, link := range connSpec.Gateway.Links {
-			switches[link.Spine.DeviceName()] = struct{}{}
+			switches[link.Switch.DeviceName()] = struct{}{}
 			gateways[link.Gateway.DeviceName()] = struct{}{}
-			ports[link.Spine.PortName()] = struct{}{}
+			ports[link.Switch.PortName()] = struct{}{}
 			ports[link.Gateway.PortName()] = struct{}{}
-			links[link.Spine.PortName()] = link.Gateway.PortName()
+			links[link.Switch.PortName()] = link.Gateway.PortName()
 		}
 
 		if len(switches) != 1 {
@@ -700,7 +700,7 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 		}
 	} else if connSpec.Gateway != nil {
 		for _, link := range connSpec.Gateway.Links {
-			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Gateway.PortName()))
+			out = append(out, fmt.Sprintf("%s%s%s", link.Switch.PortName(), sep, link.Gateway.PortName()))
 		}
 	} else if connSpec.VPCLoopback != nil {
 		for _, link := range connSpec.VPCLoopback.Links {

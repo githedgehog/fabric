@@ -1764,7 +1764,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `spine` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Spine is the spine side of the gateway link |  |  |
+| `switch` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Switch is the switch (spine or leaf) side of the gateway link |  |  |
 | `gateway` _[ConnGatewayLinkGateway](#conngatewaylinkgateway)_ | Gateway is the gateway side of the gateway link |  |  |
 
 
