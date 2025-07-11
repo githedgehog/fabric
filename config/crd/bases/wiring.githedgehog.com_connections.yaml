@@ -216,8 +216,9 @@ spec:
                                 SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
                               type: string
                           type: object
-                        spine:
-                          description: Spine is the spine side of the gateway link
+                        switch:
+                          description: Switch is the switch (spine or leaf) side of
+                            the gateway link
                           properties:
                             ip:
                               description: IP is the IP address of the switch side

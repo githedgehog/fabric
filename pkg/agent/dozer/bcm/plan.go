@@ -485,9 +485,9 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			remote := ""
 			// peer := ""
 			peerIP := ""
-			if link.Spine.DeviceName() == agent.Name {
-				port = link.Spine.LocalPortName()
-				ipStr = link.Spine.IP
+			if link.Switch.DeviceName() == agent.Name {
+				port = link.Switch.LocalPortName()
+				ipStr = link.Switch.IP
 				remote = link.Gateway.Port
 				// peer = link.Gateway.DeviceName()
 				peerIP = link.Gateway.IP
