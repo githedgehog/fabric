@@ -54,8 +54,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1beta1,name=mipv4namespace.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1beta1,name=vipv4namespace.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1beta1,name=mipv4namespace.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1beta1,name=vipv4namespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("ipv4namespace-webhook")
 
@@ -79,7 +79,7 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 }
 
 func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	// oldNs := oldObj.(*vpcapi.IPv4Namespace)
+	_ = oldObj.(*vpcapi.IPv4Namespace)
 	ns := newObj.(*vpcapi.IPv4Namespace)
 
 	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
@@ -97,7 +97,7 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, new
 	}
 
 	vpcs := &vpcapi.VPCList{}
-	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelIPv4NS: ns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
@@ -132,7 +132,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	ipns := obj.(*vpcapi.IPv4Namespace)
 
 	vpcs := &vpcapi.VPCList{}
-	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelIPv4NS: ipns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
@@ -142,7 +142,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	externals := &vpcapi.ExternalList{}
-	if err := w.Client.List(ctx, externals, kclient.MatchingLabels{
+	if err := w.List(ctx, externals, kclient.MatchingLabels{
 		vpcapi.LabelIPv4NS: ipns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing externals") // TODO hide internal error

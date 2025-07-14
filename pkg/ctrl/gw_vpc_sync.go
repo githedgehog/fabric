@@ -30,10 +30,10 @@ type GwVPCSync struct {
 
 func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
 	if cfg == nil {
-		return fmt.Errorf("fabric config is nil") //nolint:goerr113
+		return fmt.Errorf("fabric config is nil") //nolint:err113
 	}
 	if libMngr == nil {
-		return fmt.Errorf("librarian manager is nil") //nolint:goerr113
+		return fmt.Errorf("librarian manager is nil") //nolint:err113
 	}
 
 	r := &GwVPCSync{
@@ -70,13 +70,13 @@ func (r *GwVPCSync) enqueueForVPCInfo(ctx context.Context, obj kclient.Object) [
 	}
 }
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
 
 func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)

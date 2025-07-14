@@ -60,7 +60,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 func main() {
@@ -130,7 +130,7 @@ func run() error {
 			return fmt.Errorf("adding gatewayapi scheme: %w", err)
 		}
 	}
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	mgr, err := kctrl.NewManager(kctrl.GetConfigOrDie(), kctrl.Options{
 		Scheme: scheme,
@@ -229,7 +229,7 @@ func run() error {
 	if err = switchprofilewh.SetupWithManager(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile webhook: %w", err)
 	}
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		return fmt.Errorf("setting up health check: %w", err)

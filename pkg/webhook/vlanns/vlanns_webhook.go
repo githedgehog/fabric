@@ -54,8 +54,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-vlannamespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update,versions=v1beta1,name=mvlannamespace.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-vlannamespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update;delete,versions=v1beta1,name=vvlannamespace.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-vlannamespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update,versions=v1beta1,name=mvlannamespace.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-vlannamespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update;delete,versions=v1beta1,name=vvlannamespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vlannamespace-webhook")
 
@@ -79,7 +79,7 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 }
 
 func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	// oldNs := oldObj.(*wiringapi.VLANNamespace)
+	_ = oldObj.(*wiringapi.VLANNamespace)
 	ns := newObj.(*wiringapi.VLANNamespace)
 
 	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
@@ -87,7 +87,7 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, new
 	}
 
 	vpcs := &vpcapi.VPCList{}
-	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelIPv4NS: ns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
@@ -108,7 +108,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	ns := obj.(*wiringapi.VLANNamespace)
 
 	switches := &wiringapi.SwitchList{}
-	if err := w.Client.List(ctx, switches, kclient.MatchingLabels{
+	if err := w.List(ctx, switches, kclient.MatchingLabels{
 		wiringapi.ListLabelVLANNamespace(ns.Name): wiringapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing switches") // TODO hide internal error
@@ -118,7 +118,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	vpcs := &vpcapi.VPCList{}
-	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelVLANNS: ns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error

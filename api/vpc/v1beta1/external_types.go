@@ -66,7 +66,7 @@ type External struct {
 	Status ExternalStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ExternalList contains a list of External
 type ExternalList struct {

@@ -180,12 +180,15 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		}
 	}
 
-	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
+	switch agent.Spec.Switch.Redundancy.Type {
+	case meta.RedundancyTypeNone:
+		// noop
+	case meta.RedundancyTypeMCLAG:
 		_ /* first */, err = planMCLAGDomain(agent, spec)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan mclag domain")
 		}
-	} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
+	case meta.RedundancyTypeESLAG:
 		err = planESLAG(agent, spec)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan eslag")
@@ -993,14 +996,15 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			spec.Interfaces[connPortChannelName] = connPortChannel
 
-			if connType == "MCLAG" {
+			switch connType {
+			case "MCLAG":
 				spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
 					DomainID: MCLAGDomainID,
 				}
 				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
 					Fallback: pointer.To(fallback),
 				}
-			} else if connType == "ESLAG" {
+			case "ESLAG":
 				mac, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
 				if err != nil {
 					return errors.Wrapf(err, "failed to parse ESLAG MAC base %s", agent.Spec.Config.ESLAGMACBase)

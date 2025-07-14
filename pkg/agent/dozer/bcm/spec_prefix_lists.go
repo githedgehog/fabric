@@ -58,7 +58,7 @@ var specPrefixListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList
 var specPrefixListBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPrefixList]{
 	Summary:   "Prefix List Base %s",
 	NoReplace: true, // we don't want to replace the whole prefix list, just update the entries
-	Getter: func(name string, value *dozer.SpecPrefixList) any {
+	Getter: func(name string, _ *dozer.SpecPrefixList) any {
 		return name // we do only care about the name of the prefix list
 	},
 	UpdateWeight: ActionWeightPrefixListUpdate,
@@ -122,9 +122,10 @@ var specPrefixListEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecPrefi
 	DeleteWeight:     ActionWeightPrefixListEntryDelete,
 	Marshal: func(seq uint32, entry *dozer.SpecPrefixListEntry) (ygot.ValidatedGoStruct, error) {
 		action := oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_UNSET
-		if entry.Action == dozer.SpecPrefixListActionPermit {
+		switch entry.Action {
+		case dozer.SpecPrefixListActionPermit:
 			action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT
-		} else if entry.Action == dozer.SpecPrefixListActionDeny {
+		case dozer.SpecPrefixListActionDeny:
 			action = oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_DENY
 		}
 
@@ -195,10 +196,11 @@ func unmarshalOCPrefixLists(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy_Defi
 					continue
 				}
 
-				action := dozer.SpecPrefixListActionUnset
-				if ocPrefix.Config.Action == oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT {
+				var action dozer.SpecPrefixListAction
+				switch ocPrefix.Config.Action { //nolint:exhaustive
+				case oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT:
 					action = dozer.SpecPrefixListActionPermit
-				} else if ocPrefix.Config.Action == oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_DENY {
+				case oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_DENY:
 					action = dozer.SpecPrefixListActionDeny
 				}
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package common
+package common //nolint:revive
 
 import (
 	"context"
@@ -99,7 +99,7 @@ func UpgradeBin(ctx context.Context, source, version, ca, username, password, ta
 
 	rootCAs := x509.NewCertPool()
 	if !rootCAs.AppendCertsFromPEM([]byte(ca)) {
-		return fmt.Errorf("failed to append CA cert to rootCAs") //nolint:goerr113
+		return fmt.Errorf("failed to append CA cert to rootCAs") //nolint:err113
 	}
 
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -133,7 +133,7 @@ func UpgradeBin(ctx context.Context, source, version, ca, username, password, ta
 
 	binPath := filepath.Join(tmpPath, name)
 
-	err = os.Chmod(binPath, 0o755)
+	err = os.Chmod(binPath, 0o755) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to chmod new %s bin in %s: %w", name, tmpPath, err)
 	}

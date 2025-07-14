@@ -194,7 +194,7 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 				return nil, errors.Errorf("unsupported gnmi action %+v", act)
 			}
 
-			for attempt := 0; attempt < 50; attempt++ {
+			for range 50 {
 				req, err := api.NewSetRequest(options...)
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot create GNMI set request")
@@ -226,7 +226,7 @@ func (p *BroadcomProcessor) GetRoCE(ctx context.Context) (bool, error) {
 	ocVal := &oc.SonicSwitch_SonicSwitch_SWITCH{}
 	err := p.client.Get(ctx, "/sonic-switch/SWITCH/SWITCH_LIST[switch=switch]", ocVal)
 	if err != nil {
-		return false, fmt.Errorf("reading RoCE state: %w", err) //nolint:goerr113
+		return false, fmt.Errorf("reading RoCE state: %w", err)
 	}
 
 	for key, sw := range ocVal.SWITCH_LIST {
@@ -252,7 +252,7 @@ func (p *BroadcomProcessor) SetRoCE(ctx context.Context, val bool) error {
 	}
 
 	resp, err := p.client.CallOperation(ctx, "openconfig-qos-private:qos-roce-config",
-		[]byte(fmt.Sprintf(`{"openconfig-qos-private:input":{"operation":"%s"}}`, action)))
+		fmt.Appendf(nil, `{"openconfig-qos-private:input":{"operation":"%s"}}`, action))
 
 	// it just hangs so timeout is expected
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -263,7 +263,7 @@ func (p *BroadcomProcessor) SetRoCE(ctx context.Context, val bool) error {
 	if err == nil {
 		slog.Warn("RoCE set operation unexpected result", "data", string(resp), "action", action)
 
-		return fmt.Errorf("unexpected response from RoCE set operation") //nolint:goerr113
+		return fmt.Errorf("unexpected response from RoCE set operation") //nolint:err113
 	}
 
 	return nil

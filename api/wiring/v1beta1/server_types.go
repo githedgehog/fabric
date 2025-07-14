@@ -56,7 +56,7 @@ type Server struct {
 
 const KindServer = "Server"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ServerList contains a list of Server
 type ServerList struct {

@@ -195,7 +195,7 @@ type VPC struct {
 
 const KindVPC = "VPC"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // VPCList contains a list of VPC
 type VPCList struct {

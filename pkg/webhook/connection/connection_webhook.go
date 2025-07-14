@@ -56,8 +56,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1beta1,name=mconnection.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update;delete,versions=v1beta1,name=vconnection.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1beta1,name=mconnection.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-connection,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update;delete,versions=v1beta1,name=vconnection.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("connection-webhook")
 
@@ -124,7 +124,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	conn := obj.(*wiringapi.Connection)
 
 	vpcAttachments := &vpcapi.VPCAttachmentList{}
-	if err := w.Client.List(ctx, vpcAttachments, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcAttachments, kclient.MatchingLabels{
 		wiringapi.LabelConnection: conn.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpc attachments") // TODO hide internal error
@@ -134,7 +134,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	extAttachments := &vpcapi.ExternalAttachmentList{}
-	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
+	if err := w.List(ctx, extAttachments, kclient.MatchingLabels{
 		wiringapi.LabelConnection: conn.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
@@ -151,7 +151,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 		mclagList := &wiringapi.ConnectionList{}
 		// The matching here, will logically and the key/vals in labels together
 		// giving just the relevant connections
-		if err := w.Client.List(ctx, mclagList, kclient.MatchingLabels(labels)); err != nil {
+		if err := w.List(ctx, mclagList, kclient.MatchingLabels(labels)); err != nil {
 			return nil, errors.Errorf("error listing MCLAG connections")
 		}
 		if len(mclagList.Items) > 0 {

@@ -33,8 +33,8 @@ import (
 
 // IPv4NamespaceSpec defines the desired state of IPv4Namespace
 type IPv4NamespaceSpec struct {
-	//+kubebuilder:validation:MinItems=1
-	//+kubebuilder:validation:MaxItems=20
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=20
 	// Subnets is the list of subnets to allocate VPC subnets from, couldn't overlap between each other and with Fabric reserved subnets
 	Subnets []string `json:"subnets,omitempty"`
 }
@@ -61,7 +61,7 @@ type IPv4Namespace struct {
 
 const KindIPv4Namespace = "IPv4Namespace"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // IPv4NamespaceList contains a list of IPv4Namespace
 type IPv4NamespaceList struct {

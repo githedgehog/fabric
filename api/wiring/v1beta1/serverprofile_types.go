@@ -43,9 +43,9 @@ type ServerProfileSpec struct {
 // ServerProfileStatus defines the observed state of ServerProfile
 type ServerProfileStatus struct{}
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;wiring;fabric
 
 // ServerProfile is currently not used/implemented in the Fabric API
 type ServerProfile struct {
@@ -58,7 +58,7 @@ type ServerProfile struct {
 
 const KindServerProfile = "ServerProfile"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ServerProfileList contains a list of ServerProfile
 type ServerProfileList struct {

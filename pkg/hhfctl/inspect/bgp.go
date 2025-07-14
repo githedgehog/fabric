@@ -137,7 +137,7 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 			for vrf, vrfNeighbors := range neighs {
 				for name, neighbor := range vrfNeighbors {
 					if !neighbor.Expected {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", sw.Name, vrf, name)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", sw.Name, vrf, name)) //nolint:err113
 					}
 
 					if !in.GatewayStrict && neighbor.Type == apiutil.BGPNeighborTypeGateway {
@@ -145,7 +145,7 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 					}
 
 					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", sw.Name, vrf, name)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", sw.Name, vrf, name)) //nolint:err113
 					}
 				}
 			}
@@ -156,7 +156,7 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 
 	for _, sw := range in.Switches {
 		if _, ok := out.Neighbors[sw]; !ok {
-			return nil, fmt.Errorf("switch %s not found", sw) //nolint:goerr113
+			return nil, fmt.Errorf("switch %s not found", sw) //nolint:err113
 		}
 	}
 

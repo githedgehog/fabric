@@ -70,9 +70,9 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 	slog.Info("External created", "name", ext.Name)
 
 	if printYaml {
-		ext.ObjectMeta.ManagedFields = nil
-		ext.ObjectMeta.Generation = 0
-		ext.ObjectMeta.ResourceVersion = ""
+		ext.ManagedFields = nil
+		ext.Generation = 0
+		ext.ResourceVersion = ""
 
 		out, err := kyaml.Marshal(ext)
 		if err != nil {
@@ -176,9 +176,9 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 	slog.Info("ExternalPeering created", "name", extPeering.Name)
 
 	if printYaml {
-		extPeering.ObjectMeta.ManagedFields = nil
-		extPeering.ObjectMeta.Generation = 0
-		extPeering.ObjectMeta.ResourceVersion = ""
+		extPeering.ManagedFields = nil
+		extPeering.Generation = 0
+		extPeering.ResourceVersion = ""
 
 		out, err := kyaml.Marshal(extPeering)
 		if err != nil {

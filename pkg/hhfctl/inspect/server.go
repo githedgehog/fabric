@@ -43,7 +43,7 @@ type ServerOut struct {
 	AttachedVPCs   map[string]*vpcapi.VPCSpec           `json:"attachedVPCs,omitempty"`
 }
 
-func (out *ServerOut) MarshalText(now time.Time) (string, error) {
+func (out *ServerOut) MarshalText(_ time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	// TODO pass to a marshal func?

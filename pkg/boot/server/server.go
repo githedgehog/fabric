@@ -60,7 +60,7 @@ type service struct {
 func Run(ctx context.Context) error {
 	// TODO think about cache cleanup
 
-	if err := os.MkdirAll(CacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(CacheDir, 0o755); err != nil { //nolint:gosec
 		return errors.Wrapf(err, "creating cache dir %s", CacheDir)
 	}
 

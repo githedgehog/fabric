@@ -29,7 +29,7 @@ const (
 
 func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi.Agent) error {
 	if agent == nil {
-		return fmt.Errorf("no agent config") //nolint:goerr113
+		return fmt.Errorf("no agent config") //nolint:err113
 	}
 
 	controlVIP, err := netip.ParsePrefix(agent.Spec.Config.ControlVIP)
@@ -37,7 +37,7 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 		return fmt.Errorf("parsing control VIP %s: %w", agent.Spec.Config.ControlVIP, err)
 	}
 	if controlVIP.Bits() != 32 {
-		return fmt.Errorf("control VIP %s is not a /32", agent.Spec.Config.ControlVIP) //nolint:goerr113
+		return fmt.Errorf("control VIP %s is not a /32", agent.Spec.Config.ControlVIP) //nolint:err113
 	}
 
 	switchIP, err := netip.ParsePrefix(agent.Spec.Switch.IP)
@@ -46,7 +46,7 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 	}
 
 	if !switchIP.Contains(controlVIP.Addr()) {
-		return fmt.Errorf("control VIP %s is not in switch IP subnet %s", controlVIP, switchIP) //nolint:goerr113
+		return fmt.Errorf("control VIP %s is not in switch IP subnet %s", controlVIP, switchIP) //nolint:err113
 	}
 
 	link, err := netlink.LinkByName(mgmtPort)

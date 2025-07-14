@@ -47,10 +47,10 @@ func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager
 		Complete(r), "failed to setup connection controller")
 }
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ConnectionReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
