@@ -276,13 +276,17 @@ func ipInConnections(ctx context.Context, res *IPOut, kube kclient.Reader, ip ne
 		ips := []string{}
 		subnets := []string{}
 
-		if conn.Spec.Fabric != nil {
+		if conn.Spec.Fabric != nil { //nolint:gocritic
 			for _, link := range conn.Spec.Fabric.Links {
 				ips = append(ips, link.Spine.IP, link.Leaf.IP)
 			}
 		} else if conn.Spec.StaticExternal != nil {
 			ips = append(ips, conn.Spec.StaticExternal.Link.Switch.IP, conn.Spec.StaticExternal.Link.Switch.NextHop)
 			subnets = append(subnets, conn.Spec.StaticExternal.Link.Switch.Subnets...)
+		} else if conn.Spec.Mesh != nil {
+			for _, link := range conn.Spec.Mesh.Links {
+				ips = append(ips, link.Leaf1.IP, link.Leaf2.IP)
+			}
 		}
 
 		for _, ipStr := range ips {
