@@ -160,6 +160,31 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 
 				out["default"][ip] = neigh
 			}
+		} else if conn.Spec.Mesh != nil {
+			for _, link := range conn.Spec.Mesh.Links {
+				curr, other := link.Leaf1, link.Leaf2
+				if sw.Name == other.DeviceName() {
+					curr, other = other, curr
+				} else if sw.Name != curr.DeviceName() {
+					continue
+				}
+				fabricPeers[other.DeviceName()] = true
+
+				ip := strings.Split(other.IP, "/")[0]
+				neigh, ok := out["default"][ip]
+				if !ok {
+					neigh = BGPNeighborStatus{}
+				}
+
+				neigh.RemoteName = other.Port
+				neigh.Type = BGPNeighborTypeFabric
+				neigh.Expected = true
+				neigh.ConnectionName = conn.Name
+				neigh.ConnectionType = conn.Spec.Type()
+				neigh.Port = curr.LocalPortName()
+
+				out["default"][ip] = neigh
+			}
 		} else if conn.Spec.External != nil {
 			extConns[conn.Name] = &conn
 		} else if conn.Spec.Gateway != nil {
