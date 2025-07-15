@@ -10,6 +10,10 @@ on:
         required: true
         default: "30"
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   ghcr-cleanup:
     strategy:
