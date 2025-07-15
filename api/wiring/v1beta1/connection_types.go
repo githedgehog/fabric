@@ -40,6 +40,7 @@ const (
 	ConnectionTypeMCLAGDomain    = "mclag-domain"
 	ConnectionTypeESLAG          = "eslag"
 	ConnectionTypeFabric         = "fabric"
+	ConnectionTypeMesh           = "mesh"
 	ConnectionTypeGateway        = "gateway"
 	ConnectionTypeVPCLoopback    = "vpc-loopback"
 	ConnectionTypeExternal       = "external"
@@ -154,6 +155,12 @@ type FabricLink struct {
 	Leaf ConnFabricLinkSwitch `json:"leaf,omitempty"`
 }
 
+// MeshLink defines the mesh connection link, i.e. a direct leaf to leaf connection
+type MeshLink struct {
+	Leaf1 ConnFabricLinkSwitch `json:"leaf1,omitempty"`
+	Leaf2 ConnFabricLinkSwitch `json:"leaf2,omitempty"`
+}
+
 // ConnFabric defines the fabric connection (single spine to a single leaf with at least one link)
 type ConnFabric struct {
 	//+kubebuilder:validation:MinItems=1
@@ -183,6 +190,13 @@ type ConnGateway struct {
 	//+kubebuilder:validation:MinItems=1
 	// Links is the list of spine to gateway links
 	Links []GatewayLink `json:"links,omitempty"`
+}
+
+// ConnMesh defines the mesh connection (direct leaf to leaf connection with at least one link)
+type ConnMesh struct {
+	//+kubebuilder:validation:MinItems=1
+	// Links is the list of leaf to leaf links
+	Links []MeshLink `json:"links,omitempty"`
 }
 
 // ConnVPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) that enables automated
@@ -249,6 +263,8 @@ type ConnectionSpec struct {
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	// Fabric defines the fabric connection (single spine to a single leaf with at least one link)
 	Fabric *ConnFabric `json:"fabric,omitempty"`
+	// Mesh defines the mesh connection (direct leaf to leaf connection with at least one link)
+	Mesh *ConnMesh `json:"mesh,omitempty"`
 	// Gateway defines the gateway connection (single spine to a single gateway with at least one link)
 	Gateway *ConnGateway `json:"gateway,omitempty"`
 	// VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround
@@ -401,6 +417,10 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 			role = "fabric"
 			left = connSpec.Fabric.Links[0].Spine.DeviceName()
 			right = []string{connSpec.Fabric.Links[0].Leaf.DeviceName()}
+		} else if connSpec.Mesh != nil {
+			role = "mesh"
+			left = connSpec.Mesh.Links[0].Leaf1.DeviceName()
+			right = []string{connSpec.Mesh.Links[0].Leaf2.DeviceName()}
 		} else if connSpec.Gateway != nil {
 			role = "gateway"
 			left = connSpec.Gateway.Links[0].Switch.DeviceName()
@@ -441,6 +461,8 @@ func (connSpec *ConnectionSpec) Type() string {
 		return ConnectionTypeESLAG
 	} else if connSpec.Fabric != nil {
 		return ConnectionTypeFabric
+	} else if connSpec.Mesh != nil {
+		return ConnectionTypeMesh
 	} else if connSpec.Gateway != nil {
 		return ConnectionTypeGateway
 	} else if connSpec.VPCLoopback != nil {
@@ -618,6 +640,23 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		if len(ports) != 2*len(connSpec.Fabric.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
 		}
+	} else if connSpec.Mesh != nil {
+		nonNills++
+
+		for _, link := range connSpec.Mesh.Links {
+			switches[link.Leaf1.DeviceName()] = struct{}{}
+			switches[link.Leaf2.DeviceName()] = struct{}{}
+			ports[link.Leaf1.PortName()] = struct{}{}
+			ports[link.Leaf2.PortName()] = struct{}{}
+			links[link.Leaf1.PortName()] = link.Leaf2.PortName()
+		}
+
+		if len(switches) != 2 {
+			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mesh connection")
+		}
+		if len(ports) != 2*len(connSpec.Mesh.Links) {
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mesh connection")
+		}
 	} else if connSpec.Gateway != nil {
 		nonNills++
 
@@ -650,7 +689,7 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 			return nil, nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
 		}
 		if len(ports) != 2*len(connSpec.VPCLoopback.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
+			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for vpc-loopback connection")
 		}
 	} else if connSpec.External != nil {
 		nonNills++
@@ -697,6 +736,10 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 	if connSpec.Fabric != nil { //nolint:gocritic
 		for _, link := range connSpec.Fabric.Links {
 			out = append(out, fmt.Sprintf("%s%s%s", link.Spine.PortName(), sep, link.Leaf.PortName()))
+		}
+	} else if connSpec.Mesh != nil {
+		for _, link := range connSpec.Mesh.Links {
+			out = append(out, fmt.Sprintf("%s%s%s", link.Leaf1.PortName(), sep, link.Leaf2.PortName()))
 		}
 	} else if connSpec.Gateway != nil {
 		for _, link := range connSpec.Gateway.Links {
