@@ -1510,6 +1510,7 @@ ConnFabricLinkSwitch defines the switch side of the fabric (or gateway) link
 _Appears in:_
 - [FabricLink](#fabriclink)
 - [GatewayLink](#gatewaylink)
+- [MeshLink](#meshlink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1584,6 +1585,22 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `peerLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ | PeerLinks is the list of peer links between the switches, used to pass server traffic between switch |  | MinItems: 1 <br /> |
 | `sessionLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ | SessionLinks is the list of session links between the switches, used only to pass MCLAG control plane and BGP<br />traffic between switches |  | MinItems: 1 <br /> |
+
+
+#### ConnMesh
+
+
+
+ConnMesh defines the mesh connection (direct leaf to leaf connection with at least one link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[MeshLink](#meshlink) array_ | Links is the list of leaf to leaf links |  | MinItems: 1 <br /> |
 
 
 #### ConnStaticExternal
@@ -1715,6 +1732,7 @@ _Appears in:_
 | `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links) |  |  |
 | `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
+| `mesh` _[ConnMesh](#connmesh)_ | Mesh defines the mesh connection (direct leaf to leaf connection with at least one link) |  |  |
 | `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |
 | `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ | VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround |  |  |
 | `external` _[ConnExternal](#connexternal)_ | External defines the external connection (single switch to a single external device with a single link) |  |  |
@@ -1768,6 +1786,23 @@ _Appears in:_
 | `gateway` _[ConnGatewayLinkGateway](#conngatewaylinkgateway)_ | Gateway is the gateway side of the gateway link |  |  |
 
 
+
+
+#### MeshLink
+
+
+
+MeshLink defines the mesh connection link, i.e. a direct leaf to leaf connection
+
+
+
+_Appears in:_
+- [ConnMesh](#connmesh)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `leaf1` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |  |  |
+| `leaf2` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |  |  |
 
 
 #### Server
