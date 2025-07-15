@@ -42,7 +42,7 @@ require (
 	go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 	go.githedgehog.com/gateway v0.14.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	golang.org/x/sync v0.15.0
+	golang.org/x/sync v0.16.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.32.6
 	k8s.io/apimachinery v0.32.6
