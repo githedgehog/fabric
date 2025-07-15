@@ -1,0 +1,42 @@
+name: GHCR Cleanup
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # ~2am PST
+
+jobs:
+  ghcr-cleanup:
+    strategy:
+      matrix:
+        package:
+          - fabric/hhfctl
+          - fabric/hhfctl-darwin-amd64
+          - fabric/hhfctl-darwin-arm64
+          - fabric/hhfctl-linux-arm64
+          - fabric/hhfctl-linux-amd64
+          - fabric/agent
+          - fabric/fabric
+          - fabric/fabric-boot
+          - fabric/fabric-dhcpd
+          - fabric/charts/fabric
+          - fabric/charts/fabric-api
+          - fabric/charts/fabric-boot
+          - fabric/charts/fabric-dhcpd
+          - fabric/charts/fabric-proxy
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: ghcp-prune
+        uses: vlaurin/action-ghcr-prune@v0.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: githedgehog
+          container: ${{ matrix.package }}
+          keep-younger-than: 30 # days
+          prune-tags-regexes: |
+            ^v0-
+            ^master-
+            ^pr-
+            -master
+            -pr
+            -dirty
