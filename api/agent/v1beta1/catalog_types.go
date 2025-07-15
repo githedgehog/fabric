@@ -65,7 +65,7 @@ type Catalog struct {
 	Status CatalogStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CatalogList contains a list of Catalog
 type CatalogList struct {

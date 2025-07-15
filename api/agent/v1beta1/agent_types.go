@@ -564,7 +564,7 @@ type Agent struct {
 
 const KindAgent = "Agent"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // AgentList contains a list of Agent
 type AgentList struct {

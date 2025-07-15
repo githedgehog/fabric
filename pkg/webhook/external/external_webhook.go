@@ -53,8 +53,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-external,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update,versions=v1beta1,name=mexternal.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-external,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update;delete,versions=v1beta1,name=vexternal.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-external,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update,versions=v1beta1,name=mexternal.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-external,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update;delete,versions=v1beta1,name=vexternal.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("external-webhook")
 
@@ -97,7 +97,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	ext := obj.(*vpcapi.External)
 
 	extAttachments := &vpcapi.ExternalAttachmentList{}
-	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
+	if err := w.List(ctx, extAttachments, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
@@ -107,7 +107,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	extPeerings := &vpcapi.ExternalPeeringList{}
-	if err := w.Client.List(ctx, extPeerings, kclient.MatchingLabels{
+	if err := w.List(ctx, extPeerings, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error

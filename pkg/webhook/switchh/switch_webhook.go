@@ -54,8 +54,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switch,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update,versions=v1beta1,name=mswitch.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switch,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update;delete,versions=v1beta1,name=vswitch.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switch,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update,versions=v1beta1,name=mswitch.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switch,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switches,verbs=create;update;delete,versions=v1beta1,name=vswitch.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("switch-webhook")
 
@@ -98,7 +98,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	sw := obj.(*wiringapi.Switch)
 
 	conns := &wiringapi.ConnectionList{}
-	if err := w.Client.List(ctx, conns, kclient.MatchingLabels{
+	if err := w.List(ctx, conns, kclient.MatchingLabels{
 		wiringapi.ListLabelSwitch(sw.Name): wiringapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing connections") // TODO hide internal error

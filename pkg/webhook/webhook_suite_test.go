@@ -24,12 +24,12 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2" //nolint:revive
-	. "github.com/onsi/gomega"    //nolint:revive
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
 	admissionv1 "k8s.io/api/admission/v1"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/webhook/connection"
 	"go.githedgehog.com/fabric/pkg/webhook/server"
@@ -100,7 +100,7 @@ var _ = BeforeSuite(func() {
 	err = admissionv1.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = kclient.New(cfg, kclient.Options{Scheme: scheme})
 	Expect(err).NotTo(HaveOccurred())
@@ -135,7 +135,7 @@ var _ = BeforeSuite(func() {
 	err = vpcattachment.SetupWithManager(mgr, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	//+kubebuilder:scaffold:webhook
+	// +kubebuilder:scaffold:webhook
 
 	go func() {
 		defer GinkgoRecover()
@@ -151,8 +151,13 @@ var _ = BeforeSuite(func() {
 		if err != nil {
 			return errors.Wrapf(err, "failed to dial %s", addrPort)
 		}
-		conn.Close()
-		return nil //nolint: nlreturn
+		if err := conn.Close(); err != nil {
+			// TODO probably just log
+
+			return errors.Wrapf(err, "failed to close connection to %s", addrPort)
+		}
+
+		return nil
 	}).Should(Succeed())
 })
 

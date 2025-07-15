@@ -52,9 +52,9 @@ func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroup
 	slog.Info("SwitchGroup created", "name", sg.Name)
 
 	if printYaml {
-		sg.ObjectMeta.ManagedFields = nil
-		sg.ObjectMeta.Generation = 0
-		sg.ObjectMeta.ResourceVersion = ""
+		sg.ManagedFields = nil
+		sg.Generation = 0
+		sg.ResourceVersion = ""
 
 		out, err := kyaml.Marshal(sg)
 		if err != nil {

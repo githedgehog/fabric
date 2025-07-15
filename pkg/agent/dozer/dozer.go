@@ -284,7 +284,6 @@ type SpecCommunityList struct {
 }
 
 const (
-	SpecPrefixListActionUnset  SpecPrefixListAction = ""
 	SpecPrefixListActionPermit SpecPrefixListAction = "permit"
 	SpecPrefixListActionDeny   SpecPrefixListAction = "deny"
 )

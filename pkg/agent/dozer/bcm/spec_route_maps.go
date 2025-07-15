@@ -55,7 +55,7 @@ var specRouteMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 var specRouteMapBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap]{
 	Summary:   "Route Maps Base %s",
 	NoReplace: true, // we don't want to replace the whole route map, just update the statements
-	Getter: func(name string, value *dozer.SpecRouteMap) any {
+	Getter: func(name string, _ *dozer.SpecRouteMap) any {
 		return name // we do only care about the name of the route map
 	},
 	UpdateWeight: ActionWeightRouteMapUpdate,
@@ -268,9 +268,10 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			conditions := dozer.SpecRouteMapConditions{}
 			if statement.Conditions != nil {
 				if statement.Conditions.Config != nil {
-					if statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
+					switch statement.Conditions.Config.InstallProtocolEq { //nolint:exhaustive
+					case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED:
 						conditions.DirectlyConnected = pointer.To(true)
-					} else if statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST {
+					case oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST:
 						conditions.AttachedHost = pointer.To(true)
 					}
 

@@ -152,7 +152,7 @@ type Switch struct {
 
 const KindSwitch = "Switch"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // SwitchList contains a list of Switch
 type SwitchList struct {

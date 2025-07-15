@@ -83,9 +83,9 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 	slog.Info("VPC created", "name", vpc.Name)
 
 	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
+		vpc.ManagedFields = nil
+		vpc.Generation = 0
+		vpc.ResourceVersion = ""
 
 		out, err := kyaml.Marshal(vpc)
 		if err != nil {
@@ -147,9 +147,9 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 	slog.Info("VPCAttachment created", "name", attach.Name)
 
 	if printYaml {
-		attach.ObjectMeta.ManagedFields = nil
-		attach.ObjectMeta.Generation = 0
-		attach.ObjectMeta.ResourceVersion = ""
+		attach.ManagedFields = nil
+		attach.Generation = 0
+		attach.ResourceVersion = ""
 
 		out, err := kyaml.Marshal(attach)
 		if err != nil {
@@ -214,9 +214,9 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	slog.Info("VPCPeering created", "name", peering.Name)
 
 	if printYaml {
-		peering.ObjectMeta.ManagedFields = nil
-		peering.ObjectMeta.Generation = 0
-		peering.ObjectMeta.ResourceVersion = ""
+		peering.ManagedFields = nil
+		peering.Generation = 0
+		peering.ResourceVersion = ""
 
 		out, err := kyaml.Marshal(peering)
 		if err != nil {
@@ -262,73 +262,9 @@ func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error
 	// slog.Info("VPC SNAT set", "vpc", vpc.Name, "snat", vpc.Spec.SNAT)
 
 	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
-		vpc.Status = vpcapi.VPCStatus{}
-
-		out, err := kyaml.Marshal(vpc)
-		if err != nil {
-			return errors.Wrap(err, "cannot marshal vpc")
-		}
-
-		fmt.Println(string(out))
-	}
-
-	return nil
-}
-
-type VPCDNATOptions struct {
-	VPC      string
-	Requests []string
-}
-
-func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions) error {
-	if options.VPC == "" {
-		return errors.Errorf("vpc is required")
-	}
-	if len(options.Requests) == 0 {
-		return errors.Errorf("at least one request is required")
-	}
-
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
-	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
-	}
-
-	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
-	}
-
-	// TODO fix
-	// if vpc.Spec.DNATRequests == nil {
-	// 	vpc.Spec.DNATRequests = map[string]string{}
-	// }
-
-	// for _, req := range options.Requests {
-	// 	parts := strings.Split(req, "=")
-	// 	if len(parts) == 1 {
-	// 		vpc.Spec.DNATRequests[parts[0]] = ""
-	// 	} else if len(parts) == 2 {
-	// 		vpc.Spec.DNATRequests[parts[0]] = parts[1]
-	// 	} else {
-	// 		return errors.Errorf("request should be privateIP=externalIP or privateIP, found: %s", req)
-	// 	}
-	// }
-
-	err = kube.Update(ctx, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
-	}
-
-	slog.Info("VPC DNAT requests", "vpc", vpc.Name, "requests", strings.Join(options.Requests, ", "))
-
-	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
+		vpc.ManagedFields = nil
+		vpc.Generation = 0
+		vpc.ResourceVersion = ""
 		vpc.Status = vpcapi.VPCStatus{}
 
 		out, err := kyaml.Marshal(vpc)

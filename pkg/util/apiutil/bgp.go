@@ -38,10 +38,10 @@ const (
 
 func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
 	if sw == nil {
-		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
+		return nil, fmt.Errorf("switch is nil") //nolint:err113
 	}
 	if fabCfg == nil {
-		return nil, fmt.Errorf("fabric config is nil") //nolint:goerr113
+		return nil, fmt.Errorf("fabric config is nil") //nolint:err113
 	}
 
 	out := map[string]map[string]BGPNeighborStatus{}
@@ -103,7 +103,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				return nil, fmt.Errorf("getting endpoints for %s: %w", conn.Name, err)
 			}
 			if len(switches) != 2 {
-				return nil, fmt.Errorf("MCLAG Domain connection %s has %d switches, expected 2", conn.Name, len(switches)) //nolint:goerr113
+				return nil, fmt.Errorf("MCLAG Domain connection %s has %d switches, expected 2", conn.Name, len(switches)) //nolint:err113
 			}
 
 			slices.Sort(switches)
@@ -191,7 +191,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 
 		ext, ok := exts[extAtt.Spec.External]
 		if !ok {
-			return nil, fmt.Errorf("external %s not found", extAtt.Spec.External) //nolint:goerr113
+			return nil, fmt.Errorf("external %s not found", extAtt.Spec.External) //nolint:err113
 		}
 
 		// TODO dedup with agent code

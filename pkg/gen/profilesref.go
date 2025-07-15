@@ -62,7 +62,7 @@ features and port naming scheme.
 )
 
 func GenerateProfilesRef(ctx context.Context, targetDir string) error {
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+	if err := os.MkdirAll(targetDir, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("creating target directory %s: %w", targetDir, err)
 	}
 
@@ -93,7 +93,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		}
 
 		if !sp.Spec.Features.ACLs {
-			return fmt.Errorf("switch profile %s does not support ACLs which makes it not suitable for any role", sp.Name) //nolint:goerr113
+			return fmt.Errorf("switch profile %s does not support ACLs which makes it not suitable for any role", sp.Name) //nolint:err113
 		}
 
 		roles := getRolesHint(sp)

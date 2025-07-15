@@ -291,9 +291,10 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 				}
 
 				var action dozer.SpecACLEntryAction
-				if entry.Actions.Config.ForwardingAction == oc.OpenconfigAcl_FORWARDING_ACTION_ACCEPT {
+				switch entry.Actions.Config.ForwardingAction { //nolint:exhaustive
+				case oc.OpenconfigAcl_FORWARDING_ACTION_ACCEPT:
 					action = dozer.SpecACLEntryActionAccept
-				} else if entry.Actions.Config.ForwardingAction == oc.OpenconfigAcl_FORWARDING_ACTION_DROP {
+				case oc.OpenconfigAcl_FORWARDING_ACTION_DROP:
 					action = dozer.SpecACLEntryActionDrop
 				}
 

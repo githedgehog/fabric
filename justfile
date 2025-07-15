@@ -20,11 +20,11 @@ all: gen lint lint-gha test build kube-build && version
 
 # Run linters against code (incl. license headers)
 lint: _lint _golangci_lint
-  {{golangci_lint}} run --show-stats ./...
+  {{golangci_lint}} run ./...
 
 # Run golangci-lint to attempt to fix issues
 lint-fix: _lint _golangci_lint
-  {{golangci_lint}} run --show-stats --fix ./...
+  {{golangci_lint}} run --fix ./...
 
 go_base_flags := "--tags containers_image_openpgp,containers_image_storage_stub"
 go_flags := go_base_flags + " -ldflags=\"-w -s -X go.githedgehog.com/fabric/pkg/version.Version=" + version + "\""

@@ -127,7 +127,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 	if env.BootReason != "" && !slices.Contains(AllowedBootReasons, env.BootReason) {
 		slog.Error("Not allowed ONIE boot reason, aborting", "reason", env.BootReason, "allowed", AllowedBootReasons)
 
-		return fmt.Errorf("invalid ONIE boot reason") //nolint:goerr113
+		return fmt.Errorf("invalid ONIE boot reason") //nolint:err113
 	}
 
 	tmpDir := os.TempDir()
@@ -220,7 +220,7 @@ func extractFiles(dest string) error {
 	}
 
 	if string(magicBytes) != Magic {
-		return fmt.Errorf("magic mismatch") //nolint:goerr113
+		return fmt.Errorf("magic mismatch") //nolint:err113
 	}
 
 	payloadBytes := make([]byte, 8)
@@ -265,7 +265,7 @@ func extractFile(dest string, header *tar.Header, r io.Reader, mode os.FileMode)
 
 	// path traversal check: https://security.snyk.io/research/zip-slip-vulnerability
 	if !strings.HasPrefix(target, filepath.Clean(dest)+string(os.PathSeparator)) {
-		return fmt.Errorf("illegal file path %s", header.Name) //nolint:goerr113
+		return fmt.Errorf("illegal file path %s", header.Name) //nolint:err113
 	}
 
 	f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, mode)
@@ -335,7 +335,7 @@ func EnsureONIEBootPartition(ctx context.Context) error {
 		}
 	}
 
-	return fmt.Errorf("ONIE boot partition not mounted") //nolint:goerr113
+	return fmt.Errorf("ONIE boot partition not mounted") //nolint:err113
 }
 
 func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
@@ -401,12 +401,12 @@ func installAgent(ctx context.Context, tmp string) error {
 		}
 	}
 	if !ok {
-		return fmt.Errorf("finding SONiC image dir") //nolint:goerr113
+		return fmt.Errorf("finding SONiC image dir") //nolint:err113
 	}
 
 	slog.Info("Installing Fabric Agent binary")
 	binDir := filepath.Join(sonicRoot, "/opt/hedgehog/bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("creating bin dir: %w", err)
 	}
 	if err := installFile(tmp, binDir, AgentBinaryName, 0o755); err != nil {
@@ -415,7 +415,7 @@ func installAgent(ctx context.Context, tmp string) error {
 
 	slog.Info("Installing Fabric Agent configs")
 	confDir := filepath.Join(sonicRoot, "/etc/sonic/hedgehog")
-	if err := os.MkdirAll(confDir, 0o755); err != nil {
+	if err := os.MkdirAll(confDir, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("creating agent conf dir: %w", err)
 	}
 	if err := installFile(tmp, confDir, AgentKubeConfigName, 0o600); err != nil {
@@ -427,7 +427,7 @@ func installAgent(ctx context.Context, tmp string) error {
 
 	slog.Info("Installing Fabric Agent systemd unit")
 	systemdPath := filepath.Join(sonicRoot, "/etc/systemd/system")
-	if err := os.MkdirAll(systemdPath, 0o755); err != nil {
+	if err := os.MkdirAll(systemdPath, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("creating systemd dir: %w", err)
 	}
 	if err := installFile(tmp, systemdPath, AgentUnitName, 0o644); err != nil {
@@ -435,7 +435,7 @@ func installAgent(ctx context.Context, tmp string) error {
 	}
 
 	wantsPath := filepath.Join(sonicRoot, "/etc/systemd/system/multi-user.target.wants")
-	if err := os.MkdirAll(wantsPath, 0o755); err != nil {
+	if err := os.MkdirAll(wantsPath, 0o755); err != nil { //nolint:gosec
 		return fmt.Errorf("creating systemd wants dir: %w", err)
 	}
 	if err := os.Symlink(filepath.Join(systemdPath, AgentUnitName), filepath.Join(wantsPath, AgentUnitName)); err != nil {

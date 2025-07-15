@@ -65,7 +65,7 @@ type VPCAttachment struct {
 
 const KindVPCAttachment = "VPCAttachment"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // VPCAttachmentList contains a list of VPCAttachment
 type VPCAttachmentList struct {

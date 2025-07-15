@@ -1,47 +1,38 @@
+version: "2"
 run:
   timeout: 10m
   allow-parallel-runners: true
   build-tags:
     - containers_image_openpgp
     - containers_image_storage_stub
-
 linters:
-  disable-all: true
-  # Look at this for details: https://golangci-lint.run/usage/linters/
+  default: none
   enable:
-    # enabled by default
-    - typecheck
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    # disabled by default
     - asasalint
     - asciicheck
     - bidichk
     - bodyclose
     - containedctx
     - contextcheck
+    - copyloopvar
     - depguard
     - dogsled
     - durationcheck
+    - err113
+    - errcheck
     - errchkjson
     - errname
     - errorlint
     - exhaustive
-    - copyloopvar
     - ginkgolinter
     - gocheckcompilerdirectives
     - goconst
     - gocritic
-    - err113
-    - gofmt
-    - goimports
     - goprintffuncname
     - gosec
+    - govet
     - importas
+    - ineffassign
     - loggercheck
     - makezero
     - misspell
@@ -53,97 +44,138 @@ linters:
     - noctx
     - nolintlint
     - nonamedreturns
+    - nosprintfhostport
     - prealloc
     - predeclared
     - promlinter
     - reassign
     - revive
-    - stylecheck
-    # - tagliatelle
+    - staticcheck
     - unconvert
     - unparam
+    - unused
     - usestdlibvars
     - usetesting
     - whitespace
     - wrapcheck
-
-linters-settings:
-  exhaustive:
-    check:
-      - switch
-      - map
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-      - shadow
-  importas:
-    no-unaliased: true
-    alias:
-      - pkg: k8s.io/apimachinery/pkg/types
-        alias: ktypes
-      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
-        alias: kmetav1
-      - pkg: k8s.io/apimachinery/pkg/api/errors
-        alias: kapierrors
-      - pkg: k8s.io/apimachinery/pkg/util/errors
-        alias: kerrors
-      - pkg: k8s.io/apimachinery/pkg/api/meta
-        alias: kmeta
-      - pkg: sigs.k8s.io/controller-runtime/pkg/log
-        alias: kctrllog
-      - pkg: sigs.k8s.io/yaml
-        alias: kyaml
-      - pkg: sigs.k8s.io/controller-runtime
-        alias: kctrl
-      - pkg: sigs.k8s.io/controller-runtime/pkg/client
-        alias: kclient
-  depguard:
+  settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            # - pkg: "github.com/pkg/errors$"
+            #   desc: use stdlib errors package
+            - pkg: golang.org/x/exp/maps$
+              desc: use stdlib maps or samber/lo package
+            - pkg: golang.org/x/exp/slices$
+              desc: use stdlib slices or samber/lo package
+            - pkg: golang.org/x/exp/slog$
+              desc: use stdlib slog package
+            - pkg: k8s.io/utils/strings/slices$
+              desc: use stdlib slices or samber/lo package
+            - pkg: gopkg.in/yaml
+              desc: use sigs.k8s.io/yaml
+    embeddedstructfieldcheck:
+      # Checks that sync.Mutex and sync.RWMutex are not used as embedded fields.
+      forbid-mutex: true
+    exhaustive:
+      check:
+        - switch
+        - map
+    ginkgolinter:
+      forbid-focus-container: true
+      forbid-spec-pollution: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow # TODO consider restricting shadowing in future
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: k8s.io/apimachinery/pkg/types
+          alias: ktypes
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: kmetav1
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: kapierrors
+        - pkg: k8s.io/apimachinery/pkg/util/errors
+          alias: kerrors
+        - pkg: k8s.io/apimachinery/pkg/api/meta
+          alias: kmeta
+        - pkg: sigs.k8s.io/controller-runtime/pkg/log
+          alias: kctrllog
+        - pkg: sigs.k8s.io/yaml
+          alias: kyaml
+        - pkg: sigs.k8s.io/controller-runtime
+          alias: kctrl
+        - pkg: sigs.k8s.io/controller-runtime/pkg/client
+          alias: kclient
+    nolintlint:
+      allow-unused: false
+    reassign:
+      patterns:
+        - .*
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+          arguments:
+            - allowedPackages:
+                - github.com/onsi/ginkgo/v2
+                - github.com/onsi/gomega
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: import-shadowing
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+          disabled: true
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        - name: bool-literal-in-expr
+        - name: constant-logical-expr
+  exclusions:
+    generated: strict
+    paths:
+      - ^vendor/
+      - zz_generated.*\.go$
+      - .*conversion.*\.go$
     rules:
-      main:
-        deny:
-          # - pkg: "github.com/pkg/errors$"
-          #   desc: use stdlib errors package
-          - pkg: "golang.org/x/exp/maps$"
-            desc: use stdlib maps or samber/lo package
-          - pkg: "golang.org/x/exp/slices$"
-            desc: use stdlib slices or samber/lo package
-          - pkg: "golang.org/x/exp/slog$"
-            desc: use stdlib slog package
-          - pkg: "k8s.io/utils/strings/slices$"
-            desc: use stdlib slices or samber/lo package
-          - pkg: gopkg.in/yaml
-            desc: use sigs.k8s.io/yaml
-  reassign:
-    patterns:
-      - ".*"
-  revive:
-    # By default, revive will enable only the linting rules that are named in the configuration file.
-    # So, it's needed to explicitly enable all required rules here.
-    rules:
-      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: if-return
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: superfluous-else
-      - name: unreachable-code
-      - name: redefines-builtin-id
-      #
-      # Rules in addition to the recommended configuration above.
-      #
-      - name: bool-literal-in-expr
-      - name: constant-logical-expr
+      - linters:
+          - errcheck
+        text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+      - linters:
+          - gosec
+        text: "G304: Potential file inclusion via variable"
+      - path: (.+)\.go$
+        text: Subprocess launch(ed with variable|ing should be audited)
+      - linters:
+          - staticcheck
+        text: "QF1001:"
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - ^vendor/
+      - third_party$
+      - builtin$
+      - examples$

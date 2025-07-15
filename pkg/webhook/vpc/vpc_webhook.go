@@ -54,8 +54,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1beta1,name=mvpc.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpc,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update;delete,versions=v1beta1,name=vvpc.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1beta1,name=mvpc.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpc,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update;delete,versions=v1beta1,name=vvpc.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpc-webhook")
 
@@ -107,7 +107,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	vpc := obj.(*vpcapi.VPC)
 
 	vpcAttachments := &vpcapi.VPCAttachmentList{}
-	if err := w.Client.List(ctx, vpcAttachments, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcAttachments, kclient.MatchingLabels{
 		vpcapi.LabelVPC: vpc.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpc attachments") // TODO hide internal error
@@ -117,7 +117,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	vpcPeerings := &vpcapi.VPCPeeringList{}
-	if err := w.Client.List(ctx, vpcPeerings, kclient.MatchingLabels{
+	if err := w.List(ctx, vpcPeerings, kclient.MatchingLabels{
 		vpcapi.ListLabelVPC(vpc.Name): vpcapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpc peerings") // TODO hide internal error
@@ -127,7 +127,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	extPeerings := &vpcapi.ExternalPeeringList{}
-	if err := w.Client.List(ctx, extPeerings, kclient.MatchingLabels{
+	if err := w.List(ctx, extPeerings, kclient.MatchingLabels{
 		vpcapi.LabelVPC: vpc.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error
@@ -137,7 +137,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 	}
 
 	staticExts := &wiringapi.ConnectionList{}
-	if err := w.Client.List(ctx, staticExts, kclient.MatchingLabels{
+	if err := w.List(ctx, staticExts, kclient.MatchingLabels{
 		wiringapi.LabelVPC: vpc.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing connections") // TODO hide internal error

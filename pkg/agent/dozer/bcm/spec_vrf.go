@@ -360,11 +360,12 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 	Marshal: func(name string, value *dozer.SpecVRFBGPNeighbor) (ygot.ValidatedGoStruct, error) {
 		var peerType oc.E_OpenconfigBgp_PeerType
 		if value.PeerType != nil {
-			if *value.PeerType == dozer.SpecVRFBGPNeighborPeerTypeInternal {
+			switch *value.PeerType {
+			case dozer.SpecVRFBGPNeighborPeerTypeInternal:
 				peerType = oc.OpenconfigBgp_PeerType_INTERNAL
-			} else if *value.PeerType == dozer.SpecVRFBGPNeighborPeerTypeExternal {
+			case dozer.SpecVRFBGPNeighborPeerTypeExternal:
 				peerType = oc.OpenconfigBgp_PeerType_EXTERNAL
-			} else {
+			default:
 				return nil, errors.Errorf("unknown peer type %s", *value.PeerType)
 			}
 		}
@@ -540,13 +541,14 @@ var specVRFTableConnectionEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVR
 	Marshal: func(key string, value *dozer.SpecVRFTableConnection) (ygot.ValidatedGoStruct, error) {
 		var proto oc.E_OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE
 
-		if key == dozer.SpecVRFBGPTableConnectionConnected {
+		switch key {
+		case dozer.SpecVRFBGPTableConnectionConnected:
 			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED
-		} else if key == dozer.SpecVRFBGPTableConnectionStatic {
+		case dozer.SpecVRFBGPTableConnectionStatic:
 			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_STATIC
-		} else if key == dozer.SpecVRFBGPTableConnectionAttachedHost {
+		case dozer.SpecVRFBGPTableConnectionAttachedHost:
 			proto = oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST
-		} else {
+		default:
 			return nil, errors.Errorf("unknown table connection key %s", key)
 		}
 
@@ -635,7 +637,7 @@ var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAt
 	// CreatePath:   "/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface",
 	UpdateWeight: ActionWeightVRFAttachedHostUpdate,
 	DeleteWeight: ActionWeightVRFAttachedHostDelete,
-	Marshal: func(iface string, value *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(iface string, _ *dozer.SpecVRFAttachedHost) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces{
 			Interface: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_AttachedHost_Interfaces_Interface{
 				{
@@ -816,9 +818,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						}
 
 						var peerType *string
-						if neighbor.Config.PeerType == oc.OpenconfigBgp_PeerType_INTERNAL {
+						switch neighbor.Config.PeerType { //nolint:exhaustive
+						case oc.OpenconfigBgp_PeerType_INTERNAL:
 							peerType = pointer.To(dozer.SpecVRFBGPNeighborPeerTypeInternal)
-						} else if neighbor.Config.PeerType == oc.OpenconfigBgp_PeerType_EXTERNAL {
+						case oc.OpenconfigBgp_PeerType_EXTERNAL:
 							peerType = pointer.To(dozer.SpecVRFBGPNeighborPeerTypeExternal)
 						}
 

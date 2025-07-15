@@ -58,13 +58,13 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 		return cancel, nil, errors.Wrapf(err, "failed to create kube config")
 	}
 
-	scheme, err := NewScheme(schemeBuilders...)
+	sch, err := NewScheme(schemeBuilders...)
 	if err != nil {
 		return cancel, nil, errors.Wrapf(err, "failed to create scheme")
 	}
 
 	if core {
-		if err := corev1.AddToScheme(scheme); err != nil {
+		if err := corev1.AddToScheme(sch); err != nil {
 			return cancel, nil, errors.Wrapf(err, "failed to add core scheme to runtime")
 		}
 	}
@@ -72,7 +72,7 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 	var cacheOpts *kclient.CacheOptions
 	if cached {
 		clientCache, err := cache.New(cfg, cache.Options{
-			Scheme:                   scheme,
+			Scheme:                   sch,
 			DefaultWatchErrorHandler: cacheWatchErrorHandler,
 		})
 		if err != nil {
@@ -100,7 +100,7 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 	}
 
 	kubeClient, err := kclient.NewWithWatch(cfg, kclient.Options{
-		Scheme: scheme,
+		Scheme: sch,
 		Cache:  cacheOpts,
 	})
 	if err != nil {
@@ -125,7 +125,7 @@ func cacheWatchErrorHandler(r *clientcache.Reflector, err error) {
 	}
 }
 
-func NewClientConfig(ctx context.Context, kubeconfigPath string) (*rest.Config, error) {
+func NewClientConfig(_ context.Context, kubeconfigPath string) (*rest.Config, error) {
 	var cfg *rest.Config
 	var err error
 
@@ -146,15 +146,15 @@ func NewClientConfig(ctx context.Context, kubeconfigPath string) (*rest.Config, 
 }
 
 func NewScheme(schemeBuilders ...*scheme.Builder) (*runtime.Scheme, error) {
-	scheme := runtime.NewScheme()
+	sch := runtime.NewScheme()
 
 	for _, schemeBuilder := range schemeBuilders {
-		if err := schemeBuilder.AddToScheme(scheme); err != nil {
+		if err := schemeBuilder.AddToScheme(sch); err != nil {
 			return nil, fmt.Errorf("adding scheme %s to runtime: %w", schemeBuilder.GroupVersion.String(), err)
 		}
 	}
 
-	return scheme, nil
+	return sch, nil
 }
 
 func NewClientset(ctx context.Context, kubeconfigPath string) (*kubernetes.Clientset, error) {

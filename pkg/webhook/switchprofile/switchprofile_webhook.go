@@ -57,8 +57,8 @@ var (
 	_ admission.CustomValidator = (*Webhook)(nil)
 )
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update,versions=v1beta1,name=mswitchprofile.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update;delete,versions=v1beta1,name=vswitchprofile.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update,versions=v1beta1,name=mswitchprofile.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update;delete,versions=v1beta1,name=vswitchprofile.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("switchprofile-webhook")
 
