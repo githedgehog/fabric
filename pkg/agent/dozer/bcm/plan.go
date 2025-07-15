@@ -53,11 +53,13 @@ const (
 	RouteMapMaxStatement           = 65535
 	RouteMapBlockEVPNDefaultRemote = "evpn-default-remote-block"
 	RouteMapFilterAttachedHost     = "filter-attached-hosts"
-	RouteMapFilterLoopbackSessions = "filter-loopback-sessions"
+	RouteMapLoopbackAllVTEPs       = "loopback-all-vteps"
+	RouteMapLoopbackVTEP           = "loopback-vtep"
 	RouteMapProtocolLoopbackOnly   = "protocol-loopback-only"
 	PrefixListAny                  = "any-prefix"
 	PrefixListVPCLoopback          = "vpc-loopback-prefix"
-	PrefixListVTEPPrefixes         = "vtep-prefixes"
+	PrefixListAllVTEPPrefixes      = "all-vtep-prefixes"
+	PrefixListVTEPPrefix           = "vtep-prefix"
 	PrefixListProtocolLoopback     = "protocol-loopback-prefix"
 	PrefixListStaticExternals      = "static-ext-subnets"
 	NoCommunity                    = "no-community"
@@ -163,6 +165,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	err = planFabricConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan fabric connections")
+	}
+
+	err = planMeshConnections(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan mesh connections")
 	}
 
 	err = planGatewayConnections(agent, spec)
@@ -410,24 +417,16 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	// for spines, we want to advertise every /32 in the VTEP range
-	// for leaves, we want to advertise only the switch's own VTEP IP
-	var vtepPrefix string
-	if agent.Spec.Role.IsSpine() {
-		vtepPrefix = agent.Spec.Config.VTEPSubnet
-		if vtepPrefix == "" {
-			//FIXME: make this an error, I just want to see it work for now
-			slog.Warn("VTEP subnet not set, using hardcoded default for VTEP prefixes")
-			vtepPrefix = "172.30.12.0/22"
-		}
-	} else if agent.Spec.Role.IsLeaf() {
-		vtepPrefix = agent.Spec.Switch.VTEPIP
+	vtepSubnet := agent.Spec.Config.VTEPSubnet
+	if vtepSubnet == "" {
+		slog.Warn("VTEP subnet not set, using default")
+		vtepSubnet = "172.30.12.0/22"
 	}
-	spec.PrefixLists[PrefixListVTEPPrefixes] = &dozer.SpecPrefixList{
+	spec.PrefixLists[PrefixListAllVTEPPrefixes] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
 			10: {
 				Prefix: dozer.SpecPrefixListPrefix{
-					Prefix: vtepPrefix,
+					Prefix: vtepSubnet,
 					Le:     32,
 					Ge:     32,
 				},
@@ -436,11 +435,41 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	spec.RouteMaps[RouteMapFilterLoopbackSessions] = &dozer.SpecRouteMap{
+	spec.PrefixLists[PrefixListVTEPPrefix] = &dozer.SpecPrefixList{
+		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
+			10: {
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: agent.Spec.Switch.VTEPIP,
+					Le:     32,
+					Ge:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			},
+		},
+	}
+
+	spec.RouteMaps[RouteMapLoopbackAllVTEPs] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			"10": {
 				Conditions: dozer.SpecRouteMapConditions{
-					MatchPrefixList: pointer.To(PrefixListVTEPPrefixes),
+					MatchPrefixList: pointer.To(PrefixListAllVTEPPrefixes),
+				},
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+			"100": {
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: pointer.To(PrefixListStaticExternals),
+				},
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
+
+	spec.RouteMaps[RouteMapLoopbackVTEP] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: pointer.To(PrefixListVTEPPrefix),
 				},
 				Result: dozer.SpecRouteMapResultAccept,
 			},
@@ -572,12 +601,138 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
 		allowasIn := agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG
+		var routeMap string
+		if agent.Spec.Switch.Role.IsLeaf() {
+			routeMap = RouteMapLoopbackVTEP
+		} else {
+			routeMap = RouteMapLoopbackAllVTEPs
+		}
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
-			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback", peer)),
+			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (spine-link)", peer)),
 			RemoteAS:                  pointer.To(peerSpec.ASN),
 			IPv4Unicast:               pointer.To(true),
-			IPv4UnicastExportPolicies: []string{RouteMapFilterLoopbackSessions},
+			IPv4UnicastExportPolicies: []string{routeMap},
+			L2VPNEVPN:                 pointer.To(true),
+			L2VPNEVPNImportPolicies:   []string{RouteMapBlockEVPNDefaultRemote},
+			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
+			DisableConnectedCheck:     pointer.To(true),
+			UpdateSource:              pointer.To(ownProtocolIPStr),
+		}
+	}
+
+	return nil
+}
+
+func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
+	// TODO: Decide whether we want:
+	// 1. a new, dedicated mode for mesh, or
+	// 2. replace collapsed core mode with mesh, or
+	// 3. just have a single mode for everything, i.e. also remove spineLeaf mode
+	// depending on that, add a check here
+
+	peers := make(map[string]bool)
+
+	for connName, conn := range agent.Spec.Connections {
+		if conn.Mesh == nil {
+			continue
+		}
+
+		for _, link := range conn.Mesh.Links {
+			port := ""
+			ipStr := ""
+			remote := ""
+			peer := ""
+			peerIP := ""
+			if link.Leaf1.DeviceName() == agent.Name { //nolint:gocritic
+				port = link.Leaf1.LocalPortName()
+				ipStr = link.Leaf1.IP
+				remote = link.Leaf2.Port
+				peer = link.Leaf2.DeviceName()
+				peerIP = link.Leaf2.IP
+			} else if link.Leaf2.DeviceName() == agent.Name {
+				port = link.Leaf2.LocalPortName()
+				ipStr = link.Leaf2.IP
+				remote = link.Leaf1.Port
+				peer = link.Leaf1.DeviceName()
+				peerIP = link.Leaf1.IP
+			} else {
+				continue
+			}
+			peers[peer] = true
+
+			if ipStr == "" {
+				return errors.Errorf("no IP found for mesh conn %s", connName)
+			}
+
+			ip, ipNet, err := net.ParseCIDR(ipStr)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse mesh conn ip %s", ipStr)
+			}
+			ipPrefixLen, _ := ipNet.Mask.Size()
+
+			spec.Interfaces[port] = &dozer.SpecInterface{
+				Enabled:     pointer.To(true),
+				Description: pointer.To(fmt.Sprintf("Mesh %s %s", remote, connName)),
+				Speed:       getPortSpeed(agent, port),
+				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+					0: {
+						IPs: map[string]*dozer.SpecInterfaceIP{
+							ip.String(): {
+								PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+							},
+						},
+					},
+				},
+			}
+
+			peerSw, ok := agent.Spec.Switches[peer]
+			if !ok {
+				return errors.Errorf("no switch found for peer %s (mesh conn %s)", peer, connName)
+			}
+
+			ip, _, err = net.ParseCIDR(peerIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse mesh conn peer ip %s", peerIP)
+			}
+
+			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+				Enabled:                   pointer.To(true),
+				Description:               pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
+				RemoteAS:                  pointer.To(peerSw.ASN),
+				IPv4Unicast:               pointer.To(true),
+				IPv4UnicastExportPolicies: []string{RouteMapProtocolLoopbackOnly},
+				BFDProfile:                pointer.To(FabricBFDProfile),
+			}
+		}
+	}
+
+	// add the ebgp sessions over the protocol loopback of the neighbors
+	ownProtocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse own protocol IP %s", agent.Spec.Switch.ProtocolIP)
+	}
+	ownProtocolIPStr := ownProtocolIP.String()
+
+	for peer := range peers {
+		peerSpec, ok := agent.Spec.Switches[peer]
+		if !ok {
+			return errors.Errorf("no switch found for peer %s", peer)
+		}
+		if peerSpec.ProtocolIP == "" {
+			return errors.Errorf("no protocol IP found for peer %s", peer)
+		}
+		ip, _, err := net.ParseCIDR(peerSpec.ProtocolIP)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
+		}
+		allowasIn := agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG
+		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+			Enabled:                   pointer.To(true),
+			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (mesh)", peer)),
+			RemoteAS:                  pointer.To(peerSpec.ASN),
+			IPv4Unicast:               pointer.To(true),
+			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapBlockEVPNDefaultRemote},
 			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
