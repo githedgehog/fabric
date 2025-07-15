@@ -36,7 +36,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - name: ghcp-prune
+      - name: ghcr-prune
         uses: vlaurin/action-ghcr-prune@v0.6.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
