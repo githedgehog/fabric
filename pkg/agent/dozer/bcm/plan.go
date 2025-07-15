@@ -1432,19 +1432,32 @@ func planVXLAN(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 func spineLinkTracking(agent *agentapi.Agent, spec *dozer.Spec) {
 	for _, conn := range agent.Spec.Connections {
-		if conn.Fabric == nil {
-			continue
-		}
+		if conn.Fabric != nil {
+			for _, link := range conn.Fabric.Links {
+				if link.Leaf.DeviceName() != agent.Name {
+					continue
+				}
 
-		for _, link := range conn.Fabric.Links {
-			if link.Leaf.DeviceName() != agent.Name {
-				continue
+				port := link.Leaf.LocalPortName()
+
+				spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
+					Groups: []string{LSTGroupSpineLink},
+				}
 			}
+		} else if conn.Mesh != nil {
+			for _, link := range conn.Mesh.Links {
+				port := ""
+				if link.Leaf1.DeviceName() == agent.Name { //nolint:gocritic
+					port = link.Leaf1.LocalPortName()
+				} else if link.Leaf2.DeviceName() == agent.Name {
+					port = link.Leaf2.LocalPortName()
+				} else {
+					continue
+				}
 
-			port := link.Leaf.LocalPortName()
-
-			spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
-				Groups: []string{LSTGroupSpineLink},
+				spec.LSTInterfaces[port] = &dozer.SpecLSTInterface{
+					Groups: []string{LSTGroupSpineLink},
+				}
 			}
 		}
 	}
