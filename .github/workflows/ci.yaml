@@ -162,9 +162,9 @@ jobs:
 
     name: "vlab-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
 
-    uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@dev/frostman/reusable-vlab
+    uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
-      fabricatorref: dev/frostman/reusable-vlab
+      fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
       gateway: ${{ matrix.gateway }}
