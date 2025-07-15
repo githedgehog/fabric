@@ -3,6 +3,12 @@ name: GHCR Cleanup
 on:
   schedule:
     - cron: "0 10 * * *" # ~2am PST
+  workflow_dispatch:
+    inputs:
+      keep-younger-than:
+        description: "Keep images younger than (days)"
+        required: true
+        default: "30"
 
 jobs:
   ghcr-cleanup:
@@ -32,7 +38,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           organization: githedgehog
           container: ${{ matrix.package }}
-          keep-younger-than: 30 # days
+          keep-younger-than: ${{ inputs.keep-younger-than || '30' }} # days
           prune-tags-regexes: |
             ^v0-
             ^master-
