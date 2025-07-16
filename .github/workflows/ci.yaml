@@ -88,19 +88,22 @@ jobs:
           go-version: stable
           cache: true
 
+      - name: Setup Just
+        uses: extractions/setup-just@v3
+
       - name: Lint and generate code
         run: |
           just --timestamp lint-gha gen _lint
-
-      - name: Some Go lint
-        run: |
-          just --timestamp _lint
 
       - name: More Go lint
         uses: golangci/golangci-lint-action@v6
         with:
           # keep in sync with hack/tools.just
           version: v1.64.8
+
+      - name: Build all
+        run: |
+          just --timestamp build kube-build build-multi
 
       - name: Run tests
         run: |
@@ -114,7 +117,7 @@ jobs:
       # Don't remove it! We shouldn't allow CI to pass if there are any changes not committed after running gen/lint/test
       - name: Fail on dirty
         run: |
-          if ! git status --short || ! git diff --quiet; then
+          if ! git status --short || [ -n "$(git status --porcelain)" ]; then
             git --no-pager diff -- . :^vendor
             echo "::error::Working directory is dirty. Please run 'just gen lint && go mod tidy && go mod vendor' and commit the changes."
             exit 1
@@ -160,8 +163,6 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-vlab') }}
-
     needs:
       - test-api
       - test-build
@@ -195,8 +196,6 @@ jobs:
         vpcmode:
           - l2vni
           - l3vni
-        releasetest:
-          - false
         hybrid:
           - false
         include:
