@@ -201,6 +201,7 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 	Path:       "/components/component[name=%s]/port/breakout-mode/groups/group[index=1]/config",
 	Weight:     ActionWeightPortBreakout,
 	SkipDelete: true,
+	NoReplace:  true,
 	Marshal: func(_ string, value *dozer.SpecPortBreakout) (ygot.ValidatedGoStruct, error) {
 		parts := strings.Split(value.Mode, "x")
 		if len(parts) != 2 {
@@ -227,6 +228,7 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 				Index:         pointer.To(uint8(1)),
 				NumBreakouts:  pointer.To(num),
 				BreakoutSpeed: speed,
+				BreakoutOwner: oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config_BreakoutOwner_MANUAL,
 				// NumPhysicalChannels: pointer.To(0), // TODO check if it's really needed
 			},
 		}, nil
@@ -255,7 +257,11 @@ func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (ma
 	}
 
 	for _, breakoutCfg := range ocVal.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
-		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil || breakoutCfg.Status == nil || *breakoutCfg.Status != "Completed" {
+		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil || breakoutCfg.Status == nil {
+			continue
+		}
+
+		if *breakoutCfg.Status != "Completed" || breakoutCfg.BreakoutOwner != oc.SonicPortBreakout_SonicPortBreakout_BREAKOUT_CFG_BREAKOUT_CFG_LIST_BreakoutOwner_MANUAL {
 			continue
 		}
 
