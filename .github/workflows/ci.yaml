@@ -12,6 +12,12 @@ on:
     tags:
       - "v*"
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
   schedule:
     - cron: "0 10 * * *" # ~2am PST
   workflow_dispatch:
@@ -160,10 +166,11 @@ jobs:
       - test-api
       - test-build
 
-    name: "vlab-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
+    name: "${{ matrix.hybrid && 'hlab' || 'vlab' }}-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
 
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
+      skip: ${{ matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab') || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab') }}
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
@@ -171,7 +178,8 @@ jobs:
       includeonie: ${{ matrix.includeonie }}
       buildmode: ${{ matrix.buildmode }}
       vpcmode: ${{ matrix.vpcmode }}
-      releasetest: ${{ contains(github.event.pull_request.labels.*.name, 'release-test') }}
+      releasetest: ${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') }}
+      hybrid: ${{ matrix.hybrid }}
 
     strategy:
       fail-fast: false
@@ -189,12 +197,21 @@ jobs:
           - l3vni
         releasetest:
           - false
+        hybrid:
+          - false
         include:
+          - fabricmode: spine-leaf
+            includeonie: false
+            gateway: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: true
           - fabricmode: collapsed-core
             includeonie: false
             gateway: false
             buildmode: iso
             vpcmode: l2vni
+            hybrid: false
           # - fabricmode: spine-leaf
           #   gateway: true
           #   includeonie: false
