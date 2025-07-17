@@ -402,6 +402,16 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			remoteAS = oc.UnionUint32(*value.RemoteAS)
 		}
 
+		var bfd *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd
+		if value.BFDProfile != nil {
+			bfd = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd{
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd_Config{
+					Enabled:    pointer.To(true),
+					BfdProfile: value.BFDProfile,
+				},
+			}
+		}
+
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
 				name: {
@@ -434,6 +444,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 							},
 						},
 					},
+					EnableBfd: bfd,
 				},
 			},
 		}, nil
@@ -832,6 +843,13 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							}
 						}
 
+						var bfdProfile *string
+						if neighbor.EnableBfd != nil && neighbor.EnableBfd.Config != nil {
+							if neighbor.EnableBfd.Config.Enabled != nil && *neighbor.EnableBfd.Config.Enabled {
+								bfdProfile = neighbor.EnableBfd.Config.BfdProfile
+							}
+						}
+
 						bgp.Neighbors[neighborName] = &dozer.SpecVRFBGPNeighbor{
 							Enabled:                   neighbor.Config.Enabled,
 							Description:               neighbor.Config.Description,
@@ -843,6 +861,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							L2VPNEVPN:                 l2vpnEVPN,
 							L2VPNEVPNImportPolicies:   l2ImportPolicies,
 							L2VPNEVPNAllowOwnAS:       l2VPNEVPNAllowOwnAS,
+							BFDProfile:                bfdProfile,
 						}
 					}
 				}
