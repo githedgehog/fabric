@@ -26,7 +26,7 @@ require (
 	github.com/olekukonko/tablewriter v1.0.8
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/openconfig/gnmi v0.14.0
+	github.com/openconfig/gnmi v0.14.1
 	github.com/openconfig/gnmic v0.32.0
 	github.com/openconfig/ygot v0.32.0
 	github.com/pkg/errors v0.9.1
