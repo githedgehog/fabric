@@ -75,6 +75,7 @@ type Spec struct {
 	LSTGroups          map[string]*SpecLSTGroup          `json:"lstGroups,omitempty"`
 	LSTInterfaces      map[string]*SpecLSTInterface      `json:"lstInterfaces,omitempty"`
 	ECMPRoCEQPN        *bool                             `json:"ecmpRoCEQPN,omitempty"`
+	BFDProfiles        map[string]*SpecBFDProfile        `json:"bfdProfiles,omitempty"`
 }
 
 type SpecLLDP struct {
@@ -201,6 +202,7 @@ type SpecVRFBGPNeighbor struct {
 	L2VPNEVPN                 *bool    `json:"l2vpnEvpn,omitempty"`
 	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
 	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
+	BFDProfile                *string  `json:"bfdProfile,omitempty"`
 }
 
 const (
@@ -296,6 +298,13 @@ const (
 )
 
 type SpecVRFBGPImportVRF struct{}
+
+type SpecBFDProfile struct {
+	PassiveMode              *bool   `json:"passiveMode,omitempty"`
+	RequiredMinimumReceive   *uint32 `json:"requiredMinimumReceive,omitempty"`
+	DesiredMinimumTxInterval *uint32 `json:"desiredMinimumTxInterval,omitempty"`
+	DetectionMultiplier      *uint8  `json:"detectionMultiplier,omitempty"`
+}
 
 type SpecDHCPRelay struct {
 	SourceInterface *string  `json:"sourceInterface,omitempty"`
@@ -493,6 +502,7 @@ var (
 	_ SpecPart = (*SpecPortChannelConfig)(nil)
 	_ SpecPart = (*SpecLSTGroup)(nil)
 	_ SpecPart = (*SpecLSTInterface)(nil)
+	_ SpecPart = (*SpecBFDProfile)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -652,5 +662,9 @@ func (s *SpecLSTGroup) IsNil() bool {
 }
 
 func (s *SpecLSTInterface) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecBFDProfile) IsNil() bool {
 	return s == nil
 }

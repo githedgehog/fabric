@@ -59,6 +59,7 @@ const (
 	LSTGroupSpineLink              = "spinelink"
 	BGPCommListAllExternals        = "all-externals"
 	MgmtIface                      = "Management0"
+	FabricBFDProfile               = "fabric"
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -106,6 +107,7 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		PortChannelConfigs: map[string]*dozer.SpecPortChannelConfig{},
 		LSTGroups:          map[string]*dozer.SpecLSTGroup{},
 		LSTInterfaces:      map[string]*dozer.SpecLSTInterface{},
+		BFDProfiles:        map[string]*dozer.SpecBFDProfile{},
 	}
 
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
@@ -146,6 +148,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	err = planDefaultVRFWithBGP(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan basic BGP")
+	}
+
+	err = planBFDProfiles(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan BFD profiles")
 	}
 
 	err = planFabricConnections(agent, spec)
@@ -374,6 +381,17 @@ func planLoopbacks(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+func planBFDProfiles(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
+	spec.BFDProfiles[FabricBFDProfile] = &dozer.SpecBFDProfile{
+		PassiveMode:              pointer.To(agent.Spec.Switch.Role.IsSpine()),
+		RequiredMinimumReceive:   pointer.To(uint32(300)),
+		DesiredMinimumTxInterval: pointer.To(uint32(300)),
+		DetectionMultiplier:      pointer.To(uint8(3)),
+	}
+
+	return nil
+}
+
 func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	if !agent.IsSpineLeaf() {
 		return nil
@@ -458,6 +476,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				L2VPNEVPNImportPolicies: []string{RouteMapBlockEVPNDefaultRemote},
 				// TODO: We might later specify dedicated neighbors for this.
 				L2VPNEVPNAllowOwnAS: pointer.To(true),
+				BFDProfile:          pointer.To(FabricBFDProfile),
 			}
 		}
 	}

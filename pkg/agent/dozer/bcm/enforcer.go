@@ -144,6 +144,7 @@ const (
 	ActionWeightVXLANTunnelDelete
 	ActionWeightVXLANTunnelMapUpdate
 
+	ActionWeightBFDProfileUpdate
 	ActionWeightVRFBGPNeighborUpdate
 	ActionWeightVRFBGPNetworkUpdate
 	ActionWrightVRFTableConnectionUpdate
@@ -170,6 +171,7 @@ const (
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
 	ActionWeightVRFBGPNeighborDelete
+	ActionWeightBFDProfileDelete
 	ActionWeightVRFSAGDelete
 	ActionWeightVRFBGPBaseDelete
 	ActionWeightVRFBaseDelete

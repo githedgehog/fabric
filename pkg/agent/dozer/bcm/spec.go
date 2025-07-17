@@ -149,6 +149,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle ecmp roce")
 		}
 
+		if err := specBFDProfilesEnforcer.Handle(basePath, actual.BFDProfiles, desired.BFDProfiles, actions); err != nil {
+			return errors.Wrap(err, "failed to handle bfd profiles")
+		}
+
 		return nil
 	},
 }
@@ -252,6 +256,10 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Cli
 
 	if err := loadActualECMPRoCE(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load ecmp roce")
+	}
+
+	if err := loadActualBFDProfiles(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load bfd profiles")
 	}
 
 	return nil
