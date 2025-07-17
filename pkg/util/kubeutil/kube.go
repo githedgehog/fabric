@@ -110,17 +110,17 @@ func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, sc
 	return cancel, kubeClient, nil
 }
 
-func cacheWatchErrorHandler(r *clientcache.Reflector, err error) {
+func cacheWatchErrorHandler(ctx context.Context, r *clientcache.Reflector, err error) {
 	switch {
 	case kapierrors.IsResourceExpired(err) || kapierrors.IsGone(err):
-		clientcache.DefaultWatchErrorHandler(r, err)
+		clientcache.DefaultWatchErrorHandler(ctx, r, err)
 	case errors.Is(err, io.EOF):
 		// watch closed normally
 	case errors.Is(err, io.ErrUnexpectedEOF):
-		clientcache.DefaultWatchErrorHandler(r, err)
+		clientcache.DefaultWatchErrorHandler(ctx, r, err)
 	default:
 		slog.Error("kube controller runtime cache: failed to watch", "err", err)
-		clientcache.DefaultWatchErrorHandler(r, err)
+		clientcache.DefaultWatchErrorHandler(ctx, r, err)
 		panic(fmt.Errorf("kube controller runtime cache: failed to watch: %w", err))
 	}
 }
