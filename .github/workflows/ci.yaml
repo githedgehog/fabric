@@ -241,7 +241,7 @@ jobs:
       - vlabs
 
     permissions:
-      contents: read
+      contents: write # to be able to create a GH release
       packages: write
 
     steps:
