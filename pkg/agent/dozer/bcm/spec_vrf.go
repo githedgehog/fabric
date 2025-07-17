@@ -412,16 +412,17 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			}
 		}
 
-		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
+		bgpNeigh := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
 				name: {
 					NeighborAddress: pointer.To(name),
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
-						NeighborAddress: pointer.To(name),
-						Enabled:         value.Enabled,
-						Description:     value.Description,
-						PeerAs:          remoteAS,
-						PeerType:        peerType,
+						NeighborAddress:                pointer.To(name),
+						Enabled:                        value.Enabled,
+						Description:                    value.Description,
+						PeerAs:                         remoteAS,
+						PeerType:                       peerType,
+						DisableEbgpConnectedRouteCheck: value.DisableConnectedCheck,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
 						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{ //nolint:exhaustive,nolintlint
@@ -447,7 +448,17 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 					EnableBfd: bfd,
 				},
 			},
-		}, nil
+		}
+
+		if value.UpdateSource != nil && *value.UpdateSource != "" {
+			bgpNeigh.Neighbor[name].Transport = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Transport{
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Transport_Config{
+					LocalAddress: pointer.To(*value.UpdateSource),
+				},
+			}
+		}
+
+		return bgpNeigh, nil
 	},
 }
 
@@ -862,6 +873,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							L2VPNEVPNImportPolicies:   l2ImportPolicies,
 							L2VPNEVPNAllowOwnAS:       l2VPNEVPNAllowOwnAS,
 							BFDProfile:                bfdProfile,
+							DisableConnectedCheck:     neighbor.Config.DisableEbgpConnectedRouteCheck,
+						}
+						if neighbor.Transport != nil && neighbor.Transport.Config != nil {
+							bgp.Neighbors[neighborName].UpdateSource = neighbor.Transport.Config.LocalAddress
 						}
 					}
 				}
