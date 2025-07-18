@@ -59,6 +59,7 @@ const (
 	PrefixListVPCLoopback          = "vpc-loopback-prefix"
 	PrefixListVTEPPrefixes         = "vtep-prefixes"
 	PrefixListProtocolLoopback     = "protocol-loopback-prefix"
+	PrefixListStaticExternals      = "static-ext-subnets"
 	NoCommunity                    = "no-community"
 	LSTGroupSpineLink              = "spinelink"
 	BGPCommListAllExternals        = "all-externals"
@@ -438,6 +439,12 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			"10": {
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchPrefixList: pointer.To(PrefixListVTEPPrefixes),
+				},
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+			"100": {
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: pointer.To(PrefixListStaticExternals),
 				},
 				Result: dozer.SpecRouteMapResultAccept,
 			},
@@ -940,6 +947,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
+	spec.PrefixLists[PrefixListStaticExternals] = &dozer.SpecPrefixList{
+		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+	}
+
 	for connName, conn := range agent.Spec.Connections {
 		if conn.StaticExternal == nil {
 			continue
@@ -1009,43 +1020,42 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			subnets = append(subnets, subnet)
 		}
 
+		prefixList := spec.PrefixLists[PrefixListStaticExternals]
 		if conn.StaticExternal.WithinVPC != "" {
 			vpcName := conn.StaticExternal.WithinVPC
-			prefixList := spec.PrefixLists[vpcStaticExtSubnetsPrefixListName(vpcName)]
+			prefixList = spec.PrefixLists[vpcStaticExtSubnetsPrefixListName(vpcName)]
 			if prefixList == nil {
 				return errors.Errorf("prefix list %s not found for static external %s", vpcStaticExtSubnetsPrefixListName(vpcName), connName)
 			}
+		}
 
-			for _, subnet := range subnets {
-				subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
-				// TODO dedup
-				if subnetID == 0 {
-					return errors.Errorf("no subnet id found for static ext subnet %s", subnet)
-				}
-				if subnetID < 100 {
-					return errors.Errorf("subnet id for static ext subnet %s is too small", subnet)
-				}
-				if subnetID >= 65000 {
-					return errors.Errorf("subnet id for static ext subnet %s is too large", subnet)
-				}
+		for _, subnet := range subnets {
+			subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
+			// TODO dedup
+			if subnetID == 0 {
+				return errors.Errorf("no subnet id found for static ext subnet %s", subnet)
+			}
+			if subnetID < 100 {
+				return errors.Errorf("subnet id for static ext subnet %s is too small", subnet)
+			}
+			if subnetID >= 65000 {
+				return errors.Errorf("subnet id for static ext subnet %s is too large", subnet)
+			}
 
-				_, ipNet, err := net.ParseCIDR(subnet)
-				if err != nil {
-					return errors.Wrapf(err, "failed to parse static external subnet %s", subnet)
-				}
-				prefixLen, _ := ipNet.Mask.Size()
+			_, ipNet, err := net.ParseCIDR(subnet)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse static external subnet %s", subnet)
+			}
+			prefixLen, _ := ipNet.Mask.Size()
 
-				prefixList.Prefixes[subnetID] = &dozer.SpecPrefixListEntry{
-					Prefix: dozer.SpecPrefixListPrefix{
-						Prefix: subnet,
-						Le:     uint8(prefixLen), //nolint:gosec
-					},
-					Action: dozer.SpecPrefixListActionPermit,
-				}
+			prefixList.Prefixes[subnetID] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet,
+					Le:     uint8(prefixLen), //nolint:gosec
+				},
+				Action: dozer.SpecPrefixListActionPermit,
 			}
 		}
-		// FIXME: understand what must be done here in terms of modifying the route-map for
-		// the protocol loopback sessions
 	}
 
 	return nil
