@@ -87,6 +87,9 @@ type FabricConfig struct {
 	GatewayAPISync           bool        `json:"gatewayAPISync,omitempty"`
 	LoopbackWorkaround       bool        `json:"loopbackWorkaround,omitempty"`
 	IncludeSONiCCLSPlus      bool        `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
+	ProtocolSubnet           string      `json:"protocolSubnet,omitempty"`
+	VTEPSubnet               string      `json:"vtepSubnet,omitempty"`
+	FabricSubnet             string      `json:"fabricSubnet,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }

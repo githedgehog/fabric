@@ -270,12 +270,16 @@ spec:
                     type: string
                   fabricMTU:
                     type: integer
+                  fabricSubnet:
+                    type: string
                   gatewayASN:
                     format: int32
                     type: integer
                   loopbackWorkaround:
                     type: boolean
                   mclagSessionSubnet:
+                    type: string
+                  protocolSubnet:
                     type: string
                   serverFacingMTUOffset:
                     type: integer
@@ -285,6 +289,8 @@ spec:
                     type: string
                   vpcPeeringDisabled:
                     type: boolean
+                  vtepSubnet:
+                    type: string
                 type: object
               configuredVPCSubnets:
                 additionalProperties:

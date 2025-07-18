@@ -78,6 +78,9 @@ type AgentSpecConfig struct {
 	MCLAGSessionSubnet    string                        `json:"mclagSessionSubnet,omitempty"`
 	GatewayASN            uint32                        `json:"gatewayASN,omitempty"`
 	LoopbackWorkaround    bool                          `json:"loopbackWorkaround,omitempty"`
+	ProtocolSubnet        string                        `json:"protocolSubnet,omitempty"`
+	VTEPSubnet            string                        `json:"vtepSubnet,omitempty"`
+	FabricSubnet          string                        `json:"fabricSubnet,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}
