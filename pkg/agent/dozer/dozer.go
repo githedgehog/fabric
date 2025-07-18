@@ -203,6 +203,8 @@ type SpecVRFBGPNeighbor struct {
 	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
 	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
 	BFDProfile                *string  `json:"bfdProfile,omitempty"`
+	DisableConnectedCheck     *bool    `json:"disableConnectedCheck,omitempty"`
+	UpdateSource              *string  `json:"updateSource,omitempty"`
 }
 
 const (
