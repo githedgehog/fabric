@@ -453,7 +453,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 		if value.UpdateSource != nil && *value.UpdateSource != "" {
 			bgpNeigh.Neighbor[name].Transport = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Transport{
 				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Transport_Config{
-					LocalAddress: pointer.To(*value.UpdateSource),
+					LocalAddress: value.UpdateSource,
 				},
 			}
 		}
