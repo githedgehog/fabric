@@ -18,6 +18,7 @@ package dhcpd
 
 import (
 	"encoding/binary"
+	"log/slog"
 	"net"
 	"net/url"
 	"strings"
@@ -84,7 +85,7 @@ func handleDiscover4(req, resp *dhcpv4.DHCPv4) error {
 			// We did not see the request that follows. We need to release the IP
 			delete(subnet.allocations.allocation, req.ClientHWAddr.String())
 			if err := subnet.pool.Free(reservation.address); err != nil {
-				log.Errorf("Failed to free reservation %s:%s with error: %v", req.ClientHWAddr.String(), reservation.address.String(), err)
+				slog.Warn("Failed to free reservation", "mac", req.ClientHWAddr.String(), "ip", reservation.address.String(), "error", err)
 			}
 		}
 	})
@@ -116,7 +117,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 		}
 
 		if err := updateBackend4(subnet.dhcpSubnet); err != nil {
-			log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
+			slog.Warn("Update Backend failed for record", "mac", req.ClientHWAddr.String(), "ip", reservation.address.IP.String(), "error", err)
 		}
 
 		if err := updateResponse(req, resp, subnet, reservation.address); err != nil {
@@ -146,7 +147,7 @@ func handleRequest4(req, resp *dhcpv4.DHCPv4) error {
 	}
 
 	if err := updateBackend4(subnet.dhcpSubnet); err != nil {
-		log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), ipnet.String())
+		slog.Warn("Update Backend failed for record", "mac", req.ClientHWAddr.String(), "ip", ipnet.String(), "error", err)
 	}
 
 	if err := updateResponse(req, resp, subnet, ipnet); err != nil {
@@ -167,16 +168,16 @@ func handleDecline4(req, _ /* resp */ *dhcpv4.DHCPv4) error {
 
 	reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
 	if !ok {
-		log.Debugf("No reservation found for mac %s ip %s", req.ClientHWAddr.String(), req.ClientIPAddr.String())
+		slog.Debug("No reservation found for mac", "mac", req.ClientHWAddr.String(), "ip", req.ClientIPAddr.String())
 	}
 
 	delete(subnet.allocations.allocation, req.ClientHWAddr.String())
 	if err := subnet.pool.Free(reservation.address); err != nil {
-		log.Errorf("IP address %s could not be released", reservation.address.String())
+		slog.Error("IP address could not be released", "ip", reservation.address.String(), "error", err)
 	}
 	delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
 	if err := updateBackend4(subnet.dhcpSubnet); err != nil {
-		log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
+		slog.Warn("Update Backend failed for record", "mac", req.ClientHWAddr.String(), "ip", reservation.address.IP.String(), "error", err)
 	}
 
 	return nil
@@ -193,16 +194,16 @@ func handleRelease4(req, _ /* resp */ *dhcpv4.DHCPv4) error {
 
 	reservation, ok := subnet.allocations.allocation[req.ClientHWAddr.String()]
 	if !ok {
-		log.Debugf("No reservation found for mac %s ip %s", req.ClientHWAddr.String(), req.ClientIPAddr.String())
+		slog.Debug("No reservation found for mac", "mac", req.ClientHWAddr.String(), "ip", req.ClientIPAddr.String())
 	}
 
 	delete(subnet.allocations.allocation, req.ClientHWAddr.String())
 	if err := subnet.pool.Free(reservation.address); err != nil {
-		log.Errorf("IP address %s could not be released", reservation.address.String())
+		slog.Error("IP address could not be released", "ip", reservation.address.String(), "error", err)
 	}
 	delete(subnet.dhcpSubnet.Status.Allocated, req.ClientHWAddr.String())
 	if err := updateBackend4(subnet.dhcpSubnet); err != nil {
-		log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", req.ClientHWAddr.String(), reservation.address.IP.String())
+		slog.Warn("Update Backend failed for record", "mac", req.ClientHWAddr.String(), "ip", reservation.address.IP.String(), "error", err)
 	}
 
 	return nil
@@ -260,7 +261,7 @@ func handleExpiredLeases() {
 					delete(v.dhcpSubnet.Status.Allocated, hwmacaddress)
 				}
 				if err := updateBackend4(v.dhcpSubnet); err != nil {
-					log.Warnf("Update Backend failed for record with Mac Address: %s IP %s", hwmacaddress, reservation.address.String())
+					slog.Warn("Update Backend failed for record", "mac", hwmacaddress, "ip", reservation.address.String(), "error", err)
 				}
 			}
 		}
@@ -401,13 +402,13 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *ManagedSubnet) {
 	// Add TFTP server Option Name
 	if len(subnet.dhcpSubnet.Spec.PXEURL) == 0 &&
 		(req.IsOptionRequested(dhcpv4.OptionTFTPServerName) || req.IsOptionRequested(dhcpv4.OptionBootfileName)) { // PxeURL is not specified return early with an error message
-		log.Errorf("Client Requested pxe but it is not configured circuitID %s vrfName %s macAddress %s", circuitID, vrfName, req.ClientHWAddr.String())
+		slog.Error("Client Requested pxe but it is not configured", "circuitID", circuitID, "vrfName", vrfName, "macAddress", req.ClientHWAddr.String())
 
 		return
 	}
 	u, err := url.Parse(subnet.dhcpSubnet.Spec.PXEURL)
 	if err != nil {
-		log.Errorf("Invalid Pxe URL %s: %v", subnet.dhcpSubnet.Spec.PXEURL, err)
+		slog.Error("Invalid Pxe URL", "url", subnet.dhcpSubnet.Spec.PXEURL, "error", err)
 
 		return
 	}

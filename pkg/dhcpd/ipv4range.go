@@ -18,6 +18,7 @@ package dhcpd
 
 import (
 	"encoding/binary"
+	"log/slog"
 	"net"
 	"sync"
 
@@ -64,7 +65,7 @@ func newIPv4Range(start, end, gateway net.IP, count uint32, prefixLen uint32) (*
 	}
 
 	if r.End-r.Start+1 != count {
-		log.Errorf("Count %d,range %d", count, r.End-r.Start+1)
+		slog.Error("Count does not match range", "count", count, "range", r.End-r.Start+1)
 
 		return nil, errors.New("count does not match range")
 	}
