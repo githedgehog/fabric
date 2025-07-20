@@ -55,13 +55,20 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 		logLevel = slog.LevelDebug
 	}
 
-	logConsole := os.Stdout
+	logW := os.Stdout
 
 	handlers := []slog.Handler{
-		tint.NewHandler(logConsole, &tint.Options{
+		tint.NewHandler(logW, &tint.Options{
 			Level:      logLevel,
 			TimeFormat: time.DateTime,
-			NoColor:    !isatty.IsTerminal(logConsole.Fd()),
+			NoColor:    !isatty.IsTerminal(logW.Fd()),
+		}),
+	}
+	kubeHandlers := []slog.Handler{
+		tint.NewHandler(logW, &tint.Options{
+			Level:      slog.LevelInfo,
+			TimeFormat: time.DateTime,
+			NoColor:    !isatty.IsTerminal(logW.Fd()),
 		}),
 	}
 
@@ -79,16 +86,17 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 		handlers = append(handlers, slog.NewTextHandler(logFile, &slog.HandlerOptions{
 			Level: logLevel,
 		}))
+		kubeHandlers = append(kubeHandlers, slog.NewTextHandler(logFile, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
 	}
 
-	handler := slogmulti.Fanout(handlers...)
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-	kctrl.SetLogger(logr.FromSlogHandler(handler))
-	klog.SetSlogLogger(logger)
+	slog.SetDefault(slog.New(slogmulti.Fanout(handlers...)))
+	kctrl.SetLogger(logr.FromSlogHandler(slogmulti.Fanout(kubeHandlers...)))
+	klog.SetSlogLogger(slog.New(slogmulti.Fanout(kubeHandlers...)))
 
 	if printMotd {
-		_, err := logConsole.Write(motd)
+		_, err := logW.Write(motd)
 		if err != nil {
 			return errors.Wrapf(err, "failed to write motd")
 		}

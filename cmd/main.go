@@ -68,16 +68,20 @@ func main() {
 	logLevel := slog.LevelDebug
 
 	logW := os.Stderr
-	handler := tint.NewHandler(logW, &tint.Options{
+
+	slog.SetDefault(slog.New(tint.NewHandler(logW, &tint.Options{
 		Level:      logLevel,
 		TimeFormat: time.StampMilli,
 		NoColor:    !isatty.IsTerminal(logW.Fd()),
-	})
+	})))
 
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-	kctrl.SetLogger(logr.FromSlogHandler(handler))
-	klog.SetSlogLogger(logger)
+	kubeHandler := tint.NewHandler(logW, &tint.Options{
+		Level:      slog.LevelInfo,
+		TimeFormat: time.StampMilli,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})
+	kctrl.SetLogger(logr.FromSlogHandler(kubeHandler))
+	klog.SetSlogLogger(slog.New(kubeHandler))
 
 	if err := run(); err != nil {
 		slog.Error("Failed to run", "error", err)

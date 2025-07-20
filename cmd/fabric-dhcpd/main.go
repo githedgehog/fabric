@@ -28,7 +28,6 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
-	slogmulti "github.com/samber/slog-multi"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/dhcpd"
 	"go.githedgehog.com/fabric/pkg/version"
@@ -49,24 +48,24 @@ func setupLogger(verbose bool, printMotd bool) error {
 		logLevel = slog.LevelDebug
 	}
 
-	logConsole := os.Stdout
+	logW := os.Stdout
 
-	handlers := []slog.Handler{
-		tint.NewHandler(logConsole, &tint.Options{
-			Level:      logLevel,
-			TimeFormat: time.DateTime,
-			NoColor:    !isatty.IsTerminal(logConsole.Fd()),
-		}),
-	}
+	slog.SetDefault(slog.New(tint.NewHandler(logW, &tint.Options{
+		Level:      logLevel,
+		TimeFormat: time.StampMilli,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})))
 
-	handler := slogmulti.Fanout(handlers...)
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-	kctrl.SetLogger(logr.FromSlogHandler(handler))
-	klog.SetSlogLogger(logger)
+	kubeHandler := tint.NewHandler(logW, &tint.Options{
+		Level:      slog.LevelInfo,
+		TimeFormat: time.StampMilli,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})
+	kctrl.SetLogger(logr.FromSlogHandler(kubeHandler))
+	klog.SetSlogLogger(slog.New(kubeHandler))
 
 	if printMotd {
-		_, err := logConsole.Write(motd)
+		_, err := logW.Write(motd)
 		if err != nil {
 			return errors.Wrapf(err, "failed to write motd")
 		}
