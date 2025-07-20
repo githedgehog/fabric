@@ -22,16 +22,12 @@ import (
 	"net"
 
 	"github.com/coredhcp/coredhcp/handler"
-	"github.com/coredhcp/coredhcp/logger"
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/pkg/errors"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
-var (
-	pluginHdl *pluginState
-	log       = logger.GetLogger("plugins/dhcpd")
-)
+var pluginHdl *pluginState
 
 func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 	return func(_ /* args */ ...string) (handler.Handler4, error) {
@@ -53,7 +49,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					}
 
 					if val, ok := pluginHdl.dhcpSubnets.subnets[key]; ok {
-						log.Errorf("Received Add event for already existing subnet %s with cidrblock %s", key, val.dhcpSubnet.Spec.CIDRBlock)
+						slog.Warn("Received Add event for already existing subnet", "subnet", key, "cidrblock", val.dhcpSubnet.Spec.CIDRBlock)
 						if event.Subnet.Spec.StartIP != val.dhcpSubnet.Spec.StartIP ||
 							event.Subnet.Spec.CIDRBlock != val.dhcpSubnet.Spec.CIDRBlock ||
 							event.Subnet.Spec.EndIP != val.dhcpSubnet.Spec.EndIP { //
@@ -71,7 +67,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					}
 					_, cidr, err := net.ParseCIDR(event.Subnet.Spec.CIDRBlock)
 					if err != nil {
-						log.Errorf("Invalid CIDR block on DHCP subnet %s with cidrblock %s", key, event.Subnet.Spec.CIDRBlock)
+						slog.Warn("Invalid CIDR block on DHCP", "subnet", key, "cidrblock", event.Subnet.Spec.CIDRBlock, "error", err)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -86,7 +82,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 						uint32(prefixLen), //nolint:gosec
 					)
 					if err != nil {
-						log.Errorf("Unable to create ip pool for subnet %s with cidrblock %s", key, event.Subnet.Spec.CIDRBlock)
+						slog.Warn("Unable to create ip pool for subnet", "subnet", key, "cidrblock", event.Subnet.Spec.CIDRBlock, "error", err)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -96,7 +92,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					allocation := make(map[string]*ipreservation, len(event.Subnet.Status.Allocated))
 					for k, v := range event.Subnet.Status.Allocated {
 						if _, err := pool.AllocateIP(net.IPNet{IP: net.ParseIP(v.IP), Mask: cidr.Mask}); err != nil {
-							log.Errorf("Failed to allocate IP %s with error %s", v.IP, err)
+							slog.Warn("Failed to allocate IP", "ip", v.IP, "error", err)
 
 							continue
 						}
@@ -109,7 +105,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 							state:      committed,
 						}
 					}
-					log.Infof("Received Add event for subnet %s with cidrblock %s", key, event.Subnet.Spec.CIDRBlock)
+					slog.Info("Received Add event", "subnet", key, "cidrblock", event.Subnet.Spec.CIDRBlock)
 					// Create a new managed subnet.
 					if len(event.Subnet.Status.Allocated) == 0 {
 						event.Subnet.Status.Allocated = make(map[string]dhcpapi.DHCPAllocated)
@@ -136,7 +132,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 
 					val, ok := pluginHdl.dhcpSubnets.subnets[key]
 					if !ok {
-						log.Errorf("Received modify event for dhcp subnet that does not exist: %s", key)
+						slog.Warn("Received modify event for dhcp subnet that does not exist", "subnet", key, "cidrblock", event.Subnet.Spec.CIDRBlock)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -155,7 +151,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 					cachedprefixLen, _ := cached.Mask.Size()
 					if recprefixLen < cachedprefixLen {
 						// can't reduce CIDR block size
-						log.Errorf("Can't reduce CIDR block size for %s from %d to %d", key, cachedprefixLen, recprefixLen)
+						slog.Warn("Can't reduce CIDR block size", "subnet", key, "from", cachedprefixLen, "to", recprefixLen)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -173,7 +169,7 @@ func setup(svc *Service) func(args ...string) (handler.Handler4, error) {
 
 					val, ok := pluginHdl.dhcpSubnets.subnets[key]
 					if !ok {
-						log.Errorf("Received Delete event for non existing subnet %s with cidrblock %s", key, val.dhcpSubnet.Spec.CIDRBlock)
+						slog.Warn("Received Delete event for non existing subnet", "subnet", key, "cidrblock", val.dhcpSubnet.Spec.CIDRBlock)
 						pluginHdl.dhcpSubnets.Unlock()
 
 						continue
@@ -200,25 +196,25 @@ func handlerDHCP4(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
 	case dhcpv4.MessageTypeDiscover:
 		slog.Debug("Received DHCP Discover4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleDiscover4(req, resp); err != nil {
-			log.Errorf("handleDiscover4 error: %s", err)
+			slog.Error("handleDiscover4", "error", err)
 		}
 	case dhcpv4.MessageTypeRequest:
 		slog.Debug("Received DHCP Request4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleRequest4(req, resp); err != nil {
-			log.Errorf("handle DHCP Request4 error: %s", err)
+			slog.Error("handleRequest4", "error", err)
 		}
 	case dhcpv4.MessageTypeRelease:
 		slog.Debug("Received DHCP Release4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleRelease4(req, resp); err != nil {
-			log.Errorf("handle DHCP Release4 error: %s", err)
+			slog.Error("handleRelease4", "error", err)
 		}
 	case dhcpv4.MessageTypeDecline:
 		slog.Debug("Received DHCP Decline4 from client", "mac", req.ClientHWAddr.String())
 		if err := handleDecline4(req, resp); err != nil {
-			log.Errorf("handle DHCP Decline4 error: %s", err)
+			slog.Error("handleDecline4", "error", err)
 		}
 	default:
-		log.Errorf("Unknown DHCP message type from client: %s", req.ClientHWAddr.String())
+		slog.Error("Unknown DHCP message type from client", "mac", req.ClientHWAddr.String())
 	}
 
 	return resp, false
@@ -233,7 +229,7 @@ func updateBackend4(dhcpsubnet *dhcpapi.DHCPSubnet) error {
 		return errors.New("SvcHdl is not initialized")
 	}
 	if err := pluginHdl.svcHdl.updateStatus(*dhcpsubnet); err != nil {
-		log.Errorf("Update to dhcpsubnet failed: %v", err)
+		slog.Error("Update to dhcpsubnet failed", "error", err)
 	}
 
 	return nil
