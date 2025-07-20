@@ -45,15 +45,20 @@ func setupLogger(verbose, brief bool) error {
 	}
 
 	logW := os.Stderr
-	handler := tint.NewHandler(logW, &tint.Options{
+
+	slog.SetDefault(slog.New(tint.NewHandler(logW, &tint.Options{
 		Level:      logLevel,
-		TimeFormat: time.TimeOnly,
+		TimeFormat: time.StampMilli,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})))
+
+	kubeHandler := tint.NewHandler(logW, &tint.Options{
+		Level:      slog.LevelInfo,
+		TimeFormat: time.StampMilli,
 		NoColor:    !isatty.IsTerminal(logW.Fd()),
 	})
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-	kctrl.SetLogger(logr.FromSlogHandler(handler))
-	klog.SetSlogLogger(logger)
+	kctrl.SetLogger(logr.FromSlogHandler(kubeHandler))
+	klog.SetSlogLogger(slog.New(kubeHandler))
 
 	return nil
 }
