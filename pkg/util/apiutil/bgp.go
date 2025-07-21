@@ -96,6 +96,8 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 		out["default"] = map[string]BGPNeighborStatus{}
 	}
 
+	fabricPeers := make(map[string]bool)
+
 	for _, conn := range conns.Items {
 		if conn.Spec.MCLAGDomain != nil { //nolint:gocritic
 			switches, _, _, _, err := conn.Spec.Endpoints()
@@ -141,6 +143,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				} else if sw.Name != curr.DeviceName() {
 					continue
 				}
+				fabricPeers[other.DeviceName()] = true
 
 				ip := strings.Split(other.IP, "/")[0]
 				neigh, ok := out["default"][ip]
@@ -177,6 +180,27 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				out["default"][ip] = neigh
 			}
 		}
+	}
+
+	for peer := range fabricPeers {
+		peerSpec, ok := ag.Spec.Switches[peer]
+		if !ok {
+			return nil, fmt.Errorf("no switch found for peer %s", peer) //nolint:goerr113
+		}
+		if peerSpec.ProtocolIP == "" {
+			return nil, fmt.Errorf("no protocol IP found for peer %s", peer) //nolint:goerr113
+		}
+		ip := strings.Split(peerSpec.ProtocolIP, "/")[0]
+		neigh, ok := out["default"][ip]
+		if !ok {
+			neigh = BGPNeighborStatus{}
+		}
+
+		neigh.RemoteName = peer
+		neigh.Type = BGPNeighborTypeFabric
+		neigh.Expected = true
+		neigh.Port = "Lo"
+		out["default"][ip] = neigh
 	}
 
 	for _, extAtt := range extAttachments.Items {
