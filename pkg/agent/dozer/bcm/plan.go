@@ -416,7 +416,10 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	if agent.Spec.Role.IsSpine() {
 		vtepPrefix = agent.Spec.Config.VTEPSubnet
 		if vtepPrefix == "" {
-			return errors.New("VTEP subnet not set in agent config")
+			// return errors.New("VTEP subnet not set in agent config")
+
+			// TODO remove after 25.04 release
+			vtepPrefix = "172.30.12.0/22"
 		}
 	} else if agent.Spec.Role.IsLeaf() {
 		vtepPrefix = agent.Spec.Switch.VTEPIP
