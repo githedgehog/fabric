@@ -430,7 +430,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Prefix: dozer.SpecPrefixListPrefix{
 					Prefix: vtepPrefix,
 					Le:     32,
-					Ge:     32,
 				},
 				Action: dozer.SpecPrefixListActionPermit,
 			},
@@ -460,7 +459,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Prefix: dozer.SpecPrefixListPrefix{
 					Prefix: agent.Spec.Switch.ProtocolIP,
 					Le:     32,
-					Ge:     32,
 				},
 				Action: dozer.SpecPrefixListActionPermit,
 			},
