@@ -616,6 +616,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `cmisStatus` _string_ |  |  |  |
+| `cmisRev` _string_ |  |  |  |
+| `cmisApp` _integer_ |  |  |  |
 | `description` _string_ |  |  |  |
 | `cableClass` _string_ |  |  |  |
 | `formFactor` _string_ |  |  |  |
