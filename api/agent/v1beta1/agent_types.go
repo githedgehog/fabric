@@ -277,6 +277,9 @@ func (o OperStatus) ID() (uint8, error) {
 }
 
 type SwitchStateTransceiver struct {
+	CMISStatus    string  `json:"cmisStatus,omitempty"`
+	CMISRev       string  `json:"cmisRev,omitempty"`
+	CMISApp       uint8   `json:"cmisApp,omitempty"`
 	Description   string  `json:"description,omitempty"`
 	CableClass    string  `json:"cableClass,omitempty"`
 	FormFactor    string  `json:"formFactor,omitempty"`

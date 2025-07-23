@@ -290,6 +290,36 @@ func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, 
 		}
 	}
 
+	for ifaceName, ifaceState := range agent.Status.State.Interfaces {
+		if !strings.HasPrefix(ifaceName, "E1") {
+			continue
+		}
+
+		if strings.Count(ifaceName, "/") == 2 {
+			breakoutName := ifaceName[:strings.LastIndex(ifaceName, "/")]
+
+			if agent.Status.State.Breakouts != nil {
+				state, exists := agent.Status.State.Breakouts[breakoutName]
+				if exists {
+					if _, ok := ports[breakoutName]; !ok {
+						ports[breakoutName] = &SwitchOutPort{
+							PortName:      breakoutName,
+							BreakoutState: &state,
+						}
+					}
+				}
+			}
+		} else {
+			if _, ok := ports[ifaceName]; !ok {
+				ports[ifaceName] = &SwitchOutPort{
+					ConnectionType: "unused",
+					PortName:       ifaceName,
+					InterfaceState: &ifaceState,
+				}
+			}
+		}
+	}
+
 	portNames := lo.Keys(ports)
 	wiringapi.SortPortNames(portNames)
 

@@ -2179,6 +2179,12 @@ spec:
                               type: string
                             cableLength:
                               type: number
+                            cmisApp:
+                              type: integer
+                            cmisRev:
+                              type: string
+                            cmisStatus:
+                              type: string
                             connectorType:
                               type: string
                             description:

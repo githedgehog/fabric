@@ -83,6 +83,10 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update transceiver metrics")
 	}
 
+	if err := p.updateCMISMetrics(ctx, reg, swState, portMap); err != nil {
+		return errors.Wrapf(err, "failed to update cmis metrics")
+	}
+
 	if err := p.updateLLDPNeighbors(ctx, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update lldp neighbors")
 	}
@@ -701,6 +705,56 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 		intSt := swState.Interfaces[transceiverName]
 		intSt.Transceiver = &st
 		swState.Interfaces[transceiverName] = intSt
+	}
+
+	return nil
+}
+
+func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
+	cmis := &oc.OpenconfigPlatformDiagnostics_TransceiverCmis{}
+	if err := p.client.Get(ctx, "/transceiver-cmis/transceiver-cmis-info", cmis); err != nil {
+		return errors.Wrapf(err, "failed to get transceiver-cmis")
+	}
+
+	if cmis.TransceiverCmisInfo == nil {
+		return nil
+	}
+
+	for transceiverNameRaw, transceiver := range cmis.TransceiverCmisInfo {
+		if !strings.HasPrefix(transceiverNameRaw, "Ethernet") {
+			continue
+		}
+
+		if transceiver.State == nil {
+			continue
+		}
+
+		transceiverName, exists := portMap[transceiverNameRaw]
+		if !exists {
+			slog.Warn("Port mapping not found, ignoring for metrics (cmis)", "transceiver", transceiverNameRaw)
+
+			continue
+		}
+
+		ocSt := transceiver.State
+		st := swState.Interfaces[transceiverName]
+		if st.Transceiver == nil {
+			st.Transceiver = &agentapi.SwitchStateTransceiver{}
+		}
+
+		if ocSt.Status != nil {
+			st.Transceiver.CMISStatus = *ocSt.Status
+		}
+
+		if ocSt.Revision != nil {
+			st.Transceiver.CMISRev = *ocSt.Revision
+		}
+
+		if ocSt.Appsel != nil {
+			st.Transceiver.CMISApp = *ocSt.Appsel
+		}
+
+		swState.Interfaces[transceiverName] = st
 	}
 
 	return nil
