@@ -621,9 +621,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		if conn.StaticExternal == nil {
 			continue
 		}
-		if conn.StaticExternal.WithinVPC == "" {
-			continue
-		}
 
 		_, ipNet, err := net.ParseCIDR(conn.StaticExternal.Link.Switch.IP)
 		if err != nil {
