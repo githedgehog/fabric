@@ -761,7 +761,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
-		ipnsVrfName := ipnsVrfName(external.IPv4Namespace)
+		extVrfName := extVrfName(externalName)
 
 		externalCommsCommList := ipNsExtCommsCommListName(external.IPv4Namespace)
 		externalCommsRouteMap := ipNsExternalCommsRouteMapName(external.IPv4Namespace)
@@ -808,15 +808,14 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			seq += 10
 		}
 
-		if spec.VRFs[ipnsVrfName] == nil {
+		if spec.VRFs[extVrfName] == nil {
 			protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse protocol ip %s", agent.Spec.Switch.ProtocolIP)
 			}
 
-			spec.VRFs[ipnsVrfName] = &dozer.SpecVRF{
-				Enabled: pointer.To(true),
-				// Description:      pointer.To(fmt.Sprintf("IPv4NS %s", external.IPv4Namespace)),
+			spec.VRFs[extVrfName] = &dozer.SpecVRF{
+				Enabled:          pointer.To(true),
 				AnycastMAC:       pointer.To(AnycastMAC),
 				Interfaces:       map[string]*dozer.SpecVRFInterface{},
 				StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
@@ -895,9 +894,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("connection %s is not external for external attach %s", attach.Connection, name)
 		}
 
-		external, exists := agent.Spec.Externals[attach.External]
+		externalName := attach.External
+		external, exists := agent.Spec.Externals[externalName]
 		if !exists {
-			return errors.Errorf("external %s not found for external attach %s", attach.External, name)
+			return errors.Errorf("external %s not found for external attach %s", externalName, name)
 		}
 
 		port := conn.External.Link.Switch.LocalPortName()
@@ -927,10 +927,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		ipns := external.IPv4Namespace
-		ipnsVrfName := ipnsVrfName(ipns)
-		spec.VRFs[ipnsVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
+		extVrfName := extVrfName(externalName)
+		spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 
-		spec.VRFs[ipnsVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
+		spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
 			RemoteAS:                  pointer.To(attach.Neighbor.ASN),
@@ -1458,8 +1458,8 @@ func vpcVrfName(vpcName string) string {
 	return vrfName("V" + vpcName)
 }
 
-func ipnsVrfName(ipnsName string) string {
-	return vrfName("I" + ipnsName)
+func extVrfName(externalName string) string {
+	return vrfName("E" + externalName)
 }
 
 // normalize nexthops as we get them in an inconsistent order, and otherwise
@@ -2690,7 +2690,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		ipnsVrf := ipnsVrfName(external.IPv4Namespace)
+		extVrf := extVrfName(externalName)
 		vpcVrf := vpcVrfName(vpcName)
 
 		if !attachedVPCs[vpcName] || !agent.Spec.Config.LoopbackWorkaround {
@@ -2722,7 +2722,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.RouteMaps[importVrfRouteMap].Statements["5"] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
-					MatchSourceVRF:  pointer.To(ipnsVrfName(vpc.IPv4Namespace)),
+					MatchSourceVRF:  pointer.To(extVrf),
 				},
 				Result: dozer.SpecRouteMapResultReject,
 			}
@@ -2746,8 +2746,8 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 
-			spec.VRFs[ipnsVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
-			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[ipnsVrf] = &dozer.SpecVRFBGPImportVRF{}
+			spec.VRFs[extVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
+			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[extVrf] = &dozer.SpecVRFBGPImportVRF{}
 		} else {
 			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForExt(name))
 			if err != nil {
@@ -2755,7 +2755,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			spec.VRFs[vpcVrf].Interfaces[sub1] = &dozer.SpecVRFInterface{}
-			spec.VRFs[ipnsVrf].Interfaces[sub2] = &dozer.SpecVRFInterface{}
+			spec.VRFs[extVrf].Interfaces[sub2] = &dozer.SpecVRFInterface{}
 
 			spec.ACLInterfaces[sub1] = &dozer.SpecACLInterface{
 				Egress: pointer.To(ipnsEgressAccessList(external.IPv4Namespace)),
@@ -2773,7 +2773,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 				prefixLen, _ := ipNet.Mask.Size()
 
-				spec.VRFs[ipnsVrf].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+				spec.VRFs[extVrf].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
 							IP:        ip1,
@@ -2782,7 +2782,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 				}
 
-				spec.VRFs[ipnsVrf].BGP.IPv4Unicast.Networks[subnet.Subnet] = &dozer.SpecVRFBGPNetwork{}
+				spec.VRFs[extVrf].BGP.IPv4Unicast.Networks[subnet.Subnet] = &dozer.SpecVRFBGPNetwork{}
 			}
 
 			for _, prefix := range peering.Permit.External.Prefixes {
