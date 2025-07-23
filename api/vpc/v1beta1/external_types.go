@@ -114,6 +114,10 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
 
+	if len(external.Name) > 11 {
+		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", external.Name)
+	}
+
 	if external.Spec.IPv4Namespace == "" {
 		return nil, errors.Errorf("IPv4Namespace is required")
 	}
