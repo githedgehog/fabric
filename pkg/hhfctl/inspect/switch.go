@@ -94,7 +94,7 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 		},
 	))
 
-	str.WriteString("Ports (in use):\n")
+	str.WriteString("Ports:\n")
 
 	portMap, err := out.Profile.GetAPI2NOSPortsFor(out.Spec)
 	if err != nil {
@@ -106,6 +106,7 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 		portType := port.ConnectionType
 		state := ""
 		speed := ""
+		transName := ""
 		trans := ""
 		nos := portMap[port.PortName]
 
@@ -126,11 +127,16 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 			state = fmt.Sprintf("%s/%s", port.InterfaceState.AdminStatus, port.InterfaceState.OperStatus)
 			speed = port.InterfaceState.Speed
 			if port.InterfaceState.Transceiver != nil {
-				trans = port.InterfaceState.Transceiver.Description
-				if port.InterfaceState.Transceiver.OperStatus != "" {
-					state += fmt.Sprintf(" (%s)", port.InterfaceState.Transceiver.OperStatus)
-				}
+				transName = port.InterfaceState.Transceiver.Description
 			}
+			if port.InterfaceState.Transceiver.OperStatus != "" {
+				trans = port.InterfaceState.Transceiver.OperStatus
+			}
+			trans += "/"
+			if port.InterfaceState.Transceiver.CMISStatus != "" {
+				trans += port.InterfaceState.Transceiver.CMISStatus
+			}
+			trans = strings.TrimSuffix(trans, "/")
 		}
 
 		portData = append(portData, []string{
@@ -139,12 +145,13 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 			portType,
 			port.ConnectionName,
 			state,
-			speed,
 			trans,
+			speed,
+			transName,
 		})
 	}
 	str.WriteString(RenderTable(
-		[]string{"Name", "NOS", "Type", "Connection", "Adm/Op (Transc)", "Speed", "Transceiver"},
+		[]string{"Name", "NOS", "Type", "Connection", "Adm/Op", "Transc/CMIS", "Speed", "Transceiver"},
 		portData,
 	))
 
