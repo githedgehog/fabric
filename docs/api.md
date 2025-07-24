@@ -633,6 +633,30 @@ _Appears in:_
 | `vendorPart` _string_ |  |  |  |
 | `vendorOUI` _string_ |  |  |  |
 | `vendorRev` _string_ |  |  |  |
+| `rx1Power` _float_ |  |  |  |
+| `rx2Power` _float_ |  |  |  |
+| `rx3Power` _float_ |  |  |  |
+| `rx4Power` _float_ |  |  |  |
+| `rx5Power` _float_ |  |  |  |
+| `rx6Power` _float_ |  |  |  |
+| `rx7Power` _float_ |  |  |  |
+| `rx8Power` _float_ |  |  |  |
+| `tx1Bias` _float_ |  |  |  |
+| `tx2Bias` _float_ |  |  |  |
+| `tx3Bias` _float_ |  |  |  |
+| `tx4Bias` _float_ |  |  |  |
+| `tx5Bias` _float_ |  |  |  |
+| `tx6Bias` _float_ |  |  |  |
+| `tx7Bias` _float_ |  |  |  |
+| `tx8Bias` _float_ |  |  |  |
+| `tx1Power` _float_ |  |  |  |
+| `tx2Power` _float_ |  |  |  |
+| `tx3Power` _float_ |  |  |  |
+| `tx4Power` _float_ |  |  |  |
+| `tx5Power` _float_ |  |  |  |
+| `tx6Power` _float_ |  |  |  |
+| `tx7Power` _float_ |  |  |  |
+| `tx8Power` _float_ |  |  |  |
 
 
 

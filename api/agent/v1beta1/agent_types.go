@@ -294,6 +294,30 @@ type SwitchStateTransceiver struct {
 	VendorPart    string  `json:"vendorPart,omitempty"`
 	VendorOUI     string  `json:"vendorOUI,omitempty"`
 	VendorRev     string  `json:"vendorRev,omitempty"`
+	Rx1Power      float64 `json:"rx1Power,omitempty"`
+	Rx2Power      float64 `json:"rx2Power,omitempty"`
+	Rx3Power      float64 `json:"rx3Power,omitempty"`
+	Rx4Power      float64 `json:"rx4Power,omitempty"`
+	Rx5Power      float64 `json:"rx5Power,omitempty"`
+	Rx6Power      float64 `json:"rx6Power,omitempty"`
+	Rx7Power      float64 `json:"rx7Power,omitempty"`
+	Rx8Power      float64 `json:"rx8Power,omitempty"`
+	Tx1Bias       float64 `json:"tx1Bias,omitempty"`
+	Tx2Bias       float64 `json:"tx2Bias,omitempty"`
+	Tx3Bias       float64 `json:"tx3Bias,omitempty"`
+	Tx4Bias       float64 `json:"tx4Bias,omitempty"`
+	Tx5Bias       float64 `json:"tx5Bias,omitempty"`
+	Tx6Bias       float64 `json:"tx6Bias,omitempty"`
+	Tx7Bias       float64 `json:"tx7Bias,omitempty"`
+	Tx8Bias       float64 `json:"tx8Bias,omitempty"`
+	Tx1Power      float64 `json:"tx1Power,omitempty"`
+	Tx2Power      float64 `json:"tx2Power,omitempty"`
+	Tx3Power      float64 `json:"tx3Power,omitempty"`
+	Tx4Power      float64 `json:"tx4Power,omitempty"`
+	Tx5Power      float64 `json:"tx5Power,omitempty"`
+	Tx6Power      float64 `json:"tx6Power,omitempty"`
+	Tx7Power      float64 `json:"tx7Power,omitempty"`
+	Tx8Power      float64 `json:"tx8Power,omitempty"`
 }
 
 type SwitchStateBreakout struct {

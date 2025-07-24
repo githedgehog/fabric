@@ -568,98 +568,122 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 
 		if ocSt.Rx1Power != nil {
 			reg.TransceiverMetrics.Rx1Power.WithLabelValues(transceiverName).Set(*ocSt.Rx1Power)
+			st.Rx1Power = *ocSt.Rx1Power
 		}
 
 		if ocSt.Rx2Power != nil {
 			reg.TransceiverMetrics.Rx2Power.WithLabelValues(transceiverName).Set(*ocSt.Rx2Power)
+			st.Rx2Power = *ocSt.Rx2Power
 		}
 
 		if ocSt.Rx3Power != nil {
 			reg.TransceiverMetrics.Rx3Power.WithLabelValues(transceiverName).Set(*ocSt.Rx3Power)
+			st.Rx3Power = *ocSt.Rx3Power
 		}
 
 		if ocSt.Rx4Power != nil {
 			reg.TransceiverMetrics.Rx4Power.WithLabelValues(transceiverName).Set(*ocSt.Rx4Power)
+			st.Rx4Power = *ocSt.Rx4Power
 		}
 
 		if ocSt.Rx5Power != nil {
 			reg.TransceiverMetrics.Rx5Power.WithLabelValues(transceiverName).Set(*ocSt.Rx5Power)
+			st.Rx5Power = *ocSt.Rx5Power
 		}
 
 		if ocSt.Rx6Power != nil {
 			reg.TransceiverMetrics.Rx6Power.WithLabelValues(transceiverName).Set(*ocSt.Rx6Power)
+			st.Rx6Power = *ocSt.Rx6Power
 		}
 
 		if ocSt.Rx7Power != nil {
 			reg.TransceiverMetrics.Rx7Power.WithLabelValues(transceiverName).Set(*ocSt.Rx7Power)
+			st.Rx7Power = *ocSt.Rx7Power
 		}
 
 		if ocSt.Rx8Power != nil {
 			reg.TransceiverMetrics.Rx8Power.WithLabelValues(transceiverName).Set(*ocSt.Rx8Power)
+			st.Rx8Power = *ocSt.Rx8Power
 		}
 
 		if ocSt.Tx1Bias != nil {
 			reg.TransceiverMetrics.Tx1Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx1Bias)
+			st.Tx1Bias = *ocSt.Tx1Bias
 		}
 
 		if ocSt.Tx2Bias != nil {
 			reg.TransceiverMetrics.Tx2Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx2Bias)
+			st.Tx2Bias = *ocSt.Tx2Bias
 		}
 
 		if ocSt.Tx3Bias != nil {
 			reg.TransceiverMetrics.Tx3Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx3Bias)
+			st.Tx3Bias = *ocSt.Tx3Bias
 		}
 
 		if ocSt.Tx4Bias != nil {
 			reg.TransceiverMetrics.Tx4Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx4Bias)
+			st.Tx4Bias = *ocSt.Tx4Bias
 		}
 
 		if ocSt.Tx5Bias != nil {
 			reg.TransceiverMetrics.Tx5Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx5Bias)
+			st.Tx5Bias = *ocSt.Tx5Bias
 		}
 
 		if ocSt.Tx6Bias != nil {
 			reg.TransceiverMetrics.Tx6Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx6Bias)
+			st.Tx6Bias = *ocSt.Tx6Bias
 		}
 
 		if ocSt.Tx7Bias != nil {
 			reg.TransceiverMetrics.Tx7Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx7Bias)
+			st.Tx7Bias = *ocSt.Tx7Bias
 		}
 
 		if ocSt.Tx8Bias != nil {
 			reg.TransceiverMetrics.Tx8Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx8Bias)
+			st.Tx8Bias = *ocSt.Tx8Bias
 		}
 
 		if ocSt.Tx1Power != nil {
 			reg.TransceiverMetrics.Tx1Power.WithLabelValues(transceiverName).Set(*ocSt.Tx1Power)
+			st.Tx1Power = *ocSt.Tx1Power
 		}
 
 		if ocSt.Tx2Power != nil {
 			reg.TransceiverMetrics.Tx2Power.WithLabelValues(transceiverName).Set(*ocSt.Tx2Power)
+			st.Tx2Power = *ocSt.Tx2Power
 		}
 
 		if ocSt.Tx3Power != nil {
 			reg.TransceiverMetrics.Tx3Power.WithLabelValues(transceiverName).Set(*ocSt.Tx3Power)
+			st.Tx3Power = *ocSt.Tx3Power
 		}
 
 		if ocSt.Tx4Power != nil {
 			reg.TransceiverMetrics.Tx4Power.WithLabelValues(transceiverName).Set(*ocSt.Tx4Power)
+			st.Tx4Power = *ocSt.Tx4Power
 		}
 
 		if ocSt.Tx5Power != nil {
 			reg.TransceiverMetrics.Tx5Power.WithLabelValues(transceiverName).Set(*ocSt.Tx5Power)
+			st.Tx5Power = *ocSt.Tx5Power
 		}
 
 		if ocSt.Tx6Power != nil {
 			reg.TransceiverMetrics.Tx6Power.WithLabelValues(transceiverName).Set(*ocSt.Tx6Power)
+			st.Tx6Power = *ocSt.Tx6Power
 		}
 
 		if ocSt.Tx7Power != nil {
 			reg.TransceiverMetrics.Tx7Power.WithLabelValues(transceiverName).Set(*ocSt.Tx7Power)
+			st.Tx7Power = *ocSt.Tx7Power
 		}
 
 		if ocSt.Tx8Power != nil {
 			reg.TransceiverMetrics.Tx8Power.WithLabelValues(transceiverName).Set(*ocSt.Tx8Power)
+			st.Tx8Power = *ocSt.Tx8Power
 		}
 
 		if ocSt.WarningRxPowerHi != nil {
