@@ -956,7 +956,8 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if conn.StaticExternal == nil {
 			continue
 		}
-		if conn.StaticExternal.Link.Switch.DeviceName() != agent.Name {
+		if (agent.Spec.Role.IsLeaf() && conn.StaticExternal.Link.Switch.DeviceName() != agent.Name) ||
+			(agent.Spec.Role.IsSpine() && conn.StaticExternal.WithinVPC != "") {
 			continue
 		}
 
@@ -965,60 +966,59 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse static external %s ip %s", connName, cfg.IP)
 		}
-		ipPrefixLen, _ := ipNet.Mask.Size()
 
-		var vlan *uint16
-		if cfg.VLAN != 0 {
-			vlan = pointer.To(cfg.VLAN)
-		}
+		if agent.Spec.Role.IsLeaf() {
+			ipPrefixLen, _ := ipNet.Mask.Size()
 
-		spec.Interfaces[cfg.LocalPortName()] = &dozer.SpecInterface{
-			Enabled:     pointer.To(true),
-			Description: pointer.To(fmt.Sprintf("StaticExt %s", connName)),
-			Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-				uint32(cfg.VLAN): {
-					VLAN: vlan,
-					IPs: map[string]*dozer.SpecInterfaceIP{
-						ip.String(): {
-							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+			var vlan *uint16
+			if cfg.VLAN != 0 {
+				vlan = pointer.To(cfg.VLAN)
+			}
+
+			spec.Interfaces[cfg.LocalPortName()] = &dozer.SpecInterface{
+				Enabled:     pointer.To(true),
+				Description: pointer.To(fmt.Sprintf("StaticExt %s", connName)),
+				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
+					uint32(cfg.VLAN): {
+						VLAN: vlan,
+						IPs: map[string]*dozer.SpecInterfaceIP{
+							ip.String(): {
+								PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+							},
 						},
 					},
 				},
-			},
-		}
-
-		ifName := cfg.LocalPortName()
-		if cfg.VLAN != 0 {
-			ifName = fmt.Sprintf("%s.%d", cfg.LocalPortName(), cfg.VLAN)
-		}
-
-		vrfName := VRFDefault
-		if conn.StaticExternal.WithinVPC != "" {
-			vrfName = vpcVrfName(conn.StaticExternal.WithinVPC)
-
-			if spec.VRFs[vrfName] == nil {
-				return errors.Errorf("vpc %s vrf %s not found for static external %s", conn.StaticExternal.WithinVPC, vrfName, connName)
-			}
-			if spec.VRFs[vrfName].Interfaces == nil {
-				spec.VRFs[vrfName].Interfaces = map[string]*dozer.SpecVRFInterface{}
 			}
 
-			spec.VRFs[vrfName].Interfaces[ifName] = &dozer.SpecVRFInterface{}
-		}
+			ifName := cfg.LocalPortName()
+			if cfg.VLAN != 0 {
+				ifName = fmt.Sprintf("%s.%d", cfg.LocalPortName(), cfg.VLAN)
+			}
 
-		subnets := []string{ipNet.String()}
+			vrfName := VRFDefault
+			if conn.StaticExternal.WithinVPC != "" {
+				vrfName = vpcVrfName(conn.StaticExternal.WithinVPC)
 
-		for _, subnet := range cfg.Subnets {
-			spec.VRFs[vrfName].StaticRoutes[subnet] = &dozer.SpecVRFStaticRoute{
-				NextHops: []dozer.SpecVRFStaticRouteNextHop{
-					{
-						IP:        cfg.NextHop,
-						Interface: pointer.To(ifName),
+				if spec.VRFs[vrfName] == nil {
+					return errors.Errorf("vpc %s vrf %s not found for static external %s", conn.StaticExternal.WithinVPC, vrfName, connName)
+				}
+				if spec.VRFs[vrfName].Interfaces == nil {
+					spec.VRFs[vrfName].Interfaces = map[string]*dozer.SpecVRFInterface{}
+				}
+
+				spec.VRFs[vrfName].Interfaces[ifName] = &dozer.SpecVRFInterface{}
+			}
+
+			for _, subnet := range cfg.Subnets {
+				spec.VRFs[vrfName].StaticRoutes[subnet] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							IP:        cfg.NextHop,
+							Interface: pointer.To(ifName),
+						},
 					},
-				},
+				}
 			}
-
-			subnets = append(subnets, subnet)
 		}
 
 		prefixList := spec.PrefixLists[PrefixListStaticExternals]
@@ -1030,6 +1030,8 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		subnets := []string{ipNet.String()}
+		subnets = append(subnets, cfg.Subnets...)
 		for _, subnet := range subnets {
 			subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
 			// TODO dedup

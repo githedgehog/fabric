@@ -103,7 +103,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("Agent").
 		For(&wiringapi.Switch{}).
-		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabels)).
+		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabelsAndSpines)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
@@ -114,7 +114,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr
 		Complete(r), "failed to setup agent controller")
 }
 
-func (r *AgentReconciler) enqueueBySwitchListLabels(_ context.Context, obj kclient.Object) []reconcile.Request {
+func (r *AgentReconciler) enqueueBySwitchListLabelsAndSpines(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
@@ -122,7 +122,14 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(_ context.Context, obj kclie
 	// TODO extract to lib
 	switchConnPrefix := wiringapi.ListLabelPrefix(wiringapi.ConnectionLabelTypeSwitch)
 
+	labelSwitches := map[string]bool{}
+	needSpines := false
 	for label, val := range labels {
+		if label == wiringapi.LabelConnectionType && val == wiringapi.ConnectionTypeStaticExternal {
+			needSpines = true
+
+			continue
+		}
 		if val != wiringapi.ListLabelValue {
 			continue
 		}
@@ -133,7 +140,35 @@ func (r *AgentReconciler) enqueueBySwitchListLabels(_ context.Context, obj kclie
 				Namespace: obj.GetNamespace(),
 				Name:      switchName,
 			}})
+			labelSwitches[switchName] = true
 		}
+	}
+
+	if !needSpines {
+		return res
+	}
+
+	// also enqueue all spines
+	sws := &wiringapi.SwitchList{}
+	err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
+	if err != nil {
+		kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile spine switches")
+
+		return res
+	}
+
+	for _, sw := range sws.Items {
+		if !sw.Spec.Role.IsSpine() {
+			continue
+		}
+		if _, ok := labelSwitches[sw.Name]; ok {
+			// already enqueued by label
+			continue
+		}
+		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+			Namespace: sw.Namespace,
+			Name:      sw.Name,
+		}})
 	}
 
 	return res
@@ -269,6 +304,21 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	conns := map[string]wiringapi.ConnectionSpec{}
 	for _, conn := range connList.Items {
 		conns[conn.Name] = conn.Spec
+	}
+
+	// for spines, also add static external connections that are not within VPC
+	if sw.Spec.Role.IsSpine() {
+		staticConnList := &wiringapi.ConnectionList{}
+		err = r.List(ctx, staticConnList, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeStaticExternal})
+		if err != nil {
+			return kctrl.Result{}, errors.Wrapf(err, "error getting static external connections for spine %s", sw.Name)
+		}
+		for _, conn := range staticConnList.Items {
+			if conn.Spec.StaticExternal.WithinVPC != "" {
+				continue
+			}
+			conns[conn.Name] = conn.Spec
+		}
 	}
 
 	neighborSwitches := map[string]bool{}
