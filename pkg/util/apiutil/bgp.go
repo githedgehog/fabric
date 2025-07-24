@@ -219,7 +219,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 		}
 
 		// TODO dedup with agent code
-		vrf := "VrfI" + ext.Spec.IPv4Namespace
+		vrf := "VrfE" + ext.Name
 		if _, ok := out[vrf]; !ok {
 			out[vrf] = map[string]BGPNeighborStatus{}
 		}
