@@ -2195,9 +2195,57 @@ spec:
                               type: string
                             present:
                               type: string
+                            rx1Power:
+                              type: number
+                            rx2Power:
+                              type: number
+                            rx3Power:
+                              type: number
+                            rx4Power:
+                              type: number
+                            rx5Power:
+                              type: number
+                            rx6Power:
+                              type: number
+                            rx7Power:
+                              type: number
+                            rx8Power:
+                              type: number
                             serialNumber:
                               type: string
                             temperature:
+                              type: number
+                            tx1Bias:
+                              type: number
+                            tx1Power:
+                              type: number
+                            tx2Bias:
+                              type: number
+                            tx2Power:
+                              type: number
+                            tx3Bias:
+                              type: number
+                            tx3Power:
+                              type: number
+                            tx4Bias:
+                              type: number
+                            tx4Power:
+                              type: number
+                            tx5Bias:
+                              type: number
+                            tx5Power:
+                              type: number
+                            tx6Bias:
+                              type: number
+                            tx6Power:
+                              type: number
+                            tx7Bias:
+                              type: number
+                            tx7Power:
+                              type: number
+                            tx8Bias:
+                              type: number
+                            tx8Power:
                               type: number
                             vendor:
                               type: string
