@@ -167,7 +167,7 @@ jobs:
       - test-api
       - test-build
 
-    name: "${{ matrix.hybrid && 'hlab' || 'vlab' }}-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
+    name: "${{ matrix.hybrid && 'hlab' || 'vlab' }}-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
 
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
@@ -175,6 +175,7 @@ jobs:
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
+      mesh: ${{ matrix.mesh }}
       gateway: ${{ matrix.gateway }}
       includeonie: ${{ matrix.includeonie }}
       buildmode: ${{ matrix.buildmode }}
@@ -187,6 +188,8 @@ jobs:
       matrix:
         fabricmode:
           - spine-leaf
+        mesh:
+          - false
         gateway:
           - false
         includeonie:
@@ -200,22 +203,33 @@ jobs:
           - false
         include:
           - fabricmode: spine-leaf
+            mesh: true
+            includeonie: false
+            gateway: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: false
+          - fabricmode: spine-leaf
+            mesh: false
             includeonie: false
             gateway: false
             buildmode: iso
             vpcmode: l2vni
             hybrid: true
           - fabricmode: collapsed-core
+            mesh: false
             includeonie: false
             gateway: false
             buildmode: iso
             vpcmode: l2vni
             hybrid: false
           # - fabricmode: spine-leaf
+          #   mesh: false
           #   gateway: true
           #   includeonie: false
           #   buildmode: iso
           #   vpcmode: l2vni
+          #   hybrid: false
 
   vlabs:
     runs-on: ubuntu-latest
