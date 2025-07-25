@@ -145,6 +145,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 
 	if svc.DryRun {
+		// make sure we can actually collect switch state
+		if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+			return errors.Wrapf(err, "failed to update switch state")
+		}
+
 		slog.Info("Dry run, exiting")
 
 		return nil
