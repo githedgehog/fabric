@@ -657,6 +657,17 @@ func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 		return nil, errors.Wrapf(err, "failed to read config file %s", svc.configFilePath())
 	}
 
+	interim := map[string]any{}
+	if err := kyaml.Unmarshal(data, &interim); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal config file %s to cleanup", svc.configFilePath())
+	}
+	delete(interim, "status")
+
+	data, err = kyaml.Marshal(interim)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshal config file %s to cleanup", svc.configFilePath())
+	}
+
 	config := &agentapi.Agent{}
 	err = kyaml.UnmarshalStrict(data, config)
 	if err != nil {
@@ -672,7 +683,10 @@ func (svc *Service) saveConfigToFile(agent *agentapi.Agent) error {
 		return errors.New("no config to save")
 	}
 
-	data, err := kyaml.Marshal(agent)
+	agCopy := agent.DeepCopy()
+	agCopy.Status = agentapi.AgentStatus{}
+
+	data, err := kyaml.Marshal(agCopy)
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal config")
 	}
