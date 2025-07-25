@@ -1711,24 +1711,24 @@ spec:
                     additionalProperties:
                       additionalProperties:
                         properties:
-                          connectionsDropped:
+                          connDropped:
                             format: int64
                             type: integer
                           enabled:
                             type: boolean
-                          establishedTransitions:
+                          estabTrans:
                             format: int64
                             type: integer
-                          lastEstablished:
+                          lastEstab:
                             format: date-time
                             type: string
                           lastRead:
                             format: date-time
                             type: string
-                          lastResetReason:
-                            type: string
-                          lastResetTime:
+                          lastReset:
                             format: date-time
+                            type: string
+                          lastResetReason:
                             type: string
                           lastWrite:
                             format: date-time
@@ -1736,23 +1736,23 @@ spec:
                           localAS:
                             format: int32
                             type: integer
-                          messages:
+                          msgs:
                             properties:
-                              received:
+                              rec:
                                 properties:
-                                  capability:
+                                  cap:
                                     format: int64
                                     type: integer
-                                  keepalive:
+                                  keepal:
                                     format: int64
                                     type: integer
-                                  notification:
+                                  notif:
                                     format: int64
                                     type: integer
                                   open:
                                     format: int64
                                     type: integer
-                                  routeRefresh:
+                                  rrefresh:
                                     format: int64
                                     type: integer
                                   update:
@@ -1761,19 +1761,19 @@ spec:
                                 type: object
                               sent:
                                 properties:
-                                  capability:
+                                  cap:
                                     format: int64
                                     type: integer
-                                  keepalive:
+                                  keepal:
                                     format: int64
                                     type: integer
-                                  notification:
+                                  notif:
                                     format: int64
                                     type: integer
                                   open:
                                     format: int64
                                     type: integer
-                                  routeRefresh:
+                                  rrefresh:
                                     format: int64
                                     type: integer
                                   update:
@@ -1793,10 +1793,10 @@ spec:
                           prefixes:
                             additionalProperties:
                               properties:
-                                received:
+                                rec:
                                   format: int32
                                   type: integer
-                                receivedPrePolicy:
+                                recPre:
                                   format: int32
                                   type: integer
                                 sent:
@@ -1806,9 +1806,9 @@ spec:
                             type: object
                           remoteRouterID:
                             type: string
-                          sessionState:
+                          shutdownMsg:
                             type: string
-                          shutdownMessage:
+                          state:
                             type: string
                         type: object
                       type: object
@@ -1820,10 +1820,6 @@ spec:
                       properties:
                         mode:
                           type: string
-                        nosMembers:
-                          items:
-                            type: string
-                          type: array
                         status:
                           type: string
                       type: object
@@ -2070,71 +2066,74 @@ spec:
                   interfaces:
                     additionalProperties:
                       properties:
-                        adminStatus:
+                        admin:
+                          type: string
+                        change:
+                          format: date-time
                           type: string
                         counters:
                           properties:
-                            inBits:
-                              format: int64
-                              type: integer
-                            inBitsPerSecond:
-                              type: number
-                            inDiscards:
-                              format: int64
-                              type: integer
-                            inErrors:
-                              format: int64
-                              type: integer
-                            inPktsPerSecond:
-                              type: number
-                            inUtilization:
-                              type: integer
-                            lastClear:
+                            clear:
                               format: date-time
                               type: string
-                            outBits:
+                            inb:
                               format: int64
                               type: integer
-                            outBitsPerSecond:
+                            inbps:
                               type: number
-                            outDiscards:
+                            ind:
                               format: int64
                               type: integer
-                            outErrors:
+                            ine:
                               format: int64
                               type: integer
-                            outPktsPerSecond:
+                            inpbs:
                               type: number
-                            outUtilization:
+                            inu:
+                              type: integer
+                            outb:
+                              format: int64
+                              type: integer
+                            outbps:
+                              type: number
+                            outd:
+                              format: int64
+                              type: integer
+                            oute:
+                              format: int64
+                              type: integer
+                            outpps:
+                              type: number
+                            outu:
                               type: integer
                             queues:
                               additionalProperties:
                                 properties:
-                                  droppedBits:
+                                  b:
                                     format: int64
                                     type: integer
-                                  droppedPkts:
+                                  bps:
                                     format: int64
                                     type: integer
-                                  ecnMarkedBits:
+                                  db:
                                     format: int64
                                     type: integer
-                                  ecnMarkedPkts:
+                                  dp:
                                     format: int64
                                     type: integer
-                                  transmitBits:
+                                  ecnb:
                                     format: int64
                                     type: integer
-                                  transmitBitsPerSecond:
+                                  ecnp:
                                     format: int64
                                     type: integer
-                                  transmitPkts:
+                                  p:
                                     format: int64
                                     type: integer
-                                  transmitPktsPerSecond:
+                                  pps:
                                     format: int64
                                     type: integer
-                                  wredDroppedPkts:
+                                  wreddp:
                                     format: int64
                                     type: integer
                                 type: object
@@ -2142,57 +2141,54 @@ spec:
                           type: object
                         enabled:
                           type: boolean
-                        lastChanged:
-                          format: date-time
-                          type: string
                         lldpNeighbors:
                           items:
                             properties:
-                              chassisID:
+                              chassis:
                                 type: string
-                              manufacturer:
+                              manuf:
                                 type: string
                               model:
                                 type: string
                               name:
                                 type: string
-                              portDescription:
+                              portDescr:
                                 type: string
                               portID:
                                 type: string
-                              serialNumber:
+                              serial:
                                 type: string
-                              systemDescription:
+                              sysDescr:
                                 type: string
-                              systemName:
+                              sysName:
                                 type: string
                             type: object
                           type: array
                         mac:
                           type: string
-                        operStatus:
+                        oper:
                           type: string
                         speed:
                           type: string
                         transceiver:
                           properties:
-                            cableClass:
+                            cable:
                               type: string
-                            cableLength:
-                              type: number
+                            cmis:
+                              type: string
                             cmisApp:
                               type: integer
                             cmisRev:
                               type: string
-                            cmisStatus:
+                            connType:
                               type: string
-                            connectorType:
-                              type: string
-                            description:
+                            descr:
                               type: string
                             formFactor:
                               type: string
-                            operStatus:
+                            length:
+                              type: number
+                            oper:
                               type: string
                             present:
                               type: string
@@ -2212,9 +2208,9 @@ spec:
                               type: number
                             rx8P:
                               type: number
-                            serialNumber:
+                            serial:
                               type: string
-                            temperature:
+                            temp:
                               type: number
                             tx1B:
                               type: number
@@ -2323,7 +2319,7 @@ spec:
                       fans:
                         additionalProperties:
                           properties:
-                            direction:
+                            dir:
                               type: string
                             presence:
                               type: boolean
@@ -2336,17 +2332,17 @@ spec:
                       psus:
                         additionalProperties:
                           properties:
-                            inputCurrent:
+                            inCurrent:
                               type: number
-                            inputPower:
+                            inPower:
                               type: number
-                            inputVoltage:
+                            inVoltage:
                               type: number
-                            outputCurrent:
+                            outCurrent:
                               type: number
-                            outputPower:
+                            outPower:
                               type: number
-                            outputVoltage:
+                            outVoltage:
                               type: number
                             presence:
                               type: boolean
@@ -2354,20 +2350,20 @@ spec:
                               type: boolean
                           type: object
                         type: object
-                      temperatures:
+                      temps:
                         additionalProperties:
                           properties:
                             alarms:
                               type: string
-                            criticalHighThreshold:
+                            critHighThreshold:
                               type: number
-                            criticalLowThreshold:
+                            critLowThreshold:
                               type: number
                             highThreshold:
                               type: number
                             lowThreshold:
                               type: number
-                            temperature:
+                            temp:
                               type: number
                           type: object
                         type: object

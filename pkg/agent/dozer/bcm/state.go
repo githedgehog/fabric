@@ -609,42 +609,42 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 
 		if ocSt.Tx1Bias != nil {
 			reg.TransceiverMetrics.Tx1Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx1Bias)
-			st.Tx1Bias = ocSt.Tx1Bias
+			st.Tx1Bias = *ocSt.Tx1Bias
 		}
 
 		if ocSt.Tx2Bias != nil {
 			reg.TransceiverMetrics.Tx2Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx2Bias)
-			st.Tx2Bias = ocSt.Tx2Bias
+			st.Tx2Bias = *ocSt.Tx2Bias
 		}
 
 		if ocSt.Tx3Bias != nil {
 			reg.TransceiverMetrics.Tx3Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx3Bias)
-			st.Tx3Bias = ocSt.Tx3Bias
+			st.Tx3Bias = *ocSt.Tx3Bias
 		}
 
 		if ocSt.Tx4Bias != nil {
 			reg.TransceiverMetrics.Tx4Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx4Bias)
-			st.Tx4Bias = ocSt.Tx4Bias
+			st.Tx4Bias = *ocSt.Tx4Bias
 		}
 
 		if ocSt.Tx5Bias != nil {
 			reg.TransceiverMetrics.Tx5Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx5Bias)
-			st.Tx5Bias = ocSt.Tx5Bias
+			st.Tx5Bias = *ocSt.Tx5Bias
 		}
 
 		if ocSt.Tx6Bias != nil {
 			reg.TransceiverMetrics.Tx6Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx6Bias)
-			st.Tx6Bias = ocSt.Tx6Bias
+			st.Tx6Bias = *ocSt.Tx6Bias
 		}
 
 		if ocSt.Tx7Bias != nil {
 			reg.TransceiverMetrics.Tx7Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx7Bias)
-			st.Tx7Bias = ocSt.Tx7Bias
+			st.Tx7Bias = *ocSt.Tx7Bias
 		}
 
 		if ocSt.Tx8Bias != nil {
 			reg.TransceiverMetrics.Tx8Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx8Bias)
-			st.Tx8Bias = ocSt.Tx8Bias
+			st.Tx8Bias = *ocSt.Tx8Bias
 		}
 
 		if ocSt.Tx1Power != nil {
@@ -1300,8 +1300,6 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 				if speed := UnmarshalPortSpeed(grSt.BreakoutSpeed); speed != nil && grSt.NumBreakouts != nil {
 					st.Mode = fmt.Sprintf("%dx%s", *grSt.NumBreakouts, *speed)
 				}
-
-				st.NOSMembers = grSt.Members
 
 				if grSt.Status != nil {
 					st.Status = *grSt.Status

@@ -99,7 +99,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `received` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
+| `rec` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
 | `sent` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
 
 
@@ -116,11 +116,11 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `capability` _integer_ |  |  |  |
-| `keepalive` _integer_ |  |  |  |
-| `notification` _integer_ |  |  |  |
+| `cap` _integer_ |  |  |  |
+| `keepal` _integer_ |  |  |  |
+| `notif` _integer_ |  |  |  |
 | `open` _integer_ |  |  |  |
-| `routeRefresh` _integer_ |  |  |  |
+| `rrefresh` _integer_ |  |  |  |
 | `update` _integer_ |  |  |  |
 
 
@@ -222,23 +222,23 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `connectionsDropped` _integer_ |  |  |  |
+| `connDropped` _integer_ |  |  |  |
 | `enabled` _boolean_ |  |  |  |
-| `establishedTransitions` _integer_ |  |  |  |
-| `lastEstablished` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `estabTrans` _integer_ |  |  |  |
+| `lastEstab` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `lastRead` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `lastResetReason` _string_ |  |  |  |
-| `lastResetTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `lastReset` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `lastWrite` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `localAS` _integer_ |  |  |  |
-| `messages` _[BGPMessages](#bgpmessages)_ |  |  |  |
+| `msgs` _[BGPMessages](#bgpmessages)_ |  |  |  |
 | `peerAS` _integer_ |  |  |  |
 | `peerGroup` _string_ |  |  |  |
 | `peerPort` _integer_ |  |  |  |
 | `peerType` _[BGPPeerType](#bgppeertype)_ |  |  |  |
 | `remoteRouterID` _string_ |  |  |  |
-| `sessionState` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  |  |
-| `shutdownMessage` _string_ |  |  |  |
+| `state` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  |  |
+| `shutdownMsg` _string_ |  |  |  |
 | `prefixes` _object (keys:string, values:[SwitchStateBGPNeighborPrefixes](#switchstatebgpneighborprefixes))_ |  |  |  |
 
 
@@ -255,8 +255,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `received` _integer_ |  |  |  |
-| `receivedPrePolicy` _integer_ |  |  |  |
+| `rec` _integer_ |  |  |  |
+| `recPre` _integer_ |  |  |  |
 | `sent` _integer_ |  |  |  |
 
 
@@ -274,7 +274,6 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `mode` _string_ |  |  |  |
-| `nosMembers` _string array_ |  |  |  |
 | `status` _string_ |  |  |  |
 
 
@@ -404,10 +403,10 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ |  |  |  |
-| `adminStatus` _[AdminStatus](#adminstatus)_ |  |  |  |
-| `operStatus` _[OperStatus](#operstatus)_ |  |  |  |
+| `admin` _[AdminStatus](#adminstatus)_ |  |  |  |
+| `oper` _[OperStatus](#operstatus)_ |  |  |  |
 | `mac` _string_ |  |  |  |
-| `lastChanged` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `change` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `speed` _string_ |  |  |  |
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `transceiver` _[SwitchStateTransceiver](#switchstatetransceiver)_ |  |  |  |
@@ -427,19 +426,19 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `inBits` _integer_ |  |  |  |
-| `inBitsPerSecond` _float_ |  |  |  |
-| `inDiscards` _integer_ |  |  |  |
-| `inErrors` _integer_ |  |  |  |
-| `inPktsPerSecond` _float_ |  |  |  |
-| `inUtilization` _integer_ |  |  |  |
-| `lastClear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
-| `outBits` _integer_ |  |  |  |
-| `outBitsPerSecond` _float_ |  |  |  |
-| `outDiscards` _integer_ |  |  |  |
-| `outErrors` _integer_ |  |  |  |
-| `outPktsPerSecond` _float_ |  |  |  |
-| `outUtilization` _integer_ |  |  |  |
+| `inb` _integer_ |  |  |  |
+| `inbps` _float_ |  |  |  |
+| `ind` _integer_ |  |  |  |
+| `ine` _integer_ |  |  |  |
+| `inpbs` _float_ |  |  |  |
+| `inu` _integer_ |  |  |  |
+| `clear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
+| `outb` _integer_ |  |  |  |
+| `outbps` _float_ |  |  |  |
+| `outd` _integer_ |  |  |  |
+| `oute` _integer_ |  |  |  |
+| `outpps` _float_ |  |  |  |
+| `outu` _integer_ |  |  |  |
 | `queues` _object (keys:string, values:[SwitchStateInterfaceCountersQueue](#switchstateinterfacecountersqueue))_ |  |  |  |
 
 
@@ -456,15 +455,15 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `droppedBits` _integer_ |  |  |  |
-| `droppedPkts` _integer_ |  |  |  |
-| `ecnMarkedBits` _integer_ |  |  |  |
-| `ecnMarkedPkts` _integer_ |  |  |  |
-| `transmitBits` _integer_ |  |  |  |
-| `transmitBitsPerSecond` _integer_ |  |  |  |
-| `transmitPkts` _integer_ |  |  |  |
-| `transmitPktsPerSecond` _integer_ |  |  |  |
-| `wredDroppedPkts` _integer_ |  |  |  |
+| `db` _integer_ |  |  |  |
+| `dp` _integer_ |  |  |  |
+| `ecnb` _integer_ |  |  |  |
+| `ecnp` _integer_ |  |  |  |
+| `b` _integer_ |  |  |  |
+| `bps` _integer_ |  |  |  |
+| `p` _integer_ |  |  |  |
+| `pps` _integer_ |  |  |  |
+| `wreddp` _integer_ |  |  |  |
 
 
 #### SwitchStateLLDPNeighbor
@@ -481,14 +480,14 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `name` _string_ |  |  |  |
-| `chassisID` _string_ |  |  |  |
-| `systemName` _string_ |  |  |  |
-| `systemDescription` _string_ |  |  |  |
+| `chassis` _string_ |  |  |  |
+| `sysName` _string_ |  |  |  |
+| `sysDescr` _string_ |  |  |  |
 | `portID` _string_ |  |  |  |
-| `portDescription` _string_ |  |  |  |
-| `manufacturer` _string_ |  |  |  |
+| `portDescr` _string_ |  |  |  |
+| `manuf` _string_ |  |  |  |
 | `model` _string_ |  |  |  |
-| `serialNumber` _string_ |  |  |  |
+| `serial` _string_ |  |  |  |
 
 
 #### SwitchStateNOS
@@ -537,7 +536,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `fans` _object (keys:string, values:[SwitchStatePlatformFan](#switchstateplatformfan))_ |  |  |  |
 | `psus` _object (keys:string, values:[SwitchStatePlatformPSU](#switchstateplatformpsu))_ |  |  |  |
-| `temperatures` _object (keys:string, values:[SwitchStatePlatformTemperature](#switchstateplatformtemperature))_ |  |  |  |
+| `temps` _object (keys:string, values:[SwitchStatePlatformTemperature](#switchstateplatformtemperature))_ |  |  |  |
 
 
 #### SwitchStatePlatformFan
@@ -553,7 +552,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `direction` _string_ |  |  |  |
+| `dir` _string_ |  |  |  |
 | `speed` _float_ |  |  |  |
 | `presence` _boolean_ |  |  |  |
 | `status` _boolean_ |  |  |  |
@@ -572,12 +571,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `inputCurrent` _float_ |  |  |  |
-| `inputPower` _float_ |  |  |  |
-| `inputVoltage` _float_ |  |  |  |
-| `outputCurrent` _float_ |  |  |  |
-| `outputPower` _float_ |  |  |  |
-| `outputVoltage` _float_ |  |  |  |
+| `inCurrent` _float_ |  |  |  |
+| `inPower` _float_ |  |  |  |
+| `inVoltage` _float_ |  |  |  |
+| `outCurrent` _float_ |  |  |  |
+| `outPower` _float_ |  |  |  |
+| `outVoltage` _float_ |  |  |  |
 | `presence` _boolean_ |  |  |  |
 | `status` _boolean_ |  |  |  |
 
@@ -595,12 +594,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `temperature` _float_ |  |  |  |
+| `temp` _float_ |  |  |  |
 | `alarms` _string_ |  |  |  |
 | `highThreshold` _float_ |  |  |  |
-| `criticalHighThreshold` _float_ |  |  |  |
+| `critHighThreshold` _float_ |  |  |  |
 | `lowThreshold` _float_ |  |  |  |
-| `criticalLowThreshold` _float_ |  |  |  |
+| `critLowThreshold` _float_ |  |  |  |
 
 
 #### SwitchStateTransceiver
@@ -616,19 +615,19 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `cmisStatus` _string_ |  |  |  |
+| `cmis` _string_ |  |  |  |
 | `cmisRev` _string_ |  |  |  |
 | `cmisApp` _integer_ |  |  |  |
-| `description` _string_ |  |  |  |
-| `cableClass` _string_ |  |  |  |
+| `descr` _string_ |  |  |  |
+| `cable` _string_ |  |  |  |
 | `formFactor` _string_ |  |  |  |
-| `connectorType` _string_ |  |  |  |
+| `connType` _string_ |  |  |  |
 | `present` _string_ |  |  |  |
-| `cableLength` _float_ |  |  |  |
-| `operStatus` _string_ |  |  |  |
-| `temperature` _float_ |  |  |  |
+| `length` _float_ |  |  |  |
+| `oper` _string_ |  |  |  |
+| `temp` _float_ |  |  |  |
 | `voltage` _float_ |  |  |  |
-| `serialNumber` _string_ |  |  |  |
+| `serial` _string_ |  |  |  |
 | `vendor` _string_ |  |  |  |
 | `vendorPart` _string_ |  |  |  |
 | `vendorOUI` _string_ |  |  |  |
