@@ -301,21 +301,10 @@ func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
-func planBreakouts(agent *agentapi.Agent, spec *dozer.Spec) error {
+func planBreakouts(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 	// it depends on the actual switch status, not on the intended state
 	if agent.Status.State.RoCE {
 		return nil // no breakouts config when RoCE is enabled
-	}
-
-	def, err := agent.Spec.SwitchProfile.GetBreakoutDefaults(&agent.Spec.Switch)
-	if err != nil {
-		return errors.Wrap(err, "failed to get breakout defaults")
-	}
-
-	for name, mode := range def {
-		spec.PortBreakouts[name] = &dozer.SpecPortBreakout{
-			Mode: mode,
-		}
 	}
 
 	for name, mode := range agent.Spec.Switch.PortBreakouts {
