@@ -177,10 +177,10 @@ type SwitchState struct {
 
 type SwitchStateInterface struct {
 	Enabled       bool                          `json:"enabled,omitempty"`
-	AdminStatus   AdminStatus                   `json:"adminStatus,omitempty"`
-	OperStatus    OperStatus                    `json:"operStatus,omitempty"`
+	AdminStatus   AdminStatus                   `json:"admin,omitempty"`
+	OperStatus    OperStatus                    `json:"oper,omitempty"`
 	MAC           string                        `json:"mac,omitempty"`
-	LastChange    kmetav1.Time                  `json:"lastChanged,omitempty"`
+	LastChange    kmetav1.Time                  `json:"change,omitempty"`
 	Speed         string                        `json:"speed,omitempty"`
 	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
 	Transceiver   *SwitchStateTransceiver       `json:"transceiver,omitempty"`
@@ -188,32 +188,32 @@ type SwitchStateInterface struct {
 }
 
 type SwitchStateInterfaceCounters struct {
-	InBits           uint64                                       `json:"inBits,omitempty"`
-	InBitsPerSecond  float64                                      `json:"inBitsPerSecond,omitempty"`
-	InDiscards       uint64                                       `json:"inDiscards,omitempty"`
-	InErrors         uint64                                       `json:"inErrors,omitempty"`
-	InPktsPerSecond  float64                                      `json:"inPktsPerSecond,omitempty"`
-	InUtilization    uint8                                        `json:"inUtilization,omitempty"`
-	LastClear        kmetav1.Time                                 `json:"lastClear,omitempty"`
-	OutBits          uint64                                       `json:"outBits,omitempty"`
-	OutBitsPerSecond float64                                      `json:"outBitsPerSecond,omitempty"`
-	OutDiscards      uint64                                       `json:"outDiscards,omitempty"`
-	OutErrors        uint64                                       `json:"outErrors,omitempty"`
-	OutPktsPerSecond float64                                      `json:"outPktsPerSecond,omitempty"`
-	OutUtilization   uint8                                        `json:"outUtilization,omitempty"`
+	InBits           uint64                                       `json:"inb,omitempty"`
+	InBitsPerSecond  float64                                      `json:"inbps,omitempty"`
+	InDiscards       uint64                                       `json:"ind,omitempty"`
+	InErrors         uint64                                       `json:"ine,omitempty"`
+	InPktsPerSecond  float64                                      `json:"inpbs,omitempty"`
+	InUtilization    uint8                                        `json:"inu,omitempty"`
+	LastClear        kmetav1.Time                                 `json:"clear,omitempty"`
+	OutBits          uint64                                       `json:"outb,omitempty"`
+	OutBitsPerSecond float64                                      `json:"outbps,omitempty"`
+	OutDiscards      uint64                                       `json:"outd,omitempty"`
+	OutErrors        uint64                                       `json:"oute,omitempty"`
+	OutPktsPerSecond float64                                      `json:"outpps,omitempty"`
+	OutUtilization   uint8                                        `json:"outu,omitempty"`
 	Queues           map[string]SwitchStateInterfaceCountersQueue `json:"queues,omitempty"`
 }
 
 type SwitchStateInterfaceCountersQueue struct {
-	DroppedBits           uint64 `json:"droppedBits,omitempty"`
-	DroppedPkts           uint64 `json:"droppedPkts,omitempty"`
-	ECNMarkedBits         uint64 `json:"ecnMarkedBits,omitempty"`
-	ECNMarkedPkts         uint64 `json:"ecnMarkedPkts,omitempty"`
-	TransmitBits          uint64 `json:"transmitBits,omitempty"`
-	TransmitBitsPerSecond uint64 `json:"transmitBitsPerSecond,omitempty"`
-	TransmitPkts          uint64 `json:"transmitPkts,omitempty"`
-	TransmitPktsPerSecond uint64 `json:"transmitPktsPerSecond,omitempty"`
-	WREDDroppedPkts       uint64 `json:"wredDroppedPkts,omitempty"`
+	DroppedBits           uint64 `json:"db,omitempty"`
+	DroppedPkts           uint64 `json:"dp,omitempty"`
+	ECNMarkedBits         uint64 `json:"ecnb,omitempty"`
+	ECNMarkedPkts         uint64 `json:"ecnp,omitempty"`
+	TransmitBits          uint64 `json:"b,omitempty"`
+	TransmitBitsPerSecond uint64 `json:"bps,omitempty"`
+	TransmitPkts          uint64 `json:"p,omitempty"`
+	TransmitPktsPerSecond uint64 `json:"pps,omitempty"`
+	WREDDroppedPkts       uint64 `json:"wreddp,omitempty"`
 }
 
 type AdminStatus string
@@ -277,19 +277,19 @@ func (o OperStatus) ID() (uint8, error) {
 }
 
 type SwitchStateTransceiver struct {
-	CMISStatus    string   `json:"cmisStatus,omitempty"`
+	CMISStatus    string   `json:"cmis,omitempty"`
 	CMISRev       string   `json:"cmisRev,omitempty"`
 	CMISApp       uint8    `json:"cmisApp,omitempty"`
-	Description   string   `json:"description,omitempty"`
-	CableClass    string   `json:"cableClass,omitempty"`
+	Description   string   `json:"descr,omitempty"`
+	CableClass    string   `json:"cable,omitempty"`
 	FormFactor    string   `json:"formFactor,omitempty"`
-	ConnectorType string   `json:"connectorType,omitempty"`
+	ConnectorType string   `json:"connType,omitempty"`
 	Present       string   `json:"present,omitempty"`
-	CableLength   float64  `json:"cableLength,omitempty"`
-	OperStatus    string   `json:"operStatus,omitempty"`
-	Temperature   float64  `json:"temperature,omitempty"`
+	CableLength   float64  `json:"length,omitempty"`
+	OperStatus    string   `json:"oper,omitempty"`
+	Temperature   float64  `json:"temp,omitempty"`
 	Voltage       float64  `json:"voltage,omitempty"`
-	SerialNumber  string   `json:"serialNumber,omitempty"`
+	SerialNumber  string   `json:"serial,omitempty"`
 	Vendor        string   `json:"vendor,omitempty"`
 	VendorPart    string   `json:"vendorPart,omitempty"`
 	VendorOUI     string   `json:"vendorOUI,omitempty"`
@@ -302,14 +302,14 @@ type SwitchStateTransceiver struct {
 	Rx6Power      *float64 `json:"rx6P,omitempty"`
 	Rx7Power      *float64 `json:"rx7P,omitempty"`
 	Rx8Power      *float64 `json:"rx8P,omitempty"`
-	Tx1Bias       *float64 `json:"tx1B,omitempty"`
-	Tx2Bias       *float64 `json:"tx2B,omitempty"`
-	Tx3Bias       *float64 `json:"tx3B,omitempty"`
-	Tx4Bias       *float64 `json:"tx4B,omitempty"`
-	Tx5Bias       *float64 `json:"tx5B,omitempty"`
-	Tx6Bias       *float64 `json:"tx6B,omitempty"`
-	Tx7Bias       *float64 `json:"tx7B,omitempty"`
-	Tx8Bias       *float64 `json:"tx8B,omitempty"`
+	Tx1Bias       float64  `json:"tx1B,omitempty"`
+	Tx2Bias       float64  `json:"tx2B,omitempty"`
+	Tx3Bias       float64  `json:"tx3B,omitempty"`
+	Tx4Bias       float64  `json:"tx4B,omitempty"`
+	Tx5Bias       float64  `json:"tx5B,omitempty"`
+	Tx6Bias       float64  `json:"tx6B,omitempty"`
+	Tx7Bias       float64  `json:"tx7B,omitempty"`
+	Tx8Bias       float64  `json:"tx8B,omitempty"`
 	Tx1Power      *float64 `json:"tx1P,omitempty"`
 	Tx2Power      *float64 `json:"tx2P,omitempty"`
 	Tx3Power      *float64 `json:"tx3P,omitempty"`
@@ -321,50 +321,49 @@ type SwitchStateTransceiver struct {
 }
 
 type SwitchStateBreakout struct {
-	Mode       string   `json:"mode,omitempty"`
-	NOSMembers []string `json:"nosMembers,omitempty"`
-	Status     string   `json:"status,omitempty"`
+	Mode   string `json:"mode,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
 type SwitchStateLLDPNeighbor struct {
 	Name              string `json:"name,omitempty"`
-	ChassisID         string `json:"chassisID,omitempty"`
-	SystemName        string `json:"systemName,omitempty"`
-	SystemDescription string `json:"systemDescription,omitempty"`
+	ChassisID         string `json:"chassis,omitempty"`
+	SystemName        string `json:"sysName,omitempty"`
+	SystemDescription string `json:"sysDescr,omitempty"`
 	PortID            string `json:"portID,omitempty"`
-	PortDescription   string `json:"portDescription,omitempty"`
+	PortDescription   string `json:"portDescr,omitempty"`
 
 	// LLDP-MED inventory
 
-	Manufacturer string `json:"manufacturer,omitempty"`
+	Manufacturer string `json:"manuf,omitempty"`
 	Model        string `json:"model,omitempty"`
-	SerialNumber string `json:"serialNumber,omitempty"`
+	SerialNumber string `json:"serial,omitempty"`
 }
 
 type SwitchStateBGPNeighbor struct {
-	ConnectionsDropped     uint64                                    `json:"connectionsDropped,omitempty"`
+	ConnectionsDropped     uint64                                    `json:"connDropped,omitempty"`
 	Enabled                bool                                      `json:"enabled,omitempty"`
-	EstablishedTransitions uint64                                    `json:"establishedTransitions,omitempty"`
-	LastEstablished        kmetav1.Time                              `json:"lastEstablished,omitempty"`
+	EstablishedTransitions uint64                                    `json:"estabTrans,omitempty"`
+	LastEstablished        kmetav1.Time                              `json:"lastEstab,omitempty"`
 	LastRead               kmetav1.Time                              `json:"lastRead,omitempty"`
 	LastResetReason        string                                    `json:"lastResetReason,omitempty"`
-	LastResetTime          kmetav1.Time                              `json:"lastResetTime,omitempty"`
+	LastResetTime          kmetav1.Time                              `json:"lastReset,omitempty"`
 	LastWrite              kmetav1.Time                              `json:"lastWrite,omitempty"`
 	LocalAS                uint32                                    `json:"localAS,omitempty"`
-	Messages               BGPMessages                               `json:"messages,omitempty"`
+	Messages               BGPMessages                               `json:"msgs,omitempty"`
 	PeerAS                 uint32                                    `json:"peerAS,omitempty"`
 	PeerGroup              string                                    `json:"peerGroup,omitempty"`
 	PeerPort               uint16                                    `json:"peerPort,omitempty"`
 	PeerType               BGPPeerType                               `json:"peerType,omitempty"`
 	RemoteRouterID         string                                    `json:"remoteRouterID,omitempty"`
-	SessionState           BGPNeighborSessionState                   `json:"sessionState,omitempty"`
-	ShutdownMessage        string                                    `json:"shutdownMessage,omitempty"`
+	SessionState           BGPNeighborSessionState                   `json:"state,omitempty"`
+	ShutdownMessage        string                                    `json:"shutdownMsg,omitempty"`
 	Prefixes               map[string]SwitchStateBGPNeighborPrefixes `json:"prefixes,omitempty"`
 }
 
 type SwitchStateBGPNeighborPrefixes struct {
-	Received          uint32 `json:"received,omitempty"`
-	ReceivedPrePolicy uint32 `json:"receivedPrePolicy,omitempty"`
+	Received          uint32 `json:"rec,omitempty"`
+	ReceivedPrePolicy uint32 `json:"recPre,omitempty"`
 	Sent              uint32 `json:"sent,omitempty"`
 }
 
@@ -423,50 +422,50 @@ func (b BGPPeerType) ID() (uint8, error) {
 }
 
 type BGPMessages struct {
-	Received BGPMessagesCounters `json:"received,omitempty"`
+	Received BGPMessagesCounters `json:"rec,omitempty"`
 	Sent     BGPMessagesCounters `json:"sent,omitempty"`
 }
 
 type BGPMessagesCounters struct {
-	Capability   uint64 `json:"capability,omitempty"`
-	Keepalive    uint64 `json:"keepalive,omitempty"`
-	Notification uint64 `json:"notification,omitempty"`
+	Capability   uint64 `json:"cap,omitempty"`
+	Keepalive    uint64 `json:"keepal,omitempty"`
+	Notification uint64 `json:"notif,omitempty"`
 	Open         uint64 `json:"open,omitempty"`
-	RouteRefresh uint64 `json:"routeRefresh,omitempty"`
+	RouteRefresh uint64 `json:"rrefresh,omitempty"`
 	Update       uint64 `json:"update,omitempty"`
 }
 
 type SwitchStatePlatform struct {
 	Fans         map[string]SwitchStatePlatformFan         `json:"fans,omitempty"`
 	PSUs         map[string]SwitchStatePlatformPSU         `json:"psus,omitempty"`
-	Temperatures map[string]SwitchStatePlatformTemperature `json:"temperatures,omitempty"`
+	Temperatures map[string]SwitchStatePlatformTemperature `json:"temps,omitempty"`
 }
 
 type SwitchStatePlatformFan struct {
-	Direction string  `json:"direction,omitempty"`
+	Direction string  `json:"dir,omitempty"`
 	Speed     float64 `json:"speed,omitempty"`
 	Presence  bool    `json:"presence,omitempty"`
 	Status    bool    `json:"status,omitempty"`
 }
 
 type SwitchStatePlatformPSU struct {
-	InputCurrent  float64 `json:"inputCurrent,omitempty"`
-	InputPower    float64 `json:"inputPower,omitempty"`
-	InputVoltage  float64 `json:"inputVoltage,omitempty"`
-	OutputCurrent float64 `json:"outputCurrent,omitempty"`
-	OutputPower   float64 `json:"outputPower,omitempty"`
-	OutputVoltage float64 `json:"outputVoltage,omitempty"`
+	InputCurrent  float64 `json:"inCurrent,omitempty"`
+	InputPower    float64 `json:"inPower,omitempty"`
+	InputVoltage  float64 `json:"inVoltage,omitempty"`
+	OutputCurrent float64 `json:"outCurrent,omitempty"`
+	OutputPower   float64 `json:"outPower,omitempty"`
+	OutputVoltage float64 `json:"outVoltage,omitempty"`
 	Presence      bool    `json:"presence,omitempty"`
 	Status        bool    `json:"status,omitempty"`
 }
 
 type SwitchStatePlatformTemperature struct {
-	Temperature           float64 `json:"temperature,omitempty"`
+	Temperature           float64 `json:"temp,omitempty"`
 	Alarms                string  `json:"alarms,omitempty"`
 	HighThreshold         float64 `json:"highThreshold,omitempty"`
-	CriticalHighThreshold float64 `json:"criticalHighThreshold,omitempty"`
+	CriticalHighThreshold float64 `json:"critHighThreshold,omitempty"`
 	LowThreshold          float64 `json:"lowThreshold,omitempty"`
-	CriticalLowThreshold  float64 `json:"criticalLowThreshold,omitempty"`
+	CriticalLowThreshold  float64 `json:"critLowThreshold,omitempty"`
 }
 
 // SwitchStateNOS contains information about the switch and NOS received from the switch itself by the agent
