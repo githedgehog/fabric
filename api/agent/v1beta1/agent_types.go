@@ -586,8 +586,11 @@ type Agent struct {
 	kmetav1.TypeMeta   `json:",inline"`
 	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +structType=atomic
 	// Spec is the desired state of the Agent
 	Spec AgentSpec `json:"spec,omitempty"`
+
+	// +structType=atomic
 	// Status is the observed state of the Agent
 	Status AgentStatus `json:"status,omitempty"`
 }

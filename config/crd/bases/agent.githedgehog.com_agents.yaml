@@ -1613,6 +1613,7 @@ spec:
                   type: object
                 type: object
             type: object
+            x-kubernetes-map-type: atomic
           status:
             description: Status is the observed state of the Agent
             properties:
@@ -2398,6 +2399,7 @@ spec:
             required:
             - conditions
             type: object
+            x-kubernetes-map-type: atomic
         type: object
     served: true
     storage: true
