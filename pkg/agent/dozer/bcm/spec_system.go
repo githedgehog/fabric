@@ -197,11 +197,10 @@ var specPortBreakoutsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecPortBreak
 }
 
 var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBreakout]{
-	Summary:    "Port Breakout %s",
-	Path:       "/components/component[name=%s]/port/breakout-mode/groups/group[index=1]/config",
-	Weight:     ActionWeightPortBreakout,
-	SkipDelete: true,
-	NoReplace:  true,
+	Summary:   "Port Breakout %s",
+	Path:      "/components/component[name=%s]/port/breakout-mode/groups/group[index=1]",
+	Weight:    ActionWeightPortBreakout,
+	NoReplace: true,
 	Marshal: func(_ string, value *dozer.SpecPortBreakout) (ygot.ValidatedGoStruct, error) {
 		parts := strings.Split(value.Mode, "x")
 		if len(parts) != 2 {
@@ -223,13 +222,18 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 			return nil, errors.Errorf("invalid breakout mode %s", value.Mode)
 		}
 
-		return &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group{
-			Config: &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config{
-				Index:         pointer.To(uint8(1)),
-				NumBreakouts:  pointer.To(num),
-				BreakoutSpeed: speed,
-				BreakoutOwner: oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config_BreakoutOwner_MANUAL,
-				// NumPhysicalChannels: pointer.To(0), // TODO check if it's really needed
+		return &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups{
+			Group: map[uint8]*oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group{
+				1: {
+					Index: pointer.To(uint8(1)),
+					Config: &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config{
+						Index:         pointer.To(uint8(1)),
+						NumBreakouts:  pointer.To(num),
+						BreakoutSpeed: speed,
+						BreakoutOwner: oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config_BreakoutOwner_MANUAL,
+						// NumPhysicalChannels: pointer.To(0), // TODO check if it's really needed
+					},
+				},
 			},
 		}, nil
 	},
