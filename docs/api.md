@@ -409,6 +409,7 @@ _Appears in:_
 | `mac` _string_ |  |  |  |
 | `change` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `speed` _string_ |  |  |  |
+| `auto` _boolean_ |  |  |  |
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
 

@@ -2068,6 +2068,8 @@ spec:
                       properties:
                         admin:
                           type: string
+                        auto:
+                          type: boolean
                         change:
                           format: date-time
                           type: string
