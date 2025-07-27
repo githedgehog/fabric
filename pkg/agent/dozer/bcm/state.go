@@ -298,6 +298,10 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			if speed != nil {
 				ifState.Speed = *speed
 			}
+
+			if ethSt.AutoNegotiate != nil {
+				ifState.AutoNegotiate = *ethSt.AutoNegotiate
+			}
 		}
 
 		swState.Interfaces[ifaceName] = ifState
