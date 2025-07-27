@@ -410,6 +410,7 @@ _Appears in:_
 | `change` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `speed` _string_ |  |  |  |
 | `auto` _boolean_ |  |  |  |
+| `fec` _string_ |  |  |  |
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
 

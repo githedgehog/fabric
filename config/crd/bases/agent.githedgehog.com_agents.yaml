@@ -2143,6 +2143,8 @@ spec:
                           type: object
                         enabled:
                           type: boolean
+                        fec:
+                          type: string
                         lldpNeighbors:
                           items:
                             properties:

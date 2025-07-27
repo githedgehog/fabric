@@ -302,6 +302,29 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			if ethSt.AutoNegotiate != nil {
 				ifState.AutoNegotiate = *ethSt.AutoNegotiate
 			}
+
+			switch ethSt.OperFec {
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_UNSET:
+				ifState.FEC = ""
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_AUTO:
+				ifState.FEC = "auto"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_DEFAULT:
+				ifState.FEC = "default"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_DISABLED:
+				ifState.FEC = "disabled"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_ENABLED:
+				ifState.FEC = "enabled"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_FC:
+				ifState.FEC = "fc"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS:
+				ifState.FEC = "rs"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS528:
+				ifState.FEC = "rs528"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS544:
+				ifState.FEC = "rs544"
+			case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS544_2XN:
+				ifState.FEC = "rs544_2xN"
+			}
 		}
 
 		swState.Interfaces[ifaceName] = ifState

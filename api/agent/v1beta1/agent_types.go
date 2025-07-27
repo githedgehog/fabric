@@ -185,6 +185,7 @@ type SwitchStateInterface struct {
 	LastChange    kmetav1.Time                  `json:"change,omitempty"`
 	Speed         string                        `json:"speed,omitempty"`
 	AutoNegotiate bool                          `json:"auto,omitempty"`
+	FEC           string                        `json:"fec,omitempty"`
 	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
 	LLDPNeighbors []SwitchStateLLDPNeighbor     `json:"lldpNeighbors,omitempty"`
 }
