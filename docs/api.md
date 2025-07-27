@@ -203,6 +203,7 @@ _Appears in:_
 | `nos` _[SwitchStateNOS](#switchstatenos)_ | Information about the switch and NOS |  |  |
 | `interfaces` _object (keys:string, values:[SwitchStateInterface](#switchstateinterface))_ | Switch interfaces state (incl. physical, management and port channels) |  |  |
 | `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
+| `transceivers` _object (keys:string, values:[SwitchStateTransceiver](#switchstatetransceiver))_ | Transceivers state (port -> transceiver state) |  |  |
 | `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#map[string]switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
@@ -409,7 +410,6 @@ _Appears in:_
 | `change` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ |  |  |  |
 | `speed` _string_ |  |  |  |
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
-| `transceiver` _[SwitchStateTransceiver](#switchstatetransceiver)_ |  |  |  |
 | `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
 
 
@@ -611,14 +611,11 @@ _Appears in:_
 
 
 _Appears in:_
-- [SwitchStateInterface](#switchstateinterface)
+- [SwitchState](#switchstate)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `cmis` _string_ |  |  |  |
-| `cmisRev` _string_ |  |  |  |
-| `cmisApp` _integer_ |  |  |  |
-| `descr` _string_ |  |  |  |
+| `descr` _string_ | TODO Firmware? |  |  |
 | `cable` _string_ |  |  |  |
 | `formFactor` _string_ |  |  |  |
 | `connType` _string_ |  |  |  |
@@ -632,30 +629,29 @@ _Appears in:_
 | `vendorPart` _string_ |  |  |  |
 | `vendorOUI` _string_ |  |  |  |
 | `vendorRev` _string_ |  |  |  |
-| `rx1P` _float_ |  |  |  |
-| `rx2P` _float_ |  |  |  |
-| `rx3P` _float_ |  |  |  |
-| `rx4P` _float_ |  |  |  |
-| `rx5P` _float_ |  |  |  |
-| `rx6P` _float_ |  |  |  |
-| `rx7P` _float_ |  |  |  |
-| `rx8P` _float_ |  |  |  |
-| `tx1B` _float_ |  |  |  |
-| `tx2B` _float_ |  |  |  |
-| `tx3B` _float_ |  |  |  |
-| `tx4B` _float_ |  |  |  |
-| `tx5B` _float_ |  |  |  |
-| `tx6B` _float_ |  |  |  |
-| `tx7B` _float_ |  |  |  |
-| `tx8B` _float_ |  |  |  |
-| `tx1P` _float_ |  |  |  |
-| `tx2P` _float_ |  |  |  |
-| `tx3P` _float_ |  |  |  |
-| `tx4P` _float_ |  |  |  |
-| `tx5P` _float_ |  |  |  |
-| `tx6P` _float_ |  |  |  |
-| `tx7P` _float_ |  |  |  |
-| `tx8P` _float_ |  |  |  |
+| `firmware` _string_ |  |  |  |
+| `cmis` _string_ |  |  |  |
+| `cmisRev` _string_ |  |  |  |
+| `cmisApp` _integer_ |  |  |  |
+| `channels` _object (keys:string, values:[SwitchStateTransceiverChannel](#switchstatetransceiverchannel))_ |  |  |  |
+
+
+#### SwitchStateTransceiverChannel
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateTransceiver](#switchstatetransceiver)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `in` _float_ |  |  |  |
+| `out` _float_ |  |  |  |
+| `bias` _float_ |  |  |  |
 
 
 

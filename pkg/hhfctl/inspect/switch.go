@@ -57,11 +57,12 @@ type AgentState struct {
 }
 
 type SwitchOutPort struct {
-	PortName       string                         `json:"portName,omitempty"`
-	ConnectionName string                         `json:"connectionName,omitempty"`
-	ConnectionType string                         `json:"connectionType,omitempty"`
-	InterfaceState *agentapi.SwitchStateInterface `json:"interfaceState,omitempty"`
-	BreakoutState  *agentapi.SwitchStateBreakout  `json:"breakoutState,omitempty"`
+	PortName         string                           `json:"portName,omitempty"`
+	ConnectionName   string                           `json:"connectionName,omitempty"`
+	ConnectionType   string                           `json:"connectionType,omitempty"`
+	InterfaceState   *agentapi.SwitchStateInterface   `json:"interfaceState,omitempty"`
+	BreakoutState    *agentapi.SwitchStateBreakout    `json:"breakoutState,omitempty"`
+	TransceiverState *agentapi.SwitchStateTransceiver `json:"transceiverState,omitempty"`
 }
 
 func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
@@ -109,6 +110,7 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 		transName := ""
 		trans := ""
 		nos := portMap[port.PortName]
+		conn := port.ConnectionName
 
 		if port.BreakoutState != nil {
 			portType = "breakout"
@@ -126,15 +128,16 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 		if port.InterfaceState != nil {
 			state = fmt.Sprintf("%s/%s", port.InterfaceState.AdminStatus, port.InterfaceState.OperStatus)
 			speed = port.InterfaceState.Speed
-			if port.InterfaceState.Transceiver != nil {
-				transName = port.InterfaceState.Transceiver.Description
-			}
-			if port.InterfaceState.Transceiver.OperStatus != "" {
-				trans = port.InterfaceState.Transceiver.OperStatus
+		}
+
+		if port.TransceiverState != nil {
+			transName = port.TransceiverState.Description
+			if port.TransceiverState.OperStatus != "" {
+				trans = port.TransceiverState.OperStatus
 			}
 			trans += "/"
-			if port.InterfaceState.Transceiver.CMISStatus != "" {
-				trans += port.InterfaceState.Transceiver.CMISStatus
+			if port.TransceiverState.CMISStatus != "" {
+				trans += strings.ToLower(port.TransceiverState.CMISStatus)
 			}
 			trans = strings.TrimSuffix(trans, "/")
 		}
@@ -143,15 +146,15 @@ func (out *SwitchOut) MarshalText(now time.Time) (string, error) {
 			port.PortName,
 			nos,
 			portType,
-			port.ConnectionName,
+			conn,
 			state,
-			trans,
 			speed,
 			transName,
+			trans,
 		})
 	}
 	str.WriteString(RenderTable(
-		[]string{"Name", "NOS", "Type", "Connection", "Adm/Op", "Transc/CMIS", "Speed", "Transceiver"},
+		[]string{"Name", "NOS", "Type", "Connection/Mode", "Adm/Op", "Speed", "Transceiver", "Transc/CMIS"},
 		portData,
 	))
 
@@ -265,7 +268,7 @@ func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, 
 				ConnectionType: conn.Spec.Type(),
 			}
 
-			if !skipActual && agent.Status.State.Interfaces != nil {
+			if agent.Status.State.Interfaces != nil {
 				state, exists := agent.Status.State.Interfaces[portName]
 				if !exists {
 					state, exists = agent.Status.State.Interfaces[portName+"/1"]
@@ -280,20 +283,6 @@ func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, 
 			}
 
 			ports[portName] = port
-
-			if !skipActual && strings.Count(portName, "/") == 2 {
-				breakoutName := portName[:strings.LastIndex(portName, "/")]
-
-				if agent.Status.State.Breakouts != nil {
-					state, exists := agent.Status.State.Breakouts[breakoutName]
-					if exists {
-						ports[breakoutName] = &SwitchOutPort{
-							PortName:      breakoutName,
-							BreakoutState: &state,
-						}
-					}
-				}
-			}
 		}
 	}
 
@@ -301,30 +290,39 @@ func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, 
 		if !strings.HasPrefix(ifaceName, "E1") {
 			continue
 		}
-
-		if strings.Count(ifaceName, "/") == 2 {
-			breakoutName := ifaceName[:strings.LastIndex(ifaceName, "/")]
-
-			if agent.Status.State.Breakouts != nil {
-				state, exists := agent.Status.State.Breakouts[breakoutName]
-				if exists {
-					if _, ok := ports[breakoutName]; !ok {
-						ports[breakoutName] = &SwitchOutPort{
-							PortName:      breakoutName,
-							BreakoutState: &state,
-						}
-					}
-				}
-			}
-		} else {
-			if _, ok := ports[ifaceName]; !ok {
-				ports[ifaceName] = &SwitchOutPort{
-					ConnectionType: "unused",
-					PortName:       ifaceName,
-					InterfaceState: &ifaceState,
-				}
+		if _, ok := ports[ifaceName]; !ok {
+			ports[ifaceName] = &SwitchOutPort{
+				ConnectionType: "-",
+				PortName:       ifaceName,
+				InterfaceState: &ifaceState,
 			}
 		}
+	}
+
+	for transceiverName, transceiver := range agent.Status.State.Transceivers {
+		if transceiver.OperStatus == "" {
+			continue
+		}
+
+		port, ok := ports[transceiverName]
+		if !ok {
+			port = &SwitchOutPort{}
+			ports[transceiverName] = port
+		}
+
+		port.PortName = transceiverName
+		port.TransceiverState = &transceiver
+	}
+
+	for breakoutName, breakout := range agent.Status.State.Breakouts {
+		port, ok := ports[breakoutName]
+		if !ok {
+			port = &SwitchOutPort{}
+			ports[breakoutName] = port
+		}
+
+		port.PortName = breakoutName
+		port.BreakoutState = &breakout
 	}
 
 	portNames := lo.Keys(ports)

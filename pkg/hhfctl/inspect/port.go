@@ -49,6 +49,7 @@ type PortOut struct {
 	Connection          *wiringapi.ConnectionSpec                 `json:"connection,omitempty"`
 	InterfaceState      *agentapi.SwitchStateInterface            `json:"interfaceState,omitempty"`
 	BreakoutState       *agentapi.SwitchStateBreakout             `json:"breakoutState,omitempty"`
+	TransceiverState    *agentapi.SwitchStateTransceiver          `json:"transceiverState,omitempty"`
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
 	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`
 	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
@@ -156,21 +157,21 @@ func (out *PortOut) MarshalText(now time.Time) (string, error) {
 		str.WriteString("\n")
 	}
 
-	if out.InterfaceState != nil && out.InterfaceState.Transceiver != nil && out.InterfaceState.Transceiver.OperStatus != "" {
-		str.WriteString(fmt.Sprintf("Transceiver: %s\n", out.InterfaceState.Transceiver.OperStatus))
-		str.WriteString(fmt.Sprintf("  Description: %s\n", out.InterfaceState.Transceiver.Description))
-		str.WriteString(fmt.Sprintf("  FormFactor: %s / %s\n", out.InterfaceState.Transceiver.FormFactor, out.InterfaceState.Transceiver.ConnectorType))
-		str.WriteString(fmt.Sprintf("  CableClass: %s\n", out.InterfaceState.Transceiver.CableClass))
-		if out.InterfaceState.Transceiver.CableLength != 0 {
-			str.WriteString(fmt.Sprintf("  CableLength: %sm\n", humanize.CommafWithDigits(out.InterfaceState.Transceiver.CableLength, 0)))
+	if out.TransceiverState != nil {
+		str.WriteString(fmt.Sprintf("Transceiver: %s\n", out.TransceiverState.OperStatus))
+		str.WriteString(fmt.Sprintf("  Description: %s\n", out.TransceiverState.Description))
+		str.WriteString(fmt.Sprintf("  FormFactor: %s / %s\n", out.TransceiverState.FormFactor, out.TransceiverState.ConnectorType))
+		str.WriteString(fmt.Sprintf("  CableClass: %s\n", out.TransceiverState.CableClass))
+		if out.TransceiverState.CableLength != 0 {
+			str.WriteString(fmt.Sprintf("  CableLength: %sm\n", humanize.CommafWithDigits(out.TransceiverState.CableLength, 0)))
 		}
-		str.WriteString(fmt.Sprintf("  SerialNumber: %s\n", out.InterfaceState.Transceiver.SerialNumber))
-		str.WriteString(fmt.Sprintf("  Vendor: %q part %q rev %q\n", out.InterfaceState.Transceiver.Vendor, out.InterfaceState.Transceiver.VendorPart, out.InterfaceState.Transceiver.VendorRev))
-		if out.InterfaceState.Transceiver.Voltage != 0 {
-			str.WriteString(fmt.Sprintf("  Voltage: %s\n", humanize.CommafWithDigits(out.InterfaceState.Transceiver.Voltage, 2)))
+		str.WriteString(fmt.Sprintf("  SerialNumber: %s\n", out.TransceiverState.SerialNumber))
+		str.WriteString(fmt.Sprintf("  Vendor: %q part %q rev %q\n", out.TransceiverState.Vendor, out.TransceiverState.VendorPart, out.TransceiverState.VendorRev))
+		if out.TransceiverState.Voltage != 0 {
+			str.WriteString(fmt.Sprintf("  Voltage: %s\n", humanize.CommafWithDigits(out.TransceiverState.Voltage, 2)))
 		}
-		if out.InterfaceState.Transceiver.Temperature != 0 {
-			str.WriteString(fmt.Sprintf("  Temperature: %s\n", humanize.CommafWithDigits(out.InterfaceState.Transceiver.Temperature, 2)))
+		if out.TransceiverState.Temperature != 0 {
+			str.WriteString(fmt.Sprintf("  Temperature: %s\n", humanize.CommafWithDigits(out.TransceiverState.Temperature, 2)))
 		}
 
 		str.WriteString("\n")
@@ -355,13 +356,11 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 		if exists {
 			out.BreakoutState = &state
 		}
+	}
 
-		if agent.Status.State.Interfaces != nil {
-			if state, exists := agent.Status.State.Interfaces[portName+"/1"]; exists {
-				out.InterfaceState = &agentapi.SwitchStateInterface{
-					Transceiver: state.Transceiver,
-				}
-			}
+	if agent.Status.State.Transceivers != nil {
+		if state, exists := agent.Status.State.Transceivers[portName]; exists {
+			out.TransceiverState = &state
 		}
 	}
 

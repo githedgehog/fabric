@@ -44,6 +44,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	swState := &agentapi.SwitchState{
 		Interfaces:   map[string]agentapi.SwitchStateInterface{},
 		Breakouts:    map[string]agentapi.SwitchStateBreakout{},
+		Transceivers: map[string]agentapi.SwitchStateTransceiver{},
 		BGPNeighbors: map[string]map[string]agentapi.SwitchStateBGPNeighbor{},
 		Platform: agentapi.SwitchStatePlatform{
 			Fans:         map[string]agentapi.SwitchStatePlatformFan{},
@@ -59,11 +60,6 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	portMap, err := agent.Spec.SwitchProfile.GetNOS2APIPortsFor(&agent.Spec.Switch)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get port mapping")
-	}
-
-	breakoutMap, err := agent.Spec.SwitchProfile.GetNOS2APIBreakouts()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get breakout mapping")
 	}
 
 	roce, err := p.GetRoCE(ctx)
@@ -88,6 +84,10 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update cmis metrics")
 	}
 
+	if err := p.updateBreakoutMetrics(ctx, reg, swState, agent, portMap); err != nil {
+		return errors.Wrapf(err, "failed to update breakout metrics")
+	}
+
 	if err := p.updateLLDPNeighbors(ctx, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update lldp neighbors")
 	}
@@ -100,7 +100,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update platform metrics")
 	}
 
-	if err := p.updateComponentMetrics(ctx, reg, swState, agent, portMap, breakoutMap); err != nil {
+	if err := p.updateComponentMetrics(ctx, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update component metrics")
 	}
 
@@ -510,8 +510,13 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 			continue
 		}
 
+		transceiverName, exists = normBreakoutName(transceiverName)
+		if !exists {
+			continue
+		}
+
 		ocSt := transceiver.State
-		st := agentapi.SwitchStateTransceiver{}
+		st := swState.Transceivers[transceiverName]
 
 		if ocSt.CableClass != nil {
 			st.CableClass = *ocSt.CableClass
@@ -527,209 +532,7 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 			st.Voltage = *ocSt.Voltage
 		}
 
-		if ocSt.AlarmRxPowerHi != nil {
-			reg.TransceiverMetrics.AlarmRxPowerHi.WithLabelValues(transceiverName).Set(*ocSt.AlarmRxPowerHi)
-		}
-
-		if ocSt.AlarmRxPowerLo != nil {
-			reg.TransceiverMetrics.AlarmRxPowerLo.WithLabelValues(transceiverName).Set(*ocSt.AlarmRxPowerLo)
-		}
-
-		if ocSt.AlarmTempHi != nil {
-			reg.TransceiverMetrics.AlarmTempHi.WithLabelValues(transceiverName).Set(*ocSt.AlarmTempHi)
-		}
-
-		if ocSt.AlarmTempLo != nil {
-			reg.TransceiverMetrics.AlarmTempLo.WithLabelValues(transceiverName).Set(*ocSt.AlarmTempLo)
-		}
-
-		if ocSt.AlarmTxBiasHi != nil {
-			reg.TransceiverMetrics.AlarmTxBiasHi.WithLabelValues(transceiverName).Set(*ocSt.AlarmTxBiasHi)
-		}
-
-		if ocSt.AlarmTxBiasLo != nil {
-			reg.TransceiverMetrics.AlarmTxBiasLo.WithLabelValues(transceiverName).Set(*ocSt.AlarmTxBiasLo)
-		}
-
-		if ocSt.AlarmTxPowerHi != nil {
-			reg.TransceiverMetrics.AlarmTxPowerHi.WithLabelValues(transceiverName).Set(*ocSt.AlarmTxPowerHi)
-		}
-
-		if ocSt.AlarmTxPowerLo != nil {
-			reg.TransceiverMetrics.AlarmTxPowerLo.WithLabelValues(transceiverName).Set(*ocSt.AlarmTxPowerLo)
-		}
-
-		if ocSt.AlarmVoltHi != nil {
-			reg.TransceiverMetrics.AlarmVoltHi.WithLabelValues(transceiverName).Set(*ocSt.AlarmVoltHi)
-		}
-
-		if ocSt.AlarmVoltLo != nil {
-			reg.TransceiverMetrics.AlarmVoltLo.WithLabelValues(transceiverName).Set(*ocSt.AlarmVoltLo)
-		}
-
-		if ocSt.Rx1Power != nil {
-			reg.TransceiverMetrics.Rx1Power.WithLabelValues(transceiverName).Set(*ocSt.Rx1Power)
-			st.Rx1Power = normPower(ocSt.Rx1Power)
-		}
-
-		if ocSt.Rx2Power != nil {
-			reg.TransceiverMetrics.Rx2Power.WithLabelValues(transceiverName).Set(*ocSt.Rx2Power)
-			st.Rx2Power = normPower(ocSt.Rx2Power)
-		}
-
-		if ocSt.Rx3Power != nil {
-			reg.TransceiverMetrics.Rx3Power.WithLabelValues(transceiverName).Set(*ocSt.Rx3Power)
-			st.Rx3Power = normPower(ocSt.Rx3Power)
-		}
-
-		if ocSt.Rx4Power != nil {
-			reg.TransceiverMetrics.Rx4Power.WithLabelValues(transceiverName).Set(*ocSt.Rx4Power)
-			st.Rx4Power = normPower(ocSt.Rx4Power)
-		}
-
-		if ocSt.Rx5Power != nil {
-			reg.TransceiverMetrics.Rx5Power.WithLabelValues(transceiverName).Set(*ocSt.Rx5Power)
-			st.Rx5Power = normPower(ocSt.Rx5Power)
-		}
-
-		if ocSt.Rx6Power != nil {
-			reg.TransceiverMetrics.Rx6Power.WithLabelValues(transceiverName).Set(*ocSt.Rx6Power)
-			st.Rx6Power = normPower(ocSt.Rx6Power)
-		}
-
-		if ocSt.Rx7Power != nil {
-			reg.TransceiverMetrics.Rx7Power.WithLabelValues(transceiverName).Set(*ocSt.Rx7Power)
-			st.Rx7Power = normPower(ocSt.Rx7Power)
-		}
-
-		if ocSt.Rx8Power != nil {
-			reg.TransceiverMetrics.Rx8Power.WithLabelValues(transceiverName).Set(*ocSt.Rx8Power)
-			st.Rx8Power = normPower(ocSt.Rx8Power)
-		}
-
-		if ocSt.Tx1Bias != nil {
-			reg.TransceiverMetrics.Tx1Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx1Bias)
-			st.Tx1Bias = *ocSt.Tx1Bias
-		}
-
-		if ocSt.Tx2Bias != nil {
-			reg.TransceiverMetrics.Tx2Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx2Bias)
-			st.Tx2Bias = *ocSt.Tx2Bias
-		}
-
-		if ocSt.Tx3Bias != nil {
-			reg.TransceiverMetrics.Tx3Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx3Bias)
-			st.Tx3Bias = *ocSt.Tx3Bias
-		}
-
-		if ocSt.Tx4Bias != nil {
-			reg.TransceiverMetrics.Tx4Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx4Bias)
-			st.Tx4Bias = *ocSt.Tx4Bias
-		}
-
-		if ocSt.Tx5Bias != nil {
-			reg.TransceiverMetrics.Tx5Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx5Bias)
-			st.Tx5Bias = *ocSt.Tx5Bias
-		}
-
-		if ocSt.Tx6Bias != nil {
-			reg.TransceiverMetrics.Tx6Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx6Bias)
-			st.Tx6Bias = *ocSt.Tx6Bias
-		}
-
-		if ocSt.Tx7Bias != nil {
-			reg.TransceiverMetrics.Tx7Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx7Bias)
-			st.Tx7Bias = *ocSt.Tx7Bias
-		}
-
-		if ocSt.Tx8Bias != nil {
-			reg.TransceiverMetrics.Tx8Bias.WithLabelValues(transceiverName).Set(*ocSt.Tx8Bias)
-			st.Tx8Bias = *ocSt.Tx8Bias
-		}
-
-		if ocSt.Tx1Power != nil {
-			reg.TransceiverMetrics.Tx1Power.WithLabelValues(transceiverName).Set(*ocSt.Tx1Power)
-			st.Tx1Power = normPower(ocSt.Tx1Power)
-		}
-
-		if ocSt.Tx2Power != nil {
-			reg.TransceiverMetrics.Tx2Power.WithLabelValues(transceiverName).Set(*ocSt.Tx2Power)
-			st.Tx2Power = normPower(ocSt.Tx2Power)
-		}
-
-		if ocSt.Tx3Power != nil {
-			reg.TransceiverMetrics.Tx3Power.WithLabelValues(transceiverName).Set(*ocSt.Tx3Power)
-			st.Tx3Power = normPower(ocSt.Tx3Power)
-		}
-
-		if ocSt.Tx4Power != nil {
-			reg.TransceiverMetrics.Tx4Power.WithLabelValues(transceiverName).Set(*ocSt.Tx4Power)
-			st.Tx4Power = normPower(ocSt.Tx4Power)
-		}
-
-		if ocSt.Tx5Power != nil {
-			reg.TransceiverMetrics.Tx5Power.WithLabelValues(transceiverName).Set(*ocSt.Tx5Power)
-			st.Tx5Power = normPower(ocSt.Tx5Power)
-		}
-
-		if ocSt.Tx6Power != nil {
-			reg.TransceiverMetrics.Tx6Power.WithLabelValues(transceiverName).Set(*ocSt.Tx6Power)
-			st.Tx6Power = normPower(ocSt.Tx6Power)
-		}
-
-		if ocSt.Tx7Power != nil {
-			reg.TransceiverMetrics.Tx7Power.WithLabelValues(transceiverName).Set(*ocSt.Tx7Power)
-			st.Tx7Power = normPower(ocSt.Tx7Power)
-		}
-
-		if ocSt.Tx8Power != nil {
-			reg.TransceiverMetrics.Tx8Power.WithLabelValues(transceiverName).Set(*ocSt.Tx8Power)
-			st.Tx8Power = normPower(ocSt.Tx8Power)
-		}
-
-		if ocSt.WarningRxPowerHi != nil {
-			reg.TransceiverMetrics.WarningRxPowerHi.WithLabelValues(transceiverName).Set(*ocSt.WarningRxPowerHi)
-		}
-
-		if ocSt.WarningRxPowerLo != nil {
-			reg.TransceiverMetrics.WarningRxPowerLo.WithLabelValues(transceiverName).Set(*ocSt.WarningRxPowerLo)
-		}
-
-		if ocSt.WarningTempHi != nil {
-			reg.TransceiverMetrics.WarningTempHi.WithLabelValues(transceiverName).Set(*ocSt.WarningTempHi)
-		}
-
-		if ocSt.WarningTempLo != nil {
-			reg.TransceiverMetrics.WarningTempLo.WithLabelValues(transceiverName).Set(*ocSt.WarningTempLo)
-		}
-
-		if ocSt.WarningTxBiasHi != nil {
-			reg.TransceiverMetrics.WarningTxBiasHi.WithLabelValues(transceiverName).Set(*ocSt.WarningTxBiasHi)
-		}
-
-		if ocSt.WarningTxBiasLo != nil {
-			reg.TransceiverMetrics.WarningTxBiasLo.WithLabelValues(transceiverName).Set(*ocSt.WarningTxBiasLo)
-		}
-
-		if ocSt.WarningTxPowerHi != nil {
-			reg.TransceiverMetrics.WarningTxPowerHi.WithLabelValues(transceiverName).Set(*ocSt.WarningTxPowerHi)
-		}
-
-		if ocSt.WarningTxPowerLo != nil {
-			reg.TransceiverMetrics.WarningTxPowerLo.WithLabelValues(transceiverName).Set(*ocSt.WarningTxPowerLo)
-		}
-
-		if ocSt.WarningVoltHi != nil {
-			reg.TransceiverMetrics.WarningVoltHi.WithLabelValues(transceiverName).Set(*ocSt.WarningVoltHi)
-		}
-
-		if ocSt.WarningVoltLo != nil {
-			reg.TransceiverMetrics.WarningVoltLo.WithLabelValues(transceiverName).Set(*ocSt.WarningVoltLo)
-		}
-
-		intSt := swState.Interfaces[transceiverName]
-		intSt.Transceiver = &st
-		swState.Interfaces[transceiverName] = intSt
+		swState.Transceivers[transceiverName] = st
 	}
 
 	return nil
@@ -761,25 +564,27 @@ func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, _ *switchstat
 			continue
 		}
 
-		ocSt := transceiver.State
-		st := swState.Interfaces[transceiverName]
-		if st.Transceiver == nil {
-			st.Transceiver = &agentapi.SwitchStateTransceiver{}
+		transceiverName, exists = normBreakoutName(transceiverName)
+		if !exists {
+			continue
 		}
 
+		ocSt := transceiver.State
+		st := swState.Transceivers[transceiverName]
+
 		if ocSt.Status != nil {
-			st.Transceiver.CMISStatus = *ocSt.Status
+			st.CMISStatus = *ocSt.Status
 		}
 
 		if ocSt.Revision != nil {
-			st.Transceiver.CMISRev = *ocSt.Revision
+			st.CMISRev = *ocSt.Revision
 		}
 
 		if ocSt.Appsel != nil {
-			st.Transceiver.CMISApp = *ocSt.Appsel
+			st.CMISApp = *ocSt.Appsel
 		}
 
-		swState.Interfaces[transceiverName] = st
+		swState.Transceivers[transceiverName] = st
 	}
 
 	return nil
@@ -1268,7 +1073,43 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 	return nil
 }
 
-func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string, breakoutMap map[string]string) error {
+func (p *BroadcomProcessor) updateBreakoutMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
+	dev := &oc.Device{}
+	if err := p.client.Get(ctx, "/sonic-port-breakout", dev); err != nil {
+		return errors.Wrapf(err, "failed to get breakouts")
+	}
+	if dev.SonicPortBreakout == nil {
+		return errors.Errorf("breakouts not found")
+	}
+
+	for rawBreakoutName, breakout := range dev.SonicPortBreakout.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
+		breakoutName, exists := portMap[rawBreakoutName]
+		if !exists && !(ag.Spec.Switch.Profile == switchprofile.VS.Name && switchprofile.VSIsIgnoredComponent(breakoutName)) {
+			slog.Warn("Breakout mapping not found, ignoring for metrics", "breakout", breakoutName)
+		}
+
+		breakoutName, exists = normBreakoutName(breakoutName)
+		if !exists {
+			continue
+		}
+
+		st := swState.Breakouts[breakoutName]
+
+		if breakout.BrkoutMode != nil {
+			st.Mode = UnmarshalPortBreakout(*breakout.BrkoutMode)
+		}
+
+		if breakout.Status != nil {
+			st.Status = *breakout.Status
+		}
+
+		swState.Breakouts[breakoutName] = st
+	}
+
+	return nil
+}
+
+func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/components", dev); err != nil {
 		return errors.Wrapf(err, "failed to get components")
@@ -1278,52 +1119,12 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 	}
 
 	for componentName, component := range dev.Components.Component {
-		if component.Port != nil && component.Port.BreakoutMode != nil && component.Port.BreakoutMode.Groups != nil {
-			groups := len(component.Port.BreakoutMode.Groups.Group)
-			for groupIdx, group := range component.Port.BreakoutMode.Groups.Group {
-				if group.State == nil {
-					continue
-				}
-
-				breakoutName, exists := breakoutMap[componentName]
-				if !exists && !(ag.Spec.Switch.Profile == switchprofile.VS.Name && switchprofile.VSIsIgnoredComponent(componentName)) {
-					slog.Warn("Breakout mapping not found, ignoring for metrics", "component", componentName)
-				}
-
-				if groups > 1 {
-					breakoutName += fmt.Sprintf("-%d", groupIdx)
-				}
-
-				grSt := group.State
-				st := agentapi.SwitchStateBreakout{}
-
-				if speed := UnmarshalPortSpeed(grSt.BreakoutSpeed); speed != nil && grSt.NumBreakouts != nil {
-					st.Mode = fmt.Sprintf("%dx%s", *grSt.NumBreakouts, *speed)
-				}
-
-				if grSt.Status != nil {
-					st.Status = *grSt.Status
-				}
-
-				swState.Breakouts[breakoutName] = st
-			}
-		}
-
 		if component.State != nil && component.Transceiver != nil && component.Transceiver.State != nil {
 			transceiverName, exists := portMap[componentName]
 			if !exists {
 				slog.Warn("Port mapping not found, ignoring for metrics", "component", componentName)
-			} else {
-				if _, ok := swState.Interfaces[transceiverName]; !ok {
-					swState.Interfaces[transceiverName] = agentapi.SwitchStateInterface{}
-				}
-
-				stIf := swState.Interfaces[transceiverName]
-				if stIf.Transceiver == nil {
-					stIf.Transceiver = &agentapi.SwitchStateTransceiver{}
-				}
-				st := stIf.Transceiver
-
+			} else if transceiverName, exists := normBreakoutName(transceiverName); exists {
+				st := swState.Transceivers[transceiverName]
 				ocSt := component.Transceiver.State
 
 				operStatus, err := mapComponentOperStatus(component.State.OperStatus)
@@ -1373,7 +1174,40 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, _ *switc
 					st.VendorRev = *ocSt.VendorRev
 				}
 
-				swState.Interfaces[transceiverName] = stIf
+				if ocSt.FirmwareRevision != nil && *ocSt.FirmwareRevision != "0.0" {
+					st.Firmware = *ocSt.FirmwareRevision
+				}
+
+				if component.Transceiver.PhysicalChannels != nil {
+					st.Channels = map[string]agentapi.SwitchStateTransceiverChannel{}
+					for channelID, channel := range component.Transceiver.PhysicalChannels.Channel {
+						if channel.State == nil {
+							continue
+						}
+
+						ch := fmt.Sprintf("%d", channelID)
+						chSt := agentapi.SwitchStateTransceiverChannel{}
+
+						if channel.State.InputPower != nil {
+							reg.TransceiverMetrics.InPower.WithLabelValues(transceiverName, ch).Set(*channel.State.InputPower.Instant)
+							chSt.In = normPower(channel.State.InputPower.Instant)
+						}
+
+						if channel.State.OutputPower != nil {
+							reg.TransceiverMetrics.OutPower.WithLabelValues(transceiverName, ch).Set(*channel.State.OutputPower.Instant)
+							chSt.Out = normPower(channel.State.OutputPower.Instant)
+						}
+
+						if channel.State.LaserBiasCurrent != nil {
+							reg.TransceiverMetrics.Bias.WithLabelValues(transceiverName).Set(*channel.State.LaserBiasCurrent.Instant)
+							chSt.Bias = normBias(channel.State.LaserBiasCurrent.Instant)
+						}
+
+						st.Channels[ch] = chSt
+					}
+				}
+
+				swState.Transceivers[transceiverName] = st
 			}
 		}
 
@@ -1785,4 +1619,28 @@ func normPower(power *float64) *float64 {
 	}
 
 	return power
+}
+
+func normBias(bias *float64) float64 {
+	if bias == nil {
+		return 0
+	}
+
+	if math.IsInf(*bias, 0) || math.IsNaN(*bias) {
+		return 0
+	}
+
+	return *bias
+}
+
+func normBreakoutName(transceiverName string) (string, bool) {
+	if strings.Count(transceiverName, "/") == 2 {
+		if strings.HasSuffix(transceiverName, "/1") {
+			transceiverName = strings.TrimSuffix(transceiverName, "/1")
+		} else {
+			return "", false
+		}
+	}
+
+	return transceiverName, true
 }
