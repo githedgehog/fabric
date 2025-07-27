@@ -165,6 +165,8 @@ type SwitchState struct {
 	Interfaces map[string]SwitchStateInterface `json:"interfaces,omitempty"`
 	// Breakout ports state (port -> breakout state)
 	Breakouts map[string]SwitchStateBreakout `json:"breakouts,omitempty"`
+	// Transceivers state (port -> transceiver state)
+	Transceivers map[string]SwitchStateTransceiver `json:"transceivers,omitempty"`
 	// State of all BGP neighbors (VRF -> neighbor address -> state)
 	BGPNeighbors map[string]map[string]SwitchStateBGPNeighbor `json:"bgpNeighbors,omitempty"`
 	// State of the switch platform (fans, PSUs, sensors)
@@ -183,7 +185,6 @@ type SwitchStateInterface struct {
 	LastChange    kmetav1.Time                  `json:"change,omitempty"`
 	Speed         string                        `json:"speed,omitempty"`
 	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
-	Transceiver   *SwitchStateTransceiver       `json:"transceiver,omitempty"`
 	LLDPNeighbors []SwitchStateLLDPNeighbor     `json:"lldpNeighbors,omitempty"`
 }
 
@@ -277,47 +278,32 @@ func (o OperStatus) ID() (uint8, error) {
 }
 
 type SwitchStateTransceiver struct {
-	CMISStatus    string   `json:"cmis,omitempty"`
-	CMISRev       string   `json:"cmisRev,omitempty"`
-	CMISApp       uint8    `json:"cmisApp,omitempty"`
-	Description   string   `json:"descr,omitempty"`
-	CableClass    string   `json:"cable,omitempty"`
-	FormFactor    string   `json:"formFactor,omitempty"`
-	ConnectorType string   `json:"connType,omitempty"`
-	Present       string   `json:"present,omitempty"`
-	CableLength   float64  `json:"length,omitempty"`
-	OperStatus    string   `json:"oper,omitempty"`
-	Temperature   float64  `json:"temp,omitempty"`
-	Voltage       float64  `json:"voltage,omitempty"`
-	SerialNumber  string   `json:"serial,omitempty"`
-	Vendor        string   `json:"vendor,omitempty"`
-	VendorPart    string   `json:"vendorPart,omitempty"`
-	VendorOUI     string   `json:"vendorOUI,omitempty"`
-	VendorRev     string   `json:"vendorRev,omitempty"`
-	Rx1Power      *float64 `json:"rx1P,omitempty"`
-	Rx2Power      *float64 `json:"rx2P,omitempty"`
-	Rx3Power      *float64 `json:"rx3P,omitempty"`
-	Rx4Power      *float64 `json:"rx4P,omitempty"`
-	Rx5Power      *float64 `json:"rx5P,omitempty"`
-	Rx6Power      *float64 `json:"rx6P,omitempty"`
-	Rx7Power      *float64 `json:"rx7P,omitempty"`
-	Rx8Power      *float64 `json:"rx8P,omitempty"`
-	Tx1Bias       float64  `json:"tx1B,omitempty"`
-	Tx2Bias       float64  `json:"tx2B,omitempty"`
-	Tx3Bias       float64  `json:"tx3B,omitempty"`
-	Tx4Bias       float64  `json:"tx4B,omitempty"`
-	Tx5Bias       float64  `json:"tx5B,omitempty"`
-	Tx6Bias       float64  `json:"tx6B,omitempty"`
-	Tx7Bias       float64  `json:"tx7B,omitempty"`
-	Tx8Bias       float64  `json:"tx8B,omitempty"`
-	Tx1Power      *float64 `json:"tx1P,omitempty"`
-	Tx2Power      *float64 `json:"tx2P,omitempty"`
-	Tx3Power      *float64 `json:"tx3P,omitempty"`
-	Tx4Power      *float64 `json:"tx4P,omitempty"`
-	Tx5Power      *float64 `json:"tx5P,omitempty"`
-	Tx6Power      *float64 `json:"tx6P,omitempty"`
-	Tx7Power      *float64 `json:"tx7P,omitempty"`
-	Tx8Power      *float64 `json:"tx8P,omitempty"`
+	// TODO Firmware?
+	Description   string                                   `json:"descr,omitempty"`
+	CableClass    string                                   `json:"cable,omitempty"`
+	FormFactor    string                                   `json:"formFactor,omitempty"`
+	ConnectorType string                                   `json:"connType,omitempty"`
+	Present       string                                   `json:"present,omitempty"`
+	CableLength   float64                                  `json:"length,omitempty"`
+	OperStatus    string                                   `json:"oper,omitempty"`
+	Temperature   float64                                  `json:"temp,omitempty"`
+	Voltage       float64                                  `json:"voltage,omitempty"`
+	SerialNumber  string                                   `json:"serial,omitempty"`
+	Vendor        string                                   `json:"vendor,omitempty"`
+	VendorPart    string                                   `json:"vendorPart,omitempty"`
+	VendorOUI     string                                   `json:"vendorOUI,omitempty"`
+	VendorRev     string                                   `json:"vendorRev,omitempty"`
+	Firmware      string                                   `json:"firmware,omitempty"`
+	CMISStatus    string                                   `json:"cmis,omitempty"`
+	CMISRev       string                                   `json:"cmisRev,omitempty"`
+	CMISApp       uint8                                    `json:"cmisApp,omitempty"`
+	Channels      map[string]SwitchStateTransceiverChannel `json:"channels,omitempty"`
+}
+
+type SwitchStateTransceiverChannel struct {
+	In   *float64 `json:"in,omitempty"`
+	Out  *float64 `json:"out,omitempty"`
+	Bias float64  `json:"bias,omitempty"`
 }
 
 type SwitchStateBreakout struct {

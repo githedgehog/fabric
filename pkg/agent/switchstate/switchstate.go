@@ -113,31 +113,10 @@ type TransceiverMetrics struct {
 	AlarmTxPowerLo   *prometheus.GaugeVec
 	AlarmVoltHi      *prometheus.GaugeVec
 	AlarmVoltLo      *prometheus.GaugeVec
-	Rx1Power         *prometheus.GaugeVec
-	Rx2Power         *prometheus.GaugeVec
-	Rx3Power         *prometheus.GaugeVec
-	Rx4Power         *prometheus.GaugeVec
-	Rx5Power         *prometheus.GaugeVec
-	Rx6Power         *prometheus.GaugeVec
-	Rx7Power         *prometheus.GaugeVec
-	Rx8Power         *prometheus.GaugeVec
+	InPower          *prometheus.GaugeVec
+	OutPower         *prometheus.GaugeVec
 	Temperature      *prometheus.GaugeVec
-	Tx1Bias          *prometheus.GaugeVec
-	Tx1Power         *prometheus.GaugeVec
-	Tx2Bias          *prometheus.GaugeVec
-	Tx2Power         *prometheus.GaugeVec
-	Tx3Bias          *prometheus.GaugeVec
-	Tx3Power         *prometheus.GaugeVec
-	Tx4Bias          *prometheus.GaugeVec
-	Tx4Power         *prometheus.GaugeVec
-	Tx5Bias          *prometheus.GaugeVec
-	Tx5Power         *prometheus.GaugeVec
-	Tx6Bias          *prometheus.GaugeVec
-	Tx6Power         *prometheus.GaugeVec
-	Tx7Bias          *prometheus.GaugeVec
-	Tx7Power         *prometheus.GaugeVec
-	Tx8Bias          *prometheus.GaugeVec
-	Tx8Power         *prometheus.GaugeVec
+	Bias             *prometheus.GaugeVec
 	Voltage          *prometheus.GaugeVec
 	WarningRxPowerHi *prometheus.GaugeVec
 	WarningRxPowerLo *prometheus.GaugeVec
@@ -296,6 +275,16 @@ func NewRegistry() *Registry {
 		}, []string{"transceiver"})
 	}
 
+	newTransceiverWithLaneGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"transceiver", "lane"})
+	}
+
 	newBGPNeighborGaugeVec := func(name string, help string) *prometheus.GaugeVec {
 		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace:   MetricNamespace,
@@ -410,31 +399,10 @@ func NewRegistry() *Registry {
 			AlarmTxPowerLo:   newTransceiverGaugeVec("transceiver_alarm_tx_power_lo", "Alarm tx power lo"),
 			AlarmVoltHi:      newTransceiverGaugeVec("transceiver_alarm_volt_hi", "Alarm volt hi"),
 			AlarmVoltLo:      newTransceiverGaugeVec("transceiver_alarm_volt_lo", "Alarm volt lo"),
-			Rx1Power:         newTransceiverGaugeVec("transceiver_rx1_power", "Rx1 power"),
-			Rx2Power:         newTransceiverGaugeVec("transceiver_rx2_power", "Rx2 power"),
-			Rx3Power:         newTransceiverGaugeVec("transceiver_rx3_power", "Rx3 power"),
-			Rx4Power:         newTransceiverGaugeVec("transceiver_rx4_power", "Rx4 power"),
-			Rx5Power:         newTransceiverGaugeVec("transceiver_rx5_power", "Rx5 power"),
-			Rx6Power:         newTransceiverGaugeVec("transceiver_rx6_power", "Rx6 power"),
-			Rx7Power:         newTransceiverGaugeVec("transceiver_rx7_power", "Rx7 power"),
-			Rx8Power:         newTransceiverGaugeVec("transceiver_rx8_power", "Rx8 power"),
+			InPower:          newTransceiverWithLaneGaugeVec("transceiver_in_power", "Transceiver Input Power"),
+			OutPower:         newTransceiverWithLaneGaugeVec("transceiver_out_power", "Transceiver Output Power"),
 			Temperature:      newTransceiverGaugeVec("transceiver_temperature", "Temperature"),
-			Tx1Bias:          newTransceiverGaugeVec("transceiver_tx1_bias", "Tx1 bias"),
-			Tx1Power:         newTransceiverGaugeVec("transceiver_tx1_power", "Tx1 power"),
-			Tx2Bias:          newTransceiverGaugeVec("transceiver_tx2_bias", "Tx2 bias"),
-			Tx2Power:         newTransceiverGaugeVec("transceiver_tx2_power", "Tx2 power"),
-			Tx3Bias:          newTransceiverGaugeVec("transceiver_tx3_bias", "Tx3 bias"),
-			Tx3Power:         newTransceiverGaugeVec("transceiver_tx3_power", "Tx3 power"),
-			Tx4Bias:          newTransceiverGaugeVec("transceiver_tx4_bias", "Tx4 bias"),
-			Tx4Power:         newTransceiverGaugeVec("transceiver_tx4_power", "Tx4 power"),
-			Tx5Bias:          newTransceiverGaugeVec("transceiver_tx5_bias", "Tx5 bias"),
-			Tx5Power:         newTransceiverGaugeVec("transceiver_tx5_power", "Tx5 power"),
-			Tx6Bias:          newTransceiverGaugeVec("transceiver_tx6_bias", "Tx6 bias"),
-			Tx6Power:         newTransceiverGaugeVec("transceiver_tx6_power", "Tx6 power"),
-			Tx7Bias:          newTransceiverGaugeVec("transceiver_tx7_bias", "Tx7 bias"),
-			Tx7Power:         newTransceiverGaugeVec("transceiver_tx7_power", "Tx7 power"),
-			Tx8Bias:          newTransceiverGaugeVec("transceiver_tx8_bias", "Tx8 bias"),
-			Tx8Power:         newTransceiverGaugeVec("transceiver_tx8_power", "Tx8 power"),
+			Bias:             newTransceiverGaugeVec("transceiver_bias", "Transceiver bias"),
 			Voltage:          newTransceiverGaugeVec("transceiver_voltage", "Voltage"),
 			WarningRxPowerHi: newTransceiverGaugeVec("transceiver_warning_rx_power_hi", "Warning rx power hi"),
 			WarningRxPowerLo: newTransceiverGaugeVec("transceiver_warning_rx_power_lo", "Warning rx power lo"),

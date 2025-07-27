@@ -2170,91 +2170,6 @@ spec:
                           type: string
                         speed:
                           type: string
-                        transceiver:
-                          properties:
-                            cable:
-                              type: string
-                            cmis:
-                              type: string
-                            cmisApp:
-                              type: integer
-                            cmisRev:
-                              type: string
-                            connType:
-                              type: string
-                            descr:
-                              type: string
-                            formFactor:
-                              type: string
-                            length:
-                              type: number
-                            oper:
-                              type: string
-                            present:
-                              type: string
-                            rx1P:
-                              type: number
-                            rx2P:
-                              type: number
-                            rx3P:
-                              type: number
-                            rx4P:
-                              type: number
-                            rx5P:
-                              type: number
-                            rx6P:
-                              type: number
-                            rx7P:
-                              type: number
-                            rx8P:
-                              type: number
-                            serial:
-                              type: string
-                            temp:
-                              type: number
-                            tx1B:
-                              type: number
-                            tx1P:
-                              type: number
-                            tx2B:
-                              type: number
-                            tx2P:
-                              type: number
-                            tx3B:
-                              type: number
-                            tx3P:
-                              type: number
-                            tx4B:
-                              type: number
-                            tx4P:
-                              type: number
-                            tx5B:
-                              type: number
-                            tx5P:
-                              type: number
-                            tx6B:
-                              type: number
-                            tx6P:
-                              type: number
-                            tx7B:
-                              type: number
-                            tx7P:
-                              type: number
-                            tx8B:
-                              type: number
-                            tx8P:
-                              type: number
-                            vendor:
-                              type: string
-                            vendorOUI:
-                              type: string
-                            vendorPart:
-                              type: string
-                            vendorRev:
-                              type: string
-                            voltage:
-                              type: number
-                          type: object
                       type: object
                     description: Switch interfaces state (incl. physical, management
                       and port channels)
@@ -2371,6 +2286,59 @@ spec:
                   roce:
                     description: State of the roce configuration
                     type: boolean
+                  transceivers:
+                    additionalProperties:
+                      properties:
+                        cable:
+                          type: string
+                        channels:
+                          additionalProperties:
+                            properties:
+                              bias:
+                                type: number
+                              in:
+                                type: number
+                              out:
+                                type: number
+                            type: object
+                          type: object
+                        cmis:
+                          type: string
+                        cmisApp:
+                          type: integer
+                        cmisRev:
+                          type: string
+                        connType:
+                          type: string
+                        descr:
+                          type: string
+                        firmware:
+                          type: string
+                        formFactor:
+                          type: string
+                        length:
+                          type: number
+                        oper:
+                          type: string
+                        present:
+                          type: string
+                        serial:
+                          type: string
+                        temp:
+                          type: number
+                        vendor:
+                          type: string
+                        vendorOUI:
+                          type: string
+                        vendorPart:
+                          type: string
+                        vendorRev:
+                          type: string
+                        voltage:
+                          type: number
+                      type: object
+                    description: Transceivers state (port -> transceiver state)
+                    type: object
                 type: object
               statusUpdates:
                 description: Status updates from the agent
