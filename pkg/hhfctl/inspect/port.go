@@ -56,7 +56,7 @@ type PortOut struct {
 	LoopbackWorkarounds map[string]*OutLoopbackWorkaround         `json:"loopbackWorkarounds,omitempty"` // if VPCLoopback conn
 }
 
-func (out *PortOut) MarshalText(now time.Time) (string, error) {
+func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if out.ConnectionName != nil && out.Connection != nil {

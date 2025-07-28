@@ -33,7 +33,7 @@ type LLDPOut struct {
 	Errs      []error                                          `json:"errors"`
 }
 
-func (out *LLDPOut) MarshalText(now time.Time) (string, error) {
+func (out *LLDPOut) MarshalText(_ LLDPIn, now time.Time) (string, error) {
 	// TODO pass to a marshal func?
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
 

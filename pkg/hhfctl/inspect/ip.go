@@ -71,7 +71,7 @@ type IPOutExternalPeering struct {
 	vpcapi.ExternalPeeringSpec `json:",inline"`
 }
 
-func (out *IPOut) MarshalText(now time.Time) (string, error) {
+func (out *IPOut) MarshalText(_ IPIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if out.IPv4Namespace != nil {

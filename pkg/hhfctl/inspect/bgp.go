@@ -34,7 +34,7 @@ type BGPOut struct {
 	Errs      []error                                                    `json:"errors"`
 }
 
-func (out *BGPOut) MarshalText(now time.Time) (string, error) {
+func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 	// TODO pass to a marshal func?
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
 

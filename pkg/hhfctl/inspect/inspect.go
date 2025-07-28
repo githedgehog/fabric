@@ -57,17 +57,17 @@ var OutputTypes = []OutputType{OutputTypeText, OutputTypeJSON, OutputTypeYAML}
 
 type In interface{}
 
-type Out interface {
-	MarshalText(now time.Time) (string, error)
+type Out[TIn In] interface {
+	MarshalText(in TIn, now time.Time) (string, error)
 }
 
 type WithErrors interface {
 	Errors() []error
 }
 
-type Func[TIn In, TOut Out] func(ctx context.Context, kube kclient.Reader, in TIn) (TOut, error)
+type Func[TIn In, TOut Out[TIn]] func(ctx context.Context, kube kclient.Reader, in TIn) (TOut, error)
 
-func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in TIn, w io.Writer) error {
+func Run[TIn In, TOut Out[TIn]](ctx context.Context, f Func[TIn, TOut], args Args, in TIn, w io.Writer) error {
 	outType := OutputTypeText
 	if args.Output != OutputTypeUndefined {
 		outType = args.Output
@@ -95,15 +95,15 @@ func Run[TIn In, TOut Out](ctx context.Context, f Func[TIn, TOut], args Args, in
 		return errors.Wrapf(err, "failed to run inspect function")
 	}
 
-	return Render(time.Now(), args.Output, w, out)
+	return Render(time.Now(), args.Output, w, in, out)
 }
 
-func Render[TOut Out](now time.Time, output OutputType, w io.Writer, out TOut) error {
+func Render[TIn In, TOut Out[TIn]](now time.Time, output OutputType, w io.Writer, in TIn, out TOut) error {
 	var data []byte
 	var err error
 	switch output {
 	case OutputTypeText:
-		dataS, err := out.MarshalText(now)
+		dataS, err := out.MarshalText(in, now)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get marshal output as text")
 		}
@@ -130,7 +130,7 @@ func Render[TOut Out](now time.Time, output OutputType, w io.Writer, out TOut) e
 		return errors.Wrapf(err, "failed to write inspect output")
 	}
 
-	var o Out = out
+	var o Out[TIn] = out
 	if we, ok := o.(WithErrors); ok {
 		errs := we.Errors()
 
