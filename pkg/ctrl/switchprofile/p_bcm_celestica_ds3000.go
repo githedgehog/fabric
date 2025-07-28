@@ -28,7 +28,7 @@ var CelesticaDS3000 = wiringapi.SwitchProfile{
 			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
-		Platform: "x86_64-cel_seastone_2-r0",
+		Platform: "x86_64-cls_ds3000-r0",
 		Config:   wiringapi.SwitchProfileConfig{},
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
