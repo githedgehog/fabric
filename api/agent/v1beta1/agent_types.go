@@ -176,6 +176,8 @@ type SwitchState struct {
 	CriticalResources SwitchStateCRM `json:"criticalResources,omitempty"`
 	// State of the roce configuration
 	RoCE bool `json:"roce,omitempty"`
+	// Firmware versions of the switch
+	Firmware map[string]string `json:"firmware,omitempty"`
 }
 
 type SwitchStateInterface struct {
@@ -281,7 +283,6 @@ func (o OperStatus) ID() (uint8, error) {
 }
 
 type SwitchStateTransceiver struct {
-	// TODO Firmware?
 	Description   string                                   `json:"descr,omitempty"`
 	CableClass    string                                   `json:"cable,omitempty"`
 	FormFactor    string                                   `json:"formFactor,omitempty"`

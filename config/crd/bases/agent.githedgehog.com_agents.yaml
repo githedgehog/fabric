@@ -264,6 +264,8 @@ spec:
                     type: integer
                   deploymentID:
                     type: string
+                  disableFabricBFD:
+                    type: boolean
                   eslagESIPrefix:
                     type: string
                   eslagMACBase:
@@ -2062,6 +2064,11 @@ spec:
                             format: int32
                             type: integer
                         type: object
+                    type: object
+                  firmware:
+                    additionalProperties:
+                      type: string
+                    description: Firmware versions of the switch
                     type: object
                   interfaces:
                     additionalProperties:

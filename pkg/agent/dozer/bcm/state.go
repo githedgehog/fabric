@@ -51,6 +51,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 			PSUs:         map[string]agentapi.SwitchStatePlatformPSU{},
 			Temperatures: map[string]agentapi.SwitchStatePlatformTemperature{},
 		},
+		Firmware: map[string]string{},
 	}
 
 	if agent.Spec.SwitchProfile == nil {
@@ -1307,6 +1308,14 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *swi
 			}
 
 			swState.NOS = st
+		}
+
+		if component.State != nil && strings.HasPrefix(componentName, "FIRMWARE ") {
+			name := component.State.Name
+			version := component.State.FirmwareVersion
+			if name != nil && *name != "" && version != nil && *version != "" {
+				swState.Firmware[*name] = *version
+			}
 		}
 	}
 

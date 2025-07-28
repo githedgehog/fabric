@@ -208,6 +208,7 @@ _Appears in:_
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
 | `roce` _boolean_ | State of the roce configuration |  |  |
+| `firmware` _object (keys:string, values:string)_ | Firmware versions of the switch |  |  |
 
 
 #### SwitchStateBGPNeighbor
@@ -617,7 +618,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `descr` _string_ | TODO Firmware? |  |  |
+| `descr` _string_ |  |  |  |
 | `cable` _string_ |  |  |  |
 | `formFactor` _string_ |  |  |  |
 | `connType` _string_ |  |  |  |
