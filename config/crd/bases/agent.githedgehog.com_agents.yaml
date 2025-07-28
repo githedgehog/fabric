@@ -264,7 +264,7 @@ spec:
                     type: integer
                   deploymentID:
                     type: string
-                  disableFabricBFD:
+                  disableBFD:
                     type: boolean
                   eslagESIPrefix:
                     type: string
