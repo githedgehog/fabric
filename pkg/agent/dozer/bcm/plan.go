@@ -567,13 +567,18 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to parse fabric conn peer ip %s", peerIP)
 			}
 
+			var bfdProfile *string
+			if !agent.Spec.Config.DisableBFD {
+				bfdProfile = pointer.To(FabricBFDProfile)
+			}
+
 			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
 				RemoteAS:                  pointer.To(peerSw.ASN),
 				IPv4Unicast:               pointer.To(true),
 				IPv4UnicastExportPolicies: []string{RouteMapProtocolLoopbackOnly},
-				BFDProfile:                pointer.To(FabricBFDProfile),
+				BFDProfile:                bfdProfile,
 			}
 		}
 	}
