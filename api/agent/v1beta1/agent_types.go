@@ -81,7 +81,7 @@ type AgentSpecConfig struct {
 	ProtocolSubnet        string                        `json:"protocolSubnet,omitempty"`
 	VTEPSubnet            string                        `json:"vtepSubnet,omitempty"`
 	FabricSubnet          string                        `json:"fabricSubnet,omitempty"`
-	DisableBFD            bool                          `json:"disableFabricBFD,omitempty"`
+	DisableBFD            bool                          `json:"disableBFD,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}
