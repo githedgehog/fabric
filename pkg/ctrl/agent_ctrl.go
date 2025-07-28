@@ -303,6 +303,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	conns := map[string]wiringapi.ConnectionSpec{}
 	for _, conn := range connList.Items {
+		if !r.cfg.LoopbackWorkaround && conn.Spec.VPCLoopback != nil {
+			continue
+		}
+
 		conns[conn.Name] = conn.Spec
 	}
 
