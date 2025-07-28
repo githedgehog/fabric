@@ -402,7 +402,7 @@ func NewRegistry() *Registry {
 			InPower:          newTransceiverWithLaneGaugeVec("transceiver_in_power", "Transceiver Input Power"),
 			OutPower:         newTransceiverWithLaneGaugeVec("transceiver_out_power", "Transceiver Output Power"),
 			Temperature:      newTransceiverGaugeVec("transceiver_temperature", "Temperature"),
-			Bias:             newTransceiverGaugeVec("transceiver_bias", "Transceiver bias"),
+			Bias:             newTransceiverWithLaneGaugeVec("transceiver_bias", "Transceiver bias"),
 			Voltage:          newTransceiverGaugeVec("transceiver_voltage", "Voltage"),
 			WarningRxPowerHi: newTransceiverGaugeVec("transceiver_warning_rx_power_hi", "Warning rx power hi"),
 			WarningRxPowerLo: newTransceiverGaugeVec("transceiver_warning_rx_power_lo", "Warning rx power lo"),

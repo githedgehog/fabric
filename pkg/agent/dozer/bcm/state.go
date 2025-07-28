@@ -81,7 +81,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update transceiver metrics")
 	}
 
-	if err := p.updateCMISMetrics(ctx, reg, swState, portMap); err != nil {
+	if err := p.updateCMISMetrics(ctx, agent, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update cmis metrics")
 	}
 
@@ -566,7 +566,11 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 	return nil
 }
 
-func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, _ *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
+func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, ag *agentapi.Agent, swState *agentapi.SwitchState, portMap map[string]string) error {
+	if ag.Spec.IsVS() {
+		return nil
+	}
+
 	cmis := &oc.OpenconfigPlatformDiagnostics_TransceiverCmis{}
 	if err := p.client.Get(ctx, "/transceiver-cmis/transceiver-cmis-info", cmis); err != nil {
 		return errors.Wrapf(err, "failed to get transceiver-cmis")
@@ -1106,14 +1110,18 @@ func (p *BroadcomProcessor) updateBreakoutMetrics(ctx context.Context, _ *switch
 	if err := p.client.Get(ctx, "/sonic-port-breakout", dev); err != nil {
 		return errors.Wrapf(err, "failed to get breakouts")
 	}
-	if dev.SonicPortBreakout == nil {
+	if dev.SonicPortBreakout == nil || dev.SonicPortBreakout.BREAKOUT_CFG == nil {
+		if ag.Spec.IsVS() {
+			return nil
+		}
+
 		return errors.Errorf("breakouts not found")
 	}
 
 	for rawBreakoutName, breakout := range dev.SonicPortBreakout.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
 		breakoutName, exists := portMap[rawBreakoutName]
 		if !exists && !(ag.Spec.Switch.Profile == switchprofile.VS.Name && switchprofile.VSIsIgnoredComponent(breakoutName)) {
-			slog.Warn("Breakout mapping not found, ignoring for metrics", "breakout", breakoutName)
+			slog.Warn("Breakout mapping not found, ignoring for metrics", "breakout", rawBreakoutName)
 		}
 
 		breakoutName, exists = normBreakoutName(breakoutName)
@@ -1227,7 +1235,7 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *swi
 						}
 
 						if channel.State.LaserBiasCurrent != nil {
-							reg.TransceiverMetrics.Bias.WithLabelValues(transceiverName).Set(*channel.State.LaserBiasCurrent.Instant)
+							reg.TransceiverMetrics.Bias.WithLabelValues(transceiverName, ch).Set(*channel.State.LaserBiasCurrent.Instant)
 							chSt.Bias = normBias(channel.State.LaserBiasCurrent.Instant)
 						}
 
