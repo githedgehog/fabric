@@ -82,6 +82,10 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 	}
 
 	for _, conn := range conns.Items {
+		if conn.Spec.VPCLoopback != nil {
+			continue
+		}
+
 		_, _, _, links, err := conn.Spec.Endpoints()
 		if err != nil {
 			return nil, fmt.Errorf("getting endpoints for %s: %w", conn.Name, err)
@@ -103,7 +107,7 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 			}
 
 			var statusType LLDPNeighborType
-			if conn.Spec.MCLAGDomain != nil || conn.Spec.Fabric != nil || conn.Spec.Mesh != nil || conn.Spec.VPCLoopback != nil { //nolint:gocritic
+			if conn.Spec.MCLAGDomain != nil || conn.Spec.Fabric != nil || conn.Spec.Mesh != nil { //nolint:gocritic
 				statusType = LLDPNeighborTypeFabric
 			} else if conn.Spec.External != nil {
 				statusType = LLDPNeighborTypeExternal
