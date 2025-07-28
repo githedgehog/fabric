@@ -70,10 +70,8 @@ const (
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
-	// workaround to deal with attached hosts only being supported in 4.5.0 and later
-	if !agent.Spec.Config.LoopbackWorkaround && sonicVersionCurr.Compare(sonicVersion450) < 0 {
-		slog.Warn("Enabling loopback workaround, please upgrade SONiC to 4.5.0 or later")
-		agent.Spec.Config.LoopbackWorkaround = true
+	if sonicVersionCurr.Compare(sonicVersion450) < 0 {
+		return nil, fmt.Errorf("minimum sonic version required is 4.5.0") //nolint:err113
 	}
 
 	spec := &dozer.Spec{
