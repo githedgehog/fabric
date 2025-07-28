@@ -44,7 +44,7 @@ type AccessOut struct {
 	StaticExternalReachable map[string]bool     `json:"staticExternalReachable,omitempty"`
 }
 
-func (out *AccessOut) MarshalText(now time.Time) (string, error) {
+func (out *AccessOut) MarshalText(_ AccessIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	str.WriteString("Source VPCSubnets: " + strings.Join(out.SourceSubnets, ", ") + "\n")

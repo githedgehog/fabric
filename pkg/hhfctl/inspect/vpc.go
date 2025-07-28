@@ -44,7 +44,7 @@ type VPCOut struct {
 	Access           map[string]*apiutil.ReachableFromSubnet `json:"access,omitempty"`
 }
 
-func (out *VPCOut) MarshalText(now time.Time) (string, error) {
+func (out *VPCOut) MarshalText(_ VPCIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	// TODO helper func

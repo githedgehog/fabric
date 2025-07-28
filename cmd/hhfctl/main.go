@@ -727,6 +727,31 @@ func main() {
 								Usage:    "switch name",
 								Required: true,
 							},
+							&cli.BoolFlag{
+								Name:    "details",
+								Aliases: []string{"d"},
+								Usage:   "include detailed information (e.g. firmware versions)",
+							},
+							&cli.BoolFlag{
+								Name:    "ports",
+								Aliases: []string{"p"},
+								Usage:   "include ports and breakouts information ",
+							},
+							&cli.BoolFlag{
+								Name:    "transceivers",
+								Aliases: []string{"t"},
+								Usage:   "include transceivers information",
+							},
+							&cli.BoolFlag{
+								Name:    "counters",
+								Aliases: []string{"c"},
+								Usage:   "include counters",
+							},
+							&cli.BoolFlag{
+								Name:    "lasers",
+								Aliases: []string{"l"},
+								Usage:   "include laser details",
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
@@ -736,7 +761,12 @@ func main() {
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.SwitchIn{
-								Name: cCtx.String("name"),
+								Name:         cCtx.String("name"),
+								Transceivers: cCtx.Bool("transceivers"),
+								Ports:        cCtx.Bool("ports"),
+								Details:      cCtx.Bool("details"),
+								Counters:     cCtx.Bool("counters"),
+								Lasers:       cCtx.Bool("lasers"),
 							}, os.Stdout), "failed to inspect Switch")
 						},
 					},

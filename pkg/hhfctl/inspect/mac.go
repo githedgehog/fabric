@@ -44,7 +44,7 @@ type MACOutDHCPLease struct {
 	Hostname string       `json:"hostname,omitempty"`
 }
 
-func (out *MACOut) MarshalText(now time.Time) (string, error) {
+func (out *MACOut) MarshalText(_ MACIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if len(out.Ports) > 0 {

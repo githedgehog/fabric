@@ -64,7 +64,7 @@ type OutLoopbackWorkaround struct {
 	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec `json:"externalPeerings,omitempty"`
 }
 
-func (out *ConnectionOut) MarshalText(now time.Time) (string, error) {
+func (out *ConnectionOut) MarshalText(_ ConnectionIn, now time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	data, err := kyaml.Marshal(out.Spec)

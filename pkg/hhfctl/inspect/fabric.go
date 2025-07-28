@@ -49,7 +49,7 @@ type FabricOutSwitch struct {
 	Groups             []string    `json:"groups,omitempty"`
 }
 
-func (out *FabricOut) MarshalText(now time.Time) (string, error) {
+func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 	str := &strings.Builder{}
 
 	str.WriteString("Switches:\n")
