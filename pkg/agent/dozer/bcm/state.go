@@ -722,7 +722,9 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 		neighs := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{}
 		path := fmt.Sprintf("/network-instances/network-instance[name=%s]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor", vrfName)
 		if err := p.client.Get(ctx, path, neighs); err != nil {
-			return errors.Wrapf(err, "failed to get bgp neighbors for vrf %s", vrfName)
+			if !strings.Contains(err.Error(), "rpc error: code = NotFound") { // TODO rework client to handle it
+				return errors.Wrapf(err, "failed to get bgp neighbors for vrf %s", vrfName)
+			}
 		}
 
 		vrfSt := map[string]agentapi.SwitchStateBGPNeighbor{}
