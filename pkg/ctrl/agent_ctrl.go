@@ -766,6 +766,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			ProtocolSubnet:        r.cfg.ProtocolSubnet,
 			VTEPSubnet:            r.cfg.VTEPSubnet,
 			FabricSubnet:          r.cfg.FabricSubnet,
+			DisableBFD:            r.cfg.DisableBFD,
 		}
 		if r.cfg.FabricMode == meta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
