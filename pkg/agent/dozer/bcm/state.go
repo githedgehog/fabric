@@ -1113,11 +1113,7 @@ func (p *BroadcomProcessor) updateBreakoutMetrics(ctx context.Context, _ *switch
 		return errors.Wrapf(err, "failed to get breakouts")
 	}
 	if dev.SonicPortBreakout == nil || dev.SonicPortBreakout.BREAKOUT_CFG == nil {
-		if ag.Spec.IsVS() {
-			return nil
-		}
-
-		return errors.Errorf("breakouts not found")
+		return nil
 	}
 
 	for rawBreakoutName, breakout := range dev.SonicPortBreakout.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
