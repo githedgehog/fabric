@@ -599,9 +599,9 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
-		// we want to allowas-in for MCLAG (because they have the same ASN) and for spines for the remote peering
+		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
 		// TODO: remove allowas-in for spines when we fully deprecate remote peering
-		allowasIn := agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG || agent.Spec.Switch.Role.IsSpine()
+		allowasIn := true // agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG || agent.Spec.Switch.Role.IsSpine()
 		var routeMap string
 		if agent.Spec.Switch.Role.IsLeaf() {
 			routeMap = RouteMapLoopbackVTEP
@@ -726,7 +726,8 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
-		allowasIn := agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG
+		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
+		allowasIn := true // agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (mesh)", peer)),
