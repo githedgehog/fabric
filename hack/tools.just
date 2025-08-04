@@ -62,7 +62,7 @@ addlicense := localbin / "addlicense" + "-" + addlicense_version
   [ -f {{addlicense}} ] || just _goinstall "github.com/google/addlicense" {{addlicense_version}} "addlicense" {{addlicense}}
 
 # crd-ref-docs
-crd_ref_docs_version := "v0.1.0"
+crd_ref_docs_version := "v0.2.0"
 crd_ref_docs := localbin / "crd-ref-docs" + "-" + crd_ref_docs_version
 @_crd_ref_docs: _localbin
   [ -f {{crd_ref_docs}} ] || just _goinstall "github.com/elastic/crd-ref-docs" {{crd_ref_docs_version}} "crd-ref-docs" {{crd_ref_docs}}
