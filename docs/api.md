@@ -1278,7 +1278,6 @@ _Appears in:_
 VPCPeering represents a peering between two VPCs with corresponding filtering rules.
 Minimal example of the VPC peering showing vpc-1 to vpc-2 peering with all subnets allowed:
 
-
 	spec:
 	  permit:
 	  - vpc-1: {}
