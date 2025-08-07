@@ -602,6 +602,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		idConns[name] = true
 	}
 
+	err = r.libr.UpdateVNIs(ctx, r.Client)
+	if err != nil {
+		return kctrl.Result{}, errors.Wrapf(err, "error updating VNIs catalog")
+	}
+
 	cat := &agentapi.CatalogSpec{}
 
 	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns)

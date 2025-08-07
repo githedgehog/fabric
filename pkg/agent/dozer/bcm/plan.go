@@ -986,8 +986,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 					},
 					L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-						Enabled:            agent.IsSpineLeaf(),
-						AdvertiseDefaultGw: pointer.To(true),
+						Enabled:                       agent.IsSpineLeaf(),
+						AdvertiseDefaultGw:            pointer.To(true),
+						AdvertiseIPv4Unicast:          pointer.To(true),
+						AdvertiseIPv4UnicastRouteMaps: []string{extInboundRouteMapName(externalName)},
 					},
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 				},
@@ -1037,6 +1039,14 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Result: dozer.SpecRouteMapResultReject,
 				},
 			},
+		}
+
+		extVNI := agent.Spec.Catalog.ExternalVNIs[externalName]
+		if extVNI == 0 {
+			return errors.Errorf("VNI for external %s not found", externalName)
+		}
+		spec.VRFVNIMap[extVrfName] = &dozer.SpecVRFVNIEntry{
+			VNI: pointer.To(extVNI),
 		}
 	}
 
