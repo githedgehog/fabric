@@ -340,8 +340,10 @@ const (
 type SpecACLEntryAction string
 
 const (
-	SpecACLEntryActionAccept SpecACLEntryAction = "ACCEPT" // permit
-	SpecACLEntryActionDrop   SpecACLEntryAction = "DROP"   // deny
+	SpecACLEntryActionAccept  SpecACLEntryAction = "ACCEPT"  // permit
+	SpecACLEntryActionDrop    SpecACLEntryAction = "DROP"    // deny
+	SpecACLEntryActionDiscard SpecACLEntryAction = "DISCARD" // discard
+	SpecACLEntryActionTransit SpecACLEntryAction = "TRANSIT" // transit
 )
 
 type SpecACLInterface struct {

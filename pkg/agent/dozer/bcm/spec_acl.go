@@ -107,6 +107,10 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 			action = oc.OpenconfigAcl_FORWARDING_ACTION_ACCEPT
 		case dozer.SpecACLEntryActionDrop:
 			action = oc.OpenconfigAcl_FORWARDING_ACTION_DROP
+		case dozer.SpecACLEntryActionDiscard:
+			action = oc.OpenconfigAcl_FORWARDING_ACTION_DISCARD
+		case dozer.SpecACLEntryActionTransit:
+			action = oc.OpenconfigAcl_FORWARDING_ACTION_TRANSIT
 		default:
 			return nil, errors.Errorf("unknown ACL Entry action: %s", value.Action)
 		}
@@ -291,10 +295,17 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 				}
 
 				var action dozer.SpecACLEntryAction
-				if entry.Actions.Config.ForwardingAction == oc.OpenconfigAcl_FORWARDING_ACTION_ACCEPT {
+				switch entry.Actions.Config.ForwardingAction { //nolint:exhaustive
+				case oc.OpenconfigAcl_FORWARDING_ACTION_UNSET:
+					// just unset
+				case oc.OpenconfigAcl_FORWARDING_ACTION_ACCEPT:
 					action = dozer.SpecACLEntryActionAccept
-				} else if entry.Actions.Config.ForwardingAction == oc.OpenconfigAcl_FORWARDING_ACTION_DROP {
+				case oc.OpenconfigAcl_FORWARDING_ACTION_DROP:
 					action = dozer.SpecACLEntryActionDrop
+				case oc.OpenconfigAcl_FORWARDING_ACTION_DISCARD:
+					action = dozer.SpecACLEntryActionDiscard
+				case oc.OpenconfigAcl_FORWARDING_ACTION_TRANSIT:
+					action = dozer.SpecACLEntryActionTransit
 				}
 
 				entries[seq] = &dozer.SpecACLEntry{
