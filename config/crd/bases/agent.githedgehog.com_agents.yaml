@@ -203,6 +203,13 @@ spec:
                     description: ExternalIDs stores external name -> ID, unique per
                       switch
                     type: object
+                  externalVNIs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: ExternalVNIs stores external name -> external VNI,
+                      globally unique for the fabric
+                    type: object
                   irbVLANs:
                     additionalProperties:
                       type: integer
