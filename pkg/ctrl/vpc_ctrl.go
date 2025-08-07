@@ -102,12 +102,13 @@ func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, _ kclient.Object) []r
 func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	if err := r.libr.UpdateVPCs(ctx, r.Client); err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error updating vpcs catalog")
+	err := r.libr.UpdateVNIs(ctx, r.Client)
+	if err != nil {
+		return kctrl.Result{}, errors.Wrapf(err, "error updating VNIs catalog")
 	}
 
 	vpc := &vpcapi.VPC{}
-	err := r.Get(ctx, req.NamespacedName, vpc)
+	err = r.Get(ctx, req.NamespacedName, vpc)
 	if err != nil {
 		if kapierrors.IsNotFound(err) {
 			l.Info("vpc deleted, cleaning up dhcp subnets")

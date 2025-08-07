@@ -485,6 +485,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	externals := map[string]vpcapi.ExternalSpec{}
 	externalsToConfig := map[string]vpcapi.ExternalSpec{}
 	externalList := &vpcapi.ExternalList{}
+	externalsReq := map[string]bool{}
 	err = r.List(ctx, externalList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error listing externals")
@@ -493,6 +494,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		externals[ext.Name] = ext.Spec
 		if attachedExternals[ext.Name] {
 			externalsToConfig[ext.Name] = ext.Spec
+			externalsReq[ext.Name] = true
 		}
 	}
 
@@ -603,9 +605,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		idConns[name] = true
 	}
 
+	err = r.libr.UpdateVNIs(ctx, r.Client)
+	if err != nil {
+		return kctrl.Result{}, errors.Wrapf(err, "error updating VNIs catalog")
+	}
+
 	cat := &agentapi.CatalogSpec{}
 
-	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns)
+	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns, externalsReq)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
@@ -654,11 +661,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 			loWorkaroundReqs[librarian.LoWReqForExt(name)] = true
 		}
-	}
-
-	externalsReq := map[string]bool{}
-	for name := range externalsToConfig {
-		externalsReq[name] = true
 	}
 
 	subnetsReq := map[string]bool{}
