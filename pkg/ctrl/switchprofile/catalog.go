@@ -51,6 +51,7 @@ var sonicCLSPlusSwitchProfiles = []wiringapi.SwitchProfile{
 	CLSPCelesticaDS4000,
 	CLSPCelesticaDS4101,
 	CLSPCelesticaDS5000,
+	CLSPVS,
 }
 
 type Default struct {
