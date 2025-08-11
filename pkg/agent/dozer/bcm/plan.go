@@ -2626,7 +2626,7 @@ func buildVNIVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.V
 
 		acl.Entries[subnetID] = &dozer.SpecACLEntry{
 			DestinationAddress: pointer.To(subnet),
-			Action:             dozer.SpecACLEntryActionDrop,
+			Action:             dozer.SpecACLEntryActionDiscard,
 		}
 	}
 
