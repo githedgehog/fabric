@@ -49,7 +49,12 @@ func initCompat() error {
 		name = strings.Split(strings.TrimPrefix(name, sonicImagePrefix), "-")[0]
 		sonicVersionCurr, err = semver.NewVersion(name)
 		if err != nil {
-			return fmt.Errorf("parsing sonic version %q: %w", name, err)
+			slog.Warn("Failed to parse sonic version, using v0.0.0 as a fallback", "version", name)
+
+			sonicVersionCurr, err = semver.NewVersion("0.0.0")
+			if err != nil {
+				return fmt.Errorf("parsing sonic version 0.0.0: %w", err)
+			}
 		}
 		slog.Debug("Found sonic version", "version", sonicVersionCurr)
 	}
