@@ -115,6 +115,7 @@ const (
 	NOSTypeSONiCBCMVS           NOSType = "sonic-bcm-vs"
 	NOSTypeSONiCCLSPlusBroadcom NOSType = "sonic-cls-plus-broadcom"
 	NOSTypeSONiCCLSPlusMarvell  NOSType = "sonic-cls-plus-marvell"
+	NOSTypeSONiCCLSPlusVS       NOSType = "sonic-cls-plus-vs"
 )
 
 var NOSTypes = []NOSType{
@@ -123,6 +124,7 @@ var NOSTypes = []NOSType{
 	NOSTypeSONiCBCMVS,
 	NOSTypeSONiCCLSPlusBroadcom,
 	NOSTypeSONiCCLSPlusMarvell,
+	NOSTypeSONiCCLSPlusVS,
 }
 
 func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
