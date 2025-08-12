@@ -33,21 +33,38 @@ func TestDefaultSwitchProfiles(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 
-	kube := fake.NewClientBuilder().
-		WithScheme(scheme).
-		WithObjects().
-		Build()
+	for _, test := range []struct {
+		name        string
+		includeCLSP bool
+	}{
+		{
+			name: "default",
+		},
+		{
+			name:        "include-clsp",
+			includeCLSP: true,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects().
+				Build()
 
-	profiles := switchprofile.NewDefaultSwitchProfiles()
-	require.NoError(t, profiles.RegisterAll(ctx, kube, &meta.FabricConfig{}))
+			profiles := switchprofile.NewDefaultSwitchProfiles()
+			require.NoError(t, profiles.RegisterAll(ctx, kube, &meta.FabricConfig{
+				IncludeSONiCCLSPlus: test.includeCLSP,
+			}))
 
-	for _, sp := range profiles.List() {
-		require.NotEmpty(t, sp.Name, "switch profile name should be set")
-		require.NotNil(t, profiles.Get(sp.Name), "switch profile %q should be registered", sp.Name)
-		require.Equal(t, kmetav1.NamespaceDefault, sp.Namespace, "switch profile %q should be in default namespace", sp.Name)
+			for _, sp := range profiles.List() {
+				require.NotEmpty(t, sp.Name, "switch profile name should be set")
+				require.NotNil(t, profiles.Get(sp.Name), "switch profile %q should be registered", sp.Name)
+				require.Equal(t, kmetav1.NamespaceDefault, sp.Namespace, "switch profile %q should be in default namespace", sp.Name)
 
-		_, err := sp.Validate(ctx, kube, &meta.FabricConfig{})
-		require.NoError(t, err, "switch profile %q should be valid", sp.Name)
+				_, err := sp.Validate(ctx, kube, &meta.FabricConfig{})
+				require.NoError(t, err, "switch profile %q should be valid", sp.Name)
+			}
+		})
 	}
 }
 
