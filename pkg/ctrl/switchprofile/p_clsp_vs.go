@@ -12,7 +12,7 @@ import (
 
 var CLSPVS = wiringapi.SwitchProfile{
 	ObjectMeta: kmetav1.ObjectMeta{
-		Name: meta.SwitchProfileVS,
+		Name: meta.SwitchProfileVSCLSP,
 	},
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Virtual Switch CLS+",
@@ -22,9 +22,9 @@ var CLSPVS = wiringapi.SwitchProfile{
 			ACLs:          false,
 			L2VNI:         true,
 			L3VNI:         true,
-			RoCE:          true,
+			RoCE:          false,
 			MCLAG:         true,
-			ESLAG:         true,
+			ESLAG:         false,
 			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCCLSPlusVS,
