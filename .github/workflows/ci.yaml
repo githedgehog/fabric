@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -78,7 +78,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -260,7 +260,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -291,7 +291,7 @@ jobs:
       # Bump fabric in the fabricator repository
 
       - name: Checkout fabricator repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: githedgehog/fabricator
           path: fab-repo
@@ -335,7 +335,7 @@ jobs:
       # Bump fabric docs in the docs repository
 
       - name: Checkout docs repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: githedgehog/docs
           path: docs-repo
