@@ -50,7 +50,8 @@ type ObjectList interface {
 }
 
 const (
-	SwitchProfileVS = "vs"
+	SwitchProfileVS     = "vs"
+	SwitchProfileVSCLSP = "vs-clsp"
 )
 
 type UserCreds struct {
