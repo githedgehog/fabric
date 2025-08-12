@@ -47,6 +47,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 }
 
 var sonicCLSPlusSwitchProfiles = []wiringapi.SwitchProfile{
+	CLSPCelesticaDS2000,
 	CLSPCelesticaDS3000,
 	CLSPCelesticaDS4000,
 	CLSPCelesticaDS4101,
