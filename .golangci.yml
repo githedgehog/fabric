@@ -147,3 +147,7 @@ linters-settings:
       #
       - name: bool-literal-in-expr
       - name: constant-logical-expr
+
+issues:
+  exclude-files:
+    - vendor
