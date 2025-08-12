@@ -12,7 +12,7 @@ import (
 
 var CLSPVS = wiringapi.SwitchProfile{
 	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "vs-clsp",
+		Name: meta.SwitchProfileVS,
 	},
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Virtual Switch CLS+",
