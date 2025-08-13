@@ -100,6 +100,7 @@ jobs:
         with:
           # keep in sync with hack/tools.just
           version: v1.64.8
+          install-mode: goinstall
 
       - name: Build all
         run: |
