@@ -1,0 +1,247 @@
+logging {
+    level = "info"
+    format = "logfmt"
+    {{ if len $.Targets.Loki }}
+    write_to = [
+      {{ range $name, $target := $.Targets.Loki }}
+      loki.write.{{ $name }}.receiver,
+      {{ end }}
+    ]
+    {{ end }}
+}
+
+{{ range $name, $target := $.Targets.Prometheus }}
+prometheus.remote_write "{{ $name }}" {
+  endpoint {
+    url = "{{ $target.URL }}"
+    {{ if $.ProxyURL }}proxy_url = "{{ $.ProxyURL }}"{{ end }}
+    {{ if or $target.BasicAuth }}
+    basic_auth {
+      {{ if $target.BasicAuth.Username }}username = "{{ $target.BasicAuth.Username }}"{{ end }}
+      {{ if $target.BasicAuth.Password }}password = "{{ $target.BasicAuth.Password }}"{{ end }}
+    }
+    {{ else if $target.BearerToken }}
+    bearer_token = "{{ $target.BearerToken }}"
+    {{ end }}
+    tls_config {
+      insecure_skip_verify = {{ $target.InsecureSkipVerify }}
+      {{ if $target.CAPEM }}ca_pem = {{ $target.CAPEM }}{{ end }}
+      {{ if $target.CertPEM }}cert_pem = {{ $target.CertPEM }}{{ end }}
+    }
+    {{ if $target.SendIntervalSeconds }}
+    metadata_config {
+      send_interval = "{{ $target.SendIntervalSeconds }}s"
+    }
+    {{ end }}
+  }
+  external_labels = {
+    {{ if $.Hostname }}hostname = "{{ $.Hostname }}",{{ end }}
+    {{ range $key, $value := $target.Labels }}
+    {{ $key }} = "{{ $value }}",
+    {{ end }}
+  }
+}
+{{ end }}{{/* range prometheus targets */}}
+
+{{ range $name, $target := $.Targets.Loki }}
+loki.write "{{ $name }}" {
+  endpoint {
+    url = "{{ $target.URL }}"
+    {{ if $.ProxyURL }}proxy_url = "{{ $.ProxyURL }}"{{ end }}
+    {{ if or $target.BasicAuth }}
+    basic_auth {
+      {{ if $target.BasicAuth.Username }}username = "{{ $target.BasicAuth.Username }}"{{ end }}
+      {{ if $target.BasicAuth.Password }}password = "{{ $target.BasicAuth.Password }}"{{ end }}
+    }
+    {{ else if $target.BearerToken }}
+    bearer_token = "{{ $target.BearerToken }}"
+    {{ end }}
+    tls_config {
+      insecure_skip_verify = {{ $target.InsecureSkipVerify }}
+      {{ if $target.CAPEM }}ca_pem = {{ $target.CAPEM }}{{ end }}
+      {{ if $target.CertPEM }}cert_pem = {{ $target.CertPEM }}{{ end }}
+    }
+  }
+  external_labels = {
+    {{ if $.Hostname }}hostname = "{{ $.Hostname }}",{{ end }}
+    {{ range $key, $value := $target.Labels }}
+    {{ $key }} = "{{ $value }}",
+    {{ end }}
+  }
+}
+{{ end }}{{/* range loki targets */}}
+
+{{/* Configure scrapes only if there are Prometheus targets */}}
+{{ if len $.Targets.Prometheus }}
+
+{{ range $name, $scrape := $.Scrapes }}
+
+{{/* Enable Alloy exporter ("self") */}}
+{{ if $scrape.Self.Enable }}
+prometheus.exporter.self "alloy" {}
+{{ end }}
+
+{{/* Enable Unix exporter (node-exporter) */}}
+{{ if $scrape.Unix.Enable }}
+prometheus.exporter.unix "host" {
+  {{ if $scrape.Unix.Collectors }}
+  set_collectors = [
+    {{ range $scrape.Unix.Collectors }}
+    "{{ . }}",
+    {{ end }}
+  ]
+  {{ end }}
+}
+{{ end }}{{/* if unix */}}
+
+prometheus.scrape "{{ $name }}" {
+  {{ if $scrape.IntervalSeconds }}scrape_interval = "{{ $scrape.IntervalSeconds }}s"{{ end }}
+
+  {{ if $scrape.Address }}targets = [{ __address__ = "{{ $scrape.Address }}", }]{{ end }}
+  {{ if $scrape.Self.Enable }}targets = prometheus.exporter.self.alloy.targets{{ end }}
+  {{ if $scrape.Unix.Enable }}targets = prometheus.exporter.unix.host.targets{{ end }}
+
+  forward_to = [
+    prometheus.relabel.{{ $name }}.receiver,
+  ]
+}
+
+prometheus.relabel "{{ $name }}" {
+  forward_to = [
+    {{ range $name, $target := $.Targets.Prometheus }}
+    prometheus.remote_write.{{ $name }}.receiver,
+    {{ end }}
+  ]
+
+  {{ range $rule := $scrape.Relabel }}
+  rule {
+    {{ if len $rule.SourceLabels }}
+    source_labels = [
+      {{ range $label := $rule.SourceLabels }}
+      "{{ $label }}",
+      {{ end }}
+    ]
+    {{ end }}
+    {{ if $rule.Separator }}separator = "{{ $rule.Separator }}"{{ end }}
+    {{ if $rule.TargetLabel }}target_label = "{{ $rule.TargetLabel }}"{{ end }}
+    {{ if $rule.Replacement }}replacement = "{{ $rule.Replacement }}"{{ end }}
+    {{ if $rule.Regex }}regex = "{{ $rule.Regex }}"{{ end }}
+    {{ if $rule.Action }}action = "{{ $rule.Action }}"{{ end }}
+  }
+  {{ end }}{{/* range rules */}}
+}
+{{ end }}{{/* range scrapes */}}
+
+{{ end }}{{/* if prometheus targets */}}
+
+{{/* Configure log files and k8s events/podlogs only if there are Loki targets */}}
+{{ if len $.Targets.Loki }}
+
+{{ range $name, $logFile := $.LogFiles }}
+local.file_match "{{ $name }}" {
+  path_targets = [
+    {{ range $file := $logFile.PathTargets }}
+    {
+      __path__ = "{{ $file.Path }}",
+      {{ if $file.PathExclude }}__path_exclude = "{{ $file.PathExclude }}",{{ end }}
+    },
+    {{ end }}
+  ]
+}
+
+loki.source.file "{{ $name }}" {
+  targets    = local.file_match.{{ $name }}.targets
+  forward_to = [
+    loki.process.{{ $name }}.receiver,
+  ]
+}
+
+loki.process "{{ $name }}" {
+  {{/*
+  stage.static_labels {
+    values = {
+      name = "{{ $name }}",
+    }
+  }
+  */}}
+
+  forward_to = [
+    {{ range $name, $target := $.Targets.Loki }}
+    loki.write.{{ $name }}.receiver,
+    {{ end }}
+  ]
+}
+{{ end }}{{/* range log files */}}
+
+{{ if $.Kube.PodLogs }}
+discovery.kubernetes "pod" {
+  role = "pod"
+}
+
+discovery.relabel "pod_logs" {
+  targets = discovery.kubernetes.pod.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    action = "replace"
+    target_label = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    action = "replace"
+    target_label = "pod"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    action = "replace"
+    target_label = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    action = "replace"
+    target_label = "app"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+    action = "replace"
+    target_label = "job"
+    separator = "/"
+    replacement = "$1"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+    action = "replace"
+    target_label = "__path__"
+    separator = "/"
+    replacement = "/var/log/pods/*$1/*.log"
+  }
+}
+
+loki.source.kubernetes "pod_logs" {
+  targets    = discovery.relabel.pod_logs.output
+  forward_to = [
+    {{ range $name, $target := $.Targets.Loki }}
+    loki.write.{{ $name }}.receiver,
+    {{ end }}
+  ]
+}
+{{ end }}{{/* if kube pod logs */}}
+
+{{ if $.Kube.Events }}
+loki.source.kubernetes_events "cluster_events" {
+  job_name   = "integrations/kubernetes/eventhandler"
+  log_format = "logfmt"
+  forward_to = [
+    {{ range $name, $target := $.Targets.Loki }}
+    loki.write.{{ $name }}.receiver,
+    {{ end }}
+  ]
+}
+{{ end }}{{/* if kube events */}}
+
+{{ end }}{{/* if loki targets */}}

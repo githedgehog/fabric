@@ -15,11 +15,9 @@
 package alloy
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net"
 	"os"
@@ -32,12 +30,12 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
-	"go.githedgehog.com/fabric/api/meta"
+	fmeta "go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/agent/common"
+	"go.githedgehog.com/libmeta/pkg/tmpl"
 )
 
 const (
-	UserName    = "alloy"
 	unitName    = "hedgehog-alloy.service"
 	binDir      = "/opt/hedgehog/bin"
 	binName     = "alloy"
@@ -57,20 +55,7 @@ type unitTemplateConf struct {
 //go:embed alloy.service.tmpl
 var unitTemplate string
 
-type alloyConfigTemplateConf struct {
-	meta.AlloyConfig
-
-	AgentExporterPort uint16
-	Hostname          string
-	PrometheusEnabled bool
-	LokiEnabled       bool
-	ProxyURL          string
-}
-
-//go:embed config.alloy.tmpl
-var alloyConfigTemplate string
-
-func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPort uint16) error {
+func EnsureInstalled(ctx context.Context, agent *agentapi.Agent) error {
 	if agent.Spec.Version.AlloyRepo == "" || agent.Spec.Version.AlloyVersion == "" {
 		return nil
 	}
@@ -78,23 +63,22 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	start := time.Now()
 	slog.Debug("Ensuring alloy is installed and running")
 
-	agent.Spec.Alloy.Default()
 	binPath := filepath.Join(binDir, binName)
 	unitPath := filepath.Join("/etc/systemd/system/", unitName)
 
-	if _, err := osuser.Lookup(UserName); err != nil {
-		if errors.Is(err, osuser.UnknownUserError(UserName)) {
-			if err := execCmd(ctx, "useradd", "--no-create-home", "--shell", "/bin/false", "--groups", "adm", UserName); err != nil {
-				return errors.Wrapf(err, "error creating alloy user %s", UserName)
+	if _, err := osuser.Lookup(fmeta.AlloyUser); err != nil {
+		if errors.Is(err, osuser.UnknownUserError(fmeta.AlloyUser)) {
+			if err := execCmd(ctx, "useradd", "--no-create-home", "--shell", "/bin/false", "--groups", "adm", fmeta.AlloyUser); err != nil {
+				return errors.Wrapf(err, "error creating alloy user %s", fmeta.AlloyUser)
 			}
 		} else {
-			return errors.Wrapf(err, "error check looking up alloy user %s", UserName)
+			return errors.Wrapf(err, "error check looking up alloy user %s", fmeta.AlloyUser)
 		}
 	}
 
-	alloyUser, err := osuser.Lookup(UserName)
+	alloyUser, err := osuser.Lookup(fmeta.AlloyUser)
 	if err != nil {
-		return errors.Wrapf(err, "error looking up alloy user %s", UserName)
+		return errors.Wrapf(err, "error looking up alloy user %s", fmeta.AlloyUser)
 	}
 
 	alloyUserUID, err := strconv.Atoi(alloyUser.Uid)
@@ -102,28 +86,21 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 		return errors.Wrapf(err, "error parsing alloy user UID %s", alloyUser.Uid)
 	}
 
-	if err := execCmd(ctx, "usermod", "--append", "--groups", "adm", UserName); err != nil {
+	if err := execCmd(ctx, "usermod", "--append", "--groups", "adm", fmeta.AlloyUser); err != nil {
 		return errors.Wrapf(err, "error adding alloy user to adm group")
 	}
 
 	restart := false
 
-	desiredConfig, err := executeTemplate(alloyConfigTemplate, alloyConfigTemplateConf{
-		AlloyConfig:       agent.Spec.Alloy,
-		AgentExporterPort: agentExporterPort,
-		Hostname:          agent.Name,
-		PrometheusEnabled: len(agent.Spec.Alloy.PrometheusTargets) > 0,
-		LokiEnabled:       len(agent.Spec.Alloy.LokiTargets) > 0,
-		ProxyURL:          agent.Spec.Alloy.ControlProxyURL,
-	})
+	desiredConfig, err := agent.Spec.Config.Alloy.Render()
 	if err != nil {
 		return errors.Wrapf(err, "error executing config template")
 	}
 
 	actualConfig, err := os.ReadFile(configPath)
-	if err == nil && desiredConfig != string(actualConfig) || err != nil && os.IsNotExist(err) {
+	if err == nil && string(desiredConfig) != string(actualConfig) || err != nil && os.IsNotExist(err) {
 		restart = true
-		if err := os.WriteFile(configPath, []byte(desiredConfig), 0o600); err != nil {
+		if err := os.WriteFile(configPath, desiredConfig, 0o600); err != nil {
 			return errors.Wrapf(err, "error writing config file")
 		}
 	} else if err != nil {
@@ -177,8 +154,8 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 		return errors.Wrapf(err, "error parsing switch IP")
 	}
 
-	desiredUnit, err := executeTemplate(unitTemplate, unitTemplateConf{
-		User:    UserName,
+	desiredUnit, err := tmpl.Render("systemd-unit", unitTemplate, unitTemplateConf{
+		User:    fmeta.AlloyUser,
 		Binary:  binPath,
 		Listen:  fmt.Sprintf("%s:%d", ip.String(), listenPort),
 		Storage: storagePath,
@@ -189,9 +166,9 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	}
 
 	actualUnit, err := os.ReadFile(unitPath)
-	if err == nil && desiredUnit != string(actualUnit) || err != nil && os.IsNotExist(err) {
+	if err == nil && string(desiredUnit) != string(actualUnit) || err != nil && os.IsNotExist(err) {
 		restart = true
-		if err := os.WriteFile(unitPath, []byte(desiredUnit), 0o644); err != nil { //nolint:gosec
+		if err := os.WriteFile(unitPath, desiredUnit, 0o644); err != nil { //nolint:gosec
 			return errors.Wrapf(err, "error writing unit file")
 		}
 
@@ -202,7 +179,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 		return errors.Wrapf(err, "error reading unit file")
 	}
 
-	if len(agent.Spec.Alloy.PrometheusTargets) > 0 || len(agent.Spec.Alloy.LokiTargets) > 0 {
+	if len(agent.Spec.Config.Alloy.Targets.Prometheus) > 0 || len(agent.Spec.Config.Alloy.Targets.Loki) > 0 {
 		if err := execCmd(ctx, "systemctl", "enable", unitName); err != nil {
 			return errors.Wrapf(err, "error enabling unit")
 		}
@@ -227,24 +204,6 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, agentExporterPo
 	slog.Debug("Alloy ensured", "took", time.Since(start))
 
 	return nil
-}
-
-func executeTemplate(tmplText string, data any) (string, error) {
-	tmplText = strings.TrimPrefix(tmplText, "\n")
-	tmplText = strings.TrimSpace(tmplText)
-
-	tmpl, err := template.New("tmpl").Parse(tmplText)
-	if err != nil {
-		return "", errors.Wrapf(err, "error parsing template")
-	}
-
-	buf := bytes.NewBuffer(nil)
-	err = tmpl.Execute(buf, data)
-	if err != nil {
-		return "", errors.Wrapf(err, "error executing template")
-	}
-
-	return buf.String(), nil
 }
 
 func execCmd(ctx context.Context, name string, arg ...string) error {

@@ -23,6 +23,7 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/libmeta/pkg/alloy"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	kyaml "sigs.k8s.io/yaml"
@@ -62,36 +63,39 @@ type UserCreds struct {
 }
 
 type FabricConfig struct {
-	DeploymentID             string      `json:"deploymentID,omitempty"`
-	ControlVIP               string      `json:"controlVIP,omitempty"`
-	APIServer                string      `json:"apiServer,omitempty"`
-	AgentRepo                string      `json:"agentRepo,omitempty"`
-	VPCIRBVLANRanges         []VLANRange `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges     []VLANRange `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
-	VPCPeeringDisabled       bool        `json:"vpcPeeringDisabled,omitempty"`
-	ReservedSubnets          []string    `json:"reservedSubnets,omitempty"`
-	Users                    []UserCreds `json:"users,omitempty"`
-	FabricMode               FabricMode  `json:"fabricMode,omitempty"`
-	BaseVPCCommunity         string      `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet        string      `json:"vpcLoopbackSubnet,omitempty"`
-	FabricMTU                uint16      `json:"fabricMTU,omitempty"`
-	ServerFacingMTUOffset    uint16      `json:"serverFacingMTUOffset,omitempty"`
-	ESLAGMACBase             string      `json:"eslagMACBase,omitempty"`
-	ESLAGESIPrefix           string      `json:"eslagESIPrefix,omitempty"`
-	AlloyRepo                string      `json:"alloyRepo,omitempty"`
-	AlloyVersion             string      `json:"alloyVersion,omitempty"`
-	Alloy                    AlloyConfig `json:"alloy,omitempty"`
-	DefaultMaxPathsEBGP      uint32      `json:"defaultMaxPathsEBGP,omitempty"`
-	AllowExtraSwitchProfiles bool        `json:"allowExtraSwitchProfiles,omitempty"`
-	MCLAGSessionSubnet       string      `json:"mclagSessionSubnet,omitempty"`
-	GatewayASN               uint32      `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
-	GatewayAPISync           bool        `json:"gatewayAPISync,omitempty"`
-	LoopbackWorkaround       bool        `json:"loopbackWorkaround,omitempty"`
-	IncludeSONiCCLSPlus      bool        `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
-	ProtocolSubnet           string      `json:"protocolSubnet,omitempty"`
-	VTEPSubnet               string      `json:"vtepSubnet,omitempty"`
-	FabricSubnet             string      `json:"fabricSubnet,omitempty"`
-	DisableBFD               bool        `json:"disableBFD,omitempty"`
+	DeploymentID             string        `json:"deploymentID,omitempty"`
+	ControlVIP               string        `json:"controlVIP,omitempty"`
+	APIServer                string        `json:"apiServer,omitempty"`
+	AgentRepo                string        `json:"agentRepo,omitempty"`
+	VPCIRBVLANRanges         []VLANRange   `json:"vpcIRBVLANRange,omitempty"`
+	VPCPeeringVLANRanges     []VLANRange   `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	VPCPeeringDisabled       bool          `json:"vpcPeeringDisabled,omitempty"`
+	ReservedSubnets          []string      `json:"reservedSubnets,omitempty"`
+	Users                    []UserCreds   `json:"users,omitempty"`
+	FabricMode               FabricMode    `json:"fabricMode,omitempty"`
+	BaseVPCCommunity         string        `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet        string        `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU                uint16        `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset    uint16        `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase             string        `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix           string        `json:"eslagESIPrefix,omitempty"`
+	AlloyRepo                string        `json:"alloyRepo,omitempty"`
+	AlloyVersion             string        `json:"alloyVersion,omitempty"`
+	Alloy                    AlloyConfig   `json:"alloy,omitempty"` // TODO: not used anymore, remove in future releases
+	AlloyTargets             alloy.Targets `json:"alloyTargets,omitempty"`
+	Observability            Observability `json:"observability,omitempty"`
+	ControlProxyURL          string        `json:"controlProxyURL,omitempty"`
+	DefaultMaxPathsEBGP      uint32        `json:"defaultMaxPathsEBGP,omitempty"`
+	AllowExtraSwitchProfiles bool          `json:"allowExtraSwitchProfiles,omitempty"`
+	MCLAGSessionSubnet       string        `json:"mclagSessionSubnet,omitempty"`
+	GatewayASN               uint32        `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
+	GatewayAPISync           bool          `json:"gatewayAPISync,omitempty"`
+	LoopbackWorkaround       bool          `json:"loopbackWorkaround,omitempty"`
+	IncludeSONiCCLSPlus      bool          `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
+	ProtocolSubnet           string        `json:"protocolSubnet,omitempty"`
+	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
+	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
+	DisableBFD               bool          `json:"disableBFD,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -126,6 +130,29 @@ var NOSTypes = []NOSType{
 	NOSTypeSONiCCLSPlusBroadcom,
 	NOSTypeSONiCCLSPlusMarvell,
 	NOSTypeSONiCCLSPlusVS,
+}
+
+// +kubebuilder:object:generate=true
+type Observability struct {
+	Agent ObservabilityAgent `json:"agent,omitempty"`
+	Unix  ObservabilityUnix  `json:"unix,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ObservabilityAgent struct {
+	Metrics         bool                      `json:"metrics,omitempty"`
+	MetricsInterval uint                      `json:"metricsInterval,omitempty"`
+	MetricsRelabel  []alloy.ScrapeRelabelRule `json:"metricsRelabel,omitempty"`
+	Logs            bool                      `json:"logs,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ObservabilityUnix struct {
+	Metrics           bool                      `json:"metrics,omitempty"`
+	MetricsInterval   uint                      `json:"metricsInterval,omitempty"`
+	MetricsRelabel    []alloy.ScrapeRelabelRule `json:"metricsRelabel,omitempty"`
+	MetricsCollectors []string                  `json:"metricsCollectors,omitempty"`
+	Syslog            bool                      `json:"syslog,omitempty"`
 }
 
 func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
@@ -259,9 +286,8 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		return nil, errors.Errorf("config: mclagSessionSubnet is required")
 	}
 
-	cfg.Alloy.Default()
-	if err := cfg.Alloy.Validate(); err != nil {
-		return nil, errors.Wrapf(err, "error validating alloy config")
+	if err := cfg.AlloyTargets.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "error validating alloy targets")
 	}
 
 	if cfg.DefaultMaxPathsEBGP == 0 {
@@ -271,6 +297,11 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 	if cfg.GatewayASN == 0 {
 		return nil, errors.Errorf("config: gatewayASN is required")
 	}
+
+	// TODO enable in future releases
+	// if cfg.ControlProxyURL == "" {
+	// 	return nil, errors.Errorf("config: controlProxyURL is required")
+	// }
 
 	// TODO validate format of all fields
 

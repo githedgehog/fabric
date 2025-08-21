@@ -253,6 +253,133 @@ spec:
                 type: object
               config:
                 properties:
+                  alloy:
+                    properties:
+                      hostname:
+                        type: string
+                      kube:
+                        properties:
+                          events:
+                            type: boolean
+                          podLogs:
+                            type: boolean
+                        type: object
+                      logFiles:
+                        additionalProperties:
+                          properties:
+                            pathTargets:
+                              items:
+                                properties:
+                                  path:
+                                    type: string
+                                  pathExclude:
+                                    type: string
+                                type: object
+                              type: array
+                          type: object
+                        type: object
+                      proxyURL:
+                        type: string
+                      scrapes:
+                        additionalProperties:
+                          properties:
+                            address:
+                              type: string
+                            intervalSeconds:
+                              type: integer
+                            relabel:
+                              items:
+                                properties:
+                                  action:
+                                    type: string
+                                  regex:
+                                    type: string
+                                  replacement:
+                                    type: string
+                                  separator:
+                                    type: string
+                                  sourceLabels:
+                                    items:
+                                      type: string
+                                    type: array
+                                  targetLabel:
+                                    type: string
+                                type: object
+                              type: array
+                            self:
+                              properties:
+                                enable:
+                                  type: boolean
+                              type: object
+                            unix:
+                              properties:
+                                collectors:
+                                  items:
+                                    type: string
+                                  type: array
+                                enable:
+                                  type: boolean
+                              type: object
+                          type: object
+                        type: object
+                      targets:
+                        properties:
+                          loki:
+                            additionalProperties:
+                              properties:
+                                basicAuth:
+                                  properties:
+                                    password:
+                                      type: string
+                                    username:
+                                      type: string
+                                  type: object
+                                bearerToken:
+                                  type: string
+                                caPEM:
+                                  type: string
+                                certPEM:
+                                  type: string
+                                insecureSkipVerify:
+                                  type: boolean
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                url:
+                                  type: string
+                              type: object
+                            type: object
+                          prometheus:
+                            additionalProperties:
+                              properties:
+                                basicAuth:
+                                  properties:
+                                    password:
+                                      type: string
+                                    username:
+                                      type: string
+                                  type: object
+                                bearerToken:
+                                  type: string
+                                caPEM:
+                                  type: string
+                                certPEM:
+                                  type: string
+                                insecureSkipVerify:
+                                  type: boolean
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                sendIntervalSeconds:
+                                  type: integer
+                                url:
+                                  type: string
+                              type: object
+                            type: object
+                        type: object
+                    type: object
                   baseVPCCommunity:
                     type: string
                   collapsedCore:

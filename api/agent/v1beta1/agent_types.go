@@ -22,6 +22,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/libmeta/pkg/alloy"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,7 +36,7 @@ type AgentSpec struct {
 	Role                 wiringapi.SwitchRole                     `json:"role,omitempty"`
 	Description          string                                   `json:"description,omitempty"`
 	Config               AgentSpecConfig                          `json:"config,omitempty"`
-	Alloy                meta.AlloyConfig                         `json:"alloy,omitempty"`
+	Alloy                meta.AlloyConfig                         `json:"alloy,omitempty"` // TODO ignored, remove in future releases
 	Version              AgentVersion                             `json:"version,omitempty"`
 	Users                []UserCreds                              `json:"users,omitempty"`
 	Switch               wiringapi.SwitchSpec                     `json:"switch,omitempty"`
@@ -82,6 +83,7 @@ type AgentSpecConfig struct {
 	VTEPSubnet            string                        `json:"vtepSubnet,omitempty"`
 	FabricSubnet          string                        `json:"fabricSubnet,omitempty"`
 	DisableBFD            bool                          `json:"disableBFD,omitempty"`
+	Alloy                 alloy.Config                  `json:"alloy,omitempty"`
 }
 
 type AgentSpecConfigCollapsedCore struct{}

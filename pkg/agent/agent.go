@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fmeta "go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
@@ -77,17 +78,13 @@ type Service struct {
 	lastApplied   time.Time
 }
 
-const (
-	exporterPort = 7042
-)
-
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
 	svc.reg.AgentMetrics.Version.WithLabelValues(version.Version).Set(1)
 
 	if !svc.ApplyOnce && !svc.DryRun {
 		go func() {
-			if err := svc.reg.ServeMetrics(exporterPort); err != nil {
+			if err := svc.reg.ServeMetrics(fmeta.AgentExporterPort); err != nil {
 				slog.Error("Failed to serve metrics", "err", err)
 				panic(err)
 			}
@@ -453,7 +450,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
-	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, exporterPort), "failed to ensure alloy installed")
+	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent), "failed to ensure alloy installed")
 }
 
 func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64) error {
