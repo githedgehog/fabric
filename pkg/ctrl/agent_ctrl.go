@@ -28,11 +28,12 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
-	"go.githedgehog.com/fabric/api/meta"
+	fmeta "go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"
+	"go.githedgehog.com/libmeta/pkg/alloy"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -66,14 +67,14 @@ const (
 
 type AgentReconciler struct {
 	kclient.Client
-	cfg         *meta.FabricConfig
+	cfg         *fmeta.FabricConfig
 	libr        *librarian.Manager
 	regCA       string
 	regUsername string
 	regPassword string
 }
 
-func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
+func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
 	if cfg == nil {
 		return errors.New("fabric config is nil")
 	}
@@ -565,7 +566,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 
 	rgPeers := []string{}
-	if sw.Spec.Redundancy.Group != string(meta.RedundancyTypeNone) {
+	if sw.Spec.Redundancy.Group != string(fmeta.RedundancyTypeNone) {
 		for _, other := range switchList.Items {
 			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
 				if sw.Spec.Redundancy.Type != other.Spec.Redundancy.Type {
@@ -716,6 +717,56 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		// TODO validate using current switch profile
 	}
 
+	alloyCfg := alloy.Config{
+		Hostname: sw.Name,
+		ProxyURL: r.cfg.ControlProxyURL,
+		Targets:  r.cfg.AlloyTargets,
+		Scrapes: map[string]alloy.Scrape{
+			"alloy": {
+				Self: alloy.ScrapeSelf{
+					Enable: true,
+				},
+				IntervalSeconds: 120,
+			},
+		},
+		LogFiles: map[string]alloy.LogFile{},
+	}
+	if r.cfg.Observability.Agent.Metrics {
+		alloyCfg.Scrapes["agent"] = alloy.Scrape{
+			Address:         net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", fmeta.AgentExporterPort)),
+			Relabel:         r.cfg.Observability.Agent.MetricsRelabel,
+			IntervalSeconds: r.cfg.Observability.Agent.MetricsInterval,
+		}
+	}
+	if r.cfg.Observability.Agent.Logs {
+		alloyCfg.LogFiles["agent"] = alloy.LogFile{
+			PathTargets: []alloy.LogFilePathTarget{
+				{
+					Path: "/var/log/agent.log",
+				},
+			},
+		}
+	}
+	if r.cfg.Observability.Unix.Metrics {
+		alloyCfg.Scrapes["node"] = alloy.Scrape{
+			Unix: alloy.ScrapeUnix{
+				Enable:     true,
+				Collectors: r.cfg.Observability.Unix.MetricsCollectors,
+			},
+			Relabel:         r.cfg.Observability.Unix.MetricsRelabel,
+			IntervalSeconds: r.cfg.Observability.Unix.MetricsInterval,
+		}
+	}
+	if r.cfg.Observability.Unix.Syslog {
+		alloyCfg.LogFiles["syslog"] = alloy.LogFile{
+			PathTargets: []alloy.LogFilePathTarget{
+				{
+					Path: "/var/log/syslog",
+				},
+			},
+		}
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
 		agent.Annotations = sw.Annotations
@@ -771,14 +822,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			VTEPSubnet:            r.cfg.VTEPSubnet,
 			FabricSubnet:          r.cfg.FabricSubnet,
 			DisableBFD:            r.cfg.DisableBFD,
+			Alloy:                 alloyCfg,
 		}
-		if r.cfg.FabricMode == meta.FabricModeCollapsedCore {
+		if r.cfg.FabricMode == fmeta.FabricModeCollapsedCore {
 			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
-		} else if r.cfg.FabricMode == meta.FabricModeSpineLeaf {
+		} else if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
-
-		agent.Spec.Alloy = r.cfg.Alloy
 
 		return nil
 	})

@@ -86,6 +86,9 @@ github.com/Masterminds/goutils
 # github.com/Masterminds/semver/v3 v3.4.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
+# github.com/Masterminds/sprig/v3 v3.3.0
+## explicit; go 1.21
+github.com/Masterminds/sprig/v3
 # github.com/Microsoft/go-winio v0.6.2
 ## explicit; go 1.21
 github.com/Microsoft/go-winio
@@ -722,6 +725,9 @@ github.com/hashicorp/serf/coordinate
 # github.com/hashicorp/vault/api v1.14.0
 ## explicit; go 1.21
 github.com/hashicorp/vault/api
+# github.com/huandu/xstrings v1.5.0
+## explicit; go 1.12
+github.com/huandu/xstrings
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
@@ -802,12 +808,18 @@ github.com/mattn/go-runewidth
 github.com/mgutz/ansi
 # github.com/miekg/dns v1.1.54
 ## explicit; go 1.19
+# github.com/mitchellh/copystructure v1.2.0
+## explicit; go 1.15
+github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
+# github.com/mitchellh/reflectwalk v1.0.2
+## explicit
+github.com/mitchellh/reflectwalk
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -817,8 +829,6 @@ github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/nxadm/tail v1.4.11
-## explicit; go 1.13
 # github.com/olekukonko/errors v1.1.0
 ## explicit; go 1.21
 github.com/olekukonko/errors
@@ -1002,6 +1012,9 @@ github.com/samber/slog-webhook/v2
 # github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 ## explicit; go 1.13
 github.com/sergi/go-diff/diffmatchpatch
+# github.com/shopspring/decimal v1.4.0
+## explicit; go 1.10
+github.com/shopspring/decimal
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
@@ -1099,6 +1112,10 @@ go.githedgehog.com/fabric-bcm-ygot/pkg/oc
 # go.githedgehog.com/gateway v0.18.0
 ## explicit; go 1.24.2
 go.githedgehog.com/gateway/api/gateway/v1alpha1
+# go.githedgehog.com/libmeta v0.1.0
+## explicit; go 1.25.0
+go.githedgehog.com/libmeta/pkg/alloy
+go.githedgehog.com/libmeta/pkg/tmpl
 # go.opencensus.io v0.24.0
 ## explicit; go 1.13
 go.opencensus.io
@@ -1235,6 +1252,7 @@ golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/salsa20/salsa
+golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
