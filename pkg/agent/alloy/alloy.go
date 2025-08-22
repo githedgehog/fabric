@@ -130,6 +130,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent) error {
 
 		if !strings.Contains(string(vOut), fmt.Sprintf("alloy, version %s (branch", agent.Spec.Version.AlloyVersion)) {
 			needsBinUpgrade = true
+			restart = true
 		}
 	} else {
 		return errors.Wrapf(err, "error checking for alloy binary")
