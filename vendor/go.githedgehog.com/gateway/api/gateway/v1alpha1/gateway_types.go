@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
-	"regexp"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,8 +31,6 @@ type GatewaySpec struct {
 	Interfaces map[string]GatewayInterface `json:"interfaces,omitempty"`
 	// Neighbors is a list of BGP neighbors
 	Neighbors []GatewayBGPNeighbor `json:"neighbors,omitempty"`
-	// Alloy is the Alloy configuration for the gateway
-	Alloy AlloyConfig `json:"alloy,omitempty"`
 }
 
 // GatewayInterface defines the configuration for a gateway interface
@@ -154,63 +151,6 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 
 		if neigh.ASN == 0 {
 			return fmt.Errorf("BGP neighbor %s must have an ASN", neigh.IP) //nolint:goerr113
-		}
-	}
-
-	return nil
-}
-
-// TODO extract alloy related code into a separate repo to standardize Alloy configuration and config generation
-
-var alloyLabel = regexp.MustCompile(`^[a-z]([_a-z0-9]*[a-z0-9])?$`)
-
-// +kubebuilder:object:generate=true
-type AlloyConfig struct {
-	DataplaneScrapeIntervalSeconds uint                             `json:"dataplaneScrapeIntervalSeconds,omitempty"`
-	FRRScrapeIntervalSeconds       uint                             `json:"frrScrapeIntervalSeconds,omitempty"`
-	UnixExporterEnabled            bool                             `json:"unixExporterEnabled,omitempty"`
-	UnixExporterCollectors         []string                         `json:"unixExporterCollectors,omitempty"`
-	UnixScrapeIntervalSeconds      uint                             `json:"unixScrapeIntervalSeconds,omitempty"`
-	PrometheusTargets              map[string]AlloyPrometheusTarget `json:"prometheusTargets,omitempty"`
-}
-
-type AlloyBasicAuth struct {
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type AlloyTarget struct {
-	URL                string            `json:"url,omitempty"`
-	BasicAuth          AlloyBasicAuth    `json:"basicAuth,omitempty"`
-	BearerToken        string            `json:"bearerToken,omitempty"`
-	Labels             map[string]string `json:"labels,omitempty"`
-	UseControlProxy    bool              `json:"useControlProxy,omitempty"`
-	InsecureSkipVerify bool              `json:"insecureSkipVerify,omitempty"`
-	CAPEM              string            `json:"caPEM,omitempty"`
-	CertPEM            string            `json:"certPEM,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type AlloyPrometheusTarget struct {
-	AlloyTarget         `json:",inline"`
-	SendIntervalSeconds uint `json:"sendIntervalSeconds,omitempty"`
-}
-
-func (a *AlloyConfig) Default() {
-	a.DataplaneScrapeIntervalSeconds = max(a.DataplaneScrapeIntervalSeconds, 15)
-	a.FRRScrapeIntervalSeconds = max(a.FRRScrapeIntervalSeconds, 15)
-	a.UnixScrapeIntervalSeconds = max(a.UnixScrapeIntervalSeconds, 15)
-
-	for _, t := range a.PrometheusTargets {
-		t.SendIntervalSeconds = max(t.SendIntervalSeconds, 15)
-	}
-}
-
-func (a *AlloyConfig) Validate() error {
-	for name := range a.PrometheusTargets {
-		if !alloyLabel.MatchString(name) {
-			return fmt.Errorf("prometheus target name %q isn't valid", name) //nolint:goerr113
 		}
 	}
 
