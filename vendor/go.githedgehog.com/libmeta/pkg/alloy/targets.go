@@ -81,14 +81,6 @@ func (t *Target) Validate() error {
 	if t.BasicAuth != nil && t.BearerToken != "" {
 		return fmt.Errorf("only one of basicAuth or bearerToken can be set") //nolint:err113
 	}
-	if t.BasicAuth != nil {
-		if t.BasicAuth.Username == "" {
-			return fmt.Errorf("username is required") //nolint:err113
-		}
-		if t.BasicAuth.Password == "" {
-			return fmt.Errorf("password is required") //nolint:err113
-		}
-	}
 
 	for label := range t.Labels {
 		if err := validateIdentifier(label); err != nil {

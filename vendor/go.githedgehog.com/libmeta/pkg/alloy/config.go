@@ -13,9 +13,10 @@ import (
 
 // +kubebuilder:object:generate=true
 type Config struct {
-	Hostname string  `json:"hostname,omitempty"`
-	Targets  Targets `json:"targets,omitempty"`
-	ProxyURL string  `json:"proxyURL,omitempty"`
+	Hostname     string  `json:"hostname,omitempty"`
+	AutoHostname bool    `json:"autoHostname,omitempty"`
+	Targets      Targets `json:"targets,omitempty"`
+	ProxyURL     string  `json:"proxyURL,omitempty"`
 
 	Scrapes  map[string]Scrape  `json:"scrapes,omitempty"`
 	LogFiles map[string]LogFile `json:"logFiles,omitempty"`
