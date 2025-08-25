@@ -255,6 +255,8 @@ spec:
                 properties:
                   alloy:
                     properties:
+                      autoHostname:
+                        type: boolean
                       hostname:
                         type: string
                       kube:

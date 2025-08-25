@@ -1112,7 +1112,7 @@ go.githedgehog.com/fabric-bcm-ygot/pkg/oc
 # go.githedgehog.com/gateway v0.19.0
 ## explicit; go 1.25.0
 go.githedgehog.com/gateway/api/gateway/v1alpha1
-# go.githedgehog.com/libmeta v0.1.0
+# go.githedgehog.com/libmeta v0.2.2
 ## explicit; go 1.25.0
 go.githedgehog.com/libmeta/pkg/alloy
 go.githedgehog.com/libmeta/pkg/tmpl
