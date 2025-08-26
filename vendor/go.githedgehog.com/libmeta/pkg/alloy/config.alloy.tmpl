@@ -208,14 +208,6 @@ discovery.relabel "pod_logs" {
   }
 
   rule {
-    source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
-    action = "replace"
-    target_label = "job"
-    separator = "/"
-    replacement = "$1"
-  }
-
-  rule {
     source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
     action = "replace"
     target_label = "__path__"
@@ -236,7 +228,7 @@ loki.source.kubernetes "pod_logs" {
 
 {{ if $.Kube.Events }}
 loki.source.kubernetes_events "cluster_events" {
-  job_name   = "integrations/kubernetes/eventhandler"
+  job_name   = "kube-events"
   log_format = "logfmt"
   forward_to = [
     {{ range $name, $target := $.Targets.Loki }}
