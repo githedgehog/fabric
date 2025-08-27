@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -357,6 +358,11 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 	// delete all regular peerings
 	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCPeering{}, &delAllOpts); err != nil {
 		return errors.Wrap(err, "cannot delete vpc peerings")
+	}
+
+	// delete all gateway peerings
+	if err := kube.DeleteAllOf(ctx, &gwapi.Peering{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete gateway peerings")
 	}
 
 	// delete all attachments
