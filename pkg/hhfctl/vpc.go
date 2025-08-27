@@ -25,6 +25,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -361,7 +362,7 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 	}
 
 	// delete all gateway peerings
-	if err := kube.DeleteAllOf(ctx, &gwapi.Peering{}, &delAllOpts); err != nil {
+	if err := kube.DeleteAllOf(ctx, &gwapi.Peering{}, &delAllOpts); err != nil && !kmeta.IsNoMatchError(err) {
 		return errors.Wrap(err, "cannot delete gateway peerings")
 	}
 
@@ -379,7 +380,7 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 }
 
 func VPCWipe(ctx context.Context) error {
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder, gwapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
