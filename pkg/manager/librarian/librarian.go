@@ -16,6 +16,7 @@ package librarian
 
 import (
 	"context"
+	"maps"
 	"math"
 	"sync"
 
@@ -165,6 +166,12 @@ func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
 	a := &Allocator[uint32]{
 		Values: NewNextFreeValueFromRanges([][2]uint32{{VPCVNIOffset, VPCVNIMax}}, VPCVNIOffset),
 	}
+
+	cat.Spec.ExternalVNIs, err = a.Allocate(cat.Spec.ExternalVNIs, exts)
+	if err != nil {
+		return errors.Wrapf(err, "failed to allocate external VNIs")
+	}
+
 	cat.Spec.VPCVNIs, err = a.Allocate(cat.Spec.VPCVNIs, vpcs)
 	if err != nil {
 		return errors.Wrapf(err, "failed to allocate VPC VNIs")
@@ -186,11 +193,6 @@ func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
 		}
 	}
 
-	cat.Spec.ExternalVNIs, err = a.Allocate(cat.Spec.ExternalVNIs, exts)
-	if err != nil {
-		return errors.Wrapf(err, "failed to allocate external VNIs")
-	}
-
 	return m.saveCatalog(ctx, kube, CatVNIs, cat)
 }
 
@@ -206,7 +208,7 @@ func (m *Manager) getSwitchKey(swName string) string {
 	return CatSwitchPrefix + swName
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool) error {
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -221,10 +223,16 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		a := &Allocator[uint16]{
 			Values: NewNextFreeValueFromVLANRanges(m.cfg.VPCIRBVLANRanges),
 		}
+		extVlans, err := a.Allocate(cat.Spec.IRBVLANs, externals)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate IRB VLANs for externals %s", key)
+		}
+
 		cat.Spec.IRBVLANs, err = a.Allocate(cat.Spec.IRBVLANs, vpcs)
 		if err != nil {
 			return errors.Wrapf(err, "failed to allocate IRB VLANs for %s", key)
 		}
+		maps.Copy(cat.Spec.IRBVLANs, extVlans)
 	}
 
 	{
@@ -277,6 +285,13 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			ret.IRBVLANs[name] = vlan
 		} else {
 			return errors.Errorf("failed to find IRB VLAN for vpc %s", name)
+		}
+	}
+	for name := range externals {
+		if vlan, exists := cat.Spec.IRBVLANs[name]; exists {
+			ret.IRBVLANs[name] = vlan
+		} else {
+			return errors.Errorf("failed to find IRB VLAN for external %s", name)
 		}
 	}
 
