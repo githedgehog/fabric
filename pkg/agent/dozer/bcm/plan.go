@@ -406,10 +406,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	vtepSubnet := agent.Spec.Config.VTEPSubnet
 	if vtepSubnet == "" {
-		// return errors.New("VTEP subnet not set in agent config")
-
-		// TODO remove after 25.04 release
-		vtepSubnet = "172.30.12.0/22"
+		return errors.New("VTEP subnet not set in agent config") //nolint: goerr113
 	}
 
 	spec.PrefixLists[PrefixListAllVTEPPrefixes] = &dozer.SpecPrefixList{
