@@ -32,7 +32,6 @@ jobs:
           - fabric/charts/fabric-api
           - fabric/charts/fabric-boot
           - fabric/charts/fabric-dhcpd
-          - fabric/charts/fabric-proxy
 
     runs-on: ubuntu-latest
     steps:
