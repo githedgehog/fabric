@@ -130,6 +130,7 @@ const (
 	ActionWeightVRFStaticRouteUpdate
 
 	ActionWeightVRFBGPBaseUpdate
+	ActionWeightVRFBGPL2VPNUpdate
 	ActionWeightVRFSAGUpdate
 	ActionWeightVRFEVPNMHUpdate
 	ActionWeightVRFEthernetSegmentUpdate
@@ -173,6 +174,7 @@ const (
 	ActionWeightVRFBGPNeighborDelete
 	ActionWeightBFDProfileDelete
 	ActionWeightVRFSAGDelete
+	ActionWeightVRFBGPL2VPNDelete
 	ActionWeightVRFBGPBaseDelete
 	ActionWeightVRFBaseDelete
 
