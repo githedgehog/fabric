@@ -164,15 +164,22 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
+    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.fabricmode == 'collapsed-core' && 'cc-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
     needs:
       - test-api
       - test-build
-
-    name: "${{ matrix.hybrid && 'hlab' || 'vlab' }}-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
-
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
-      skip: ${{ matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab') || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab') }}
+      skip: >-
+        ${{
+          github.event_name == 'pull_request'
+          && (
+            matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab')
+            || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab')
+          ) && (
+            matrix.upgradefrom == '' || !contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
+          )
+        }}
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
@@ -183,9 +190,11 @@ jobs:
       vpcmode: ${{ matrix.vpcmode }}
       releasetest: ${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') }}
       hybrid: ${{ matrix.hybrid }}
+      upgradefrom: ${{ matrix.upgradefrom }}
 
     strategy:
       fail-fast: false
+      # l2vni and l3vni as a base (with defaults) including upgrade from supported versions
       matrix:
         fabricmode:
           - spine-leaf
@@ -202,7 +211,11 @@ jobs:
           - l3vni
         hybrid:
           - false
+        upgradefrom:
+          - ""
+          - "25.04"
         include:
+          # mesh l2vni
           - fabricmode: spine-leaf
             mesh: true
             includeonie: false
@@ -210,6 +223,9 @@ jobs:
             buildmode: iso
             vpcmode: l2vni
             hybrid: false
+            upgradefrom: ""
+
+          # hlab l2vni
           - fabricmode: spine-leaf
             mesh: false
             includeonie: false
@@ -217,6 +233,9 @@ jobs:
             buildmode: iso
             vpcmode: l2vni
             hybrid: true
+            upgradefrom: ""
+
+          # collapsed-core l2vni
           - fabricmode: collapsed-core
             mesh: false
             includeonie: false
@@ -224,6 +243,9 @@ jobs:
             buildmode: iso
             vpcmode: l2vni
             hybrid: false
+            upgradefrom: ""
+
+          # gateway l2vni
           # - fabricmode: spine-leaf
           #   mesh: false
           #   gateway: true
