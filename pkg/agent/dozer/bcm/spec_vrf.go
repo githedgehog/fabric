@@ -220,6 +220,10 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 			return errors.Wrap(err, "failed to handle vrf bgp base")
 		}
 
+		if err := specVRFBGPL2VPNEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle vrf bgp l2vpn")
+		}
+
 		if err := specVRFImportVrfEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrf bgp import vrfs")
 		}
@@ -252,7 +256,6 @@ var specVRFBGPBaseEnforcerGetter = func(_ string, value *dozer.SpecVRFBGP) any {
 		value.IPv4Unicast.MaxPaths,
 		value.IPv4Unicast.MaxPathsIBGP,
 		value.IPv4Unicast.TableMap,
-		value.L2VPNEVPN,
 	}
 }
 
@@ -295,35 +298,6 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 
 			afiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST] = ipv4Unicast
 		}
-		if value.L2VPNEVPN.Enabled {
-			routeAdvertise := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{}
-			if value.L2VPNEVPN.AdvertiseIPv4Unicast != nil && *value.L2VPNEVPN.AdvertiseIPv4Unicast {
-				routeAdvertise[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{
-					AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
-					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList_Config{
-						AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
-						RouteMap:         value.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps,
-					},
-				}
-			}
-
-			afiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
-				AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
-				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
-					AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
-				},
-				L2VpnEvpn: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn{
-					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_Config{
-						AdvertiseAllVni:    value.L2VPNEVPN.AdvertiseAllVNI,
-						AdvertiseDefaultGw: value.L2VPNEVPN.AdvertiseDefaultGw,
-					},
-					// TODO extract as we'll not be able to replace it
-					RouteAdvertise: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise{
-						RouteAdvertiseList: routeAdvertise,
-					},
-				},
-			}
-		}
 
 		var as oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config_As_Union
 		if value.AS != nil {
@@ -340,6 +314,48 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
 						AfiSafi: afiSafi,
+					},
+				},
+			},
+		}, nil
+	},
+}
+
+var specVRFBGPL2VPNEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
+	Summary: "VRF %s BGP L2VPN",
+	Getter: func(name string, value *dozer.SpecVRFBGP) any {
+		return []any{specVRFBGPBaseEnforcerGetter(name, value), value.L2VPNEVPN}
+	},
+	Path:         "/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]",
+	UpdateWeight: ActionWeightVRFBGPL2VPNUpdate,
+	DeleteWeight: ActionWeightVRFBGPL2VPNDelete,
+	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
+		routeAdvertise := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{}
+		if value.L2VPNEVPN.AdvertiseIPv4Unicast != nil && *value.L2VPNEVPN.AdvertiseIPv4Unicast {
+			routeAdvertise[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{
+				AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList_Config{
+					AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+					RouteMap:         value.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps,
+				},
+			}
+		}
+
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
+			AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{ //nolint:exhaustive
+				oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN: {
+					AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_Config{
+						AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
+					},
+					L2VpnEvpn: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn{
+						Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_Config{
+							AdvertiseAllVni:    value.L2VPNEVPN.AdvertiseAllVNI,
+							AdvertiseDefaultGw: value.L2VPNEVPN.AdvertiseDefaultGw,
+						},
+						RouteAdvertise: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise{
+							RouteAdvertiseList: routeAdvertise,
+						},
 					},
 				},
 			},
