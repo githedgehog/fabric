@@ -19,9 +19,11 @@ package dhcpd
 import "context"
 
 func (d *Service) runCoreDHCP(_ context.Context) error {
+	_ = setup
 	panic("unimplemented")
 }
 
 func (d *Service) handleExpiredLeases() {
+	_ = handleExpiredLeases
 	panic("unimplemented")
 }
