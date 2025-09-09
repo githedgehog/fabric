@@ -15,14 +15,14 @@
 package bcm
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -32,7 +32,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 )
 
@@ -63,30 +62,67 @@ func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 		return errors.Wrap(err, "failed to fix iptables for vxlan on VS")
 	}
 
-	slog.Debug("Checking if system is ready")
+	slog.Info("Waiting for system is ready")
 
-	lOut := logutil.NewSink(ctx, slog.Debug, "status: ")
-	lErr := logutil.NewSink(ctx, slog.Warn, "status: ")
-
+	timeout := 10 * time.Minute
 	retriesStart := time.Now()
-	for time.Since(retriesStart) < 10*time.Minute {
-		buf := &bytes.Buffer{}
-		cmd := exec.CommandContext(ctx, "su", "-c", "sonic-cli -c \"show system status brief\"", gnmi.AgentUser) //nolint:gosec
-		cmd.Stdout = io.MultiWriter(buf, lOut)
-		cmd.Stderr = lErr
-		err := cmd.Run()
+	for time.Since(retriesStart) < timeout {
+		resp, err := p.client.CallOperation(ctx, "openconfig-system-rpc:show-system-status", nil)
 		if err != nil {
-			slog.Warn("Failed to run sonic-cli: show system status brief", "err", err)
-		} else if bytes.Contains(buf.Bytes(), []byte("System is ready")) {
-			slog.Info("System is ready")
+			slog.Warn("Failed to get system status", "err", err)
+		} else {
+			st := &SystemStatusResponse{}
+			if err := json.Unmarshal(resp, st); err != nil {
+				slog.Warn("Failed to parse system status", "err", err)
+			} else {
+				notReady, total := 0, 0
+				notReadyList := []string{}
+				for _, detail := range st.Output.Details {
+					// skip column headers
+					if strings.HasPrefix(detail, "System") || strings.HasPrefix(detail, "Service-Name") {
+						continue
+					}
 
-			break
+					// skip malformed details lines
+					parts := strings.Fields(detail)
+					if len(parts) < 3 {
+						continue
+					}
+
+					// skip agent, alloy and other potential hedgehog units
+					if strings.Contains(parts[0], "hedgehog") {
+						continue
+					}
+
+					total++
+					if parts[1] != "OK" || parts[2] != "OK" {
+						notReady++
+						notReadyList = append(notReadyList, parts[0])
+					}
+				}
+
+				if notReady == 0 {
+					slog.Info("System is ready")
+
+					return nil
+				}
+
+				slices.Sort(notReadyList)
+				slog.Debug("System is not ready", "summary", fmt.Sprintf("%d/%d", total-notReady, total), "notReady", notReadyList)
+			}
 		}
 
-		time.Sleep(15 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
-	return nil
+	return fmt.Errorf("system is not ready after %f minutes", timeout.Minutes()) //nolint:err113
+}
+
+type SystemStatusResponse struct {
+	Output struct {
+		Status  int      `json:"status"`
+		Details []string `json:"status-detail"`
+	} `json:"openconfig-system-rpc:output"`
 }
 
 func (p *BroadcomProcessor) Reboot(ctx context.Context, _ /* force */ bool) error {
