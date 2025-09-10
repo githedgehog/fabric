@@ -57,6 +57,9 @@ type GatewayStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=gw
+// +kubebuilder:printcolumn:name="ProtoIP",type=string,JSONPath=`.spec.protocolIP`,priority=1
+// +kubebuilder:printcolumn:name="VTEPIP",type=string,JSONPath=`.spec.vtepIP`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Gateway is the Schema for the gateways API.
 type Gateway struct {
 	kmetav1.TypeMeta   `json:",inline"`
