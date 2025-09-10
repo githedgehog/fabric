@@ -43,6 +43,7 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -76,6 +77,7 @@ type Service struct {
 
 	lastHeartbeat time.Time
 	lastApplied   time.Time
+	lastStatus    *agentapi.AgentStatus
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
@@ -210,8 +212,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
 	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
-	err = kube.Status().Update(ctx, agent) // TODO maybe use patch for such status updates?
-	if err != nil {
+	if err := svc.updateStatus(ctx, kube, agent); err != nil {
 		return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
 	}
 
@@ -259,6 +260,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			slog.Debug("Sending heartbeat", "name", agent.Name)
 			hbStart := time.Now()
 
+			if svc.lastStatus != nil {
+				agent.Status = *svc.lastStatus
+			}
+
 			if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 				return errors.Wrapf(err, "failed to update switch state")
 			}
@@ -269,8 +274,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
 			svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
-			err := kube.Status().Update(ctx, agent)
-			if err != nil {
+			if err := svc.updateStatus(ctx, kube, agent); err != nil {
 				return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
 			}
 
@@ -307,6 +311,9 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			}
 
 			agent = event.Object.(*agentapi.Agent)
+			if svc.lastStatus != nil {
+				agent.Status = *svc.lastStatus
+			}
 
 			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen)
 			if err != nil {
@@ -479,7 +486,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 	agent.Status.LastAttemptGen = agent.Generation
 	agent.Status.LastAttemptTime = kmetav1.Time{Time: time.Now()}
 
-	if err := kube.Status().Update(ctx, agent); err != nil {
+	if err := svc.updateStatus(ctx, kube, agent); err != nil {
 		return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
 	}
 
@@ -545,11 +552,40 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 	agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
 	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
 
-	if err := kube.Status().Update(ctx, agent); err != nil {
+	if err := svc.updateStatus(ctx, kube, agent); err != nil {
 		return errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
 	}
 
 	*currentGen = agent.Generation
+
+	return nil
+}
+
+func (svc *Service) updateStatus(ctx context.Context, kube kclient.Client, agOrig *agentapi.Agent) error {
+	ag := agOrig.DeepCopy()
+	fetch := false
+
+	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		if fetch {
+			slog.Debug("Fetching latest agent to update status")
+			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(ag), ag); err != nil {
+				return fmt.Errorf("fetching latest agent: %w", err)
+			}
+		}
+		fetch = true
+
+		ag.Status = agOrig.Status
+
+		if err := kube.Status().Update(ctx, ag); err != nil {
+			return fmt.Errorf("updating agent status: %w", err)
+		}
+
+		svc.lastStatus = &ag.Status
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("retrying: %w", err)
+	}
 
 	return nil
 }
