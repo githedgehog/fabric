@@ -1109,11 +1109,11 @@ go.etcd.io/bbolt
 # go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
-# go.githedgehog.com/gateway v0.19.3
-## explicit; go 1.25.0
+# go.githedgehog.com/gateway v0.19.5
+## explicit; go 1.25
 go.githedgehog.com/gateway/api/gateway/v1alpha1
-# go.githedgehog.com/libmeta v0.2.3
-## explicit; go 1.25.0
+# go.githedgehog.com/libmeta v0.2.4
+## explicit; go 1.25
 go.githedgehog.com/libmeta/pkg/alloy
 go.githedgehog.com/libmeta/pkg/tmpl
 # go.opencensus.io v0.24.0
@@ -1698,7 +1698,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1alpha1
-# k8s.io/apiextensions-apiserver v0.33.0
+# k8s.io/apiextensions-apiserver v0.33.4
 ## explicit; go 1.24.0
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
