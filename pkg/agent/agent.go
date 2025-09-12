@@ -53,6 +53,7 @@ const (
 	KubeconfigFile  = "agent-kubeconfig"
 	HeartbeatPeriod = 15 * time.Second
 	EnforcePeriod   = 2 * time.Minute
+	shadowPath      = "/etc/shadow"
 )
 
 //go:embed motd.txt
@@ -115,11 +116,52 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	svc.processor = bcmProcessor
 
-	if !svc.DryRun && !svc.SkipControlLink {
-		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
-			return errors.Wrap(err, "failed to ensure control link at startup")
+	if !svc.DryRun {
+		if !svc.SkipControlLink {
+			if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
+				return errors.Wrap(err, "failed to ensure control link at startup")
+			}
+			slog.Info("Initial control link configuration applied")
 		}
-		slog.Info("Initial control link configuration applied")
+
+		isCls := false
+		entries, err := os.ReadDir("/host")
+		if err != nil {
+			return fmt.Errorf("reading host dir: %w", err)
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			name := entry.Name()
+
+			if strings.HasPrefix(name, "image-cls") {
+				isCls = true
+
+				break
+			}
+		}
+
+		// temp hack to patch shadow file for admin user on Celestica SONiC+ to avoid prompt for changing password
+		if isCls {
+			slog.Info("Celestica SONiC+ detected, just enforcing admin password every 15 seconds")
+
+			for {
+				for _, user := range agent.Spec.Users {
+					name := user.Name
+
+					if name != "admin" {
+						continue
+					}
+
+					if err := patchShadowFile(name, user.Password); err != nil {
+						slog.Warn("Failed to patch shadow file", "err", err)
+					}
+				}
+
+				time.Sleep(15 * time.Second)
+			}
+		}
 	}
 
 	retriesStart := time.Now()
@@ -768,6 +810,33 @@ func (svc *Service) setONIENOSInstall(ctx context.Context) error {
 
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, "failed to run onie-boot-mode list")
+	}
+
+	return nil
+}
+
+func patchShadowFile(name string, password string) error {
+	sh, err := os.ReadFile(shadowPath)
+	if err != nil {
+		return fmt.Errorf("reading shadow file: %w", err)
+	}
+
+	changed := false
+	newSh := strings.Builder{}
+	for line := range strings.Lines(string(sh)) {
+		if !strings.HasPrefix(line, name+":") || strings.HasPrefix(line, name+":"+password+":") {
+			newSh.WriteString(line)
+		} else {
+			changed = true
+			newSh.WriteString(fmt.Sprintf("admin:%s:%d:0:99999:15:::\n", password, time.Now().Unix()/(24*60*60)))
+		}
+	}
+
+	if changed {
+		if err := os.WriteFile(shadowPath, []byte(newSh.String()), 0o600); err != nil {
+			return fmt.Errorf("writing shadow file %s: %w", shadowPath, err)
+		}
+		slog.Info("Updated admin password in /etc/shadow")
 	}
 
 	return nil
