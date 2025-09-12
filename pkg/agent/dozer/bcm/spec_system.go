@@ -323,46 +323,7 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 				ASummary: fmt.Sprintf("User %s authorized keys", name),
 				Weight:   ActionWeightUserAuthorizedKeys,
 				CustomFunc: func(_ context.Context, _ *gnmi.Client) error {
-					osUser, err := osuser.Lookup(name)
-					if err != nil {
-						return errors.Wrapf(err, "failed to lookup user %s", name)
-					}
-
-					uid, err := strconv.Atoi(osUser.Uid)
-					if err != nil {
-						return errors.Wrapf(err, "failed to parse uid %s", osUser.Uid)
-					}
-					gid, err := strconv.Atoi(osUser.Gid)
-					if err != nil {
-						return errors.Wrapf(err, "failed to parse gid %s", osUser.Gid)
-					}
-
-					sshDir := filepath.Join("/home", name, ".ssh")
-					err = os.MkdirAll(sshDir, 0o700)
-					if err != nil {
-						return errors.Wrapf(err, "failed to create ssh dir %s", sshDir)
-					}
-
-					err = os.Chown(sshDir, uid, gid)
-					if err != nil {
-						return errors.Wrapf(err, "failed to chown ssh dir %s", sshDir)
-					}
-
-					err = os.WriteFile(filepath.Join(sshDir, "authorized_keys"), []byte( //nolint:gosec
-						strings.Join(append([]string{
-							"# Hedgehog Agent managed keys, do not edit manually",
-						}, user.AuthorizedKeys...), "\n")+"\n",
-					), 0o644)
-					if err != nil {
-						return errors.Wrapf(err, "failed to write authorized_keys for user %s", name)
-					}
-
-					err = os.Chown(filepath.Join(sshDir, "authorized_keys"), uid, gid)
-					if err != nil {
-						return errors.Wrapf(err, "failed to chown authorized_keys for user %s", name)
-					}
-
-					return nil
+					return installAuthorizedKeys(user, name, false)
 				},
 			}); err != nil {
 				return errors.Wrapf(err, "failed to add custom action to update authorized keys")
@@ -371,6 +332,50 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 
 		return nil
 	},
+}
+
+func installAuthorizedKeys(user *dozer.SpecUser, name string, skipUnknown bool) error {
+	osUser, err := osuser.Lookup(name)
+	if err != nil {
+		if skipUnknown && errors.Is(err, osuser.UnknownUserError("")) {
+			return nil
+		}
+
+		return errors.Wrapf(err, "failed to lookup user %s", name)
+	}
+
+	uid, err := strconv.Atoi(osUser.Uid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse uid %s", osUser.Uid)
+	}
+	gid, err := strconv.Atoi(osUser.Gid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse gid %s", osUser.Gid)
+	}
+
+	sshDir := filepath.Join("/home", name, ".ssh")
+	err = os.MkdirAll(sshDir, 0o700)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create ssh dir %s", sshDir)
+	}
+
+	if err := os.Chown(sshDir, uid, gid); err != nil {
+		return errors.Wrapf(err, "failed to chown ssh dir %s", sshDir)
+	}
+
+	if err := os.WriteFile(filepath.Join(sshDir, "authorized_keys"), []byte( //nolint:gosec
+		strings.Join(append([]string{
+			"# Hedgehog Agent managed keys, do not edit manually",
+		}, user.AuthorizedKeys...), "\n")+"\n",
+	), 0o644); err != nil {
+		return errors.Wrapf(err, "failed to write authorized_keys for user %s", name)
+	}
+
+	if err := os.Chown(filepath.Join(sshDir, "authorized_keys"), uid, gid); err != nil {
+		return errors.Wrapf(err, "failed to chown authorized_keys for user %s", name)
+	}
+
+	return nil
 }
 
 func loadActualUsers(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {

@@ -17,10 +17,12 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/netip"
 
 	"github.com/vishvananda/netlink"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/dozer"
 )
 
 const (
@@ -76,6 +78,22 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 	if !exists {
 		if err := netlink.AddrAdd(link, addr); err != nil {
 			return fmt.Errorf("adding address %s to link %s: %w", switchIP, mgmtPort, err)
+		}
+	}
+
+	for _, user := range agent.Spec.Users {
+		name := user.Name
+
+		if name != "admin" || len(user.SSHKeys) == 0 {
+			continue
+		}
+
+		if err := installAuthorizedKeys(&dozer.SpecUser{
+			Password:       user.Password,
+			Role:           user.Role,
+			AuthorizedKeys: user.SSHKeys,
+		}, name, true); err != nil {
+			slog.Warn("Failed to install authorized keys", "user", name, "err", err)
 		}
 	}
 
