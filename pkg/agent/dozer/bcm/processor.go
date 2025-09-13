@@ -101,6 +101,13 @@ func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 					}
 				}
 
+				if len(notReadyList) == 1 && strings.HasPrefix(notReadyList[0], "tpcm@") {
+					slog.Info("Only tpcm is not ready, ignoring")
+
+					notReady = 0
+					notReadyList = []string{}
+				}
+
 				if notReady == 0 {
 					slog.Info("System is ready")
 
