@@ -906,7 +906,7 @@ spec:
                           type: integer
                         ip:
                           description: IP is the IP address of the BGP neighbor to
-                            peer with
+                            peer with (without prefix length)
                           type: string
                       type: object
                     switch:
@@ -915,7 +915,8 @@ spec:
                       properties:
                         ip:
                           description: IP is the IP address of the subinterface on
-                            a switch port specified in the connection
+                            a switch port specified in the connection, it should include
+                            the prefix length
                           type: string
                         vlan:
                           description: VLAN (optional) is the VLAN ID used for the
