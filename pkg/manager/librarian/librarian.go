@@ -420,3 +420,16 @@ func (m *Manager) GetVPCVNI(ctx context.Context, kube kclient.Client, vpc string
 
 	return 0, errors.Errorf("failed to find VPC VNI for vpc %s", vpc)
 }
+
+func (m *Manager) GetExternalVNI(ctx context.Context, kube kclient.Client, external string) (uint32, error) {
+	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
+	if err != nil {
+		return 0, errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
+	}
+
+	if vni, exists := vnisCat.Spec.ExternalVNIs[external]; exists {
+		return vni, nil
+	}
+
+	return 0, errors.Errorf("failed to find VNI for external %s", external)
+}
