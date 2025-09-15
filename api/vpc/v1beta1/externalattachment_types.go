@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"net"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -45,7 +46,7 @@ type ExternalAttachmentSpec struct {
 type ExternalAttachmentSwitch struct {
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used
 	VLAN uint16 `json:"vlan,omitempty"`
-	// IP is the IP address of the subinterface on a switch port specified in the connection
+	// IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length
 	IP string `json:"ip,omitempty"`
 }
 
@@ -53,7 +54,7 @@ type ExternalAttachmentSwitch struct {
 type ExternalAttachmentNeighbor struct {
 	// ASN is the ASN of the BGP neighbor
 	ASN uint32 `json:"asn,omitempty"`
-	// IP is the IP address of the BGP neighbor to peer with
+	// IP is the IP address of the BGP neighbor to peer with (without prefix length)
 	IP string `json:"ip,omitempty"`
 }
 
@@ -136,11 +137,17 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	if attach.Spec.Switch.IP == "" {
 		return nil, errors.Errorf("switch.ip is required")
 	}
+	if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
+		return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
+	}
 	if attach.Spec.Neighbor.ASN == 0 {
 		return nil, errors.Errorf("neighbor.asn is required")
 	}
 	if attach.Spec.Neighbor.IP == "" {
 		return nil, errors.Errorf("neighbor.ip is required")
+	}
+	if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
+		return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
 	}
 
 	if kube != nil {
@@ -165,8 +172,6 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if conn.Spec.External == nil {
 			return nil, errors.Errorf("connection %s is not external", attach.Spec.Connection)
 		}
-
-		// TODO validate IPs/ASNs/VLANs
 	}
 
 	return nil, nil
