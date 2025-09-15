@@ -195,6 +195,9 @@ func run() error {
 		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr); err != nil {
 			return fmt.Errorf("setting up gateway vpc sync controller: %w", err)
 		}
+		if err := ctrl.SetupGwExternalSyncReconcilerWith(mgr, cfg, libMngr); err != nil {
+			return fmt.Errorf("setting up gateway external sync controller: %w", err)
+		}
 	}
 
 	if err = connectionwh.SetupWithManager(mgr, cfg); err != nil {

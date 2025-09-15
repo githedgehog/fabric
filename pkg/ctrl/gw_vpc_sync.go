@@ -126,3 +126,109 @@ func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Res
 
 	return kctrl.Result{}, nil
 }
+
+// External equivalent of the above code
+
+type GwExternalSync struct {
+	kclient.Client
+	cfg  *meta.FabricConfig
+	libr *librarian.Manager
+}
+
+func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+	if cfg == nil {
+		return fmt.Errorf("fabric config is nil") //nolint:goerr113
+	}
+	if libMngr == nil {
+		return fmt.Errorf("librarian manager is nil") //nolint:goerr113
+	}
+
+	r := &GwExternalSync{
+		Client: mgr.GetClient(),
+		cfg:    cfg,
+		libr:   libMngr,
+	}
+
+	if err := kctrl.NewControllerManagedBy(mgr).
+		Named("GwExternalSync").
+		For(&vpcapi.External{}).
+		// TODO consider relying on the owner reference
+		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForVPCInfo)).
+		Complete(r); err != nil {
+		return fmt.Errorf("failed to setup controller: %w", err)
+	}
+
+	return nil
+}
+
+func (r *GwExternalSync) enqueueForVPCInfo(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	vpcInfo, ok := obj.(*gwapi.VPCInfo)
+	if !ok {
+		kctrllog.FromContext(ctx).Info("Enqueue: object is not a VPCInfo", "obj", obj)
+
+		return nil
+	}
+
+	return []reconcile.Request{
+		{NamespacedName: ktypes.NamespacedName{
+			Namespace: vpcInfo.Namespace,
+			Name:      vpcInfo.Name,
+		}},
+	}
+}
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/finalizers,verbs=update
+
+//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
+
+func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+	l := kctrllog.FromContext(ctx)
+
+	external := &vpcapi.External{}
+	if err := r.Get(ctx, req.NamespacedName, external); err != nil {
+		if kapierrors.IsNotFound(err) {
+			return kctrl.Result{}, nil
+		}
+
+		return kctrl.Result{}, fmt.Errorf("getting External %s: %w", req.NamespacedName, err)
+	}
+
+	vni, err := r.libr.GetExternalVNI(ctx, r.Client, external.Name)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("getting External %s VNI: %w", external.Name, err)
+	}
+
+	subnets := map[string]*gwapi.VPCInfoSubnet{}
+	// FIXME: the external spec does not have the prefixes we are importing, they are part of the externalPeering
+	subnets["internet"] = &gwapi.VPCInfoSubnet{
+		CIDR: "0.0.0.0/0",
+	}
+
+	vpcInfo := &gwapi.VPCInfo{ObjectMeta: kmetav1.ObjectMeta{
+		Name:      external.Name,
+		Namespace: external.Namespace,
+	}}
+	if op, err := ctrlutil.CreateOrUpdate(ctx, r.Client, vpcInfo, func() error {
+		if err := ctrlutil.SetControllerReference(external, vpcInfo, r.Scheme(),
+			ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
+			return fmt.Errorf("setting controller reference: %w", err)
+		}
+
+		vpcInfo.Spec = gwapi.VPCInfoSpec{
+			VNI:     vni,
+			Subnets: subnets,
+		}
+
+		return nil
+	}); err != nil {
+		return kctrl.Result{}, fmt.Errorf("creating/updating VPCInfo %s: %w", req.NamespacedName, err)
+	} else if op == ctrlutil.OperationResultCreated || op == ctrlutil.OperationResultUpdated {
+		l.Info("Gateway VPCInfo synced", "op", op)
+	}
+
+	return kctrl.Result{}, nil
+}

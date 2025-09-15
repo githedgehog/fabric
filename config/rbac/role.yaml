@@ -133,6 +133,13 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
+  - externals/finalizers
+  - vpcs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
   - vpcs
   verbs:
   - create
@@ -142,12 +149,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - vpc.githedgehog.com
-  resources:
-  - vpcs/finalizers
-  verbs:
-  - update
 - apiGroups:
   - wiring.githedgehog.com
   resources:
