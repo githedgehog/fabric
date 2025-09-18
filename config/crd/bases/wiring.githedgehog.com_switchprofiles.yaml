@@ -98,10 +98,6 @@ spec:
                   subinterfaces:
                     description: Subinterfaces defines if switch supports subinterfaces
                     type: boolean
-                  vxlan:
-                    description: 'Deprecated: use L2VNI and L3VNI instead as more
-                      precise features'
-                    type: boolean
                 type: object
               nosType:
                 description: NOSType defines the NOS type to be used for the switch
