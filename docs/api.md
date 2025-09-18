@@ -2070,7 +2070,6 @@ _Appears in:_
 | `mclag` _boolean_ | MCLAG defines if switch supports MCLAG (with VXLAN) |  |  |
 | `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
 | `ecmpRoCEQPN` _boolean_ | ECMPRoCEQPN defines if switch supports ECMP QPN hashing |  |  |
-| `vxlan` _boolean_ | Deprecated: use L2VNI and L3VNI instead as more precise features |  |  |
 
 
 #### SwitchProfilePort

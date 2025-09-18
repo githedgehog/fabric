@@ -62,9 +62,6 @@ type SwitchProfileFeatures struct {
 	ESLAG bool `json:"eslag,omitempty"`
 	// ECMPRoCEQPN defines if switch supports ECMP QPN hashing
 	ECMPRoCEQPN bool `json:"ecmpRoCEQPN,omitempty"`
-
-	// Deprecated: use L2VNI and L3VNI instead as more precise features
-	VXLAN bool `json:"vxlan,omitempty"`
 }
 
 // Defines switch-specific configuration options
