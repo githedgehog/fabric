@@ -983,8 +983,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
 					},
 					L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
-						Enabled:            agent.IsSpineLeaf(),
-						AdvertiseDefaultGw: pointer.To(true),
+						Enabled: agent.IsSpineLeaf(),
 					},
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 				},
