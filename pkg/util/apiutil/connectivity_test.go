@@ -786,6 +786,54 @@ func TestIsExternalSubnetReachable(t *testing.T) {
 			reachable: false,
 			err:       false,
 		},
+		{
+			name: "contained-but-not-equal-prefix",
+			existing: append(base,
+				&vpcapi.VPCAttachment{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name: "source-attach",
+					},
+					Spec: vpcapi.VPCAttachmentSpec{
+						Connection: "source-conn",
+						Subnet:     "vpc-1/subnet-1",
+					},
+				},
+				&vpcapi.ExternalAttachment{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name: "ext-1-attach",
+					},
+					Spec: vpcapi.ExternalAttachmentSpec{
+						Connection: "ext",
+						External:   "ext-1",
+					},
+				},
+				&vpcapi.ExternalPeering{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name: "vpc-1--ext-1",
+					},
+					Spec: vpcapi.ExternalPeeringSpec{
+						Permit: vpcapi.ExternalPeeringSpecPermit{
+							External: vpcapi.ExternalPeeringSpecExternal{
+								Name: "ext-1",
+								Prefixes: []vpcapi.ExternalPeeringSpecPrefix{
+									{
+										Prefix: "1.0.0.0/8",
+									},
+								},
+							},
+							VPC: vpcapi.ExternalPeeringSpecVPC{
+								Name:    "vpc-1",
+								Subnets: []string{"subnet-1"},
+							},
+						},
+					},
+				},
+			),
+			source:    "source",
+			dest:      "1.0.0.1/32",
+			reachable: true,
+			err:       false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1593,6 +1641,91 @@ func TestIsExternalIPReachable(t *testing.T) {
 			}
 
 			require.Equal(t, tt.reachable, reachable)
+		})
+	}
+}
+
+func TestSubnetContained(t *testing.T) {
+	tests := []struct {
+		name         string
+		sourceSubnet string
+		destSubnet   string
+		contained    bool
+		error        bool
+	}{
+		{
+			name:         "same-subnet",
+			sourceSubnet: "10.0.0.0/24",
+			destSubnet:   "10.0.0.0/24",
+			contained:    true,
+			error:        false,
+		},
+		{
+			name:         "strictly-contained",
+			sourceSubnet: "10.0.0.0/16",
+			destSubnet:   "10.0.1.0/24",
+			contained:    true,
+			error:        false,
+		},
+		{
+			name:         "no-overlap",
+			sourceSubnet: "10.0.0.0/16",
+			destSubnet:   "10.1.1.0/24",
+			contained:    false,
+			error:        false,
+		},
+		{
+			name:         "inverse-contained",
+			sourceSubnet: "10.0.1.0/24",
+			destSubnet:   "10.0.0.0/16",
+			contained:    false,
+			error:        false,
+		},
+		{
+			name:         "invalid-source",
+			sourceSubnet: "1.2.3.4.5/24",
+			destSubnet:   "10.0.1.0/24",
+			contained:    false,
+			error:        true,
+		},
+		{
+			name:         "invalid-dest",
+			sourceSubnet: "10.0.0.0/16",
+			destSubnet:   "1.2.3.4.5/24",
+			contained:    false,
+			error:        true,
+		},
+		{
+			name:         "default-route",
+			sourceSubnet: "0.0.0.0/0",
+			destSubnet:   "1.0.0.1/32",
+			contained:    true,
+			error:        false,
+		},
+		{
+			name:         "non-canonical-source",
+			sourceSubnet: "10.0.1.34/16",
+			destSubnet:   "10.0.2.0/24",
+			contained:    true,
+			error:        false,
+		},
+		{
+			name:         "non-canonical-dest",
+			sourceSubnet: "10.0.0.0/16",
+			destSubnet:   "10.0.2.22/25",
+			contained:    true,
+			error:        false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			contained, err := apiutil.SubnetContains(tt.sourceSubnet, tt.destSubnet)
+			if tt.error {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tt.contained, contained)
 		})
 	}
 }
