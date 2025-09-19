@@ -16,6 +16,7 @@ package apiutil
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"slices"
 	"strings"
@@ -227,7 +228,23 @@ func IsVPCPeeringRemoteNotEmpty(ctx context.Context, kube kclient.Reader, vpcPee
 	return len(switches.Items) > 0, nil
 }
 
-// TODO check if allowed prefix contains destSubnet
+func SubnetContains(sourceSubnet, destSubnet string) (bool, error) {
+	_, sPrefix, err := net.ParseCIDR(sourceSubnet)
+	if err != nil {
+		return false, fmt.Errorf("parsing source subnet: %w", err)
+	}
+
+	dAddr, dPrefix, err := net.ParseCIDR(destSubnet)
+	if err != nil {
+		return false, fmt.Errorf("parsing destination subnet: %w", err)
+	}
+
+	sPrefixMaskSize, _ := sPrefix.Mask.Size()
+	dPrefixMaskSize, _ := dPrefix.Mask.Size()
+
+	return sPrefix.Contains(dAddr) && dPrefixMaskSize >= sPrefixMaskSize, nil
+}
+
 func IsExternalSubnetReachable(ctx context.Context, kube kclient.Reader, sourceServer, destSubnet string) (bool, error) {
 	sourceSubnets, err := GetAttachedSubnets(ctx, kube, sourceServer)
 	if err != nil {
@@ -258,7 +275,9 @@ func IsExternalSubnetReachable(ctx context.Context, kube kclient.Reader, sourceS
 			}
 
 			for _, prefix := range extPeering.Spec.Permit.External.Prefixes {
-				if prefix.Prefix != destSubnet {
+				if contained, err := SubnetContains(prefix.Prefix, destSubnet); err != nil {
+					return false, fmt.Errorf("failed to check if external prefix %s contains destination subnet %s: %w", prefix.Prefix, destSubnet, err)
+				} else if !contained {
 					continue
 				}
 
