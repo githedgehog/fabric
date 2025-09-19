@@ -113,7 +113,6 @@ var CelesticaDS5000 = wiringapi.SwitchProfile{
 					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
 						"1x50G":  {Offsets: []string{"0"}},
 						"1x100G": {Offsets: []string{"0"}},
-						"1x200G": {Offsets: []string{"0"}},
 						"1x400G": {Offsets: []string{"0"}},
 						"1x800G": {Offsets: []string{"0"}},
 						"2x50G":  {Offsets: []string{"0", "2"}},
