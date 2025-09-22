@@ -23,7 +23,7 @@ require (
 	github.com/lmittmann/tint v1.1.2
 	github.com/maruel/natural v1.1.1
 	github.com/mattn/go-isatty v0.0.20
-	github.com/olekukonko/tablewriter v1.0.9
+	github.com/olekukonko/tablewriter v1.1.0
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/openconfig/gnmi v0.14.1
