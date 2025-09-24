@@ -83,6 +83,50 @@ Port  Breakout Mode  Status        Interfaces
                                    Ethernet75
 ```
 
+Some switches (usually TH based) have pipelines which limits number of breakout ports per set of the physical ports as
+well as total number of ports per switch.
+
+```console
+ds5000-02# show interface breakout resources
+Maximum ports supported in the system: 320
+Current ports in the system: 83
+--------------------------------------------------
+Pipeline Ports Max-Ports Front-panel-ports
+--------------------------------------------------
+1        9     10        1/1, 1/4
+2        2     10        1/2, 1/3
+3        5     10        1/5, 1/8
+4        3     10        1/6, 1/7
+5        2     10        1/9, 1/12
+6        2     10        1/10, 1/11
+7        2     10        1/13, 1/16
+8        2     10        1/14, 1/15
+9        3     10        1/17, 1/20
+10       3     10        1/18, 1/19
+11       2     10        1/21, 1/24
+12       2     10        1/22, 1/23
+13       2     10        1/25, 1/28
+14       2     10        1/26, 1/27
+15       2     10        1/29, 1/32
+16       2     10        1/30, 1/31
+17       2     10        1/33, 1/36
+18       2     10        1/34, 1/35
+19       2     10        1/37, 1/40
+20       2     10        1/38, 1/39
+21       2     10        1/41, 1/44
+22       2     10        1/42, 1/43
+23       2     10        1/45, 1/48
+24       2     10        1/46, 1/47
+25       2     10        1/49, 1/52
+26       3     10        1/50, 1/51
+27       2     10        1/53, 1/56
+28       2     10        1/54, 1/55
+29       3     10        1/57, 1/60
+30       3     10        1/58, 1/59
+31       4     10        1/61, 1/64
+32       3     10        1/62, 1/63
+```
+
 ### Standalone ports without breakout support
 
 For some ports, there are no breakouts and port groups, e.g. Ethernet48-52 on Accton-AS4630-54NPE. In this case, it

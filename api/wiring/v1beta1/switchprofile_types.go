@@ -87,6 +87,8 @@ type SwitchProfilePort struct {
 	Management bool `json:"management,omitempty"`
 	// OniePortName defines the ONIE port name for management ports only
 	OniePortName string `json:"oniePortName,omitempty"`
+	// Pipeline defines the pipeline used by the port, on some platforms multiple ports share the same pipeline
+	Pipeline string `json:"pipeline,omitempty"`
 }
 
 // Defines a switch port group configuration
@@ -131,6 +133,11 @@ type SwitchProfilePortProfile struct {
 	AutoNegDefault bool `json:"autoNegDefault,omitempty"`
 }
 
+type SwitchProfilePipeline struct {
+	// MaxPorts defines the maximum number of ports (breakouts) allowed for the pipeline
+	MaxPorts uint16 `json:"maxPorts,omitempty"`
+}
+
 // SwitchProfileSpec defines the desired state of SwitchProfile
 type SwitchProfileSpec struct {
 	// DisplayName defines the human-readable name of the switch
@@ -155,6 +162,10 @@ type SwitchProfileSpec struct {
 	NOSType meta.NOSType `json:"nosType,omitempty"`
 	// Platform is what expected to be request by ONIE and displayed in the NOS
 	Platform string `json:"platform,omitempty"`
+	// Pipelines defines the switch pipeline configuration
+	Pipelines map[string]SwitchProfilePipeline `json:"pipelines,omitempty"`
+	// MaxPorts defines the maximum number of ports (breakouts) allowed for the switch
+	MaxPorts uint16 `json:"maxPorts,omitempty"`
 }
 
 // SwitchProfileStatus defines the observed state of SwitchProfile
@@ -396,6 +407,17 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 			}
 		}
 
+		if port.Pipeline != "" {
+			_, ok := sp.Spec.Pipelines[port.Pipeline]
+			if !ok {
+				return nil, errors.Errorf("port %q references non-existent pipeline %q", name, port.Pipeline)
+			}
+
+			if !isBreakout {
+				return nil, errors.Errorf("port %q must be a breakout port to reference a pipeline", name)
+			}
+		}
+
 		if !isBreakout {
 			if !strings.HasPrefix(port.NOSName, DataPortNOSNamePrefix) {
 				return nil, errors.Errorf("data port %q NOS name must start with %s", name, DataPortNOSNamePrefix)
@@ -514,6 +536,16 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 					return nil, errors.Wrapf(err, "profile %q breakout %q is invalid", name, mode)
 				}
 			}
+		}
+	}
+
+	for name, pipeline := range sp.Spec.Pipelines {
+		if name == "" {
+			return nil, errors.Errorf("pipeline %q must have a name", name)
+		}
+
+		if pipeline.MaxPorts == 0 {
+			return nil, errors.Errorf("pipeline %q must have a non-zero max ports", name)
 		}
 	}
 

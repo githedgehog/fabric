@@ -99,6 +99,10 @@ spec:
                     description: Subinterfaces defines if switch supports subinterfaces
                     type: boolean
                 type: object
+              maxPorts:
+                description: MaxPorts defines the maximum number of ports (breakouts)
+                  allowed for the switch
+                type: integer
               nosType:
                 description: NOSType defines the NOS type to be used for the switch
                 type: string
@@ -111,6 +115,16 @@ spec:
                 items:
                   type: string
                 type: array
+              pipelines:
+                additionalProperties:
+                  properties:
+                    maxPorts:
+                      description: MaxPorts defines the maximum number of ports (breakouts)
+                        allowed for the pipeline
+                      type: integer
+                  type: object
+                description: Pipelines defines the switch pipeline configuration
+                type: object
               platform:
                 description: Platform is what expected to be request by ONIE and displayed
                   in the NOS
@@ -212,6 +226,10 @@ spec:
                     oniePortName:
                       description: OniePortName defines the ONIE port name for management
                         ports only
+                      type: string
+                    pipeline:
+                      description: Pipeline defines the pipeline used by the port,
+                        on some platforms multiple ports share the same pipeline
                       type: string
                     profile:
                       description: If port is directly configurable, profile defines
