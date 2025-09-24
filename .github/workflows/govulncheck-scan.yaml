@@ -26,17 +26,12 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Run govulncheck
-        run: govulncheck -show verbose ./...
+        run: |
+          govulncheck -show verbose ./... || echo "GOVULNCHECK_FAILED=true" >> $GITHUB_ENV
 
       - name: Generate SARIF file
         if: always()
-        run: |
-          if [ $? -ne 0 ]; then
-            echo "Full scan failed, running mod-only scan"
-            govulncheck -format=sarif -scan=gomod ./... > govulncheck.sarif
-          else
-            govulncheck -format=sarif ./... > govulncheck.sarif
-          fi
+        run: govulncheck -format=sarif ./... > govulncheck.sarif
 
       - name: Upload SARIF file
         if: always()
@@ -44,3 +39,7 @@ jobs:
         with:
           sarif_file: govulncheck.sarif
           category: govulncheck
+
+      - name: Fail if vulnerabilities found
+        if: env.GOVULNCHECK_FAILED == 'true'
+        run: exit 1
