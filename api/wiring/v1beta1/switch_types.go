@@ -401,6 +401,68 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 				return nil, errors.Errorf("ESLAG is not supported on switch profile %s", sw.Spec.Profile)
 			}
 		}
+
+		totalPorts := uint16(0)
+		pipelinePorts := map[string]uint16{}
+		pipelinePortNames := map[string][]string{}
+		for name, port := range sp.Spec.Ports {
+			if port.Management {
+				continue
+			}
+
+			ports := uint16(1)
+			if port.Group == "" {
+				if port.Profile == "" {
+					return nil, errors.Errorf("port %s has no group or profile", name)
+				}
+				profile, ok := sp.Spec.PortProfiles[port.Profile]
+				if !ok {
+					return nil, errors.Errorf("port %s has invalid profile %s", name, port.Profile)
+				}
+
+				if profile.Breakout != nil {
+					mode := profile.Breakout.Default
+					if sw.Spec.PortBreakouts != nil {
+						if override, ok := sw.Spec.PortBreakouts[name]; ok {
+							mode = override
+						}
+					}
+
+					if breakout, ok := profile.Breakout.Supported[mode]; ok {
+						ports = uint16(len(breakout.Offsets)) //nolint:gosec
+					} else {
+						return nil, errors.Errorf("port %s has invalid breakout mode %s", name, mode)
+					}
+				}
+			}
+
+			totalPorts += ports
+			if port.Pipeline != "" {
+				pipelinePorts[port.Pipeline] += ports
+				pipelinePortNames[port.Pipeline] = append(pipelinePortNames[port.Pipeline], name)
+			}
+		}
+
+		for _, ports := range pipelinePortNames {
+			slices.Sort(ports)
+		}
+
+		if sp.Spec.MaxPorts > 0 && totalPorts > sp.Spec.MaxPorts {
+			return nil, errors.Errorf("switch %s has exceeded maximum ports: %d > %d", sp.Name, totalPorts, sp.Spec.MaxPorts)
+		}
+
+		if sp.Spec.Pipelines != nil {
+			for pipeline, ports := range pipelinePorts {
+				if portPipeline, ok := sp.Spec.Pipelines[pipeline]; ok {
+					if ports > portPipeline.MaxPorts {
+						return nil, errors.Errorf("pipeline %s (ports %s) has exceeded maximum ports: %d > %d",
+							pipeline, strings.Join(pipelinePortNames[pipeline], ", "), ports, portPipeline.MaxPorts)
+					}
+				} else {
+					return nil, errors.Errorf("unknown port pipeline %s reference", pipeline)
+				}
+			}
+		}
 	}
 
 	return nil, nil

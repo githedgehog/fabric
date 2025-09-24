@@ -2072,6 +2072,22 @@ _Appears in:_
 | `ecmpRoCEQPN` _boolean_ | ECMPRoCEQPN defines if switch supports ECMP QPN hashing |  |  |
 
 
+#### SwitchProfilePipeline
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the pipeline |  |  |
+
+
 #### SwitchProfilePort
 
 
@@ -2093,6 +2109,7 @@ _Appears in:_
 | `profile` _string_ | If port is directly configurable, profile defines the profile it belongs to, exclusive with group |  |  |
 | `management` _boolean_ | Management defines if port is a management port, it's a special case and it can't have a group or profile |  |  |
 | `oniePortName` _string_ | OniePortName defines the ONIE port name for management ports only |  |  |
+| `pipeline` _string_ | Pipeline defines the pipeline used by the port, on some platforms multiple ports share the same pipeline |  |  |
 
 
 #### SwitchProfilePortGroup
@@ -2207,6 +2224,8 @@ _Appears in:_
 | `portProfiles` _object (keys:string, values:[SwitchProfilePortProfile](#switchprofileportprofile))_ | PortProfiles defines the switch port profile configuration |  |  |
 | `nosType` _[NOSType](#nostype)_ | NOSType defines the NOS type to be used for the switch |  |  |
 | `platform` _string_ | Platform is what expected to be request by ONIE and displayed in the NOS |  |  |
+| `pipelines` _object (keys:string, values:[SwitchProfilePipeline](#switchprofilepipeline))_ | Pipelines defines the switch pipeline configuration |  |  |
+| `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the switch |  |  |
 
 
 #### SwitchProfileStatus
