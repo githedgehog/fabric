@@ -106,6 +106,12 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, new
 		return nil, errors.Errorf("connection type is immutable")
 	}
 
+	if newConn.Spec.StaticExternal != nil && oldConn.Spec.StaticExternal != nil {
+		if newConn.Spec.StaticExternal.WithinVPC != oldConn.Spec.StaticExternal.WithinVPC {
+			return nil, errors.Errorf("StaticExternal.WithinVPC is immutable")
+		}
+	}
+
 	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating connection")
