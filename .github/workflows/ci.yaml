@@ -164,7 +164,7 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
-    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.fabricmode == 'collapsed-core' && 'cc-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
+    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
     needs:
       - test-api
       - test-build
@@ -182,7 +182,7 @@ jobs:
         }}
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
-      fabricmode: ${{ matrix.fabricmode }}
+      fabricmode: spine-leaf
       mesh: ${{ matrix.mesh }}
       gateway: ${{ matrix.gateway }}
       includeonie: ${{ matrix.includeonie }}
@@ -196,8 +196,6 @@ jobs:
       fail-fast: false
       # l2vni and l3vni as a base (with defaults) including upgrade from supported versions
       matrix:
-        fabricmode:
-          - spine-leaf
         mesh:
           - false
         gateway:
@@ -216,8 +214,7 @@ jobs:
           - "25.04"
         include:
           # mesh l2vni
-          - fabricmode: spine-leaf
-            mesh: true
+          - mesh: true
             includeonie: false
             gateway: false
             buildmode: iso
@@ -226,8 +223,7 @@ jobs:
             upgradefrom: ""
 
           # hlab l2vni
-          - fabricmode: spine-leaf
-            mesh: false
+          - mesh: false
             includeonie: false
             gateway: false
             buildmode: iso
@@ -235,19 +231,8 @@ jobs:
             hybrid: true
             upgradefrom: ""
 
-          # collapsed-core l2vni
-          - fabricmode: collapsed-core
-            mesh: false
-            includeonie: false
-            gateway: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
-            upgradefrom: ""
-
           # gateway l2vni
-          # - fabricmode: spine-leaf
-          #   mesh: false
+          # - mesh: false
           #   gateway: true
           #   includeonie: false
           #   buildmode: iso

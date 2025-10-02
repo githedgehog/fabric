@@ -384,8 +384,6 @@ spec:
                     type: object
                   baseVPCCommunity:
                     type: string
-                  collapsedCore:
-                    type: object
                   controlVIP:
                     type: string
                   defaultMaxPathsEBGP:

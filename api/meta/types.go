@@ -103,12 +103,10 @@ type FabricConfig struct {
 type FabricMode string
 
 const (
-	FabricModeCollapsedCore FabricMode = "collapsed-core"
-	FabricModeSpineLeaf     FabricMode = "spine-leaf"
+	FabricModeSpineLeaf FabricMode = "spine-leaf"
 )
 
 var FabricModes = []FabricMode{
-	FabricModeCollapsedCore,
 	FabricModeSpineLeaf,
 }
 

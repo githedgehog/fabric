@@ -64,35 +64,28 @@ type AgentSpec struct {
 }
 
 type AgentSpecConfig struct {
-	DeploymentID          string                        `json:"deploymentID,omitempty"`
-	ControlVIP            string                        `json:"controlVIP,omitempty"`
-	VPCPeeringDisabled    bool                          `json:"vpcPeeringDisabled,omitempty"`
-	CollapsedCore         *AgentSpecConfigCollapsedCore `json:"collapsedCore,omitempty"`
-	SpineLeaf             *AgentSpecConfigSpineLeaf     `json:"spineLeaf,omitempty"`
-	BaseVPCCommunity      string                        `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet     string                        `json:"vpcLoopbackSubnet,omitempty"`
-	FabricMTU             uint16                        `json:"fabricMTU,omitempty"`
-	ServerFacingMTUOffset uint16                        `json:"serverFacingMTUOffset,omitempty"`
-	ESLAGMACBase          string                        `json:"eslagMACBase,omitempty"`
-	ESLAGESIPrefix        string                        `json:"eslagESIPrefix,omitempty"`
-	DefaultMaxPathsEBGP   uint32                        `json:"defaultMaxPathsEBGP,omitempty"`
-	MCLAGSessionSubnet    string                        `json:"mclagSessionSubnet,omitempty"`
-	GatewayASN            uint32                        `json:"gatewayASN,omitempty"`
-	LoopbackWorkaround    bool                          `json:"loopbackWorkaround,omitempty"`
-	ProtocolSubnet        string                        `json:"protocolSubnet,omitempty"`
-	VTEPSubnet            string                        `json:"vtepSubnet,omitempty"`
-	FabricSubnet          string                        `json:"fabricSubnet,omitempty"`
-	DisableBFD            bool                          `json:"disableBFD,omitempty"`
-	Alloy                 alloy.Config                  `json:"alloy,omitempty"`
+	DeploymentID          string                    `json:"deploymentID,omitempty"`
+	ControlVIP            string                    `json:"controlVIP,omitempty"`
+	VPCPeeringDisabled    bool                      `json:"vpcPeeringDisabled,omitempty"`
+	SpineLeaf             *AgentSpecConfigSpineLeaf `json:"spineLeaf,omitempty"`
+	BaseVPCCommunity      string                    `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet     string                    `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU             uint16                    `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset uint16                    `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase          string                    `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix        string                    `json:"eslagESIPrefix,omitempty"`
+	DefaultMaxPathsEBGP   uint32                    `json:"defaultMaxPathsEBGP,omitempty"`
+	MCLAGSessionSubnet    string                    `json:"mclagSessionSubnet,omitempty"`
+	GatewayASN            uint32                    `json:"gatewayASN,omitempty"`
+	LoopbackWorkaround    bool                      `json:"loopbackWorkaround,omitempty"`
+	ProtocolSubnet        string                    `json:"protocolSubnet,omitempty"`
+	VTEPSubnet            string                    `json:"vtepSubnet,omitempty"`
+	FabricSubnet          string                    `json:"fabricSubnet,omitempty"`
+	DisableBFD            bool                      `json:"disableBFD,omitempty"`
+	Alloy                 alloy.Config              `json:"alloy,omitempty"`
 }
-
-type AgentSpecConfigCollapsedCore struct{}
 
 type AgentSpecConfigSpineLeaf struct{}
-
-func (a *Agent) IsCollapsedCore() bool {
-	return a != nil && a.Spec.Config.CollapsedCore != nil
-}
 
 func (a *Agent) IsSpineLeaf() bool {
 	return a != nil && a.Spec.Config.SpineLeaf != nil
