@@ -824,9 +824,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			DisableBFD:            r.cfg.DisableBFD,
 			Alloy:                 alloyCfg,
 		}
-		if r.cfg.FabricMode == fmeta.FabricModeCollapsedCore {
-			agent.Spec.Config.CollapsedCore = &agentapi.AgentSpecConfigCollapsedCore{}
-		} else if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
+		if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		}
 

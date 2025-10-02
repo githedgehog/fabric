@@ -54,10 +54,8 @@ features and port naming scheme.
 
 	roleNote = `
 !!! note
-    - Switches that support **leaf** role could be used for the collapsed-core topology as well
     - Switches with **leaf (l3-only)** role only support L3 VPC modes
-    - Switches with **leaf (limited)** role does not support some leaf features and are not supported in the
-      collapsed-core topology
+    - Switches with **leaf (limited)** role does not support some leaf features
 `
 )
 
