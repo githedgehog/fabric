@@ -231,6 +231,15 @@ jobs:
             hybrid: true
             upgradefrom: ""
 
+          # mesh l2vni from 25.04
+          - mesh: true
+            includeonie: false
+            gateway: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: false
+            upgradefrom: "25.04"
+
           # gateway l2vni
           # - mesh: false
           #   gateway: true
