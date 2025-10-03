@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"net/netip"
 	"slices"
 	"sort"
 	"strings"
@@ -216,6 +217,151 @@ func (sw *Switch) Default() {
 	sort.Strings(sw.Spec.VLANNamespaces)
 
 	sw.Labels[LabelProfile] = sw.Spec.Profile
+}
+
+func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	if kube == nil {
+		return errors.Errorf("kube client is required for hydration validations")
+	}
+
+	switches := &SwitchList{}
+	if err := kube.List(ctx, switches); err != nil {
+		return errors.Wrapf(err, "failed to list switches for hydration validation")
+	}
+	// TODO: collect gateways as well for VTEP and protocol IP uniqueness checks
+	// (cannot be done now as gateway webhook would create a circular dependency)
+
+	// FIXME: ASN ranges validation is not possible as they are defined in fabricator
+	asnSpine := uint32(0)
+	leafASNs := map[uint32]bool{}
+	VTEPs := map[string]bool{}
+	protocolIPs := map[string]bool{}
+	mgmtIPs := map[netip.Addr]bool{}
+	var mclagPeer *Switch
+	vtepSubnet, err := netip.ParsePrefix(fabricCfg.VTEPSubnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric VTEP subnet %s", fabricCfg.VTEPSubnet)
+	}
+	protocolSubnet, err := netip.ParsePrefix(fabricCfg.ProtocolSubnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric protocol subnet %s", fabricCfg.ProtocolSubnet)
+	}
+	controlVIP, err := netip.ParsePrefix(fabricCfg.ControlVIP)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric control VIP %s", fabricCfg.ControlVIP)
+	}
+	mgmtIPs[controlVIP.Addr()] = true
+
+	for _, other := range switches.Items {
+		if other.Name == sw.Name && other.Namespace == sw.Namespace {
+			continue
+		}
+		if other.Spec.ASN != 0 {
+			if other.Spec.Role.IsSpine() {
+				asnSpine = other.Spec.ASN
+			} else if other.Spec.Role.IsLeaf() {
+				leafASNs[other.Spec.ASN] = true
+			}
+		}
+		if other.Spec.VTEPIP != "" {
+			VTEPs[other.Spec.VTEPIP] = true
+		}
+		if other.Spec.ProtocolIP != "" {
+			protocolIPs[other.Spec.ProtocolIP] = true
+		}
+		if other.Spec.IP != "" {
+			if ip, err := netip.ParsePrefix(other.Spec.IP); err == nil {
+				mgmtIPs[ip.Addr()] = true
+			}
+		}
+		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG && other.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG &&
+			other.Spec.Redundancy.Group == sw.Spec.Redundancy.Group {
+			mclagPeer = &other
+		}
+	}
+
+	if sw.Spec.IP != "" {
+		swIP, err := netip.ParsePrefix(sw.Spec.IP)
+		if err != nil {
+			return errors.Wrapf(err, "parsing switch %s IP %s", sw.Name, sw.Spec.IP)
+		}
+
+		// FIXME: management subnet validation is not possible as it's defined in fabricator
+		if _, exist := mgmtIPs[swIP.Addr()]; exist {
+			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP) //nolint:goerr113
+		}
+	}
+
+	if sw.Spec.ProtocolIP != "" {
+		swProtoIP, err := netip.ParsePrefix(sw.Spec.ProtocolIP)
+		if err != nil {
+			return errors.Wrapf(err, "parsing switch %s protocol IP %s", sw.Name, sw.Spec.ProtocolIP)
+		}
+		if swProtoIP.Bits() != 32 {
+			return errors.Errorf("switch %s protocol IP %s must be a /32", sw.Name, swProtoIP) //nolint:goerr113
+		}
+
+		if !protocolSubnet.Contains(swProtoIP.Addr()) {
+			return errors.Errorf("switch %s protocol IP %s is not in the protocol subnet %s", sw.Name, swProtoIP, protocolSubnet) //nolint:goerr113
+		}
+
+		if _, exist := protocolIPs[sw.Spec.ProtocolIP]; exist {
+			return errors.Errorf("switch %s protocol IP %s is already in use", sw.Name, swProtoIP) //nolint:goerr113
+		}
+	}
+
+	// check leaf ASN uniqueness, with the exception of MCLAG peers which should have the same ASN
+	if sw.Spec.Role.IsLeaf() {
+		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
+			if mclagPeer != nil {
+				if mclagPeer.Spec.ASN != sw.Spec.ASN {
+					return errors.Errorf("mclag peers should have same ASNs: %s and %s", sw.Name, mclagPeer.Name) //nolint:goerr113
+				}
+			} else {
+				if _, exist := leafASNs[sw.Spec.ASN]; exist {
+					return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
+				}
+			}
+		} else if _, exist := leafASNs[sw.Spec.ASN]; exist {
+			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
+		}
+	}
+
+	// spine ASN consistency check
+	if sw.Spec.Role.IsSpine() && asnSpine != 0 && sw.Spec.ASN != asnSpine {
+		return errors.Errorf("spine %s ASN %d is not %d", sw.Name, sw.Spec.ASN, asnSpine) //nolint:goerr113
+	}
+
+	// leaf vtep IP uniqueness / consistency for mclag peers
+	if sw.Spec.Role.IsLeaf() {
+		swVTEPIP, err := netip.ParsePrefix(sw.Spec.VTEPIP)
+		if err != nil {
+			return errors.Wrapf(err, "parsing switch %s VTEP IP %s", sw.Name, sw.Spec.VTEPIP)
+		}
+		if swVTEPIP.Bits() != 32 {
+			return errors.Errorf("switch %s VTEP IP %s must be a /32", sw.Name, swVTEPIP) //nolint:goerr113
+		}
+
+		if !vtepSubnet.Contains(swVTEPIP.Addr()) {
+			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet) //nolint:goerr113
+		}
+
+		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
+			if mclagPeer != nil {
+				if mclagPeer.Spec.VTEPIP != sw.Spec.VTEPIP {
+					return errors.Errorf("mclag peers should have same VTEP IPs: %s and %s", sw.Name, mclagPeer.Name) //nolint:goerr113
+				}
+			} else {
+				if _, exist := VTEPs[sw.Spec.VTEPIP]; exist {
+					return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
+				}
+			}
+		} else if _, exist := VTEPs[sw.Spec.VTEPIP]; exist {
+			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
+		}
+	}
+
+	return nil
 }
 
 func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
@@ -462,6 +608,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 					return nil, errors.Errorf("unknown port pipeline %s reference", pipeline)
 				}
 			}
+		}
+
+		if err := sw.HydrationValidation(ctx, kube, fabricCfg); err != nil {
+			return nil, errors.Wrapf(err, "failed hydration validation")
 		}
 	}
 
