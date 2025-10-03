@@ -21,13 +21,79 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestConnectionValidation(t *testing.T) {
+	fabricSpec := &wiringapi.ConnectionSpec{
+		Fabric: &wiringapi.ConnFabric{
+			Links: []wiringapi.FabricLink{
+				{
+					Spine: wiringapi.ConnFabricLinkSwitch{
+						BasePortName: wiringapi.BasePortName{
+							Port: "some/fabric1",
+						},
+						IP: "172.30.128.0/31",
+					},
+					Leaf: wiringapi.ConnFabricLinkSwitch{
+						BasePortName: wiringapi.BasePortName{
+							Port: "some/fabric2",
+						},
+						IP: "172.30.128.1/31",
+					},
+				},
+			},
+		},
+	}
+	meshSpec := &wiringapi.ConnectionSpec{
+		Mesh: &wiringapi.ConnMesh{
+			Links: []wiringapi.MeshLink{
+				{
+					Leaf1: wiringapi.ConnFabricLinkSwitch{
+						BasePortName: wiringapi.BasePortName{
+							Port: "some/mesh1",
+						},
+						IP: "172.30.128.0/31",
+					},
+					Leaf2: wiringapi.ConnFabricLinkSwitch{
+						BasePortName: wiringapi.BasePortName{
+							Port: "some/mesh2",
+						},
+						IP: "172.30.128.1/31",
+					},
+				},
+			},
+		},
+	}
+	gatewaySpec := &wiringapi.ConnectionSpec{
+		Gateway: &wiringapi.ConnGateway{
+			Links: []wiringapi.GatewayLink{
+				{
+					Switch: wiringapi.ConnFabricLinkSwitch{
+						BasePortName: wiringapi.BasePortName{
+							Port: "some/gw1",
+						},
+						IP: "172.30.128.0/31",
+					},
+					Gateway: wiringapi.ConnGatewayLinkGateway{
+						BasePortName: wiringapi.BasePortName{
+							Port: "some/gw2",
+						},
+						IP: "172.30.128.1/31",
+					},
+				},
+			},
+		},
+	}
+
 	for _, tt := range []struct {
-		name string
-		conn *wiringapi.ConnectionSpec
-		err  bool
+		name       string
+		conn       *wiringapi.ConnectionSpec
+		withClient bool
+		objects    []kclient.Object
+		err        bool
 	}{
 		{
 			name: "static-ext-default-route",
@@ -169,6 +235,141 @@ func TestConnectionValidation(t *testing.T) {
 			},
 			err: true,
 		},
+		{
+			name:       "collision-fabric-with-fabric",
+			conn:       fabricSpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *fabricSpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-fabric-with-mesh",
+			conn:       fabricSpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *meshSpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-fabric-with-gateway",
+			conn:       fabricSpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *gatewaySpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-mesh-with-fabric",
+			conn:       meshSpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *fabricSpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-mesh-with-mesh",
+			conn:       meshSpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *meshSpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-mesh-with-gateway",
+			conn:       meshSpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *gatewaySpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-gateway-with-fabric",
+			conn:       gatewaySpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *fabricSpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-gateway-with-mesh",
+			conn:       gatewaySpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *meshSpec,
+				},
+			},
+			err: true,
+		},
+		{
+			name:       "collision-gateway-with-gateway",
+			conn:       gatewaySpec,
+			withClient: true,
+			objects: []kclient.Object{
+				&wiringapi.Connection{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "existing",
+						Namespace: kmetav1.NamespaceDefault,
+					},
+					Spec: *gatewaySpec,
+				},
+			},
+			err: true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
@@ -177,13 +378,23 @@ func TestConnectionValidation(t *testing.T) {
 			err := cfg.WithReservedSubnets()
 			require.NoError(t, err)
 
+			var kube kclient.Reader
+			if tt.withClient {
+				scheme := runtime.NewScheme()
+				require.NoError(t, wiringapi.AddToScheme(scheme))
+				kube = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(tt.objects...).
+					Build()
+			}
+
 			_, err = (&wiringapi.Connection{
 				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
 					Namespace: kmetav1.NamespaceDefault,
 				},
 				Spec: *tt.conn,
-			}).Validate(t.Context(), nil, cfg)
+			}).Validate(t.Context(), kube, cfg)
 
 			if tt.err {
 				require.Error(t, err)
