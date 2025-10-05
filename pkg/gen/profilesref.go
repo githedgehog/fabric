@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -114,8 +115,9 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 	}
 	resSupported += roleNote
 	resCatalogSwitches += roleNote
+	featureMatrix := generateFeatureMatrix(sps)
 
-	resCatalog := catalogPageHeader + resCatalogSwitches + "\n\n"
+	resCatalog := catalogPageHeader + resCatalogSwitches + "\n\n" + featureMatrix
 	for _, sp := range sps {
 		name := sp.Name
 
@@ -211,4 +213,60 @@ func getRolesHint(sp *wiringapi.SwitchProfile) string {
 	return strings.Join(lo.Map(roles, func(item string, _ int) string {
 		return fmt.Sprintf("**%s**", item)
 	}), ", ")
+}
+
+const (
+	materialCheckIcon = ":material-check:"
+	materialCloseIcon = ":material-close:"
+)
+
+func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
+	featuresType := reflect.TypeOf(wiringapi.SwitchProfileFeatures{})
+
+	var fieldNames []string
+	for i := 0; i < featuresType.NumField(); i++ {
+		field := featuresType.Field(i)
+		if field.Type.Kind() == reflect.Bool && field.PkgPath == "" {
+			fieldNames = append(fieldNames, field.Name)
+		}
+	}
+
+	result := "## Switch Feature Matrix\n\n"
+	result += "The following table shows which features are supported by each switch profile:\n\n"
+
+	result += "| Switch Profile"
+	for _, fieldName := range fieldNames {
+		result += " | " + fieldName
+	}
+	result += " |\n"
+
+	result += "|---"
+	for range fieldNames {
+		result += "|:---:"
+	}
+	result += "|\n"
+
+	for _, sp := range sps {
+		if sp.Name == switchprofile.VS.Name {
+			continue
+		}
+
+		profileName := strings.TrimSuffix(sp.Name, "-clsp")
+		anchor := strings.ToLower(strings.ReplaceAll(sp.Spec.DisplayName, " ", "-"))
+
+		result += fmt.Sprintf("| [%s](#%s)", profileName, anchor)
+
+		featuresValue := reflect.ValueOf(sp.Spec.Features)
+		for _, fieldName := range fieldNames {
+			fieldValue := featuresValue.FieldByName(fieldName).Bool()
+			icon := materialCloseIcon
+			if fieldValue {
+				icon = materialCheckIcon
+			}
+			result += " | " + icon
+		}
+		result += " |\n"
+	}
+
+	return result + "\n\n"
 }
