@@ -26,6 +26,27 @@ features and port naming scheme.
     - Switches with **leaf (limited)** role does not support some leaf features
 
 
+## Switch Feature Matrix
+
+The following table shows which features are supported by each switch profile:
+
+| Switch Profile | Subinterfaces | ACLs | L2VNI | L3VNI | RoCE | MCLAG | ESLAG | ECMPRoCEQPN |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| [celestica-ds2000](#celestica-ds2000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: |
+| [celestica-ds3000](#celestica-ds3000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+| [celestica-ds4000](#celestica-ds4000) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: |
+| [celestica-ds4101](#celestica-ds4101) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: |
+| [celestica-ds5000](#celestica-ds5000) | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: |
+| [dell-s5232f-on](#dell-s5232f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+| [dell-s5248f-on](#dell-s5248f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+| [dell-z9332f-on](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: |
+| [edgecore-dcs203](#edgecore-dcs203) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+| [edgecore-dcs204](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+| [edgecore-dcs501](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
+| [edgecore-eps203](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: |
+| [supermicro-sse-c4632sb](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+
+
 ## Celestica DS2000
 
 Profile Name (to use in switch object `.spec.profile`): **celestica-ds2000**
