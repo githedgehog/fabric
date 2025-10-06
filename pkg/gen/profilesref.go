@@ -223,6 +223,10 @@ const (
 func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 	featuresType := reflect.TypeOf(wiringapi.SwitchProfileFeatures{})
 
+	fieldDisplayNames := map[string]string{
+		"ECMPRoCEQPN": "QPN",
+	}
+
 	var fieldNames []string
 	for i := 0; i < featuresType.NumField(); i++ {
 		field := featuresType.Field(i)
@@ -236,7 +240,11 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 
 	result += "| Switch Profile"
 	for _, fieldName := range fieldNames {
-		result += " | " + fieldName
+		displayName := fieldDisplayNames[fieldName]
+		if displayName == "" {
+			displayName = fieldName
+		}
+		result += " | " + displayName
 	}
 	result += " |\n"
 
@@ -247,14 +255,14 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 	result += "|\n"
 
 	for _, sp := range sps {
-		if sp.Name == switchprofile.VS.Name {
+		if strings.HasSuffix(sp.Name, "-clsp") {
 			continue
 		}
 
-		profileName := strings.TrimSuffix(sp.Name, "-clsp")
+		nameSummary := sp.Spec.GetNameSummary()
 		anchor := strings.ToLower(strings.ReplaceAll(sp.Spec.DisplayName, " ", "-"))
 
-		result += fmt.Sprintf("| [%s](#%s)", profileName, anchor)
+		result += fmt.Sprintf("| [%s](#%s)", nameSummary, anchor)
 
 		featuresValue := reflect.ValueOf(sp.Spec.Features)
 		for _, fieldName := range fieldNames {
