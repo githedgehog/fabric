@@ -26,8 +26,10 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Run govulncheck
+        id: govulncheck
+        continue-on-error: true
         run: |
-          govulncheck -show verbose ./... || echo "GOVULNCHECK_FAILED=true" >> $GITHUB_ENV
+          govulncheck -show verbose ./...
 
       - name: Generate SARIF file
         if: always()
@@ -41,5 +43,5 @@ jobs:
           category: govulncheck
 
       - name: Fail if vulnerabilities found
-        if: env.GOVULNCHECK_FAILED == 'true'
+        if: steps.govulncheck.outcome == 'failure'
         run: exit 1
