@@ -333,6 +333,51 @@ func main() {
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.VPCWipe(ctx), "failed to wipe vpcs"))
 						},
 					},
+					{
+						Name:    "cleanup-leases",
+						Aliases: []string{"leases"},
+						Usage:   "Cleanup dhcp leases for specified vpc subnet with expiry older than the specified age",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "vpc",
+								Usage: "VPC name",
+							},
+							&cli.StringFlag{
+								Name:  "subnet",
+								Usage: "Subnet name",
+							},
+							&cli.StringFlag{
+								Name:    "older-than",
+								Aliases: []string{"older"},
+								Usage:   "Age in 'duration' format: e.g. 3600s, 60m, 1h",
+								Value:   "1s",
+							},
+							&cli.BoolFlag{
+								Name:  "dry-run",
+								Usage: "Dry run",
+							},
+							yesFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							dryRun := cCtx.Bool("dry-run")
+
+							if !dryRun {
+								if err := yesCheck(cCtx); err != nil {
+									return wrapErrWithPressToContinue(err)
+								}
+							}
+
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.DHCPSubnetCleanup(ctx, hhfctl.DHCPSubnetCleanupOptions{
+								VPC:       cCtx.String("vpc"),
+								Subnet:    cCtx.String("subnet"),
+								OlderThan: cCtx.String("older-than"),
+								DryRun:    dryRun,
+							}), "failed to cleanup dhcp leases"))
+						},
+					},
 				},
 			},
 			{
