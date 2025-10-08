@@ -16,6 +16,8 @@ package v1beta1
 
 import (
 	"context"
+	errs "errors" // TODO rename to errors after getting rid of github.com/pkg/errors
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -218,6 +220,8 @@ func (sw *Switch) Default() {
 	sw.Labels[LabelProfile] = sw.Spec.Profile
 }
 
+var ErrInvalidSwitch = errors.New("invalid switch")
+
 func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sw); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
@@ -281,7 +285,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 
 		if err := meta.CheckVLANRangesOverlap(ranges); err != nil {
-			return nil, errors.Wrapf(err, "invalid VLANNamespaces")
+			return nil, fmt.Errorf("invalid VLANNamespaces: %w", errs.Join(err, ErrInvalidSwitch))
 		}
 
 		for _, group := range sw.Spec.Groups {
@@ -293,7 +297,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
 			if err != nil {
 				if kapierrors.IsNotFound(err) {
-					return nil, errors.Errorf("switch group %s does not exist", group)
+					return nil, fmt.Errorf("switch group %s does not exist: %w", group, ErrInvalidSwitch)
 				}
 
 				return nil, errors.Wrapf(err, "failed to get switch group %s", group) // TODO replace with some internal error to not expose to the user
