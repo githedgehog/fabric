@@ -721,13 +721,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		Hostname: sw.Name,
 		ProxyURL: r.cfg.ControlProxyURL,
 		Targets:  r.cfg.AlloyTargets,
-		Scrapes: map[string]alloy.Scrape{
-			"alloy": {
-				Self: alloy.ScrapeSelf{
-					Enable: true,
-				},
-				IntervalSeconds: 120,
-			},
+		Scrapes:  map[string]alloy.Scrape{
+			// TODO make it configurable
+			// "alloy": {
+			// 	Self: alloy.ScrapeSelf{
+			// 		Enable: true,
+			// 	},
+			// 	IntervalSeconds: 120,
+			// },
 		},
 		LogFiles: map[string]alloy.LogFile{},
 	}
