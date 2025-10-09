@@ -177,7 +177,7 @@ jobs:
             matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab')
             || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab')
           ) && (
-            matrix.upgradefrom == '' || !contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
+            matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
         }}
       fabricatorref: master
