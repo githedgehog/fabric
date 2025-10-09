@@ -22,9 +22,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/maruel/natural"
 	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -117,7 +119,13 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 	resCatalogSwitches += roleNote
 	featureMatrix := generateFeatureMatrix(sps)
 
-	resCatalog := catalogPageHeader + resCatalogSwitches + "\n\n" + featureMatrix
+	resCatalog := catalogPageHeader + resCatalogSwitches + "\n\n" + featureMatrix + "\n\n"
+
+	resCatalog += "## Pipeline Configuration\n\n"
+	resCatalog += "Some switches use hardware pipelines to organize ports. Each pipeline has a maximum number of logical ports it can support. "
+	resCatalog += "When using port breakout modes, the total number of logical ports (after breakout) within a pipeline cannot exceed the pipeline's max ports limit. "
+	resCatalog += "For example, with MaxPorts=18, a pipeline with 4 physical ports cannot break out all 4 to 8x100G (requiring 32 ports total).\n\n"
+
 	for _, sp := range sps {
 		name := sp.Name
 
@@ -159,6 +167,42 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		resCatalog += "- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n"
 		resCatalog += "- ECMP RoCE QPN hashing: " + strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN) + "\n"
 		resCatalog += "\n"
+
+		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) > 0 {
+			resCatalog += "**Hardware Resources:**\n\n"
+			resCatalog += fmt.Sprintf("- Maximum ports supported: **%d**\n", sp.Spec.MaxPorts)
+			resCatalog += fmt.Sprintf("- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines))
+
+			resCatalog += "**Pipelines:**\n\n"
+			resCatalog += "| Pipeline | Max Ports | Front Panel Ports |\n"
+			resCatalog += "|----------|-----------|-------------------|\n"
+
+			pipelineKeys := lo.Keys(sp.Spec.Pipelines)
+			sort.Sort(natural.StringSlice(pipelineKeys))
+
+			pipelinePorts := make(map[string][]string)
+			for _, port := range sp.Spec.Ports {
+				if port.Pipeline != "" && !port.Management {
+					pipelinePorts[port.Pipeline] = append(pipelinePorts[port.Pipeline], port.Label)
+				}
+			}
+
+			for _, ports := range pipelinePorts {
+				sort.Sort(natural.StringSlice(ports))
+			}
+
+			for _, pipelineKey := range pipelineKeys {
+				pipeline := sp.Spec.Pipelines[pipelineKey]
+				ports := pipelinePorts[pipelineKey]
+				portsStr := strings.Join(ports, ", ")
+				if portsStr == "" {
+					portsStr = "-"
+				}
+				resCatalog += fmt.Sprintf("| %s | %d | %s |\n",
+					pipelineKey, pipeline.MaxPorts, portsStr)
+			}
+			resCatalog += "\n"
+		}
 
 		resCatalog += "**Available Ports:**\n\n"
 		resCatalog += "Label column is a port label on a physical switch.\n"

@@ -48,6 +48,12 @@ The following table shows which features are supported by each switch profile:
 | [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
 
 
+
+
+## Pipeline Configuration
+
+Some switches use hardware pipelines to organize ports. Each pipeline has a maximum number of logical ports it can support. When using port breakout modes, the total number of logical ports (after breakout) within a pipeline cannot exceed the pipeline's max ports limit. For example, with MaxPorts=18, a pipeline with 4 physical ports cannot break out all 4 to 8x100G (requiring 32 ports total).
+
 ## Celestica DS2000
 
 Profile Name (to use in switch object `.spec.profile`): **celestica-ds2000**
@@ -224,6 +230,24 @@ Ports Summary: **32xQSFPDD-400G, 1xSFP28-10G**
 - ESLAG: false
 - ECMP RoCE QPN hashing: false
 
+**Hardware Resources:**
+
+- Maximum ports supported: **144**
+- Number of pipelines: **8**
+
+**Pipelines:**
+
+| Pipeline | Max Ports | Front Panel Ports |
+|----------|-----------|-------------------|
+| 1 | 18 | 1, 2, 3, 4 |
+| 2 | 18 | 5, 6, 7, 8 |
+| 3 | 18 | 9, 10, 11, 12 |
+| 4 | 18 | 13, 14, 15, 16 |
+| 5 | 18 | 17, 18, 19, 20 |
+| 6 | 18 | 21, 22, 23, 24 |
+| 7 | 18 | 25, 26, 27, 28 |
+| 8 | 18 | 29, 30, 31, 32 |
+
 **Available Ports:**
 
 Label column is a port label on a physical switch.
@@ -288,6 +312,32 @@ Ports Summary: **32xOSFP-2x400G, 2xSFP28-10G**
 - MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: true
+
+**Hardware Resources:**
+
+- Maximum ports supported: **272**
+- Number of pipelines: **16**
+
+**Pipelines:**
+
+| Pipeline | Max Ports | Front Panel Ports |
+|----------|-----------|-------------------|
+| 1 | 16 | 1, 2 |
+| 2 | 16 | 3, 4 |
+| 3 | 16 | 5, 6 |
+| 4 | 16 | 7, 8 |
+| 5 | 16 | 9, 10 |
+| 6 | 16 | 11, 12 |
+| 7 | 16 | 13, 14 |
+| 8 | 16 | 15, 16 |
+| 9 | 16 | 17, 18 |
+| 10 | 16 | 19, 20 |
+| 11 | 16 | 21, 22 |
+| 12 | 16 | 23, 24 |
+| 13 | 16 | 25, 26 |
+| 14 | 16 | 27, 28 |
+| 15 | 16 | 29, 30 |
+| 16 | 16 | 31, 32 |
 
 **Available Ports:**
 
@@ -356,6 +406,48 @@ Notes: Doesn't support non-L3 VPC modes due to the lack of L2VNI support.
 - MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: true
+
+**Hardware Resources:**
+
+- Maximum ports supported: **320**
+- Number of pipelines: **32**
+
+**Pipelines:**
+
+| Pipeline | Max Ports | Front Panel Ports |
+|----------|-----------|-------------------|
+| 1 | 10 | 1, 4 |
+| 2 | 10 | 2, 3 |
+| 3 | 10 | 5, 8 |
+| 4 | 10 | 6, 7 |
+| 5 | 10 | 9, 12 |
+| 6 | 10 | 10, 11 |
+| 7 | 10 | 13, 16 |
+| 8 | 10 | 14, 15 |
+| 9 | 10 | 17, 20 |
+| 10 | 10 | 18, 19 |
+| 11 | 10 | 21, 24 |
+| 12 | 10 | 22, 23 |
+| 13 | 10 | 25, 28 |
+| 14 | 10 | 26, 27 |
+| 15 | 10 | 29, 32 |
+| 16 | 10 | 30, 31 |
+| 17 | 10 | 33, 36 |
+| 18 | 10 | 34, 35 |
+| 19 | 10 | 37, 40 |
+| 20 | 10 | 38, 39 |
+| 21 | 10 | 41, 44 |
+| 22 | 10 | 42, 43 |
+| 23 | 10 | 45, 48 |
+| 24 | 10 | 46, 47 |
+| 25 | 10 | 49, 52 |
+| 26 | 10 | 50, 51 |
+| 27 | 10 | 53, 56 |
+| 28 | 10 | 54, 55 |
+| 29 | 10 | 57, 60 |
+| 30 | 10 | 58, 59 |
+| 31 | 10 | 61, 64 |
+| 32 | 10 | 62, 63 |
 
 **Available Ports:**
 
@@ -602,6 +694,24 @@ Ports Summary: **32xQSFPDD-400G, 2xSFP28-10G**
 - MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: false
+
+**Hardware Resources:**
+
+- Maximum ports supported: **144**
+- Number of pipelines: **8**
+
+**Pipelines:**
+
+| Pipeline | Max Ports | Front Panel Ports |
+|----------|-----------|-------------------|
+| 1 | 18 | 1, 2, 3, 4 |
+| 2 | 18 | 5, 6, 7, 8 |
+| 3 | 18 | 9, 10, 11, 12 |
+| 4 | 18 | 13, 14, 15, 16 |
+| 5 | 18 | 17, 18, 19, 20 |
+| 6 | 18 | 21, 22, 23, 24 |
+| 7 | 18 | 25, 26, 27, 28 |
+| 8 | 18 | 29, 30, 31, 32 |
 
 **Available Ports:**
 
