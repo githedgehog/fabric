@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -12,6 +13,8 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var ErrInvalidGW = errors.New("invalid gateway")
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -31,6 +34,8 @@ type GatewaySpec struct {
 	Interfaces map[string]GatewayInterface `json:"interfaces,omitempty"`
 	// Neighbors is a list of BGP neighbors
 	Neighbors []GatewayBGPNeighbor `json:"neighbors,omitempty"`
+	// Logs defines the configuration for logging levels
+	Logs GatewayLogs `json:"logs,omitempty"`
 }
 
 // GatewayInterface defines the configuration for a gateway interface
@@ -49,6 +54,32 @@ type GatewayBGPNeighbor struct {
 	IP string `json:"ip,omitempty"`
 	// ASN is the remote ASN of the BGP neighbor
 	ASN uint32 `json:"asn,omitempty"`
+}
+
+// GatewayLogs defines the configuration for logging levels
+type GatewayLogs struct {
+	Default GatewayLogLevel            `json:"default,omitempty"`
+	Tags    map[string]GatewayLogLevel `json:"tags,omitempty"`
+}
+
+type GatewayLogLevel string
+
+const (
+	GatewayLogLevelOff     GatewayLogLevel = "off"
+	GatewayLogLevelError   GatewayLogLevel = "error"
+	GatewayLogLevelWarning GatewayLogLevel = "warning"
+	GatewayLogLevelInfo    GatewayLogLevel = "info"
+	GatewayLogLevelDebug   GatewayLogLevel = "debug"
+	GatewayLogLevelTrace   GatewayLogLevel = "trace"
+)
+
+var GatewayLogLevels = []GatewayLogLevel{
+	GatewayLogLevelOff,
+	GatewayLogLevelError,
+	GatewayLogLevelWarning,
+	GatewayLogLevelInfo,
+	GatewayLogLevelDebug,
+	GatewayLogLevelTrace,
 }
 
 // GatewayStatus defines the observed state of Gateway.
@@ -83,77 +114,132 @@ func init() {
 }
 
 func (gw *Gateway) Default() {
+	if gw.Spec.Logs.Default == "" {
+		gw.Spec.Logs.Default = GatewayLogLevelInfo
+	}
 }
 
-func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
+func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
 	if err != nil {
-		return fmt.Errorf("invalid ProtocolIP %s: %w", gw.Spec.ProtocolIP, err)
+		return fmt.Errorf("invalid ProtocolIP %s: %w", gw.Spec.ProtocolIP, errors.Join(err, ErrInvalidGW))
 	}
 	if protoIP.Bits() != 32 {
-		return fmt.Errorf("ProtocolIP %s must be a /32 prefix", gw.Spec.ProtocolIP) //nolint:goerr113
+		return fmt.Errorf("ProtocolIP %s must be a /32 prefix: %w", gw.Spec.ProtocolIP, ErrInvalidGW)
 	}
 	if !protoIP.Addr().Is4() {
-		return fmt.Errorf("ProtocolIP %s must be an IPv4 address", gw.Spec.ProtocolIP) //nolint:goerr113
+		return fmt.Errorf("ProtocolIP %s must be an IPv4 address: %w", gw.Spec.ProtocolIP, ErrInvalidGW)
 	}
 
 	vtepIP, err := netip.ParsePrefix(gw.Spec.VTEPIP)
 	if err != nil {
-		return fmt.Errorf("invalid VTEPIP %s: %w", gw.Spec.VTEPIP, err)
+		return fmt.Errorf("invalid VTEPIP %s: %w", gw.Spec.VTEPIP, errors.Join(err, ErrInvalidGW))
 	}
 	if vtepIP.Bits() != 32 {
-		return fmt.Errorf("VTEPIP %s must be a /32 prefix", gw.Spec.VTEPIP) //nolint:goerr113
+		return fmt.Errorf("VTEPIP %s must be a /32 prefix: %w", gw.Spec.VTEPIP, ErrInvalidGW)
 	}
 	if !vtepIP.Addr().Is4() {
-		return fmt.Errorf("VTEPIP %s must be an IPv4 address", gw.Spec.VTEPIP) //nolint:goerr113
+		return fmt.Errorf("VTEPIP %s must be an IPv4 address: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+	}
+	if vtepIP.Addr().IsMulticast() || vtepIP.Addr().IsLoopback() || vtepIP.Addr().IsUnspecified() {
+		return fmt.Errorf("VTEPIP %s must be a unicast IPv4 address: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+	}
+	localhostNet, err := netip.ParsePrefix("127.0.0.0/8")
+	if err != nil {
+		return fmt.Errorf("internal error: cannot parse localhost network: %w", err)
+	}
+	if localhostNet.Contains(vtepIP.Addr()) {
+		return fmt.Errorf("VTEPIP %s must not be in the localhost range: %w", gw.Spec.VTEPIP, ErrInvalidGW)
 	}
 
 	if gw.Spec.VTEPMAC == "" {
-		return fmt.Errorf("VTEPMAC must be set") //nolint:goerr113
+		return fmt.Errorf("VTEPMAC must be set: %w", ErrInvalidGW)
 	}
-	if _, err := net.ParseMAC(gw.Spec.VTEPMAC); err != nil {
-		return fmt.Errorf("invalid VTEPMAC %s: %w", gw.Spec.VTEPMAC, err)
+	vtepMAC, err := net.ParseMAC(gw.Spec.VTEPMAC)
+	if err != nil {
+		return fmt.Errorf("invalid VTEPMAC %s: %w", gw.Spec.VTEPMAC, errors.Join(err, ErrInvalidGW))
+	}
+	if vtepMAC.String() == "00:00:00:00:00:00" {
+		return fmt.Errorf("VTEPMAC must not be all zeros: %w", ErrInvalidGW)
+	}
+	if (vtepMAC[0] & 1) == 1 {
+		return fmt.Errorf("VTEPMAC %s must be a unicast MAC address: %w", gw.Spec.VTEPMAC, ErrInvalidGW)
 	}
 
 	if gw.Spec.ASN == 0 {
-		return fmt.Errorf("ASN must be set") //nolint:goerr113
+		return fmt.Errorf("ASN must be set: %w", ErrInvalidGW)
 	}
 
 	if len(gw.Spec.Interfaces) == 0 {
-		return fmt.Errorf("at least one interface must be defined") //nolint:goerr113
+		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)
 	}
 	for name, iface := range gw.Spec.Interfaces {
 		if len(iface.IPs) == 0 {
-			return fmt.Errorf("interface %s must have at least one IP address", name) //nolint:goerr113
+			return fmt.Errorf("interface %s must have at least one IP address: %w", name, ErrInvalidGW)
 		}
 		for _, ifaceIP := range iface.IPs {
 			ifaceIP, err := netip.ParsePrefix(ifaceIP)
 			if err != nil {
-				return fmt.Errorf("invalid interface %s IP %s: %w", name, ifaceIP, err)
+				return fmt.Errorf("invalid interface %s IP %s: %w", name, ifaceIP, errors.Join(err, ErrInvalidGW))
 			}
 			if !ifaceIP.Addr().Is4() {
-				return fmt.Errorf("interface %s IP %s must be an IPv4 address", name, ifaceIP) //nolint:goerr113
+				return fmt.Errorf("interface %s IP %s must be an IPv4 address: %w", name, ifaceIP, ErrInvalidGW)
 			}
 		}
 	}
 
 	if len(gw.Spec.Neighbors) == 0 {
-		return fmt.Errorf("at least one BGP neighbor must be defined") //nolint:goerr113
+		return fmt.Errorf("at least one BGP neighbor must be defined: %w", ErrInvalidGW)
 	}
 	for _, neigh := range gw.Spec.Neighbors {
 		if neigh.IP == "" {
-			return fmt.Errorf("BGP neighbor must have an IP address") //nolint:goerr113
+			return fmt.Errorf("BGP neighbor must have an IP address: %w", ErrInvalidGW)
 		}
 		neighIP, err := netip.ParseAddr(neigh.IP)
 		if err != nil {
-			return fmt.Errorf("invalid neighbor IP %s: %w", neigh.IP, err)
+			return fmt.Errorf("invalid neighbor IP %s: %w", neigh.IP, errors.Join(err, ErrInvalidGW))
 		}
 		if !neighIP.Is4() {
-			return fmt.Errorf("BGP neighbor %s IP %s must be an IPv4 address", neigh.IP, neigh.IP) //nolint:goerr113
+			return fmt.Errorf("BGP neighbor IP %s must be an IPv4 address: %w", neigh.IP, ErrInvalidGW)
+		}
+		if neighIP.IsMulticast() || neighIP.IsUnspecified() {
+			return fmt.Errorf("BGP neighbor IP %s must be a unicast IPv4 address: %w", neigh.IP, ErrInvalidGW)
 		}
 
 		if neigh.ASN == 0 {
-			return fmt.Errorf("BGP neighbor %s must have an ASN", neigh.IP) //nolint:goerr113
+			return fmt.Errorf("BGP neighbor %s must have an ASN: %w", neigh.IP, ErrInvalidGW)
+		}
+	}
+
+	// uniqueness checks
+	if kube != nil {
+		protocolIPs := map[netip.Addr]bool{}
+		vtepIPs := map[netip.Addr]bool{}
+		gateways := &GatewayList{}
+		if err := kube.List(ctx, gateways); err != nil {
+			return fmt.Errorf("listing gateways: %w", err)
+		}
+		// TODO: check switches too when we remove the circular dependency issue
+		for _, other := range gateways.Items {
+			if other.Name == gw.Name {
+				continue
+			}
+			if other.Spec.ProtocolIP != "" {
+				if ip, err := netip.ParsePrefix(other.Spec.ProtocolIP); err == nil {
+					protocolIPs[ip.Addr()] = true
+				}
+			}
+			if other.Spec.VTEPIP != "" {
+				if ip, err := netip.ParsePrefix(other.Spec.VTEPIP); err == nil {
+					vtepIPs[ip.Addr()] = true
+				}
+			}
+		}
+		if _, exist := protocolIPs[protoIP.Addr()]; exist {
+			return fmt.Errorf("gateway %s protocol IP %s is already in use: %w", gw.Name, protoIP, ErrInvalidGW)
+		}
+		if _, exist := vtepIPs[vtepIP.Addr()]; exist {
+			return fmt.Errorf("gateway %s VTEP IP %s is already in use: %w", gw.Name, vtepIP, ErrInvalidGW)
 		}
 	}
 

@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,6 +68,15 @@ func (vpc *VPCInfo) Default() {
 }
 
 func (vpc *VPCInfo) Validate(_ context.Context, _ kclient.Reader) error {
-	// TODO add validation logic
+	if vpc.Spec.VNI == 0 {
+		return fmt.Errorf("VPCInfo VNI must be set and non-zero") //nolint:goerr113
+	}
+
+	for name, subnet := range vpc.Spec.Subnets {
+		if _, err := netip.ParsePrefix(subnet.CIDR); err != nil {
+			return fmt.Errorf("invalid CIDR %s for subnet %s: %w", subnet.CIDR, name, err)
+		}
+	}
+
 	return nil
 }
