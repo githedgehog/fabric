@@ -112,6 +112,10 @@ type SpecPortBreakout struct {
 	Mode string `json:"mode,omitempty"`
 }
 
+type SpecProxyARP struct {
+	All bool `json:"all,omitempty"`
+}
+
 type SpecInterface struct {
 	Description        *string                      `json:"description,omitempty"`
 	Enabled            *bool                        `json:"enabled,omitempty"`
@@ -124,6 +128,7 @@ type SpecInterface struct {
 	VLANIPs            map[string]*SpecInterfaceIP  `json:"vlanIPs,omitempty"`
 	VLANAnycastGateway []string                     `json:"vlanAnycastGateway,omitempty"`
 	Subinterfaces      map[uint32]*SpecSubinterface `json:"subinterfaces,omitempty"`
+	ProxyARP           *SpecProxyARP                `json:"proxyARP,omitempty"`
 }
 
 type SpecInterfaceIP struct {
@@ -135,6 +140,7 @@ type SpecSubinterface struct {
 	VLAN            *uint16                     `json:"vlan,omitempty"`
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
 	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
+	ProxyARP        *SpecProxyARP               `json:"proxyARP,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
