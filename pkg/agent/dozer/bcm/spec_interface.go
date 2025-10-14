@@ -183,6 +183,7 @@ var marshalSpecInterfaceBaseEnforcer = func(name string, value *dozer.SpecInterf
 
 	if isVLAN(name) {
 		var proxyArp *oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_ProxyArp
+		var neighbors *oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors
 		if value.ProxyARP != nil {
 			mode := oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_ProxyArp_Config_Mode_REMOTE_ONLY
 			if value.ProxyARP.All {
@@ -194,10 +195,28 @@ var marshalSpecInterfaceBaseEnforcer = func(name string, value *dozer.SpecInterf
 				},
 			}
 		}
+		if len(value.StaticARPs) > 0 {
+			neighbors = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors{
+				Neighbor: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors_Neighbor{},
+			}
+			for _, sa := range value.StaticARPs {
+				if sa.IP == "" || sa.MAC == "" {
+					continue
+				}
+				neighbors.Neighbor[sa.IP] = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors_Neighbor{
+					Ip: pointer.To(sa.IP),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors_Neighbor_Config{
+						Ip:               pointer.To(sa.IP),
+						LinkLayerAddress: pointer.To(sa.MAC),
+					},
+				}
+			}
+		}
 		val.RoutedVlan = &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan{
 			Ipv4: &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4{
-				Config:   &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{},
-				ProxyArp: proxyArp,
+				Config:    &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Config{},
+				ProxyArp:  proxyArp,
+				Neighbors: neighbors,
 			},
 		}
 	}
@@ -269,6 +288,7 @@ var specInterfaceSubinterfaceBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer
 	Marshal: func(idx uint32, value *dozer.SpecSubinterface) (ygot.ValidatedGoStruct, error) {
 		var vlan *oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Vlan
 		var proxyArp *oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_ProxyArp
+		var neighbors *oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors
 
 		if value.VLAN != nil {
 			vlan = &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Vlan{
@@ -290,6 +310,24 @@ var specInterfaceSubinterfaceBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer
 			}
 		}
 
+		if len(value.StaticARPs) > 0 {
+			neighbors = &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors{
+				Neighbor: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors_Neighbor{},
+			}
+			for _, sa := range value.StaticARPs {
+				if sa.IP == "" || sa.MAC == "" {
+					continue
+				}
+				neighbors.Neighbor[sa.IP] = &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors_Neighbor{
+					Ip: pointer.To(sa.IP),
+					Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors_Neighbor_Config{
+						Ip:               pointer.To(sa.IP),
+						LinkLayerAddress: pointer.To(sa.MAC),
+					},
+				}
+			}
+		}
+
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces{
 			Subinterface: map[uint32]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface{
 				idx: {
@@ -304,7 +342,8 @@ var specInterfaceSubinterfaceBaseEnforcer = &DefaultValueEnforcer[uint32, *dozer
 								StaticAnycastGateway: value.AnycastGateways, // TODO extract into a separate code so we can remove values
 							},
 						},
-						ProxyArp: proxyArp,
+						ProxyArp:  proxyArp,
+						Neighbors: neighbors,
 					},
 				},
 			},
@@ -647,6 +686,18 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 					subIface.ProxyARP = pa
 				}
 
+				if sub.Ipv4 != nil && sub.Ipv4.Neighbors != nil && len(sub.Ipv4.Neighbors.Neighbor) > 0 {
+					for _, n := range sub.Ipv4.Neighbors.Neighbor {
+						if n.Config == nil || n.Config.Ip == nil || n.Config.LinkLayerAddress == nil {
+							continue
+						}
+						subIface.StaticARPs = append(subIface.StaticARPs, dozer.SpecStaticARP{
+							IP:  *n.Config.Ip,
+							MAC: *n.Config.LinkLayerAddress,
+						})
+					}
+				}
+
 				if sub.Vlan != nil {
 					if sub.Vlan.Config != nil {
 						subIface.VLAN, err = unmarshalVLAN(sub.Vlan.Config.VlanId)
@@ -695,6 +746,17 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 						return nil, errors.Wrapf(err, "failed to unmarshal proxy-arp for VLAN interface %s", name)
 					}
 					iface.ProxyARP = pa
+				}
+				if ocIface.RoutedVlan.Ipv4.Neighbors != nil && len(ocIface.RoutedVlan.Ipv4.Neighbors.Neighbor) > 0 {
+					for _, n := range ocIface.RoutedVlan.Ipv4.Neighbors.Neighbor {
+						if n.Config == nil || n.Config.Ip == nil || n.Config.LinkLayerAddress == nil {
+							continue
+						}
+						iface.StaticARPs = append(iface.StaticARPs, dozer.SpecStaticARP{
+							IP:  *n.Config.Ip,
+							MAC: *n.Config.LinkLayerAddress,
+						})
+					}
 				}
 			}
 		}

@@ -116,6 +116,11 @@ type SpecProxyARP struct {
 	All bool `json:"all,omitempty"`
 }
 
+type SpecStaticARP struct {
+	IP  string `json:"ip,omitempty"`
+	MAC string `json:"mac,omitempty"`
+}
+
 type SpecInterface struct {
 	Description        *string                      `json:"description,omitempty"`
 	Enabled            *bool                        `json:"enabled,omitempty"`
@@ -129,6 +134,7 @@ type SpecInterface struct {
 	VLANAnycastGateway []string                     `json:"vlanAnycastGateway,omitempty"`
 	Subinterfaces      map[uint32]*SpecSubinterface `json:"subinterfaces,omitempty"`
 	ProxyARP           *SpecProxyARP                `json:"proxyARP,omitempty"`
+	StaticARPs         []SpecStaticARP              `json:"staticARPs,omitempty"`
 }
 
 type SpecInterfaceIP struct {
@@ -141,6 +147,7 @@ type SpecSubinterface struct {
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
 	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
 	ProxyARP        *SpecProxyARP               `json:"proxyARP,omitempty"`
+	StaticARPs      []SpecStaticARP             `json:"staticARPs,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
