@@ -32,6 +32,11 @@ var communityCheck = regexp.MustCompile("^(6553[0-5]|655[0-2][0-9]|654[0-9]{2}|6
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type ExternalL2Spec struct {
+	// Prefixes is the list of IPv4 prefixes reachable via the external
+	Prefixes []string `json:"prefixes,omitempty"`
+}
+
 // ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
 // filter routes from/to the external system.
 type ExternalSpec struct {
@@ -41,6 +46,9 @@ type ExternalSpec struct {
 	InboundCommunity string `json:"inboundCommunity,omitempty"`
 	// OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001)
 	OutboundCommunity string `json:"outboundCommunity,omitempty"`
+	// L2 contains L2 specific parameters
+	// +optional
+	L2 *ExternalL2Spec `json:"l2,omitempty"`
 }
 
 // ExternalStatus defines the observed state of External
@@ -57,13 +65,15 @@ type ExternalStatus struct{}
 // Users can do external peering with the external system by specifying the name of the External Object without need to
 // worry about the details of how external system is attached to the Fabric.
 type External struct {
-	kmetav1.TypeMeta   `json:",inline"`
-	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta `json:",inline"`
+	// +optional
+	kmetav1.ObjectMeta `json:"metadata"`
 
 	// Spec is the desired state of the External
-	Spec ExternalSpec `json:"spec,omitempty"`
+	Spec ExternalSpec `json:"spec"`
 	// Status is the observed state of the External
-	Status ExternalStatus `json:"status,omitempty"`
+	// +optional
+	Status ExternalStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true
@@ -71,7 +81,8 @@ type External struct {
 // ExternalList contains a list of External
 type ExternalList struct {
 	kmetav1.TypeMeta `json:",inline"`
-	kmetav1.ListMeta `json:"metadata,omitempty"`
+	// +optional
+	kmetav1.ListMeta `json:"metadata"`
 	Items            []External `json:"items"`
 }
 
@@ -117,25 +128,34 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 	if len(external.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", external.Name)
 	}
-
 	if external.Spec.IPv4Namespace == "" {
 		return nil, errors.Errorf("IPv4Namespace is required")
 	}
 
-	if external.Spec.InboundCommunity == "" {
-		return nil, errors.Errorf("inboundCommunity is required")
-	}
+	if external.Spec.L2 == nil {
+		if external.Spec.InboundCommunity == "" {
+			return nil, errors.Errorf("inboundCommunity is required")
+		}
 
-	if external.Spec.OutboundCommunity == "" {
-		return nil, errors.Errorf("outboundCommunity is required")
-	}
+		if external.Spec.OutboundCommunity == "" {
+			return nil, errors.Errorf("outboundCommunity is required")
+		}
 
-	if !communityCheck.MatchString(external.Spec.InboundCommunity) {
-		return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 50000:50001", external.Spec.InboundCommunity)
-	}
+		if !communityCheck.MatchString(external.Spec.InboundCommunity) {
+			return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 50000:50001", external.Spec.InboundCommunity)
+		}
 
-	if !communityCheck.MatchString(external.Spec.OutboundCommunity) {
-		return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
+		if !communityCheck.MatchString(external.Spec.OutboundCommunity) {
+			return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
+		}
+	} else {
+		if external.Spec.InboundCommunity != "" || external.Spec.OutboundCommunity != "" {
+			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when L2 is specified")
+		}
+
+		if len(external.Spec.L2.Prefixes) == 0 {
+			return nil, errors.Errorf("at least one prefix must be specified in L2 mode")
+		}
 	}
 
 	if kube != nil {
