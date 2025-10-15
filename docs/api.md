@@ -755,6 +755,23 @@ _Appears in:_
 | `l3Mode` _boolean_ | L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients |  |  |
 | `disableDefaultRoute` _boolean_ | Disable default route advertisement in DHCP |  |  |
 | `advertisedRoutes` _[DHCPRoute](#dhcproute) array_ | AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP |  |  |
+| `static` _object (keys:string, values:[DHCPSubnetStatic](#dhcpsubnetstatic))_ | Static is a map of static IP assignments to MAC addresses |  |  |
+
+
+#### DHCPSubnetStatic
+
+
+
+DHCPSubnetStatic represents static IP assignment
+
+
+
+_Appears in:_
+- [DHCPSubnetSpec](#dhcpsubnetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | IP is the assigned static IP address |  |  |
 
 
 #### DHCPSubnetStatus
