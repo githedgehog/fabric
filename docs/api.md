@@ -685,6 +685,7 @@ _Appears in:_
 | `ip` _string_ | Allocated IP address |  |  |
 | `expiry` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | Expiry time of the lease |  |  |
 | `hostname` _string_ | Hostname from DHCP request |  |  |
+| `discover` _boolean_ | Discover is true if the IP was offered to a client but not yet acked |  |  |
 
 
 #### DHCPRoute

@@ -29,7 +29,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	"go.githedgehog.com/fabric/pkg/dhcpd"
+	"go.githedgehog.com/fabric/pkg/dhcp"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -94,14 +94,7 @@ func main() {
 		Destination: &verbose,
 	}
 
-	var configPath, listenInterface string
-	configPathFlag := &cli.StringFlag{
-		Name:        "config",
-		Aliases:     []string{"c"},
-		Usage:       "config file",
-		Value:       "/etc/hedgehog/dhcpd.yaml",
-		Destination: &configPath,
-	}
+	var listenInterface string
 	listenInterfaceFlag := &cli.StringFlag{
 		Name:        "listen",
 		Aliases:     []string{"l"},
@@ -124,16 +117,13 @@ func main() {
 				Usage: "start dhcp server",
 				Flags: []cli.Flag{
 					verboseFlag,
-					configPathFlag,
 					listenInterfaceFlag,
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
 				},
 				Action: func(_ *cli.Context) error {
-					return errors.Wrapf((&dhcpd.Service{
-						Verbose:         verbose,
-						Config:          configPath,
+					return errors.Wrapf((&dhcp.Server{
 						ListenInterface: listenInterface,
 					}).Run(ctx), "failed to run dhcp server")
 				},
