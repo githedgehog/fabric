@@ -830,6 +830,27 @@ Effectively it represents BGP peering between the switch and external system inc
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
 
 
+#### ExternalAttachmentL2
+
+
+
+ExternalAttachmentL2 defines parameters used for L2 external attachments
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | IP is the IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
+| `mac` _string_ | MAC is the MAC address associated with the IP address above |  |  |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used |  |  |
+| `allowedIPs` _string array_ | AllowedIPs is the list of IP addresses (with prefix length) which can be used on the fabric side for this L2 external attachment |  |  |
+| `fakeLeafIP` _string_ | FakeLeafIP is an IP address that will be used on the fabric edge switch to fool it into thinking it's directly connected to the external system |  |  |
+| `fakeExternalIP` _string_ | FakeExternalIP is an IP address that the fabric edge switch will resolve to the MAC address above |  |  |
+
+
 #### ExternalAttachmentNeighbor
 
 
@@ -862,8 +883,9 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `external` _string_ | External is the name of the External object this attachment belongs to |  |  |
 | `connection` _string_ | Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port) |  |  |
-| `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment |  |  |
-| `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment |  |  |
+| `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment in case of a BGP external |  |  |
+| `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external |  |  |
+| `l2` _[ExternalAttachmentL2](#externalattachmentl2)_ | L2 contains parameters specific to an L2 external attachment |  |  |
 
 
 #### ExternalAttachmentStatus

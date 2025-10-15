@@ -81,9 +81,43 @@ spec:
                 description: External is the name of the External object this attachment
                   belongs to
                 type: string
+              l2:
+                description: L2 contains parameters specific to an L2 external attachment
+                properties:
+                  allowedIPs:
+                    description: AllowedIPs is the list of IP addresses (with prefix
+                      length) which can be used on the fabric side for this L2 external
+                      attachment
+                    items:
+                      type: string
+                    type: array
+                  fakeExternalIP:
+                    description: FakeExternalIP is an IP address that the fabric edge
+                      switch will resolve to the MAC address above
+                    type: string
+                  fakeLeafIP:
+                    description: FakeLeafIP is an IP address that will be used on
+                      the fabric edge switch to fool it into thinking it's directly
+                      connected to the external system
+                    type: string
+                  ip:
+                    description: IP is the IP address of the external, which will
+                      be used as nexthop for prefixes reachable via this external
+                      attachment
+                    type: string
+                  mac:
+                    description: MAC is the MAC address associated with the IP address
+                      above
+                    type: string
+                  vlan:
+                    description: VLAN (optional) is the VLAN ID used for the subinterface
+                      on a switch port specified in the connection, set to 0 if no
+                      VLAN is used
+                    type: integer
+                type: object
               neighbor:
                 description: Neighbor is the BGP neighbor configuration for the external
-                  attachment
+                  attachment in case of a BGP external
                 properties:
                   asn:
                     description: ASN is the ASN of the BGP neighbor
@@ -96,7 +130,7 @@ spec:
                 type: object
               switch:
                 description: Switch is the switch port configuration for the external
-                  attachment
+                  attachment in case of a BGP external
                 properties:
                   ip:
                     description: IP is the IP address of the subinterface on a switch
@@ -109,10 +143,15 @@ spec:
                       VLAN is used
                     type: integer
                 type: object
+            required:
+            - neighbor
+            - switch
             type: object
           status:
             description: Status is the observed state of the ExternalAttachment
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

@@ -1089,35 +1089,36 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		port := conn.External.Link.Switch.LocalPortName()
 		var vlan *uint16
-		if attach.Switch.VLAN != 0 {
-			vlan = pointer.To(attach.Switch.VLAN)
-		}
-
-		ip, ipNet, err := net.ParseCIDR(attach.Switch.IP)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse external attach switch ip %s", attach.Switch.IP)
-		}
-		prefixLength, _ := ipNet.Mask.Size()
-
-		spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = &dozer.SpecSubinterface{
-			VLAN: vlan,
-			IPs: map[string]*dozer.SpecInterfaceIP{
-				ip.String(): {
-					PrefixLen: pointer.To(uint8(prefixLength)), //nolint:gosec
-				},
-			},
-		}
-
-		ifaceName := port
-		if attach.Switch.VLAN != 0 {
-			ifaceName = fmt.Sprintf("%s.%d", port, attach.Switch.VLAN)
-		}
-
 		ipns := external.IPv4Namespace
 		extVrfName := extVrfName(externalName)
-		spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 
-		if external.L2 == nil {
+		if attach.L2 == nil {
+			if attach.Switch.VLAN != 0 {
+				vlan = pointer.To(attach.Switch.VLAN)
+			}
+
+			ip, ipNet, err := net.ParseCIDR(attach.Switch.IP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse external attach switch ip %s", attach.Switch.IP)
+			}
+			prefixLength, _ := ipNet.Mask.Size()
+
+			spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = &dozer.SpecSubinterface{
+				VLAN: vlan,
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: pointer.To(uint8(prefixLength)), //nolint:gosec
+					},
+				},
+			}
+
+			ifaceName := port
+			if attach.Switch.VLAN != 0 {
+				ifaceName = fmt.Sprintf("%s.%d", port, attach.Switch.VLAN)
+			}
+
+			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
+
 			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
@@ -1126,10 +1127,66 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 			}
-		}
 
-		spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
-			Egress: pointer.To(ipnsEgressAccessList(ipns)),
+			spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
+				Egress: pointer.To(ipnsEgressAccessList(ipns)),
+			}
+		} else {
+			// L2 attachment
+			ifaceName := port
+			if attach.L2.VLAN != 0 {
+				vlan = pointer.To(attach.L2.VLAN)
+				ifaceName = fmt.Sprintf("%s.%d", port, attach.L2.VLAN)
+			}
+			fakeLeafIP, err := netip.ParsePrefix(attach.L2.FakeLeafIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse external attach fake leaf ip %s", attach.L2.FakeLeafIP)
+			}
+			prefixLen := uint8(fakeLeafIP.Bits()) //nolint:gosec
+			switchIP := fakeLeafIP.Addr().String()
+
+			fakeExtIP, err := netip.ParsePrefix(attach.L2.FakeExternalIP)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse external attach fake external ip %s", attach.L2.FakeExternalIP)
+			}
+			fakeExtIPStr := fakeExtIP.Addr().String()
+			spec.Interfaces[port].Subinterfaces[uint32(attach.L2.VLAN)] = &dozer.SpecSubinterface{
+				VLAN: vlan,
+				IPs: map[string]*dozer.SpecInterfaceIP{
+					switchIP: {
+						PrefixLen: pointer.To(prefixLen),
+					},
+				},
+				StaticARPs: []dozer.SpecStaticARP{
+					{
+						IP:  fakeExtIPStr,
+						MAC: attach.L2.MAC,
+					},
+				},
+				ProxyARP: &dozer.SpecProxyARP{
+					All: false,
+				},
+			}
+			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
+			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.L2.IP)] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        fakeExtIPStr,
+						Interface: pointer.To(ifaceName),
+					},
+				},
+			}
+
+			for _, p := range external.L2.Prefixes {
+				spec.VRFs[extVrfName].StaticRoutes[p] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							IP:        attach.L2.IP,
+							Interface: pointer.To(ifaceName),
+						},
+					},
+				}
+			}
 		}
 	}
 
