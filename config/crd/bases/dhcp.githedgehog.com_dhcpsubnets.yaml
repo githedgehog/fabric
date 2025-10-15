@@ -185,6 +185,10 @@ spec:
                     time and hostname from DHCP requests, it's effectively a DHCP
                     lease
                   properties:
+                    discover:
+                      description: Discover is true if the IP was offered to a client
+                        but not yet acked
+                      type: boolean
                     expiry:
                       description: Expiry time of the lease
                       format: date-time
@@ -197,7 +201,6 @@ spec:
                       type: string
                   required:
                   - expiry
-                  - hostname
                   - ip
                   type: object
                 description: Allocated is a map of allocated IPs with expiry time
