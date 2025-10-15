@@ -2884,15 +2884,6 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Prefixes: prefixes,
 			}
 
-			importVrfRouteMap := vpcExtImportVrfRouteMapName(vpcName)
-			spec.RouteMaps[importVrfRouteMap].Statements["5"] = &dozer.SpecRouteMapStatement{
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
-					MatchSourceVRF:  pointer.To(extVrf),
-				},
-				Result: dozer.SpecRouteMapResultReject,
-			}
-
 			idx := agent.Spec.Catalog.ExternalIDs[externalName]
 			if idx == 0 {
 				return errors.Errorf("no external seq for external %s", externalName)
@@ -2900,9 +2891,18 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if idx < 10 { // first 10 reserved for static statements
 				return errors.Errorf("external seq for external %s is too small", externalName)
 			}
-			if idx >= 10000 {
+			if idx >= 5000 {
 				return errors.Errorf("external seq for external %s is too large", externalName)
 			}
+			importVrfRouteMap := vpcExtImportVrfRouteMapName(vpcName)
+			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 5000+idx)] = &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(vpc.IPv4Namespace)),
+					MatchSourceVRF:  pointer.To(extVrf),
+				},
+				Result: dozer.SpecRouteMapResultReject,
+			}
+
 			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchCommunityList: pointer.To(extInboundCommListName(externalName)),
