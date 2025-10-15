@@ -161,7 +161,7 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		in, out := &in.Externals, &out.Externals
 		*out = make(map[string]vpcv1beta1.ExternalSpec, len(*in))
 		for key, val := range *in {
-			(*out)[key] = val
+			(*out)[key] = *val.DeepCopy()
 		}
 	}
 	if in.ExternalAttachments != nil {

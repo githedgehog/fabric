@@ -896,6 +896,22 @@ _Appears in:_
 | `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length |  |  |
 
 
+#### ExternalL2Spec
+
+
+
+
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefixes` _string array_ | Prefixes is the list of IPv4 prefixes reachable via the external |  |  |
+
+
 #### ExternalPeering
 
 
@@ -1028,6 +1044,7 @@ _Appears in:_
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this External belongs to |  |  |
 | `inboundCommunity` _string_ | InboundCommunity is the inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
 | `outboundCommunity` _string_ | OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
+| `l2` _[ExternalL2Spec](#externall2spec)_ | L2 contains L2 specific parameters |  |  |
 
 
 #### ExternalStatus
