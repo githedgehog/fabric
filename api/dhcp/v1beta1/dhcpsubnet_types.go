@@ -83,7 +83,9 @@ type DHCPAllocated struct {
 	// Expiry time of the lease
 	Expiry kmetav1.Time `json:"expiry"`
 	// Hostname from DHCP request
-	Hostname string `json:"hostname"`
+	Hostname string `json:"hostname,omitempty"`
+	// Discover is true if the IP was offered to a client but not yet acked
+	Discover bool `json:"discover,omitempty"`
 }
 
 // +kubebuilder:object:root=true

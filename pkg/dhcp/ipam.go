@@ -1,0 +1,130 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package dhcp
+
+import (
+	"fmt"
+	"log/slog"
+	"net/netip"
+	"time"
+
+	"github.com/insomniacslk/dhcp/dhcpv4"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	defaultVRF = "default"
+)
+
+func subnetKey(vrf, circuitID string) string {
+	if vrf == "" {
+		vrf = defaultVRF
+	}
+
+	res := vrf
+	if circuitID != "" {
+		res += ":" + circuitID
+	}
+
+	return res
+}
+
+func subnetKeyFrom(subnet *dhcpapi.DHCPSubnet) string {
+	return subnetKey(subnet.Spec.VRF, subnet.Spec.CircuitID)
+}
+
+var ErrNoAvailableIP = fmt.Errorf("no available IP address")
+
+func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error) {
+	expiry := time.Now()
+	if req.MessageType() == dhcpv4.MessageTypeDiscover {
+		expiry = expiry.Add(time.Minute) // TODO const
+	} else {
+		expiry = expiry.Add(time.Duration(subnet.Spec.LeaseTimeSeconds) * time.Second)
+	}
+
+	var res netip.Addr
+
+	mac := req.ClientHWAddr.String()
+	used := map[string]bool{
+		subnet.Spec.Gateway: true,
+	}
+	for allocatedMAC, allocated := range subnet.Status.Allocated {
+		if allocatedMAC != mac {
+			used[allocated.IP] = true
+		}
+	}
+
+	startIP, err := netip.ParseAddr(subnet.Spec.StartIP)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("parsing subnet start ip: %s: %w", subnet.Spec.StartIP, err)
+	}
+
+	endIP, err := netip.ParseAddr(subnet.Spec.EndIP)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("parsing subnet end ip: %s: %w", subnet.Spec.EndIP, err)
+	}
+
+	// If requested IP is valid, not in use, and within the subnet start/end range, use it
+	if requested := req.RequestedIPAddress(); requested != nil {
+		ip, ok := netip.AddrFromSlice(requested)
+		switch {
+		case !ok:
+			slog.Warn("Invalid requested IP address, ignoring", "ip", requested.String())
+		case used[ip.String()]:
+			slog.Warn("Requested IP is already used, ignoring", "ip", requested.String(), "mac", mac)
+		case ip.Compare(startIP) < 0 && ip.Compare(endIP) > 0:
+			slog.Warn("Requested IP is outside start-end range, ignoring", "ip", requested.String(), "mac", mac)
+		default:
+			res = ip
+		}
+	}
+
+	// If allocated IP is valid, not in use, and within the start/end subnet range, use it
+	if !res.Is4() {
+		if allocated, ok := subnet.Status.Allocated[mac]; ok {
+			ip, err := netip.ParseAddr(allocated.IP)
+			switch {
+			case err != nil:
+				slog.Warn("Invalid allocated IP address, ignoring", "ip", allocated.IP, "mac", mac)
+			case used[allocated.IP]:
+				slog.Warn("Allocated IP is already used, ignoring", "ip", allocated.IP, "mac", mac)
+			case ip.Compare(startIP) < 0 && ip.Compare(endIP) > 0:
+				slog.Warn("Allocated IP is outside start-end range, ignoring", "ip", allocated.IP, "mac", mac)
+			default:
+				res = ip
+			}
+		}
+	}
+
+	// If able to find unused IP within the start/end subnet range, use it
+	if !res.Is4() {
+		ip := startIP
+		for ip.Compare(endIP) <= 0 {
+			if used[ip.String()] {
+				ip = ip.Next()
+
+				continue
+			}
+
+			res = ip
+
+			break
+		}
+	}
+
+	if !res.Is4() {
+		return netip.Addr{}, ErrNoAvailableIP
+	}
+
+	subnet.Status.Allocated[mac] = dhcpapi.DHCPAllocated{
+		IP:       res.String(),
+		Expiry:   kmetav1.Time{Time: expiry},
+		Hostname: req.HostName(),
+		Discover: req.MessageType() == dhcpv4.MessageTypeDiscover,
+	}
+
+	return res, nil
+}
