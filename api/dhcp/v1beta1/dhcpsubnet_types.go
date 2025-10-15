@@ -68,6 +68,14 @@ type DHCPSubnetSpec struct {
 	DisableDefaultRoute bool `json:"disableDefaultRoute,omitempty"`
 	// AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP
 	AdvertisedRoutes []DHCPRoute `json:"advertisedRoutes,omitempty"`
+	// Static is a map of static IP assignments to MAC addresses
+	Static map[string]DHCPSubnetStatic `json:"static,omitempty"`
+}
+
+// DHCPSubnetStatic represents static IP assignment
+type DHCPSubnetStatic struct {
+	// IP is the assigned static IP address
+	IP string `json:"ip"`
 }
 
 // DHCPSubnetStatus defines the observed state of DHCPSubnet
@@ -80,6 +88,7 @@ type DHCPSubnetStatus struct {
 type DHCPAllocated struct {
 	// Allocated IP address
 	IP string `json:"ip"`
+	// +optional
 	// Expiry time of the lease
 	Expiry kmetav1.Time `json:"expiry"`
 	// Hostname from DHCP request
