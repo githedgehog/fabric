@@ -36,10 +36,13 @@ type ExternalAttachmentSpec struct {
 	External string `json:"external,omitempty"`
 	// Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port)
 	Connection string `json:"connection,omitempty"`
-	// Switch is the switch port configuration for the external attachment
-	Switch ExternalAttachmentSwitch `json:"switch,omitempty"`
-	// Neighbor is the BGP neighbor configuration for the external attachment
-	Neighbor ExternalAttachmentNeighbor `json:"neighbor,omitempty"`
+	// Switch is the switch port configuration for the external attachment in case of a BGP external
+	Switch ExternalAttachmentSwitch `json:"switch"`
+	// Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external
+	Neighbor ExternalAttachmentNeighbor `json:"neighbor"`
+	// L2 contains parameters specific to an L2 external attachment
+	// +optional
+	L2 *ExternalAttachmentL2 `json:"l2,omitempty"`
 }
 
 // ExternalAttachmentSwitch defines the switch port configuration for the external attachment
@@ -58,6 +61,22 @@ type ExternalAttachmentNeighbor struct {
 	IP string `json:"ip,omitempty"`
 }
 
+// ExternalAttachmentL2 defines parameters used for L2 external attachments
+type ExternalAttachmentL2 struct {
+	// IP is the actual IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment
+	IP string `json:"ip,omitempty"`
+	// MAC is the MAC address of the interface associated with the IP address above
+	MAC string `json:"mac,omitempty"`
+	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required
+	VLAN uint16 `json:"vlan,omitempty"`
+	// GatewayIPs is the list of IP addresses (with prefix length) which can be used for NAT on the fabric side for this L2 external attachment
+	GatewayIPs []string `json:"gatewayIPs,omitempty"`
+	// FabricEdgeIP is an IP address (with prefix length) that will be configured on the fabric edge switch to fool it into thinking it's directly connected to the L2 external
+	FabricEdgeIP string `json:"fabricEdgeIP,omitempty"`
+	// VirtualExternalIP is an IP address in the subnet of the FabricEdgeIP, which the edge switch will resolve statically to the MAC address specified above
+	VirtualExternalIP string `json:"virtualExternalIP,omitempty"`
+}
+
 // ExternalAttachmentStatus defines the observed state of ExternalAttachment
 type ExternalAttachmentStatus struct{}
 
@@ -74,13 +93,15 @@ type ExternalAttachmentStatus struct{}
 // ExternalAttachment is a definition of how specific switch is connected with external system (External object).
 // Effectively it represents BGP peering between the switch and external system including all needed configuration.
 type ExternalAttachment struct {
-	kmetav1.TypeMeta   `json:",inline"`
-	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.TypeMeta `json:",inline"`
+	// +optional
+	kmetav1.ObjectMeta `json:"metadata"`
 
 	// Spec is the desired state of the ExternalAttachment
-	Spec ExternalAttachmentSpec `json:"spec,omitempty"`
+	Spec ExternalAttachmentSpec `json:"spec"`
 	// Status is the observed state of the ExternalAttachment
-	Status ExternalAttachmentStatus `json:"status,omitempty"`
+	// +optional
+	Status ExternalAttachmentStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true
@@ -88,7 +109,8 @@ type ExternalAttachment struct {
 // ExternalAttachmentList contains a list of ExternalAttachment
 type ExternalAttachmentList struct {
 	kmetav1.TypeMeta `json:",inline"`
-	kmetav1.ListMeta `json:"metadata,omitempty"`
+	// +optional
+	kmetav1.ListMeta `json:"metadata"`
 	Items            []ExternalAttachment `json:"items"`
 }
 
@@ -134,20 +156,70 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	if attach.Spec.Connection == "" {
 		return nil, errors.Errorf("connection is required")
 	}
-	if attach.Spec.Switch.IP == "" {
-		return nil, errors.Errorf("switch.ip is required")
-	}
-	if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
-		return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
-	}
-	if attach.Spec.Neighbor.ASN == 0 {
-		return nil, errors.Errorf("neighbor.asn is required")
-	}
-	if attach.Spec.Neighbor.IP == "" {
-		return nil, errors.Errorf("neighbor.ip is required")
-	}
-	if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
-		return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
+	if attach.Spec.L2 == nil {
+		if attach.Spec.Switch.IP == "" {
+			return nil, errors.Errorf("switch.ip is required")
+		}
+		if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
+			return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
+		}
+		if attach.Spec.Neighbor.ASN == 0 {
+			return nil, errors.Errorf("neighbor.asn is required")
+		}
+		if attach.Spec.Neighbor.IP == "" {
+			return nil, errors.Errorf("neighbor.ip is required")
+		}
+		if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
+			return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
+		}
+	} else {
+		if attach.Spec.Switch.IP != "" || attach.Spec.Switch.VLAN != 0 {
+			return nil, errors.Errorf("switch parameters must not be set for L2 external attachment")
+		}
+		if attach.Spec.Neighbor.ASN != 0 || attach.Spec.Neighbor.IP != "" {
+			return nil, errors.Errorf("neighbor parameters must not be set for L2 external attachment")
+		}
+		if attach.Spec.L2.IP == "" {
+			return nil, errors.Errorf("l2.ip is required for L2 external attachment")
+		}
+		if ip := net.ParseIP(attach.Spec.L2.IP); ip == nil {
+			return nil, errors.New("l2.ip is not a valid IP address") //nolint: goerr113
+		}
+		if attach.Spec.L2.MAC == "" {
+			return nil, errors.Errorf("l2.mac is required for L2 external attachment")
+		}
+		if _, err := net.ParseMAC(attach.Spec.L2.MAC); err != nil {
+			return nil, errors.New("l2.mac is not a valid MAC address") //nolint: goerr113
+		}
+		if len(attach.Spec.L2.GatewayIPs) == 0 {
+			return nil, errors.Errorf("at least one l2.gatewayIPs is required for L2 external attachment")
+		}
+		for _, cidr := range attach.Spec.L2.GatewayIPs {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				return nil, errors.Errorf("l2.gatewayIPs contains an invalid address (with prefix length): %s", cidr) //nolint: goerr113
+			}
+		}
+		if attach.Spec.L2.FabricEdgeIP == "" {
+			return nil, errors.Errorf("l2.fabricEdgeIP is required for L2 external attachment")
+		}
+		fabricEdgeIP, fabricEdgeNET, err := net.ParseCIDR(attach.Spec.L2.FabricEdgeIP)
+		if err != nil {
+			return nil, errors.Wrapf(err, "l2.fabricEdgeIP is not a valid IP address with prefix length")
+		}
+		if attach.Spec.L2.VirtualExternalIP == "" {
+			return nil, errors.Errorf("l2.virtualExternalIP is required for L2 external attachment")
+		}
+		virtExtIP := net.ParseIP(attach.Spec.L2.VirtualExternalIP)
+		if virtExtIP == nil {
+			return nil, errors.Wrapf(err, "l2.virtualExternalIP is not a valid IP address")
+		}
+		if fabricEdgeIP.Equal(virtExtIP) {
+			return nil, errors.Errorf("l2.virtualExternalIP must be different than l2.fabricEdgeIP")
+		}
+		// Ensure that the two fake IPs are in each other's subnet
+		if !fabricEdgeNET.Contains(virtExtIP) {
+			return nil, errors.Errorf("l2.virtualExternalIP must be contained in l2.fabricEdgeIP's subnet")
+		}
 	}
 
 	if kube != nil {
@@ -158,6 +230,12 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			}
 
 			return nil, errors.Wrapf(err, "failed to read external %s", attach.Spec.External) // TODO replace with some internal error to not expose to the user
+		}
+		if attach.Spec.L2 != nil && ext.Spec.L2 == nil {
+			return nil, errors.Errorf("external attachment is L2 but external %s is not", attach.Spec.External)
+		}
+		if attach.Spec.L2 == nil && ext.Spec.L2 != nil {
+			return nil, errors.Errorf("external attachment is not L2 but external %s is", attach.Spec.External)
 		}
 
 		conn := &wiringapi.Connection{}
@@ -171,6 +249,28 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 
 		if conn.Spec.External == nil {
 			return nil, errors.Errorf("connection %s is not external", attach.Spec.Connection)
+		}
+
+		// validate VLAN collision
+		attaches := &ExternalAttachmentList{}
+		if err := kube.List(ctx, attaches, kclient.MatchingLabels{wiringapi.LabelName("connection"): attach.Spec.Connection}); err != nil {
+			return nil, errors.Wrapf(err, "failed to list external attachments for %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+		ourVLAN := attach.Spec.Switch.VLAN
+		if attach.Spec.L2 != nil {
+			ourVLAN = attach.Spec.L2.VLAN
+		}
+		for _, other := range attaches.Items {
+			if other.Name == attach.Name {
+				continue
+			}
+			otherVLAN := other.Spec.Switch.VLAN
+			if other.Spec.L2 != nil {
+				otherVLAN = other.Spec.L2.VLAN
+			}
+			if otherVLAN == ourVLAN {
+				return nil, errors.Errorf("connection %s already has an external attachment with VLAN %d", attach.Spec.Connection, ourVLAN)
+			}
 		}
 	}
 
