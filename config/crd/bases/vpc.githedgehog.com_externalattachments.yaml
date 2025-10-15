@@ -81,9 +81,39 @@ spec:
                 description: External is the name of the External object this attachment
                   belongs to
                 type: string
+              l2:
+                description: L2 contains parameters specific to an L2 external attachment
+                properties:
+                  fabricEdgeIP:
+                    description: FabricEdgeIP is an IP address (with prefix length)
+                      that will be configured on the fabric edge switch; it is needed
+                      for proxy-ARP
+                    type: string
+                  gatewayIPs:
+                    description: GatewayIPs is the list of IP addresses (with prefix
+                      length) which can be used for NAT on the fabric side for this
+                      L2 external attachment
+                    items:
+                      type: string
+                    type: array
+                  ip:
+                    description: IP is the actual IP address of the external, which
+                      will be used as nexthop for prefixes reachable via this external
+                      attachment
+                    type: string
+                  vlan:
+                    description: VLAN (optional) is the VLAN ID used for the subinterface
+                      on a switch port specified in the connection, set to 0 if no
+                      VLAN is required
+                    type: integer
+                required:
+                - fabricEdgeIP
+                - gatewayIPs
+                - ip
+                type: object
               neighbor:
                 description: Neighbor is the BGP neighbor configuration for the external
-                  attachment
+                  attachment in case of a BGP external
                 properties:
                   asn:
                     description: ASN is the ASN of the BGP neighbor
@@ -96,7 +126,7 @@ spec:
                 type: object
               switch:
                 description: Switch is the switch port configuration for the external
-                  attachment
+                  attachment in case of a BGP external
                 properties:
                   ip:
                     description: IP is the IP address of the subinterface on a switch
@@ -109,10 +139,15 @@ spec:
                       VLAN is used
                     type: integer
                 type: object
+            required:
+            - neighbor
+            - switch
             type: object
           status:
             description: Status is the observed state of the ExternalAttachment
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

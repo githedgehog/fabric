@@ -188,6 +188,9 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 
 			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
 		}
+		if ext.Spec.L2 != nil {
+			return nil, errors.Errorf("external %s is L2, peering should be done via the gateway instead", peering.Spec.Permit.External.Name)
+		}
 
 		for _, subnet := range peering.Spec.Permit.VPC.Subnets {
 			if _, exists := vpc.Spec.Subnets[subnet]; !exists {
