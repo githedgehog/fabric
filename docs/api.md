@@ -850,6 +850,25 @@ Effectively it represents BGP peering between the switch and external system inc
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
 
 
+#### ExternalAttachmentL2
+
+
+
+ExternalAttachmentL2 defines parameters used for L2 external attachments
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | IP is the actual IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required |  |  |
+| `gatewayIPs` _string array_ | GatewayIPs is the list of IP addresses (with prefix length) which can be used for NAT on the fabric side for this L2 external attachment |  |  |
+| `fabricEdgeIP` _string_ | FabricEdgeIP is an IP address (with prefix length) that will be configured on the fabric edge switch; it is needed for proxy-ARP |  |  |
+
+
 #### ExternalAttachmentNeighbor
 
 
@@ -882,8 +901,9 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `external` _string_ | External is the name of the External object this attachment belongs to |  |  |
 | `connection` _string_ | Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port) |  |  |
-| `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment |  |  |
-| `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment |  |  |
+| `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment in case of a BGP external |  |  |
+| `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external |  |  |
+| `l2` _[ExternalAttachmentL2](#externalattachmentl2)_ | L2 contains parameters specific to an L2 external attachment |  |  |
 
 
 #### ExternalAttachmentStatus
@@ -914,6 +934,22 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used |  |  |
 | `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length |  |  |
+
+
+#### ExternalL2
+
+
+
+
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefixes` _string array_ | Prefixes is the list of IPv4 prefixes reachable via the external |  |  |
 
 
 #### ExternalPeering
@@ -1048,6 +1084,7 @@ _Appears in:_
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this External belongs to |  |  |
 | `inboundCommunity` _string_ | InboundCommunity is the inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
 | `outboundCommunity` _string_ | OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
+| `l2` _[ExternalL2](#externall2)_ | L2 contains L2 specific parameters |  |  |
 
 
 #### ExternalStatus
