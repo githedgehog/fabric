@@ -490,6 +490,7 @@ var (
 	_ SpecPart = (*SpecInterface)(nil)
 	_ SpecPart = (*SpecSubinterface)(nil)
 	_ SpecPart = (*SpecInterfaceIP)(nil)
+	_ SpecPart = (*SpecProxyARP)(nil)
 	_ SpecPart = (*SpecMCLAGDomain)(nil)
 	_ SpecPart = (*SpecMCLAGInterface)(nil)
 	_ SpecPart = (*SpecVRF)(nil)
@@ -563,6 +564,10 @@ func (s *SpecSubinterface) IsNil() bool {
 }
 
 func (s *SpecInterfaceIP) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecProxyARP) IsNil() bool {
 	return s == nil
 }
 
