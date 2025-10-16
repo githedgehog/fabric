@@ -549,7 +549,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 
 			for mac, static := range subnetCfg.DHCP.Static {
 				if static.IP == "" {
-					return nil, errors.Errorf("subnet %s: empty static IP %s assigned to MAC %s", subnetName, static.IP, mac)
+					return nil, errors.Errorf("subnet %s: empty static IP assigned to MAC %s", subnetName, mac)
 				}
 				if mac == "" {
 					return nil, errors.Errorf("subnet %s: static IP %s assigned to empty MAC address", subnetName, static.IP)

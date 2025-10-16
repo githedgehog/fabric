@@ -131,7 +131,7 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 		ipNet.IP = net.IP(ip.AsSlice())
 
 		if err := updateResponse(req, resp, subnet, ipNet); err != nil {
-			return fmt.Errorf("updating response") //nolint:err113
+			return fmt.Errorf("updating response: %w", err)
 		}
 	case dhcpv4.MessageTypeRelease, dhcpv4.MessageTypeDecline:
 		if err := s.updateSubnet(ctx, subnet, func(subnet *dhcpapi.DHCPSubnet) error {
