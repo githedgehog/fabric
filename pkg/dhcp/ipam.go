@@ -108,7 +108,7 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 				slog.Warn("Invalid requested IP address, ignoring", "ip", requested.String())
 			case used[ip.String()]:
 				slog.Warn("Requested IP is already used, ignoring", "ip", requested.String(), "mac", mac)
-			case ip.Compare(startIP) < 0 && ip.Compare(endIP) > 0:
+			case ip.Compare(startIP) < 0 || ip.Compare(endIP) > 0:
 				slog.Warn("Requested IP is outside start-end range, ignoring", "ip", requested.String(), "mac", mac)
 			default:
 				res = ip
@@ -125,7 +125,7 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 				slog.Warn("Invalid allocated IP address, ignoring", "ip", allocated.IP, "mac", mac)
 			case used[allocated.IP]:
 				slog.Warn("Allocated IP is already used, ignoring", "ip", allocated.IP, "mac", mac)
-			case ip.Compare(startIP) < 0 && ip.Compare(endIP) > 0:
+			case ip.Compare(startIP) < 0 || ip.Compare(endIP) > 0:
 				slog.Warn("Allocated IP is outside start-end range, ignoring", "ip", allocated.IP, "mac", mac)
 			default:
 				res = ip
