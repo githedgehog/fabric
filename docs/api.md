@@ -755,7 +755,7 @@ _Appears in:_
 | `l3Mode` _boolean_ | L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients |  |  |
 | `disableDefaultRoute` _boolean_ | Disable default route advertisement in DHCP |  |  |
 | `advertisedRoutes` _[DHCPRoute](#dhcproute) array_ | AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP |  |  |
-| `static` _object (keys:string, values:[DHCPSubnetStatic](#dhcpsubnetstatic))_ | Static is a map of static IP assignments to MAC addresses |  |  |
+| `static` _object (keys:string, values:[DHCPSubnetStatic](#dhcpsubnetstatic))_ | Static is a map of static IP assignments for MAC addresses |  |  |
 
 
 #### DHCPSubnetStatic
@@ -1197,6 +1197,7 @@ _Appears in:_
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |  |  |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled |  |  |
 | `options` _[VPCDHCPOptions](#vpcdhcpoptions)_ | Options (optional) is the DHCP options for the subnet if DHCP server is enabled |  |  |
+| `static` _object (keys:string, values:[VPCDHCPStatic](#vpcdhcpstatic))_ | Static is a map of static IP assignments for MAC addresses |  |  |
 
 
 #### VPCDHCPOptions
@@ -1253,6 +1254,22 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `destination` _string_ | Destination is the destination prefix for the route |  |  |
 | `gateway` _string_ | Gateway is the gateway IP address for the route |  |  |
+
+
+#### VPCDHCPStatic
+
+
+
+VPCDHCPStatic represents static IP assignment
+
+
+
+_Appears in:_
+- [VPCDHCP](#vpcdhcp)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | IP is the assigned static IP address |  |  |
 
 
 #### VPCMode

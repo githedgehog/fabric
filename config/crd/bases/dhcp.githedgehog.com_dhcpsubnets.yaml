@@ -156,7 +156,7 @@ spec:
                   required:
                   - ip
                   type: object
-                description: Static is a map of static IP assignments to MAC addresses
+                description: Static is a map of static IP assignments for MAC addresses
                 type: object
               subnet:
                 description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
