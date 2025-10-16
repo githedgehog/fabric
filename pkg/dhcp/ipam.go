@@ -159,3 +159,26 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 
 	return res, nil
 }
+
+func cleanup(subnet *dhcpapi.DHCPSubnet) error {
+	now := time.Now()
+
+	statics := map[string]string{}
+	for mac, static := range subnet.Spec.Static {
+		statics[static.IP] = mac
+	}
+
+	for mac, allocated := range subnet.Status.Allocated {
+		if allocated.Expiry.Time.Before(now) {
+			slog.Debug("Removing entry for expired lease", "subnet", subnet.Name, "ip", allocated.IP, "mac", mac)
+			delete(subnet.Status.Allocated, mac)
+		}
+
+		if staticMAC, ok := statics[allocated.IP]; ok && staticMAC != mac {
+			slog.Debug("Removing entry with IP used in static lease", "subnet", subnet.Name, "ip", allocated.IP, "mac", mac)
+			delete(subnet.Status.Allocated, mac)
+		}
+	}
+
+	return nil
+}
