@@ -1721,6 +1721,20 @@ spec:
                                 description: Relay is the DHCP relay IP address, if
                                   specified, DHCP server will be disabled
                                 type: string
+                              static:
+                                additionalProperties:
+                                  description: VPCDHCPStatic represents static IP
+                                    assignment
+                                  properties:
+                                    ip:
+                                      description: IP is the assigned static IP address
+                                      type: string
+                                  required:
+                                  - ip
+                                  type: object
+                                description: Static is a map of static IP assignments
+                                  for MAC addresses
+                                type: object
                             type: object
                           gateway:
                             description: Gateway (optional) for the subnet, if not

@@ -68,7 +68,7 @@ type DHCPSubnetSpec struct {
 	DisableDefaultRoute bool `json:"disableDefaultRoute,omitempty"`
 	// AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP
 	AdvertisedRoutes []DHCPRoute `json:"advertisedRoutes,omitempty"`
-	// Static is a map of static IP assignments to MAC addresses
+	// Static is a map of static IP assignments for MAC addresses
 	Static map[string]DHCPSubnetStatic `json:"static,omitempty"`
 }
 
