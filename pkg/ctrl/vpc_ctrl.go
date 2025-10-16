@@ -183,6 +183,13 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				vrf = "default"
 			}
 
+			statics := map[string]dhcpapi.DHCPSubnetStatic{}
+			for mac, static := range subnet.DHCP.Static {
+				statics[mac] = dhcpapi.DHCPSubnetStatic{
+					IP: static.IP,
+				}
+			}
+
 			dhcp.Labels = map[string]string{
 				vpcapi.LabelVPC:    vpc.Name,
 				vpcapi.LabelSubnet: subnetName,
@@ -203,6 +210,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				L3Mode:              vpc.Spec.Mode == vpcapi.VPCModeL3Flat || vpc.Spec.Mode == vpcapi.VPCModeL3VNI,
 				DisableDefaultRoute: disableDefaultRoute,
 				AdvertisedRoutes:    advertisedRoutes,
+				Static:              statics,
 			}
 
 			return nil

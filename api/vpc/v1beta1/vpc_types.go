@@ -103,6 +103,14 @@ type VPCDHCP struct {
 	Range *VPCDHCPRange `json:"range,omitempty"`
 	// Options (optional) is the DHCP options for the subnet if DHCP server is enabled
 	Options *VPCDHCPOptions `json:"options,omitempty"`
+	// Static is a map of static IP assignments for MAC addresses
+	Static map[string]VPCDHCPStatic `json:"static,omitempty"`
+}
+
+// VPCDHCPStatic represents static IP assignment
+type VPCDHCPStatic struct {
+	// IP is the assigned static IP address
+	IP string `json:"ip"`
 }
 
 // VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled
@@ -326,6 +334,19 @@ func (vpc *VPC) Default() {
 			}
 			slices.SortStableFunc(subnet.DHCP.Options.AdvertisedRoutes, VPCDHCPRouteCompare)
 		}
+
+		// normalize MAC addresses
+		for mac, static := range subnet.DHCP.Static {
+			prMAC, err := net.ParseMAC(mac)
+			if err != nil {
+				continue
+			}
+
+			if prMAC.String() != mac {
+				delete(subnet.DHCP.Static, mac)
+				subnet.DHCP.Static[prMAC.String()] = static
+			}
+		}
 	}
 }
 
@@ -529,8 +550,38 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 					}
 				}
 			}
-		} else if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
-			return nil, errors.Errorf("dhcp range start or end is set but dhcp is disabled")
+
+			for mac, static := range subnetCfg.DHCP.Static {
+				if static.IP == "" {
+					return nil, errors.Errorf("subnet %s: empty static IP %s assigned to MAC %s", subnetName, static.IP, mac)
+				}
+				if mac == "" {
+					return nil, errors.Errorf("subnet %s: static IP %s assigned to empty MAC address", subnetName, static.IP)
+				}
+				if _, err := net.ParseMAC(mac); err != nil {
+					return nil, errors.Errorf("subnet %s: invalid MAC %s for static IP %s", subnetName, mac, static.IP)
+				}
+				ip := net.ParseIP(static.IP)
+				if ip == nil {
+					return nil, errors.Errorf("subnet %s: invalid static IP %s", subnetName, static.IP)
+				}
+				if !ipNet.Contains(ip) {
+					return nil, errors.Errorf("subnet %s: static IP %s is not in the subnet", subnetName, static.IP)
+				}
+				if static.IP == subnetCfg.Gateway {
+					return nil, errors.Errorf("subnet %s: static IP %s is the same as the gateway", subnetName, static.IP)
+				}
+			}
+		}
+
+		if !subnetCfg.DHCP.Enable {
+			if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
+				return nil, errors.Errorf("subnet %s: dhcp range start or end is set but dhcp is disabled", subnetName)
+			}
+
+			if len(subnetCfg.DHCP.Static) > 0 {
+				return nil, errors.Errorf("subnet %s: static IPs are not supported when DHCP is disabled", subnetName)
+			}
 		}
 	}
 
