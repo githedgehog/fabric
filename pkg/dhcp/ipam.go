@@ -38,6 +38,10 @@ func subnetKeyFrom(subnet *dhcpapi.DHCPSubnet) string {
 var ErrNoAvailableIP = fmt.Errorf("no available IP address")
 
 func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error) {
+	if subnet.Status.Allocated == nil {
+		subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
+	}
+
 	expiry := time.Now()
 	if req.MessageType() == dhcpv4.MessageTypeDiscover {
 		expiry = expiry.Add(time.Minute) // TODO const
