@@ -110,7 +110,7 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet 
 			// in L3 mode, we need to advertise the VPC subnet as a classless static route
 			_, prefix, err := net.ParseCIDR(subnet.Spec.CIDRBlock)
 			if err != nil {
-				return fmt.Errorf("parsing VPC subnet %s CIDR %s", subnet.Spec.Subnet, subnet.Spec.CIDRBlock) //nolint:err113
+				return fmt.Errorf("parsing VPC subnet %s CIDR %s: %w", subnet.Spec.Subnet, subnet.Spec.CIDRBlock, err)
 			}
 			routes = append(routes, &dhcpv4.Route{
 				Dest:   prefix,
