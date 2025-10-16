@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net"
 	"net/netip"
-	"runtime/debug"
 
 	"github.com/coredhcp/coredhcp/handler"
 	"github.com/coredhcp/coredhcp/plugins"
@@ -105,7 +104,6 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 	defer func() {
 		if err := recover(); err != nil {
 			slog.Warn("Panicked", append(reqSummary(req, vrf, circuitID), "err", err)...)
-			debug.PrintStack()
 		}
 	}()
 
