@@ -18,15 +18,14 @@ func (s *Server) startPeriodicCleanup(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
+			s.m.RLock()
 			for _, subnet := range s.subnets {
-				s.m.RLock()
 				subnet = subnet.DeepCopy()
-				s.m.RUnlock()
-
 				if err := s.updateSubnet(ctx, subnet, cleanup); err != nil {
 					slog.Warn("Failed to update cleaned up subnet", "subnet", subnet.Name, "err", err)
 				}
 			}
+			s.m.RUnlock()
 		}
 	}
 }
