@@ -112,7 +112,7 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 	switch req.MessageType() { //nolint:exhaustive
 	case dhcpv4.MessageTypeDiscover, dhcpv4.MessageTypeRequest:
 		var ip netip.Addr
-		if err := s.updateSubnet(ctx, subnet, func(status *dhcpapi.DHCPSubnetStatus) error {
+		if err := s.updateSubnet(ctx, subnet, func(subnet *dhcpapi.DHCPSubnet) error {
 			var err error
 			ip, err = allocate(subnet, req)
 			if err != nil {
@@ -136,8 +136,8 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 			return fmt.Errorf("updating response") //nolint:err113
 		}
 	case dhcpv4.MessageTypeRelease, dhcpv4.MessageTypeDecline:
-		if err := s.updateSubnet(ctx, subnet, func(status *dhcpapi.DHCPSubnetStatus) error {
-			delete(status.Allocated, req.ClientHWAddr.String())
+		if err := s.updateSubnet(ctx, subnet, func(subnet *dhcpapi.DHCPSubnet) error {
+			delete(subnet.Status.Allocated, req.ClientHWAddr.String())
 
 			return nil
 		}); err != nil {

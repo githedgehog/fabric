@@ -87,7 +87,7 @@ func (s *Server) watchKube(ctx context.Context) error {
 	}
 }
 
-func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, mutate func(status *dhcpapi.DHCPSubnetStatus) error) error {
+func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, mutate func(subnet *dhcpapi.DHCPSubnet) error) error {
 	uid := subnet.UID
 	subnetName := subnet.Name
 
@@ -106,7 +106,7 @@ func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, m
 		}
 		fetch = true
 
-		if err := mutate(&subnet.Status); err != nil {
+		if err := mutate(subnet); err != nil {
 			return fmt.Errorf("mutating subnet %s: %w", subnetName, err)
 		}
 
