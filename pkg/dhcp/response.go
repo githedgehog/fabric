@@ -156,7 +156,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet) {
 	}
 	u, err := url.Parse(subnet.Spec.PXEURL)
 	if err != nil {
-		slog.Error("Invalid Pxe URL", "url", subnet.Spec.PXEURL, "error", err)
+		slog.Error("Invalid Pxe URL", "url", subnet.Spec.PXEURL, "err", err)
 
 		return
 	}

@@ -44,7 +44,7 @@ func (s *Server) Run(ctx context.Context) error {
 			if retry {
 				select {
 				case <-ctx.Done():
-					os.Exit(2) // TODO graceful handling
+					os.Exit(1) // TODO graceful handling
 				case <-time.After(1 * time.Second):
 					// Retry watching after a delay
 				}
@@ -62,7 +62,14 @@ func (s *Server) Run(ctx context.Context) error {
 	wg.Go(func() {
 		if err := s.startCoreDHCP(ctx); err != nil {
 			slog.Error("Start CoreDHCP failed", "err", err)
-			os.Exit(1) // TODO graceful handling
+			os.Exit(2) // TODO graceful handling
+		}
+	})
+
+	wg.Go(func() {
+		if err := s.startPeriodicCleanup(ctx); err != nil {
+			slog.Error("Start periodic cleanup failed", "err", err)
+			os.Exit(3) // TODO graceful handling
 		}
 	})
 
