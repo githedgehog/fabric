@@ -96,6 +96,9 @@ type FabricConfig struct {
 	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
 	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
 	DisableBFD               bool          `json:"disableBFD,omitempty"`
+	SpineASN                 uint32        `json:"spineASN,omitempty"`
+	LeafASNStart             uint32        `json:"leafASNStart,omitempty"`
+	LeafASNEnd               uint32        `json:"leafASNEnd,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -294,6 +297,22 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 
 	if cfg.GatewayASN == 0 {
 		return nil, errors.Errorf("config: gatewayASN is required")
+	}
+
+	if cfg.SpineASN == 0 {
+		return nil, errors.Errorf("config: spineASN is required")
+	}
+	if cfg.LeafASNStart == 0 {
+		return nil, errors.Errorf("config: leafASNStart is required")
+	}
+	if cfg.LeafASNEnd == 0 {
+		return nil, errors.Errorf("config: leafASNEnd is required")
+	}
+	if cfg.LeafASNEnd < cfg.LeafASNStart {
+		return nil, errors.Errorf("config: leafASNEnd must be greater than or equal to leafASNStart")
+	}
+	if cfg.SpineASN >= cfg.LeafASNStart && cfg.SpineASN <= cfg.LeafASNEnd {
+		return nil, errors.Errorf("config: spineASN must not be in the leaf ASN range")
 	}
 
 	// TODO enable in future releases
