@@ -34,6 +34,13 @@ func TestHydrationValidation(t *testing.T) {
 			ProtocolIP: "172.30.8.2/32",
 		},
 	}
+	getLeaf := func(name string, asn uint32) *wiringapi.Switch {
+		leaf := leafSwitch.DeepCopy()
+		leaf.Name = name
+		leaf.Spec.ASN = asn
+
+		return leaf
+	}
 	spineSwitch := &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      "spine1",
@@ -47,6 +54,13 @@ func TestHydrationValidation(t *testing.T) {
 			VTEPIP:     "172.30.12.0/32",
 			ProtocolIP: "172.30.8.2/32",
 		},
+	}
+	getSpine := func(name string, asn uint32) *wiringapi.Switch {
+		spine := spineSwitch.DeepCopy()
+		spine.Name = name
+		spine.Spec.ASN = asn
+
+		return spine
 	}
 	mclagSwitch := &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{
@@ -70,6 +84,9 @@ func TestHydrationValidation(t *testing.T) {
 		ControlVIP:     "172.30.0.1/32",
 		ProtocolSubnet: "172.30.8.0/22",
 		VTEPSubnet:     "172.30.12.0/22",
+		SpineASN:       65100,
+		LeafASNStart:   65101,
+		LeafASNEnd:     65200,
 	}
 
 	for _, test := range []struct {
@@ -190,7 +207,13 @@ func TestHydrationValidation(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "spineSameASN",
+			name:        "leafASNOutOfRange",
+			objects:     []kclient.Object{},
+			dut:         getLeaf("leaf-out-of-range", 65000),
+			expectError: true,
+		},
+		{
+			name: "spineCorrectASN",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
 					ObjectMeta: kmetav1.ObjectMeta{
@@ -211,24 +234,9 @@ func TestHydrationValidation(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "spineDifferentASN",
-			objects: []kclient.Object{
-				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "spine2",
-						Namespace: "default",
-					},
-					Spec: wiringapi.SwitchSpec{
-						Role:       wiringapi.SwitchRoleSpine,
-						Redundancy: wiringapi.SwitchRedundancy{},
-						ASN:        65105,
-						IP:         "172.30.0.9/21",
-						VTEPIP:     "172.30.12.1/32",
-						ProtocolIP: "172.30.8.3/32",
-					},
-				},
-			},
-			dut:         spineSwitch,
+			name:        "spineWrongASN",
+			objects:     []kclient.Object{},
+			dut:         getSpine("spine-wrong-asn", 65101),
 			expectError: true,
 		},
 		{
