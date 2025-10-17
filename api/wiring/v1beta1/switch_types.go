@@ -231,8 +231,6 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	// TODO: collect gateways as well for VTEP and protocol IP uniqueness checks
 	// (cannot be done now as gateway webhook would create a circular dependency)
 
-	// FIXME: ASN ranges validation is not possible as they are defined in fabricator
-	asnSpine := uint32(0)
 	leafASNs := map[uint32]bool{}
 	VTEPs := map[string]bool{}
 	protocolIPs := map[string]bool{}
@@ -250,18 +248,22 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Fabric control VIP %s", fabricCfg.ControlVIP)
 	}
+	mgmtSubnet, err := netip.ParsePrefix(fabricCfg.ManagementSubnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric management subnet %s", fabricCfg.ManagementSubnet)
+	}
+	mgmtDHCPStart, err := netip.ParseAddr(fabricCfg.ManagementDHCPStart)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric management DHCP start %s", fabricCfg.ManagementDHCPStart)
+	}
 	mgmtIPs[controlVIP.Addr()] = true
 
 	for _, other := range switches.Items {
 		if other.Name == sw.Name && other.Namespace == sw.Namespace {
 			continue
 		}
-		if other.Spec.ASN != 0 {
-			if other.Spec.Role.IsSpine() {
-				asnSpine = other.Spec.ASN
-			} else if other.Spec.Role.IsLeaf() {
-				leafASNs[other.Spec.ASN] = true
-			}
+		if other.Spec.ASN != 0 && other.Spec.Role.IsLeaf() {
+			leafASNs[other.Spec.ASN] = true
 		}
 		if other.Spec.VTEPIP != "" {
 			VTEPs[other.Spec.VTEPIP] = true
@@ -286,7 +288,12 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s IP %s", sw.Name, sw.Spec.IP)
 		}
 
-		// FIXME: management subnet validation is not possible as it's defined in fabricator
+		if !mgmtSubnet.Contains(swIP.Addr()) {
+			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet) //nolint:goerr113
+		}
+		if swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
+			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart) //nolint:goerr113
+		}
 		if _, exist := mgmtIPs[swIP.Addr()]; exist {
 			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP) //nolint:goerr113
 		}
@@ -325,11 +332,15 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		} else if _, exist := leafASNs[sw.Spec.ASN]; exist {
 			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
 		}
+		// also check if it's within the fabric leaf ASN range
+		if sw.Spec.ASN < fabricCfg.LeafASNStart || sw.Spec.ASN > fabricCfg.LeafASNEnd {
+			return errors.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabricCfg.LeafASNStart, fabricCfg.LeafASNEnd) //nolint:goerr113
+		}
 	}
 
 	// spine ASN consistency check
-	if sw.Spec.Role.IsSpine() && asnSpine != 0 && sw.Spec.ASN != asnSpine {
-		return errors.Errorf("spine %s ASN %d is not %d", sw.Name, sw.Spec.ASN, asnSpine) //nolint:goerr113
+	if sw.Spec.Role.IsSpine() && sw.Spec.ASN != fabricCfg.SpineASN {
+		return errors.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, fabricCfg.SpineASN) //nolint:goerr113
 	}
 
 	// leaf vtep IP uniqueness / consistency for mclag peers
