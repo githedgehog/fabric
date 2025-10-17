@@ -99,6 +99,9 @@ type FabricConfig struct {
 	SpineASN                 uint32        `json:"spineASN,omitempty"`
 	LeafASNStart             uint32        `json:"leafASNStart,omitempty"`
 	LeafASNEnd               uint32        `json:"leafASNEnd,omitempty"`
+	ManagementSubnet         string        `json:"managementSubnet,omitempty"`
+	ManagementDHCPStart      string        `json:"managementDHCPStart,omitempty"`
+	ManagementDHCPEnd        string        `json:"managementDHCPEnd,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
@@ -313,6 +316,25 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 	}
 	if cfg.SpineASN >= cfg.LeafASNStart && cfg.SpineASN <= cfg.LeafASNEnd {
 		return nil, errors.Errorf("config: spineASN must not be in the leaf ASN range")
+	}
+	if cfg.ManagementSubnet == "" {
+		return nil, errors.Errorf("config: managementSubnet is required")
+	}
+	if cfg.ManagementDHCPStart == "" {
+		return nil, errors.Errorf("config: managementDHCPStart is required")
+	}
+	if cfg.ManagementDHCPEnd == "" {
+		return nil, errors.Errorf("config: managementDHCPEnd is required")
+	}
+	_, mgmtSubnet, err := net.ParseCIDR(cfg.ManagementSubnet)
+	if err != nil {
+		return nil, errors.Errorf("config: managementSubnet is invalid: %v", err)
+	}
+	if ipStart := net.ParseIP(cfg.ManagementDHCPStart); ipStart == nil || !mgmtSubnet.Contains(ipStart) {
+		return nil, errors.Errorf("config: managementDHCPStart is not a valid IP in managementSubnet")
+	}
+	if ipEnd := net.ParseIP(cfg.ManagementDHCPEnd); ipEnd == nil || !mgmtSubnet.Contains(ipEnd) {
+		return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
 	}
 
 	// TODO enable in future releases
