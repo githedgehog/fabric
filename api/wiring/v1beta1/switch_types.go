@@ -248,6 +248,14 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Fabric control VIP %s", fabricCfg.ControlVIP)
 	}
+	mgmtSubnet, err := netip.ParsePrefix(fabricCfg.ManagementSubnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric management subnet %s", fabricCfg.ManagementSubnet)
+	}
+	mgmtDHCPStart, err := netip.ParseAddr(fabricCfg.ManagementDHCPStart)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse Fabric management DHCP start %s", fabricCfg.ManagementDHCPStart)
+	}
 	mgmtIPs[controlVIP.Addr()] = true
 
 	for _, other := range switches.Items {
@@ -280,7 +288,12 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s IP %s", sw.Name, sw.Spec.IP)
 		}
 
-		// FIXME: management subnet validation is not possible as it's defined in fabricator
+		if !mgmtSubnet.Contains(swIP.Addr()) {
+			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet) //nolint:goerr113
+		}
+		if swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
+			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart) //nolint:goerr113
+		}
 		if _, exist := mgmtIPs[swIP.Addr()]; exist {
 			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP) //nolint:goerr113
 		}

@@ -34,10 +34,11 @@ func TestHydrationValidation(t *testing.T) {
 			ProtocolIP: "172.30.8.2/32",
 		},
 	}
-	getLeaf := func(name string, asn uint32) *wiringapi.Switch {
+	getLeaf := func(name string, asn uint32, ip string) *wiringapi.Switch {
 		leaf := leafSwitch.DeepCopy()
 		leaf.Name = name
 		leaf.Spec.ASN = asn
+		leaf.Spec.IP = ip
 
 		return leaf
 	}
@@ -81,12 +82,15 @@ func TestHydrationValidation(t *testing.T) {
 	}
 
 	fabricCfg := &meta.FabricConfig{
-		ControlVIP:     "172.30.0.1/32",
-		ProtocolSubnet: "172.30.8.0/22",
-		VTEPSubnet:     "172.30.12.0/22",
-		SpineASN:       65100,
-		LeafASNStart:   65101,
-		LeafASNEnd:     65200,
+		ControlVIP:          "172.30.0.1/32",
+		ProtocolSubnet:      "172.30.8.0/22",
+		VTEPSubnet:          "172.30.12.0/22",
+		SpineASN:            65100,
+		LeafASNStart:        65101,
+		LeafASNEnd:          65200,
+		ManagementSubnet:    "172.30.0.0/21",
+		ManagementDHCPStart: "172.30.4.0",
+		ManagementDHCPEnd:   "172.30.7.254",
 	}
 
 	for _, test := range []struct {
@@ -209,7 +213,19 @@ func TestHydrationValidation(t *testing.T) {
 		{
 			name:        "leafASNOutOfRange",
 			objects:     []kclient.Object{},
-			dut:         getLeaf("leaf-out-of-range", 65000),
+			dut:         getLeaf("leaf-out-of-range", 65000, "172.30.0.8/21"),
+			expectError: true,
+		},
+		{
+			name:        "mgmtIPOutOfRange",
+			objects:     []kclient.Object{},
+			dut:         getLeaf("leaf-mgmt-out-of-range", 65101, "172.29.240.33/21"),
+			expectError: true,
+		},
+		{
+			name:        "mgmtIPInDHCPRange",
+			objects:     []kclient.Object{},
+			dut:         getLeaf("leaf-mgmt-in-dhcp-range", 65101, "172.30.5.123/21"),
 			expectError: true,
 		},
 		{
