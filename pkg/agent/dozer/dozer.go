@@ -112,6 +112,15 @@ type SpecPortBreakout struct {
 	Mode string `json:"mode,omitempty"`
 }
 
+type SpecProxyARP struct {
+	All bool `json:"all,omitempty"`
+}
+
+type SpecStaticARP struct {
+	IP  string `json:"ip,omitempty"`
+	MAC string `json:"mac,omitempty"`
+}
+
 type SpecInterface struct {
 	Description        *string                      `json:"description,omitempty"`
 	Enabled            *bool                        `json:"enabled,omitempty"`
@@ -124,6 +133,8 @@ type SpecInterface struct {
 	VLANIPs            map[string]*SpecInterfaceIP  `json:"vlanIPs,omitempty"`
 	VLANAnycastGateway []string                     `json:"vlanAnycastGateway,omitempty"`
 	Subinterfaces      map[uint32]*SpecSubinterface `json:"subinterfaces,omitempty"`
+	ProxyARP           *SpecProxyARP                `json:"proxyARP,omitempty"`
+	StaticARPs         map[string]*SpecStaticARP    `json:"staticARPs,omitempty"`
 }
 
 type SpecInterfaceIP struct {
@@ -135,6 +146,8 @@ type SpecSubinterface struct {
 	VLAN            *uint16                     `json:"vlan,omitempty"`
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
 	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
+	ProxyARP        *SpecProxyARP               `json:"proxyARP,omitempty"`
+	StaticARPs      map[string]*SpecStaticARP   `json:"staticARPs,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
@@ -477,6 +490,8 @@ var (
 	_ SpecPart = (*SpecInterface)(nil)
 	_ SpecPart = (*SpecSubinterface)(nil)
 	_ SpecPart = (*SpecInterfaceIP)(nil)
+	_ SpecPart = (*SpecProxyARP)(nil)
+	_ SpecPart = (*SpecStaticARP)(nil)
 	_ SpecPart = (*SpecMCLAGDomain)(nil)
 	_ SpecPart = (*SpecMCLAGInterface)(nil)
 	_ SpecPart = (*SpecVRF)(nil)
@@ -550,6 +565,14 @@ func (s *SpecSubinterface) IsNil() bool {
 }
 
 func (s *SpecInterfaceIP) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecProxyARP) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecStaticARP) IsNil() bool {
 	return s == nil
 }
 

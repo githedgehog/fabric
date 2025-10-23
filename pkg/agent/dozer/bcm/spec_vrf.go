@@ -625,22 +625,34 @@ var specVRFStaticRouteEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFSta
 		nextHops := map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{}
 
 		for _, nextHop := range value.NextHops {
-			index := nextHop.IP
+			var index string
+			switch {
+			case nextHop.Interface != nil && nextHop.IP != "":
+				index = fmt.Sprintf("%s_%s", *nextHop.Interface, nextHop.IP)
+			case nextHop.Interface != nil:
+				index = *nextHop.Interface
+			case nextHop.IP != "":
+				index = nextHop.IP
+			default:
+				return nil, errors.New("next hop must have at least one of interface or IP defined")
+			}
 			var ifaceRef *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef
 			if nextHop.Interface != nil {
-				index = fmt.Sprintf("%s_%s", *nextHop.Interface, nextHop.IP)
 				ifaceRef = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef{
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_InterfaceRef_Config{
 						Interface: nextHop.Interface,
 					},
 				}
 			}
-
+			var nh oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_Config_NextHop_Union
+			if nextHop.IP != "" {
+				nh = oc.UnionString(nextHop.IP)
+			}
 			nextHops[index] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop{
 				Index: pointer.To(index),
 				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_StaticRoutes_Static_NextHops_NextHop_Config{
 					Index:   pointer.To(index),
-					NextHop: oc.UnionString(nextHop.IP),
+					NextHop: nh,
 				},
 				InterfaceRef: ifaceRef,
 			}
@@ -943,20 +955,20 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					nextHops := []dozer.SpecVRFStaticRouteNextHop{}
 					if staticRoute.NextHops != nil {
 						for _, nextHop := range staticRoute.NextHops.NextHop {
-							if nextHop.Config == nil || nextHop.Config.NextHop == nil {
-								continue
-							}
-
 							var iface *string
+							ip := ""
+
 							if nextHop.InterfaceRef != nil && nextHop.InterfaceRef.Config != nil {
 								iface = nextHop.InterfaceRef.Config.Interface
 							}
-
-							ip := ""
-							if union, ok := nextHop.Config.NextHop.(oc.UnionString); ok {
-								ip = string(union)
-							} else {
-								return nil, errors.Errorf("invalid next hop %v for %s", nextHop, prefix)
+							if nextHop.Config != nil && nextHop.Config.NextHop != nil {
+								if union, ok := nextHop.Config.NextHop.(oc.UnionString); ok {
+									ip = string(union)
+								}
+							}
+							if iface == nil && ip == "" {
+								// this should never happen, should we error out?
+								continue
 							}
 
 							nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{
