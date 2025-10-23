@@ -55,12 +55,10 @@ func l2ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1bet
 			External:   "external-02",
 			Connection: "leaf-01--external",
 			L2: &v1beta1.ExternalAttachmentL2{
-				IP:                "10.45.0.2",
-				MAC:               "ca:fe:ba:be:00:11",
-				VLAN:              200,
-				GatewayIPs:        []string{"10.45.0.3/31"},
-				FabricEdgeIP:      "192.30.129.0/31",
-				VirtualExternalIP: "192.30.129.1",
+				IP:           "10.45.0.2",
+				VLAN:         200,
+				GatewayIPs:   []string{"10.45.0.3/31"},
+				FabricEdgeIP: "192.30.129.0/31",
 			},
 		},
 	}

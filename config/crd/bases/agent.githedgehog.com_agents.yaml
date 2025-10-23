@@ -907,9 +907,8 @@ spec:
                       properties:
                         fabricEdgeIP:
                           description: FabricEdgeIP is an IP address (with prefix
-                            length) that will be configured on the fabric edge switch
-                            to fool it into thinking it's directly connected to the
-                            L2 external
+                            length) that will be configured on the fabric edge switch;
+                            it is needed for proxy-ARP
                           type: string
                         gatewayIPs:
                           description: GatewayIPs is the list of IP addresses (with
@@ -923,20 +922,15 @@ spec:
                             which will be used as nexthop for prefixes reachable via
                             this external attachment
                           type: string
-                        mac:
-                          description: MAC is the MAC address of the interface associated
-                            with the IP address above
-                          type: string
-                        virtualExternalIP:
-                          description: VirtualExternalIP is an IP address in the subnet
-                            of the FabricEdgeIP, which the edge switch will resolve
-                            statically to the MAC address specified above
-                          type: string
                         vlan:
                           description: VLAN (optional) is the VLAN ID used for the
                             subinterface on a switch port specified in the connection,
                             set to 0 if no VLAN is required
                           type: integer
+                      required:
+                      - fabricEdgeIP
+                      - gatewayIPs
+                      - ip
                       type: object
                     neighbor:
                       description: Neighbor is the BGP neighbor configuration for

@@ -844,11 +844,9 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `ip` _string_ | IP is the actual IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
-| `mac` _string_ | MAC is the MAC address of the interface associated with the IP address above |  |  |
 | `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required |  |  |
 | `gatewayIPs` _string array_ | GatewayIPs is the list of IP addresses (with prefix length) which can be used for NAT on the fabric side for this L2 external attachment |  |  |
-| `fabricEdgeIP` _string_ | FabricEdgeIP is an IP address (with prefix length) that will be configured on the fabric edge switch to fool it into thinking it's directly connected to the L2 external |  |  |
-| `virtualExternalIP` _string_ | VirtualExternalIP is an IP address in the subnet of the FabricEdgeIP, which the edge switch will resolve statically to the MAC address specified above |  |  |
+| `fabricEdgeIP` _string_ | FabricEdgeIP is an IP address (with prefix length) that will be configured on the fabric edge switch; it is needed for proxy-ARP |  |  |
 
 
 #### ExternalAttachmentNeighbor

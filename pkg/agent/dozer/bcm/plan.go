@@ -1145,22 +1145,11 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			prefixLen := uint8(fabricEdgeIP.Bits()) //nolint:gosec
 			switchIP := fabricEdgeIP.Addr().String()
 
-			virtExtIP, err := netip.ParseAddr(attach.L2.VirtualExternalIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse external attach virtual external IP %s", attach.L2.VirtualExternalIP)
-			}
-			virtExtIPStr := virtExtIP.String()
 			spec.Interfaces[port].Subinterfaces[uint32(attach.L2.VLAN)] = &dozer.SpecSubinterface{
 				VLAN: vlan,
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					switchIP: {
 						PrefixLen: pointer.To(prefixLen),
-					},
-				},
-				StaticARPs: map[string]*dozer.SpecStaticARP{
-					virtExtIPStr: {
-						IP:  virtExtIPStr,
-						MAC: attach.L2.MAC,
 					},
 				},
 				ProxyARP: &dozer.SpecProxyARP{
@@ -1171,7 +1160,6 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.L2.IP)] = &dozer.SpecVRFStaticRoute{
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
-						IP:        virtExtIPStr,
 						Interface: pointer.To(ifaceName),
 					},
 				},
