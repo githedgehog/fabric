@@ -138,6 +138,7 @@ const (
 	ActionWeightLSTGroupUpdate
 	ActionWeightLSTInterfaceUpdate
 
+	ActionWeightVRFVNIDelete
 	ActionWeightVXLANTunnelMapDelete
 	ActionWeightVXLANTunnelUpdate
 	ActionWeightVXLANEVPNNVODelete
@@ -161,8 +162,6 @@ const (
 
 	ActionWeightVRFBGPImportVRFDelete
 	ActionWeightVRFBGPImportVRFPolicyDelete
-
-	ActionWeightVRFVNIDelete
 
 	ActionWeightLSTInterfaceDelete
 	ActionWeightLSTGroupDelete
