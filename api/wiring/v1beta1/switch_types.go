@@ -248,13 +248,19 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Fabric control VIP %s", fabricCfg.ControlVIP)
 	}
-	mgmtSubnet, err := netip.ParsePrefix(fabricCfg.ManagementSubnet)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric management subnet %s", fabricCfg.ManagementSubnet)
+	var mgmtSubnet netip.Prefix
+	var mgmtDHCPStart netip.Addr
+	if fabricCfg.ManagementSubnet != "" {
+		mgmtSubnet, err = netip.ParsePrefix(fabricCfg.ManagementSubnet)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse Fabric management subnet %s", fabricCfg.ManagementSubnet)
+		}
 	}
-	mgmtDHCPStart, err := netip.ParseAddr(fabricCfg.ManagementDHCPStart)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric management DHCP start %s", fabricCfg.ManagementDHCPStart)
+	if fabricCfg.ManagementDHCPStart != "" {
+		mgmtDHCPStart, err = netip.ParseAddr(fabricCfg.ManagementDHCPStart)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse Fabric management DHCP start %s", fabricCfg.ManagementDHCPStart)
+		}
 	}
 	mgmtIPs[controlVIP.Addr()] = true
 
@@ -288,10 +294,10 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s IP %s", sw.Name, sw.Spec.IP)
 		}
 
-		if !mgmtSubnet.Contains(swIP.Addr()) {
+		if mgmtSubnet.IsValid() && !mgmtSubnet.Contains(swIP.Addr()) {
 			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet) //nolint:goerr113
 		}
-		if swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
+		if mgmtDHCPStart.IsValid() && swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
 			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart) //nolint:goerr113
 		}
 		if _, exist := mgmtIPs[swIP.Addr()]; exist {
@@ -333,13 +339,13 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
 		}
 		// also check if it's within the fabric leaf ASN range
-		if sw.Spec.ASN < fabricCfg.LeafASNStart || sw.Spec.ASN > fabricCfg.LeafASNEnd {
+		if fabricCfg.LeafASNStart != 0 && fabricCfg.LeafASNEnd != 0 && (sw.Spec.ASN < fabricCfg.LeafASNStart || sw.Spec.ASN > fabricCfg.LeafASNEnd) {
 			return errors.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabricCfg.LeafASNStart, fabricCfg.LeafASNEnd) //nolint:goerr113
 		}
 	}
 
 	// spine ASN consistency check
-	if sw.Spec.Role.IsSpine() && sw.Spec.ASN != fabricCfg.SpineASN {
+	if sw.Spec.Role.IsSpine() && fabricCfg.SpineASN != 0 && sw.Spec.ASN != fabricCfg.SpineASN {
 		return errors.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, fabricCfg.SpineASN) //nolint:goerr113
 	}
 
