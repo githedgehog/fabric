@@ -121,3 +121,143 @@ patch: && version
 run cmd *args:
   @echo "Running: {{cmd}} {{args}} (run gen manually if needed)"
   @go run {{go_base_flags}} ./cmd/{{cmd}} {{args}}
+
+# =============================================================================
+# Integration Tests
+# =============================================================================
+
+agent_gnmi_test_dir := "test/integration/agent-gnmi"
+agent_gnmi_images_dir := agent_gnmi_test_dir + "/images"
+
+# Build agent binary for integration tests
+build-agent:
+  @echo "Building agent binary for integration tests..."
+  {{go_linux_build}} -o ./bin/agent ./cmd/agent
+  @echo "Agent binary built: ./bin/agent"
+
+# Prepare SONiC VS image
+sonic-vs-prep:
+  @echo "Preparing SONiC VS images..."
+  @mkdir -p {{agent_gnmi_images_dir}}
+  @echo ""
+  @echo "TODO: Download SONiC VS image"
+  @echo "For now, you need to manually place the following files in {{agent_gnmi_images_dir}}:"
+  @echo "  - sonic-vs.qcow2    (SONiC VS disk image)"
+  @echo "  - efi_code.fd       (EFI code firmware)"
+  @echo "  - efi_vars.fd       (EFI vars firmware)"
+
+# Internal helper to run agent-gnmi integration tests with custom parameters
+_test-agent-gnmi extra_args="": build-agent
+  cd {{agent_gnmi_test_dir}} && \
+    go test -v -timeout 30m \
+      -target=vs \
+      -agent-binary=../../../bin/agent \
+      -cache-dir=./images \
+      {{extra_args}} \
+      ./...
+
+# Run agent-gnmi integration tests (Virtual Switch)
+test-agent-gnmi-vs: (_test-agent-gnmi "")
+
+# Run agent-gnmi integration tests with verbose output
+test-agent-gnmi-verbose: (_test-agent-gnmi "-test.v")
+
+# Run agent-gnmi integration tests and keep VM on failure for debugging
+test-agent-gnmi-debug: (_test-agent-gnmi "-keep-on-failure=true")
+
+# Build agent control utility
+build-agent-utils:
+  @echo "Building agent control utility..."
+  cd {{agent_gnmi_test_dir}} && \
+    go build -o bin/agent-ctl ./cmd/agent-ctl
+  @echo "Utility built: {{agent_gnmi_test_dir}}/bin/agent-ctl"
+
+# Start SONiC VS manually for development/debugging
+sonic-vs-up:
+  @echo "Starting SONiC VS..."
+  @if [ ! -f {{agent_gnmi_images_dir}}/sonic-vs.qcow2 ]; then \
+    echo "ERROR: SONiC VS image not found at {{agent_gnmi_images_dir}}/sonic-vs.qcow2"; \
+    echo "Run 'just sonic-vs-prep' for instructions"; \
+    exit 1; \
+  fi
+  @echo ""
+  @echo "VM will start with:"
+  @echo "  - SSH:  localhost:2222"
+  @echo "  - gNMI: localhost:8080"
+  @echo "  - Serial console: ./test/integration/agent-gnmi/images/serial.log"
+  @echo ""
+  @echo "To stop: just sonic-vs-down"
+  @echo "To connect: ssh -i {{agent_gnmi_test_dir}}/sshkey admin@localhost -p 2222"
+  @echo ""
+  @cd {{agent_gnmi_images_dir}} && \
+    qemu-system-x86_64 \
+      -name sonic-vs-debug \
+      -m 4096M \
+      -machine q35,accel=kvm,smm=on \
+      -cpu host \
+      -smp 4 \
+      -drive if=none,file=sonic-vs.qcow2,id=disk1 \
+      -device virtio-blk-pci,drive=disk1,bootindex=1 \
+      -drive if=pflash,file=efi_code.fd,format=raw,readonly=on \
+      -drive if=pflash,file=efi_vars.fd,format=raw \
+      -netdev user,id=mgmt,hostfwd=tcp::2222-:22,hostfwd=tcp::8080-:8080 \
+      -device e1000,netdev=mgmt \
+      -nographic \
+      -serial mon:stdio
+
+# Stop SONiC VS (graceful shutdown)
+sonic-vs-down:
+  @echo "Stopping SONiC VS..."
+  @if ! pgrep -f "qemu-system-x86_64.*sonic-vs" > /dev/null; then \
+    echo "SONiC VS is not running"; \
+    exit 0; \
+  fi
+  @ssh -i {{agent_gnmi_test_dir}}/sshkey \
+    -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    -o ConnectTimeout=5 \
+    -p 2222 admin@localhost 'sudo poweroff' 2>/dev/null || \
+    (echo "Could not connect via SSH, sending SIGTERM to QEMU..." && \
+     pkill -TERM -f "qemu-system-x86_64.*sonic-vs")
+  @echo "SONiC VS shutdown initiated"
+
+# Check if SONiC VS is running
+sonic-vs-status:
+  @echo "SONiC VS status:"
+  @if pgrep -f "qemu-system-x86_64.*sonic-vs" > /dev/null; then \
+    echo "  VM: Running (PID: $$(pgrep -f 'qemu-system-x86_64.*sonic-vs'))"; \
+    if nc -z localhost 2222 2>/dev/null; then \
+      echo "  SSH: Accessible on localhost:2222"; \
+    else \
+      echo "  SSH: Not accessible (VM may still be booting)"; \
+    fi; \
+    if nc -z localhost 8080 2>/dev/null; then \
+      echo "  gNMI: Accessible on localhost:8080"; \
+    else \
+      echo "  gNMI: Not accessible"; \
+    fi; \
+  else \
+    echo "  VM: Not running"; \
+  fi
+
+# Connect to SONiC VS via SSH
+sonic-vs-ssh:
+  @ssh -i {{agent_gnmi_test_dir}}/sshkey \
+    -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    admin@localhost -p 2222
+
+# Install agent on running SONiC VS
+sonic-vs-agent-install: build-agent build-agent-utils
+  @cd {{agent_gnmi_test_dir}} && \
+    ./bin/agent-ctl -v install
+
+# Uninstall agent from running SONiC VS
+sonic-vs-agent-uninstall: build-agent-utils
+  @cd {{agent_gnmi_test_dir}} && \
+    ./bin/agent-ctl -v uninstall
+
+# Check agent status on running SONiC VS
+sonic-vs-agent-status: build-agent-utils
+  @cd {{agent_gnmi_test_dir}} && \
+    ./bin/agent-ctl status
