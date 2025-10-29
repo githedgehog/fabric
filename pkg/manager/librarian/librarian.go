@@ -16,7 +16,9 @@ package librarian
 
 import (
 	"context"
+	"maps"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -31,17 +33,17 @@ import (
 )
 
 const (
-	Namespace                = kmetav1.NamespaceDefault
-	CatConns                 = "connections"
-	CatVPCs                  = "vpcs"
-	CatSwitchPrefix          = "switch."
-	CatRedGroupPrefix        = "redundancy."
-	VPCVNIOffset             = 100
-	VPCVNIMax                = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
-	PortChannelMin           = 1
-	PortChannelMax           = 249
-	LoWorkaroundReqPrefixVPC = "vpc@"
-	LoWorkaroundReqPrefixExt = "ext@"
+	Namespace         = kmetav1.NamespaceDefault
+	CatConns          = "connections"
+	CatVNIs           = "vpcs" // contains both VPC and External VNIs
+	CatSwitchPrefix   = "switch."
+	CatRedGroupPrefix = "redundancy."
+	VPCVNIOffset      = 100
+	VPCVNIMax         = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+	PortChannelMin    = 1
+	PortChannelMax    = 249
+	ReqPrefixVPC      = "vpc@"
+	ReqPrefixExt      = "ext@"
 )
 
 type Manager struct {
@@ -73,6 +75,9 @@ func (m *Manager) getCatalog(ctx context.Context, kube kclient.Client, key strin
 	}
 	if cat.Spec.VPCSubnetVNIs == nil {
 		cat.Spec.VPCSubnetVNIs = map[string]map[string]uint32{}
+	}
+	if cat.Spec.ExternalVNIs == nil {
+		cat.Spec.ExternalVNIs = map[string]uint32{}
 	}
 	if cat.Spec.IRBVLANs == nil {
 		cat.Spec.IRBVLANs = map[string]uint16{}
@@ -130,11 +135,11 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client) er
 	return m.saveCatalog(ctx, kube, CatConns, cat)
 }
 
-func (m *Manager) UpdateVPCs(ctx context.Context, kube kclient.Client) error {
+func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	cat, err := m.getCatalog(ctx, kube, CatVPCs)
+	cat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
 		return err
 	}
@@ -144,17 +149,46 @@ func (m *Manager) UpdateVPCs(ctx context.Context, kube kclient.Client) error {
 		return errors.Wrapf(err, "error listing VPCs")
 	}
 
-	vpcs := map[string]bool{}
+	externalList := &vpcapi.ExternalList{}
+	if err := kube.List(ctx, externalList); err != nil {
+		return errors.Wrapf(err, "error listing externals")
+	}
+
+	vniReqs := map[string]bool{}
+	vniKnown := map[string]uint32{}
 	for _, vpc := range vpcList.Items {
-		vpcs[vpc.Name] = true
+		if vni, exists := cat.Spec.VPCVNIs[vpc.Name]; exists {
+			vniKnown[VNIReqForVPC(vpc.Name)] = vni
+		}
+		vniReqs[VNIReqForVPC(vpc.Name)] = true
+	}
+	for _, ext := range externalList.Items {
+		if vni, exists := cat.Spec.ExternalVNIs[ext.Name]; exists {
+			vniKnown[VNIReqForExt(ext.Name)] = vni
+		}
+		vniReqs[VNIReqForExt(ext.Name)] = true
 	}
 
 	a := &Allocator[uint32]{
 		Values: NewNextFreeValueFromRanges([][2]uint32{{VPCVNIOffset, VPCVNIMax}}, VPCVNIOffset),
 	}
-	cat.Spec.VPCVNIs, err = a.Allocate(cat.Spec.VPCVNIs, vpcs)
+
+	newVnis, err := a.Allocate(vniKnown, vniReqs)
 	if err != nil {
-		return errors.Wrapf(err, "failed to allocate VPC VNIs")
+		return errors.Wrapf(err, "failed to allocate VNIs")
+	}
+	cat.Spec.VPCVNIs = map[string]uint32{}
+	cat.Spec.ExternalVNIs = map[string]uint32{}
+
+	for req, vni := range newVnis {
+		switch {
+		case strings.HasPrefix(req, ReqPrefixVPC):
+			vpcName := strings.TrimPrefix(req, ReqPrefixVPC)
+			cat.Spec.VPCVNIs[vpcName] = vni
+		case strings.HasPrefix(req, ReqPrefixExt):
+			extName := strings.TrimPrefix(req, ReqPrefixExt)
+			cat.Spec.ExternalVNIs[extName] = vni
+		}
 	}
 
 	for _, vpc := range vpcList.Items {
@@ -173,7 +207,7 @@ func (m *Manager) UpdateVPCs(ctx context.Context, kube kclient.Client) error {
 		}
 	}
 
-	return m.saveCatalog(ctx, kube, CatVPCs, cat)
+	return m.saveCatalog(ctx, kube, CatVNIs, cat)
 }
 
 func (m *Manager) getRedundancyGroupKey(swName string, redundancy wiringapi.SwitchRedundancy) string {
@@ -188,7 +222,7 @@ func (m *Manager) getSwitchKey(swName string) string {
 	return CatSwitchPrefix + swName
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool) error {
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -203,10 +237,16 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		a := &Allocator[uint16]{
 			Values: NewNextFreeValueFromVLANRanges(m.cfg.VPCIRBVLANRanges),
 		}
+		extVlans, err := a.Allocate(cat.Spec.IRBVLANs, externals)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate IRB VLANs for externals %s", key)
+		}
+
 		cat.Spec.IRBVLANs, err = a.Allocate(cat.Spec.IRBVLANs, vpcs)
 		if err != nil {
 			return errors.Wrapf(err, "failed to allocate IRB VLANs for %s", key)
 		}
+		maps.Copy(cat.Spec.IRBVLANs, extVlans)
 	}
 
 	{
@@ -228,9 +268,9 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		return errors.Errorf("failed to get connections catalog %s", CatConns)
 	}
 
-	vpcsCat, err := m.getCatalog(ctx, kube, CatVPCs)
+	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
-		return errors.Errorf("failed to get VPCs catalog %s", CatVPCs)
+		return errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
 	}
 
 	ret.ConnectionIDs = map[string]uint32{}
@@ -245,9 +285,9 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	ret.VPCVNIs = map[string]uint32{}
 	ret.VPCSubnetVNIs = map[string]map[string]uint32{}
 	for name := range vpcs {
-		if vni, exists := vpcsCat.Spec.VPCVNIs[name]; exists {
+		if vni, exists := vnisCat.Spec.VPCVNIs[name]; exists {
 			ret.VPCVNIs[name] = vni
-			ret.VPCSubnetVNIs[name] = vpcsCat.Spec.VPCSubnetVNIs[name] // TODO pass configured subnets and check if they exist or even pass only configured ones
+			ret.VPCSubnetVNIs[name] = vnisCat.Spec.VPCSubnetVNIs[name] // TODO pass configured subnets and check if they exist or even pass only configured ones
 		} else {
 			return errors.Errorf("failed to find VPC VNI for vpc %s", name)
 		}
@@ -259,6 +299,13 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			ret.IRBVLANs[name] = vlan
 		} else {
 			return errors.Errorf("failed to find IRB VLAN for vpc %s", name)
+		}
+	}
+	for name := range externals {
+		if vlan, exists := cat.Spec.IRBVLANs[name]; exists {
+			ret.IRBVLANs[name] = vlan
+		} else {
+			return errors.Errorf("failed to find IRB VLAN for external %s", name)
 		}
 	}
 
@@ -325,6 +372,19 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 	}
 
+	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
+	if err != nil {
+		return errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
+	}
+	ret.ExternalVNIs = map[string]uint32{}
+	for ext := range externals {
+		if vni, exists := vnisCat.Spec.ExternalVNIs[ext]; exists {
+			ret.ExternalVNIs[ext] = vni
+		} else {
+			return errors.Errorf("failed to find external VNI for %s", ext)
+		}
+	}
+
 	if err := m.saveCatalog(ctx, kube, key, cat); err != nil {
 		return errors.Errorf("failed to save switch catalog %s", key)
 	}
@@ -355,22 +415,43 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 }
 
 func LoWReqForVPC(vpcPeeringName string) string {
-	return LoWorkaroundReqPrefixVPC + vpcPeeringName
+	return ReqPrefixVPC + vpcPeeringName
 }
 
 func LoWReqForExt(extPeeringName string) string {
-	return LoWorkaroundReqPrefixExt + extPeeringName
+	return ReqPrefixExt + extPeeringName
+}
+
+func VNIReqForVPC(vpcName string) string {
+	return ReqPrefixVPC + vpcName
+}
+
+func VNIReqForExt(extName string) string {
+	return ReqPrefixExt + extName
 }
 
 func (m *Manager) GetVPCVNI(ctx context.Context, kube kclient.Client, vpc string) (uint32, error) {
-	vpcsCat, err := m.getCatalog(ctx, kube, CatVPCs)
+	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
-		return 0, errors.Errorf("failed to get VPCs catalog %s", CatVPCs)
+		return 0, errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
 	}
 
-	if vni, exists := vpcsCat.Spec.VPCVNIs[vpc]; exists {
+	if vni, exists := vnisCat.Spec.VPCVNIs[vpc]; exists {
 		return vni, nil
 	}
 
 	return 0, errors.Errorf("failed to find VPC VNI for vpc %s", vpc)
+}
+
+func (m *Manager) GetExternalVNI(ctx context.Context, kube kclient.Client, external string) (uint32, error) {
+	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
+	if err != nil {
+		return 0, errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
+	}
+
+	if vni, exists := vnisCat.Spec.ExternalVNIs[external]; exists {
+		return vni, nil
+	}
+
+	return 0, errors.Errorf("failed to find VNI for external %s", external)
 }

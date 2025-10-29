@@ -30,6 +30,8 @@ type CatalogSpec struct {
 	VPCVNIs map[string]uint32 `json:"vpcVNIs,omitempty"`
 	// VPCSubnetVNIs stores VPC name -> subnet name -> VPC Subnet VNI, globally unique for the fabric
 	VPCSubnetVNIs map[string]map[string]uint32 `json:"vpcSubnetVNIs,omitempty"`
+	// ExternalVNIs stores external name -> external VNI, globally unique for the fabric
+	ExternalVNIs map[string]uint32 `json:"externalVNIs,omitempty"`
 
 	// Per redundancy group (or switch if no redundancy group)
 
