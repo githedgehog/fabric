@@ -18,6 +18,7 @@ import (
 	"context"
 	"maps"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -32,17 +33,17 @@ import (
 )
 
 const (
-	Namespace                = kmetav1.NamespaceDefault
-	CatConns                 = "connections"
-	CatVNIs                  = "vpcs" // contains both VPC and External VNIs
-	CatSwitchPrefix          = "switch."
-	CatRedGroupPrefix        = "redundancy."
-	VPCVNIOffset             = 100
-	VPCVNIMax                = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
-	PortChannelMin           = 1
-	PortChannelMax           = 249
-	LoWorkaroundReqPrefixVPC = "vpc@"
-	LoWorkaroundReqPrefixExt = "ext@"
+	Namespace         = kmetav1.NamespaceDefault
+	CatConns          = "connections"
+	CatVNIs           = "vpcs" // contains both VPC and External VNIs
+	CatSwitchPrefix   = "switch."
+	CatRedGroupPrefix = "redundancy."
+	VPCVNIOffset      = 100
+	VPCVNIMax         = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+	PortChannelMin    = 1
+	PortChannelMax    = 249
+	ReqPrefixVPC      = "vpc@"
+	ReqPrefixExt      = "ext@"
 )
 
 type Manager struct {
@@ -153,28 +154,41 @@ func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
 		return errors.Wrapf(err, "error listing externals")
 	}
 
-	vpcs := map[string]bool{}
+	vniReqs := map[string]bool{}
+	vniKnown := map[string]uint32{}
 	for _, vpc := range vpcList.Items {
-		vpcs[vpc.Name] = true
+		if vni, exists := cat.Spec.VPCVNIs[vpc.Name]; exists {
+			vniKnown[VNIReqForVPC(vpc.Name)] = vni
+		}
+		vniReqs[VNIReqForVPC(vpc.Name)] = true
 	}
-
-	exts := map[string]bool{}
 	for _, ext := range externalList.Items {
-		exts[ext.Name] = true
+		if vni, exists := cat.Spec.ExternalVNIs[ext.Name]; exists {
+			vniKnown[VNIReqForExt(ext.Name)] = vni
+		}
+		vniReqs[VNIReqForExt(ext.Name)] = true
 	}
 
 	a := &Allocator[uint32]{
 		Values: NewNextFreeValueFromRanges([][2]uint32{{VPCVNIOffset, VPCVNIMax}}, VPCVNIOffset),
 	}
 
-	cat.Spec.ExternalVNIs, err = a.Allocate(cat.Spec.ExternalVNIs, exts)
+	newVnis, err := a.Allocate(vniKnown, vniReqs)
 	if err != nil {
-		return errors.Wrapf(err, "failed to allocate external VNIs")
+		return errors.Wrapf(err, "failed to allocate VNIs")
 	}
+	cat.Spec.VPCVNIs = map[string]uint32{}
+	cat.Spec.ExternalVNIs = map[string]uint32{}
 
-	cat.Spec.VPCVNIs, err = a.Allocate(cat.Spec.VPCVNIs, vpcs)
-	if err != nil {
-		return errors.Wrapf(err, "failed to allocate VPC VNIs")
+	for req, vni := range newVnis {
+		switch {
+		case strings.HasPrefix(req, ReqPrefixVPC):
+			vpcName := strings.TrimPrefix(req, ReqPrefixVPC)
+			cat.Spec.VPCVNIs[vpcName] = vni
+		case strings.HasPrefix(req, ReqPrefixExt):
+			extName := strings.TrimPrefix(req, ReqPrefixExt)
+			cat.Spec.ExternalVNIs[extName] = vni
+		}
 	}
 
 	for _, vpc := range vpcList.Items {
@@ -401,11 +415,19 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 }
 
 func LoWReqForVPC(vpcPeeringName string) string {
-	return LoWorkaroundReqPrefixVPC + vpcPeeringName
+	return ReqPrefixVPC + vpcPeeringName
 }
 
 func LoWReqForExt(extPeeringName string) string {
-	return LoWorkaroundReqPrefixExt + extPeeringName
+	return ReqPrefixExt + extPeeringName
+}
+
+func VNIReqForVPC(vpcName string) string {
+	return ReqPrefixVPC + vpcName
+}
+
+func VNIReqForExt(extName string) string {
+	return ReqPrefixExt + extName
 }
 
 func (m *Manager) GetVPCVNI(ctx context.Context, kube kclient.Client, vpc string) (uint32, error) {
