@@ -318,8 +318,8 @@ func loopbackWorkaroundInfo(ctx context.Context, kube kclient.Reader, agent *age
 			out[link] = loWo
 		}
 
-		if strings.HasPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC) { //nolint:gocritic
-			vpcPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixVPC)
+		if strings.HasPrefix(workaround, librarian.ReqPrefixVPC) { //nolint:gocritic
+			vpcPeeringName := strings.TrimPrefix(workaround, librarian.ReqPrefixVPC)
 
 			vpcPeering := &vpcapi.VPCPeering{}
 			if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcPeeringName, Namespace: kmetav1.NamespaceDefault}, vpcPeering); err != nil {
@@ -327,8 +327,8 @@ func loopbackWorkaroundInfo(ctx context.Context, kube kclient.Reader, agent *age
 			}
 
 			loWo.VPCPeerings[vpcPeeringName] = &vpcPeering.Spec
-		} else if strings.HasPrefix(workaround, librarian.LoWorkaroundReqPrefixExt) {
-			extPeeringName := strings.TrimPrefix(workaround, librarian.LoWorkaroundReqPrefixExt)
+		} else if strings.HasPrefix(workaround, librarian.ReqPrefixExt) {
+			extPeeringName := strings.TrimPrefix(workaround, librarian.ReqPrefixExt)
 
 			extPeering := &vpcapi.ExternalPeering{}
 			if err := kube.Get(ctx, kclient.ObjectKey{Name: extPeeringName, Namespace: kmetav1.NamespaceDefault}, extPeering); err != nil {
