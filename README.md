@@ -4,6 +4,107 @@ README isn't up-to-date.
 
 // TODO(user): Add simple overview of use/purpose
 
+## Building the Project
+
+This project uses [just](https://github.com/casey/just) as a command
+runner (similar to `make`). Follow these steps to build the project from
+source.
+
+### Prerequisites
+
+- **Go** 1.21 or later
+- **just** command runner - Install with:
+  ```sh
+  # On macOS
+  brew install just
+
+  # On Linux
+  cargo install just
+  # Or download from https://github.com/casey/just/releases
+  ```
+### Build Steps
+
+1. **Install build tools**
+
+   The project requires several Go-based build tools. Install them all with:
+   ```sh
+   just tools
+   ```
+
+   This installs the following tools into the `bin/` directory:
+   - `kustomize` - Kubernetes manifest customization tool
+   - `controller-gen` - Kubernetes code and manifest generator
+   - `golangci-lint` - Go linter
+   - `helm` - Kubernetes package manager
+   - `crd-ref-docs` - CRD documentation generator
+   - And other supporting tools
+
+   **Note:** If the tools are installed in `hack/bin/` instead of `bin/`, move them:
+   ```sh
+   mv hack/bin/* bin/ && rmdir hack/bin
+   ```
+
+2. **Build all binaries**
+
+   Run the main build command:
+   ```sh
+   just build
+   ```
+
+   This will:
+   - Format and vet the Go code
+   - Generate Kubernetes CRDs and RBAC manifests
+   - Generate API documentation
+   - Build all binaries for Linux/amd64:
+     - `bin/fabric` - Main controller
+     - `bin/agent` - Agent binary
+     - `bin/hhfctl` - User-facing CLI tool
+     - `bin/fabric-boot` - Boot service
+     - `bin/fabric-dhcpd` - DHCP daemon
+
+3. **View available commands**
+
+   See all available build targets:
+   ```sh
+   just --list
+   ```
+
+### Other Useful Commands
+
+- **Run tests**: `just test`
+- **Run linters**: `just lint`
+- **Build for multiple platforms**: `just build-multi` (builds hhfctl for Linux and macOS, both amd64 and arm64)
+- **Generate code/manifests**: `just gen`
+
+### Building Kubernetes Artifacts
+
+To build Docker images and Helm charts:
+
+```sh
+just kube-build
+```
+
+**Known Issue**: Due to a working directory issue in the justfile, `just kube-build` may fail with `cp: cannot stat 'bin/fabric'`. If this happens, manually copy the binaries and build the Docker images:
+
+```sh
+# Copy binaries to docker build directories
+cp bin/fabric config/docker/fabric/
+cp bin/fabric-dhcpd config/docker/fabric-dhcpd/
+cp bin/fabric-boot config/docker/fabric-boot/
+
+# Build Docker images manually
+cd config/docker/fabric && docker build --platform=linux/amd64 -t 127.0.0.1:30000/githedgehog/fabric/fabric:$(git describe --tags --always) -f Dockerfile .
+cd ../fabric-dhcpd && docker build --platform=linux/amd64 -t 127.0.0.1:30000/githedgehog/fabric/fabric-dhcpd:$(git describe --tags --always) -f Dockerfile .
+cd ../fabric-boot && docker build --platform=linux/amd64 -t 127.0.0.1:30000/githedgehog/fabric/fabric-boot:$(git describe --tags --always) -f Dockerfile .
+```
+
+Built images:
+- `127.0.0.1:30000/githedgehog/fabric/fabric:<version>`
+- `127.0.0.1:30000/githedgehog/fabric/fabric-dhcpd:<version>`
+- `127.0.0.1:30000/githedgehog/fabric/fabric-boot:<version>`
+
+Where `<version>` is determined by `git describe --tags --always`.
+
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
 
