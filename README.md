@@ -54,9 +54,23 @@ source.
 
 - **Run tests**: `just test`
 - **Run linters**: `just lint`
-- **Build for multiple platforms**: `just build-multi`
-- **Build Kubernetes artifacts**: `just kube-build`
+- **Build for multiple platforms**: `just build-multi` (builds hhfctl for Linux and macOS, both amd64 and arm64)
 - **Generate code/manifests**: `just gen`
+
+### Building Kubernetes Artifacts
+
+To build Docker images and Helm charts:
+
+```sh
+just kube-build
+```
+
+Built images:
+- `127.0.0.1:30000/githedgehog/fabric/fabric:<version>`
+- `127.0.0.1:30000/githedgehog/fabric/fabric-dhcpd:<version>`
+- `127.0.0.1:30000/githedgehog/fabric/fabric-boot:<version>`
+
+Where `<version>` is determined by `git describe --tags --always`.
 
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
