@@ -424,8 +424,6 @@ github.com/envoyproxy/go-control-plane/envoy/type/v3
 # github.com/envoyproxy/protoc-gen-validate v1.2.1
 ## explicit; go 1.21.1
 github.com/envoyproxy/protoc-gen-validate/validate
-# github.com/evanphx/json-patch v4.12.0+incompatible
-## explicit
 # github.com/evanphx/json-patch/v5 v5.9.11
 ## explicit; go 1.18
 github.com/evanphx/json-patch/v5
@@ -1112,7 +1110,7 @@ go.etcd.io/bbolt
 # go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
-# go.githedgehog.com/gateway v0.21.0
+# go.githedgehog.com/gateway v0.22.0
 ## explicit; go 1.25
 go.githedgehog.com/gateway/api/gateway/v1alpha1
 # go.githedgehog.com/libmeta v0.2.4
