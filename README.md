@@ -4,6 +4,60 @@ README isn't up-to-date.
 
 // TODO(user): Add simple overview of use/purpose
 
+## Building the Project
+
+This project uses [just](https://github.com/casey/just) as a command
+runner (similar to `make`). Follow these steps to build the project from
+source.
+
+### Prerequisites
+
+- **Go** 1.21 or later
+- **just** 1.36.0 or higher command runner - Install with:
+  ```sh
+  # On macOS or Linux (recommended for specific version)
+  cargo install just --version 1.36.0
+
+  # On macOS (using Homebrew - may install a different version)
+  brew install just
+
+  # Or download from https://github.com/casey/just/releases
+  ```
+### Build Steps
+
+1. **Build all binaries**
+
+   Run the main build command:
+   ```sh
+   just build
+   ```
+
+   This will:
+   - Format and vet the Go code
+   - Generate Kubernetes CRDs and RBAC manifests
+   - Generate API documentation
+   - Build all binaries for Linux/amd64:
+     - `bin/fabric` - Main controller
+     - `bin/agent` - Agent binary
+     - `bin/hhfctl` - User-facing CLI tool
+     - `bin/fabric-boot` - Boot service
+     - `bin/fabric-dhcpd` - DHCP daemon
+
+2. **View available commands**
+
+   See all available build targets:
+   ```sh
+   just --list
+   ```
+
+### Other Useful Commands
+
+- **Run tests**: `just test`
+- **Run linters**: `just lint`
+- **Build for multiple platforms**: `just build-multi`
+- **Build Kubernetes artifacts**: `just kube-build`
+- **Generate code/manifests**: `just gen`
+
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
 

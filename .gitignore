@@ -11,6 +11,7 @@ kubeconfig
 *.so
 *.dylib
 bin/*
+hack/bin/
 Dockerfile.cross
 
 # Test binary, build with `go test -c`
