@@ -125,7 +125,7 @@ func (gw *Gateway) Default() {
 		}
 	}
 	if gw.Spec.Workers == 0 {
-		gw.Spec.Workers = 1
+		gw.Spec.Workers = 4
 	}
 }
 
