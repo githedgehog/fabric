@@ -302,30 +302,39 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		return nil, errors.Errorf("config: gatewayASN is required")
 	}
 
-	// TODO: make these fields required after we update fabricator to populate them
+	if cfg.SpineASN == 0 {
+		return nil, errors.Errorf("config: spineASN is required")
+	}
+	if cfg.LeafASNStart == 0 {
+		return nil, errors.Errorf("config: leafASNStart is required")
+	}
+	if cfg.LeafASNEnd == 0 {
+		return nil, errors.Errorf("config: leafASNEnd is required")
+	}
 	if cfg.LeafASNEnd < cfg.LeafASNStart {
 		return nil, errors.Errorf("config: leafASNEnd must be greater than or equal to leafASNStart")
 	}
-	if cfg.SpineASN != 0 && cfg.SpineASN >= cfg.LeafASNStart && cfg.SpineASN <= cfg.LeafASNEnd {
+	if cfg.SpineASN >= cfg.LeafASNStart && cfg.SpineASN <= cfg.LeafASNEnd {
 		return nil, errors.Errorf("config: spineASN must not be in the leaf ASN range")
 	}
-	if cfg.ManagementSubnet != "" {
-		_, mgmtSubnet, err := net.ParseCIDR(cfg.ManagementSubnet)
-		if err != nil {
-			return nil, errors.Errorf("config: managementSubnet is invalid: %v", err)
-		}
-		if cfg.ManagementDHCPStart == "" {
-			return nil, errors.Errorf("config: managementDHCPStart is required")
-		}
-		if cfg.ManagementDHCPEnd == "" {
-			return nil, errors.Errorf("config: managementDHCPEnd is required")
-		}
-		if ipStart := net.ParseIP(cfg.ManagementDHCPStart); ipStart == nil || !mgmtSubnet.Contains(ipStart) {
-			return nil, errors.Errorf("config: managementDHCPStart is not a valid IP in managementSubnet")
-		}
-		if ipEnd := net.ParseIP(cfg.ManagementDHCPEnd); ipEnd == nil || !mgmtSubnet.Contains(ipEnd) {
-			return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
-		}
+	if cfg.ManagementSubnet == "" {
+		return nil, errors.Errorf("config: managementSubnet is required")
+	}
+	if cfg.ManagementDHCPStart == "" {
+		return nil, errors.Errorf("config: managementDHCPStart is required")
+	}
+	if cfg.ManagementDHCPEnd == "" {
+		return nil, errors.Errorf("config: managementDHCPEnd is required")
+	}
+	_, mgmtSubnet, err := net.ParseCIDR(cfg.ManagementSubnet)
+	if err != nil {
+		return nil, errors.Errorf("config: managementSubnet is invalid: %v", err)
+	}
+	if ipStart := net.ParseIP(cfg.ManagementDHCPStart); ipStart == nil || !mgmtSubnet.Contains(ipStart) {
+		return nil, errors.Errorf("config: managementDHCPStart is not a valid IP in managementSubnet")
+	}
+	if ipEnd := net.ParseIP(cfg.ManagementDHCPEnd); ipEnd == nil || !mgmtSubnet.Contains(ipEnd) {
+		return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
 	}
 
 	// TODO enable in future releases
