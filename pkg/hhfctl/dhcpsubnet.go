@@ -71,3 +71,57 @@ func DHCPSubnetCleanup(ctx context.Context, options DHCPSubnetCleanupOptions) er
 
 	return nil
 }
+
+type DHCPSubnetStaticLeaseOpts struct {
+	VPC    string
+	Subnet string
+	MAC    string
+	IP     string
+}
+
+func DHCPSubnetStaticLease(ctx context.Context, opts DHCPSubnetStaticLeaseOpts) error {
+	if opts.MAC == "" {
+		return errors.New("MAC address is required")
+	}
+
+	op := "create"
+	if opts.IP == "" {
+		op = "delete"
+	}
+	slog.Info("Static lease", "op", op, "vpc", opts.VPC, "subnet", opts.Subnet, "mac", opts.MAC, "ip", opts.IP)
+
+	kube, err := kubeutil.NewClient(ctx, "",
+		vpcapi.SchemeBuilder, dhcpapi.SchemeBuilder)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	vpc := &vpcapi.VPC{}
+	if err := kube.Get(ctx, kclient.ObjectKey{Namespace: "default", Name: opts.VPC}, vpc); err != nil {
+		return errors.Wrap(err, "cannot get VPC")
+	}
+
+	subnet, ok := vpc.Spec.Subnets[opts.Subnet]
+	if !ok {
+		return errors.New("subnet not found")
+	}
+
+	if subnet.DHCP.Static == nil {
+		subnet.DHCP.Static = map[string]vpcapi.VPCDHCPStatic{}
+	}
+
+	if opts.IP == "" {
+		delete(subnet.DHCP.Static, opts.MAC)
+	} else {
+		subnet.DHCP.Static[opts.MAC] = vpcapi.VPCDHCPStatic{
+			IP: opts.IP,
+		}
+	}
+	vpc.Spec.Subnets[opts.Subnet] = subnet
+
+	if err := kube.Update(ctx, vpc); err != nil {
+		return errors.Wrap(err, "cannot update VPC")
+	}
+
+	return nil
+}

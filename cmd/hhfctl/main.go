@@ -334,9 +334,8 @@ func main() {
 						},
 					},
 					{
-						Name:    "cleanup-leases",
-						Aliases: []string{"leases"},
-						Usage:   "Cleanup dhcp leases for specified vpc subnet with expiry older than the specified age",
+						Name:  "cleanup-leases",
+						Usage: "Cleanup dhcp leases for specified vpc subnet with expiry older than the specified age",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:  "vpc",
@@ -375,6 +374,48 @@ func main() {
 								Subnet:    cCtx.String("subnet"),
 								OlderThan: cCtx.String("older-than"),
 								DryRun:    dryRun,
+							}), "failed to cleanup dhcp leases"))
+						},
+					},
+					{
+						Name:  "static-lease",
+						Usage: "Add a static lease to the specified vpc subnet, MAC and IP",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "vpc",
+								Usage: "VPC name",
+							},
+							&cli.StringFlag{
+								Name:  "subnet",
+								Usage: "Subnet name",
+							},
+							&cli.StringFlag{
+								Name:  "mac",
+								Usage: "MAC address",
+							},
+							&cli.StringFlag{
+								Name:  "ip",
+								Usage: "IP address, use empty string to remove static lease",
+							},
+							yesFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							dryRun := cCtx.Bool("dry-run")
+
+							if !dryRun {
+								if err := yesCheck(cCtx); err != nil {
+									return wrapErrWithPressToContinue(err)
+								}
+							}
+
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.DHCPSubnetStaticLease(ctx, hhfctl.DHCPSubnetStaticLeaseOpts{
+								VPC:    cCtx.String("vpc"),
+								Subnet: cCtx.String("subnet"),
+								MAC:    cCtx.String("mac"),
+								IP:     cCtx.String("ip"),
 							}), "failed to cleanup dhcp leases"))
 						},
 					},
