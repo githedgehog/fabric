@@ -551,6 +551,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				}
 			}
 
+			staticIPs := map[string]string{}
 			for mac, static := range subnetCfg.DHCP.Static {
 				if static.IP == "" {
 					return nil, errors.Errorf("subnet %s: empty static IP assigned to MAC %s", subnetName, mac)
@@ -571,6 +572,11 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				if static.IP == subnetCfg.Gateway {
 					return nil, errors.Errorf("subnet %s: static IP %s is the same as the gateway", subnetName, static.IP)
 				}
+
+				if _, ok := staticIPs[static.IP]; ok {
+					return nil, errors.Errorf("subnet %s: static IP %s is already assigned to another MAC address", subnetName, static.IP)
+				}
+				staticIPs[static.IP] = mac
 			}
 		}
 
