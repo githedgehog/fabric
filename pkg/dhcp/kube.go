@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -92,8 +94,12 @@ func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, m
 	subnetName := subnet.Name
 
 	fetch := false
-	// TODO maybe more attempts?
-	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+	if err := retry.RetryOnConflict(wait.Backoff{
+		Steps:    10,
+		Duration: 10 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}, func() error {
 		if fetch {
 			slog.Debug("Fetching latest to update status", "subnet", subnetName)
 			if err := s.kube.Get(ctx, kclient.ObjectKeyFromObject(subnet), subnet); err != nil {
