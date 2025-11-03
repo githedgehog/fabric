@@ -70,6 +70,8 @@ type DHCPSubnetSpec struct {
 	AdvertisedRoutes []DHCPRoute `json:"advertisedRoutes,omitempty"`
 	// Static is a map of static IP assignments for MAC addresses
 	Static map[string]DHCPSubnetStatic `json:"static,omitempty"`
+	// ONIEOnly (optional) is a boolean indicating whether this subnet is for ONIE only (check class identifier)
+	ONIEOnly bool `json:"onieOnly,omitempty"`
 }
 
 // DHCPSubnetStatic represents static IP assignment

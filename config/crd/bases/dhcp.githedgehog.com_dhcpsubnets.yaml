@@ -137,6 +137,10 @@ spec:
                 description: Lease time in seconds, such as 3600
                 format: int32
                 type: integer
+              onieOnly:
+                description: ONIEOnly (optional) is a boolean indicating whether this
+                  subnet is for ONIE only (check class identifier)
+                type: boolean
               pxeURL:
                 description: PXEURL (optional) to identify the pxe server to use to
                   boot hosts connected to this segment such as http://10.10.10.99/bootfilename
