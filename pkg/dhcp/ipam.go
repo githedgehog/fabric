@@ -169,7 +169,7 @@ func cleanup(subnet *dhcpapi.DHCPSubnet) error {
 
 	for mac, allocated := range subnet.Status.Allocated {
 		if !allocated.Expiry.Time.IsZero() && allocated.Expiry.Time.Before(now) {
-			slog.Debug("Removing entry for expired lease", "subnet", subnet.Name, "ip", allocated.IP, "mac", mac)
+			slog.Info("Removing entry for expired lease", "subnet", subnet.Name, "ip", allocated.IP, "mac", mac)
 			delete(subnet.Status.Allocated, mac)
 		}
 	}
