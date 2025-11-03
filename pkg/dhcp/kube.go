@@ -93,15 +93,19 @@ func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, m
 	uid := subnet.UID
 	subnetName := subnet.Name
 
-	fetch := false
+	attempt := 0
 	if err := retry.RetryOnConflict(wait.Backoff{
 		Steps:    10,
 		Duration: 10 * time.Millisecond,
 		Factor:   1.0,
 		Jitter:   0.1,
 	}, func() error {
-		if fetch {
+		// skip log on a first retry
+		if attempt > 1 {
 			slog.Debug("Fetching latest to update status", "subnet", subnetName)
+		}
+		// fetch latest subnet if it's a retry
+		if attempt > 0 {
 			if err := s.kube.Get(ctx, kclient.ObjectKeyFromObject(subnet), subnet); err != nil {
 				return fmt.Errorf("fetching latest subnet %s: %w", subnetName, err)
 			}
@@ -110,7 +114,7 @@ func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, m
 				return fmt.Errorf("subnet %s UID mismatch", subnetName) //nolint:err113
 			}
 		}
-		fetch = true
+		attempt++
 
 		if err := mutate(subnet); err != nil {
 			return fmt.Errorf("mutating subnet %s: %w", subnetName, err)
