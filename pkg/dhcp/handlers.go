@@ -91,7 +91,7 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 			} else {
 				slog.Info("Handling", reqSummary(req, vrf, circuitID)...)
 				if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID); err != nil {
-					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID), "err", err)...)
+					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID), "err", err.Error())...)
 				}
 			}
 
