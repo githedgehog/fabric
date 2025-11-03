@@ -786,7 +786,7 @@ github.com/magiconair/properties
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/maruel/natural v1.1.1
+# github.com/maruel/natural v1.2.1
 ## explicit; go 1.21
 github.com/maruel/natural
 # github.com/mattn/go-colorable v0.1.13
