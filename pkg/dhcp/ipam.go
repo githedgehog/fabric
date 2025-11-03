@@ -61,32 +61,38 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 		case static.IP == subnet.Spec.Gateway:
 			slog.Warn("Static IP address is gateway, ignoring", "ip", static.IP)
 		default:
-			// remove existing allocations that uses this IP
+			// ignore if already allocated for different MAC
+			inUse := false
 			for allocatedMAC, allocated := range subnet.Status.Allocated {
 				if allocatedMAC == mac {
 					continue
 				}
 
-				if allocated.IP == ip.String() {
-					delete(subnet.Status.Allocated, allocatedMAC)
+				if allocated.IP == static.IP {
+					slog.Warn("Static IP is already allocated for different MAC, ignoring", "ip", ip.String(), "mac", mac, "usedBy", allocatedMAC)
+					inUse = true
 				}
 			}
 
-			res = ip
-			expiry = time.Time{}
+			if !inUse {
+				res = ip
+				expiry = time.Time{}
+			}
 		}
 	}
 
-	used := map[string]bool{
-		subnet.Spec.Gateway: true,
+	used := map[string]string{
+		subnet.Spec.Gateway: "reserved",
 	}
 	for allocatedMAC, allocated := range subnet.Status.Allocated {
-		if allocatedMAC != mac {
-			used[allocated.IP] = true
-		}
+		used[allocated.IP] = allocatedMAC
 	}
-	for _, static := range subnet.Spec.Static {
-		used[static.IP] = true
+	for staticMAC, static := range subnet.Spec.Static {
+		// skip static IPs that are already in use by another MAC
+		if used[static.IP] != "" && used[static.IP] != staticMAC {
+			continue
+		}
+		used[static.IP] = staticMAC
 	}
 
 	startIP, err := netip.ParseAddr(subnet.Spec.StartIP)
@@ -106,8 +112,8 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 			switch {
 			case !ok:
 				slog.Warn("Invalid requested IP address, ignoring", "ip", requested.String())
-			case used[ip.String()]:
-				slog.Warn("Requested IP is already used, ignoring", "ip", requested.String(), "mac", mac)
+			case used[ip.String()] != "" && used[ip.String()] != mac:
+				slog.Warn("Requested IP is already used, ignoring", "ip", requested.String(), "mac", mac, "usedBy", used[ip.String()])
 			case ip.Compare(startIP) < 0 || ip.Compare(endIP) > 0:
 				slog.Warn("Requested IP is outside start-end range, ignoring", "ip", requested.String(), "mac", mac)
 			default:
@@ -123,8 +129,8 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 			switch {
 			case err != nil:
 				slog.Warn("Invalid allocated IP address, ignoring", "ip", allocated.IP, "mac", mac)
-			case used[allocated.IP]:
-				slog.Warn("Allocated IP is already used, ignoring", "ip", allocated.IP, "mac", mac)
+			case used[allocated.IP] != "" && used[allocated.IP] != mac:
+				slog.Warn("Allocated IP is already used, ignoring", "ip", allocated.IP, "mac", mac, "usedBy", used[allocated.IP])
 			case ip.Compare(startIP) < 0 || ip.Compare(endIP) > 0:
 				slog.Warn("Allocated IP is outside start-end range, ignoring", "ip", allocated.IP, "mac", mac)
 			default:
@@ -137,7 +143,7 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 	if !res.Is4() {
 		ip := startIP
 		for ip.Compare(endIP) <= 0 {
-			if used[ip.String()] {
+			if used[ip.String()] != "" && used[ip.String()] != mac {
 				ip = ip.Next()
 
 				continue
