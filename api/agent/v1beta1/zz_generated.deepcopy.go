@@ -433,13 +433,6 @@ func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 			(*out)[key] = outVal
 		}
 	}
-	if in.ExternalVNIs != nil {
-		in, out := &in.ExternalVNIs, &out.ExternalVNIs
-		*out = make(map[string]uint32, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
 	if in.IRBVLANs != nil {
 		in, out := &in.IRBVLANs, &out.IRBVLANs
 		*out = make(map[string]uint16, len(*in))

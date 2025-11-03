@@ -203,18 +203,12 @@ spec:
                     description: ExternalIDs stores external name -> ID, unique per
                       switch
                     type: object
-                  externalVNIs:
-                    additionalProperties:
-                      format: int32
-                      type: integer
-                    description: ExternalVNIs stores external name -> external VNI,
-                      globally unique for the fabric
-                    type: object
                   irbVLANs:
                     additionalProperties:
                       type: integer
                     description: IRBVLANs stores VPC name -> IRB VLAN ID, unique per
-                      redundancy group (or switch)
+                      redundancy group (or switch), it includes Externals too with
+                      ext@ prefix
                     type: object
                   loopbackWorkaroundLinks:
                     additionalProperties:
@@ -255,7 +249,7 @@ spec:
                       format: int32
                       type: integer
                     description: VPCVNIs stores VPC name -> VPC VNI, globally unique
-                      for the fabric
+                      for the fabric, it includes Externals too with ext@ prefix
                     type: object
                 type: object
               config:
