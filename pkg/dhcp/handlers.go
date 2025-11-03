@@ -9,11 +9,16 @@ import (
 	"log/slog"
 	"net"
 	"net/netip"
+	"strings"
 
 	"github.com/coredhcp/coredhcp/handler"
 	"github.com/coredhcp/coredhcp/plugins"
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+)
+
+const (
+	onieClassIdentifier = "onie_vendor:"
 )
 
 func msgTypeString(req *dhcpv4.DHCPv4) string {
@@ -81,18 +86,24 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 
 			s.m.RLock()
 			subnet, ok := s.subnets[subnetKey(vrf, circuitID)]
+			// only use dhcp for onie in the management subnet
+			onieOnly := subnet.Spec.ONIEOnly || subnet.Name == dhcpapi.ManagementSubnet
+			if onieOnly && !strings.HasPrefix(req.ClassIdentifier(), onieClassIdentifier) {
+				subnet = nil
+				ok = false
+			}
 			if ok {
 				subnet = subnet.DeepCopy()
 			}
 			s.m.RUnlock()
 
-			if !ok {
-				slog.Info("No subnet found", reqSummary(req, vrf, circuitID)...)
-			} else {
+			if ok {
 				slog.Info("Handling", reqSummary(req, vrf, circuitID)...)
 				if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID); err != nil {
 					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID), "err", err.Error())...)
 				}
+			} else if !onieOnly {
+				slog.Info("No subnet found", reqSummary(req, vrf, circuitID)...)
 			}
 
 			return resp, false
