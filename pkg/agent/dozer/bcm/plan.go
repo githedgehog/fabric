@@ -1034,27 +1034,25 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
 		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
-		if irbVLAN == 0 { //nolint:gocritic
-			// TODO: make this an error eventually, but not now to allow agent updates
-			slog.Warn("IRB VLAN for external not found in catalog, not configuring it", "external", externalName)
-		} else if extVNI == 0 {
-			// TODO: make this an error eventually, but not now to allow agent updates
-			slog.Warn("VNI for external not found in catalog, not configuring it", "external", externalName)
-		} else {
-			irbIface := vlanName(irbVLAN)
-			spec.Interfaces[irbIface] = &dozer.SpecInterface{
-				Enabled:     pointer.To(true),
-				Description: pointer.To(fmt.Sprintf("External %s IRB", externalName)),
-			}
-			spec.VRFs[extVrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
-			spec.VRFVNIMap[extVrfName] = &dozer.SpecVRFVNIEntry{
-				VNI: pointer.To(extVNI),
-			}
-			spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", extVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
-				VTEP: pointer.To(VTEPFabric),
-				VNI:  pointer.To(extVNI),
-				VLAN: pointer.To(irbVLAN),
-			}
+		if irbVLAN == 0 {
+			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:goerr113
+		}
+		if extVNI == 0 {
+			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:goerr113
+		}
+		irbIface := vlanName(irbVLAN)
+		spec.Interfaces[irbIface] = &dozer.SpecInterface{
+			Enabled:     pointer.To(true),
+			Description: pointer.To(fmt.Sprintf("External %s IRB", externalName)),
+		}
+		spec.VRFs[extVrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
+		spec.VRFVNIMap[extVrfName] = &dozer.SpecVRFVNIEntry{
+			VNI: pointer.To(extVNI),
+		}
+		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", extVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
+			VTEP: pointer.To(VTEPFabric),
+			VNI:  pointer.To(extVNI),
+			VLAN: pointer.To(irbVLAN),
 		}
 	}
 
