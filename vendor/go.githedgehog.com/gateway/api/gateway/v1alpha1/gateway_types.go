@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"strconv"
+	"strings"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,6 +44,8 @@ type GatewaySpec struct {
 
 // GatewayInterface defines the configuration for a gateway interface
 type GatewayInterface struct {
+	// PCI address of the interface (required for DPDK driver), e.g. 0000:00:01.0
+	PCI string `json:"pci,omitempty"`
 	// IPs is the list of IP address to assign to the interface
 	IPs []string `json:"ips,omitempty"`
 	// MTU for the interface
@@ -198,6 +202,47 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 			}
 			if !ifaceIP.Addr().Is4() {
 				return fmt.Errorf("interface %s IP %s must be an IPv4 address: %w", name, ifaceIP, ErrInvalidGW)
+			}
+		}
+
+		if iface.PCI != "" {
+			invalidPCI := fmt.Errorf("interface %s PCI %s must be a valid PCI address (e.g. 0000:02:00.0): %w", name, iface.PCI, ErrInvalidGW)
+			if len(iface.PCI) != 12 {
+				return invalidPCI
+			}
+
+			parts := strings.Split(iface.PCI, ".")
+			if len(parts) != 2 {
+				return invalidPCI
+			}
+
+			if function, err := strconv.ParseInt(parts[1], 16, 64); err != nil {
+				return fmt.Errorf("invalid interface %s PCI address %s function: %w", name, iface.PCI, errors.Join(err, ErrInvalidGW))
+			} else if function < 0 || function > 7 {
+				return fmt.Errorf("invalid interface %s PCI address %s function (0-7): %w", name, iface.PCI, ErrInvalidGW)
+			}
+
+			parts = strings.Split(parts[0], ":")
+			if len(parts) != 3 {
+				return invalidPCI
+			}
+
+			if domain, err := strconv.ParseInt(parts[0], 16, 64); err != nil {
+				return fmt.Errorf("invalid interface %s PCI address %s domain: %w", name, iface.PCI, errors.Join(err, ErrInvalidGW))
+			} else if domain < 0 || domain > 0xFFFF {
+				return fmt.Errorf("invalid interface %s PCI address %s domain (0-FFFF): %w", name, iface.PCI, ErrInvalidGW)
+			}
+
+			if bus, err := strconv.ParseInt(parts[1], 16, 64); err != nil {
+				return fmt.Errorf("invalid interface %s PCI address %s bus: %w", name, iface.PCI, errors.Join(err, ErrInvalidGW))
+			} else if bus < 0 || bus > 0xFF {
+				return fmt.Errorf("invalid interface %s PCI address %s bus (0-FF): %w", name, iface.PCI, ErrInvalidGW)
+			}
+
+			if device, err := strconv.ParseInt(parts[2], 16, 64); err != nil {
+				return fmt.Errorf("invalid interface %s PCI address %s device: %w", name, iface.PCI, errors.Join(err, ErrInvalidGW))
+			} else if device < 0 || device > 0x1F {
+				return fmt.Errorf("invalid interface %s PCI address %s device (0-1F): %w", name, iface.PCI, ErrInvalidGW)
 			}
 		}
 	}
