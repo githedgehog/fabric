@@ -659,7 +659,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 				continue
 			}
 
-			loWorkaroundReqs[librarian.LoWReqForExt(name)] = true
+			loWorkaroundReqs[librarian.ReqForExt(name)] = true
 		}
 	}
 

@@ -26,16 +26,14 @@ type CatalogSpec struct {
 
 	// ConnectionSystemIDs stores connection name -> ID, globally unique for the fabric
 	ConnectionIDs map[string]uint32 `json:"connectionIDs,omitempty"`
-	// VPCVNIs stores VPC name -> VPC VNI, globally unique for the fabric
+	// VPCVNIs stores VPC name -> VPC VNI, globally unique for the fabric, it includes Externals too with ext@ prefix
 	VPCVNIs map[string]uint32 `json:"vpcVNIs,omitempty"`
 	// VPCSubnetVNIs stores VPC name -> subnet name -> VPC Subnet VNI, globally unique for the fabric
 	VPCSubnetVNIs map[string]map[string]uint32 `json:"vpcSubnetVNIs,omitempty"`
-	// ExternalVNIs stores external name -> external VNI, globally unique for the fabric
-	ExternalVNIs map[string]uint32 `json:"externalVNIs,omitempty"`
 
 	// Per redundancy group (or switch if no redundancy group)
 
-	// IRBVLANs stores VPC name -> IRB VLAN ID, unique per redundancy group (or switch)
+	// IRBVLANs stores VPC name -> IRB VLAN ID, unique per redundancy group (or switch), it includes Externals too with ext@ prefix
 	IRBVLANs map[string]uint16 `json:"irbVLANs,omitempty"`
 	// PortChannelIDs stores Connection name -> PortChannel ID, unique per redundancy group (or switch)
 	PortChannelIDs map[string]uint16 `json:"portChannelIDs,omitempty"`

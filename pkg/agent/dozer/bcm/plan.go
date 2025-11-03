@@ -1032,8 +1032,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			},
 		}
 
-		irbVLAN := agent.Spec.Catalog.IRBVLANs[externalName]
-		extVNI := agent.Spec.Catalog.ExternalVNIs[externalName]
+		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
+		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
 		if irbVLAN == 0 { //nolint:gocritic
 			// TODO: make this an error eventually, but not now to allow agent updates
 			slog.Warn("IRB VLAN for external not found in catalog, not configuring it", "external", externalName)
@@ -2925,7 +2925,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[extVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[extVrf] = &dozer.SpecVRFBGPImportVRF{}
 		} else {
-			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForExt(name))
+			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.ReqForExt(name))
 			if err != nil {
 				return errors.Wrapf(err, "failed to plan loopback workaround for external peering %s", name)
 			}
