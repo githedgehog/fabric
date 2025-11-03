@@ -6,6 +6,7 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
@@ -169,10 +170,14 @@ func (r *GwExternalSync) enqueueForVPCInfo(ctx context.Context, obj kclient.Obje
 		return nil
 	}
 
+	if !strings.HasPrefix(vpcInfo.Name, vpcapi.VPCInfoExtPrefix) {
+		return nil
+	}
+
 	return []reconcile.Request{
 		{NamespacedName: ktypes.NamespacedName{
 			Namespace: vpcInfo.Namespace,
-			Name:      vpcInfo.Name,
+			Name:      strings.TrimPrefix(vpcInfo.Name, vpcapi.VPCInfoExtPrefix),
 		}},
 	}
 }
@@ -204,12 +209,12 @@ func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctr
 
 	subnets := map[string]*gwapi.VPCInfoSubnet{}
 	// FIXME: the external spec does not have the prefixes we are importing, they are part of the externalPeering
-	subnets["internet"] = &gwapi.VPCInfoSubnet{
+	subnets["external"] = &gwapi.VPCInfoSubnet{
 		CIDR: "0.0.0.0/0",
 	}
 
 	vpcInfo := &gwapi.VPCInfo{ObjectMeta: kmetav1.ObjectMeta{
-		Name:      external.Name,
+		Name:      vpcapi.VPCInfoExtPrefix + external.Name,
 		Namespace: external.Namespace,
 	}}
 	if op, err := ctrlutil.CreateOrUpdate(ctx, r.Client, vpcInfo, func() error {

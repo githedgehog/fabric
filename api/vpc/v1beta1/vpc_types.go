@@ -18,6 +18,7 @@ import (
 	"context"
 	"net"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -335,6 +336,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 
 	if len(vpc.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
+	}
+	if strings.HasPrefix(vpc.Name, VPCInfoExtPrefix) {
+		return nil, errors.Errorf("vpc name cannot start with '%s': %s", VPCInfoExtPrefix, vpc.Name)
 	}
 	if vpc.Spec.IPv4Namespace == "" {
 		return nil, errors.Errorf("ipv4Namespace is required")
