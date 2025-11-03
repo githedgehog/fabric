@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"time"
 
 	"github.com/pkg/errors"
@@ -113,7 +114,28 @@ func DHCPSubnetStaticLease(ctx context.Context, opts DHCPSubnetStaticLeaseOpts) 
 	if opts.IP == "" {
 		delete(subnet.DHCP.Static, opts.MAC)
 	} else {
-		subnet.DHCP.Static[opts.MAC] = vpcapi.VPCDHCPStatic{
+		mac, err := net.ParseMAC(opts.MAC)
+		if err != nil {
+			return errors.Wrap(err, "cannot parse MAC address")
+		}
+
+		dhcpSubnet := &dhcpapi.DHCPSubnet{}
+		name := fmt.Sprintf("%s--%s", opts.VPC, opts.Subnet)
+		if err := kube.Get(ctx, kclient.ObjectKey{Namespace: "default", Name: name}, dhcpSubnet); err != nil {
+			return errors.Wrap(err, "cannot get DHCP subnet")
+		}
+
+		for allocatedMAC, allocated := range dhcpSubnet.Status.Allocated {
+			if allocatedMAC == mac.String() {
+				continue
+			}
+
+			if allocated.IP == opts.IP {
+				return errors.Errorf("static IP %s is already allocated for different MAC %s", opts.IP, allocatedMAC)
+			}
+		}
+
+		subnet.DHCP.Static[mac.String()] = vpcapi.VPCDHCPStatic{
 			IP: opts.IP,
 		}
 	}
