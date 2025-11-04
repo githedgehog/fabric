@@ -87,7 +87,7 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 			s.m.RLock()
 			subnet, ok := s.subnets[subnetKey(vrf, circuitID)]
 			// only use dhcp for onie in the management subnet
-			onieOnly := subnet.Spec.ONIEOnly || subnet.Name == dhcpapi.ManagementSubnet
+			onieOnly := ok && (subnet.Spec.ONIEOnly || subnet.Name == dhcpapi.ManagementSubnet)
 			if onieOnly && !strings.HasPrefix(req.ClassIdentifier(), onieClassIdentifier) {
 				subnet = nil
 				ok = false
