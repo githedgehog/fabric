@@ -883,6 +883,17 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Action: dozer.SpecPrefixListActionPermit,
 			}
 		}
+
+		spec.RouteMaps[ipnsSubnetsRouteMapName(ipnsName)] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(ipnsName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
 	}
 
 	attachedExternals := map[string]bool{}
@@ -977,10 +988,11 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					RouterID:           pointer.To(protocolIP.String()),
 					NetworkImportCheck: pointer.To(true),
 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
-						Enabled:    true,
-						MaxPaths:   pointer.To(getMaxPaths(agent)),
-						Networks:   map[string]*dozer.SpecVRFBGPNetwork{},
-						ImportVRFs: map[string]*dozer.SpecVRFBGPImportVRF{},
+						Enabled:      true,
+						MaxPaths:     pointer.To(getMaxPaths(agent)),
+						Networks:     map[string]*dozer.SpecVRFBGPNetwork{},
+						ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
+						ImportPolicy: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
 					},
 					L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 						Enabled:                       agent.IsSpineLeaf(),
@@ -3186,6 +3198,10 @@ func vpcRedistributeStaticRouteMapName(vpc string) string {
 }
 
 func ipnsSubnetsPrefixListName(ipns string) string {
+	return fmt.Sprintf("ipns-subnets--%s", ipns)
+}
+
+func ipnsSubnetsRouteMapName(ipns string) string {
 	return fmt.Sprintf("ipns-subnets--%s", ipns)
 }
 
