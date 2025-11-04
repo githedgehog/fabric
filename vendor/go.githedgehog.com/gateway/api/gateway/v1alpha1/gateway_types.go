@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -46,6 +47,8 @@ type GatewaySpec struct {
 type GatewayInterface struct {
 	// PCI address of the interface (required for DPDK driver), e.g. 0000:00:01.0
 	PCI string `json:"pci,omitempty"`
+	// Kernel is the kernel name of the interface to use (required for kernel driver), e.g. enp2s1
+	Kernel string `json:"kernel,omitempty"`
 	// IPs is the list of IP address to assign to the interface
 	IPs []string `json:"ips,omitempty"`
 	// MTU for the interface
@@ -133,6 +136,8 @@ func (gw *Gateway) Default() {
 	}
 }
 
+var linuxIfaceNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,8}[a-zA-Z0-9]$`)
+
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
 		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
@@ -191,7 +196,15 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 	if len(gw.Spec.Interfaces) == 0 {
 		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)
 	}
+	pcis, kernels := 0, 0
 	for name, iface := range gw.Spec.Interfaces {
+		if len(name) > 15 {
+			return fmt.Errorf("interface name %s is too long: %w", name, ErrInvalidGW)
+		}
+		if !linuxIfaceNameRegex.MatchString(name) {
+			return fmt.Errorf("interface name %s must be a valid linux interface name (2-10 characters): %w", name, ErrInvalidGW)
+		}
+
 		if len(iface.IPs) == 0 {
 			return fmt.Errorf("interface %s must have at least one IP address: %w", name, ErrInvalidGW)
 		}
@@ -205,7 +218,16 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 			}
 		}
 
+		if iface.PCI != "" && iface.Kernel != "" {
+			return fmt.Errorf("interface %s cannot have both PCI address and kernel names: %w", name, ErrInvalidGW)
+		}
+		// TODO enable after migrating dataplane to a new interface format
+		// if iface.PCI == "" && iface.Kernel == "" {
+		// 	return fmt.Errorf("interface %s must have either PCI address or kernel name: %w", name, ErrInvalidGW)
+		// }
 		if iface.PCI != "" {
+			pcis++
+
 			invalidPCI := fmt.Errorf("interface %s PCI %s must be a valid PCI address (e.g. 0000:02:00.0): %w", name, iface.PCI, ErrInvalidGW)
 			if len(iface.PCI) != 12 {
 				return invalidPCI
@@ -245,7 +267,22 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 				return fmt.Errorf("invalid interface %s PCI address %s device (0-1F): %w", name, iface.PCI, ErrInvalidGW)
 			}
 		}
+		if iface.Kernel != "" {
+			kernels++
+
+			if !linuxIfaceNameRegex.MatchString(iface.Kernel) {
+				return fmt.Errorf("kernel name %s must be a valid linux interface name (2-10 characters): %w", iface.Kernel, ErrInvalidGW)
+			}
+
+			if name == iface.Kernel {
+				return fmt.Errorf("interface name %s cannot be the same as kernel interface name: %w", name, ErrInvalidGW)
+			}
+		}
 	}
+	// TODO enable after migrating dataplane to a new interface format
+	// if pcis > 0 && kernels > 0 {
+	// 	return fmt.Errorf("cannot mix interfaces with PCI addresses and kernel names: %w", ErrInvalidGW)
+	// }
 
 	if len(gw.Spec.Neighbors) == 0 {
 		return fmt.Errorf("at least one BGP neighbor must be defined: %w", ErrInvalidGW)
