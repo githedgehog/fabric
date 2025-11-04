@@ -126,6 +126,12 @@ func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		subnets = append(subnets, ipNet)
 	}
 
+	// this limit is imposed by how we index ACL rules to prevent traffic local to
+	// the VPC from being peered via the external peering
+	if len(subnets) > 64 {
+		return nil, errors.Errorf("too many subnets defined (%d), maximum is 64", len(subnets))
+	}
+
 	if err := iputil.VerifyNoOverlap(subnets); err != nil {
 		return nil, errors.Wrapf(err, "subnets overlap")
 	}

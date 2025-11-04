@@ -894,6 +894,25 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			},
 		}
+
+		aclName := ipNsNoExtPeeringACLName(ipnsName)
+		entries := map[uint32]*dozer.SpecACLEntry{}
+		for iSrc, src := range ipns.Subnets {
+			for iDst, dst := range ipns.Subnets {
+				entries[uint32(iSrc*100+iDst+1)] = &dozer.SpecACLEntry{ //nolint:gosec
+					SourceAddress:      pointer.To(src),
+					DestinationAddress: pointer.To(dst),
+					Action:             dozer.SpecACLEntryActionDrop,
+				}
+			}
+		}
+		entries[65535] = &dozer.SpecACLEntry{
+			Action: dozer.SpecACLEntryActionAccept,
+		}
+		spec.ACLs[aclName] = &dozer.SpecACL{
+			Description: pointer.To("Prevent VPCs to cross-talk via the external"),
+			Entries:     entries,
+		}
 	}
 
 	attachedExternals := map[string]bool{}
@@ -1066,6 +1085,12 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			VTEP: pointer.To(VTEPFabric),
 			VNI:  pointer.To(extVNI),
 			VLAN: pointer.To(irbVLAN),
+		}
+		if spec.ACLInterfaces == nil {
+			spec.ACLInterfaces = map[string]*dozer.SpecACLInterface{}
+		}
+		spec.ACLInterfaces[irbIface] = &dozer.SpecACLInterface{
+			Ingress: pointer.To(ipNsNoExtPeeringACLName(external.IPv4Namespace)),
 		}
 	}
 
@@ -3152,6 +3177,10 @@ func ipNsExtCommsCommListName(ipns string) string {
 
 func ipNsExternalCommsRouteMapName(ipns string) string {
 	return fmt.Sprintf("ipns-ext-communities--%s", ipns)
+}
+
+func ipNsNoExtPeeringACLName(ipns string) string {
+	return fmt.Sprintf("no-ipns-peering--%s", ipns)
 }
 
 func vpcExtImportVrfPrefixListName(vpc, ext string) string {
