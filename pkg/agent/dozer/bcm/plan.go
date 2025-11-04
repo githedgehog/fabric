@@ -1021,7 +1021,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Conditions: dozer.SpecRouteMapConditions{
 						MatchCommunityList: pointer.To(commList),
 					},
-					Result: dozer.SpecRouteMapResultAccept,
+					SetLocalPreference: pointer.To(uint32(500)),
+					Result:             dozer.SpecRouteMapResultAccept,
 				},
 				"100": {
 					Result: dozer.SpecRouteMapResultReject,
