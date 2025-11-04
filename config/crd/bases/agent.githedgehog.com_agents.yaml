@@ -283,6 +283,15 @@ spec:
                         type: object
                       proxyURL:
                         type: string
+                      pyroscope:
+                        properties:
+                          address:
+                            type: string
+                          enable:
+                            type: boolean
+                          port:
+                            type: integer
+                        type: object
                       scrapes:
                         additionalProperties:
                           properties:
@@ -377,6 +386,32 @@ spec:
                                   type: object
                                 sendIntervalSeconds:
                                   type: integer
+                                url:
+                                  type: string
+                              type: object
+                            type: object
+                          pyroscope:
+                            additionalProperties:
+                              properties:
+                                basicAuth:
+                                  properties:
+                                    password:
+                                      type: string
+                                    username:
+                                      type: string
+                                  type: object
+                                bearerToken:
+                                  type: string
+                                caPEM:
+                                  type: string
+                                certPEM:
+                                  type: string
+                                insecureSkipVerify:
+                                  type: boolean
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
                                 url:
                                   type: string
                               type: object

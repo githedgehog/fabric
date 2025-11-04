@@ -11,6 +11,7 @@ import (
 type Targets struct {
 	Prometheus map[string]PrometheusTarget `json:"prometheus,omitempty"`
 	Loki       map[string]LokiTarget       `json:"loki,omitempty"`
+	Pyroscope  map[string]PyroscopeTarget  `json:"pyroscope,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -41,6 +42,11 @@ type LokiTarget struct {
 	Target `json:",inline"`
 }
 
+// +kubebuilder:object:generate=true
+type PyroscopeTarget struct {
+	Target `json:",inline"`
+}
+
 func (ts *Targets) Validate() error {
 	if ts == nil {
 		return fmt.Errorf("targets is nil") //nolint:err113
@@ -63,6 +69,16 @@ func (ts *Targets) Validate() error {
 
 		if err := target.Validate(); err != nil {
 			return fmt.Errorf("invalid loki target %q: %w", name, err)
+		}
+	}
+
+	for name, target := range ts.Pyroscope {
+		if err := validateIdentifier(name); err != nil {
+			return fmt.Errorf("invalid pyroscope target name %q: %w", name, err)
+		}
+
+		if err := target.Validate(); err != nil {
+			return fmt.Errorf("invalid pyroscope target %q: %w", name, err)
 		}
 	}
 

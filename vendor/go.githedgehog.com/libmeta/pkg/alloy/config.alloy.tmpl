@@ -73,6 +73,35 @@ loki.write "{{ $name }}" {
 }
 {{ end }}{{/* range loki targets */}}
 
+{{ range $name, $target := $.Targets.Pyroscope }}
+pyroscope.write "{{ $name }}" {
+  endpoint {
+    url = "{{ $target.URL }}"
+    {{ if $.ProxyURL }}proxy_url = "{{ $.ProxyURL }}"{{ end }}
+    {{ if and $target.BasicAuth (or $target.BasicAuth.Username $target.BasicAuth.Password) }}
+    basic_auth {
+      {{ if $target.BasicAuth.Username }}username = "{{ $target.BasicAuth.Username }}"{{ end }}
+      {{ if $target.BasicAuth.Password }}password = "{{ $target.BasicAuth.Password }}"{{ end }}
+    }
+    {{ else if $target.BearerToken }}
+    bearer_token = "{{ $target.BearerToken }}"
+    {{ end }}
+    tls_config {
+      insecure_skip_verify = {{ $target.InsecureSkipVerify }}
+      {{ if $target.CAPEM }}ca_pem = {{ $target.CAPEM }}{{ end }}
+      {{ if $target.CertPEM }}cert_pem = {{ $target.CertPEM }}{{ end }}
+    }
+  }
+  external_labels = {
+    {{ if $.Hostname }}hostname = "{{ $.Hostname }}",{{ end }}
+    {{ if $.AutoHostname }}hostname = constants.hostname,{{ end }}
+    {{ range $key, $value := $target.Labels }}
+    {{ $key }} = "{{ $value }}",
+    {{ end }}
+  }
+}
+{{ end }}{{/* range pyroscope targets */}}
+
 {{/* Configure scrapes only if there are Prometheus targets */}}
 {{ if len $.Targets.Prometheus }}
 
@@ -239,3 +268,22 @@ loki.source.kubernetes_events "cluster_events" {
 {{ end }}{{/* if kube events */}}
 
 {{ end }}{{/* if loki targets */}}
+
+{{/* Configure Pyroscope endpoints only if there are Pyroscope targets */}}
+{{ if len $.Targets.Pyroscope }}
+
+{{ if .Pyroscope.Enable }}
+pyroscope.receive_http "profiling" {
+  http {
+    listen_address = "{{ .Pyroscope.Address }}"
+    listen_port = {{ .Pyroscope.Port }}
+  }
+  forward_to = [
+    {{ range $name, $target := $.Targets.Pyroscope }}
+    pyroscope.write.{{ $name }}.receiver,
+    {{ end }}
+  ]
+}
+{{ end }}{{/* if pyroscope enable */}}
+
+{{ end }}{{/* if pyroscope targets */}}

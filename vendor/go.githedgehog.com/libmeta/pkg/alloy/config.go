@@ -11,6 +11,10 @@ import (
 	"go.githedgehog.com/libmeta/pkg/tmpl"
 )
 
+const (
+	PyroscopePort = 4040
+)
+
 // +kubebuilder:object:generate=true
 type Config struct {
 	Hostname     string  `json:"hostname,omitempty"`
@@ -18,9 +22,10 @@ type Config struct {
 	Targets      Targets `json:"targets,omitempty"`
 	ProxyURL     string  `json:"proxyURL,omitempty"`
 
-	Scrapes  map[string]Scrape  `json:"scrapes,omitempty"`
-	LogFiles map[string]LogFile `json:"logFiles,omitempty"`
-	Kube     Kube               `json:"kube,omitempty"`
+	Scrapes   map[string]Scrape  `json:"scrapes,omitempty"`
+	LogFiles  map[string]LogFile `json:"logFiles,omitempty"`
+	Kube      Kube               `json:"kube,omitempty"`
+	Pyroscope Pyroscope          `json:"pyroscope,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -70,6 +75,13 @@ type LogFilePathTarget struct {
 type Kube struct {
 	PodLogs bool `json:"podLogs,omitempty"`
 	Events  bool `json:"events,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type Pyroscope struct {
+	Enable  bool   `json:"enable,omitempty"`
+	Address string `json:"address,omitempty"`
+	Port    uint16 `json:"port,omitempty"`
 }
 
 func (cfg *Config) Validate() error {
@@ -125,20 +137,21 @@ func (s *Scrape) Validate() error {
 	return nil
 }
 
-func (k *Kube) Validate() error {
-	if k == nil {
-		return fmt.Errorf("kube is nil") //nolint:err113
-	}
-
-	return nil
-}
-
 //go:embed config.alloy.tmpl
 var configTemplate string
 
 func (cfg *Config) Render() ([]byte, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil") //nolint:err113
+	}
+
+	if cfg.Pyroscope.Enable {
+		if cfg.Pyroscope.Address == "" {
+			cfg.Pyroscope.Address = "0.0.0.0"
+		}
+		if cfg.Pyroscope.Port == 0 {
+			cfg.Pyroscope.Port = PyroscopePort
+		}
 	}
 
 	if err := cfg.Validate(); err != nil {
