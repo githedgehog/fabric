@@ -39,6 +39,8 @@ type GatewaySpec struct {
 	Neighbors []GatewayBGPNeighbor `json:"neighbors,omitempty"`
 	// Logs defines the configuration for logging levels
 	Logs GatewayLogs `json:"logs,omitempty"`
+	// Profiling defines the configuration for profiling
+	Profiling GatewayProfiling `json:"profiling,omitempty"`
 	// Workers defines the number of worker threads to use for dataplane
 	Workers uint8 `json:"workers,omitempty"`
 }
@@ -89,6 +91,10 @@ var GatewayLogLevels = []GatewayLogLevel{
 	GatewayLogLevelInfo,
 	GatewayLogLevelDebug,
 	GatewayLogLevelTrace,
+}
+
+type GatewayProfiling struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // GatewayStatus defines the observed state of Gateway.
