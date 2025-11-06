@@ -139,3 +139,46 @@ func TestParseCIDR(t *testing.T) {
 		})
 	}
 }
+
+func mustParseCIDR(s string) *net.IPNet {
+	_, ipNet, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return ipNet
+}
+
+func TestLastIP(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		ipNet    *net.IPNet
+		expected net.IP
+	}{
+		{
+			name:     "IPv4 1",
+			ipNet:    mustParseCIDR("192.168.0.0/24"),
+			expected: net.IPv4(192, 168, 0, 255),
+		},
+		{
+			name:     "IPv4 2",
+			ipNet:    mustParseCIDR("192.168.0.0/30"),
+			expected: net.IPv4(192, 168, 0, 3),
+		},
+		{
+			name:     "IPv4 3",
+			ipNet:    mustParseCIDR("192.168.0.0/10"),
+			expected: net.IPv4(192, 191, 255, 255),
+		},
+		{
+			name:     "IPv6",
+			ipNet:    mustParseCIDR("2001:db8::/32"),
+			expected: net.ParseIP("2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
+		},
+	} {
+		actual := LastIP(tt.ipNet)
+		if !actual.IP.Equal(tt.expected) {
+			t.Errorf("LastIP(%v) = %v, want %v", tt.ipNet, actual, tt.expected)
+		}
+	}
+}
