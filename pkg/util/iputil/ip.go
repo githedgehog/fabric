@@ -69,3 +69,12 @@ func VerifyNoOverlap(subnets []*net.IPNet) error {
 
 	return errors.Wrapf(cidrlib.VerifyNoOverlap(subnets, anyNet), "failed to verify no overlap subnets")
 }
+
+func LastIP(ipNet *net.IPNet) *net.IPNet {
+	last := make(net.IP, len(ipNet.IP))
+	for i := range last {
+		last[i] = ipNet.IP[i] | (^ipNet.Mask[i])
+	}
+
+	return &net.IPNet{IP: last, Mask: ipNet.Mask}
+}

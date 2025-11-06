@@ -569,8 +569,14 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				if !ipNet.Contains(ip) {
 					return nil, errors.Errorf("subnet %s: static IP %s is not in the subnet", subnetName, static.IP)
 				}
+				if static.IP == ipNet.IP.String() {
+					return nil, errors.Errorf("subnet %s: static IP %s is the same as the subnet IP", subnetName, static.IP)
+				}
 				if static.IP == subnetCfg.Gateway {
-					return nil, errors.Errorf("subnet %s: static IP %s is the same as the gateway", subnetName, static.IP)
+					return nil, errors.Errorf("subnet %s: static IP %s is the same as the gateway IP", subnetName, static.IP)
+				}
+				if static.IP == iputil.LastIP(ipNet).IP.String() {
+					return nil, errors.Errorf("subnet %s: static IP %s is the same as the broadcast IP", subnetName, static.IP)
 				}
 
 				if _, ok := staticIPs[static.IP]; ok {

@@ -54,12 +54,19 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 
 	// if static IP is valid and not a gateway, use it
 	if static, ok := subnet.Spec.Static[mac]; ok {
+		netIP, err := netip.ParsePrefix(subnet.Spec.CIDRBlock)
+		if err != nil {
+			return netip.Addr{}, fmt.Errorf("parsing subnet %s cidr: %w", subnet.Name, err)
+		}
+
 		ip, err := netip.ParseAddr(static.IP)
 		switch {
 		case err != nil:
 			slog.Warn("Invalid static IP address, ignoring", "ip", static.IP)
+		case ip == netIP.Addr():
+			slog.Warn("Static IP address is the network IP, ignoring", "ip", static.IP)
 		case static.IP == subnet.Spec.Gateway:
-			slog.Warn("Static IP address is gateway, ignoring", "ip", static.IP)
+			slog.Warn("Static IP address is gateway IP, ignoring", "ip", static.IP)
 		default:
 			// ignore if already allocated for different MAC
 			inUse := false
