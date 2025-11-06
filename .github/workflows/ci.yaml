@@ -222,10 +222,10 @@ jobs:
             hybrid: false
             upgradefrom: ""
 
-          # hlab l2vni
+          # hlab gateway l2vni
           - mesh: false
             includeonie: false
-            gateway: false
+            gateway: true
             buildmode: iso
             vpcmode: l2vni
             hybrid: true
@@ -241,12 +241,12 @@ jobs:
             upgradefrom: "25.04"
 
           # gateway l2vni
-          # - mesh: false
-          #   gateway: true
-          #   includeonie: false
-          #   buildmode: iso
-          #   vpcmode: l2vni
-          #   hybrid: false
+          - mesh: false
+            gateway: true
+            includeonie: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: false
 
   vlabs:
     runs-on: ubuntu-latest
