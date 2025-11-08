@@ -1255,6 +1255,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if conn.Bundled.MTU != 0 {
 				mtu = pointer.To(conn.Bundled.MTU) //nolint:ineffassign,staticcheck
 			}
+			fallback = fallback && conn.Bundled.Fallback
 			links = conn.Bundled.Links
 		} else if conn.ESLAG != nil {
 			connType = "ESLAG"
@@ -1296,14 +1297,15 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			spec.Interfaces[connPortChannelName] = connPortChannel
 
-			if connType == "MCLAG" {
+			switch connType {
+			case "MCLAG":
 				spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
 					DomainID: MCLAGDomainID,
 				}
 				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
 					Fallback: pointer.To(fallback),
 				}
-			} else if connType == "ESLAG" {
+			case "ESLAG":
 				mac, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
 				if err != nil {
 					return errors.Wrapf(err, "failed to parse ESLAG MAC base %s", agent.Spec.Config.ESLAGMACBase)
@@ -1328,6 +1330,10 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				esi := strings.ReplaceAll(agent.Spec.Config.ESLAGESIPrefix+mac.String(), ":", "")
 				spec.VRFs[VRFDefault].EthernetSegments[connPortChannelName] = &dozer.SpecVRFEthernetSegment{
 					ESI: esi,
+				}
+			case "Bundled":
+				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
+					Fallback: pointer.To(fallback),
 				}
 			}
 
