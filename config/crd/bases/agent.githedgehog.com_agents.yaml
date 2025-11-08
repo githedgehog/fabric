@@ -469,6 +469,11 @@ spec:
                       description: Bundled defines the bundled connection (port channel,
                         single server to a single switch with multiple links)
                       properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            indicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
                         links:
                           description: Links is the list of server-to-switch links
                           items:

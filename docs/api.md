@@ -1491,6 +1491,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `links` _[ServerToSwitchLink](#servertoswitchlink) array_ | Links is the list of server-to-switch links |  |  |
 | `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
+| `fallback` _boolean_ | Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link |  |  |
 
 
 #### ConnESLAG

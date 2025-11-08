@@ -94,6 +94,8 @@ type ConnBundled struct {
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
 	ServerFacingConnectionConfig `json:",inline"`
+	// Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link
+	Fallback bool `json:"fallback,omitempty"`
 }
 
 // ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
