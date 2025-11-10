@@ -96,7 +96,7 @@ jobs:
           just --timestamp lint-gha gen _lint
 
       - name: More Go lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           # keep in sync with hack/tools.just
           version: v1.64.8
