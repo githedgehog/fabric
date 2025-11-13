@@ -50,11 +50,13 @@ import (
 )
 
 const (
-	ConfigFile      = "agent-config.yaml"
-	KubeconfigFile  = "agent-kubeconfig"
-	HeartbeatPeriod = 15 * time.Second
-	EnforcePeriod   = 2 * time.Minute
-	shadowPath      = "/etc/shadow"
+	ConfigFile         = "agent-config.yaml"
+	KubeconfigFile     = "agent-kubeconfig"
+	RebootRequiredFile = "reboot-required"
+	InstallIDFile      = "install-id"
+	HeartbeatPeriod    = 15 * time.Second
+	EnforcePeriod      = 2 * time.Minute
+	shadowPath         = "/etc/shadow"
 )
 
 //go:embed motd.txt
@@ -68,12 +70,13 @@ type Service struct {
 	ApplyOnce       bool
 	SkipActions     bool
 
-	gnmiClient *gnmi.Client
-	processor  dozer.Processor
-	name       string
-	installID  string
-	runID      string
-	bootID     string
+	gnmiClient     *gnmi.Client
+	processor      dozer.Processor
+	name           string
+	installID      string
+	runID          string
+	bootID         string
+	rebootRequired bool
 
 	reg *switchstate.Registry
 
@@ -85,6 +88,12 @@ type Service struct {
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
 	svc.reg.AgentMetrics.Version.WithLabelValues(version.Version).Set(1)
+
+	bootID, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err != nil {
+		return errors.Wrapf(err, "failed to read boot ID")
+	}
+	svc.bootID = strings.TrimSpace(string(bootID))
 
 	if !svc.ApplyOnce && !svc.DryRun {
 		go func() {
@@ -130,7 +139,28 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 			return fmt.Errorf("patching clsds5000: %w", err)
 		} else if changed {
-			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json")
+			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json, power cycle is required to apply the fix")
+
+			if err := os.WriteFile(filepath.Join(svc.Basedir, RebootRequiredFile), []byte(svc.bootID), 0o644); err != nil { //nolint:gosec
+				return fmt.Errorf("writing reboot-required: %w", err)
+			}
+		}
+
+		rebootReqPath := filepath.Join(svc.Basedir, RebootRequiredFile)
+		if data, err := os.ReadFile(rebootReqPath); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("reading reboot-required file: %w", err)
+			}
+		} else {
+			if string(data) == svc.bootID {
+				svc.rebootRequired = true
+			} else {
+				if err := os.Remove(rebootReqPath); err != nil {
+					slog.Warn("Failed to remove reboot-required, ignoring", "path", rebootReqPath)
+				} else {
+					slog.Info("Removed stale reboot-required", "path", rebootReqPath)
+				}
+			}
 		}
 
 		isCls := false
@@ -391,12 +421,6 @@ func (svc *Service) setInstallAndRunIDs() error {
 	} else {
 		svc.installID = strings.TrimSpace(string(installID))
 	}
-
-	bootID, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
-	if err != nil {
-		return errors.Wrapf(err, "failed to read boot ID")
-	}
-	svc.bootID = strings.TrimSpace(string(bootID))
 
 	slog.Info("IDs", "install", svc.installID, "boot", svc.bootID, "run", svc.runID)
 
@@ -690,15 +714,6 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	}
 
 	if reboot {
-		slog.Info("Rebooting in 5 seconds")
-		time.Sleep(5 * time.Second)
-
-		cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
-		err := cmd.Run()
-		if err != nil {
-			slog.Warn("Failed to send wall message", "err", err)
-		}
-
 		if err := doRebootNow(ctx); err != nil {
 			return err
 		}
@@ -734,7 +749,16 @@ func doRebootNow(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "reboot")
+	cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
+	err := cmd.Run()
+	if err != nil {
+		slog.Warn("Failed to send wall message", "err", err)
+	}
+
+	slog.Info("Rebooting in 5 seconds")
+	time.Sleep(5 * time.Second)
+
+	cmd = exec.CommandContext(ctx, "reboot")
 	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "reboot: ")
 	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "reboot: ")
 
