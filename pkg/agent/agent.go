@@ -33,6 +33,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/clsds5000"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
@@ -122,6 +123,14 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				return errors.Wrap(err, "failed to ensure control link at startup")
 			}
 			slog.Info("Initial control link configuration applied")
+		}
+
+		if changed, err := clsds5000.Patch(); err != nil {
+			slog.Error("Failed to patch Celestica DS5000 switch pddf-device.json", "err", err)
+
+			return fmt.Errorf("patching clsds5000: %w", err)
+		} else if changed {
+			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json")
 		}
 
 		isCls := false
