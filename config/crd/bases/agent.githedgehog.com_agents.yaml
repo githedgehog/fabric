@@ -49,6 +49,9 @@ spec:
     - jsonPath: .status.version
       name: Version
       type: string
+    - jsonPath: .status.rebootRequired
+      name: RebootReq
+      type: string
     - jsonPath: .status.state.nos.softwareVersion
       name: Software
       priority: 1
@@ -1900,6 +1903,9 @@ spec:
                 description: Time of the last heartbeat from the agent
                 format: date-time
                 type: string
+              rebootRequired:
+                description: RebootRequired indicates whether a reboot is required
+                type: boolean
               runID:
                 description: ID of the agent run, used to track agent restarts
                 type: string

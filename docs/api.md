@@ -84,6 +84,7 @@ _Appears in:_
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
 | `state` _[SwitchState](#switchstate)_ | Detailed switch state updated with each heartbeat |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
+| `rebootRequired` _boolean_ | RebootRequired indicates whether a reboot is required |  |  |
 
 
 #### BGPMessages

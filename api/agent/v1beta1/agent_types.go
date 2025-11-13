@@ -152,6 +152,8 @@ type AgentStatus struct {
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
 	// Conditions of the agent, includes readiness marker for use with kubectl wait
 	Conditions []kmetav1.Condition `json:"conditions"`
+	// RebootRequired indicates whether a reboot is required
+	RebootRequired bool `json:"rebootRequired,omitempty"`
 }
 
 type SwitchState struct {
@@ -553,6 +555,7 @@ type SwitchStateCRMStats struct {
 // +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0
 // +kubebuilder:printcolumn:name="CurrentG",type=integer,JSONPath=`.metadata.generation`,priority=0
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
+// +kubebuilder:printcolumn:name="RebootReq",type=string,JSONPath=`.status.rebootRequired`,priority=0
 // +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.state.nos.softwareVersion`,priority=1
 // +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
 // +kubebuilder:printcolumn:name="AttemptG",type=integer,JSONPath=`.status.lastAttemptGen`,priority=2
