@@ -29,6 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+const MaxIPv4NamespaceSubnets = 10
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // IPv4NamespaceSpec defines the desired state of IPv4Namespace
@@ -126,10 +128,11 @@ func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		subnets = append(subnets, ipNet)
 	}
 
-	// this limit is imposed by how we index ACL rules to prevent traffic local to
-	// the VPC from being peered via the external peering
-	if len(subnets) > 64 {
-		return nil, errors.Errorf("too many subnets defined (%d), maximum is 64", len(subnets))
+	// we need ACLs between each source/destination subnet of a namespace
+	// to prevent traffic local to it from being peered via the external.
+	// ACLs are limited so let's err on the side of caution
+	if len(subnets) > MaxIPv4NamespaceSubnets {
+		return nil, errors.Errorf("too many subnets defined (%d), maximum is %d", len(subnets), MaxIPv4NamespaceSubnets)
 	}
 
 	if err := iputil.VerifyNoOverlap(subnets); err != nil {
