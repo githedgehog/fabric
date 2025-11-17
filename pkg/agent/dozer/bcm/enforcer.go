@@ -114,11 +114,6 @@ const (
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate
 
-	ActionWeightACLBaseUpdate
-	ActionWeightACLInterfaceUpdate
-	ActionWeightACLEntryDelete
-	ActionWeightACLEntryUpdate
-
 	ActionWeightNATBaseUpdate
 	ActionWeightNATPoolUpdate
 	ActionWeightNATBindingUpdate
@@ -155,6 +150,11 @@ const (
 	ActionWeightVRFBGPImportVRFUpdate
 
 	ActionWeightDHCPRelayUpdate
+
+	ActionWeightACLBaseUpdate
+	ActionWeightACLEntryDelete
+	ActionWeightACLEntryUpdate
+	ActionWeightACLInterfaceUpdate
 
 	// Deletes:
 
