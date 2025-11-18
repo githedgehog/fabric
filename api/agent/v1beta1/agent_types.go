@@ -549,7 +549,6 @@ type SwitchStateCRMStats struct {
 // +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
 // +kubebuilder:printcolumn:name="HWSKU",type=string,JSONPath=`.status.state.nos.hwskuVersion`,priority=1
-// +kubebuilder:printcolumn:name="ASIC",type=string,JSONPath=`.status.state.nos.asicVersion`,priority=1
 // +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=1
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
 // +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0
