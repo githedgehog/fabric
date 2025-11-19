@@ -44,7 +44,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
           cache: true
 
       - name: Create k8s Kind Cluster
@@ -85,7 +85,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
           cache: true
 
       - name: Setup Just
@@ -267,7 +267,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
           cache: true
 
       - name: Login to ghcr.io
