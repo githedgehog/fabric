@@ -556,12 +556,12 @@ func (p *BroadcomProcessor) updateTransceiverMetrics(ctx context.Context, reg *s
 
 		if ocSt.Temperature != nil {
 			reg.TransceiverMetrics.Temperature.WithLabelValues(transceiverName).Set(*ocSt.Temperature)
-			st.Temperature = *ocSt.Temperature
+			st.Temperature = cleanupFloat(*ocSt.Temperature)
 		}
 
 		if ocSt.Voltage != nil {
 			reg.TransceiverMetrics.Voltage.WithLabelValues(transceiverName).Set(*ocSt.Voltage)
-			st.Voltage = *ocSt.Voltage
+			st.Voltage = cleanupFloat(*ocSt.Voltage)
 		}
 
 		swState.Transceivers[transceiverName] = st
@@ -938,7 +938,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse fan speed", "fan", fanName, "speed", *fan.Speed)
 				} else {
 					reg.PlatformMetrics.Fan.Speed.WithLabelValues(fanName).Set(speed)
-					st.Speed = speed
+					st.Speed = cleanupFloat(speed)
 				}
 			}
 
@@ -984,7 +984,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse psu input current", "psu", psuName, "input_current", *psu.InputCurrent)
 				} else {
 					reg.PlatformMetrics.PSU.InputCurrent.WithLabelValues(psuName).Set(val)
-					st.InputCurrent = val
+					st.InputCurrent = cleanupFloat(val)
 				}
 			}
 
@@ -994,7 +994,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse psu input power", "psu", psuName, "input_power", *psu.InputPower)
 				} else {
 					reg.PlatformMetrics.PSU.InputPower.WithLabelValues(psuName).Set(val)
-					st.InputPower = val
+					st.InputPower = cleanupFloat(val)
 				}
 			}
 
@@ -1004,7 +1004,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse psu input voltage", "psu", psuName, "input_voltage", *psu.InputVoltage)
 				} else {
 					reg.PlatformMetrics.PSU.InputVoltage.WithLabelValues(psuName).Set(val)
-					st.InputVoltage = val
+					st.InputVoltage = cleanupFloat(val)
 				}
 			}
 
@@ -1014,7 +1014,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse psu output current", "psu", psuName, "output_current", *psu.OutputCurrent)
 				} else {
 					reg.PlatformMetrics.PSU.OutputCurrent.WithLabelValues(psuName).Set(val)
-					st.OutputCurrent = val
+					st.OutputCurrent = cleanupFloat(val)
 				}
 			}
 
@@ -1024,7 +1024,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse psu output power", "psu", psuName, "output_power", *psu.OutputPower)
 				} else {
 					reg.PlatformMetrics.PSU.OutputPower.WithLabelValues(psuName).Set(val)
-					st.OutputPower = val
+					st.OutputPower = cleanupFloat(val)
 				}
 			}
 
@@ -1034,7 +1034,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse psu output voltage", "psu", psuName, "output_voltage", *psu.OutputVoltage)
 				} else {
 					reg.PlatformMetrics.PSU.OutputVoltage.WithLabelValues(psuName).Set(val)
-					st.OutputVoltage = val
+					st.OutputVoltage = cleanupFloat(val)
 				}
 			}
 
@@ -1056,7 +1056,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse temperature", "temperature", *temp.Temperature)
 				} else {
 					reg.PlatformMetrics.Temperature.Temperature.WithLabelValues(tempName).Set(val)
-					st.Temperature = val
+					st.Temperature = cleanupFloat(val)
 				}
 			}
 
@@ -1070,7 +1070,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse temperature high threshold", "high_threshold", *temp.HighThreshold)
 				} else {
 					reg.PlatformMetrics.Temperature.HighThreshold.WithLabelValues(tempName).Set(val)
-					st.HighThreshold = val
+					st.HighThreshold = cleanupFloat(val)
 				}
 			}
 
@@ -1080,7 +1080,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse temperature low threshold", "low_threshold", *temp.LowThreshold)
 				} else {
 					reg.PlatformMetrics.Temperature.LowThreshold.WithLabelValues(tempName).Set(val)
-					st.LowThreshold = val
+					st.LowThreshold = cleanupFloat(val)
 				}
 			}
 
@@ -1090,7 +1090,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse temperature critical high threshold", "critical_high_threshold", *temp.CriticalHighThreshold)
 				} else {
 					reg.PlatformMetrics.Temperature.CriticalHighThreshold.WithLabelValues(tempName).Set(val)
-					st.CriticalHighThreshold = val
+					st.CriticalHighThreshold = cleanupFloat(val)
 				}
 			}
 
@@ -1100,7 +1100,7 @@ func (p *BroadcomProcessor) updatePlatformMetrics(ctx context.Context, agent *ag
 					slog.Warn("failed to parse temperature critical low threshold", "critical_low_threshold", *temp.CriticalLowThreshold)
 				} else {
 					reg.PlatformMetrics.Temperature.CriticalLowThreshold.WithLabelValues(tempName).Set(val)
-					st.CriticalLowThreshold = val
+					st.CriticalLowThreshold = cleanupFloat(val)
 				}
 			}
 
@@ -1189,7 +1189,7 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *swi
 				}
 
 				if ocSt.CableLength != nil {
-					st.CableLength = *ocSt.CableLength
+					st.CableLength = cleanupFloat(*ocSt.CableLength)
 				}
 
 				if ocSt.SerialNo != nil {
@@ -1554,7 +1554,7 @@ func unptrUint32(u *uint32) uint32 {
 
 func unptrFloat64(f *float64) float64 {
 	if f != nil {
-		return *f
+		return cleanupFloat(*f)
 	}
 
 	return 0
@@ -1562,7 +1562,7 @@ func unptrFloat64(f *float64) float64 {
 
 func uint32ptrAsFloat64(u *uint32) float64 {
 	if u != nil {
-		return float64(*u)
+		return cleanupFloat(float64(*u))
 	}
 
 	return 0
@@ -1689,4 +1689,12 @@ func normBreakoutName(transceiverName string) (string, bool) {
 	}
 
 	return transceiverName, true
+}
+
+func cleanupFloat(val float64) float64 {
+	if math.IsInf(val, 0) || math.IsNaN(val) {
+		return 0
+	}
+
+	return val
 }
