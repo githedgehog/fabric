@@ -2283,12 +2283,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("VPC %s not found for VPC peering %s", vpc2Name, peeringName)
 		}
 
-		if vpc1.Mode != vpc2.Mode {
-			slog.Warn("Skipping VPCPeering between VPCs with different modes", "vpc1", vpc1Name, "vpc2", vpc2Name, "mode1", vpc1.Mode, "mode2", vpc2.Mode)
-
-			continue // skip peering between VPCs with different modes
-		}
-
 		switch vpc1.Mode {
 		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
 			if err := planVNIVPCPeering(agent, spec, peeringName, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
