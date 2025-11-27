@@ -69,6 +69,16 @@ spec:
                 description: IPv4Namespace is the name of the IPv4Namespace this External
                   belongs to
                 type: string
+              l2:
+                description: L2 contains L2 specific parameters
+                properties:
+                  prefixes:
+                    description: Prefixes is the list of IPv4 prefixes reachable via
+                      the external
+                    items:
+                      type: string
+                    type: array
+                type: object
               outboundCommunity:
                 description: OutboundCommunity is theoutbound community that all outbound
                   routes will be stamped with (e.g. 50000:50001)
