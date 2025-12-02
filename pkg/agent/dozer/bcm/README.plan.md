@@ -5,21 +5,560 @@ The aim is to detail, for each of the objects in our API (e.g. Connections, VPCs
 pushed onto the switch and why. This will help us to understand the reasoning behind the configuration, and it will guide future
 agent refactors and improvements.
 
+## Switch Invariants
+
+There's quite a bit of basic config that is applied on all switches regardless of the actual connections
+instantiated via the CRDs. To start with:
+
+1. We set the hostname as the switch name in the CRD (e.g. "ds5000-01"):
+    ```
+    hostname <SWITCH_NAME>
+    ```
+1. We enable LLDP and configure some basic parameters:
+    ```
+    lldp timer 5
+    lldp system-name <SWITCH_NAME>
+    lldp system-description "Hedgehog Fabric"
+    ```
+1. We enable IP anycast for both v4 and v6, and setup an anycast mac address (hardcoded for all switches):
+    ```
+    ip anycast-mac-address 00:00:00:11:11:11
+    ip anycast-address enable
+    ipv6 anycast-address enable
+    ```
+1. We create a protocol loopback, which is used as the router-id and source IP for
+BGP sessions:
+    ```
+    interface Loopback 1
+     description "Protocol loopback"
+     ip address 172.30.8.0/32
+    !
+    ```
+1. For leaves, we also create a VTEP loopback, which is used as the source for VxLAN traffic:
+    ```
+    interface Loopback 2
+     description "VTEP loopback"
+     ip address 172.30.12.0/32
+    !
+    ```
+1. We configure the management port, which connects the switch with the controller:
+    ```
+    interface Management0
+     description "Management link"
+     mtu 1500
+     autoneg on
+     speed 1000
+     ip address 172.30.0.7/21
+    !
+    ```
+1. We create the following route-map whose job is to set a higher preference to routes
+matching the all-externals community; we're going to get back to this when we look
+at externals. (**TODO: why do we need this, and why is it called like this?**):
+    ```
+    route-map evpn-default-remote-block permit 65525
+     match community all-externals
+     set local-preference 500
+    !
+    route-map evpn-default-remote-block permit 65535
+    ```
+1. We create the following prefix-list matching any /32 belonging to the VTEP subnet prefix:
+    ```
+    ip prefix-list all-vtep-prefixes seq 10 permit 172.30.12.0/22 le 32
+    ```
+    i.e. `172.30.12.0/22` above is the VTEP Subnet as defined in the Fabric config
+1. We create the following route-map, used on both spines and mesh leaves to filter
+which routes are redistributed, as we will see:
+    ```
+    route-map loopback-all-vteps permit 10
+     match ip address prefix-list all-vtep-prefixes
+    !
+    route-map loopback-all-vteps permit 100
+     match ip address prefix-list static-ext-subnets
+    ```
+1. If the switch is a leaf, as opposed to a spine, we also create the following:
+    ```
+    ip prefix-list vtep-prefix seq 10 permit <SWITCH_VTEP/32> le 32
+    route-map loopback-vtep permit 10
+     match ip address prefix-list vtep-prefix
+    !
+    route-map loopback-vtep permit 100
+     match ip address prefix-list static-ext-subnets
+    ```
+   This is essentially the same as the above, but with only the switch's own VTEP
+   as opposed to any of the /32 in the VTEP Subnet space. Leaves only advertise their
+   own VTEP, spines (and mesh leaves) advertise all of the VTEP they know about as they
+   are transit nodes.
+1. We create the following prefix list and corresponding route-map to only advertise
+the protocol loopback on the fabric point-to-point links between switches:
+    ```
+    ip prefix-list protocol-loopback-prefix seq 10 permit 172.30.8.0/32 le 32
+    route-map protocol-loopback-only permit 10
+     match ip address prefix-list protocol-loopback-prefix
+    !
+    ```
+1. We create the following route-map to filter attached-host routes from BGP exports
+in L2VNI mode (see #vpcs):
+    ```
+    route-map filter-attached-hosts deny 10
+     match source-protocol attached-host
+    !
+    route-map filter-attached-hosts permit 100
+    !
+    ```
+1. We create some basic BGP configuration for the default VRF:
+  - ASN is picked based on the hydration rules and the fabric config
+  - Protocol IP is used as router-id and also advertised in the IPv4 Unicast AF
+  - ECMP of up to 64 paths for eBGP, none for iBGP (which we do not use)
+  - redistribute static and connected routes in default VRF / underlay
+  - enable L2VPN, advertise all VNIs, and duplicate address detection
+    ```
+    router bgp 65101
+     router-id 172.30.8.0
+     log-neighbor-changes
+     timers 60 180
+     !
+     address-family ipv4 unicast
+      redistribute connected
+      redistribute static
+      maximum-paths 64
+      maximum-paths ibgp 1
+      network 172.30.8.0/32
+     !
+     address-family l2vpn evpn
+      advertise-all-vni
+      dup-addr-detection
+    !
+    ```
+1. For leaves, we create the vxlan interface, set its source address to the VTEP
+loopback, and set qos-mode to preserve DSCP markings when encapsulating/decapsulating
+traffic, which is needed for RoCEv2:
+    ```
+    interface vxlan vtepfabric
+     source-ip Loopback2
+     qos-mode pipe dscp 0
+    !
+    ```
+1. We create an empty BFD profile (i.e. with all default values) which we will use
+for the sessions running over spine-leaf links:
+    ```
+    bfd
+     profile fabric
+     !
+    !
+    ```
+1. We configure NTP over the management port towards the controller:
+    ```
+    ntp server 172.30.0.1 minpoll 6 maxpoll 10 prefer true
+    ntp source-interface Management0
+    ```
+
+On top of that, there is some additional configuration generated in response to
+fields of the switch object itself, such as breakouts, port autonegotiation etc.
+These are mostly self-explanatory, so I won't go over them in detail.
+
 ## Connections
 
 ### Fabric Connections (i.e. spine-leaf)
 
+For each link in a fabric connection, we:
+1. configure the corresponding interface on the switch, setting it to admin-up
+and assigning it a /31 IPv4 address from the hydration pool, e.g.:
+    ```
+    interface Ethernet104
+     description "Fabric as7712-03/E1/27 as7712-03--fabric--s5232-03"
+     mtu 9100
+     speed 100000
+     unreliable-los auto
+     no shutdown
+     ip address 172.30.128.5/31
+    ```
+1. create a BGP session in the default VRF with the peer /31 on the other side of
+the fabric link, enabling IPv4 unicast with BFD and advertising our own protocol
+loopback, e.g.:
+    ```
+    neighbor 172.30.128.6
+     description "Fabric as7712-03/E1/28 as7712-03--fabric--s5232-03"
+     remote-as 65100
+     bfd
+     bfd profile fabric
+     !
+     address-family ipv4 unicast
+      activate
+      route-map protocol-loopback-only out
+     !
+     address-family l2vpn evpn
+    !
+    ```
+
+Additionally, once per neighboring node (no matter the number of fabric links to it)
+we create a BGP session with its protocol IP, for which we have learned a route over
+the point-to-point BGP sessions described above. We will use this session for both IPv4
+unicast, where we will advertise VTEPs (all of them for spines, only the leaf's own for leaves),
+and for EVPN, where we will exchange overlay routes. This session will go down if all of the
+point-to-point sessions above are down, which would mean that this switch is no longer able
+to reach this particularneighbor. Allowas-in is required to support remote peering, where
+traffic goes to a remote fabric switch and then comes back, thus creating an ASN loop.
+
+Here's an example config for a leaf:
+```
+neighbor 172.30.8.0
+ description "Fabric as7712-03 loopback (spine-link)"
+ remote-as 65100
+ update-source 172.30.8.3
+ disable-connected-check
+ !
+ address-family ipv4 unicast
+  activate
+  route-map loopback-vtep out
+ !
+ address-family l2vpn evpn
+  activate
+  allowas-in
+  route-map evpn-default-remote-block in
+!
+```
+
+And the corresponding configuration for the spine, the only difference being the v4
+unicast route-map:
+```
+neighbor 172.30.8.3
+ description "Fabric s5232-03 loopback (spine-link)"
+ remote-as 65102
+ update-source 172.30.8.0
+ disable-connected-check
+ !
+ address-family ipv4 unicast
+  activate
+  route-map loopback-all-vteps out
+ !
+ address-family l2vpn evpn
+  activate
+  allowas-in
+  route-map evpn-default-remote-block in
+!
+```
+
 ### Mesh Connections (i.e. leaf-leaf)
+
+Mesh connections are very much similar to fabric ones, with the main difference being
+their symmetry. In practice, the config applied to both mesh leaves is equivalent to that
+of a spine in a fabric connection.
+
+For each link in a mesh connection, we:
+1. configure the corresponding interface on the switch, setting it to admin-up
+and assigning it a /31 IPv4 address from the hydration pool, e.g.:
+    ```
+    interface Ethernet5
+     description "Mesh leaf-02/E1/5 leaf-01--mesh--leaf-02"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     no shutdown
+     ip address 172.30.128.2/31
+    ```
+1. create a BGP session in the default VRF with the peer /31 on the other side of
+the mesh link, enabling IPv4 unicast with BFD and advertising our own protocol
+loopback, e.g.:
+    ```
+    neighbor 172.30.128.3
+     description "Fabric leaf-02/E1/5 leaf-01--mesh--leaf-02"
+     remote-as 65102
+     bfd
+     bfd profile fabric
+     !
+     address-family ipv4 unicast
+      activate
+      route-map protocol-loopback-only out
+     !
+     address-family l2vpn evpn
+    !
+    ```
+
+Additionally, once per neighboring node (no matter the number of mesh links to it)
+we create a BGP session with its protocol IP, for which we have learned a route over
+the point-to-point BGP sessions described above. We will use this session for both IPv4
+unicast, where we will advertise all VTEPs we know about, and for EVPN, where we will
+exchange overlay routes. This session will go down if all of the point-to-point sessions
+above are down, which would mean that this leaf is no longer able to reach this particular
+neighbor. Allowas-in is required to support remote peering, where traffic goes to a remote
+fabric switch and then comes back, thus creating an ASN loop.
+```
+neighbor 172.30.8.2
+  description "Fabric leaf-03 loopback (mesh)"
+  remote-as 65103
+  update-source 172.30.8.0
+  disable-connected-check
+  !
+  address-family ipv4 unicast
+   activate
+   route-map loopback-all-vteps out
+  !
+  address-family l2vpn evpn
+   activate
+   allowas-in
+   route-map evpn-default-remote-block in
+ !
+```
+
+### MCLAGDomain Connections
+
+These are processed on switches that belong to a redundancy group of type MCLAG.
+Each MCLAGDomain connection defines a pair of switches that act like a single logical
+switch, and the connectiosn between them. Specifically:
+1. for each of the links defined in the `peerLinks` section of the CRD, we will add
+those interfaces to a port channel, e.g.:
+    ```
+    interface Ethernet120
+     description "PC250 MCLAG peer s5248-06/E1/55/1"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     channel-group 250
+     no shutdown
+    ```
+    and configure that port channel so that it can carry traffic from any usable VLAN,
+    in case the MCLAG peer gets disconnected:
+    ```
+    interface PortChannel250
+     description "MCLAG peer s5248-06"
+     switchport trunk allowed Vlan 2-4094
+     no shutdown
+    ```
+1. for each of the links defined in the `sessionLinks` section, we will similarly add
+these to a port channel, e.g.:
+    ```
+    interface Ethernet122
+     description "PC251 MCLAG session s5248-06/E1/55/3"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     channel-group 251
+     no shutdown
+    ```
+    and configure each end of that port channel with addresses from a /31 prefix; these
+    channels are going to be used to exchange keepalives between the MCLAG peers, so that
+    they can monitor each other's health.
+    ```
+    interface PortChannel251
+     description "MCLAG session s5248-06"
+     no shutdown
+     ip address 172.30.95.0/31
+    ```
+1. each MCLAGDomain object identifies an MCLAG domain, which is configured on both
+peering switches with some self-explainatory parameters:
+    ```
+    mclag domain 100
+     source-ip 172.30.95.0
+     peer-ip 172.30.95.1
+     peer-link PortChannel250
+     keepalive-interval 1
+     session-timeout 30
+     delay-restore 300
+     backup-keepalive interval 30
+    ```
+1. we create a BGP session in the default VRF with the MCLAG peer. **TODO: why? the BCM
+User Guide only mentions a BGP session for keepalives via the spine, but we always assume
+a direct session connection between the peers**
+    ```
+    [...]
+    neighbor 172.30.95.1
+     description "MCLAG session s5248-06"
+     remote-as internal
+     !
+     address-family ipv4 unicast
+      activate
+     !
+     address-family l2vpn evpn
+    !
+    ```
+1. we configure link state tracking; that is, we identify each link towards the spine
+(or towards another mesh leaf, for mesh topologies) as belonging to a `spinelink` group:
+    ```
+    interface Ethernet104
+     description "Fabric as7712-03/E1/27 as7712-03--fabric--s5232-03"
+     [...]
+     link state track spinelink upstream
+    ```
+    and then configure the switch to shutdown all downstream MCLAG connections
+    if it detects that all of the interfaces in the link state group are down:
+    ```
+    link state track spinelink
+     timeout 5
+     downstream all-mclag
+    ```
 
 ### MCLAG Connections
 
+For each of the leaves in an MCLAG connection and each of the links, we will
+configure that interface to be part of a port channel, and add that port channel
+to the leaf MCLAG domain, e.g.:
+```
+interface Ethernet4
+ description "PC1 MCLAG server-01 server-01--mclag--leaf-01--leaf-02"
+ mtu 9036
+ speed 25000
+ unreliable-los auto
+ channel-group 1
+ no shutdown
+!
+interface PortChannel1
+ description "MCLAG server-01 server-01--mclag--leaf-01--leaf-02"
+ mtu 9036
+ no shutdown
+ mclag 100
+```
+
 ### ESLAG Connections
 
-### Bundled and Unbundled Connections
+For each of the leaves in an ESLAG connection and each of the links, we will
+configure that interface to be part of a port channel, and assign that port channel
+to an EVPN ethernet segment, e.g.:
+```
+interface Ethernet0
+ description "PC2 ESLAG server-05 server-05--eslag--leaf-03--leaf-04"
+ mtu 9036
+ speed 25000
+ unreliable-los auto
+ channel-group 2
+ no shutdown
+!
+interface PortChannel2
+ description "ESLAG server-05 server-05--eslag--leaf-03--leaf-04"
+ mtu 9036
+ no shutdown
+ system-mac f2:00:00:00:00:01
+ !
+ evpn ethernet-segment 00:f2:00:00:f2:00:00:00:00:01
+```
+The ethernet segment is created from:
+- the ESLAGESIPrefix, which comes from the config and is defaulted in fabricator
+to `00:f2:00:00:`
+-  the ESLAGMACBase, which also comes from config and is defaulted in fabricator
+to `f2:00:00:00:00:00`
+- the connection id, which is allocated by the librarian and replaces the end of
+the ESLAGMACBase
+
+The system-mac is the ethernet segment minus the ESLAGESIPrefix.
+
+*Note: there are other types of ES-ID which are autogenerated and would potentially
+simplifies the config; we should at some point investigate them.*
+
+On top of that, there is some config that is applied on all switches that belong to
+a redundancy group of type ESLAG, regardless of the specific connection instances:
+1. We configure some basic parameters of EVPN multihoming. The startup delay is an
+initial interval of time during the VTEP bootup process where the ESLAG interfaces
+are brought administratively down to avoid traffic loss; during this initial time,
+traffic from the multihomed servers is not load-balanced between the ESLAG servers.
+The holdtime is the time in seconds to wait before the switch ages out MAC addresses
+of downstream devices that are learned from the multihomed VTEP and that have not
+been used.
+    ```
+    evpn esi-multihoming
+     mac-holdtime 60
+     startup-delay 60
+    ```
+1. Similarly as for MCLAG, we configure link state tracking for spine / mesh upstream
+links, and shutdown the downstream links towards the ethernet segments if they all go down:
+    ```
+    link state track spinelink
+     timeout 60
+     downstream all-evpn-es
+    ```
+
+### Bundled Connections
+
+For each bundled connections we create a port channel and set all of the
+interfaces that are part of the bundle as part of that port channel, e.g.:
+```
+interface Ethernet32
+ description "PC1 Bundled server-2 server-2--bundled--ds5000-01"
+ mtu 9036
+ speed auto
+ fec RS
+ unreliable-los auto
+ channel-group 1
+ no shutdown
+!
+interface Ethernet36
+ description "PC1 Bundled server-2 server-2--bundled--ds5000-01"
+ mtu 9036
+ speed auto
+ fec RS
+ unreliable-los auto
+ channel-group 1
+ no shutdown
+!
+interface PortChannel1
+ description "Bundled server-2 server-2--bundled--ds5000-01"
+ mtu 9036
+ no shutdown
+```
+
+### Unbundled Connections
+
+For unbundled connections we just set the interface on the leaf as admin-up
+and configure some basic parameters, e.g.:
+```
+interface Ethernet4
+ description "Unbundled server-04 server-04--unbundled--leaf-01"
+ mtu 9036
+ speed 25000
+ unreliable-los auto
+ no shutdown
+```
 
 ### External Connections
 
+An external connection represents a BGP speaker with which we want to establish
+a session, exchanging routes using BGP communities as a filter. The external connection
+is just the first part of the puzzle, and contains information on the interface over
+which the session will be established. The result is just setting that interface up
+and adding some description.
+```
+interface Ethernet513
+ description "External ds5000-01--external--5835"
+ mtu 9100
+ speed 10000
+ unreliable-los auto
+ no shutdown
+```
+
+Mostly, the connection serves as a base for external attachments, which we will cover
+in the [Externals](#externals) section.
+
 ### Static Externals
+
+For each static external object we configure the corresponding switch interface,
+with some nuances:
+- if `vlan` is non-zero, we create a subinterface with that VLAN, else
+we configure the parent interface;
+- if `withinVPC` is non null, we enslave the interface or sub-interface
+to the VPC VRF.
+
+We also create static ip route (in the VPC VRF if `withinVPC` is non null,
+else in the default VRF) for each of the prefixes in the `subnets` list,
+with the `nextHop` specified in the static external object.
+
+Finally, we populate a prefix list with the network prefix of the `ip` field
+and with all of the `subnets` listed; this prefix list is used in route maps
+to filter the connected and static routes we redistribute in BGP, so essentially
+this makes sure that these routes are riditributed to peers accordingly.
+```
+interface Ethernet0
+ description "StaticExt release-test--static-external--ds5000-02"
+ mtu 9036
+ speed auto
+ fec RS
+ unreliable-los auto
+ no shutdown
+ ip vrf forwarding VrfVvpc-01
+ ip address 172.31.255.5/24
+!
+ip route vrf VrfVvpc-01 10.199.0.100/32 172.31.255.1 interface Ethernet0
+!
+ip prefix-list vpc-static-ext-subnets--vpc-01 seq 105 permit 172.31.255.0/24 le 24
+ip prefix-list vpc-static-ext-subnets--vpc-01 seq 106 permit 10.199.0.100/32 le 32
+```
 
 ## VPCs
 
@@ -48,7 +587,7 @@ to a connection which belongs to it (i.e. where one of the two endpoints is a po
       ip dhcp-relay vrf-select
       ip attached-host advertise 250
     ```
-1. The VLAN above is enabled on the physical interface corresponding to the connection attached to the VPC, e.g. assuming this was Ethernet4:
+1. The VLAN above is enabled on the physical interface (or port channel) corresponding to the connection attached to the VPC, e.g. assuming this was Ethernet4:
     ```
     interface Ethernet4
       [..]
@@ -287,6 +826,39 @@ And of course we would do something similar on `vpc-02` side.
 ### BGP speaking Externals
 
 #### The External object
+
+```
+bgp community-list standard all-externals permit 65102:5001
+bgp community-list standard ext-inbound--default permit 65102:5001
+bgp community-list standard ipns-ext-communities--default permit 65102:5001
+```
+
+```
+router bgp 65103 vrf VrfEdefault
+ router-id 172.30.8.2
+ log-neighbor-changes
+ timers 60 180
+ !
+ address-family ipv4 unicast
+  maximum-paths 64
+  maximum-paths ibgp 1
+  import vrf route-map ipns-subnets--default
+ !
+ address-family l2vpn evpn
+  advertise ipv4 unicast route-map ext-inbound--default
+  dup-addr-detection
+ !
+ neighbor 100.150.0.6
+  description "External attach ds5000-01--default"
+  remote-as 64102
+  !
+  address-family ipv4 unicast
+   activate
+   route-map ext-inbound--default in
+   route-map ext-outbound--default out
+  !
+  address-family l2vpn evpn
+```
 
 #### External Attachments
 
