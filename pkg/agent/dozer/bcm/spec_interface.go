@@ -347,6 +347,12 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 		if err := specInterfaceSubinterfaceBaseEnforcer.Handle(basePath, idx, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface base")
 		}
+		ipv6Path := basePath + "/ipv6/config/enabled"
+		actualV6, desiredV6 := ValueOrNil(actual, desired,
+			func(value *dozer.SpecSubinterface) *dozer.SpecInterfaceIPv6 { return value.IPv6 })
+		if err := specInterfaceSubinterfaceIPv6Enforcer.Handle(ipv6Path, idx, actualV6, desiredV6, actions); err != nil {
+			return errors.Wrap(err, "failed to handle subinterface ipv6")
+		}
 
 		if err := specInterfaceSubinterfaceProxyARPEnforcer.Handle(basePath, idx, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface Proxy ARP")
@@ -365,6 +371,21 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 		}
 
 		return nil // TODO
+	},
+}
+
+var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecInterfaceIPv6]{
+	Summary:      "Subinterface %d IPv6 Enable",
+	NoReplace:    true,
+	UpdateWeight: ActionWeightInterfaceSubinterfaceIPv6Update,
+	DeleteWeight: ActionWeightInterfaceSubinterfaceIPv6Delete,
+	Marshal: func(idx uint32, value *dozer.SpecInterfaceIPv6) (ygot.ValidatedGoStruct, error) {
+		cfg := &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv6_Config{}
+		if value != nil && value.Enabled != nil {
+			cfg.Enabled = value.Enabled
+		}
+
+		return cfg, nil
 	},
 }
 
@@ -766,6 +787,13 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 						if err != nil {
 							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
 						}
+					}
+				}
+
+				// only set this if it exists and it is true
+				if sub.Ipv6 != nil && sub.Ipv6.Config != nil && sub.Ipv6.Config.Enabled != nil && *sub.Ipv6.Config.Enabled {
+					subIface.IPv6 = &dozer.SpecInterfaceIPv6{
+						Enabled: pointer.To(true),
 					}
 				}
 

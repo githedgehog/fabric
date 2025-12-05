@@ -104,6 +104,7 @@ const (
 	ActionWeightInterfaceVLANStaticARPDelete
 	ActionWeightInterfaceSubinterfaceStaticARPDelete
 	ActionWeightVRFAttachedHostDelete
+	ActionWeightInterfaceSubinterfaceIPv6Delete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightACLInterfaceDelete
 	ActionWeightInterfaceSubinterfaceDelete
@@ -111,6 +112,7 @@ const (
 	ActionWeightInterfaceVLANStaticARPUpdate
 	ActionWeightInterfaceSubinterfaceStaticARPUpdate
 	ActionWeightVRFInterfaceUpdate
+	ActionWeightInterfaceSubinterfaceIPv6Update
 	ActionWeightVRFAttachedHostUpdate
 	ActionWeightInterfaceSubinterfaceIPsUpdate
 

@@ -142,12 +142,17 @@ type SpecInterfaceIP struct {
 	Secondary *bool  `json:"secondary,omitempty"`
 }
 
+type SpecInterfaceIPv6 struct {
+	Enabled *bool `json:"ipv6Enabled,omitempty"`
+}
+
 type SpecSubinterface struct {
 	VLAN            *uint16                     `json:"vlan,omitempty"`
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
 	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
 	ProxyARP        *SpecProxyARP               `json:"proxyARP,omitempty"`
 	StaticARPs      map[string]*SpecStaticARP   `json:"staticARPs,omitempty"`
+	IPv6            *SpecInterfaceIPv6          `json:"ipv6,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
@@ -694,5 +699,9 @@ func (s *SpecLSTInterface) IsNil() bool {
 }
 
 func (s *SpecBFDProfile) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecInterfaceIPv6) IsNil() bool {
 	return s == nil
 }
