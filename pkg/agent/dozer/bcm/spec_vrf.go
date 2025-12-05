@@ -439,6 +439,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						PeerAs:                         remoteAS,
 						PeerType:                       peerType,
 						DisableEbgpConnectedRouteCheck: value.DisableConnectedCheck,
+						CapabilityExtendedNexthop:      value.ExtendedNexthop,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
 						AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{ //nolint:exhaustive,nolintlint
@@ -902,6 +903,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							L2VPNEVPNAllowOwnAS:       l2VPNEVPNAllowOwnAS,
 							BFDProfile:                bfdProfile,
 							DisableConnectedCheck:     neighbor.Config.DisableEbgpConnectedRouteCheck,
+							ExtendedNexthop:           neighbor.Config.CapabilityExtendedNexthop,
 						}
 						if neighbor.Transport != nil && neighbor.Transport.Config != nil {
 							bgp.Neighbors[neighborName].UpdateSource = neighbor.Transport.Config.LocalAddress

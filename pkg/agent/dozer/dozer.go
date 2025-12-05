@@ -218,6 +218,7 @@ type SpecVRFBGPNeighbor struct {
 	BFDProfile                *string  `json:"bfdProfile,omitempty"`
 	DisableConnectedCheck     *bool    `json:"disableConnectedCheck,omitempty"`
 	UpdateSource              *string  `json:"updateSource,omitempty"`
+	ExtendedNexthop           *bool    `json:"extendedNexthop,omitempty"`
 }
 
 const (
