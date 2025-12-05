@@ -91,6 +91,8 @@ type VPCSubnet struct {
 	Isolated *bool `json:"isolated,omitempty"`
 	// Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself
 	Restricted *bool `json:"restricted,omitempty"`
+	// HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range
+	HostBGP bool `json:"hostBGP,omitempty"`
 }
 
 // VPCDHCP defines the on-demand DHCP configuration for the subnet
@@ -272,7 +274,7 @@ func (vpc *VPC) Default() {
 			continue
 		}
 
-		if subnet.Gateway == "" {
+		if subnet.Gateway == "" && !subnet.HostBGP {
 			subnet.Gateway = cidr.Gateway.String()
 		}
 
@@ -383,6 +385,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 
 	subnets := []*net.IPNet{}
 	vlans := map[uint16]bool{}
+	hostBGPSubnets := 0
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
 		if subnetCfg.Subnet == "" {
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
@@ -405,19 +408,30 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			}
 		}
 
-		if subnetCfg.Gateway == "" {
-			return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
-		}
+		var gateway net.IP
+		if subnetCfg.HostBGP {
+			hostBGPSubnets++
+			if subnetCfg.VLAN != 0 {
+				return nil, errors.Errorf("subnet %s: vlan should not be set for hostBGP subnets", subnetName)
+			}
+			if subnetCfg.DHCP.Enable {
+				return nil, errors.Errorf("subnet %s: dhcp should not be enabled for hostBGP subnets", subnetName)
+			}
+		} else {
+			if subnetCfg.Gateway == "" {
+				return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
+			}
 
-		gateway := net.ParseIP(subnetCfg.Gateway)
-		if !ipNet.Contains(gateway) {
-			return nil, errors.Errorf("subnet %s: gateway %s is not in the subnet", subnetName, subnetCfg.Gateway)
-		}
+			gateway = net.ParseIP(subnetCfg.Gateway)
+			if !ipNet.Contains(gateway) {
+				return nil, errors.Errorf("subnet %s: gateway %s is not in the subnet", subnetName, subnetCfg.Gateway)
+			}
 
-		if subnetCfg.VLAN == 0 {
-			return nil, errors.Errorf("subnet %s: vlan is required", subnetName)
+			if subnetCfg.VLAN == 0 {
+				return nil, errors.Errorf("subnet %s: vlan is required", subnetName)
+			}
+			vlans[subnetCfg.VLAN] = true
 		}
-		vlans[subnetCfg.VLAN] = true
 
 		subnets = append(subnets, ipNet)
 
@@ -597,7 +611,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 	}
 
-	if len(vlans) != len(vpc.Spec.Subnets) {
+	if len(vlans) != len(vpc.Spec.Subnets)-hostBGPSubnets {
 		return nil, errors.Errorf("duplicate subnet VLANs")
 	}
 
@@ -690,7 +704,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to the IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
 			}
 
-			if !vlanNs.Spec.Contains(subnetCfg.VLAN) {
+			if !subnetCfg.HostBGP && !vlanNs.Spec.Contains(subnetCfg.VLAN) {
 				return nil, errors.Errorf("vpc subnet %s (%s) vlan %d doesn't belong to the VLANNamespace %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN, vpc.Spec.VLANNamespace)
 			}
 		}

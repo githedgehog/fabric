@@ -237,6 +237,10 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 		if err := specInterfaceSubinterfaceBaseEnforcer.Handle(basePath, idx, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface base")
 		}
+		ipv6Path := basePath + "/ipv6/config"
+		if err := specInterfaceSubinterfaceIPv6Enforcer.Handle(ipv6Path, idx, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle subinterface ipv6")
+		}
 
 		actualIPs, desiredIPs := ValueOrNil(actual, desired,
 			func(value *dozer.SpecSubinterface) map[string]*dozer.SpecInterfaceIP { return value.IPs })
@@ -245,6 +249,23 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 		}
 
 		return nil // TODO
+	},
+}
+
+var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
+	Summary:      "Subinterface %d IPv6 Enable",
+	NoReplace:    true,
+	UpdateWeight: ActionWeightInterfaceSubinterfaceIPv6Update,
+	DeleteWeight: ActionWeightInterfaceSubinterfaceIPv6Delete,
+	Marshal: func(idx uint32, value *dozer.SpecSubinterface) (ygot.ValidatedGoStruct, error) {
+		ipv6 := &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv6{}
+		if value.Ipv6Enabled != nil {
+			ipv6.Config = &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv6_Config{
+				Enabled: value.Ipv6Enabled,
+			}
+		}
+
+		return ipv6, nil
 	},
 }
 
@@ -610,6 +631,11 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
 						}
 					}
+				}
+
+				// only set this if it exitsts and it is true
+				if sub.Ipv6 != nil && sub.Ipv6.Config != nil && sub.Ipv6.Config.Enabled != nil && *sub.Ipv6.Config.Enabled {
+					subIface.Ipv6Enabled = sub.Ipv6.Config.Enabled
 				}
 
 				iface.Subinterfaces[id] = subIface

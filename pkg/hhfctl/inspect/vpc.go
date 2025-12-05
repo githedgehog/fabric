@@ -61,8 +61,12 @@ func (out *VPCOut) MarshalText(_ VPCIn, now time.Time) (string, error) {
 
 		str.WriteString(fmt.Sprintf("  %s:\n", subnetName))
 		str.WriteString(fmt.Sprintf("    Subnet: %s\n", subnetSpec.Subnet))
-		str.WriteString(fmt.Sprintf("    Gateway: %s\n", subnetSpec.Gateway))
-		str.WriteString(fmt.Sprintf("    VLAN: %d\n", subnetSpec.VLAN))
+		if subnetSpec.HostBGP {
+			str.WriteString("    HostBGP: true\n")
+		} else {
+			str.WriteString(fmt.Sprintf("    Gateway: %s\n", subnetSpec.Gateway))
+			str.WriteString(fmt.Sprintf("    VLAN: %d\n", subnetSpec.VLAN))
+		}
 
 		access, ok := out.Access[subnetName]
 		if !ok {
