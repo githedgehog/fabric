@@ -210,6 +210,11 @@ spec:
                         the first IP (e.g. 10.0.0.1) in the subnet is used as the
                         gateway
                       type: string
+                    hostBGP:
+                      description: HostBGP is the flag to set this Subnet as dedicated
+                        to BGP speaking hosts advertising their VIPs within the subnet's
+                        IP range
+                      type: boolean
                     isolated:
                       description: Isolated is the flag to enable isolated mode for
                         the subnet which means no access to and from the other subnets
