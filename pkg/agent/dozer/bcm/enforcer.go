@@ -102,12 +102,14 @@ const (
 	ActionWeightInterfaceSubinterfaceIPsDelete
 	ActionWeghtInterfaceStaticARPDelete
 	ActionWeightVRFAttachedHostDelete
+	ActionWeightInterfaceSubinterfaceIPv6Delete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightACLInterfaceDelete
 	ActionWeightInterfaceSubinterfaceDelete
 	ActionWeightInterfaceSubinterfaceUpdate
 	ActionWeghtInterfaceStaticARPUpdate
 	ActionWeightVRFInterfaceUpdate
+	ActionWeightInterfaceSubinterfaceIPv6Update
 	ActionWeightVRFAttachedHostUpdate
 	ActionWeightInterfaceSubinterfaceIPsUpdate
 
