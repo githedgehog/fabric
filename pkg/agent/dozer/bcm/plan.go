@@ -1873,14 +1873,16 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return errors.Errorf("VPC %s subnet %s not found", vpcName, subnetName)
 		}
 
-		switch vpc.Mode {
-		case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
-			if err := planVNIVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
-				return errors.Wrapf(err, "failed to plan VPC %s subnet %s", vpcName, subnetName)
-			}
-		case vpcapi.VPCModeL3Flat:
-			if err := planL3FlatVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
-				return errors.Wrapf(err, "failed to plan L3 VPC %s subnet %s", vpcName, subnetName)
+		if !subnet.HostBGP {
+			switch vpc.Mode {
+			case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
+				if err := planVNIVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
+					return errors.Wrapf(err, "failed to plan VPC %s subnet %s", vpcName, subnetName)
+				}
+			case vpcapi.VPCModeL3Flat:
+				if err := planL3FlatVPCSubnet(agent, spec, vpcName, vpc, subnetName, subnet); err != nil {
+					return errors.Wrapf(err, "failed to plan L3 VPC %s subnet %s", vpcName, subnetName)
+				}
 			}
 		}
 
@@ -1937,13 +1939,19 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 			ifaces = append(ifaces, conn.Unbundled.Link.Switch.LocalPortName())
 		}
 
-		for _, iface := range ifaces {
-			if attach.NativeVLAN {
-				spec.Interfaces[iface].AccessVLAN = pointer.To(subnet.VLAN)
-			} else {
-				vlanStr := fmt.Sprintf("%d", subnet.VLAN)
-				if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, vlanStr) {
-					spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, vlanStr)
+		if subnet.HostBGP {
+			if err := planHostBGPSubnet(agent, spec, vpcName, vpc, subnetName, subnet, ifaces); err != nil {
+				return errors.Wrapf(err, "failed to plan HostBGP VPC %s subnet %s", vpcName, subnetName)
+			}
+		} else {
+			for _, iface := range ifaces {
+				if attach.NativeVLAN {
+					spec.Interfaces[iface].AccessVLAN = pointer.To(subnet.VLAN)
+				} else {
+					vlanStr := fmt.Sprintf("%d", subnet.VLAN)
+					if !slices.Contains(spec.Interfaces[iface].TrunkVLANs, vlanStr) {
+						spec.Interfaces[iface].TrunkVLANs = append(spec.Interfaces[iface].TrunkVLANs, vlanStr)
+					}
 				}
 			}
 		}
@@ -1970,6 +1978,11 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		subnet, exists := vpc.Subnets[subnetName]
 		if !exists {
 			return errors.Errorf("VPC %s subnet %s not found", vpcName, subnetName)
+		}
+
+		// no VLAN interface to configure on HostBGP subnets
+		if subnet.HostBGP {
+			continue
 		}
 
 		switch vpc.Mode {
@@ -2026,14 +2039,25 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				if acl, ok := spec.ACLs[aclName]; ok {
 					if len(acl.Entries) == 1 {
 						delete(spec.ACLs, aclName)
+						if subnet.HostBGP {
+							// FIXME: we don't havean easy way to get the interface(s) name here
+							for ifaceName, aclIface := range spec.ACLInterfaces {
+								if aclIface.Ingress != nil && *aclIface.Ingress == aclName {
+									aclIface.Ingress = nil
+									if aclIface.Egress == nil {
+										delete(spec.ACLInterfaces, ifaceName)
+									}
+								}
+							}
+						} else {
+							subnetIface := vlanName(subnet.VLAN)
+							if aclIface, ok := spec.ACLInterfaces[subnetIface]; ok {
+								if aclIface.Ingress != nil && *aclIface.Ingress == aclName {
+									aclIface.Ingress = nil
 
-						subnetIface := vlanName(subnet.VLAN)
-						if aclIface, ok := spec.ACLInterfaces[subnetIface]; ok {
-							if aclIface.Ingress != nil && *aclIface.Ingress == aclName {
-								aclIface.Ingress = nil
-
-								if aclIface.Egress == nil {
-									delete(spec.ACLInterfaces, subnetIface)
+									if aclIface.Egress == nil {
+										delete(spec.ACLInterfaces, subnetIface)
+									}
 								}
 							}
 						}
@@ -2584,6 +2608,87 @@ func addL3FlatVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.S
 					Action:             dozer.SpecACLEntryActionAccept,
 				}
 			}
+		}
+	}
+
+	return nil
+}
+
+func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet, ifaceNames []string) error {
+	vrfName := vpcVrfName(vpcName)
+	_, err := iputil.ParseCIDR(subnet.Subnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse hostBGP subnet %s for VPC %s", subnet.Subnet, vpcName)
+	}
+
+	// create prefix list matching /32s in this subnet prefix
+	plName := vpcSubnetVIPsOnlyPrefixListName(vpcName, subnetName)
+	spec.PrefixLists[plName] = &dozer.SpecPrefixList{
+		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
+			10: {
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet.Subnet,
+					Ge:     32,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
+			},
+		},
+	}
+
+	// create routemap filtering anything that is not the prefix list above
+	rmName := vpcSubnetVIPsOnlyRouteMapName(vpcName, subnetName)
+	spec.RouteMaps[rmName] = &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: pointer.To(plName)},
+				Result:     dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
+
+	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)
+	spec.ACLs[vpcFilteringACL], err = buildVNIVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to plan VPC filtering ACL for VPC %s hostBGP subnet %s", vpcName, subnetName)
+	}
+
+	// for each of the attachment interfaces on the switch side, enslave them to the VPC VRF and enable IPv6 for BGP unnumbered
+	// then add an unnumbered BGP neighbor on that interface in the VPC VRF instance
+	// finally add the ACL to handle restricted subnets (this will be removed if it's empty)
+	for _, iface := range ifaceNames {
+		spec.VRFs[vrfName].Interfaces[iface] = &dozer.SpecVRFInterface{}
+		if spec.Interfaces[iface].Subinterfaces == nil {
+			spec.Interfaces[iface].Subinterfaces = map[uint32]*dozer.SpecSubinterface{
+				0: {},
+			}
+		}
+		subIf0, ok := spec.Interfaces[iface].Subinterfaces[0]
+		if !ok {
+			spec.Interfaces[iface].Subinterfaces[0] = &dozer.SpecSubinterface{}
+			subIf0 = spec.Interfaces[iface].Subinterfaces[0]
+		}
+		subIf0.IPv6 = &dozer.SpecInterfaceIPv6{
+			Enabled: pointer.To(true),
+		}
+
+		if spec.VRFs[vrfName].BGP == nil {
+			return errors.Errorf("VRF %s BGP not found when planning hostBGP for VPC %s subnet %s", vrfName, vpcName, subnetName)
+		}
+		if spec.VRFs[vrfName].BGP.Neighbors == nil {
+			spec.VRFs[vrfName].BGP.Neighbors = map[string]*dozer.SpecVRFBGPNeighbor{}
+		}
+		spec.VRFs[vrfName].BGP.Neighbors[iface] = &dozer.SpecVRFBGPNeighbor{
+			Enabled:                   pointer.To(true),
+			Description:               pointer.To(fmt.Sprintf("HostBGP unnumbered %s", iface)),
+			PeerType:                  pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			ExtendedNexthop:           pointer.To(true),
+			IPv4Unicast:               pointer.To(true),
+			IPv4UnicastImportPolicies: []string{rmName},
+		}
+
+		spec.ACLInterfaces[iface] = &dozer.SpecACLInterface{
+			Ingress: pointer.To(vpcFilteringACL),
 		}
 	}
 
@@ -3338,6 +3443,14 @@ func vpcFilteringAccessListName(vpc string, subnet string) string {
 	return fmt.Sprintf("vpc-filtering--%s--%s", vpc, subnet)
 }
 
+func vpcSubnetVIPsOnlyPrefixListName(vpc string, subnet string) string {
+	return fmt.Sprintf("vips-only--%s--%s", vpc, subnet)
+}
+
+func vpcSubnetVIPsOnlyRouteMapName(vpc string, subnet string) string {
+	return fmt.Sprintf("vips-only--%s--%s", vpc, subnet)
+}
+
 func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
 	baseParts := strings.Split(agent.Spec.Config.BaseVPCCommunity, ":")
 	if len(baseParts) != 2 {
@@ -3524,6 +3637,25 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			newIfaces[portName] = iface
 		}
 		vrf.Interfaces = newIfaces
+
+		if vrf.BGP != nil {
+			newBGPNeighbors := map[string]*dozer.SpecVRFBGPNeighbor{}
+			for name, neighbor := range vrf.BGP.Neighbors {
+				newName := name
+				if isHedgehogPortName(name) {
+					newName, err = getNOSPortName(ports, name)
+					if err != nil {
+						return errors.Wrapf(err, "failed to translate port name %s for BGP neighbor in vrf %s", name, vrfName)
+					}
+					if neighbor.Description != nil {
+						neighbor.Description = pointer.To(strings.ReplaceAll(*neighbor.Description, name, newName))
+					}
+				}
+
+				newBGPNeighbors[newName] = neighbor
+			}
+			vrf.BGP.Neighbors = newBGPNeighbors
+		}
 
 		for routeName, route := range vrf.StaticRoutes {
 			for idx, nextHop := range route.NextHops {
