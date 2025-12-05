@@ -135,6 +135,7 @@ type SpecSubinterface struct {
 	VLAN            *uint16                     `json:"vlan,omitempty"`
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
 	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
+	Ipv6Enabled     *bool                       `json:"ipv6Enabled,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
