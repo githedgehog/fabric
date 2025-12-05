@@ -171,9 +171,8 @@ func main() {
 								Required: true,
 							},
 							&cli.StringFlag{
-								Name:     "vlan",
-								Usage:    "vlan",
-								Required: true,
+								Name:  "vlan",
+								Usage: "vlan",
 							},
 							&cli.BoolFlag{
 								Name:  "dhcp",
@@ -207,6 +206,10 @@ func main() {
 							&cli.StringSliceFlag{
 								Name:  "dhcp-advertised-routes",
 								Usage: "custom routes to advertise in dhcp, in the format prefix-gateway, e.g. 8.8.8.0/24-192.168.1.1",
+							},
+							&cli.BoolFlag{
+								Name:  "host-bgp",
+								Usage: "mark the subnet as dedicated to BGP speakers",
 							},
 							printYamlFlag,
 						},
@@ -244,7 +247,8 @@ func main() {
 										AdvertisedRoutes:    advertisedRoutes,
 									},
 								},
-								Mode: vpcapi.VPCMode(cCtx.String("vpc-mode")),
+								Mode:    vpcapi.VPCMode(cCtx.String("vpc-mode")),
+								HostBGP: cCtx.Bool("host-bgp"),
 							}), "failed to create vpc")
 						},
 					},
