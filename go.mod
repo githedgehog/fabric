@@ -24,7 +24,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/olekukonko/tablewriter v1.1.2
 	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.38.3
 	github.com/openconfig/gnmi v0.14.1
 	github.com/openconfig/gnmic v0.32.0
 	github.com/openconfig/ygot v0.32.0
