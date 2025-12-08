@@ -42,7 +42,7 @@ require (
 	go.githedgehog.com/gateway v0.29.0
 	go.githedgehog.com/libmeta v0.3.0
 	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.19.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
