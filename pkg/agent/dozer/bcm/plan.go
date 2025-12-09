@@ -2685,6 +2685,7 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 			ExtendedNexthop:           pointer.To(true),
 			IPv4Unicast:               pointer.To(true),
 			IPv4UnicastImportPolicies: []string{rmName},
+			IPv4ASOverride:            pointer.To(true),
 		}
 
 		spec.ACLInterfaces[iface] = &dozer.SpecACLInterface{
