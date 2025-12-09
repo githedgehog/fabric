@@ -69,6 +69,7 @@ type FabricConfig struct {
 	AgentRepo                string        `json:"agentRepo,omitempty"`
 	VPCIRBVLANRanges         []VLANRange   `json:"vpcIRBVLANRange,omitempty"`
 	VPCPeeringVLANRanges     []VLANRange   `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	TH5WorkaroundVLANRange   []VLANRange   `json:"th5WorkaroundVLANRange"`
 	VPCPeeringDisabled       bool          `json:"vpcPeeringDisabled,omitempty"`
 	ReservedSubnets          []string      `json:"reservedSubnets,omitempty"`
 	Users                    []UserCreds   `json:"users,omitempty"`
@@ -223,6 +224,15 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		}
 		cfg.VPCPeeringVLANRanges = r
 		// TODO check total ranges size and expose as limit for API validation
+	}
+
+	if r, err := NormalizedVLANRanges(cfg.TH5WorkaroundVLANRange); err != nil {
+		return nil, errors.Wrapf(err, "config: th5WorkaroundVLANRange is invalid")
+	} else { //nolint:revive
+		if len(r) == 0 {
+			return nil, errors.Errorf("config: th5WorkaroundVLANRange is required")
+		}
+		cfg.TH5WorkaroundVLANRange = r
 	}
 
 	for _, user := range cfg.Users {
