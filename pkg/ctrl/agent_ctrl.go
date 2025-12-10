@@ -31,6 +31,7 @@ import (
 	fmeta "go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"
 	"go.githedgehog.com/libmeta/pkg/alloy"
@@ -692,7 +693,36 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq)
+	th5WorkaroundReqs := map[string]bool{}
+	var spSpec *wiringapi.SwitchProfileSpec
+
+	if sw.Spec.Profile != "" {
+		sp := &wiringapi.SwitchProfile{}
+		err = r.Get(ctx, ktypes.NamespacedName{Namespace: sw.Namespace, Name: sw.Spec.Profile}, sp)
+		if err != nil {
+			return kctrl.Result{}, errors.Wrapf(err, "error getting switch profile")
+		}
+
+		spSpec = &sp.Spec
+		// TODO validate using current switch profile
+	}
+	if spSpec != nil && spSpec.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
+		// TODO: Verify whether we need to do this also for fabric links
+		for _, conn := range conns {
+			if conn.Mesh == nil {
+				continue
+			}
+			for _, link := range conn.Mesh.Links {
+				if link.Leaf1.DeviceName() == sw.Name {
+					th5WorkaroundReqs[link.Leaf1.LocalPortName()] = true
+				} else {
+					th5WorkaroundReqs[link.Leaf2.LocalPortName()] = true
+				}
+			}
+		}
+	}
+
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq, th5WorkaroundReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
@@ -705,19 +735,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			Role:     user.Role,
 			SSHKeys:  user.SSHKeys,
 		})
-	}
-
-	var spSpec *wiringapi.SwitchProfileSpec
-
-	if sw.Spec.Profile != "" {
-		sp := &wiringapi.SwitchProfile{}
-		err = r.Get(ctx, ktypes.NamespacedName{Namespace: sw.Namespace, Name: sw.Spec.Profile}, sp)
-		if err != nil {
-			return kctrl.Result{}, errors.Wrapf(err, "error getting switch profile")
-		}
-
-		spSpec = &sp.Spec
-		// TODO validate using current switch profile
 	}
 
 	alloyCfg := alloy.Config{
