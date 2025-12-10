@@ -84,6 +84,12 @@ spec:
                   type: integer
                 description: SubnetIDs stores subnet -> ID, unique per switch
                 type: object
+              th5WorkaroundVLANs:
+                additionalProperties:
+                  type: integer
+                description: TH5WorkaroundVLANs stores TH5 workaround mesh link ->
+                  VLAN ID, unique per switch
+                type: object
               vpcSubnetVNIs:
                 additionalProperties:
                   additionalProperties:
