@@ -229,9 +229,10 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 	if r, err := NormalizedVLANRanges(cfg.TH5WorkaroundVLANRange); err != nil {
 		return nil, errors.Wrapf(err, "config: th5WorkaroundVLANRange is invalid")
 	} else { //nolint:revive
-		if len(r) == 0 {
-			return nil, errors.Errorf("config: th5WorkaroundVLANRange is required")
-		}
+		// TODO uncomment when it's being passed from the fabricator
+		// if len(r) == 0 {
+		// 	return nil, errors.Errorf("config: th5WorkaroundVLANRange is required")
+		// }
 		cfg.TH5WorkaroundVLANRange = r
 	}
 
