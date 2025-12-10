@@ -411,9 +411,6 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		var gateway net.IP
 		if subnetCfg.HostBGP {
 			hostBGPSubnets++
-			if subnetCfg.VLAN != 0 {
-				return nil, errors.Errorf("subnet %s: vlan should not be set for hostBGP subnets", subnetName)
-			}
 			if subnetCfg.DHCP.Enable {
 				return nil, errors.Errorf("subnet %s: dhcp should not be enabled for hostBGP subnets", subnetName)
 			}
