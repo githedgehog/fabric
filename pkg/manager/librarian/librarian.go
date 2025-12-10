@@ -302,7 +302,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, subnets map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, subnets, th5WorkaroundReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -353,6 +353,16 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 	}
 
+	{
+		a := Allocator[uint16]{
+			Values: NewNextFreeValueFromVLANRanges(m.cfg.TH5WorkaroundVLANRange),
+		}
+		cat.Spec.TH5WorkaroundVLANs, err = a.Allocate(cat.Spec.TH5WorkaroundVLANs, th5WorkaroundReqs)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate TH5 workaround VLANs for %s", key)
+		}
+	}
+
 	if err := m.saveCatalog(ctx, kube, key, cat); err != nil {
 		return errors.Errorf("failed to save switch catalog %s", key)
 	}
@@ -376,6 +386,13 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 	for prefix := range subnets {
 		if _, exists := ret.SubnetIDs[prefix]; !exists {
 			return errors.Errorf("failed to find external peering prefix ID for %s", prefix)
+		}
+	}
+
+	ret.TH5WorkaroundVLANs = cat.Spec.TH5WorkaroundVLANs
+	for req := range th5WorkaroundReqs {
+		if _, exists := ret.TH5WorkaroundVLANs[req]; !exists {
+			return errors.Errorf("failed to find TH5 workaround VLAN for %s", req)
 		}
 	}
 

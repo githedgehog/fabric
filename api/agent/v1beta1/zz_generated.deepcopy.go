@@ -468,6 +468,13 @@ func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.TH5WorkaroundVLANs != nil {
+		in, out := &in.TH5WorkaroundVLANs, &out.TH5WorkaroundVLANs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.ExternalIDs != nil {
 		in, out := &in.ExternalIDs, &out.ExternalIDs
 		*out = make(map[string]uint16, len(*in))
