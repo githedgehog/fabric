@@ -709,14 +709,17 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	if spSpec != nil && spSpec.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
 		// TODO: Verify whether we need to do this also for fabric links
 		for _, conn := range conns {
-			if conn.Mesh == nil {
-				continue
-			}
-			for _, link := range conn.Mesh.Links {
-				if link.Leaf1.DeviceName() == sw.Name {
-					th5WorkaroundReqs[link.Leaf1.LocalPortName()] = true
-				} else {
-					th5WorkaroundReqs[link.Leaf2.LocalPortName()] = true
+			if conn.Mesh != nil {
+				for _, link := range conn.Mesh.Links {
+					if link.Leaf1.DeviceName() == sw.Name {
+						th5WorkaroundReqs[link.Leaf1.LocalPortName()] = true
+					} else {
+						th5WorkaroundReqs[link.Leaf2.LocalPortName()] = true
+					}
+				}
+			} else if conn.Gateway != nil {
+				for _, link := range conn.Gateway.Links {
+					th5WorkaroundReqs[link.Switch.LocalPortName()] = true
 				}
 			}
 		}
