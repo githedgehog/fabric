@@ -406,13 +406,15 @@ func installAgent(ctx context.Context, env Env, tmp string) error {
 	}
 
 	if env.Platform == "x86_64-cls_ds5000-r0" {
-		slog.Info("Checking for PDDF file patch", "Path:", filepath.Join(sonicRoot, clsds5000.CfgPath))
+		stats, _ := os.Stat(filepath.Join(sonicRoot, clsds5000.CfgPath))
+		stats2, _ := os.Stat(filepath.Join(sonicRoot, "/usr/share/sonic/platform/pddf/pddf-device.json"))
+		slog.Info("Checking for PDDF file patch", "File:", stats.Name(), "Size", stats.Size(), "File2", stats2.Name(), "Size2", stats2.Size())
+
 		if changed, err := clsds5000.Patch(filepath.Join(sonicRoot, clsds5000.CfgPath)); err != nil {
 			slog.Error("Failed to patch Celestica DS5000 switch pddf-device.json", "err", err)
-
-			return fmt.Errorf("patching clsds5000: %w", err)
+			//return fmt.Errorf("patching clsds5000: %w", err)
 		} else if changed {
-			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json, power cycle is required to apply the fix")
+			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json")
 		}
 	}
 
