@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	CfgPath     = "/usr/share/sonic/platform/pddf/pddf-device.json" // symlink -> /usr/share/sonic/device/x86_64-cls_ds5000-r0/pddf/pddf-device.json
+	//CfgPath     = "/usr/share/sonic/platform/pddf/pddf-device.json" // symlink -> /usr/share/sonic/device/x86_64-cls_ds5000-r0/pddf/pddf-device.json
+	CfgPath     = "/usr/share/sonic/device/x86_64-cls_ds5000-r0/pddf/pddf-device.json"
 	description = `DS5000 pddf platform with BMC, ver v1.2`
 	checkVal    = `"attr_name":"xcvr_reset"`
 	oldVal      = `"attr_cmpval":"0x0"`
