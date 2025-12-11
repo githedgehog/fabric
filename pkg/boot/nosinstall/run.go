@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"go.githedgehog.com/fabric/pkg/boot/clsds5000"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 )
@@ -186,7 +187,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
-	if err := installAgent(ctx, tmp); err != nil {
+	if err := installAgent(ctx, env, tmp); err != nil {
 		return fmt.Errorf("installing agent: %w", err)
 	}
 
@@ -379,7 +380,7 @@ func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
 	}, nil
 }
 
-func installAgent(ctx context.Context, tmp string) error {
+func installAgent(ctx context.Context, env Env, tmp string) error {
 	sonicRoot, unmountSONiC, err := mountSONiCPartition(ctx)
 	if err != nil {
 		return fmt.Errorf("mounting SONiC partition: %w", err)
@@ -402,6 +403,16 @@ func installAgent(ctx context.Context, tmp string) error {
 	}
 	if !ok {
 		return fmt.Errorf("finding SONiC image dir") //nolint:goerr113
+	}
+
+	if env.Platform == "x86_64-cls_ds5000-r0" {
+		if changed, err := clsds5000.Patch(filepath.Join(sonicRoot, clsds5000.CfgPath)); err != nil {
+			slog.Error("Failed to patch Celestica DS5000 switch pddf-device.json", "err", err)
+
+			return fmt.Errorf("patching clsds5000: %w", err)
+		} else if changed {
+			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json, power cycle is required to apply the fix")
+		}
 	}
 
 	slog.Info("Installing Fabric Agent binary")

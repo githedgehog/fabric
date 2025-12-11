@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	cfgPath     = "/usr/share/sonic/platform/pddf/pddf-device.json" // symlink -> /usr/share/sonic/device/x86_64-cls_ds5000-r0/pddf/pddf-device.json
+	CfgPath     = "/usr/share/sonic/platform/pddf/pddf-device.json" // symlink -> /usr/share/sonic/device/x86_64-cls_ds5000-r0/pddf/pddf-device.json
 	description = `DS5000 pddf platform with BMC, ver v1.2`
 	checkVal    = `"attr_name":"xcvr_reset"`
 	oldVal      = `"attr_cmpval":"0x0"`
 	newVal      = `"attr_cmpval":"0x1"`
 )
 
-func Patch() (bool, error) {
-	data, err := os.ReadFile(cfgPath)
+func Patch(filepath string) (bool, error) {
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// not a pddf device
@@ -37,7 +37,7 @@ func Patch() (bool, error) {
 	newData := patchData(data)
 	changed := !slices.Equal(data, newData)
 	if changed {
-		if err := os.WriteFile(cfgPath, newData, 0o644); err != nil { //nolint:gosec
+		if err := os.WriteFile(filepath, newData, 0o644); err != nil { //nolint:gosec
 			return false, fmt.Errorf("writing pddf-device.json: %w", err)
 		}
 	}
