@@ -794,20 +794,42 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			ipPrefixLen, _ := ipNet.Mask.Size()
 
-			spec.Interfaces[port] = &dozer.SpecInterface{
+			gwBaseIface := &dozer.SpecInterface{
 				Enabled:     pointer.To(true),
 				Description: pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
 				Speed:       getPortSpeed(agent, port),
 				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-					0: {
-						IPs: map[string]*dozer.SpecInterfaceIP{
-							ip.String(): {
-								PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
-							},
-						},
-					},
+					0: {},
 				},
 			}
+
+			// For TH5 switches, use the workaround suggested by Broadcom: configure an Access VLAN that we previously
+			// allocated for this link and configure the IP address on the VLAN rather than the switch interface
+			if agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
+				workaroundVLAN, ok := agent.Spec.Catalog.TH5WorkaroundVLANs[port]
+				if !ok {
+					return errors.Errorf("no TH5 workaround VLAN found for port %s of gateway connection %s", port, connName)
+				}
+				gwBaseIface.AccessVLAN = pointer.To(workaroundVLAN)
+				vlanIface := vlanName(workaroundVLAN)
+				spec.Interfaces[vlanIface] = &dozer.SpecInterface{
+					Enabled:     pointer.To(true),
+					Description: pointer.To(fmt.Sprintf("TH5 Workaround Gateway %s %s", remote, connName)),
+					VLANIPs: map[string]*dozer.SpecInterfaceIP{
+						ip.String(): {
+							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+						},
+					},
+				}
+			} else {
+				gwBaseIface.Subinterfaces[0].IPs = map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+					},
+				}
+			}
+
+			spec.Interfaces[port] = gwBaseIface
 
 			ip, _, err = net.ParseCIDR(peerIP)
 			if err != nil {
