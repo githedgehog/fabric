@@ -406,9 +406,7 @@ func installAgent(ctx context.Context, env Env, tmp string) error {
 	}
 
 	if env.Platform == "x86_64-cls_ds5000-r0" {
-		stats, _ := os.Stat(filepath.Join(sonicRoot, clsds5000.CfgPath))
-		stats2, _ := os.Stat(filepath.Join(sonicRoot, "/usr/share/sonic/platform/pddf/pddf-device.json"))
-		slog.Info("Checking for PDDF file patch", "File:", stats.Name(), "Size", stats.Size(), "File2", stats2.Name(), "Size2", stats2.Size())
+		slog.Info("Checking for PDDF file patch")
 
 		if changed, err := clsds5000.Patch(filepath.Join(sonicRoot, clsds5000.CfgPath)); err != nil {
 			slog.Error("Failed to patch Celestica DS5000 switch pddf-device.json", "err", err)
