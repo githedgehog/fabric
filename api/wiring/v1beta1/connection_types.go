@@ -20,6 +20,7 @@ import (
 	"maps"
 	"net"
 	"net/netip"
+	"slices"
 	"strings"
 
 	"github.com/fatih/color"
@@ -982,8 +983,14 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		}
 
 		connPorts := map[string]bool{}
+		breakoutPorts := map[string][]string{}
 		for _, port := range ports {
 			connPorts[port] = true
+			if strings.Count(port, "/") == 3 {
+				parts := strings.SplitN(port, "/", 4)
+				parentPort, _ := strings.CutSuffix(port, "/"+parts[3])
+				breakoutPorts[parentPort] = append(breakoutPorts[parentPort], port)
+			}
 		}
 
 		conns := &ConnectionList{}
@@ -1007,8 +1014,17 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 
 			for _, port := range ports {
-				if connPorts[port] {
-					return nil, errors.Errorf("port %s is already used by other connection", port)
+				_, portIsParentOfBreakout := breakoutPorts[port]
+				portIsAlreadyUsedBreakout := false
+				parentPortIsUsed := false
+				if strings.Count(port, "/") == 3 {
+					parts := strings.SplitN(port, "/", 4)
+					parentPort, _ := strings.CutSuffix(port, "/"+parts[3])
+					parentPortIsUsed = connPorts[parentPort]
+					portIsAlreadyUsedBreakout = slices.Contains(breakoutPorts[parentPort], port)
+				}
+				if connPorts[port] || portIsParentOfBreakout || parentPortIsUsed || portIsAlreadyUsedBreakout {
+					return nil, errors.Errorf("port %s is already used by other connection %s", port, other.Name)
 				}
 			}
 			switch {
