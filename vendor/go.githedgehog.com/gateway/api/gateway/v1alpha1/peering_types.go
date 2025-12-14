@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/netip"
 	"slices"
@@ -23,6 +24,8 @@ const (
 
 // PeeringSpec defines the desired state of Peering.
 type PeeringSpec struct {
+	// GatewayGroup is the name of the gateway group that should process the peering
+	GatewayGroup string `json:"gatewayGroup,omitempty"`
 	// Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name)
 	Peering map[string]*PeeringEntry `json:"peering,omitempty"`
 }
@@ -83,6 +86,8 @@ type PeeringStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=peer
+// +kubebuilder:printcolumn:name="GatewayGroup",type=string,JSONPath=`.spec.gatewayGroup`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Peering is the Schema for the peerings API.
 type Peering struct {
 	kmetav1.TypeMeta   `json:",inline"`
@@ -124,6 +129,10 @@ func (p *Peering) Default() {
 			peering.Expose[i].Default()
 		}
 	}
+
+	if p.Spec.GatewayGroup == "" {
+		p.Spec.GatewayGroup = DefaultGatewayGroup
+	}
 }
 
 func (e *PeeringEntryExpose) Default() {
@@ -151,7 +160,11 @@ func (s *PeeringStatefulNAT) Default() {
 	}
 }
 
-func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
+func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
+	if p.Spec.GatewayGroup == "" {
+		return fmt.Errorf("gateway group must be specified %s", p.Name) //nolint:goerr113
+	}
+
 	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {
 		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs)) //nolint:goerr113
@@ -227,6 +240,19 @@ func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
 					return fmt.Errorf("only one of statefulNat or statelessNat can be set in peering expose of VPC %s", name) //nolint:goerr113
 				}
 			}
+		}
+	}
+
+	if kube != nil {
+		gwGroup := &GatewayGroup{}
+		if err := kube.Get(ctx, kclient.ObjectKey{Name: p.Spec.GatewayGroup, Namespace: p.Namespace}, gwGroup); err != nil {
+			// TODO enable validation back after it's supplied by the fabricator
+			slog.Warn("Failed to get Gateway group", "name", p.Spec.GatewayGroup, "error", err.Error())
+			// if kapierrors.IsNotFound(err) {
+			// 	return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
+			// }
+
+			// return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
 	}
 
