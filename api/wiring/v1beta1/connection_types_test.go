@@ -568,7 +568,88 @@ func TestConnectionValidation(t *testing.T) {
 				conn.Spec.Gateway.Links[0].Switch.IP = AltIP40
 			})),
 		},
-	} {
+		{
+			name:       "collision-with-port-other-breakout",
+			conn:       fabricConnGen("fabric-1"),
+			withClient: true,
+			objects: withObjs(base, &wiringapi.Connection{
+				ObjectMeta: kmetav1.ObjectMeta{
+					Name:      "existing",
+					Namespace: kmetav1.NamespaceDefault,
+				},
+				Spec: wiringapi.ConnectionSpec{
+					Unbundled: &wiringapi.ConnUnbundled{
+						Link: wiringapi.ServerToSwitchLink{
+							Server: wiringapi.NewBasePortName("server-01/enp2s1"),
+							Switch: wiringapi.NewBasePortName("leaf-01/E1/1/1"),
+						},
+					},
+				},
+			}),
+			err: true,
+		},
+		{
+			name: "collision-with-port-our-breakout",
+			conn: fabricConnGen("fabric-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Fabric.Links[0].Leaf.BasePortName = wiringapi.NewBasePortName("leaf-01/E1/1/1")
+			}),
+			withClient: true,
+			objects: withObjs(base, &wiringapi.Connection{
+				ObjectMeta: kmetav1.ObjectMeta{
+					Name:      "existing",
+					Namespace: kmetav1.NamespaceDefault,
+				},
+				Spec: wiringapi.ConnectionSpec{
+					Unbundled: &wiringapi.ConnUnbundled{
+						Link: wiringapi.ServerToSwitchLink{
+							Server: wiringapi.NewBasePortName("server-01/enp2s1"),
+							Switch: wiringapi.NewBasePortName("leaf-01/E1/1"),
+						},
+					},
+				},
+			}),
+			err: true,
+		},
+		{
+			name: "disjoint-breakouts-of-same-parent",
+			conn: fabricConnGen("fabric-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Fabric.Links[0].Leaf.BasePortName = wiringapi.NewBasePortName("leaf-01/E1/1/1")
+			}),
+			withClient: true,
+			objects: withObjs(base, &wiringapi.Connection{
+				ObjectMeta: kmetav1.ObjectMeta{
+					Name:      "existing",
+					Namespace: kmetav1.NamespaceDefault,
+				},
+				Spec: wiringapi.ConnectionSpec{
+					Unbundled: &wiringapi.ConnUnbundled{
+						Link: wiringapi.ServerToSwitchLink{
+							Server: wiringapi.NewBasePortName("server-01/enp2s1"),
+							Switch: wiringapi.NewBasePortName("leaf-01/E1/1/2"),
+						},
+					},
+				},
+			}),
+		},
+		{
+			name:       "disjoint-breakouts-using-parent-alias",
+			conn:       fabricConnGen("fabric-1"),
+			withClient: true,
+			objects: withObjs(base, &wiringapi.Connection{
+				ObjectMeta: kmetav1.ObjectMeta{
+					Name:      "existing",
+					Namespace: kmetav1.NamespaceDefault,
+				},
+				Spec: wiringapi.ConnectionSpec{
+					Unbundled: &wiringapi.ConnUnbundled{
+						Link: wiringapi.ServerToSwitchLink{
+							Server: wiringapi.NewBasePortName("server-01/enp2s1"),
+							Switch: wiringapi.NewBasePortName("leaf-01/E1/1/2"),
+						},
+					},
+				},
+			}),
+		}} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
 				ReservedSubnets: []string{"172.30.1.0/24"},

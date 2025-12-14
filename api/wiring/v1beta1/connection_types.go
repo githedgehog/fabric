@@ -981,9 +981,16 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 		}
 
+		// track ports used including breakouts
+		// recall that leaf-01/E1/4 is an alias for leaf-01/E1/4/1 is E1/4 is configured for breakout!
 		connPorts := map[string]bool{}
 		for _, port := range ports {
 			connPorts[port] = true
+			// if this is not an obvious breakout port, consider the case it is an alias
+			// if it is not, it won't collide with anything anyway
+			if strings.Count(port, "/") == 2 {
+				connPorts[port+"/1"] = true
+			}
 		}
 
 		conns := &ConnectionList{}
@@ -1007,8 +1014,12 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 
 			for _, port := range ports {
-				if connPorts[port] {
-					return nil, errors.Errorf("port %s is already used by other connection", port)
+				_, alreadyInUse := connPorts[port]
+				if strings.Count(port, "/") == 2 {
+					alreadyInUse = alreadyInUse || connPorts[port+"/1"]
+				}
+				if alreadyInUse {
+					return nil, errors.Errorf("port %s is already used by other connection %s", port, other.Name)
 				}
 			}
 			switch {
