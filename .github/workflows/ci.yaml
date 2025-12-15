@@ -342,7 +342,7 @@ jobs:
             fabricator
 
       - name: Create Pull Request for fabricator
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         id: fab-pr
         with:
           token: ${{ steps.fab-app-token.outputs.token }}
@@ -384,7 +384,7 @@ jobs:
             docs
 
       - name: Create Pull Request for docs
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.docs-app-token.outputs.token }}
           path: docs-repo
