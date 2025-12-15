@@ -127,6 +127,9 @@ func (ns *VLANNamespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		if err := meta.CheckVLANRangesOverlap(append(slices.Clone(fabricCfg.VPCIRBVLANRanges), ns.Spec.Ranges...)); err != nil {
 			return nil, errors.Wrapf(err, "ranges overlap with Fabric reserved VLANs")
 		}
+		if err := meta.CheckVLANRangesOverlap(append(slices.Clone(fabricCfg.TH5WorkaroundVLANRange), ns.Spec.Ranges...)); err != nil {
+			return nil, errors.Wrapf(err, "ranges overlap with VLANs reserved for the TH5 workaround")
+		}
 	}
 
 	return nil, nil
