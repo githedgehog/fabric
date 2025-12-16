@@ -439,6 +439,10 @@ spec:
                   gatewayASN:
                     format: int32
                     type: integer
+                  gatewayCommunities:
+                    additionalProperties:
+                      type: string
+                    type: object
                   loopbackWorkaround:
                     type: boolean
                   mclagSessionSubnet:

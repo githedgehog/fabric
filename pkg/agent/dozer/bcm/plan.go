@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/netip"
 	"slices"
@@ -44,29 +45,30 @@ const (
 	MCLAGPeerLinkTrunkVLANRange   = "2..4094" // TODO do we need to configure it?
 	AgentUser                     = "hhagent"
 	// LoopbackSwitch                 = "Loopback0"
-	LoopbackProto                  = "Loopback1"
-	LoopbackVTEP                   = "Loopback2"
-	VRFDefault                     = "default"
-	VTEPFabric                     = "vtepfabric"
-	EVPNNVO                        = "nvo1"
-	AnycastMAC                     = "00:00:00:11:11:11"
-	RouteMapMaxStatement           = 65535
-	RouteMapBlockEVPNDefaultRemote = "evpn-default-remote-block"
-	RouteMapFilterAttachedHost     = "filter-attached-hosts"
-	RouteMapLoopbackAllVTEPs       = "loopback-all-vteps"
-	RouteMapLoopbackVTEP           = "loopback-vtep"
-	RouteMapProtocolLoopbackOnly   = "protocol-loopback-only"
-	PrefixListAny                  = "any-prefix"
-	PrefixListVPCLoopback          = "vpc-loopback-prefix"
-	PrefixListAllVTEPPrefixes      = "all-vtep-prefixes"
-	PrefixListVTEPPrefix           = "vtep-prefix"
-	PrefixListProtocolLoopback     = "protocol-loopback-prefix"
-	PrefixListStaticExternals      = "static-ext-subnets"
-	NoCommunity                    = "no-community"
-	LSTGroupSpineLink              = "spinelink"
-	BGPCommListAllExternals        = "all-externals"
-	MgmtIface                      = "Management0"
-	FabricBFDProfile               = "fabric"
+	LoopbackProto                = "Loopback1"
+	LoopbackVTEP                 = "Loopback2"
+	VRFDefault                   = "default"
+	VTEPFabric                   = "vtepfabric"
+	EVPNNVO                      = "nvo1"
+	AnycastMAC                   = "00:00:00:11:11:11"
+	RouteMapMaxStatement         = 65535
+	RouteMapL2VPNNeighbors       = "l2vpn-neighbors"
+	RouteMapFilterAttachedHost   = "filter-attached-hosts"
+	RouteMapLoopbackAllVTEPs     = "loopback-all-vteps"
+	RouteMapLoopbackVTEP         = "loopback-vtep"
+	RouteMapProtocolLoopbackOnly = "protocol-loopback-only"
+	PrefixListAny                = "any-prefix"
+	PrefixListVPCLoopback        = "vpc-loopback-prefix"
+	PrefixListAllVTEPPrefixes    = "all-vtep-prefixes"
+	PrefixListVTEPPrefix         = "vtep-prefix"
+	PrefixListProtocolLoopback   = "protocol-loopback-prefix"
+	PrefixListStaticExternals    = "static-ext-subnets"
+	NoCommunity                  = "no-community"
+	LSTGroupSpineLink            = "spinelink"
+	BGPCommListAllExternals      = "all-externals"
+	MgmtIface                    = "Management0"
+	FabricBFDProfile             = "fabric"
+	MaxGWPrioLevels              = 100
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -396,13 +398,43 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		return nil
 	}
 
-	spec.RouteMaps[RouteMapBlockEVPNDefaultRemote] = &dozer.SpecRouteMap{
+	l2vpnNeighRMap := &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			fmt.Sprintf("%d", RouteMapMaxStatement): {
 				Result: dozer.SpecRouteMapResultAccept,
 			},
 		},
 	}
+
+	if agent.Spec.Switch.Role.IsLeaf() {
+		// This is all a bit convoluted: we want to add entries to a route-map for each
+		// priority defined in the gateway communities. The indexes are going to be strings
+		// that represent uint32s (because for some reason you cannot have uint32 as keys there).
+		// each uint32 is a priority associated to a community list
+		// we should be setting local preferences, given higher preference in reverse order
+		// of priority
+		prios := slices.Sorted(maps.Keys(agent.Spec.Config.GatewayCommunities))
+		numPrios := len(agent.Spec.Config.GatewayCommunities)
+
+		// if we have more than 100 priority levels we will clash with the remote peering default route
+		// block indexes
+		if numPrios > MaxGWPrioLevels {
+			return errors.Errorf("too many gateway communities defined (%d), max is %d", numPrios, MaxGWPrioLevels)
+		}
+
+		for idx, prioStr := range prios {
+			commVal := agent.Spec.Config.GatewayCommunities[prioStr]
+			commName := gwPrioCommListName(prioStr)
+			spec.CommunityLists[commName] = &dozer.SpecCommunityList{Members: []string{commVal}}
+			l2vpnNeighRMap.Statements[fmt.Sprintf("%d", idx+1)] = &dozer.SpecRouteMapStatement{
+				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
+				SetLocalPreference: pointer.To(100 + uint32(numPrios-idx)), //nolint: gosec
+				Result:             dozer.SpecRouteMapResultAccept,
+			}
+		}
+	}
+
+	spec.RouteMaps[RouteMapL2VPNNeighbors] = l2vpnNeighRMap
 
 	vtepSubnet := agent.Spec.Config.VTEPSubnet
 	if vtepSubnet == "" {
@@ -612,7 +644,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4Unicast:               pointer.To(true),
 			IPv4UnicastExportPolicies: []string{routeMap},
 			L2VPNEVPN:                 pointer.To(true),
-			L2VPNEVPNImportPolicies:   []string{RouteMapBlockEVPNDefaultRemote},
+			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
 			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
 			DisableConnectedCheck:     pointer.To(true),
 			UpdateSource:              pointer.To(ownProtocolIPStr),
@@ -732,7 +764,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4Unicast:               pointer.To(true),
 			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
-			L2VPNEVPNImportPolicies:   []string{RouteMapBlockEVPNDefaultRemote},
+			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
 			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
 			DisableConnectedCheck:     pointer.To(true),
 			UpdateSource:              pointer.To(ownProtocolIPStr),
@@ -925,7 +957,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Members: []string{},
 		}
 
-		spec.RouteMaps[RouteMapBlockEVPNDefaultRemote].Statements[fmt.Sprintf("%d", RouteMapMaxStatement-10)] = &dozer.SpecRouteMapStatement{
+		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", RouteMapMaxStatement-10)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchCommunityList: pointer.To(BGPCommListAllExternals),
 			},
@@ -2390,14 +2422,14 @@ func planVNIVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName stri
 		spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
 		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
 
-		spec.RouteMaps[RouteMapBlockEVPNDefaultRemote].Statements[fmt.Sprintf("%d", uint(vni1/100))] = &dozer.SpecRouteMapStatement{
+		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", MaxGWPrioLevels+uint(vni1/100))] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchEVPNVNI:          pointer.To(vni1),
 				MatchEVPNDefaultRoute: pointer.To(true),
 			},
 			Result: dozer.SpecRouteMapResultReject,
 		}
-		spec.RouteMaps[RouteMapBlockEVPNDefaultRemote].Statements[fmt.Sprintf("%d", uint(vni2/100))] = &dozer.SpecRouteMapStatement{
+		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", MaxGWPrioLevels+uint(vni2/100))] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchEVPNVNI:          pointer.To(vni2),
 				MatchEVPNDefaultRoute: pointer.To(true),
@@ -3157,6 +3189,10 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	spec.Interfaces[name] = physicalIface
 
 	return nil
+}
+
+func gwPrioCommListName(prioIdx string) string {
+	return fmt.Sprintf("gw-prio-%s", prioIdx)
 }
 
 func extInboundCommListName(external string) string {
