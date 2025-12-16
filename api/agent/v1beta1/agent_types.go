@@ -83,6 +83,7 @@ type AgentSpecConfig struct {
 	FabricSubnet          string                    `json:"fabricSubnet,omitempty"`
 	DisableBFD            bool                      `json:"disableBFD,omitempty"`
 	Alloy                 alloy.Config              `json:"alloy,omitempty"`
+	GatewayCommunities    map[string]string         `json:"gatewayCommunities,omitempty"`
 }
 
 type AgentSpecConfigSpineLeaf struct{}

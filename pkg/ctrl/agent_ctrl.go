@@ -827,9 +827,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			FabricSubnet:          r.cfg.FabricSubnet,
 			DisableBFD:            r.cfg.DisableBFD,
 			Alloy:                 alloyCfg,
+			GatewayCommunities:    map[string]string{},
 		}
 		if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+		}
+		for idx, val := range r.cfg.GatewayCommunities {
+			agent.Spec.Config.GatewayCommunities[fmt.Sprintf("%d", idx)] = val
 		}
 
 		return nil
