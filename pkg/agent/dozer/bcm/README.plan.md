@@ -51,15 +51,80 @@ BGP sessions:
      ip address 172.30.0.7/21
     !
     ```
-1. We create the following route-map whose job is to set a higher preference to routes
-matching the all-externals community; we're going to get back to this when we look
-at externals. (**TODO: why do we need this, and why is it called like this?**):
+1. We create BGP community lists based on the gateway priority levels defined in the Agent configuration.
+These will be used by gateways depending on the priority group of a parituclar Expose; together with
+the route-map described further down, they allow us to prefer prefixes advertised by a particular
+gateway over another. These are the community lists generated with the default configuration:
     ```
-    route-map evpn-default-remote-block permit 65525
+    bgp community-list standard gw-prio-0 permit 50001:0
+    bgp community-list standard gw-prio-1 permit 50001:1
+    bgp community-list standard gw-prio-2 permit 50001:2
+    bgp community-list standard gw-prio-3 permit 50001:3
+    bgp community-list standard gw-prio-4 permit 50001:4
+    bgp community-list standard gw-prio-5 permit 50001:5
+    bgp community-list standard gw-prio-6 permit 50001:6
+    bgp community-list standard gw-prio-7 permit 50001:7
+    bgp community-list standard gw-prio-8 permit 50001:8
+    bgp community-list standard gw-prio-9 permit 50001:9
+    ```
+1. We create a route-map applied to each L2VPN neighbor in the default VRF (in the `in` direction).
+This route-map serves multiple purposes:
+    - it matches on the gateway priority-related community lists described above, and for each of
+    those it sets a local preference, with a lower priority implying a higher local preference.
+    This is needed to ensure that we prefer the desired routes in a multi-gateway scenario.
+    - it is a place-holder for rules used in [remote peering](#remote-peering)
+    - it sets the local preference of routes matching any [externals](#externals)' community to a high
+    value of 500, to make sure that they win over similar VPC routes. Note that this value is currently
+    higher than the highest preference value for gateways, which means that in case of conflict prefixes
+    advertised by an external will always win over prefixes advertised by a gateway; we might want to make
+    this behavior configurable at some point.
+    - it allows any other non-matched prefix through.
+    ```
+    route-map l2vpn-neighbors permit 1
+    match community gw-prio-0
+    set local-preference 110
+    !
+    route-map l2vpn-neighbors permit 2
+    match community gw-prio-1
+    set local-preference 109
+    !
+    route-map l2vpn-neighbors permit 3
+    match community gw-prio-2
+    set local-preference 108
+    !
+    route-map l2vpn-neighbors permit 4
+    match community gw-prio-3
+    set local-preference 107
+    !
+    route-map l2vpn-neighbors permit 5
+    match community gw-prio-4
+    set local-preference 106
+    !
+    route-map l2vpn-neighbors permit 6
+    match community gw-prio-5
+    set local-preference 105
+    !
+    route-map l2vpn-neighbors permit 7
+    match community gw-prio-6
+    set local-preference 104
+    !
+    route-map l2vpn-neighbors permit 8
+    match community gw-prio-7
+    set local-preference 103
+    !
+    route-map l2vpn-neighbors permit 9
+    match community gw-prio-8
+    set local-preference 102
+    !
+    route-map l2vpn-neighbors permit 10
+    match community gw-prio-9
+    set local-preference 101
+    !
+    route-map l2vpn-neighbors permit 65525
      match community all-externals
      set local-preference 500
     !
-    route-map evpn-default-remote-block permit 65535
+    route-map l2vpn-neighbors permit 65535
     ```
 1. We create the following prefix-list matching any /32 belonging to the VTEP subnet prefix:
     ```
@@ -820,6 +885,10 @@ interface Vlan1002
  ip access-group vpc-filtering--vpc-01--subnet-02 in
 ```
 And of course we would do something similar on `vpc-02` side.
+
+### Remote peering
+
+TODO
 
 ## Externals
 
