@@ -55,12 +55,10 @@ const (
 	RouteMapL2VPNNeighbors       = "l2vpn-neighbors"
 	RouteMapFilterAttachedHost   = "filter-attached-hosts"
 	RouteMapLoopbackAllVTEPs     = "loopback-all-vteps"
-	RouteMapLoopbackVTEP         = "loopback-vtep"
 	RouteMapProtocolLoopbackOnly = "protocol-loopback-only"
 	PrefixListAny                = "any-prefix"
 	PrefixListVPCLoopback        = "vpc-loopback-prefix"
 	PrefixListAllVTEPPrefixes    = "all-vtep-prefixes"
-	PrefixListVTEPPrefix         = "vtep-prefix"
 	PrefixListProtocolLoopback   = "protocol-loopback-prefix"
 	PrefixListStaticExternals    = "static-ext-subnets"
 	NoCommunity                  = "no-community"
@@ -471,41 +469,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	if agent.Spec.Switch.Role.IsLeaf() {
-		if agent.Spec.Switch.VTEPIP == "" {
-			return errors.New("VTEP IP not set in leaf switch spec")
-		}
-
-		spec.PrefixLists[PrefixListVTEPPrefix] = &dozer.SpecPrefixList{
-			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
-				10: {
-					Prefix: dozer.SpecPrefixListPrefix{
-						Prefix: agent.Spec.Switch.VTEPIP,
-						Le:     32,
-					},
-					Action: dozer.SpecPrefixListActionPermit,
-				},
-			},
-		}
-
-		spec.RouteMaps[RouteMapLoopbackVTEP] = &dozer.SpecRouteMap{
-			Statements: map[string]*dozer.SpecRouteMapStatement{
-				"10": {
-					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: pointer.To(PrefixListVTEPPrefix),
-					},
-					Result: dozer.SpecRouteMapResultAccept,
-				},
-				"100": {
-					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: pointer.To(PrefixListStaticExternals),
-					},
-					Result: dozer.SpecRouteMapResultAccept,
-				},
-			},
-		}
-	}
-
 	spec.PrefixLists[PrefixListProtocolLoopback] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
 			10: {
@@ -631,18 +594,12 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
 		// TODO: remove allowas-in for spines when we fully deprecate remote peering
 		allowasIn := true // agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG || agent.Spec.Switch.Role.IsSpine()
-		var routeMap string
-		if agent.Spec.Switch.Role.IsLeaf() {
-			routeMap = RouteMapLoopbackVTEP
-		} else {
-			routeMap = RouteMapLoopbackAllVTEPs
-		}
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (spine-link)", peer)),
 			RemoteAS:                  pointer.To(peerSpec.ASN),
 			IPv4Unicast:               pointer.To(true),
-			IPv4UnicastExportPolicies: []string{routeMap},
+			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
 			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
