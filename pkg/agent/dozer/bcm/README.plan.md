@@ -941,7 +941,30 @@ And of course we would do something similar on `vpc-02` side.
 
 ### Remote peering
 
-TODO
+Remote peering is deprecated; it was originally introduced as an alternative to the
+loopback workaround, to deal with the CPU forwarding issue in older versions of Broadcom SONiC,
+and it doesn't really have a reason to exist right now. However, it has not been removed from
+the code base, and there is still a chance that we might use it if we find similar issues when
+porting our product to other platforms, so for now we need to make sure we do not break it.
+
+On any switch belonging to the remote group specified in the peering, we will configure VPCs
+as in the [VPC peering](#vpc-peerings) section above, creating the VRF, the BGP configuration
+etc. The only major difference is that we will add entries to the `l2vpn-neighbors` route-map,
+which we first described in the [switch invariants](#switch-invariants) section, to block any
+default route learned from EVPN peers with the VNI associated to that VPC; so for example:
+```
+route-map l2vpn-neighbors deny 101
+ match evpn default-route
+ match evpn vni 100
+!
+route-map l2vpn-neighbors deny 102
+ match evpn default-route
+ match evpn vni 200
+!
+```
+
+The reason for this are not clear to me, and it could be a residual from old approaches using
+default origination. **TODO: confirm whether this is needed and what it does in practice.**
 
 ## Externals
 
