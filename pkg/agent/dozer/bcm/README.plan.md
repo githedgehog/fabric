@@ -261,7 +261,7 @@ the point-to-point BGP sessions described above. We will use this session for bo
 unicast, where we will advertise VTEPs (all of them for spines, only the leaf's own for leaves),
 and for EVPN, where we will exchange overlay routes. This session will go down if all of the
 point-to-point sessions above are down, which would mean that this switch is no longer able
-to reach this particularneighbor. Allowas-in is required to support remote peering, where
+to reach this particular neighbor. Allowas-in is required to support remote peering, where
 traffic goes to a remote fabric switch and then comes back, thus creating an ASN loop.
 
 Here's an example config for a leaf:
@@ -364,6 +364,69 @@ neighbor 172.30.8.2
    route-map evpn-default-remote-block in
  !
 ```
+
+#### Workaround for TH5-based platforms
+
+For TH5-based platforms such as the DS5000, due to a limitation of the hardware, we do
+something slightly different:
+1. we take a VLAN from a range reserved specifically for this (by default, VLANs 3900
+to 3999) and configure it as an access VLAN on the interface of the connection:
+    ```
+    interface Ethernet5
+     description "Mesh leaf-02/E1/5 leaf-01--mesh--leaf-02"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     no shutdown
+    ```
+1. we configure the hydration IP address on that VLAN interface:
+    ```
+    interface Vlan3901
+     description "TH5 Workaround Mesh Port leaf-02/E1/5"
+     ip address 172.30.128.2/31
+    ```
+
+The BGP configuration is unchanged.
+
+### Gateway Connections
+
+Gateway connections represent a connection between a Fabric switch and a Gateway.
+For spine-leaf topologies the switch is typically a spine, while for mesh topologies
+it will necessarily be a leaf.
+
+For each link in a gateway connection, we:
+1. configure the corresponding interface on the switch, setting it to admin-up
+and assigning it a /31 IPv4 address from the hydration pool, e.g.:
+    ```
+    interface Ethernet6
+     description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     no shutdown
+     ip address 172.30.128.12/31
+    ```
+1. create a BGP session with the other host in that /31 range. The ASN of the
+gateway currently comes from config (note: we could use `remote-as external` instead).
+Like for other EVPN peers in our config, we set `allowas-in` in the L2VPN AF.
+    ```
+    neighbor 172.30.128.13
+     description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
+     remote-as 65534
+     !
+     address-family ipv4 unicast
+      activate
+     !
+     address-family l2vpn evpn
+      activate
+      allowas-in
+    ```
+
+#### Workaround for TH5-based platforms
+
+The same exact workaround steps described for Mesh connections also apply to the
+gateway case, i.e. an Access VLAN from the dedicated range is configured on the switch
+interface and the hydration IP address is configured on that VLAN instead.
 
 ### MCLAGDomain Connections
 
