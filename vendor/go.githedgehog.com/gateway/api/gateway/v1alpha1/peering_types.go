@@ -10,6 +10,8 @@ import (
 	"maps"
 	"net/netip"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,14 +60,23 @@ type PeeringEntry struct {
 }
 
 type PeeringEntryIP struct {
-	CIDR      string `json:"cidr,omitempty"`
-	Not       string `json:"not,omitempty"`
+	// CIDR to include, only one of cidr, not, vpcSubnet can be set
+	CIDR string `json:"cidr,omitempty"`
+	// CIDR to exclude, only one of cidr, not, vpcSubnet can be set
+	Not string `json:"not,omitempty"`
+	// CIDR by VPC subnet name to include, only one of cidr, not, vpcSubnet can be set
 	VPCSubnet string `json:"vpcSubnet,omitempty"`
+	// Port ranges (e.g. "80, 443, 3000-3100"), used together with exactly one of cidr, not, vpcSubnet
+	Ports string `json:"ports,omitempty"`
 }
 
 type PeeringEntryAs struct {
+	// CIDR to include, only one of cidr, not can be set
 	CIDR string `json:"cidr,omitempty"`
-	Not  string `json:"not,omitempty"`
+	// CIDR to exclude, only one of cidr, not can be set
+	Not string `json:"not,omitempty"`
+	// Port ranges (e.g. "80, 443, 3000-3100"), used together with exactly one of cidr, not
+	Ports string `json:"ports,omitempty"`
 }
 
 // type PeeringEntryIngress struct {
@@ -197,6 +208,10 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 				if nonnil != 1 {
 					return fmt.Errorf("exactly one of cidr, not or vpcSubnet must be set in peering expose IPs of VPC %s", name) //nolint:goerr113
 				}
+
+				if err := validatePorts(ip.Ports); err != nil {
+					return fmt.Errorf("invalid ports %s in peering expose IPs of VPC %s: %w", ip.Ports, name, err)
+				}
 			}
 			for _, as := range expose.As {
 				nonnil := 0
@@ -214,6 +229,10 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 				}
 				if nonnil != 1 {
 					return fmt.Errorf("exactly one of cidr or not must be set in peering expose AS of VPC %s", name) //nolint:goerr113
+				}
+
+				if err := validatePorts(as.Ports); err != nil {
+					return fmt.Errorf("invalid ports %s in peering expose AS of VPC %s: %w", as.Ports, name, err)
 				}
 			}
 
@@ -253,6 +272,60 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 			// }
 
 			// return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
+		}
+	}
+
+	return nil
+}
+
+func validatePorts(in string) error {
+	if in == "" {
+		return nil
+	}
+
+	// TODO probably normalize in Default() and check for overlapping ranges/duplicates
+
+	for ports := range strings.SplitSeq(in, ",") {
+		ports = strings.TrimSpace(ports)
+
+		switch {
+		case ports == "":
+			return fmt.Errorf("port entry should not be empty") //nolint:err113
+		case !strings.Contains(ports, "-"):
+			if port, err := strconv.Atoi(ports); err != nil {
+				return fmt.Errorf("invalid port %s: %w", ports, err)
+			} else if port < 1 || port > 65535 {
+				return fmt.Errorf("invalid port %d: port should be between 1 and 65535", port) //nolint:err113
+			}
+		default:
+			parts := strings.Split(ports, "-")
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid port range %s: should be in format start-end", ports) //nolint:err113
+			}
+
+			parts[0] = strings.TrimSpace(parts[0])
+			parts[1] = strings.TrimSpace(parts[1])
+			if parts[0] == "" || parts[1] == "" {
+				return fmt.Errorf("invalid port range %s: both start and end should not be empty", ports) //nolint:err113
+			}
+
+			start, err := strconv.Atoi(parts[0])
+			if err != nil {
+				return fmt.Errorf("invalid start port %s: %w", parts[0], err)
+			} else if start < 1 || start > 65535 {
+				return fmt.Errorf("invalid start port %d: port should be between 1 and 65535", start) //nolint:err113
+			}
+
+			end, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return fmt.Errorf("invalid end port %s: %w", parts[1], err)
+			} else if end < 1 || end > 65535 {
+				return fmt.Errorf("invalid end port %d: port should be between 1 and 65535", end) //nolint:err113
+			}
+
+			if start > end {
+				return fmt.Errorf("invalid port range %s: start port %d is greater than end port %d", ports, start, end) //nolint:err113
+			}
 		}
 	}
 
