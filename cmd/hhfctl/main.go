@@ -27,7 +27,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
@@ -99,7 +99,7 @@ func main() {
 		Usage:       "assume yes",
 		Destination: &yes,
 	}
-	yesCheck := func(_ *cli.Context) error {
+	yesCheck := func() error {
 		if !yes {
 			return cli.Exit("Potentially dangerous operation. Please confirm with --yes if you're sure.", 1)
 		}
@@ -141,13 +141,13 @@ func main() {
 	}
 
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
-	app := &cli.App{
+	cmd := &cli.Command{
 		Name:                   appName,
 		Usage:                  usage,
 		Version:                version.Version,
 		Suggest:                true,
 		UseShortOptionHandling: true,
-		EnableBashCompletion:   true,
+		EnableShellCompletion:  true,
 		Flags: []cli.Flag{
 			verboseFlag,
 		},
@@ -158,7 +158,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "create",
 						Usage: "Create vpc",
@@ -210,11 +210,11 @@ func main() {
 							},
 							printYamlFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							cliRoutes := cCtx.StringSlice("dhcp-advertised-routes")
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							cliRoutes := cmd.StringSlice("dhcp-advertised-routes")
 							advertisedRoutes := make([]vpcapi.VPCDHCPRoute, 0, len(cliRoutes))
 							for _, route := range cliRoutes {
 								parts := strings.Split(route, "-")
@@ -229,22 +229,22 @@ func main() {
 
 							return errors.Wrapf(hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
-								Subnet: cCtx.String("subnet"),
-								VLAN:   uint16(cCtx.Uint("vlan")), //nolint:gosec
+								Subnet: cmd.String("subnet"),
+								VLAN:   uint16(cmd.Uint("vlan")), //nolint:gosec
 								DHCP: vpcapi.VPCDHCP{
-									Enable: cCtx.Bool("dhcp"),
+									Enable: cmd.Bool("dhcp"),
 									Range: &vpcapi.VPCDHCPRange{
-										Start: cCtx.String("dhcp-range-start"),
-										End:   cCtx.String("dhcp-range-end"),
+										Start: cmd.String("dhcp-range-start"),
+										End:   cmd.String("dhcp-range-end"),
 									},
 									Options: &vpcapi.VPCDHCPOptions{
-										PXEURL:              cCtx.String("dhcp-pxe-url"),
-										LeaseTimeSeconds:    uint32(cCtx.Uint("dhcp-lease-time")), //nolint:gosec
-										DisableDefaultRoute: cCtx.Bool("dhcp-disable-default-route"),
+										PXEURL:              cmd.String("dhcp-pxe-url"),
+										LeaseTimeSeconds:    uint32(cmd.Uint("dhcp-lease-time")), //nolint:gosec
+										DisableDefaultRoute: cmd.Bool("dhcp-disable-default-route"),
 										AdvertisedRoutes:    advertisedRoutes,
 									},
 								},
-								Mode: vpcapi.VPCMode(cCtx.String("vpc-mode")),
+								Mode: vpcapi.VPCMode(cmd.String("vpc-mode")),
 							}), "failed to create vpc")
 						},
 					},
@@ -275,15 +275,15 @@ func main() {
 							},
 							printYamlFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(hhfctl.VPCAttach(ctx, printYaml, &hhfctl.VPCAttachOptions{
 								Name:       name,
-								VPCSubnet:  cCtx.String("vpc-subnet"),
-								Connection: cCtx.String("connection"),
-								NativeVLAN: cCtx.Bool("nativeVLAN"),
+								VPCSubnet:  cmd.String("vpc-subnet"),
+								Connection: cmd.String("connection"),
+								NativeVLAN: cmd.Bool("nativeVLAN"),
 							}), "failed to attach connection to vpc")
 						},
 					},
@@ -305,14 +305,14 @@ func main() {
 							},
 							printYamlFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
 								Name:   name,
-								VPCs:   cCtx.StringSlice("vpc"),
-								Remote: cCtx.String("remote"),
+								VPCs:   cmd.StringSlice("vpc"),
+								Remote: cmd.String("remote"),
 							}), "failed to peer vpcs")
 						},
 					},
@@ -322,11 +322,11 @@ func main() {
 						Flags: []cli.Flag{
 							yesFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							if err := yesCheck(); err != nil {
 								return wrapErrWithPressToContinue(err)
 							}
 
@@ -357,22 +357,22 @@ func main() {
 							},
 							yesFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							dryRun := cCtx.Bool("dry-run")
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							dryRun := cmd.Bool("dry-run")
 
 							if !dryRun {
-								if err := yesCheck(cCtx); err != nil {
+								if err := yesCheck(); err != nil {
 									return wrapErrWithPressToContinue(err)
 								}
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.DHCPSubnetCleanup(ctx, hhfctl.DHCPSubnetCleanupOptions{
-								VPC:       cCtx.String("vpc"),
-								Subnet:    cCtx.String("subnet"),
-								OlderThan: cCtx.String("older-than"),
+								VPC:       cmd.String("vpc"),
+								Subnet:    cmd.String("subnet"),
+								OlderThan: cmd.String("older-than"),
 								DryRun:    dryRun,
 							}), "failed to cleanup dhcp leases"))
 						},
@@ -399,23 +399,23 @@ func main() {
 							},
 							yesFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							dryRun := cCtx.Bool("dry-run")
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							dryRun := cmd.Bool("dry-run")
 
 							if !dryRun {
-								if err := yesCheck(cCtx); err != nil {
+								if err := yesCheck(); err != nil {
 									return wrapErrWithPressToContinue(err)
 								}
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.DHCPSubnetStaticLease(ctx, hhfctl.DHCPSubnetStaticLeaseOpts{
-								VPC:    cCtx.String("vpc"),
-								Subnet: cCtx.String("subnet"),
-								MAC:    cCtx.String("mac"),
-								IP:     cCtx.String("ip"),
+								VPC:    cmd.String("vpc"),
+								Subnet: cmd.String("subnet"),
+								MAC:    cmd.String("mac"),
+								IP:     cmd.String("ip"),
 							}), "failed to cleanup dhcp leases"))
 						},
 					},
@@ -428,7 +428,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "ip",
 						Usage: "Get switch management IP address",
@@ -437,10 +437,10 @@ func main() {
 							verboseFlag,
 							nameFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(_ *cli.Context) error {
+						Action: func(ctx context.Context, _ *cli.Command) error {
 							return errors.Wrapf(hhfctl.SwitchIP(ctx, name), "failed to get switch IP address")
 						},
 					},
@@ -457,11 +457,11 @@ func main() {
 								Usage:   "command to run",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSSH(ctx, name, username, cCtx.String("run")), "failed to ssh into the switch"))
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSSH(ctx, name, username, cmd.String("run")), "failed to ssh into the switch"))
 						},
 					},
 					{
@@ -472,10 +472,10 @@ func main() {
 							verboseFlag,
 							nameFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(_ *cli.Context) error {
+						Action: func(ctx context.Context, _ *cli.Command) error {
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchSerial(ctx, name), "failed to run serial for the switch"))
 						},
 					},
@@ -487,11 +487,11 @@ func main() {
 							nameFlag,
 							yesFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							if err := yesCheck(); err != nil {
 								return wrapErrWithPressToContinue(err)
 							}
 
@@ -506,11 +506,11 @@ func main() {
 							nameFlag,
 							yesFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							if err := yesCheck(); err != nil {
 								return wrapErrWithPressToContinue(err)
 							}
 
@@ -525,11 +525,11 @@ func main() {
 							nameFlag,
 							yesFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							if err := yesCheck(); err != nil {
 								return wrapErrWithPressToContinue(err)
 							}
 
@@ -548,17 +548,17 @@ func main() {
 								Usage: "Enable or disable RoCE mode, keep empty to toggle",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							if err := yesCheck(); err != nil {
 								return wrapErrWithPressToContinue(err)
 							}
 
 							var value *bool
-							if cCtx.IsSet("set") {
-								value = pointer.To(cCtx.Bool("set"))
+							if cmd.IsSet("set") {
+								value = pointer.To(cmd.Bool("set"))
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchRoCE(ctx, name, value), "failed to set roce mode"))
@@ -576,17 +576,17 @@ func main() {
 								Usage: "Enable or disable ECMP RoCE QPN hashing, keep empty to toggle",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
-							if err := yesCheck(cCtx); err != nil {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							if err := yesCheck(); err != nil {
 								return wrapErrWithPressToContinue(err)
 							}
 
 							var value *bool
-							if cCtx.IsSet("set") {
-								value = pointer.To(cCtx.Bool("set"))
+							if cmd.IsSet("set") {
+								value = pointer.To(cmd.Bool("set"))
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchECMPRoCEQPN(ctx, name, value), "failed to set ecmp roce qpn"))
@@ -601,7 +601,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:        "get",
 						Usage:       "Get connections",
@@ -610,12 +610,12 @@ func main() {
 						Flags: []cli.Flag{
 							verboseFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(hhfctl.ConnectionGet(ctx, &hhfctl.ConnectionGetOptions{
-								Type: cCtx.Args().First(),
+								Type: cmd.Args().First(),
 							}), "failed to get connections")
 						},
 					},
@@ -628,7 +628,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "create",
 						Usage: "Create SwitchGroup",
@@ -637,10 +637,10 @@ func main() {
 							nameFlag,
 							printYamlFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(_ *cli.Context) error {
+						Action: func(ctx context.Context, _ *cli.Command) error {
 							return errors.Wrapf(hhfctl.SwitchGroupCreate(ctx, printYaml, &hhfctl.SwitchGroupCreateOptions{
 								Name: name,
 							}), "failed to create SwitchGroup")
@@ -655,7 +655,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "create",
 						Usage: "Create External",
@@ -679,15 +679,15 @@ func main() {
 								Usage:   "outbound community",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(hhfctl.ExternalCreate(ctx, printYaml, &hhfctl.ExternalCreateOptions{
 								Name:              name,
-								IPv4Namespace:     cCtx.String("ipv4-namespace"),
-								InboundCommunity:  cCtx.String("inbound-community"),
-								OutboundCommunity: cCtx.String("outbound-community"),
+								IPv4Namespace:     cmd.String("ipv4-namespace"),
+								InboundCommunity:  cmd.String("inbound-community"),
+								OutboundCommunity: cmd.String("outbound-community"),
 							}), "failed to create External")
 						},
 					},
@@ -712,24 +712,24 @@ func main() {
 								Name:    "vpc-subnet",
 								Aliases: []string{"subnet"},
 								Usage:   "vpc subnets to enable peering for",
-								Value:   cli.NewStringSlice("default"),
+								Value:   []string{"default"},
 							},
 							&cli.StringSliceFlag{
 								Name:    "external-prefix",
 								Aliases: []string{"prefix"},
 								Usage:   "external prefixes to enable peering for, e.g. 0.0.0.0/0 for default route",
-								Value:   cli.NewStringSlice("0.0.0.0/0"),
+								Value:   []string{"0.0.0.0/0"},
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(hhfctl.ExternalPeering(ctx, printYaml, &hhfctl.ExternalPeeringOptions{
-								VPC:              cCtx.String("vpc"),
-								VPCSubnets:       cCtx.StringSlice("vpc-subnet"),
-								External:         cCtx.String("external"),
-								ExternalPrefixes: cCtx.StringSlice("external-prefix"),
+								VPC:              cmd.String("vpc"),
+								VPCSubnets:       cmd.StringSlice("vpc-subnet"),
+								External:         cmd.String("external"),
+								ExternalPrefixes: cmd.StringSlice("external-prefix"),
 							}), "failed to enable peering between external and vpc")
 						},
 					},
@@ -741,7 +741,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "export",
 						Usage: "export wiring diagram (incl. switches, connections, vpcs, externals, etc.)",
@@ -763,14 +763,14 @@ func main() {
 								Value: false,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(hhfctl.WiringExport(ctx, hhfctl.WiringExportOptions{
-								VPCs:           cCtx.Bool("vpcs"),
-								Externals:      cCtx.Bool("externals"),
-								SwitchProfiles: cCtx.Bool("switch-profiles"),
+								VPCs:           cmd.Bool("vpcs"),
+								Externals:      cmd.Bool("externals"),
+								SwitchProfiles: cmd.Bool("switch-profiles"),
 							}), "failed to export wiring")
 						},
 					},
@@ -783,7 +783,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 				},
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "fabric",
 						Usage: "Inspect Fabric (overall control nodes and switches overview incl. status, serials, etc.)",
@@ -791,10 +791,10 @@ func main() {
 							verboseFlag,
 							outputFlag,
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(_ *cli.Context) error {
+						Action: func(ctx context.Context, _ *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Fabric, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
@@ -839,20 +839,20 @@ func main() {
 								Usage:   "include laser details",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Switch, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.SwitchIn{
-								Name:         cCtx.String("name"),
-								Transceivers: cCtx.Bool("transceivers"),
-								Ports:        cCtx.Bool("ports"),
-								Details:      cCtx.Bool("details"),
-								Counters:     cCtx.Bool("counters"),
-								Lasers:       cCtx.Bool("lasers"),
+								Name:         cmd.String("name"),
+								Transceivers: cmd.Bool("transceivers"),
+								Ports:        cmd.Bool("ports"),
+								Details:      cmd.Bool("details"),
+								Counters:     cmd.Bool("counters"),
+								Lasers:       cmd.Bool("lasers"),
 							}, os.Stdout), "failed to inspect Switch")
 						},
 					},
@@ -870,15 +870,15 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Port, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.PortIn{
-								Port: cCtx.String("name"),
+								Port: cmd.String("name"),
 							}, os.Stdout), "failed to inspect Switch Port")
 						},
 					},
@@ -895,15 +895,15 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Server, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.ServerIn{
-								Name: cCtx.String("name"),
+								Name: cmd.String("name"),
 							}, os.Stdout), "failed to inspect Server")
 						},
 					},
@@ -921,15 +921,15 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Connection, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.ConnectionIn{
-								Name: cCtx.String("name"),
+								Name: cmd.String("name"),
 							}, os.Stdout), "failed to inspect Connection")
 						},
 					},
@@ -952,16 +952,16 @@ func main() {
 								Usage:   "Subnet name (without VPC) to only inspect this subnet",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.VPC, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.VPCIn{
-								Name:   cCtx.String("name"),
-								Subnet: cCtx.String("subnet"),
+								Name:   cmd.String("name"),
+								Subnet: cmd.String("subnet"),
 							}, os.Stdout), "failed to inspect VPC")
 						},
 					},
@@ -981,16 +981,16 @@ func main() {
 								Usage: "strict BGP check (will fail if any neighbor is missing, not expected or not established)",
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.BGP, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.BGPIn{
-								Switches: cCtx.StringSlice("switch-name"),
-								Strict:   cCtx.Bool("strict"),
+								Switches: cmd.StringSlice("switch-name"),
+								Strict:   cmd.Bool("strict"),
 							}, os.Stdout), "failed to inspect BGP")
 						},
 					},
@@ -1025,19 +1025,19 @@ func main() {
 								Value: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.LLDP, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.LLDPIn{
-								Switches: cCtx.StringSlice("switch-name"),
-								Strict:   cCtx.Bool("strict"),
-								Fabric:   cCtx.Bool("fabric"),
-								External: cCtx.Bool("external"),
-								Server:   cCtx.Bool("server"),
+								Switches: cmd.StringSlice("switch-name"),
+								Strict:   cmd.Bool("strict"),
+								Fabric:   cmd.Bool("fabric"),
+								External: cmd.Bool("external"),
+								Server:   cmd.Bool("server"),
 							}, os.Stdout), "failed to inspect LLDP")
 						},
 					},
@@ -1054,15 +1054,15 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.IP, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.IPIn{
-								IP: cCtx.String("address"),
+								IP: cmd.String("address"),
 							}, os.Stdout), "failed to inspect IP address")
 						},
 					},
@@ -1079,15 +1079,15 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.MAC, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.MACIn{
-								Value: cCtx.String("address"),
+								Value: cmd.String("address"),
 							}, os.Stdout), "failed to inspect MAC Address")
 						},
 					},
@@ -1110,16 +1110,16 @@ func main() {
 								Required: true,
 							},
 						},
-						Before: func(_ *cli.Context) error {
+						Before: func(ctx context.Context, _ *cli.Command) error {
 							return setupLogger(verbose)
 						},
-						Action: func(cCtx *cli.Context) error {
+						Action: func(ctx context.Context, cmd *cli.Command) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Access, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.AccessIn{
-								Source:      cCtx.String("source"),
-								Destination: cCtx.String("destination"),
+								Source:      cmd.String("source"),
+								Destination: cmd.String("destination"),
 							}, os.Stdout), "failed to inspect access")
 						},
 					},
@@ -1128,7 +1128,7 @@ func main() {
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := cmd.Run(ctx, os.Args); err != nil {
 		slog.Error("Failed", "err", err.Error())
 		os.Exit(1) //nolint:gocritic
 	}
