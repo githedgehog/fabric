@@ -131,10 +131,15 @@ type SpecInterfaceIP struct {
 	Secondary *bool  `json:"secondary,omitempty"`
 }
 
+type SpecInterfaceIPv6 struct {
+	Enabled *bool `json:"ipv6Enabled,omitempty"`
+}
+
 type SpecSubinterface struct {
 	VLAN            *uint16                     `json:"vlan,omitempty"`
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
 	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
+	IPv6            *SpecInterfaceIPv6          `json:"ipv6,omitempty"`
 }
 
 type SpecMCLAGDomain struct {
@@ -199,12 +204,14 @@ type SpecVRFBGPNeighbor struct {
 	IPv4Unicast               *bool    `json:"ipv4Unicast,omitempty"`
 	IPv4UnicastImportPolicies []string `json:"ipv4UnicastImportPolicies,omitempty"`
 	IPv4UnicastExportPolicies []string `json:"ipv4UnicastExportPolicies,omitempty"`
+	IPv4ASOverride            *bool    `json:"ipv4ASOverride,omitempty"`
 	L2VPNEVPN                 *bool    `json:"l2vpnEvpn,omitempty"`
 	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
 	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
 	BFDProfile                *string  `json:"bfdProfile,omitempty"`
 	DisableConnectedCheck     *bool    `json:"disableConnectedCheck,omitempty"`
 	UpdateSource              *string  `json:"updateSource,omitempty"`
+	ExtendedNexthop           *bool    `json:"extendedNexthop,omitempty"`
 }
 
 const (
@@ -670,5 +677,9 @@ func (s *SpecLSTInterface) IsNil() bool {
 }
 
 func (s *SpecBFDProfile) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecInterfaceIPv6) IsNil() bool {
 	return s == nil
 }
