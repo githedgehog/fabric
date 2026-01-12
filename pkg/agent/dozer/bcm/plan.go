@@ -1325,7 +1325,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if conn.Bundled.MTU != 0 {
 				mtu = pointer.To(conn.Bundled.MTU) //nolint:ineffassign,staticcheck
 			}
-			fallback = fallback && conn.Bundled.Fallback
+			fallback = conn.Bundled.Fallback
 			links = conn.Bundled.Links
 		} else if conn.ESLAG != nil {
 			connType = "ESLAG"
