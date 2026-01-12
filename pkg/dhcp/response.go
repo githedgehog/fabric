@@ -150,7 +150,7 @@ func addPxeInfo(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet) {
 	// Add TFTP server Option Name
 	if len(subnet.Spec.PXEURL) == 0 &&
 		(req.IsOptionRequested(dhcpv4.OptionTFTPServerName) || req.IsOptionRequested(dhcpv4.OptionBootfileName)) { // PxeURL is not specified return early with an error message
-		slog.Error("Client Requested pxe but it is not configured", "circuitID", circuitID, "vrfName", vrfName, "macAddress", req.ClientHWAddr.String())
+		slog.Error("Client Requested pxe but it is not configured", "circuitID", string(circuitID), "vrfName", string(vrfName), "macAddress", req.ClientHWAddr.String())
 
 		return
 	}
