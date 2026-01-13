@@ -52,7 +52,7 @@ BGP sessions:
     !
     ```
 1. We create BGP community lists based on the gateway priority levels defined in the Agent configuration.
-These will be used by gateways depending on the priority group of a parituclar Expose; together with
+These will be used by gateways depending on the priority group of a particular Expose; together with
 the route-map described further down, they allow us to prefer prefixes advertised by a particular
 gateway over another. These are the community lists generated with the default configuration:
     ```
@@ -419,7 +419,7 @@ interface and the hydration IP address is configured on that VLAN instead.
 
 These are processed on switches that belong to a redundancy group of type MCLAG.
 Each MCLAGDomain connection defines a pair of switches that act like a single logical
-switch, and the connectiosn between them. Specifically:
+switch, and the connections between them. Specifically:
 1. for each of the links defined in the `peerLinks` section of the CRD, we will add
 those interfaces to a port channel, e.g.:
     ```
@@ -460,7 +460,7 @@ these to a port channel, e.g.:
      ip address 172.30.95.0/31
     ```
 1. each MCLAGDomain object identifies an MCLAG domain, which is configured on both
-peering switches with some self-explainatory parameters:
+peering switches with some self-explanatory parameters:
     ```
     mclag domain 100
      source-ip 172.30.95.0
@@ -560,12 +560,12 @@ simplifies the config; we should at some point investigate them.*
 
 On top of that, there is some config that is applied on all switches that belong to
 a redundancy group of type ESLAG, regardless of the specific connection instances:
-1. We configure some basic parameters of EVPN multihoming. The startup delay is an
-initial interval of time during the VTEP bootup process where the ESLAG interfaces
+1. We configure some basic parameters of EVPN multi-homing. The startup delay is an
+initial interval of time during the VTEP boot-up process where the ESLAG interfaces
 are brought administratively down to avoid traffic loss; during this initial time,
-traffic from the multihomed servers is not load-balanced between the ESLAG servers.
-The holdtime is the time in seconds to wait before the switch ages out MAC addresses
-of downstream devices that are learned from the multihomed VTEP and that have not
+traffic from the multi-homed servers is not load-balanced between the ESLAG servers.
+The hold-time is the time in seconds to wait before the switch ages out MAC addresses
+of downstream devices that are learned from the multi-homed VTEP and that have not
 been used.
     ```
     evpn esi-multihoming
@@ -645,7 +645,7 @@ in the [Externals](#externals) section.
 
 For each static external object we configure the corresponding switch interface,
 with some nuances:
-- if `vlan` is non-zero, we create a subinterface with that VLAN, else
+- if `vlan` is non-zero, we create a sub-interface with that VLAN, else
 we configure the parent interface;
 - if `withinVPC` is non null, we enslave the interface or sub-interface
 to the VPC VRF.
@@ -657,7 +657,7 @@ with the `nextHop` specified in the static external object.
 Finally, we populate a prefix list with the network prefix of the `ip` field
 and with all of the `subnets` listed; this prefix list is used in route maps
 to filter the connected and static routes we redistribute in BGP, so essentially
-this makes sure that these routes are riditributed to peers accordingly.
+this makes sure that these routes are redistributed to peers accordingly.
 ```
 interface Ethernet0
  description "StaticExt release-test--static-external--ds5000-02"
@@ -745,7 +745,7 @@ in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC subnets, and we set the community
-      for the VPC on these routes, to tag them as origining from this VPC.
+      for the VPC on these routes, to tag them as originating from this VPC.
     - we permit any route that matches the prefix list of the VPC static external subnets
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
