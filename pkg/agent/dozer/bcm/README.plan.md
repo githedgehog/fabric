@@ -140,19 +140,6 @@ which routes are redistributed, as we will see:
     route-map loopback-all-vteps permit 100
      match ip address prefix-list static-ext-subnets
     ```
-1. If the switch is a leaf, as opposed to a spine, we also create the following:
-    ```
-    ip prefix-list vtep-prefix seq 10 permit <SWITCH_VTEP/32> le 32
-    route-map loopback-vtep permit 10
-     match ip address prefix-list vtep-prefix
-    !
-    route-map loopback-vtep permit 100
-     match ip address prefix-list static-ext-subnets
-    ```
-   This is essentially the same as the above, but with only the switch's own VTEP
-   as opposed to any of the /32 in the VTEP Subnet space. Leaves only advertise their
-   own VTEP, spines (and mesh leaves) advertise all of the VTEP they know about as they
-   are transit nodes.
 1. We create the following prefix list and corresponding route-map to only advertise
 the protocol loopback on the fabric point-to-point links between switches:
     ```
@@ -258,10 +245,10 @@ loopback, e.g.:
 Additionally, once per neighboring node (no matter the number of fabric links to it)
 we create a BGP session with its protocol IP, for which we have learned a route over
 the point-to-point BGP sessions described above. We will use this session for both IPv4
-unicast, where we will advertise VTEPs (all of them for spines, only the leaf's own for leaves),
-and for EVPN, where we will exchange overlay routes. This session will go down if all of the
-point-to-point sessions above are down, which would mean that this switch is no longer able
-to reach this particular neighbor. Allowas-in is required to support remote peering, where
+unicast, where we will advertise all the VTEPs we know of, and for EVPN, where we will
+exchange overlay routes. This session will go down if all of the point-to-point sessions
+above are down, which would mean that this switch is no longer able to reach this
+particular neighbor. Allowas-in is required to support remote peering, where
 traffic goes to a remote fabric switch and then comes back, thus creating an ASN loop.
 
 Here's an example config for a leaf:
@@ -274,7 +261,7 @@ neighbor 172.30.8.0
  !
  address-family ipv4 unicast
   activate
-  route-map loopback-vtep out
+  route-map loopback-all-vteps out
  !
  address-family l2vpn evpn
   activate
