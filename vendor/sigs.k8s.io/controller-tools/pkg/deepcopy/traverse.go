@@ -49,7 +49,7 @@ func (c *codeWriter) Line(line string) {
 }
 
 // Linef writes a single line with formatting (as per fmt.Sprintf).
-func (c *codeWriter) Linef(line string, args ...interface{}) {
+func (c *codeWriter) Linef(line string, args ...any) {
 	fmt.Fprintf(c.out, line+"\n", args...)
 }
 
@@ -61,7 +61,7 @@ func (c *codeWriter) If(setup string, block func()) {
 	c.Line("}")
 }
 
-// If writes if and else statements with the given setup/condition clause, executing
+// IfElse writes if and else statements with the given setup/condition clause, executing
 // the given functions to write the contents of the blocks.
 func (c *codeWriter) IfElse(setup string, ifBlock func(), elseBlock func()) {
 	c.Linef("if %s {", setup)
@@ -353,14 +353,15 @@ func (c *copyMethodMaker) genMapDeepCopy(actualName *namingInfo, mapType *types.
 				// If we're calling DeepCopy, check if it's receiver needs a pointer
 				inIsPtr = copyOnPtr
 			}
-			if inIsPtr == fieldIsPtr {
+			switch {
+			case inIsPtr == fieldIsPtr:
 				c.Line("(*out)[key] = val.DeepCopy()")
-			} else if fieldIsPtr {
+			case fieldIsPtr:
 				c.Line("{") // use a block because we use `x` as a temporary
 				c.Line("x := val.DeepCopy()")
 				c.Line("(*out)[key] = &x")
 				c.Line("}")
-			} else {
+			default:
 				c.Line("(*out)[key] = *val.DeepCopy()")
 			}
 		case fineToShallowCopy(mapType.Elem()):
@@ -446,9 +447,7 @@ func (c *copyMethodMaker) genSliceDeepCopy(actualName *namingInfo, sliceType *ty
 func (c *copyMethodMaker) genStructDeepCopy(_ *namingInfo, structType *types.Struct) {
 	c.Line("*out = *in")
 
-	for i := 0; i < structType.NumFields(); i++ {
-		field := structType.Field(i)
-
+	for field := range structType.Fields() {
 		// if we have a manual deepcopy, use that
 		hasDeepCopy, copyOnPtr := hasDeepCopyMethod(c.pkg, field.Type())
 		hasDeepCopyInto := hasDeepCopyIntoMethod(c.pkg, field.Type())
@@ -768,8 +767,7 @@ func fineToShallowCopy(typeInfo types.Type) bool {
 		return fineToShallowCopy(typeInfo.Underlying())
 	case *types.Struct:
 		// structs are fine to shallow-copy if they have all shallow-copyable fields
-		for i := 0; i < typeInfo.NumFields(); i++ {
-			field := typeInfo.Field(i)
+		for field := range typeInfo.Fields() {
 			if !fineToShallowCopy(field.Type()) {
 				return false
 			}
