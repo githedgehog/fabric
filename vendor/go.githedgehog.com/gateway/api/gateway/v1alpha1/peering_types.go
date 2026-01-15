@@ -47,9 +47,10 @@ type PeeringNAT struct {
 }
 
 type PeeringEntryExpose struct {
-	IPs []PeeringEntryIP `json:"ips,omitempty"`
-	As  []PeeringEntryAs `json:"as,omitempty"`
-	NAT *PeeringNAT      `json:"nat,omitempty"`
+	IPs                []PeeringEntryIP `json:"ips,omitempty"`
+	As                 []PeeringEntryAs `json:"as,omitempty"`
+	NAT                *PeeringNAT      `json:"nat,omitempty"`
+	DefaultDestination bool             `json:"default,omitempty"`
 }
 
 type PeeringEntry struct {
@@ -185,7 +186,10 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 			continue
 		}
 		for _, expose := range vpc.Expose {
-			if len(expose.IPs) == 0 {
+			if expose.DefaultDestination && (len(expose.IPs) > 0 || len(expose.As) > 0 || expose.NAT != nil) {
+				return fmt.Errorf("default flag should be the only thing set in expose of VPC %s", name) //nolint:goerr113
+			}
+			if len(expose.IPs) == 0 && !expose.DefaultDestination {
 				return fmt.Errorf("at least one IP block must be specified in peering expose of VPC %s", name) //nolint:goerr113
 			}
 			for _, ip := range expose.IPs {
@@ -273,9 +277,69 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 
 			// return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
+		// check for overlaps of exposed IPs towards the either of theVPCs in the peering we are validating
+		for vpc, ourEntry := range p.Spec.Peering {
+			ourCIDRs := []string{}
+			existingCIDRs := []string{}
+
+			ourCIDRs = collectExposedCIDRs(ourEntry, ourCIDRs)
+			if len(ourCIDRs) == 0 {
+				continue
+			}
+			peeringList := &PeeringList{}
+			if err := kube.List(ctx, peeringList, kclient.MatchingLabels{ListLabelVPC(vpc): ListLabelValue}); err != nil {
+				return fmt.Errorf("failed to list peerings for VPC %s: %w", vpc, err)
+			}
+			for _, other := range peeringList.Items {
+				otherEntry, ok := other.Spec.Peering[vpc]
+				if !ok {
+					return fmt.Errorf("internal bug: could not find entry for VPC %s in peering with label for that VPC", vpc) //nolint:err113
+				}
+				existingCIDRs = collectExposedCIDRs(otherEntry, existingCIDRs)
+			}
+			if len(existingCIDRs) == 0 {
+				continue
+			}
+			for _, ourCIDR := range ourCIDRs {
+				ourP, err := netip.ParsePrefix(ourCIDR)
+				if err != nil {
+					return fmt.Errorf("failed to parse exposed CIDR %s: %w", ourCIDR, err)
+				}
+				for _, otherCIDR := range existingCIDRs {
+					otherP, err := netip.ParsePrefix(otherCIDR)
+					if err != nil {
+						return fmt.Errorf("failed to parse existing exposed CIDR %s: %w", otherCIDR, err)
+					}
+					if ourP.Overlaps(otherP) {
+						return fmt.Errorf("overlap between existing exposed CIDR %s and new exposed CIDR %s", otherCIDR, ourCIDR) //nolint:err113
+					}
+				}
+			}
+		}
 	}
 
 	return nil
+}
+
+func collectExposedCIDRs(entry *PeeringEntry, cidrs []string) []string {
+	for _, expose := range entry.Expose {
+		if expose.DefaultDestination {
+			continue
+		}
+		if len(expose.As) == 0 {
+			for _, ip := range expose.IPs {
+				// TODO: account for NOTs?
+				cidrs = append(cidrs, ip.CIDR)
+			}
+		} else {
+			for _, as := range expose.As {
+				// TODO: account for NOTs?
+				cidrs = append(cidrs, as.CIDR)
+			}
+		}
+	}
+
+	return cidrs
 }
 
 func validatePorts(in string) error {
