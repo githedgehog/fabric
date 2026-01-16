@@ -242,8 +242,8 @@ var specInterfaceVLANStaticARPsEnforcer = &DefaultMapEnforcer[string, *dozer.Spe
 var specInterfaceVLANStaticARPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecStaticARP]{
 	Summary:      "Interface VLAN Static ARP %s",
 	Path:         "/routed-vlan/ipv4/neighbors/neighbor[ip=%s]",
-	UpdateWeight: ActionWeghtInterfaceStaticARPUpdate,
-	DeleteWeight: ActionWeghtInterfaceStaticARPDelete,
+	UpdateWeight: ActionWeightInterfaceVLANStaticARPUpdate,
+	DeleteWeight: ActionWeightInterfaceVLANStaticARPDelete,
 	Marshal: func(name string, value *dozer.SpecStaticARP) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv4_Neighbors_Neighbor{
@@ -267,8 +267,8 @@ var specInterfaceSubinterfaceStaticARPsEnforcer = &DefaultMapEnforcer[string, *d
 var specInterfaceSubinterfaceStaticARPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecStaticARP]{
 	Summary:      "SubInterface Static ARP %s",
 	Path:         "/ipv4/neighbors/neighbor[ip=%s]",
-	UpdateWeight: ActionWeghtInterfaceStaticARPUpdate,
-	DeleteWeight: ActionWeghtInterfaceStaticARPDelete,
+	UpdateWeight: ActionWeightInterfaceSubinterfaceStaticARPUpdate,
+	DeleteWeight: ActionWeightInterfaceSubinterfaceStaticARPDelete,
 	Marshal: func(name string, value *dozer.SpecStaticARP) (ygot.ValidatedGoStruct, error) {
 		return &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors{
 			Neighbor: map[string]*oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Neighbors_Neighbor{
