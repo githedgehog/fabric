@@ -15,13 +15,17 @@
 package bcm
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 func TestTranslatePortNames(t *testing.T) {
@@ -155,6 +159,63 @@ func TestTranslatePortNames(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tt.want, tt.spec)
+		})
+	}
+}
+
+const testdataDir = "testdata"
+
+func TestPlan(t *testing.T) {
+	var err error
+
+	sonicVersion450, err = semver.NewVersion("4.5.0")
+	require.NoError(t, err, "creating sonic version")
+	sonicVersionCurr = sonicVersion450
+
+	for _, tt := range []struct {
+		name string
+	}{
+		// group: reg
+		// regular vs vlab with l2vni vpcs, 2 spines, 2 mclag leafs, 2 eslag leafs, 1 standalone
+		// virt ext connected to leaf-3 only, 2 subnets per vpc
+		// peers: 1+2 1+3:gw:vpc1=subnet-01:vpc2=subnet-01 3+4 1~external-01:subnets=subnet-01 3~external-01:subnets=subnet-01
+		{name: "reg-leaf-1"},  // mclag, no external connected to it, vpc peering and ext peering
+		{name: "reg-leaf-3"},  // eslag, external connected to it, vpc peering and ext peering
+		{name: "reg-leaf-4"},  // eslag, no external connected to it, vpc peering and no ext peering
+		{name: "reg-spine-1"}, // spine
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			agData, err := os.ReadFile(filepath.Join(testdataDir, tt.name+".in.agent.yaml"))
+			require.NoError(t, err, "reading agent file")
+
+			ag := &agentapi.Agent{}
+			err = kyaml.Unmarshal(agData, ag)
+			require.NoError(t, err, "unmarshalling agent data")
+
+			bp := &BroadcomProcessor{}
+			actualSpec, err := bp.PlanDesiredState(t.Context(), ag)
+			require.NoError(t, err, "planning for agent")
+			actualSpec.Normalize()
+
+			actualSpecData, err := kyaml.Marshal(actualSpec)
+			require.NoError(t, err, "marshalling spec")
+
+			expectedFileName := filepath.Join(testdataDir, tt.name+".out.spec.expected.yaml")
+			actualFileName := filepath.Join(testdataDir, tt.name+".out.spec.actual.yaml")
+
+			err = os.WriteFile(actualFileName, actualSpecData, 0o600)
+			require.NoError(t, err, "writing actual spec file")
+
+			if os.Getenv("UPDATE") == "true" {
+				err = os.WriteFile(expectedFileName, actualSpecData, 0o600)
+				require.NoError(t, err, "writing expected spec file")
+			}
+
+			expectedSpecData, err := os.ReadFile(expectedFileName)
+			require.NoError(t, err, "reading expected spec file")
+
+			require.Equal(t, string(expectedSpecData), string(actualSpecData),
+				"spec mismatch, you can compare expected and actual spec files in testdata dir or re-generate expected by running just test-update")
 		})
 	}
 }
