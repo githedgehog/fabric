@@ -1473,6 +1473,7 @@ _Appears in:_
 | `vlan` _integer_ | VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace |  |  |
 | `isolated` _boolean_ | Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC |  |  |
 | `restricted` _boolean_ | Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself |  |  |
+| `hostBGP` _boolean_ | HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range |  |  |
 
 
 
