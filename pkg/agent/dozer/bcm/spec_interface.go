@@ -287,8 +287,8 @@ var specInterfaceSubinterfaceStaticARPEnforcer = &DefaultValueEnforcer[string, *
 var specInterfaceVLANProxyARPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary:          "Interface VLAN Proxy-ARP",
 	Path:             "/routed-vlan/ipv4/proxy-arp/config",
-	UpdateWeight:     ActionWeightProxyARPUpdate,
-	DeleteWeight:     ActionWeightProxyARPDelete,
+	UpdateWeight:     ActionWeightVLANProxyARPUpdate,
+	DeleteWeight:     ActionWeightVLANProxyARPDelete,
 	RecreateOnUpdate: true,
 	Getter:           func(key string, value *dozer.SpecInterface) any { return value.ProxyARP },
 	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
@@ -312,8 +312,8 @@ var specInterfaceVLANProxyARPEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 var specInterfaceSubinterfaceProxyARPEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
 	Summary:          "Subinterface %d Proxy-ARP",
 	Path:             "/ipv4/proxy-arp/config",
-	UpdateWeight:     ActionWeightProxyARPUpdate,
-	DeleteWeight:     ActionWeightProxyARPDelete,
+	UpdateWeight:     ActionWeightSubinterfaceProxyARPUpdate,
+	DeleteWeight:     ActionWeightSubinterfaceProxyARPDelete,
 	RecreateOnUpdate: true,
 	Getter:           func(idx uint32, value *dozer.SpecSubinterface) any { return value.ProxyARP },
 	Marshal: func(_ uint32, value *dozer.SpecSubinterface) (ygot.ValidatedGoStruct, error) {
