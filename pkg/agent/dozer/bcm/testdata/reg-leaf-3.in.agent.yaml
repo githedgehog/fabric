@@ -1,0 +1,743 @@
+apiVersion: agent.githedgehog.com/v1beta1
+kind: Agent
+metadata:
+  creationTimestamp: "2026-01-16T00:09:01Z"
+  generation: 8
+  labels:
+    fabric.githedgehog.com/profile: vs
+    switchgroup.fabric.githedgehog.com/eslag-1: "true"
+    vlanns.fabric.githedgehog.com/default: "true"
+  name: leaf-03
+  namespace: default
+  resourceVersion: "31829"
+  uid: 5195a27e-a1b7-4f2d-8cf3-4b7fe5bf7a08
+spec:
+  alloy: {}
+  attachedVPCs:
+    vpc-03: true
+    vpc-04: true
+  catalog:
+    connectionIDs:
+      server-05--eslag--leaf-03--leaf-04: 1
+      server-06--eslag--leaf-03--leaf-04: 2
+    externalIDs:
+      external-01: 10
+    irbVLANs:
+      ext@external-01: 3003
+      vpc-01: 3001
+      vpc-03: 3002
+      vpc-04: 3000
+    portChannelIDs:
+      server-05--eslag--leaf-03--leaf-04: 2
+      server-06--eslag--leaf-03--leaf-04: 1
+      server-08--bundled--leaf-04: 3
+    subnetIDs:
+      0.0.0.0/0: 106
+      10.0.1.0/24: 105
+      10.0.2.0/24: 104
+      10.0.5.0/24: 103
+      10.0.6.0/24: 100
+      10.0.7.0/24: 102
+      10.0.8.0/24: 101
+    vpcSubnetVNIs:
+      vpc-01:
+        subnet-01: 201
+        subnet-02: 202
+      vpc-03:
+        subnet-01: 302
+        subnet-02: 301
+      vpc-04:
+        subnet-01: 401
+        subnet-02: 402
+    vpcVNIs:
+      ext@external-01: 100
+      vpc-01: 200
+      vpc-03: 300
+      vpc-04: 400
+  config:
+    alloy:
+      hostname: leaf-03
+      kube: {}
+      logFiles:
+        agent:
+          pathTargets:
+          - path: /var/log/agent.log
+        syslog:
+          pathTargets:
+          - path: /var/log/syslog
+      proxyURL: http://172.30.0.1:31028
+      pyroscope: {}
+      scrapes:
+        agent:
+          address: 127.0.0.1:7042
+          intervalSeconds: 60
+          relabel:
+          - action: keep
+            regex: .*(_in_bits|_status|_generation|_temperature|_transceiver).*
+            sourceLabels:
+            - __name__
+          self: {}
+          unix: {}
+        node:
+          intervalSeconds: 60
+          relabel:
+          - action: keep
+            regex: .*(_load).*
+            sourceLabels:
+            - __name__
+          self: {}
+          unix:
+            collectors:
+            - cpu
+            - loadavg
+            - meminfo
+            - filesystem
+            enable: true
+      targets: {}
+    baseVPCCommunity: "50000:0"
+    controlVIP: 172.30.0.1/32
+    defaultMaxPathsEBGP: 64
+    eslagESIPrefix: '00:f2:00:00:'
+    eslagMACBase: f2:00:00:00:00:00
+    fabricMTU: 9100
+    fabricSubnet: 172.30.128.0/17
+    gatewayASN: 65534
+    gatewayCommunities:
+      "0": "50001:0"
+      "1": "50001:1"
+      "2": "50001:2"
+      "3": "50001:3"
+      "4": "50001:4"
+      "5": "50001:5"
+      "6": "50001:6"
+      "7": "50001:7"
+      "8": "50001:8"
+      "9": "50001:9"
+    mclagSessionSubnet: 172.30.95.0/31
+    protocolSubnet: 172.30.8.0/22
+    serverFacingMTUOffset: 64
+    spineLeaf: {}
+    vpcLoopbackSubnet: 172.30.96.0/19
+    vtepSubnet: 172.30.12.0/22
+  configuredVPCSubnets:
+    vpc-03/subnet-01: true
+    vpc-03/subnet-02: true
+    vpc-04/subnet-01: true
+  connections:
+    leaf-03--external:
+      external:
+        link:
+          switch:
+            port: leaf-03/E1/1
+    server-05--eslag--leaf-03--leaf-04:
+      eslag:
+        links:
+        - server:
+            port: server-05/enp2s1
+          switch:
+            port: leaf-03/E1/2
+        - server:
+            port: server-05/enp2s2
+          switch:
+            port: leaf-04/E1/1
+    server-06--eslag--leaf-03--leaf-04:
+      eslag:
+        links:
+        - server:
+            port: server-06/enp2s1
+          switch:
+            port: leaf-03/E1/3
+        - server:
+            port: server-06/enp2s2
+          switch:
+            port: leaf-04/E1/2
+    server-07--unbundled--leaf-03:
+      unbundled:
+        link:
+          server:
+            port: server-07/enp2s1
+          switch:
+            port: leaf-03/E1/4
+    spine-01--fabric--leaf-03:
+      fabric:
+        links:
+        - leaf:
+            ip: 172.30.128.9/31
+            port: leaf-03/E1/5
+          spine:
+            ip: 172.30.128.8/31
+            port: spine-01/E1/5
+        - leaf:
+            ip: 172.30.128.11/31
+            port: leaf-03/E1/6
+          spine:
+            ip: 172.30.128.10/31
+            port: spine-01/E1/6
+    spine-02--fabric--leaf-03:
+      fabric:
+        links:
+        - leaf:
+            ip: 172.30.128.31/31
+            port: leaf-03/E1/7
+          spine:
+            ip: 172.30.128.30/31
+            port: spine-02/E1/5
+        - leaf:
+            ip: 172.30.128.33/31
+            port: leaf-03/E1/8
+          spine:
+            ip: 172.30.128.32/31
+            port: spine-02/E1/6
+  description: VS-03 ESLAG 1
+  externalAttachments:
+    leaf-03--external-01:
+      connection: leaf-03--external
+      external: external-01
+      neighbor:
+        asn: 64102
+        ip: 100.1.10.6
+      switch:
+        ip: 100.1.10.1/24
+        vlan: 10
+  externalPeerings:
+    vpc-01--external-01:
+      permit:
+        external:
+          name: external-01
+          prefixes:
+          - prefix: 0.0.0.0/0
+        vpc:
+          name: vpc-01
+          subnets:
+          - subnet-01
+    vpc-03--external-01:
+      permit:
+        external:
+          name: external-01
+          prefixes:
+          - prefix: 0.0.0.0/0
+        vpc:
+          name: vpc-03
+          subnets:
+          - subnet-01
+  externals:
+    external-01:
+      inboundCommunity: 65102:1000
+      ipv4Namespace: default
+      outboundCommunity: 64102:1000
+  ipv4Namespaces:
+    default:
+      subnets:
+      - 10.0.0.0/16
+  redundancyGroupPeers:
+  - leaf-04
+  role: server-leaf
+  statusUpdates:
+  - apiVersion: wiring.githedgehog.com/v1beta1
+    generation: 1
+    kind: Switch
+    name: leaf-03
+    namespace: default
+  switch:
+    asn: 65102
+    boot:
+      mac: 0c:20:12:ff:02:00
+    description: VS-03 ESLAG 1
+    ecmp: {}
+    groups:
+    - eslag-1
+    ip: 172.30.0.11/21
+    profile: vs
+    protocolIP: 172.30.8.4/32
+    redundancy:
+      group: eslag-1
+      type: eslag
+    role: server-leaf
+    vlanNamespaces:
+    - default
+    vtepIP: 172.30.12.1/32
+  switchProfile:
+    config:
+      maxPathsEBGP: 16
+    displayName: Virtual Switch
+    features:
+      eslag: true
+      l2vni: true
+      l3vni: true
+      mclag: true
+      roce: true
+      subinterfaces: true
+    nosType: sonic-bcm-vs
+    platform: x86_64-kvm_x86_64-r0
+    portGroups:
+      "1":
+        nos: "1"
+        profile: SFP28-25G
+      "2":
+        nos: "2"
+        profile: SFP28-25G
+      "3":
+        nos: "3"
+        profile: SFP28-25G
+      "4":
+        nos: "4"
+        profile: SFP28-25G
+      "5":
+        nos: "5"
+        profile: SFP28-25G
+      "6":
+        nos: "6"
+        profile: SFP28-25G
+      "7":
+        nos: "7"
+        profile: SFP28-25G
+      "8":
+        nos: "8"
+        profile: SFP28-25G
+      "9":
+        nos: "9"
+        profile: SFP28-25G
+      "10":
+        nos: "10"
+        profile: SFP28-25G
+      "11":
+        nos: "11"
+        profile: SFP28-25G
+      "12":
+        nos: "12"
+        profile: SFP28-25G
+    portProfiles:
+      SFP28-25G:
+        speed:
+          default: 25G
+          supported:
+          - 10G
+          - 25G
+    ports:
+      E1/1:
+        group: "1"
+        label: "1"
+        nos: Ethernet0
+      E1/2:
+        group: "1"
+        label: "2"
+        nos: Ethernet1
+      E1/3:
+        group: "1"
+        label: "3"
+        nos: Ethernet2
+      E1/4:
+        group: "1"
+        label: "4"
+        nos: Ethernet3
+      E1/5:
+        group: "2"
+        label: "5"
+        nos: Ethernet4
+      E1/6:
+        group: "2"
+        label: "6"
+        nos: Ethernet5
+      E1/7:
+        group: "2"
+        label: "7"
+        nos: Ethernet6
+      E1/8:
+        group: "2"
+        label: "8"
+        nos: Ethernet7
+      E1/9:
+        group: "3"
+        label: "9"
+        nos: Ethernet8
+      E1/10:
+        group: "3"
+        label: "10"
+        nos: Ethernet9
+      E1/11:
+        group: "3"
+        label: "11"
+        nos: Ethernet10
+      E1/12:
+        group: "3"
+        label: "12"
+        nos: Ethernet11
+      E1/13:
+        group: "4"
+        label: "13"
+        nos: Ethernet12
+      E1/14:
+        group: "4"
+        label: "14"
+        nos: Ethernet13
+      E1/15:
+        group: "4"
+        label: "15"
+        nos: Ethernet14
+      E1/16:
+        group: "4"
+        label: "16"
+        nos: Ethernet15
+      E1/17:
+        group: "5"
+        label: "17"
+        nos: Ethernet16
+      E1/18:
+        group: "5"
+        label: "18"
+        nos: Ethernet17
+      E1/19:
+        group: "5"
+        label: "19"
+        nos: Ethernet18
+      E1/20:
+        group: "5"
+        label: "20"
+        nos: Ethernet19
+      E1/21:
+        group: "6"
+        label: "21"
+        nos: Ethernet20
+      E1/22:
+        group: "6"
+        label: "22"
+        nos: Ethernet21
+      E1/23:
+        group: "6"
+        label: "23"
+        nos: Ethernet22
+      E1/24:
+        group: "6"
+        label: "24"
+        nos: Ethernet23
+      E1/25:
+        group: "7"
+        label: "25"
+        nos: Ethernet24
+      E1/26:
+        group: "7"
+        label: "26"
+        nos: Ethernet25
+      E1/27:
+        group: "7"
+        label: "27"
+        nos: Ethernet26
+      E1/28:
+        group: "7"
+        label: "28"
+        nos: Ethernet27
+      E1/29:
+        group: "8"
+        label: "29"
+        nos: Ethernet28
+      E1/30:
+        group: "8"
+        label: "30"
+        nos: Ethernet29
+      E1/31:
+        group: "8"
+        label: "31"
+        nos: Ethernet30
+      E1/32:
+        group: "8"
+        label: "32"
+        nos: Ethernet31
+      E1/33:
+        group: "9"
+        label: "33"
+        nos: Ethernet32
+      E1/34:
+        group: "9"
+        label: "34"
+        nos: Ethernet33
+      E1/35:
+        group: "9"
+        label: "35"
+        nos: Ethernet34
+      E1/36:
+        group: "9"
+        label: "36"
+        nos: Ethernet35
+      E1/37:
+        group: "10"
+        label: "37"
+        nos: Ethernet36
+      E1/38:
+        group: "10"
+        label: "38"
+        nos: Ethernet37
+      E1/39:
+        group: "10"
+        label: "39"
+        nos: Ethernet38
+      E1/40:
+        group: "10"
+        label: "40"
+        nos: Ethernet39
+      E1/41:
+        group: "11"
+        label: "41"
+        nos: Ethernet40
+      E1/42:
+        group: "11"
+        label: "42"
+        nos: Ethernet41
+      E1/43:
+        group: "11"
+        label: "43"
+        nos: Ethernet42
+      E1/44:
+        group: "11"
+        label: "44"
+        nos: Ethernet43
+      E1/45:
+        group: "12"
+        label: "45"
+        nos: Ethernet44
+      E1/46:
+        group: "12"
+        label: "46"
+        nos: Ethernet45
+      E1/47:
+        group: "12"
+        label: "47"
+        nos: Ethernet46
+      E1/48:
+        group: "12"
+        label: "48"
+        nos: Ethernet47
+      M1:
+        management: true
+        nos: Management0
+        oniePortName: eth0
+    switchSilicon: vs
+  switches:
+    leaf-03:
+      asn: 65102
+      boot:
+        mac: 0c:20:12:ff:02:00
+      description: VS-03 ESLAG 1
+      ecmp: {}
+      groups:
+      - eslag-1
+      ip: 172.30.0.11/21
+      profile: vs
+      protocolIP: 172.30.8.4/32
+      redundancy:
+        group: eslag-1
+        type: eslag
+      role: server-leaf
+      vlanNamespaces:
+      - default
+      vtepIP: 172.30.12.1/32
+    leaf-04:
+      asn: 65103
+      boot:
+        mac: 0c:20:12:ff:03:00
+      description: VS-04 ESLAG 1
+      ecmp: {}
+      groups:
+      - eslag-1
+      ip: 172.30.0.12/21
+      profile: vs
+      protocolIP: 172.30.8.5/32
+      redundancy:
+        group: eslag-1
+        type: eslag
+      role: server-leaf
+      vlanNamespaces:
+      - default
+      vtepIP: 172.30.12.2/32
+    spine-01:
+      asn: 65100
+      boot:
+        mac: 0c:20:12:ff:05:00
+      description: VS-06
+      ecmp: {}
+      ip: 172.30.0.7/21
+      profile: vs
+      protocolIP: 172.30.8.0/32
+      redundancy: {}
+      role: spine
+      vlanNamespaces:
+      - default
+    spine-02:
+      asn: 65100
+      boot:
+        mac: 0c:20:12:ff:06:00
+      description: VS-07
+      ecmp: {}
+      ip: 172.30.0.8/21
+      profile: vs
+      protocolIP: 172.30.8.1/32
+      redundancy: {}
+      role: spine
+      vlanNamespaces:
+      - default
+  users:
+  - name: admin
+    password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+    role: admin
+    sshKeys:
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIALAU1RChR27OrcAjD6HFoLrBK3oVKJV6ATWYB3OjdSw
+  - name: op
+    password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+    role: operator
+    sshKeys:
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIALAU1RChR27OrcAjD6HFoLrBK3oVKJV6ATWYB3OjdSw
+  version:
+    alloyRepo: 172.30.0.1:31000/githedgehog/fabricator/alloy-bin
+    alloyVersion: v1.12.0
+    ca: |
+      -----BEGIN CERTIFICATE-----
+      MIIBbDCCARKgAwIBAgIIU7sCtD49Jk4wCgYIKoZIzj0EAwIwGjEYMBYGA1UEAxMP
+      aGVkZ2Vob2ctZmFiLWNhMB4XDTI2MDExNTIzNTA1MVoXDTM2MDExNjAwMDU1MVow
+      GjEYMBYGA1UEAxMPaGVkZ2Vob2ctZmFiLWNhMFkwEwYHKoZIzj0CAQYIKoZIzj0D
+      AQcDQgAEP6J/5s4F1PMFXvG3169JWNSJFxPuf9DCFT/996laqBYQZ0kaUi1cbbnZ
+      X9BkbVFOzf6XeXwcwd05QogN4OR53KNCMEAwDgYDVR0PAQH/BAQDAgKEMA8GA1Ud
+      EwEB/wQFMAMBAf8wHQYDVR0OBBYEFI1jiNjtzv+EQyttQdHSj0Jo2rBNMAoGCCqG
+      SM49BAMCA0gAMEUCIG+0vOhexIbmX3qH9uUaXTgDzVVm96UogLxbVtWgja5DAiEA
+      lpqId7PcDURp1T5e1wtiaQlDhZLcPnVxE3mcQaKbuzk=
+      -----END CERTIFICATE-----
+    default: v0.100.0
+    password: secret
+    repo: 172.30.0.1:31000/githedgehog/fabric/agent
+    username: reader
+  vlanNamespaces:
+    default:
+      ranges:
+      - from: 1000
+        to: 2999
+  vpcAttachments:
+    server-05--eslag--leaf-03--leaf-04--vpc-03--subnet-01:
+      connection: server-05--eslag--leaf-03--leaf-04
+      subnet: vpc-03/subnet-01
+    server-06--eslag--leaf-03--leaf-04--vpc-03--subnet-02:
+      connection: server-06--eslag--leaf-03--leaf-04
+      subnet: vpc-03/subnet-02
+    server-07--unbundled--leaf-03--vpc-04--subnet-01:
+      connection: server-07--unbundled--leaf-03
+      subnet: vpc-04/subnet-01
+  vpcPeers:
+    vpc-03--vpc-04:
+      permit:
+      - vpc-03: {}
+        vpc-04: {}
+  vpcs:
+    vpc-01:
+      ipv4Namespace: default
+      subnets:
+        subnet-01:
+          dhcp:
+            enable: true
+            options:
+              dnsServers:
+              - 1.0.0.1
+              - 1.1.1.1
+              interfaceMTU: 9036
+              leaseTimeSeconds: 3600
+              timeServers:
+              - 219.239.35.0
+            range:
+              end: 10.0.1.255
+              start: 10.0.1.2
+          gateway: 10.0.1.1
+          subnet: 10.0.1.0/24
+          vlan: 1001
+        subnet-02:
+          dhcp:
+            enable: true
+            options:
+              dnsServers:
+              - 1.0.0.1
+              - 1.1.1.1
+              interfaceMTU: 9036
+              leaseTimeSeconds: 3600
+              timeServers:
+              - 219.239.35.0
+            range:
+              end: 10.0.2.255
+              start: 10.0.2.2
+          gateway: 10.0.2.1
+          subnet: 10.0.2.0/24
+          vlan: 1002
+      vlanNamespace: default
+    vpc-03:
+      ipv4Namespace: default
+      subnets:
+        subnet-01:
+          dhcp:
+            enable: true
+            options:
+              dnsServers:
+              - 1.0.0.1
+              - 1.1.1.1
+              interfaceMTU: 9036
+              leaseTimeSeconds: 3600
+              timeServers:
+              - 219.239.35.0
+            range:
+              end: 10.0.5.255
+              start: 10.0.5.2
+          gateway: 10.0.5.1
+          subnet: 10.0.5.0/24
+          vlan: 1005
+        subnet-02:
+          dhcp:
+            enable: true
+            options:
+              dnsServers:
+              - 1.0.0.1
+              - 1.1.1.1
+              interfaceMTU: 9036
+              leaseTimeSeconds: 3600
+              timeServers:
+              - 219.239.35.0
+            range:
+              end: 10.0.6.255
+              start: 10.0.6.2
+          gateway: 10.0.6.1
+          subnet: 10.0.6.0/24
+          vlan: 1006
+      vlanNamespace: default
+    vpc-04:
+      ipv4Namespace: default
+      subnets:
+        subnet-01:
+          dhcp:
+            enable: true
+            options:
+              dnsServers:
+              - 1.0.0.1
+              - 1.1.1.1
+              interfaceMTU: 9036
+              leaseTimeSeconds: 3600
+              timeServers:
+              - 219.239.35.0
+            range:
+              end: 10.0.7.255
+              start: 10.0.7.2
+          gateway: 10.0.7.1
+          subnet: 10.0.7.0/24
+          vlan: 1007
+        subnet-02:
+          dhcp:
+            enable: true
+            options:
+              dnsServers:
+              - 1.0.0.1
+              - 1.1.1.1
+              interfaceMTU: 9036
+              leaseTimeSeconds: 3600
+              timeServers:
+              - 219.239.35.0
+            range:
+              end: 10.0.8.255
+              start: 10.0.8.2
+          gateway: 10.0.8.1
+          subnet: 10.0.8.0/24
+          vlan: 1008
+      vlanNamespace: default
+status: {}
