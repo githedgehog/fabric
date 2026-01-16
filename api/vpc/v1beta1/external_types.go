@@ -16,6 +16,8 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -156,6 +158,21 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 
 		if len(external.Spec.L2.Prefixes) == 0 {
 			return nil, errors.Errorf("at least one prefix must be specified in L2 mode")
+		}
+		prefixes := []netip.Prefix{}
+		for _, p := range external.Spec.L2.Prefixes {
+			parsed, err := netip.ParsePrefix(p)
+			if err != nil {
+				return nil, fmt.Errorf("invalid L2 prefix %s: %w", p, err)
+			}
+			prefixes = append(prefixes, parsed)
+		}
+		for i := range prefixes {
+			for j := i + 1; j < len(prefixes); j++ {
+				if prefixes[i].Overlaps(prefixes[j]) {
+					return nil, fmt.Errorf("L2 prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String()) //nolint:goerr113
+				}
+			}
 		}
 	}
 
