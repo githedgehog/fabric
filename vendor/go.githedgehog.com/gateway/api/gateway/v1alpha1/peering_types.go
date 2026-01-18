@@ -277,25 +277,37 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 
 			// return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
-		// check for overlaps of exposed IPs towards the either of theVPCs in the peering we are validating
-		for vpc, ourEntry := range p.Spec.Peering {
+		// check for overlaps of exposed IPs towards either of the VPCs in the peering we are validating
+		peeringVPCs := maps.Keys(p.Spec.Peering)
+		for originVPC, ourEntry := range p.Spec.Peering {
 			ourCIDRs := []string{}
 			existingCIDRs := []string{}
+			var targetVPC string
+			for vpc := range peeringVPCs {
+				if vpc == originVPC {
+					continue
+				}
+				targetVPC = vpc
+			}
 
 			ourCIDRs = collectExposedCIDRs(ourEntry, ourCIDRs)
 			if len(ourCIDRs) == 0 {
 				continue
 			}
 			peeringList := &PeeringList{}
-			if err := kube.List(ctx, peeringList, kclient.MatchingLabels{ListLabelVPC(vpc): ListLabelValue}); err != nil {
-				return fmt.Errorf("failed to list peerings for VPC %s: %w", vpc, err)
+			if err := kube.List(ctx, peeringList, kclient.MatchingLabels{ListLabelVPC(targetVPC): ListLabelValue}); err != nil {
+				return fmt.Errorf("failed to list peerings for VPC %s: %w", targetVPC, err)
 			}
 			for _, other := range peeringList.Items {
-				otherEntry, ok := other.Spec.Peering[vpc]
-				if !ok {
-					return fmt.Errorf("internal bug: could not find entry for VPC %s in peering with label for that VPC", vpc) //nolint:err113
+				if other.Name == p.Name {
+					continue
 				}
-				existingCIDRs = collectExposedCIDRs(otherEntry, existingCIDRs)
+				for otherOriginVPC, otherEntry := range other.Spec.Peering {
+					if otherOriginVPC == targetVPC {
+						continue
+					}
+					existingCIDRs = collectExposedCIDRs(otherEntry, existingCIDRs)
+				}
 			}
 			if len(existingCIDRs) == 0 {
 				continue
