@@ -1111,7 +1111,7 @@ go.etcd.io/bbolt/internal/freelist
 # go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
-# go.githedgehog.com/gateway v0.36.0
+# go.githedgehog.com/gateway v0.36.1
 ## explicit; go 1.25.5
 go.githedgehog.com/gateway/api/gateway/v1alpha1
 # go.githedgehog.com/libmeta v0.3.0
