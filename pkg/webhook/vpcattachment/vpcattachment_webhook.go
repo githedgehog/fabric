@@ -41,34 +41,24 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&vpcapi.VPCAttachment{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCAttachment{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup vpc attachment webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update,versions=v1beta1,name=mvpcattachment.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update;delete,versions=v1beta1,name=vvpcattachment.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpcattachment-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	attach := obj.(*vpcapi.VPCAttachment)
-
+func (w *Webhook) Default(_ context.Context, attach *vpcapi.VPCAttachment) error {
 	attach.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	attach := obj.(*vpcapi.VPCAttachment)
-
+func (w *Webhook) ValidateCreate(ctx context.Context, attach *vpcapi.VPCAttachment) (admission.Warnings, error) {
 	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate vpc attachment")
@@ -77,10 +67,7 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	newAttach := newObj.(*vpcapi.VPCAttachment)
-	// oldAttach := oldObj.(*vpcapi.VPCAttachment)
-
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *vpcapi.VPCAttachment, newAttach *vpcapi.VPCAttachment) (admission.Warnings, error) {
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
 	// 	return nil, errors.Errorf("vpc attachment is immutable")
 	// }
@@ -93,6 +80,6 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 	return warns, nil
 }
 
-func (w *Webhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (w *Webhook) ValidateDelete(_ context.Context, _ *vpcapi.VPCAttachment) (admission.Warnings, error) {
 	return nil, nil
 }

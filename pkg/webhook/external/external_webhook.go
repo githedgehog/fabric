@@ -41,35 +41,25 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&vpcapi.External{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.External{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup external webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-external,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update,versions=v1beta1,name=mexternal.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-external,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update;delete,versions=v1beta1,name=vexternal.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("external-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	external := obj.(*vpcapi.External)
-
-	external.Default()
+func (w *Webhook) Default(_ context.Context, ext *vpcapi.External) error {
+	ext.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	external := obj.(*vpcapi.External)
-
-	warns, err := external.Validate(ctx, w.KubeClient, w.Cfg)
+func (w *Webhook) ValidateCreate(ctx context.Context, ext *vpcapi.External) (admission.Warnings, error) {
+	warns, err := ext.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating external")
 	}
@@ -77,15 +67,12 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	newExternal := newObj.(*vpcapi.External)
-	// oldExternal := oldObj.(*vpcapi.External)
-
-	// if !equality.Semantic.DeepEqual(oldExternal.Spec, newExternal.Spec) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
+	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {
 	// 	return nil, errors.Errorf("external spec is immutable")
 	// }
 
-	warns, err := newExternal.Validate(ctx, w.KubeClient, w.Cfg)
+	warns, err := newExt.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating external")
 	}
@@ -93,9 +80,7 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 	return warns, nil
 }
 
-func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	ext := obj.(*vpcapi.External)
-
+func (w *Webhook) ValidateDelete(ctx context.Context, ext *vpcapi.External) (admission.Warnings, error) {
 	extAttachments := &vpcapi.ExternalAttachmentList{}
 	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,

@@ -42,34 +42,24 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&vpcapi.VPC{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPC{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup vpc webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1beta1,name=mvpc.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpc,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update;delete,versions=v1beta1,name=vvpc.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpc-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	vpc := obj.(*vpcapi.VPC)
-
+func (w *Webhook) Default(_ context.Context, vpc *vpcapi.VPC) error {
 	vpc.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	vpc := obj.(*vpcapi.VPC)
-
+func (w *Webhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admission.Warnings, error) {
 	warns, err := vpc.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate vpc")
@@ -78,10 +68,7 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	// oldVPC := oldObj.(*vpcapi.VPC)
-	newVPC := newObj.(*vpcapi.VPC)
-
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate vpc")
@@ -103,9 +90,7 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 	return nil, nil
 }
 
-func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	vpc := obj.(*vpcapi.VPC)
-
+func (w *Webhook) ValidateDelete(ctx context.Context, vpc *vpcapi.VPC) (admission.Warnings, error) {
 	vpcAttachments := &vpcapi.VPCAttachmentList{}
 	if err := w.Client.List(ctx, vpcAttachments, kclient.MatchingLabels{
 		vpcapi.LabelVPC: vpc.Name,

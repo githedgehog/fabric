@@ -42,34 +42,24 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&vpcapi.IPv4Namespace{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.IPv4Namespace{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup ipv4namespace webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1beta1,name=mipv4namespace.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1beta1,name=vipv4namespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("ipv4namespace-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	ns := obj.(*vpcapi.IPv4Namespace)
-
+func (w *Webhook) Default(_ context.Context, ns *vpcapi.IPv4Namespace) error {
 	ns.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	ns := obj.(*vpcapi.IPv4Namespace)
-
+func (w *Webhook) ValidateCreate(ctx context.Context, ns *vpcapi.IPv4Namespace) (admission.Warnings, error) {
 	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate ipv4namespace")
@@ -78,16 +68,13 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	// oldNs := oldObj.(*vpcapi.IPv4Namespace)
-	ns := newObj.(*vpcapi.IPv4Namespace)
-
-	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *vpcapi.IPv4Namespace, newNs *vpcapi.IPv4Namespace) (admission.Warnings, error) {
+	if warn, err := newNs.Validate(ctx, w.Client, w.Cfg); err != nil {
 		return warn, errors.Wrapf(err, "failed to validate ipv4namespace")
 	}
 
 	nsSubnets := []*net.IPNet{}
-	for _, subnet := range ns.Spec.Subnets {
+	for _, subnet := range newNs.Spec.Subnets {
 		_, ipNet, err := net.ParseCIDR(subnet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
@@ -98,7 +85,7 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, new
 
 	vpcs := &vpcapi.VPCList{}
 	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
-		vpcapi.LabelIPv4NS: ns.Name,
+		vpcapi.LabelIPv4NS: newNs.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
 	}
@@ -128,12 +115,10 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, oldObj runtime.Object, new
 	return nil, nil
 }
 
-func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	ipns := obj.(*vpcapi.IPv4Namespace)
-
+func (w *Webhook) ValidateDelete(ctx context.Context, ns *vpcapi.IPv4Namespace) (admission.Warnings, error) {
 	vpcs := &vpcapi.VPCList{}
 	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
-		vpcapi.LabelIPv4NS: ipns.Name,
+		vpcapi.LabelIPv4NS: ns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
 	}
@@ -143,7 +128,7 @@ func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admis
 
 	externals := &vpcapi.ExternalList{}
 	if err := w.Client.List(ctx, externals, kclient.MatchingLabels{
-		vpcapi.LabelIPv4NS: ipns.Name,
+		vpcapi.LabelIPv4NS: ns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing externals") // TODO hide internal error
 	}
