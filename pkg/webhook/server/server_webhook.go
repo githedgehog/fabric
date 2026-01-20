@@ -39,35 +39,25 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:    cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&wiringapi.Server{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.Server{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup server webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-server,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update,versions=v1beta1,name=mserver.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-server,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update;delete,versions=v1beta1,name=vserver.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("server-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	server := obj.(*wiringapi.Server)
-
-	server.Default()
+func (w *Webhook) Default(_ context.Context, srv *wiringapi.Server) error {
+	srv.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	server := obj.(*wiringapi.Server)
-
-	warns, err := server.Validate(ctx, w.Client, w.Cfg)
+func (w *Webhook) ValidateCreate(ctx context.Context, srv *wiringapi.Server) (admission.Warnings, error) {
+	warns, err := srv.Validate(ctx, w.Client, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating server")
 	}
@@ -75,10 +65,8 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	newServer := newObj.(*wiringapi.Server)
-
-	warns, err := newServer.Validate(ctx, w.Client, w.Cfg)
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *wiringapi.Server, newSrv *wiringapi.Server) (admission.Warnings, error) {
+	warns, err := newSrv.Validate(ctx, w.Client, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating server")
 	}
@@ -86,12 +74,10 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 	return warns, nil
 }
 
-func (w *Webhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	server := obj.(*wiringapi.Server)
-
+func (w *Webhook) ValidateDelete(ctx context.Context, srv *wiringapi.Server) (admission.Warnings, error) {
 	conns := &wiringapi.ConnectionList{}
 	if err := w.Client.List(ctx, conns, kclient.MatchingLabels{
-		wiringapi.ListLabelServer(server.Name): wiringapi.ListLabelValue,
+		wiringapi.ListLabelServer(srv.Name): wiringapi.ListLabelValue,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing connections") // TODO hide internal error
 	}

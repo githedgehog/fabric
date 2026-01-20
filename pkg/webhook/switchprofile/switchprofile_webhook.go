@@ -45,32 +45,24 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switc
 		Profiles:   profiles,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&wiringapi.SwitchProfile{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.SwitchProfile{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup switch profile webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update,versions=v1beta1,name=mswitchprofile.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switchprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchprofiles,verbs=create;update;delete,versions=v1beta1,name=vswitchprofile.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("switchprofile-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	sw := obj.(*wiringapi.SwitchProfile)
-
-	sw.Default()
+func (w *Webhook) Default(_ context.Context, sp *wiringapi.SwitchProfile) error {
+	sp.Default()
 
 	return nil
 }
 
-func (w *Webhook) Validate(ctx context.Context, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
+func (w *Webhook) validate(ctx context.Context, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
 	if sp.Name == "" {
 		return nil, errors.Errorf("switch profile name must be set")
 	}
@@ -89,25 +81,19 @@ func (w *Webhook) Validate(ctx context.Context, sp *wiringapi.SwitchProfile) (ad
 	return warns, nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	sp := obj.(*wiringapi.SwitchProfile)
-
+func (w *Webhook) ValidateCreate(ctx context.Context, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
 	if dsp := w.Profiles.Get(sp.Name); dsp == nil && !w.Cfg.AllowExtraSwitchProfiles {
 		return nil, errors.Errorf("only default switch profiles are allowed")
 	}
 
-	return w.Validate(ctx, sp)
+	return w.validate(ctx, sp)
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	sp := newObj.(*wiringapi.SwitchProfile)
-
-	return w.Validate(ctx, sp)
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *wiringapi.SwitchProfile, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
+	return w.validate(ctx, sp)
 }
 
-func (w *Webhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	sp := obj.(*wiringapi.SwitchProfile)
-
+func (w *Webhook) ValidateDelete(_ context.Context, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
 	if dsp := w.Profiles.Get(sp.Name); dsp != nil {
 		return nil, errors.Errorf("default switch profiles are immutable")
 	}

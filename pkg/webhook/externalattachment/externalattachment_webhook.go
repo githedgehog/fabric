@@ -41,34 +41,24 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&vpcapi.ExternalAttachment{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalAttachment{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup external attachment webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-externalattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externalattachments,verbs=create;update,versions=v1beta1,name=mexternalattachment.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-externalattachment,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externalattachments,verbs=create;update;delete,versions=v1beta1,name=vexternalattachment.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("externalattachment-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	attach := obj.(*vpcapi.ExternalAttachment)
-
+func (w *Webhook) Default(_ context.Context, attach *vpcapi.ExternalAttachment) error {
 	attach.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	attach := obj.(*vpcapi.ExternalAttachment)
-
+func (w *Webhook) ValidateCreate(ctx context.Context, attach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
 	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate external attachment")
@@ -77,10 +67,7 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	newAttach := newObj.(*vpcapi.ExternalAttachment)
-	// oldAttach := oldObj.(*vpcapi.ExternalAttachment)
-
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
 	// 	return nil, errors.Errorf("external attachment spec is immutable")
 	// }
@@ -93,6 +80,6 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 	return warns, nil
 }
 
-func (w *Webhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (w *Webhook) ValidateDelete(_ context.Context, _ *vpcapi.ExternalAttachment) (admission.Warnings, error) {
 	return nil, nil
 }

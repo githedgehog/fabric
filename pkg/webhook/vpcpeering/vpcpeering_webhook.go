@@ -41,35 +41,25 @@ func SetupWithManager(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr).
-		For(&vpcapi.VPCPeering{}).
+	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCPeering{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(), "failed to setup vpc peering webhook")
 }
-
-var (
-	_ admission.CustomDefaulter = (*Webhook)(nil)
-	_ admission.CustomValidator = (*Webhook)(nil)
-)
 
 //+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update,versions=v1beta1,name=mvpcpeering.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update;delete,versions=v1beta1,name=vvpcpeering.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpcpeering-webhook")
 
-func (w *Webhook) Default(_ context.Context, obj runtime.Object) error {
-	peering := obj.(*vpcapi.VPCPeering)
-
-	peering.Default()
+func (w *Webhook) Default(_ context.Context, peer *vpcapi.VPCPeering) error {
+	peer.Default()
 
 	return nil
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	peering := obj.(*vpcapi.VPCPeering)
-
-	warns, err := peering.Validate(ctx, w.KubeClient, w.Cfg)
+func (w *Webhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPCPeering) (admission.Warnings, error) {
+	warns, err := peer.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate vpc peering")
 	}
@@ -77,15 +67,12 @@ func (w *Webhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admis
 	return warns, nil
 }
 
-func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	newPeering := newObj.(*vpcapi.VPCPeering)
-	// oldPeering := oldObj.(*vpcapi.VPCPeering)
-
-	// if !equality.Semantic.DeepEqual(oldPeering.Spec.Permit, newPeering.Spec.Permit) {
+func (w *Webhook) ValidateUpdate(ctx context.Context, _ *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
+	// if !equality.Semantic.DeepEqual(oldPeer.Spec.Permit, newPeer.Spec.Permit) {
 	// 	return nil, errors.Errorf("vpc peering permit list is immutable")
 	// }
 
-	warns, err := newPeering.Validate(ctx, w.KubeClient, w.Cfg)
+	warns, err := newPeer.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate vpc peering")
 	}
@@ -93,6 +80,6 @@ func (w *Webhook) ValidateUpdate(ctx context.Context, _ runtime.Object, newObj r
 	return warns, nil
 }
 
-func (w *Webhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (w *Webhook) ValidateDelete(_ context.Context, _ *vpcapi.VPCPeering) (admission.Warnings, error) {
 	return nil, nil
 }
