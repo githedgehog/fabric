@@ -758,6 +758,11 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			for _, otherSubnet := range other.Spec.Subnets {
 				for _, subnet := range vpc.Spec.Subnets {
 					if subnet.VLAN == otherSubnet.VLAN {
+						// HostBGP subnets have VLAN 0 and we can have multiple of those
+						if subnet.VLAN == 0 && (subnet.HostBGP || otherSubnet.HostBGP) {
+							continue
+						}
+
 						return nil, errors.Errorf("vlan %d is already used by other VPC", subnet.VLAN)
 					}
 				}
