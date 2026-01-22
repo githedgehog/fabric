@@ -100,10 +100,11 @@ _hhfctl-push GOOS GOARCH: _oras (_hhfctl-build GOOS GOARCH)
 # Publish hhfctl and other user-facing binaries for all supported OS/Arch
 push-multi: (_hhfctl-push "linux" "amd64") (_hhfctl-push "linux" "arm64") (_hhfctl-push "darwin" "amd64") (_hhfctl-push "darwin" "arm64") && version
 
+_test_api_kind := "fabric-api"
+
 # Install API on a kind cluster and wait for CRDs to be ready
-test-api: _helm-fabric-api
-    kind export kubeconfig --name kind || kind create cluster --name kind
-    kind export kubeconfig --name kind
+test-api: _helm _helm-fabric-api
+    kind export kubeconfig --name {{_test_api_kind}}
     {{helm}} install -n default fabric-api config/helm/fabric-api-{{version}}.tgz
     sleep 10
     kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
@@ -111,7 +112,16 @@ test-api: _helm-fabric-api
     kubectl wait --for condition=established --timeout=60s crd/agents.agent.githedgehog.com
     kubectl wait --for condition=established --timeout=60s crd/dhcpsubnets.dhcp.githedgehog.com
     kubectl get crd | grep hedgehog
-    kind delete cluster --name kind
+
+test-api-auto: _kind_prep test-api _kind_cleanup
+
+_kind_prep:
+    kind export kubeconfig --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}}
+    kind create cluster --name {{_test_api_kind}}
+
+_kind_cleanup:
+    kind delete cluster --name {{_test_api_kind}}
+
 
 # Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
 patch: && version
