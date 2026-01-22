@@ -445,6 +445,8 @@ spec:
                   gatewayASN:
                     format: int32
                     type: integer
+                  gatewayBFD:
+                    type: boolean
                   gatewayCommunities:
                     additionalProperties:
                       type: string

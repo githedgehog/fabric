@@ -846,6 +846,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			VTEPSubnet:            r.cfg.VTEPSubnet,
 			FabricSubnet:          r.cfg.FabricSubnet,
 			DisableBFD:            r.cfg.DisableBFD,
+			GatewayBFD:            r.cfg.GatewayBFD,
 			Alloy:                 alloyCfg,
 			GatewayCommunities:    map[string]string{},
 		}
