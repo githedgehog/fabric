@@ -100,6 +100,7 @@ type FabricConfig struct {
 	VTEPSubnet               string            `json:"vtepSubnet,omitempty"`
 	FabricSubnet             string            `json:"fabricSubnet,omitempty"`
 	DisableBFD               bool              `json:"disableBFD,omitempty"`
+	GatewayBFD               bool              `json:"gatewayBFD,omitempty"`
 	SpineASN                 uint32            `json:"spineASN,omitempty"`
 	LeafASNStart             uint32            `json:"leafASNStart,omitempty"`
 	LeafASNEnd               uint32            `json:"leafASNEnd,omitempty"`

@@ -836,6 +836,11 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to parse gateway conn peer ip %s", peerIP)
 			}
 
+			var bfdProfile *string
+			if agent.Spec.Config.GatewayBFD && !agent.Spec.Config.DisableBFD {
+				bfdProfile = pointer.To(FabricBFDProfile)
+			}
+
 			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:             pointer.To(true),
 				Description:         pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
@@ -843,6 +848,7 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4Unicast:         pointer.To(true),
 				L2VPNEVPN:           pointer.To(true),
 				L2VPNEVPNAllowOwnAS: pointer.To(true),
+				BFDProfile:          bfdProfile,
 			}
 		}
 	}

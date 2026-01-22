@@ -82,6 +82,7 @@ type AgentSpecConfig struct {
 	VTEPSubnet            string                    `json:"vtepSubnet,omitempty"`
 	FabricSubnet          string                    `json:"fabricSubnet,omitempty"`
 	DisableBFD            bool                      `json:"disableBFD,omitempty"`
+	GatewayBFD            bool                      `json:"gatewayBFD,omitempty"`
 	Alloy                 alloy.Config              `json:"alloy,omitempty"`
 	GatewayCommunities    map[string]string         `json:"gatewayCommunities,omitempty"`
 }
