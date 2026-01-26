@@ -194,13 +194,13 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		}
 
 		var switchNames []string
-		if conn.Spec.Unbundled != nil || conn.Spec.Bundled == nil || conn.Spec.MCLAG == nil {
+		if conn.Spec.Unbundled != nil || conn.Spec.Bundled != nil || conn.Spec.MCLAG != nil || conn.Spec.ESLAG != nil {
 			switchNames, _, _, _, err = conn.Spec.Endpoints()
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get endpoints for connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
 			}
 		} else {
-			return nil, errors.Errorf("vpc could be attached only to Unbundled, Bundled and MCLAG connections")
+			return nil, errors.Errorf("vpc can be attached only to Unbundled, Bundled, MCLAG or ESLAG connections")
 		}
 
 		if len(switchNames) == 0 {
