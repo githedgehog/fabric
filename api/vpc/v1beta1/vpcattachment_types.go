@@ -241,6 +241,10 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 					return nil, errors.Errorf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile)
 				}
 			}
+
+			if subnetSpec.HostBGP && sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
+				return nil, errors.Errorf("cannot attach hostBGP subnet to switch %s which is an MCLAG peer", sw.Name)
+			}
 		}
 
 		attaches := &VPCAttachmentList{}
