@@ -82,6 +82,9 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 
 	exts := map[string]*vpcapi.External{}
 	for _, ext := range extList.Items {
+		if ext.Spec.L2 != nil {
+			continue
+		}
 		exts[ext.Name] = &ext
 	}
 
@@ -229,6 +232,9 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 	}
 
 	for _, extAtt := range extAttachments.Items {
+		if extAtt.Spec.L2 != nil {
+			continue
+		}
 		conn, ok := extConns[extAtt.Spec.Connection]
 		if !ok || conn.Spec.External == nil {
 			continue
