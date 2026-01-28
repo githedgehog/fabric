@@ -295,6 +295,7 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 
 	//nolint:wrapcheck
 	return (&nosinstall.Builder{
+		NOSType:     nosType,
 		AgentConfig: agentConfig,
 		KubeConfig:  kubeConfig,
 		NOSPath:     nosPath,
