@@ -1214,9 +1214,18 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				vlan = pointer.To(attach.L2.VLAN)
 				ifaceName = fmt.Sprintf("%s.%d", port, attach.L2.VLAN)
 			}
-			fabricEdgeIP, err := netip.ParsePrefix(attach.L2.FabricEdgeIP)
+			idx := agent.Spec.Catalog.ExternalIDs[externalName]
+			if idx == 0 {
+				return fmt.Errorf("external ID for external %s not found in catalog", externalName) //nolint:goerr113
+			} else if idx > 5000 {
+				return fmt.Errorf("external ID for external %s is out of range (>5000)", externalName) //nolint:goerr113
+			}
+			thirdOctet := uint8(1 + ((idx * 2) / 256)) //nolint:gosec
+			fourthOctet := uint8((idx * 2) % 256)      //nolint:gosec
+			fabricEdgeIPStr := fmt.Sprintf("169.254.%d.%d/31", thirdOctet, fourthOctet)
+			fabricEdgeIP, err := netip.ParsePrefix(fabricEdgeIPStr)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse external attach fabric edge IP %s", attach.L2.FabricEdgeIP)
+				return errors.Wrapf(err, "failed to parse external attach fabric edge IP %s", fabricEdgeIPStr)
 			}
 			prefixLen := uint8(fabricEdgeIP.Bits()) //nolint:gosec
 			switchIP := fabricEdgeIP.Addr().String()
@@ -1229,7 +1238,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 				},
 				ProxyARP: &dozer.SpecProxyARP{
-					All: false,
+					// when using link-local we have to set this to true, else it won't kick in
+					All: true,
 				},
 			}
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
