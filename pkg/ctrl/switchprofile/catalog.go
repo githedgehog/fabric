@@ -55,6 +55,10 @@ var sonicCLSPlusSwitchProfiles = []wiringapi.SwitchProfile{
 	CLSPVS,
 }
 
+var cumulusSwitchProfiles = []wiringapi.SwitchProfile{
+	CumulusVX,
+}
+
 type Default struct {
 	store       map[string]*wiringapi.SwitchProfile
 	initialized uint32
@@ -93,6 +97,9 @@ func (d *Default) RegisterAll(ctx context.Context, kube kclient.Reader, cfg *met
 	profiles := slices.Clone(defaultSwitchProfiles)
 	if cfg != nil && cfg.IncludeSONiCCLSPlus {
 		profiles = append(profiles, sonicCLSPlusSwitchProfiles...)
+	}
+	if cfg != nil && cfg.IncludeCumulus {
+		profiles = append(profiles, cumulusSwitchProfiles...)
 	}
 
 	for _, sp := range profiles {

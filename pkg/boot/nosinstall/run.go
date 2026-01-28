@@ -25,14 +25,17 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/util/uefiutil"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -162,6 +165,18 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("extracting embedded files: %w", err)
 	}
 
+	configData, err := os.ReadFile(path.Join(tmp, ConfigFile))
+	if err != nil {
+		return fmt.Errorf("reading config file: %w", err)
+	}
+
+	config := &Config{}
+	if err := kyaml.Unmarshal(configData, config); err != nil {
+		return fmt.Errorf("unmarshaling config: %w", err)
+	}
+
+	slog.Info("Running", "version", config.Version, "nos", config.NOSType)
+
 	if dryRun {
 		slog.Info("Dry run, embedded files extracted, not actually running", "dir", tmp)
 
@@ -186,8 +201,13 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
-	if err := installAgent(ctx, tmp); err != nil {
-		return fmt.Errorf("installing agent: %w", err)
+	switch config.NOSType { //nolint:exhaustive
+	case meta.NOSTypeCumulusVX, meta.NOSTypeCumulusMlx:
+		slog.Info("Skipping agent installation as it's not supported yet")
+	default:
+		if err := installAgent(ctx, tmp); err != nil {
+			return fmt.Errorf("installing agent: %w", err)
+		}
 	}
 
 	slog.Info("Installation complete")

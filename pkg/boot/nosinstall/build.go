@@ -21,11 +21,15 @@ import (
 	"io"
 	"os"
 
+	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall/bin"
+	"go.githedgehog.com/fabric/pkg/version"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
 	Magic               = "hedgehog"
+	ConfigFile          = "config.yaml"
 	NOSInstallerName    = "nos-install"
 	AgentBinaryName     = "agent"
 	AgentConfigName     = "agent-config.yaml"
@@ -48,10 +52,16 @@ WantedBy=multi-user.target
 )
 
 type Builder struct {
+	NOSType     meta.NOSType
 	AgentConfig []byte
 	KubeConfig  []byte
 	NOSPath     string
 	AgentPath   string
+}
+
+type Config struct {
+	Version string       `json:"version"`
+	NOSType meta.NOSType `json:"nosType"`
 }
 
 func (b *Builder) Build(w io.Writer) error {
@@ -80,6 +90,18 @@ func (b *Builder) Build(w io.Writer) error {
 
 	if err := addFileFromData(tw, AgentUnitName, []byte(AgentUnitContent)); err != nil {
 		return fmt.Errorf("adding agent systemd unit: %w", err)
+	}
+
+	data, err := kyaml.Marshal(&Config{
+		Version: version.Version,
+		NOSType: b.NOSType,
+	})
+	if err != nil {
+		return fmt.Errorf("marshaling config: %w", err)
+	}
+
+	if err := addFileFromData(tw, ConfigFile, data); err != nil {
+		return fmt.Errorf("adding config file: %w", err)
 	}
 
 	if err := tw.Close(); err != nil {
