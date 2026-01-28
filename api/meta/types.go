@@ -108,6 +108,7 @@ type FabricConfig struct {
 	ManagementDHCPStart      string            `json:"managementDHCPStart,omitempty"`
 	ManagementDHCPEnd        string            `json:"managementDHCPEnd,omitempty"`
 	GatewayCommunities       map[uint32]string `json:"gatewayCommunities,omitempty"`
+	L2ProxyExternalSubnet    string            `json:"l2ProxyExternalSubnet,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
