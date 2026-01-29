@@ -64,8 +64,8 @@ type ExternalAttachmentNeighbor struct {
 
 // ExternalAttachmentL2 defines parameters used for L2 external attachments
 type ExternalAttachmentL2 struct {
-	// IP is the actual IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment
-	IP string `json:"ip"`
+	// RemoteIP is the IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment
+	RemoteIP string `json:"remoteIP"`
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required
 	VLAN uint16 `json:"vlan,omitempty"`
 }
@@ -169,19 +169,19 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.Neighbor.ASN != 0 || attach.Spec.Neighbor.IP != "" {
 			return nil, errors.Errorf("neighbor parameters must not be set for L2 external attachment")
 		}
-		if attach.Spec.L2.IP == "" {
-			return nil, errors.Errorf("l2.ip is required for L2 external attachment")
+		if attach.Spec.L2.RemoteIP == "" {
+			return nil, errors.Errorf("l2.remoteIP is required for L2 external attachment")
 		}
-		l2IP, err := netip.ParseAddr(attach.Spec.L2.IP)
+		remoteIP, err := netip.ParseAddr(attach.Spec.L2.RemoteIP)
 		if err != nil {
-			return nil, errors.New("l2.ip is not a valid IP address") //nolint: goerr113
+			return nil, errors.New("l2.remoteIP is not a valid IP address") //nolint: goerr113
 		}
 		localIPv4, err := netip.ParsePrefix("169.254.0.0/16")
 		if err != nil {
 			return nil, errors.Wrapf(err, "internal bug: failed to parse link-local IPv4 prefix")
 		}
-		if localIPv4.Contains(l2IP) {
-			return nil, errors.Errorf("l2.ip cannot belong to the IPv4 link-local prefix 169.254.0.0/16") //nolint: goerr113
+		if localIPv4.Contains(remoteIP) {
+			return nil, errors.Errorf("l2.remoteIP cannot belong to the IPv4 link-local prefix 169.254.0.0/16") //nolint: goerr113
 		}
 	}
 

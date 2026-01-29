@@ -1243,7 +1243,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
-			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.L2.IP)] = &dozer.SpecVRFStaticRoute{
+			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.L2.RemoteIP)] = &dozer.SpecVRFStaticRoute{
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
 						Interface: pointer.To(ifaceName),
@@ -1255,7 +1255,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				spec.VRFs[extVrfName].StaticRoutes[p] = &dozer.SpecVRFStaticRoute{
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
-							IP:        attach.L2.IP,
+							IP:        attach.L2.RemoteIP,
 							Interface: pointer.To(ifaceName),
 						},
 					},

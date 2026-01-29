@@ -84,8 +84,8 @@ spec:
               l2:
                 description: L2 contains parameters specific to an L2 external attachment
                 properties:
-                  ip:
-                    description: IP is the actual IP address of the external, which
+                  remoteIP:
+                    description: RemoteIP is the IP address of the external, which
                       will be used as nexthop for prefixes reachable via this external
                       attachment
                     type: string
@@ -95,7 +95,7 @@ spec:
                       VLAN is required
                     type: integer
                 required:
-                - ip
+                - remoteIP
                 type: object
               neighbor:
                 description: Neighbor is the BGP neighbor configuration for the external
