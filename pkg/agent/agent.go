@@ -898,13 +898,13 @@ func patchShadowFile(name string, password string) error {
 	}
 
 	changed := false
-	newSh := strings.Builder{}
+	newSh := &strings.Builder{}
 	for line := range strings.Lines(string(sh)) {
 		if !strings.HasPrefix(line, name+":") || strings.HasPrefix(line, name+":"+password+":") {
 			newSh.WriteString(line)
 		} else {
 			changed = true
-			newSh.WriteString(fmt.Sprintf("admin:%s:%d:0:99999:15:::\n", password, time.Now().Unix()/(24*60*60)))
+			fmt.Fprintf(newSh, "%s:%s:%d:0:99999:15:::\n", name, password, time.Now().Unix()/(24*60*60))
 		}
 	}
 
@@ -912,7 +912,7 @@ func patchShadowFile(name string, password string) error {
 		if err := os.WriteFile(shadowPath, []byte(newSh.String()), 0o600); err != nil {
 			return fmt.Errorf("writing shadow file %s: %w", shadowPath, err)
 		}
-		slog.Info("Updated admin password in /etc/shadow")
+		slog.Info("Updated user passwords in /etc/shadow")
 	}
 
 	return nil
