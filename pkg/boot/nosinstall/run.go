@@ -175,10 +175,10 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("unmarshaling config: %w", err)
 	}
 
-	slog.Info("Running", "version", config.Version, "nos", config.NOSType)
-
 	if dryRun {
-		slog.Info("Dry run, embedded files extracted, not actually running", "dir", tmp)
+		slog.Info("Dry run, embedded files extracted, not actually running, sleeping for 24 hours", "dir", tmp)
+
+		time.Sleep(24 * time.Hour)
 
 		return nil
 	}
@@ -197,15 +197,15 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 		return fmt.Errorf("ensuring ONIE boot partition: %w", err)
 	}
 
-	if err := runNOSInstaller(ctx, tmp); err != nil {
+	if err := runNOSInstaller(ctx, tmp, config.NOSType); err != nil {
 		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
 	switch config.NOSType { //nolint:exhaustive
 	case meta.NOSTypeCumulusVX, meta.NOSTypeCumulusMlx:
-		slog.Info("Skipping agent installation as it's not supported yet")
+		slog.Info("Agent provisioning at install time not supported")
 	default:
-		if err := installAgent(ctx, tmp); err != nil {
+		if err := sonicInstallAgent(ctx, tmp); err != nil {
 			return fmt.Errorf("installing agent: %w", err)
 		}
 	}
@@ -301,16 +301,21 @@ func extractFile(dest string, header *tar.Header, r io.Reader, mode os.FileMode)
 	return nil
 }
 
-func runNOSInstaller(ctx context.Context, tmp string) error {
+func runNOSInstaller(ctx context.Context, tmp string, nosType meta.NOSType) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	nosPath := filepath.Join(tmp, NOSInstallerName)
 
-	slog.Info("Executing NOS installer now...")
+	slog.Info("Executing NOS installer now...", "type", nosType)
 
 	nosCmd := exec.CommandContext(ctx, nosPath)
-	nosCmd.Env = append(nosCmd.Environ(), "ZTP=n")
+
+	switch nosType { //nolint:exhaustive
+	case meta.NOSTypeSONiCBCMBase, meta.NOSTypeSONiCBCMCampus, meta.NOSTypeSONiCBCMVS:
+		nosCmd.Env = append(nosCmd.Environ(), "ZTP=n")
+	}
+
 	nosCmd.Stderr = logutil.NewSink(ctx, slog.Info, "NOS: ")
 	nosCmd.Stdout = logutil.NewSink(ctx, slog.Info, "NOS: ")
 	if err := nosCmd.Run(); err != nil {
@@ -341,7 +346,7 @@ func EnsureONIEBootPartition(ctx context.Context) error {
 		slog.Warn("Mounting ONIE-BOOT failed", "error", err.Error())
 	}
 
-	for attempt := 0; attempt < 10; attempt++ {
+	for attempt := range 10 {
 		if attempt > 0 {
 			slog.Info("Waiting for ONIE boot partition to be mounted")
 			time.Sleep(1 * time.Second)
@@ -358,49 +363,49 @@ func EnsureONIEBootPartition(ctx context.Context) error {
 	return fmt.Errorf("ONIE boot partition not mounted") //nolint:goerr113
 }
 
-func mountSONiCPartition(origCtx context.Context) (string, func(), error) {
+func mountPartition(origCtx context.Context, label string) (string, func(), error) {
 	ctx, cancel := context.WithCancel(origCtx)
 	defer cancel()
 
-	slog.Info("Mounting SONiC partition")
+	slog.Info("Mounting partition", "label", label)
 
-	sonicRoot, err := os.MkdirTemp("", "hh-sonic-*")
+	root, err := os.MkdirTemp("", "hh-mount-*")
 	if err != nil {
-		return "", nil, fmt.Errorf("creating temp dir to mount sonic: %w", err)
+		return "", nil, fmt.Errorf("creating temp dir to mount partition %s: %w", label, err)
 	}
 
-	slog.Debug("SONiC partition mount point", "path", sonicRoot)
+	slog.Debug("Partition mount point", "label", label, "path", root)
 
-	cmd := exec.CommandContext(ctx, "mount", "LABEL=SONiC-OS", "-t", "ext4", sonicRoot)
-	cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Mount SONiC-OS: ")
-	cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Mount SONiC-OS: ")
+	cmd := exec.CommandContext(ctx, "mount", "LABEL="+label, "-t", "ext4", root) //nolint:gosec
+	cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Mount "+label+": ")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Mount "+label+": ")
 
 	if err := cmd.Run(); err != nil {
-		return "", nil, fmt.Errorf("mounting SONiC partition: %w", err)
+		return "", nil, fmt.Errorf("mounting partition %s: %w", label, err)
 	}
 
-	return sonicRoot, func() {
+	return root, func() {
 		ctx, cancel := context.WithCancel(origCtx)
 		defer cancel()
 
-		slog.Info("Unmounting SONiC partition")
+		slog.Info("Unmounting partition", "label", label)
 
-		cmd := exec.CommandContext(ctx, "umount", sonicRoot)
-		cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Unmount: ")
-		cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Unmount: ")
+		cmd := exec.CommandContext(ctx, "umount", root)
+		cmd.Stdout = logutil.NewSink(ctx, slog.Info, "Unmount "+label+": ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Info, "Unmount "+label+": ")
 
 		if err := cmd.Run(); err != nil {
-			slog.Warn("SONiC partition unmount failed", "error", err.Error())
+			slog.Warn("Partition unmount failed", "label", label, "error", err.Error())
 		} else {
-			if err := os.RemoveAll(sonicRoot); err != nil {
-				slog.Warn("Cannot remove SONiC partition mount point", "path", sonicRoot, "error", err.Error())
+			if err := os.RemoveAll(root); err != nil {
+				slog.Warn("Cannot remove partition mount point", "label", label, "path", root, "error", err.Error())
 			}
 		}
 	}, nil
 }
 
-func installAgent(ctx context.Context, tmp string) error {
-	sonicRoot, unmountSONiC, err := mountSONiCPartition(ctx)
+func sonicInstallAgent(ctx context.Context, tmp string) error {
+	sonicRoot, unmountSONiC, err := mountPartition(ctx, "SONiC-OS")
 	if err != nil {
 		return fmt.Errorf("mounting SONiC partition: %w", err)
 	}
@@ -424,8 +429,13 @@ func installAgent(ctx context.Context, tmp string) error {
 		return fmt.Errorf("finding SONiC image dir") //nolint:goerr113
 	}
 
+	return installAgentTo(tmp, sonicRoot)
+}
+
+func installAgentTo(tmp, to string) error {
 	slog.Info("Installing Fabric Agent binary")
-	binDir := filepath.Join(sonicRoot, "/opt/hedgehog/bin")
+
+	binDir := filepath.Join(to, "/opt/hedgehog/bin")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		return fmt.Errorf("creating bin dir: %w", err)
 	}
@@ -434,7 +444,8 @@ func installAgent(ctx context.Context, tmp string) error {
 	}
 
 	slog.Info("Installing Fabric Agent configs")
-	confDir := filepath.Join(sonicRoot, "/etc/sonic/hedgehog")
+	// TODO switch to /etc/hedgehog
+	confDir := filepath.Join(to, "/etc/sonic/hedgehog")
 	if err := os.MkdirAll(confDir, 0o755); err != nil {
 		return fmt.Errorf("creating agent conf dir: %w", err)
 	}
@@ -446,7 +457,7 @@ func installAgent(ctx context.Context, tmp string) error {
 	}
 
 	slog.Info("Installing Fabric Agent systemd unit")
-	systemdPath := filepath.Join(sonicRoot, "/etc/systemd/system")
+	systemdPath := filepath.Join(to, "/etc/systemd/system")
 	if err := os.MkdirAll(systemdPath, 0o755); err != nil {
 		return fmt.Errorf("creating systemd dir: %w", err)
 	}
@@ -454,7 +465,7 @@ func installAgent(ctx context.Context, tmp string) error {
 		return fmt.Errorf("installing agent systemd unit: %w", err)
 	}
 
-	wantsPath := filepath.Join(sonicRoot, "/etc/systemd/system/multi-user.target.wants")
+	wantsPath := filepath.Join(to, "/etc/systemd/system/multi-user.target.wants")
 	if err := os.MkdirAll(wantsPath, 0o755); err != nil {
 		return fmt.Errorf("creating systemd wants dir: %w", err)
 	}
