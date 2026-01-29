@@ -23,7 +23,6 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall/bin"
-	"go.githedgehog.com/fabric/pkg/version"
 	kyaml "sigs.k8s.io/yaml"
 )
 
@@ -60,7 +59,6 @@ type Builder struct {
 }
 
 type Config struct {
-	Version string       `json:"version"`
 	NOSType meta.NOSType `json:"nosType"`
 }
 
@@ -93,7 +91,6 @@ func (b *Builder) Build(w io.Writer) error {
 	}
 
 	data, err := kyaml.Marshal(&Config{
-		Version: version.Version,
 		NOSType: b.NOSType,
 	})
 	if err != nil {
