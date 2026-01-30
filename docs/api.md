@@ -863,10 +863,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `ip` _string_ | IP is the actual IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
+| `remoteIP` _string_ | RemoteIP is the IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
 | `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required |  |  |
-| `gatewayIPs` _string array_ | GatewayIPs is the list of IP addresses (with prefix length) which can be used for NAT on the fabric side for this L2 external attachment |  |  |
-| `fabricEdgeIP` _string_ | FabricEdgeIP is an IP address (with prefix length) that will be configured on the fabric edge switch; it is needed for proxy-ARP |  |  |
+| `ip` _string_ | NO-OP until we remove it in Fabricator |  |  |
 
 
 #### ExternalAttachmentNeighbor

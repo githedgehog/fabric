@@ -950,20 +950,11 @@ spec:
                       description: L2 contains parameters specific to an L2 external
                         attachment
                       properties:
-                        fabricEdgeIP:
-                          description: FabricEdgeIP is an IP address (with prefix
-                            length) that will be configured on the fabric edge switch;
-                            it is needed for proxy-ARP
-                          type: string
-                        gatewayIPs:
-                          description: GatewayIPs is the list of IP addresses (with
-                            prefix length) which can be used for NAT on the fabric
-                            side for this L2 external attachment
-                          items:
-                            type: string
-                          type: array
                         ip:
-                          description: IP is the actual IP address of the external,
+                          description: NO-OP until we remove it in Fabricator
+                          type: string
+                        remoteIP:
+                          description: RemoteIP is the IP address of the external,
                             which will be used as nexthop for prefixes reachable via
                             this external attachment
                           type: string
@@ -973,9 +964,7 @@ spec:
                             set to 0 if no VLAN is required
                           type: integer
                       required:
-                      - fabricEdgeIP
-                      - gatewayIPs
-                      - ip
+                      - remoteIP
                       type: object
                     neighbor:
                       description: Neighbor is the BGP neighbor configuration for

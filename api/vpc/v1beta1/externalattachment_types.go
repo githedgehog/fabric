@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"net"
+	"net/netip"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -63,14 +64,12 @@ type ExternalAttachmentNeighbor struct {
 
 // ExternalAttachmentL2 defines parameters used for L2 external attachments
 type ExternalAttachmentL2 struct {
-	// IP is the actual IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment
-	IP string `json:"ip"`
+	// RemoteIP is the IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment
+	RemoteIP string `json:"remoteIP"`
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required
 	VLAN uint16 `json:"vlan,omitempty"`
-	// GatewayIPs is the list of IP addresses (with prefix length) which can be used for NAT on the fabric side for this L2 external attachment
-	GatewayIPs []string `json:"gatewayIPs"`
-	// FabricEdgeIP is an IP address (with prefix length) that will be configured on the fabric edge switch; it is needed for proxy-ARP
-	FabricEdgeIP string `json:"fabricEdgeIP"`
+	// NO-OP until we remove it in Fabricator
+	IP string `json:"ip,omitempty"`
 }
 
 // ExternalAttachmentStatus defines the observed state of ExternalAttachment
@@ -172,26 +171,19 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.Neighbor.ASN != 0 || attach.Spec.Neighbor.IP != "" {
 			return nil, errors.Errorf("neighbor parameters must not be set for L2 external attachment")
 		}
-		if attach.Spec.L2.IP == "" {
-			return nil, errors.Errorf("l2.ip is required for L2 external attachment")
+		if attach.Spec.L2.RemoteIP == "" {
+			return nil, errors.Errorf("l2.remoteIP is required for L2 external attachment")
 		}
-		if ip := net.ParseIP(attach.Spec.L2.IP); ip == nil {
-			return nil, errors.New("l2.ip is not a valid IP address") //nolint: goerr113
+		remoteIP, err := netip.ParseAddr(attach.Spec.L2.RemoteIP)
+		if err != nil {
+			return nil, errors.New("l2.remoteIP is not a valid IP address") //nolint: goerr113
 		}
-		if len(attach.Spec.L2.GatewayIPs) == 0 {
-			return nil, errors.Errorf("at least one l2.gatewayIPs is required for L2 external attachment")
+		localIPv4, err := netip.ParsePrefix("169.254.0.0/16")
+		if err != nil {
+			return nil, errors.Wrapf(err, "internal bug: failed to parse link-local IPv4 prefix")
 		}
-		for _, cidr := range attach.Spec.L2.GatewayIPs {
-			if _, _, err := net.ParseCIDR(cidr); err != nil {
-				return nil, errors.Errorf("l2.gatewayIPs contains an invalid address (with prefix length): %s", cidr) //nolint: goerr113
-			}
-		}
-		// TODO: make this optional and auto-assign from a pool?
-		if attach.Spec.L2.FabricEdgeIP == "" {
-			return nil, errors.Errorf("l2.fabricEdgeIP is required for L2 external attachment")
-		}
-		if _, _, err := net.ParseCIDR(attach.Spec.L2.FabricEdgeIP); err != nil {
-			return nil, errors.Wrapf(err, "l2.fabricEdgeIP is not a valid IP address with prefix length")
+		if localIPv4.Contains(remoteIP) {
+			return nil, errors.Errorf("l2.remoteIP cannot belong to the IPv4 link-local prefix 169.254.0.0/16") //nolint: goerr113
 		}
 	}
 
