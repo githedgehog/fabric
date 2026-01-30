@@ -84,6 +84,9 @@ spec:
               l2:
                 description: L2 contains parameters specific to an L2 external attachment
                 properties:
+                  ip:
+                    description: NO-OP until we remove it in Fabricator
+                    type: string
                   remoteIP:
                     description: RemoteIP is the IP address of the external, which
                       will be used as nexthop for prefixes reachable via this external

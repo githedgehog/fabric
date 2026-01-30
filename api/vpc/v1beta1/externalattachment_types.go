@@ -68,6 +68,8 @@ type ExternalAttachmentL2 struct {
 	RemoteIP string `json:"remoteIP"`
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required
 	VLAN uint16 `json:"vlan,omitempty"`
+	// NO-OP until we remove it in Fabricator
+	IP string `json:"ip,omitempty"`
 }
 
 // ExternalAttachmentStatus defines the observed state of ExternalAttachment
