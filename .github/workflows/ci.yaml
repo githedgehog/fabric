@@ -32,37 +32,6 @@ permissions:
   contents: read
 
 jobs:
-  test-api:
-    runs-on: lab
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1
-        with:
-          cluster_name: fabric-api
-
-      - name: Install CRDs
-        run: |
-          just --timestamp test-api
-
-      - name: Setup tmate session for debug
-        if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 30
-        with:
-          limit-access-to-actor: true
-
   test-build:
     runs-on: lab
 
@@ -105,9 +74,18 @@ jobs:
         run: |
           just --timestamp build kube-build build-multi
 
+      - name: Install kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
       - name: Run tests
         run: |
           just --timestamp test
+
+      - name: Run API tests
+        run: |
+          just --timestamp test-api-auto
 
       - name: Go mod tidy
         run: |
@@ -166,7 +144,6 @@ jobs:
     name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
 
     needs:
-      - test-api
       - test-build
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
@@ -277,7 +254,6 @@ jobs:
     runs-on: lab
     if: startsWith(github.event.ref, 'refs/tags/v') && github.event_name == 'push'
     needs:
-      - test-api
       - test-build
       - vlabs
 

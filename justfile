@@ -116,12 +116,11 @@ test-api: _helm _helm-fabric-api
 test-api-auto: _kind_prep test-api _kind_cleanup
 
 _kind_prep:
-    kind export kubeconfig --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}}
-    kind create cluster --name {{_test_api_kind}}
+  kind delete cluster --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}}
+  kind create cluster --name {{_test_api_kind}}
 
 _kind_cleanup:
-    kind delete cluster --name {{_test_api_kind}}
-
+  kind delete cluster --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}} || echo "Kind cluster {{_test_api_kind}} deletion failed, you may want to delete it manually"
 
 # Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
 patch: && version
