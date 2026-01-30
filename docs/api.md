@@ -865,6 +865,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `remoteIP` _string_ | RemoteIP is the IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
 | `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required |  |  |
+| `ip` _string_ | NO-OP until we remove it in Fabricator |  |  |
 
 
 #### ExternalAttachmentNeighbor
