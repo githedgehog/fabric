@@ -375,10 +375,11 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 }
 
 var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecInterfaceIPv6]{
-	Summary:      "Subinterface %d IPv6 Enable",
-	NoReplace:    true,
-	UpdateWeight: ActionWeightInterfaceSubinterfaceIPv6Update,
-	DeleteWeight: ActionWeightInterfaceSubinterfaceIPv6Delete,
+	Summary:          "Subinterface %d IPv6 Enable",
+	NoReplace:        true,
+	UpdateWeight:     ActionWeightInterfaceSubinterfaceIPv6Update,
+	DeleteWeight:     ActionWeightInterfaceSubinterfaceIPv6Delete,
+	RecreateOnUpdate: true,
 	Marshal: func(idx uint32, value *dozer.SpecInterfaceIPv6) (ygot.ValidatedGoStruct, error) {
 		cfg := &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv6_Config{}
 		if value != nil && value.Enabled != nil {
