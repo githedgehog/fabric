@@ -68,8 +68,10 @@ type ExternalAttachmentStatic struct {
 	RemoteIP string `json:"remoteIP"`
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required
 	VLAN uint16 `json:"vlan,omitempty"`
-	// NO-OP until we remove it in Fabricator
+	// IP is the IP address (with prefix length) to be configured on the switch when not using Proxy mode
 	IP string `json:"ip,omitempty"`
+	// Proxy is a flag to enable proxy-ARP, used in conjunction with Gateway peering
+	Proxy bool `json:"proxy,omitempty"`
 }
 
 // ExternalAttachmentStatus defines the observed state of ExternalAttachment
@@ -184,6 +186,14 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 		if localIPv4.Contains(remoteIP) {
 			return nil, errors.Errorf("static.remoteIP cannot belong to the IPv4 link-local prefix 169.254.0.0/16") //nolint: goerr113
+		}
+		if (attach.Spec.Static.IP == "" && !attach.Spec.Static.Proxy) || (attach.Spec.Static.IP != "" && attach.Spec.Static.Proxy) {
+			return nil, errors.Errorf("either static.ip or static.proxy must be set for static external attachment")
+		}
+		if attach.Spec.Static.IP != "" {
+			if _, _, err := net.ParseCIDR(attach.Spec.Static.IP); err != nil {
+				return nil, errors.New("static.ip is not a valid IP CIDR") //nolint: goerr113
+			}
 		}
 	}
 

@@ -964,8 +964,13 @@ spec:
                         external attachment
                       properties:
                         ip:
-                          description: NO-OP until we remove it in Fabricator
+                          description: IP is the IP address (with prefix length) to
+                            be configured on the switch when not using Proxy mode
                           type: string
+                        proxy:
+                          description: Proxy is a flag to enable proxy-ARP, used in
+                            conjunction with Gateway peering
+                          type: boolean
                         remoteIP:
                           description: RemoteIP is the IP address of the external,
                             which will be used as nexthop for prefixes reachable via
