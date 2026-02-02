@@ -45,7 +45,7 @@ func l3ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1bet
 	return base
 }
 
-func l2ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
+func staticExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
 	base := &v1beta1.ExternalAttachment{
 		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      name,
@@ -54,7 +54,7 @@ func l2ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1bet
 		Spec: v1beta1.ExternalAttachmentSpec{
 			External:   "external-02",
 			Connection: "leaf-01--external",
-			L2: &v1beta1.ExternalAttachmentL2{
+			Static: &v1beta1.ExternalAttachmentStatic{
 				RemoteIP: "10.45.0.2",
 				VLAN:     200,
 			},
@@ -92,7 +92,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			},
 			Spec: v1beta1.ExternalSpec{
 				IPv4Namespace: "default",
-				L2: &v1beta1.ExternalL2{
+				Static: &v1beta1.ExternalStaticSpec{
 					Prefixes: []string{"0.0.0.0/0"},
 				},
 			},
@@ -126,8 +126,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     false,
 		},
 		{
-			name:    "valid L2 external attachment",
-			extAtt:  l2ExtAttGen("ext-att-02"),
+			name:    "valid static external attachment",
+			extAtt:  staticExtAttGen("ext-att-02"),
 			objects: baseObjs,
 			err:     false,
 		},
@@ -144,14 +144,14 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     true,
 		},
 		{
-			name:    "l3 attach with l2 external",
+			name:    "l3 attach with static external",
 			extAtt:  l3ExtAttGen("ext-att-05", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-02" }),
 			objects: baseObjs,
 			err:     true,
 		},
 		{
-			name:    "l2 attach with l3 external",
-			extAtt:  l2ExtAttGen("ext-att-06", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-01" }),
+			name:    "static attach with l3 external",
+			extAtt:  staticExtAttGen("ext-att-06", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-01" }),
 			objects: baseObjs,
 			err:     true,
 		},
@@ -159,14 +159,14 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			name:   "multiple attaches same vlan",
 			extAtt: l3ExtAttGen("ext-att-07"),
 			objects: withObjs(baseObjs,
-				l2ExtAttGen("vlan-clash", func(att *v1beta1.ExternalAttachment) { att.Spec.L2.VLAN = 100 })),
+				staticExtAttGen("vlan-clash", func(att *v1beta1.ExternalAttachment) { att.Spec.Static.VLAN = 100 })),
 			err: true,
 		},
 		{
 			name:   "multiple attaches different vlans",
 			extAtt: l3ExtAttGen("ext-att-08"),
 			objects: withObjs(baseObjs,
-				l2ExtAttGen("no-clash")),
+				staticExtAttGen("no-clash")),
 			err: false,
 		},
 		// TODO: add tests to validate individual fields

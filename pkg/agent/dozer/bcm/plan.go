@@ -977,7 +977,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for externalName, external := range agent.Spec.Externals {
 		extVrfName := extVrfName(externalName)
 
-		if external.L2 == nil {
+		if external.Static == nil {
 			if agent.IsSpineLeaf() && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity) {
 				spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity)
 			}
@@ -1065,7 +1065,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 				},
 			}
-			if external.L2 == nil {
+			if external.Static == nil {
 				vrfSpec.BGP.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = []string{extInboundRouteMapName(externalName)}
 			} else {
 				vrfSpec.TableConnections = map[string]*dozer.SpecVRFTableConnection{
@@ -1075,7 +1075,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[extVrfName] = vrfSpec
 		}
 
-		if external.L2 == nil {
+		if external.Static == nil {
 			commList := extInboundCommListName(externalName)
 			spec.CommunityLists[commList] = &dozer.SpecCommunityList{
 				Members: []string{external.InboundCommunity},
@@ -1168,7 +1168,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		ipns := external.IPv4Namespace
 		extVrfName := extVrfName(externalName)
 
-		if attach.L2 == nil {
+		if attach.Static == nil {
 			if attach.Switch.VLAN != 0 {
 				vlan = pointer.To(attach.Switch.VLAN)
 			}
@@ -1208,11 +1208,11 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Egress: pointer.To(ipnsEgressAccessList(ipns)),
 			}
 		} else {
-			// L2 attachment
+			// static attachment
 			ifaceName := port
-			if attach.L2.VLAN != 0 {
-				vlan = pointer.To(attach.L2.VLAN)
-				ifaceName = fmt.Sprintf("%s.%d", port, attach.L2.VLAN)
+			if attach.Static.VLAN != 0 {
+				vlan = pointer.To(attach.Static.VLAN)
+				ifaceName = fmt.Sprintf("%s.%d", port, attach.Static.VLAN)
 			}
 			idx := agent.Spec.Catalog.ExternalIDs[externalName]
 			if idx == 0 {
@@ -1230,7 +1230,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			prefixLen := uint8(fabricEdgeIP.Bits()) //nolint:gosec
 			switchIP := fabricEdgeIP.Addr().String()
 
-			spec.Interfaces[port].Subinterfaces[uint32(attach.L2.VLAN)] = &dozer.SpecSubinterface{
+			spec.Interfaces[port].Subinterfaces[uint32(attach.Static.VLAN)] = &dozer.SpecSubinterface{
 				VLAN: vlan,
 				IPs: map[string]*dozer.SpecInterfaceIP{
 					switchIP: {
@@ -1243,7 +1243,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
-			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.L2.RemoteIP)] = &dozer.SpecVRFStaticRoute{
+			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.Static.RemoteIP)] = &dozer.SpecVRFStaticRoute{
 				NextHops: []dozer.SpecVRFStaticRouteNextHop{
 					{
 						Interface: pointer.To(ifaceName),
@@ -1251,11 +1251,11 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 
-			for _, p := range external.L2.Prefixes {
+			for _, p := range external.Static.Prefixes {
 				spec.VRFs[extVrfName].StaticRoutes[p] = &dozer.SpecVRFStaticRoute{
 					NextHops: []dozer.SpecVRFStaticRouteNextHop{
 						{
-							IP:        attach.L2.RemoteIP,
+							IP:        attach.Static.RemoteIP,
 							Interface: pointer.To(ifaceName),
 						},
 					},
