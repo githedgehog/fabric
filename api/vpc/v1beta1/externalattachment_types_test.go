@@ -57,6 +57,7 @@ func staticExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v
 			Static: &v1beta1.ExternalAttachmentStatic{
 				RemoteIP: "10.45.0.2",
 				VLAN:     200,
+				Proxy:    true,
 			},
 		},
 	}
@@ -168,6 +169,26 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			objects: withObjs(baseObjs,
 				staticExtAttGen("no-clash")),
 			err: false,
+		},
+		{
+			name:    "static attach with both proxy and IP specified",
+			extAtt:  staticExtAttGen("ext-att-09", func(att *v1beta1.ExternalAttachment) { att.Spec.Static.IP = "10.45.0.1/24" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "static attach with neither proxy nor IP specified",
+			extAtt:  staticExtAttGen("ext-att-09", func(att *v1beta1.ExternalAttachment) { att.Spec.Static.Proxy = false }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "valid static attach without proxy",
+			extAtt: staticExtAttGen("ext-att-09", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Static.IP = "10.45.0.1/24"
+				att.Spec.Static.Proxy = false
+			}),
+			objects: baseObjs,
 		},
 		// TODO: add tests to validate individual fields
 	}
