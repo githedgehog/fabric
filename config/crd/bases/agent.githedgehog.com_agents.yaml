@@ -946,9 +946,22 @@ spec:
                       description: External is the name of the External object this
                         attachment belongs to
                       type: string
-                    l2:
-                      description: L2 contains parameters specific to an L2 external
-                        attachment
+                    neighbor:
+                      description: Neighbor is the BGP neighbor configuration for
+                        the external attachment in case of a BGP external
+                      properties:
+                        asn:
+                          description: ASN is the ASN of the BGP neighbor
+                          format: int32
+                          type: integer
+                        ip:
+                          description: IP is the IP address of the BGP neighbor to
+                            peer with (without prefix length)
+                          type: string
+                      type: object
+                    static:
+                      description: Static contains parameters specific to a static
+                        external attachment
                       properties:
                         ip:
                           description: NO-OP until we remove it in Fabricator
@@ -965,19 +978,6 @@ spec:
                           type: integer
                       required:
                       - remoteIP
-                      type: object
-                    neighbor:
-                      description: Neighbor is the BGP neighbor configuration for
-                        the external attachment in case of a BGP external
-                      properties:
-                        asn:
-                          description: ASN is the ASN of the BGP neighbor
-                          format: int32
-                          type: integer
-                        ip:
-                          description: IP is the IP address of the BGP neighbor to
-                            peer with (without prefix length)
-                          type: string
                       type: object
                     switch:
                       description: Switch is the switch port configuration for the
@@ -1061,8 +1061,12 @@ spec:
                       description: IPv4Namespace is the name of the IPv4Namespace
                         this External belongs to
                       type: string
-                    l2:
-                      description: L2 contains L2 specific parameters
+                    outboundCommunity:
+                      description: OutboundCommunity is theoutbound community that
+                        all outbound routes will be stamped with (e.g. 50000:50001)
+                      type: string
+                    static:
+                      description: Static contains parameters specific to static externals
                       properties:
                         prefixes:
                           description: Prefixes is the list of IPv4 prefixes reachable
@@ -1071,10 +1075,6 @@ spec:
                             type: string
                           type: array
                       type: object
-                    outboundCommunity:
-                      description: OutboundCommunity is theoutbound community that
-                        all outbound routes will be stamped with (e.g. 50000:50001)
-                      type: string
                   type: object
                 type: object
               ipv4Namespaces:

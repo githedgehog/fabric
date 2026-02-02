@@ -38,7 +38,7 @@ var communityCheck = regexp.MustCompile("^(6553[0-5]|655[0-2][0-9]|654[0-9]{2}|6
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type ExternalL2 struct {
+type ExternalStaticSpec struct {
 	// Prefixes is the list of IPv4 prefixes reachable via the external
 	Prefixes []string `json:"prefixes,omitempty"`
 }
@@ -52,9 +52,9 @@ type ExternalSpec struct {
 	InboundCommunity string `json:"inboundCommunity,omitempty"`
 	// OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001)
 	OutboundCommunity string `json:"outboundCommunity,omitempty"`
-	// L2 contains L2 specific parameters
+	// Static contains parameters specific to static externals
 	// +optional
-	L2 *ExternalL2 `json:"l2,omitempty"`
+	Static *ExternalStaticSpec `json:"static,omitempty"`
 }
 
 // ExternalStatus defines the observed state of External
@@ -135,7 +135,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		return nil, errors.Errorf("IPv4Namespace is required")
 	}
 
-	if external.Spec.L2 == nil {
+	if external.Spec.Static == nil {
 		if external.Spec.InboundCommunity == "" {
 			return nil, errors.Errorf("inboundCommunity is required")
 		}
@@ -153,24 +153,24 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		}
 	} else {
 		if external.Spec.InboundCommunity != "" || external.Spec.OutboundCommunity != "" {
-			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when L2 is specified")
+			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when static configuration is present")
 		}
 
-		if len(external.Spec.L2.Prefixes) == 0 {
-			return nil, errors.Errorf("at least one prefix must be specified in L2 mode")
+		if len(external.Spec.Static.Prefixes) == 0 {
+			return nil, errors.Errorf("at least one prefix must be specified for static externals")
 		}
 		prefixes := []netip.Prefix{}
-		for _, p := range external.Spec.L2.Prefixes {
+		for _, p := range external.Spec.Static.Prefixes {
 			parsed, err := netip.ParsePrefix(p)
 			if err != nil {
-				return nil, fmt.Errorf("invalid L2 prefix %s: %w", p, err)
+				return nil, fmt.Errorf("invalid prefix %s in static external configuration: %w", p, err)
 			}
 			prefixes = append(prefixes, parsed)
 		}
 		for i := range prefixes {
 			for j := i + 1; j < len(prefixes); j++ {
 				if prefixes[i].Overlaps(prefixes[j]) {
-					return nil, fmt.Errorf("L2 prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String()) //nolint:goerr113
+					return nil, fmt.Errorf("static prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String()) //nolint:goerr113
 				}
 			}
 		}

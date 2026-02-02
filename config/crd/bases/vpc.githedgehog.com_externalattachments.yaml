@@ -81,8 +81,22 @@ spec:
                 description: External is the name of the External object this attachment
                   belongs to
                 type: string
-              l2:
-                description: L2 contains parameters specific to an L2 external attachment
+              neighbor:
+                description: Neighbor is the BGP neighbor configuration for the external
+                  attachment in case of a BGP external
+                properties:
+                  asn:
+                    description: ASN is the ASN of the BGP neighbor
+                    format: int32
+                    type: integer
+                  ip:
+                    description: IP is the IP address of the BGP neighbor to peer
+                      with (without prefix length)
+                    type: string
+                type: object
+              static:
+                description: Static contains parameters specific to a static external
+                  attachment
                 properties:
                   ip:
                     description: NO-OP until we remove it in Fabricator
@@ -99,19 +113,6 @@ spec:
                     type: integer
                 required:
                 - remoteIP
-                type: object
-              neighbor:
-                description: Neighbor is the BGP neighbor configuration for the external
-                  attachment in case of a BGP external
-                properties:
-                  asn:
-                    description: ASN is the ASN of the BGP neighbor
-                    format: int32
-                    type: integer
-                  ip:
-                    description: IP is the IP address of the BGP neighbor to peer
-                      with (without prefix length)
-                    type: string
                 type: object
               switch:
                 description: Switch is the switch port configuration for the external
