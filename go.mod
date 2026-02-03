@@ -23,8 +23,8 @@ require (
 	github.com/maruel/natural v1.3.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/olekukonko/tablewriter v1.1.3
-	github.com/onsi/ginkgo/v2 v2.27.5
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/ginkgo/v2 v2.28.0
+	github.com/onsi/gomega v1.39.1
 	github.com/openconfig/gnmi v0.14.1
 	github.com/openconfig/gnmic v0.32.0
 	github.com/openconfig/ygot v0.32.0
@@ -39,7 +39,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vishvananda/netlink v1.3.1
 	go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
-	go.githedgehog.com/gateway v0.38.1
+	go.githedgehog.com/gateway v0.39.0
 	go.githedgehog.com/libmeta v0.3.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
 	golang.org/x/sync v0.19.0
@@ -134,7 +134,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
-	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
+	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
