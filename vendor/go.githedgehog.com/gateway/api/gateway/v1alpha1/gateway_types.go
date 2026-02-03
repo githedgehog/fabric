@@ -378,7 +378,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 		}
 
 		gwGroupList := &GatewayGroupList{}
-		if err := kube.List(ctx, gwGroupList); err != nil {
+		if err := kube.List(ctx, gwGroupList, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
 			return fmt.Errorf("listing gateway groups: %w", err)
 		}
 		gwGroups := map[string]bool{}
