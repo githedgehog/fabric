@@ -134,7 +134,9 @@ func send(endpoint string, timeout time.Duration, marshaler func(v any) ([]byte,
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	return nil
 }
