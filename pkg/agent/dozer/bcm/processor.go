@@ -42,7 +42,7 @@ type BroadcomProcessor struct {
 var _ dozer.Processor = &BroadcomProcessor{}
 
 func Processor() (*BroadcomProcessor, error) {
-	return &BroadcomProcessor{}, initCompat()
+	return &BroadcomProcessor{}, nil
 }
 
 func (p *BroadcomProcessor) SetClient(client *gnmi.Client) {

@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -166,12 +165,6 @@ func TestTranslatePortNames(t *testing.T) {
 const testdataDir = "testdata"
 
 func TestPlan(t *testing.T) {
-	var err error
-
-	sonicVersion450, err = semver.NewVersion("4.5.0")
-	require.NoError(t, err, "creating sonic version")
-	sonicVersionCurr = sonicVersion450
-
 	for _, tt := range []struct {
 		name string
 	}{

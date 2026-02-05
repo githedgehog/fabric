@@ -10,7 +10,6 @@ tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (
 	github.com/0x5a17ed/uefi v0.7.0
-	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/dustin/go-humanize v1.0.1
@@ -69,6 +68,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.48.1 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.48.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.3 // indirect
