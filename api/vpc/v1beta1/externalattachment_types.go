@@ -176,16 +176,9 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.Static.RemoteIP == "" {
 			return nil, errors.Errorf("static.remoteIP is required for static external attachment")
 		}
-		remoteIP, err := netip.ParseAddr(attach.Spec.Static.RemoteIP)
+		_, err := netip.ParseAddr(attach.Spec.Static.RemoteIP)
 		if err != nil {
 			return nil, errors.New("static.remoteIP is not a valid IP address") //nolint: goerr113
-		}
-		localIPv4, err := netip.ParsePrefix("169.254.0.0/16")
-		if err != nil {
-			return nil, errors.Wrapf(err, "internal bug: failed to parse link-local IPv4 prefix")
-		}
-		if localIPv4.Contains(remoteIP) {
-			return nil, errors.Errorf("static.remoteIP cannot belong to the IPv4 link-local prefix 169.254.0.0/16") //nolint: goerr113
 		}
 		if (attach.Spec.Static.IP == "" && !attach.Spec.Static.Proxy) || (attach.Spec.Static.IP != "" && attach.Spec.Static.Proxy) {
 			return nil, errors.Errorf("either static.ip or static.proxy must be set for static external attachment")

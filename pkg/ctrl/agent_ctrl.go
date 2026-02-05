@@ -469,6 +469,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 
 	attachedExternals := map[string]bool{}
+	proxyStaticExtAttachments := map[string]bool{}
 	externalAttaches := map[string]vpcapi.ExternalAttachmentSpec{}
 	externalAttachList := &vpcapi.ExternalAttachmentList{}
 	err = r.List(ctx, externalAttachList, kclient.InNamespace(sw.Namespace))
@@ -482,6 +483,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 		attachedExternals[attach.Spec.External] = true
 		externalAttaches[attach.Name] = attach.Spec
+
+		if attach.Spec.Static != nil && attach.Spec.Static.Proxy {
+			proxyStaticExtAttachments[attach.Name] = true
+		}
 	}
 
 	externals := map[string]vpcapi.ExternalSpec{}
@@ -725,7 +730,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, subnetsReq, th5WorkaroundReqs)
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
@@ -845,6 +850,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			ProtocolSubnet:        r.cfg.ProtocolSubnet,
 			VTEPSubnet:            r.cfg.VTEPSubnet,
 			FabricSubnet:          r.cfg.FabricSubnet,
+			ProxyExternalSubnet:   r.cfg.L2ProxyExternalSubnet,
 			DisableBFD:            r.cfg.DisableBFD,
 			GatewayBFD:            r.cfg.GatewayBFD,
 			Alloy:                 alloyCfg,
