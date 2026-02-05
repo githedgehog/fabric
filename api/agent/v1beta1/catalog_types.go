@@ -50,6 +50,8 @@ type CatalogSpec struct {
 	ExternalIDs map[string]uint16 `json:"externalIDs,omitempty"`
 	// SubnetIDs stores subnet -> ID, unique per switch
 	SubnetIDs map[string]uint32 `json:"subnetIDs,omitempty"`
+	// StaticExternalSubnetOffsets stores external attachment name -> subnet offset, unique per switch
+	StaticExternalSubnetOffsets map[string]uint16 `json:"staticExternalSubnetOffsets,omitempty"`
 }
 
 // CatalogStatus defines the observed state of Catalog

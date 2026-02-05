@@ -302,7 +302,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, subnets, th5WorkaroundReqs map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -344,6 +344,16 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 	}
 
 	{
+		a := Allocator[uint16]{
+			Values: NewNextFreeValueFromRanges([][2]uint16{{0, 511}}, 1),
+		}
+		cat.Spec.StaticExternalSubnetOffsets, err = a.Allocate(cat.Spec.StaticExternalSubnetOffsets, proxyStaticExtAttachments)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate static external subnet offsets for %s", key)
+		}
+	}
+
+	{
 		a := Allocator[uint32]{
 			Values: NewNextFreeValueFromRanges([][2]uint32{{100, 64999}}, 1),
 		}
@@ -379,6 +389,13 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 	for ext := range externals {
 		if _, exists := ret.ExternalIDs[ext]; !exists {
 			return errors.Errorf("failed to find external ID for %s", ext)
+		}
+	}
+
+	ret.StaticExternalSubnetOffsets = cat.Spec.StaticExternalSubnetOffsets
+	for attach := range proxyStaticExtAttachments {
+		if _, exists := ret.StaticExternalSubnetOffsets[attach]; !exists {
+			return errors.Errorf("failed to find static external attachment subnet offset for %s", attach)
 		}
 	}
 

@@ -78,6 +78,12 @@ spec:
                 description: PortChannelIDs stores Connection name -> PortChannel
                   ID, unique per redundancy group (or switch)
                 type: object
+              staticExternalSubnetOffsets:
+                additionalProperties:
+                  type: integer
+                description: StaticExternalSubnetOffsets stores external attachment
+                  name -> subnet offset, unique per switch
+                type: object
               subnetIDs:
                 additionalProperties:
                   format: int32
