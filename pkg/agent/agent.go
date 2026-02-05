@@ -21,8 +21,11 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -427,6 +430,84 @@ func (svc *Service) setInstallAndRunIDs() error {
 	return nil
 }
 
+func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+	desired, err := processor.PlanDesiredState(ctx, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to plan spec")
+	}
+	slog.Debug("Desired state generated")
+
+	startActual := time.Now()
+	actual, err := processor.LoadActualState(ctx, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load actual state")
+	}
+	slog.Debug("Actual state loaded", "took", time.Since(startActual))
+
+	actions, err := processor.CalculateActions(ctx, actual, desired)
+	if err != nil {
+		return errors.Wrapf(err, "failed to calculate spec")
+	}
+	slog.Debug("Actions calculated", "count", len(actions))
+
+	actual.CleanupSensetive()
+	desired.CleanupSensetive()
+
+	desiredData, err := desired.MarshalYAML()
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal desired spec")
+	}
+
+	err = os.WriteFile(filepath.Join(basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
+	if err != nil {
+		return errors.Wrapf(err, "failed to write desired spec")
+	}
+
+	actualData, err := actual.MarshalYAML()
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal actual spec")
+	}
+
+	err = os.WriteFile(filepath.Join(basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
+	if err != nil {
+		return errors.Wrapf(err, "failed to write actual spec")
+	}
+
+	diff, err := dozer.SpecTextDiff(actualData, desiredData)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate diff")
+	}
+
+	if slog.Default().Enabled(ctx, slog.LevelDebug) {
+		// TODO skip if diff is empty
+		for _, line := range strings.SplitAfter(string(diff), "\n") {
+			line = strings.TrimRight(line, "\n")
+			if strings.ReplaceAll(line, " ", "") == "" {
+				continue
+			}
+			slog.Debug("Actual <> Desired", "diff", line)
+		}
+	}
+
+	if dryRun {
+		slog.Warn("Dry run, exiting")
+
+		return nil
+	}
+
+	slog.Info("Applying actions", "count", len(actions))
+
+	warnings, err := processor.ApplyActions(ctx, actions)
+	if err != nil {
+		return errors.Wrapf(err, "failed to apply actions")
+	}
+	for _, warning := range warnings {
+		slog.Warn("Action warning: " + warning)
+	}
+
+	return nil
+}
+
 func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
 	start := time.Now()
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
@@ -453,78 +534,8 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	}
 	agent.Status.State.RoCE = roce
 
-	desired, err := svc.processor.PlanDesiredState(ctx, agent)
-	if err != nil {
-		return errors.Wrapf(err, "failed to plan spec")
-	}
-	slog.Debug("Desired state generated")
-
-	startActual := time.Now()
-	actual, err := svc.processor.LoadActualState(ctx, agent)
-	if err != nil {
-		return errors.Wrapf(err, "failed to load actual state")
-	}
-	slog.Debug("Actual state loaded", "took", time.Since(startActual))
-
-	actions, err := svc.processor.CalculateActions(ctx, actual, desired)
-	if err != nil {
-		return errors.Wrapf(err, "failed to calculate spec")
-	}
-	slog.Debug("Actions calculated", "count", len(actions))
-
-	actual.CleanupSensetive()
-	desired.CleanupSensetive()
-
-	desiredData, err := desired.MarshalYAML()
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal desired spec")
-	}
-
-	err = os.WriteFile(filepath.Join(svc.Basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
-	if err != nil {
-		return errors.Wrapf(err, "failed to write desired spec")
-	}
-
-	actualData, err := actual.MarshalYAML()
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal actual spec")
-	}
-
-	err = os.WriteFile(filepath.Join(svc.Basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
-	if err != nil {
-		return errors.Wrapf(err, "failed to write actual spec")
-	}
-
-	diff, err := dozer.SpecTextDiff(actualData, desiredData)
-	if err != nil {
-		return errors.Wrapf(err, "failed to generate diff")
-	}
-
-	if slog.Default().Enabled(ctx, slog.LevelDebug) {
-		// TODO skip if diff is empty
-		for _, line := range strings.SplitAfter(string(diff), "\n") {
-			line = strings.TrimRight(line, "\n")
-			if strings.ReplaceAll(line, " ", "") == "" {
-				continue
-			}
-			slog.Debug("Actual <> Desired", "diff", line)
-		}
-	}
-
-	if svc.DryRun {
-		slog.Warn("Dry run, exiting")
-
-		return nil
-	}
-
-	slog.Info("Applying actions", "count", len(actions))
-
-	warnings, err := svc.processor.ApplyActions(ctx, actions)
-	if err != nil {
-		return errors.Wrapf(err, "failed to apply actions")
-	}
-	for _, warning := range warnings {
-		slog.Warn("Action warning: " + warning)
+	if err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun); err != nil {
+		return err
 	}
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
@@ -871,6 +882,108 @@ func patchShadowFile(name string, password string) error {
 		}
 		slog.Info("Updated admin password in /etc/shadow")
 	}
+
+	return nil
+}
+
+type RunRemotelyOpts struct {
+	SwitchName   string
+	Basedir      string
+	DryRun       bool
+	CollectStats bool
+	AutoSSH      string
+}
+
+func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), opts RunRemotelyOpts) error {
+	signalCtx, stopSignal := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-signalCtx.Done()
+
+		slog.Warn("Received signal and stopping, repeat after 2 seconds to force stop")
+		time.Sleep(2 * time.Second)
+		stopSignal()
+	}()
+
+	ctx, cancel := context.WithCancel(signalCtx)
+	wg := sync.WaitGroup{}
+
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+
+	start := time.Now()
+
+	slog.Info("Applying config remotely", "switch", opts.SwitchName, "dryRun", opts.DryRun, "stats", opts.CollectStats, "autoSSH", opts.AutoSSH)
+
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
+	if err != nil {
+		return fmt.Errorf("creating K8s client: %w", err)
+	}
+
+	agent := &agentapi.Agent{}
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: opts.SwitchName, Namespace: kmetav1.NamespaceDefault}, agent); err != nil {
+		return fmt.Errorf("getting initial agent config from k8s: %w", err)
+	}
+
+	if opts.AutoSSH != "" {
+		wg.Go(func() {
+			swIP := strings.Split(agent.Spec.Switch.IP, "/")[0]
+			slog.Info("Running SSH port forwarding for switch", "ip", swIP)
+
+			cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec
+				"-o", "GlobalKnownHostsFile=/dev/null", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no",
+				"-o", "LogLevel=ERROR", "-o", "ExitOnForwardFailure=yes", "-o", "ControlMaster=no", "-o", "ControlPath=none", "-o", "ControlPersist=no",
+				"-L", "127.0.0.1:8080:"+swIP+":8080", opts.AutoSSH, "sleep", "infinity")
+			cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "forward: ")
+			cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "forward: ")
+			if err := cmd.Run(); err != nil && ctx.Err() == nil {
+				slog.Error("SSH port forwarding failed", "error", err)
+				os.Exit(2)
+			}
+
+			slog.Debug("SSH port forwarding finished")
+		})
+	}
+
+	gnmiClient, err := getClient()
+	if err != nil {
+		return fmt.Errorf("creating gNMI client: %w", err)
+	}
+
+	processor, err := bcm.Processor()
+	if err != nil {
+		return fmt.Errorf("creating processor: %w", err)
+	}
+	processor.SetClient(gnmiClient)
+	processor.SetSkipCustomFuncs(true)
+
+	if err := enforceState(ctx, processor, agent, opts.Basedir, opts.DryRun); err != nil {
+		return fmt.Errorf("enforcing state: %w", err)
+	}
+
+	slog.Info("Config applied remotely", "took", time.Since(start))
+
+	if opts.CollectStats {
+		reg := switchstate.NewRegistry()
+		if err := processor.UpdateSwitchState(ctx, agent, reg); err != nil {
+			return errors.Wrapf(err, "failed to update switch state")
+		}
+		if st := reg.GetSwitchState(); st != nil {
+			agent.Status.State = *st
+		}
+	}
+
+	data, err := kyaml.Marshal(agent)
+	if err != nil {
+		return fmt.Errorf("marshaling agent: %w", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(opts.Basedir, "last-agent.yaml"), data, 0o600); err != nil {
+		return fmt.Errorf("writing agent to file: %w", err)
+	}
+
+	slog.Info("See last-* files for the last state & agent data")
 
 	return nil
 }
