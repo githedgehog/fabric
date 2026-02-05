@@ -239,6 +239,89 @@ func main() {
 				},
 			},
 			{
+				Name:  "remote",
+				Usage: "helper to test gNMI remotely by applying config",
+				Flags: []cli.Flag{
+					verboseFlag,
+					&cli.StringFlag{
+						Name:     "switch-name",
+						Aliases:  []string{"n"},
+						Usage:    "switch name to apply config for",
+						Value:    "",
+						Required: true,
+					},
+					&cli.BoolFlag{
+						Name:    "dry-run",
+						Usage:   "generate desired state but do not apply it",
+						Aliases: []string{"k"},
+						Value:   false,
+					},
+					&cli.BoolFlag{
+						Name:    "collect-stats",
+						Usage:   "collect stats after config application, if not enabled agent status.state will be just from the k8s API",
+						Aliases: []string{"c"},
+						Value:   false,
+					},
+					&cli.StringFlag{
+						Name:    "auto-ssh",
+						Aliases: []string{"a"},
+						Usage:   "auto-ssh port forwarding using specified host for the switch gNMI server",
+						Value:   "",
+						EnvVars: []string{"AGENT_AUTO_SSH"},
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-server",
+						Aliases: []string{"s"},
+						Usage:   "gNMI server address",
+						Value:   "127.0.0.1:8080",
+						EnvVars: []string{"AGENT_GNMI_ADDRESS"},
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-username",
+						Aliases: []string{"u"},
+						Value:   "admin",
+						EnvVars: []string{"AGENT_GNMI_USERNAME"},
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-password",
+						Aliases: []string{"p"},
+						Value:   "YourPaSsWoRd",
+						EnvVars: []string{"AGENT_GNMI_PASSWORD"},
+					},
+					&cli.StringFlag{
+						Name:        "basedir",
+						Usage:       "base directory for the debug files",
+						Destination: &basedir,
+						Value:       ".",
+					},
+				},
+				Before: func(_ *cli.Context) error {
+					return setupLogger(verbose, false, false)
+				},
+				Action: func(cCtx *cli.Context) error {
+					getGNMIClient := func() (*gnmi.Client, error) {
+						client, err := gnmi.New(ctx,
+							cCtx.String("gnmi-server"),
+							cCtx.String("gnmi-username"),
+							cCtx.String("gnmi-password"))
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to create GNMI client")
+						}
+
+						return client, nil
+					}
+
+					return errors.Wrapf(agent.RunRemotely(ctx, getGNMIClient,
+						agent.RunRemotelyOpts{
+							SwitchName:   cCtx.String("switch-name"),
+							DryRun:       cCtx.Bool("dry-run"),
+							CollectStats: cCtx.Bool("collect-stats"),
+							AutoSSH:      cCtx.String("auto-ssh"),
+							Basedir:      basedir,
+						}), "failed to apply config")
+				},
+			},
+			{
 				Name:    "generate",
 				Aliases: []string{"gen"},
 				Usage:   "generate config/systemd-unit/etc",
