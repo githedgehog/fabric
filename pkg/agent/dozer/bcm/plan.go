@@ -842,13 +842,14 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
-				Enabled:             pointer.To(true),
-				Description:         pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
-				RemoteAS:            pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
-				IPv4Unicast:         pointer.To(true),
-				L2VPNEVPN:           pointer.To(true),
-				L2VPNEVPNAllowOwnAS: pointer.To(true),
-				BFDProfile:          bfdProfile,
+				Enabled:                 pointer.To(true),
+				Description:             pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
+				RemoteAS:                pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
+				IPv4Unicast:             pointer.To(true),
+				L2VPNEVPN:               pointer.To(true),
+				L2VPNEVPNAllowOwnAS:     pointer.To(true),
+				L2VPNEVPNImportPolicies: []string{RouteMapL2VPNNeighbors},
+				BFDProfile:              bfdProfile,
 			}
 		}
 	}

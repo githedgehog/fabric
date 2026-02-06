@@ -396,6 +396,8 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
 1. create a BGP session with the other host in that /31 range. The ASN of the
 gateway currently comes from config (note: we could use `remote-as external` instead).
 Like for other EVPN peers in our config, we set `allowas-in` in the L2VPN AF.
+We also set the `l2vpn-neighbors` route-map in the import direction, which ensures
+that the correct gateway route will be picked based on priorities/communities.
     ```
     neighbor 172.30.128.13
      description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
@@ -407,6 +409,7 @@ Like for other EVPN peers in our config, we set `allowas-in` in the L2VPN AF.
      address-family l2vpn evpn
       activate
       allowas-in
+      route-map l2vpn-neighbors in
     ```
 
 #### Workaround for TH5-based platforms
