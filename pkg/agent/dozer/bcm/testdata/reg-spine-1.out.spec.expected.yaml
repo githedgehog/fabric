@@ -408,6 +408,8 @@ vrfs:
           ipv4Unicast: true
           l2vpnEvpn: true
           l2vpnEvpnAllowOwnAS: true
+          l2vpnEvpnImportPolicies:
+          - l2vpn-neighbors
           remoteAS: 65534
       networkImportCheck: true
       routerID: 172.30.8.0
