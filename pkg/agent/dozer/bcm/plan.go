@@ -2676,20 +2676,29 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 	// for each of the attachment interfaces on the switch side, enslave them to the VPC VRF and enable IPv6 for BGP unnumbered
 	// then add an unnumbered BGP neighbor on that interface in the VPC VRF instance
 	// finally add the ACL to handle restricted subnets (this will be removed if it's empty)
+	// note that if VLAN != 0 we will do the above for a subinterface instead
 	for _, iface := range ifaceNames {
-		spec.VRFs[vrfName].Interfaces[iface] = &dozer.SpecVRFInterface{}
+		targetIface := iface
+		vlan := uint32(subnet.VLAN)
+		if vlan != 0 {
+			targetIface = fmt.Sprintf("%s.%d", iface, vlan)
+		}
+		spec.VRFs[vrfName].Interfaces[targetIface] = &dozer.SpecVRFInterface{}
 		if spec.Interfaces[iface].Subinterfaces == nil {
 			spec.Interfaces[iface].Subinterfaces = map[uint32]*dozer.SpecSubinterface{
 				0: {},
 			}
 		}
-		subIf0, ok := spec.Interfaces[iface].Subinterfaces[0]
+		subIf, ok := spec.Interfaces[iface].Subinterfaces[vlan]
 		if !ok {
-			spec.Interfaces[iface].Subinterfaces[0] = &dozer.SpecSubinterface{}
-			subIf0 = spec.Interfaces[iface].Subinterfaces[0]
+			spec.Interfaces[iface].Subinterfaces[vlan] = &dozer.SpecSubinterface{}
+			subIf = spec.Interfaces[iface].Subinterfaces[vlan]
 		}
-		subIf0.IPv6 = &dozer.SpecInterfaceIPv6{
+		subIf.IPv6 = &dozer.SpecInterfaceIPv6{
 			Enabled: pointer.To(true),
+		}
+		if vlan != 0 {
+			subIf.VLAN = pointer.To(subnet.VLAN)
 		}
 
 		if spec.VRFs[vrfName].BGP == nil {
@@ -2698,9 +2707,9 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 		if spec.VRFs[vrfName].BGP.Neighbors == nil {
 			spec.VRFs[vrfName].BGP.Neighbors = map[string]*dozer.SpecVRFBGPNeighbor{}
 		}
-		spec.VRFs[vrfName].BGP.Neighbors[iface] = &dozer.SpecVRFBGPNeighbor{
+		spec.VRFs[vrfName].BGP.Neighbors[targetIface] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
-			Description:               pointer.To(fmt.Sprintf("HostBGP unnumbered %s", iface)),
+			Description:               pointer.To(fmt.Sprintf("HostBGP unnumbered %s", targetIface)),
 			PeerType:                  pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
 			ExtendedNexthop:           pointer.To(true),
 			IPv4Unicast:               pointer.To(true),
@@ -2708,7 +2717,7 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 			IPv4ASOverride:            pointer.To(true),
 		}
 
-		spec.ACLInterfaces[iface] = &dozer.SpecACLInterface{
+		spec.ACLInterfaces[targetIface] = &dozer.SpecACLInterface{
 			Ingress: pointer.To(vpcFilteringACL),
 		}
 	}
