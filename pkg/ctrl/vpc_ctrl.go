@@ -178,7 +178,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 			vrf := ""
 			switch vpc.Spec.Mode {
 			case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
-				vrf = fmt.Sprintf("VrfV%s", vpc.Name) // TODO move to utils
+				vrf = strings.ToLower(vpc.Name)
 			case vpcapi.VPCModeL3Flat:
 				vrf = "default"
 			}
@@ -202,7 +202,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				EndIP:               subnet.DHCP.Range.End,
 				LeaseTimeSeconds:    leaseTime,
 				VRF:                 vrf,
-				CircuitID:           fmt.Sprintf("Vlan%d", subnet.VLAN), // TODO move to utils
+				CircuitID:           fmt.Sprintf("vlan%d", subnet.VLAN), // TODO move to utils
 				PXEURL:              pxeURL,
 				DNSServers:          dnsServers,
 				TimeServers:         timeServers,

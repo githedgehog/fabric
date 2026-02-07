@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/netip"
+	"strings"
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
@@ -16,9 +17,13 @@ import (
 
 const (
 	defaultVRF = "default"
+	vlanPrefix = "vlan"
 )
 
 func subnetKey(vrf, circuitID string) string {
+	vrf = strings.ToLower(vrf)
+	circuitID = strings.ToLower(circuitID)
+
 	if vrf == "" {
 		vrf = defaultVRF
 	}
