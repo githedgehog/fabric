@@ -107,6 +107,7 @@ const (
 	ActionWeightInterfaceSubinterfaceIPv6Delete
 	ActionWeightVRFInterfaceDelete
 	ActionWeightACLInterfaceDelete
+	ActionWeightVRFBGPNeighborDelete
 	ActionWeightInterfaceSubinterfaceDelete
 	ActionWeightInterfaceSubinterfaceUpdate
 	ActionWeightInterfaceVLANStaticARPUpdate
@@ -183,7 +184,6 @@ const (
 	ActionWeightVRFEVPNMHDelete
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
-	ActionWeightVRFBGPNeighborDelete
 	ActionWeightBFDProfileDelete
 	ActionWeightVRFSAGDelete
 	ActionWeightVRFBGPL2VPNDelete
