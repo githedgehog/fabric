@@ -342,8 +342,14 @@ var specInterfaceSubinterfacesEnforcer = &DefaultMapEnforcer[uint32, *dozer.Spec
 var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
 	Summary: "Subinterface %d", // TODO chain summary as well?
 	CustomHandler: func(basePath string, idx uint32, actual, desired *dozer.SpecSubinterface, actions *ActionQueue) error {
-		basePath += fmt.Sprintf("/subinterfaces/subinterface[index=%d]", idx)
+		// ignore actual ipv6 enable state for management interfaces, as their logic is inverted (no config means they are v6 enabled).
+		// if we ever want to support configuring that, we'll need to fix it; however the "proper" fix (always enforcing the desired
+		// v6 state) brings more issues, e.g. we cannot remove a subinterface from a VRF because we have ipv6 config on it
+		if strings.Contains(basePath, "[name=Management") {
+			actual.IPv6 = nil
+		}
 
+		basePath += fmt.Sprintf("/subinterfaces/subinterface[index=%d]", idx)
 		if err := specInterfaceSubinterfaceBaseEnforcer.Handle(basePath, idx, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface base")
 		}
