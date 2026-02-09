@@ -354,9 +354,7 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 			return errors.Wrap(err, "failed to handle subinterface base")
 		}
 		ipv6Path := basePath + "/ipv6/config/enabled"
-		actualV6, desiredV6 := ValueOrNil(actual, desired,
-			func(value *dozer.SpecSubinterface) *dozer.SpecInterfaceIPv6 { return value.IPv6 })
-		if err := specInterfaceSubinterfaceIPv6Enforcer.Handle(ipv6Path, idx, actualV6, desiredV6, actions); err != nil {
+		if err := specInterfaceSubinterfaceIPv6Enforcer.Handle(ipv6Path, idx, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface ipv6")
 		}
 
@@ -380,15 +378,15 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 	},
 }
 
-var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecInterfaceIPv6]{
+var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
 	Summary:      "Subinterface %d IPv6 Enable",
 	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceSubinterfaceIPv6Update,
 	DeleteWeight: ActionWeightInterfaceSubinterfaceIPv6Delete,
-	Marshal: func(idx uint32, value *dozer.SpecInterfaceIPv6) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(idx uint32, value *dozer.SpecSubinterface) (ygot.ValidatedGoStruct, error) {
 		cfg := &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv6_Config{}
-		if value != nil && value.Enabled != nil {
-			cfg.Enabled = value.Enabled
+		if value != nil && value.IPv6 != nil && value.IPv6.Enabled != nil {
+			cfg.Enabled = value.IPv6.Enabled
 		}
 
 		return cfg, nil
@@ -734,72 +732,78 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 		}
 
 		if ocIface.Subinterfaces != nil && len(ocIface.Subinterfaces.Subinterface) > 0 {
-			for id, sub := range ocIface.Subinterfaces.Subinterface {
-				if sub.Config == nil {
+			for id, ocSub := range ocIface.Subinterfaces.Subinterface {
+				if ocSub.Config == nil && ocSub.Ipv6 == nil {
 					continue
 				}
-
 				subIface := &dozer.SpecSubinterface{
 					IPs:        map[string]*dozer.SpecInterfaceIP{},
 					StaticARPs: map[string]*dozer.SpecStaticARP{},
 				}
 
-				if sub.Ipv4 != nil && sub.Ipv4.Addresses != nil {
-					for _, addr := range sub.Ipv4.Addresses.Address {
-						if addr.Config == nil || addr.Config.Ip == nil {
-							continue
-						}
+				if ocSub.Ipv4 != nil {
+					if ocSub.Ipv4.Addresses != nil {
+						for _, addr := range ocSub.Ipv4.Addresses.Address {
+							if addr.Config == nil || addr.Config.Ip == nil {
+								continue
+							}
 
-						subIface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
-							PrefixLen: addr.Config.PrefixLength,
+							subIface.IPs[*addr.Config.Ip] = &dozer.SpecInterfaceIP{
+								PrefixLen: addr.Config.PrefixLength,
+							}
+						}
+					}
+
+					if ocSub.Ipv4.SagIpv4 != nil && ocSub.Ipv4.SagIpv4.Config != nil {
+						subIface.AnycastGateways = ocSub.Ipv4.SagIpv4.Config.StaticAnycastGateway
+					}
+
+					if ocSub.Ipv4.ProxyArp != nil && ocSub.Ipv4.ProxyArp.Config != nil {
+						pa, err := unmarshalProxyARP(ocSub.Ipv4.ProxyArp.Config.Mode)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to unmarshal proxy-arp for %s.%d", name, id)
+						}
+						subIface.ProxyARP = pa
+					}
+
+					if ocSub.Ipv4.Neighbors != nil && len(ocSub.Ipv4.Neighbors.Neighbor) > 0 {
+						for _, n := range ocSub.Ipv4.Neighbors.Neighbor {
+							if n.Config == nil || n.Config.Ip == nil || n.Config.LinkLayerAddress == nil {
+								continue
+							}
+							subIface.StaticARPs[*n.Config.Ip] = &dozer.SpecStaticARP{
+								IP:  *n.Config.Ip,
+								MAC: *n.Config.LinkLayerAddress,
+							}
 						}
 					}
 				}
 
-				if sub.Ipv4 != nil && sub.Ipv4.SagIpv4 != nil && sub.Ipv4.SagIpv4.Config != nil {
-					subIface.AnycastGateways = sub.Ipv4.SagIpv4.Config.StaticAnycastGateway
-				}
-
-				if sub.Ipv4 != nil && sub.Ipv4.ProxyArp != nil && sub.Ipv4.ProxyArp.Config != nil {
-					pa, err := unmarshalProxyARP(sub.Ipv4.ProxyArp.Config.Mode)
-					if err != nil {
-						return nil, errors.Wrapf(err, "failed to unmarshal proxy-arp for %s.%d", name, id)
-					}
-					subIface.ProxyARP = pa
-				}
-
-				if sub.Ipv4 != nil && sub.Ipv4.Neighbors != nil && len(sub.Ipv4.Neighbors.Neighbor) > 0 {
-					for _, n := range sub.Ipv4.Neighbors.Neighbor {
-						if n.Config == nil || n.Config.Ip == nil || n.Config.LinkLayerAddress == nil {
-							continue
-						}
-						subIface.StaticARPs[*n.Config.Ip] = &dozer.SpecStaticARP{
-							IP:  *n.Config.Ip,
-							MAC: *n.Config.LinkLayerAddress,
-						}
-					}
-				}
-
-				if sub.Vlan != nil {
-					if sub.Vlan.Config != nil {
-						subIface.VLAN, err = unmarshalVLAN(sub.Vlan.Config.VlanId)
+				if ocSub.Vlan != nil {
+					if ocSub.Vlan.Config != nil {
+						subIface.VLAN, err = unmarshalVLAN(ocSub.Vlan.Config.VlanId)
 						if err != nil {
 							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
 						}
 					}
 
-					if sub.Vlan.State != nil {
-						subIface.VLAN, err = unmarshalVLAN(sub.Vlan.State.VlanId)
+					if ocSub.Vlan.State != nil {
+						subIface.VLAN, err = unmarshalVLAN(ocSub.Vlan.State.VlanId)
 						if err != nil {
 							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
 						}
 					}
 				}
 
-				// only set this if it exists and it is true
-				if sub.Ipv6 != nil && sub.Ipv6.Config != nil && sub.Ipv6.Config.Enabled != nil && *sub.Ipv6.Config.Enabled {
-					subIface.IPv6 = &dozer.SpecInterfaceIPv6{
-						Enabled: pointer.To(true),
+				// only set v6 enable it exists and it is true. note that there seems to be an issue with the config
+				// flag, where it is sometimes false here even though gnmic and sonic-cli show it as true, so let us
+				// also check the state flag as a workaround
+				if ocSub.Ipv6 != nil {
+					if (ocSub.Ipv6.Config != nil && ocSub.Ipv6.Config.Enabled != nil && *ocSub.Ipv6.Config.Enabled) ||
+						(ocSub.Ipv6.State != nil && ocSub.Ipv6.State.Enabled != nil && *ocSub.Ipv6.State.Enabled) {
+						subIface.IPv6 = &dozer.SpecInterfaceIPv6{
+							Enabled: pointer.To(true),
+						}
 					}
 				}
 
