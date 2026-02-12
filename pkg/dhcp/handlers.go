@@ -18,7 +18,9 @@ import (
 )
 
 const (
-	onieClassIdentifier = "onie_vendor:"
+	onieClassIdentifier   = "onie_vendor:"
+	cumulusRemoteIDPrefix = "cumulus:"
+	vrfPrefix             = "vrfv"
 )
 
 func msgTypeString(req *dhcpv4.DHCPv4) string {
@@ -46,7 +48,7 @@ func msgTypeString(req *dhcpv4.DHCPv4) string {
 	return "unexpected"
 }
 
-func reqSummary(req *dhcpv4.DHCPv4, vrf, circuitID string) []any {
+func reqSummary(req *dhcpv4.DHCPv4, vrf, circuitID, remoteID string) []any {
 	res := []any{"type", msgTypeString(req), "mac", req.ClientHWAddr.String()}
 
 	if req.HostName() != "" {
@@ -65,27 +67,58 @@ func reqSummary(req *dhcpv4.DHCPv4, vrf, circuitID string) []any {
 		res = append(res, "requested", req.RequestedIPAddress().String())
 	}
 
+	if remoteID != "" {
+		res = append(res, "remoteID", remoteID)
+	}
+
 	return res
 }
 
 func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 	return func(args ...string) (handler.Handler4, error) {
 		return func(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
-			vrf, circuitID := "", ""
+			vrf, circuitID, remoteID := "", "", ""
 			if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
-				vrf = string(relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption))
+				vrf = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption))))
 				if len(vrf) > 1 {
 					vrf = vrf[1:]
 				}
+				vrf = strings.TrimPrefix(vrf, vrfPrefix)
 				if vrf == "" {
 					vrf = defaultVRF
 				}
 
-				circuitID = string(relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption))
+				circuitID = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption))))
+				remoteID = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.AgentRemoteIDSubOption))))
 			}
 
 			s.m.RLock()
-			subnet, ok := s.subnets[subnetKey(vrf, circuitID)]
+
+			var subnet *dhcpapi.DHCPSubnet
+			var ok bool
+
+			// Cumulus doesn't support vrf-select so fallback to just checking the circuit ID (vlan interface name)
+			if strings.HasPrefix(remoteID, cumulusRemoteIDPrefix) && circuitID != "" {
+				for _, some := range s.subnets {
+					if some.Spec.CircuitID == circuitID {
+						if ok && subnet != nil {
+							slog.Warn("Duplicate subnet found for Cumulus dhcp-relay, ignoring request",
+								append([]any{"subnet", some.Name, "other", subnet.Name}, reqSummary(req, vrf, circuitID, remoteID)...)...)
+
+							subnet = nil
+							ok = false
+
+							break
+						}
+
+						subnet = some
+						ok = true
+					}
+				}
+			} else {
+				subnet, ok = s.subnets[subnetKey(vrf, circuitID)]
+			}
+
 			// only use dhcp for onie in the management subnet
 			onieOnly := ok && (subnet.Spec.ONIEOnly || subnet.Name == dhcpapi.ManagementSubnet)
 			if onieOnly && !strings.HasPrefix(req.ClassIdentifier(), onieClassIdentifier) {
@@ -95,26 +128,28 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 			if ok {
 				subnet = subnet.DeepCopy()
 			}
+
 			s.m.RUnlock()
 
 			if ok {
-				slog.Info("Handling", reqSummary(req, vrf, circuitID)...)
-				if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID); err != nil {
-					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID), "err", err.Error())...)
+				slog.Info("Handling", reqSummary(req, vrf, circuitID, remoteID)...)
+				if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID, remoteID); err != nil {
+					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
 				}
 			} else if !onieOnly {
-				slog.Info("No subnet found", reqSummary(req, vrf, circuitID)...)
+				slog.Info("No subnet found", reqSummary(req, vrf, circuitID, remoteID)...)
 			}
+			// We aren't printing anything if !ok && onieOnly here because we don't want to spam the logs with unnecessary information
 
 			return resp, false
 		}, nil
 	}
 }
 
-func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, req, resp *dhcpv4.DHCPv4, vrf, circuitID string) error {
+func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, req, resp *dhcpv4.DHCPv4, vrf, circuitID, remoteID string) error {
 	defer func() {
 		if err := recover(); err != nil {
-			slog.Warn("Panicked", append(reqSummary(req, vrf, circuitID), "err", err)...)
+			slog.Warn("Panicked", append(reqSummary(req, vrf, circuitID, remoteID), "err", err)...)
 		}
 	}()
 
@@ -133,7 +168,7 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 			return fmt.Errorf("updating subnet %s to allocate: %w", subnet.Name, err)
 		}
 
-		slog.Info("Allocated", append(reqSummary(req, vrf, circuitID), "ip", ip)...)
+		slog.Info("Allocated", append(reqSummary(req, vrf, circuitID, remoteID), "ip", ip)...)
 
 		_, ipNet, err := net.ParseCIDR(subnet.Spec.CIDRBlock)
 		if err != nil {
@@ -153,7 +188,7 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 			return fmt.Errorf("updating subnet %s to release: %w", subnet.Name, err)
 		}
 
-		slog.Info("Released", reqSummary(req, vrf, circuitID)...)
+		slog.Info("Released", reqSummary(req, vrf, circuitID, remoteID)...)
 
 		// TODO update response? wasn't done in a previous implementation
 	default:
