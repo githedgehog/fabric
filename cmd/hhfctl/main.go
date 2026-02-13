@@ -33,6 +33,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"go.githedgehog.com/fabric/pkg/version"
+	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
 )
@@ -318,6 +319,259 @@ func main() {
 								VPCs:   cCtx.StringSlice("vpc"),
 								Remote: cCtx.String("remote"),
 							}), "failed to peer vpcs")
+						},
+					},
+					{
+						Name:    "gateway-peer",
+						Aliases: []string{"gateway-peering", "gw-peer", "gw-peering"},
+						Usage:   "Enable peering via the gateway between two vpcs, or a vpc and an external (use the 'ext.' prefix for externals)",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							&cli.StringFlag{
+								Name:     "vpc-1",
+								Usage:    "name of the first vpc for the peering",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "vpc-2",
+								Usage:    "name of the second vpc for the peering",
+								Required: true,
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-1-ip",
+								Aliases: []string{"ip-1"},
+								Usage:   "CIDR to expose for vpc-1",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-1-subnet",
+								Aliases: []string{"subnet-1"},
+								Usage:   "subnet to expose for vpc-1",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-1-as",
+								Aliases: []string{"as-1"},
+								Usage:   "CIDR to use for the As range for vpc-1",
+							},
+							&cli.BoolFlag{
+								Name:    "vpc-1-default",
+								Aliases: []string{"default-1"},
+								Usage:   "expose all prefixes that are not explicitly caught by other peerings",
+							},
+							&cli.StringFlag{
+								Name:    "vpc-1-nat",
+								Aliases: []string{"nat-1"},
+								Usage:   "nat type for vpc-1, one of static|masquerade|port-forward",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-1-pf",
+								Aliases: []string{"pf-1"},
+								Usage:   "port forwarding rules for vpc-1",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-2-ip",
+								Aliases: []string{"ip-2"},
+								Usage:   "CIDR to expose for vpc-2",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-2-subnet",
+								Aliases: []string{"subnet-2"},
+								Usage:   "subnet to expose for vpc-2",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-2-as",
+								Aliases: []string{"as-2"},
+								Usage:   "CIDR to use for the As range for vpc-2",
+							},
+							&cli.BoolFlag{
+								Name:    "vpc-2-default",
+								Aliases: []string{"default-2"},
+								Usage:   "expose all prefixes that are not explicitly caught by other peerings",
+							},
+							&cli.StringFlag{
+								Name:    "vpc-2-nat",
+								Aliases: []string{"nat-2"},
+								Usage:   "nat type for vpc-2, one of static|masquerade|port-forward",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-2-pf",
+								Aliases: []string{"pf-2"},
+								Usage:   "port forwarding rules for vpc-2",
+							},
+							printYamlFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							options := &hhfctl.VPCGwPeerOptions{
+								Name: name,
+								VPC1: cCtx.String("vpc-1"),
+								VPC2: cCtx.String("vpc-2"),
+								VPC1Expose: gwapi.PeeringEntryExpose{
+									IPs:                []gwapi.PeeringEntryIP{},
+									DefaultDestination: cCtx.Bool("vpc-1-default"),
+								},
+								VPC2Expose: gwapi.PeeringEntryExpose{
+									IPs:                []gwapi.PeeringEntryIP{},
+									DefaultDestination: cCtx.Bool("vpc-2-default"),
+								},
+							}
+							// TODO: taken from fabricator, should place this somewhere else (gateway?) and deduplicate
+							parsePFRules := func(rules []string) ([]gwapi.PeeringNATPortForwardEntry, error) {
+								out := make([]gwapi.PeeringNATPortForwardEntry, 0, len(rules))
+								for idx, rule := range rules {
+									rule = strings.TrimSpace(rule)
+									if rule == "" {
+										return nil, fmt.Errorf("invalid port-forward rule at index %d: should not be empty", idx) //nolint:goerr113
+									}
+
+									kv := strings.Split(rule, "=")
+									if len(kv) != 2 {
+										return nil, fmt.Errorf("invalid port-forward rule %q at index %d: must be in format [proto/]port=as", rule, idx) //nolint:goerr113
+									}
+									left := strings.TrimSpace(kv[0])
+									right := strings.TrimSpace(kv[1])
+									if left == "" || right == "" {
+										return nil, fmt.Errorf("invalid port-forward rule %q at index %d: port and as must be non-empty", rule, idx) //nolint:goerr113
+									}
+
+									entry := gwapi.PeeringNATPortForwardEntry{
+										Protocol: gwapi.PeeringNATProtocolAny,
+									}
+
+									// [proto/]port
+									if strings.Contains(left, "/") {
+										portParts := strings.Split(left, "/")
+										if len(portParts) != 2 {
+											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: left side must be in format proto/port", rule, idx) //nolint:goerr113
+										}
+										proto := strings.TrimSpace(portParts[0])
+										port := strings.TrimSpace(portParts[1])
+										if proto == "" || port == "" {
+											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: proto and port must be non-empty", rule, idx) //nolint:goerr113
+										}
+										switch proto {
+										case string(gwapi.PeeringNATProtocolTCP):
+											entry.Protocol = gwapi.PeeringNATProtocolTCP
+										case string(gwapi.PeeringNATProtocolUDP):
+											entry.Protocol = gwapi.PeeringNATProtocolUDP
+										case string(gwapi.PeeringNATProtocolAny):
+											entry.Protocol = gwapi.PeeringNATProtocolAny
+										default:
+											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: unknown protocol %q (supported: tcp, udp)", rule, idx, proto) //nolint:goerr113
+										}
+										entry.Port = port
+									} else {
+										entry.Port = left
+									}
+
+									entry.As = right
+
+									// only the most basic of validation, let's not duplicate code; alternatively, let's make the validation function in gwapi public
+									if strings.Contains(entry.Port, ",") || strings.TrimSpace(entry.Port) != entry.Port || entry.Port == "" {
+										return nil, fmt.Errorf("invalid port %q in port-forward rule %q at index %d", entry.Port, rule, idx) //nolint:goerr113
+									}
+									if strings.Contains(entry.As, ",") || strings.TrimSpace(entry.As) != entry.As || entry.As == "" {
+										return nil, fmt.Errorf("invalid as %q in port-forward rule %q at index %d", entry.As, rule, idx) //nolint:goerr113
+									}
+
+									out = append(out, entry)
+								}
+
+								return out, nil
+							}
+
+							ips1 := cCtx.StringSlice("vpc-1-ip")
+							if len(ips1) > 0 {
+								for _, cidr := range ips1 {
+									options.VPC1Expose.IPs = append(options.VPC1Expose.IPs, gwapi.PeeringEntryIP{CIDR: cidr})
+								}
+							}
+							subnets1 := cCtx.StringSlice("vpc-1-subnet")
+							if len(subnets1) > 0 {
+								for _, subnet := range subnets1 {
+									options.VPC1Expose.IPs = append(options.VPC1Expose.IPs, gwapi.PeeringEntryIP{VPCSubnet: subnet})
+								}
+							}
+							as1 := cCtx.StringSlice("vpc-1-as")
+							if len(as1) > 0 {
+								options.VPC1Expose.As = []gwapi.PeeringEntryAs{}
+								for _, as := range as1 {
+									options.VPC1Expose.As = append(options.VPC1Expose.As, gwapi.PeeringEntryAs{CIDR: as})
+								}
+							}
+							nat1 := cCtx.String("vpc-1-nat")
+							switch nat1 {
+							case "":
+							case "static":
+								options.VPC1Expose.NAT = &gwapi.PeeringNAT{Static: &gwapi.PeeringNATStatic{}}
+							case "masquerade":
+								options.VPC1Expose.NAT = &gwapi.PeeringNAT{Masquerade: &gwapi.PeeringNATMasquerade{}}
+							case "port-forward", "portforward":
+								options.VPC1Expose.NAT = &gwapi.PeeringNAT{PortForward: &gwapi.PeeringNATPortForward{}}
+							default:
+								return cli.Exit(fmt.Sprintf("invalid nat type for vpc-1: %s, expected one of static, masquerade, port-forward", nat1), 1)
+							}
+							pf1 := cCtx.StringSlice("vpc-1-pf")
+							if len(pf1) > 0 {
+								if options.VPC1Expose.NAT == nil || options.VPC1Expose.NAT.PortForward == nil {
+									return cli.Exit("port-forward rules specified for vpc-1 but nat type is not port-forward", 1)
+								}
+								pfRules, err := parsePFRules(pf1)
+								if err != nil {
+									return cli.Exit(fmt.Sprintf("invalid port-forward rule for vpc-1: %v", err), 1)
+								}
+								options.VPC1Expose.NAT.PortForward.Ports = pfRules
+							} else if options.VPC1Expose.NAT != nil && options.VPC1Expose.NAT.PortForward != nil {
+								return cli.Exit("nat type for vpc-1 is port-forward but no port-forward rules specified", 1)
+							}
+							ips2 := cCtx.StringSlice("vpc-2-ip")
+							if len(ips2) > 0 {
+								for _, cidr := range ips2 {
+									options.VPC2Expose.IPs = append(options.VPC2Expose.IPs, gwapi.PeeringEntryIP{CIDR: cidr})
+								}
+							}
+							subnets2 := cCtx.StringSlice("vpc-2-subnet")
+							if len(subnets2) > 0 {
+								for _, subnet := range subnets2 {
+									options.VPC2Expose.IPs = append(options.VPC2Expose.IPs, gwapi.PeeringEntryIP{VPCSubnet: subnet})
+								}
+							}
+							as2 := cCtx.StringSlice("vpc-2-as")
+							if len(as2) > 0 {
+								options.VPC2Expose.As = []gwapi.PeeringEntryAs{}
+								for _, as := range as2 {
+									options.VPC2Expose.As = append(options.VPC2Expose.As, gwapi.PeeringEntryAs{CIDR: as})
+								}
+							}
+							nat2 := cCtx.String("vpc-2-nat")
+							switch nat2 {
+							case "":
+							case "static":
+								options.VPC2Expose.NAT = &gwapi.PeeringNAT{Static: &gwapi.PeeringNATStatic{}}
+							case "masquerade":
+								options.VPC2Expose.NAT = &gwapi.PeeringNAT{Masquerade: &gwapi.PeeringNATMasquerade{}}
+							case "port-forward", "portforward":
+								options.VPC2Expose.NAT = &gwapi.PeeringNAT{PortForward: &gwapi.PeeringNATPortForward{}}
+							default:
+								return cli.Exit(fmt.Sprintf("invalid nat type for vpc-2: %s, expected one of static, masquerade, port-forward", nat2), 1)
+							}
+							pf2 := cCtx.StringSlice("vpc-2-pf")
+							if len(pf2) > 0 {
+								if options.VPC2Expose.NAT == nil || options.VPC2Expose.NAT.PortForward == nil {
+									return cli.Exit("port-forward rules specified for vpc-2 but nat type is not port-forward", 1)
+								}
+								pfRules, err := parsePFRules(pf2)
+								if err != nil {
+									return cli.Exit(fmt.Sprintf("invalid port-forward rule for vpc-2: %v", err), 1)
+								}
+								options.VPC2Expose.NAT.PortForward.Ports = pfRules
+							} else if options.VPC2Expose.NAT != nil && options.VPC2Expose.NAT.PortForward != nil {
+								return cli.Exit("nat type for vpc-2 is port-forward but no port-forward rules specified", 1)
+							}
+
+							return errors.Wrapf(hhfctl.VPCGwPeer(ctx, printYaml, options), "failed to peer vpcs via the gateway")
 						},
 					},
 					{

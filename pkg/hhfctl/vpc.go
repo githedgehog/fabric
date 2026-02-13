@@ -232,6 +232,77 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	return nil
 }
 
+type VPCGwPeerOptions struct {
+	Name       string
+	VPC1       string
+	VPC1Expose gwapi.PeeringEntryExpose
+	VPC2       string
+	VPC2Expose gwapi.PeeringEntryExpose
+}
+
+func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) error {
+	name := options.Name
+	if name == "" {
+		name = fmt.Sprintf("%s--%s", options.VPC1, options.VPC2)
+	}
+
+	peering := &gwapi.Peering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Name:      name,
+			Namespace: kmetav1.NamespaceDefault,
+		},
+		Spec: gwapi.PeeringSpec{
+			Peering: map[string]*gwapi.PeeringEntry{
+				options.VPC1: {
+					Expose: []gwapi.PeeringEntryExpose{
+						options.VPC1Expose,
+					},
+				},
+				options.VPC2: {
+					Expose: []gwapi.PeeringEntryExpose{
+						options.VPC2Expose,
+					},
+				},
+			},
+		},
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", gwapi.SchemeBuilder)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	peering.Default()
+	err = peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+
+		return errors.Errorf("validation failed")
+	}
+
+	err = kube.Create(ctx, peering)
+	if err != nil {
+		return errors.Wrap(err, "cannot create gateway peering")
+	}
+
+	slog.Info("Gateway Peering created", "name", peering.Name)
+
+	if printYaml {
+		peering.ObjectMeta.ManagedFields = nil
+		peering.ObjectMeta.Generation = 0
+		peering.ObjectMeta.ResourceVersion = ""
+
+		out, err := kyaml.Marshal(peering)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal gateway peering")
+		}
+
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
 // Defined as a separate function so it can be used in release tests
 func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 	delAllOpts := kclient.DeleteAllOfOptions{
