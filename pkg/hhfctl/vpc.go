@@ -27,7 +27,6 @@ import (
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -225,119 +224,6 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		out, err := kyaml.Marshal(peering)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc peering")
-		}
-
-		fmt.Println(string(out))
-	}
-
-	return nil
-}
-
-type VPCSNATOptions struct {
-	VPC    string
-	Enable bool
-}
-
-func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error {
-	if options.VPC == "" {
-		return errors.Errorf("vpc is required")
-	}
-
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
-	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
-	}
-
-	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
-	}
-
-	// TODO fix
-	// vpc.Spec.SNAT = options.Enable
-
-	err = kube.Update(ctx, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
-	}
-
-	// TODO fix
-	// slog.Info("VPC SNAT set", "vpc", vpc.Name, "snat", vpc.Spec.SNAT)
-
-	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
-		vpc.Status = vpcapi.VPCStatus{}
-
-		out, err := kyaml.Marshal(vpc)
-		if err != nil {
-			return errors.Wrap(err, "cannot marshal vpc")
-		}
-
-		fmt.Println(string(out))
-	}
-
-	return nil
-}
-
-type VPCDNATOptions struct {
-	VPC      string
-	Requests []string
-}
-
-func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions) error {
-	if options.VPC == "" {
-		return errors.Errorf("vpc is required")
-	}
-	if len(options.Requests) == 0 {
-		return errors.Errorf("at least one request is required")
-	}
-
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
-	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
-	}
-
-	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
-	}
-
-	// TODO fix
-	// if vpc.Spec.DNATRequests == nil {
-	// 	vpc.Spec.DNATRequests = map[string]string{}
-	// }
-
-	// for _, req := range options.Requests {
-	// 	parts := strings.Split(req, "=")
-	// 	if len(parts) == 1 {
-	// 		vpc.Spec.DNATRequests[parts[0]] = ""
-	// 	} else if len(parts) == 2 {
-	// 		vpc.Spec.DNATRequests[parts[0]] = parts[1]
-	// 	} else {
-	// 		return errors.Errorf("request should be privateIP=externalIP or privateIP, found: %s", req)
-	// 	}
-	// }
-
-	err = kube.Update(ctx, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
-	}
-
-	slog.Info("VPC DNAT requests", "vpc", vpc.Name, "requests", strings.Join(options.Requests, ", "))
-
-	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
-		vpc.Status = vpcapi.VPCStatus{}
-
-		out, err := kyaml.Marshal(vpc)
-		if err != nil {
-			return errors.Wrap(err, "cannot marshal vpc")
 		}
 
 		fmt.Println(string(out))
