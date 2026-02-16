@@ -149,19 +149,8 @@ func (p *Peering) Default() {
 	for _, peering := range p.Spec.Peering {
 		for idx := range peering.Expose {
 			expose := &peering.Expose[idx]
-
-			if len(expose.As) != 0 {
-				if expose.NAT == nil {
-					expose.NAT = &PeeringNAT{}
-				}
-			}
-
 			nat := expose.NAT
 			if nat != nil {
-				if nat.Static == nil && nat.Masquerade == nil && nat.PortForward == nil {
-					nat.Static = &PeeringNATStatic{}
-				}
-
 				if nat.Masquerade != nil {
 					if nat.Masquerade.IdleTimeout.Duration == 0 {
 						nat.Masquerade.IdleTimeout.Duration = DefaultMasqueradeIdleTimeout
