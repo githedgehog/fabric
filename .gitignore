@@ -34,3 +34,9 @@ config/helm/*.tgz
 *.swp
 *.swo
 *~
+codebook.toml
+
+# last agent config when running agent remotly from repo
+last-actual.yaml
+last-agent.yaml
+last-desired.yaml
