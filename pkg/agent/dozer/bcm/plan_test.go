@@ -176,6 +176,13 @@ func TestPlan(t *testing.T) {
 		{name: "reg-leaf-3"},  // eslag, external connected to it, vpc peering and ext peering
 		{name: "reg-leaf-4"},  // eslag, no external connected to it, vpc peering and no ext peering
 		{name: "reg-spine-1"}, // spine
+		// group: l3vni
+		// vs vlab with l3vni vpcs, 2 spines, 2 standalone leaves with multihomed servers, 2 hostbgp vpcs (1 and 2) and one regular vpc
+		// one static proxied external and one static non-proxied external attached to leaf-01 only
+		// peers: 1+3 2~ext-snp-02 3~ext-sp-01:gw:vpc-nat=masquerade:vpc-as=100.1.10.3/32
+		{name: "l3vni-leaf-01"},  // standalone, static externals connected to it
+		{name: "l3vni-leaf-02"},  // standalone, no externals
+		{name: "l3vni-spine-01"}, // spine
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agData, err := os.ReadFile(filepath.Join(testdataDir, tt.name+".in.agent.yaml"))
