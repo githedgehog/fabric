@@ -1,0 +1,279 @@
+acls:
+  no-ipns-peering--default:
+    description: Prevent VPCs to cross-talk via the external
+    entries:
+      "1":
+        action: DROP
+        destinationAddress: 10.0.0.0/16
+        sourceAddress: 10.0.0.0/16
+      "65535":
+        action: ACCEPT
+bfdProfiles:
+  fabric:
+    desiredMinimumTxInterval: 300
+    detectionMultiplier: 3
+    passiveMode: true
+    requiredMinimumReceive: 300
+communityLists:
+  all-externals: {}
+  no-community:
+    members:
+    - REGEX:^$
+ecmpRoCEQPN: false
+hostname: spine-01
+interfaces:
+  Ethernet0:
+    autoNegotiate: false
+    description: Fabric leaf-01/E1/5 spine-01--fabric--leaf-01
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.0:
+            prefixLen: 31
+  Ethernet1:
+    autoNegotiate: false
+    description: Fabric leaf-01/E1/6 spine-01--fabric--leaf-01
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.2:
+            prefixLen: 31
+  Ethernet2:
+    autoNegotiate: false
+    description: Fabric leaf-02/E1/4 spine-01--fabric--leaf-02
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.4:
+            prefixLen: 31
+  Ethernet3:
+    autoNegotiate: false
+    description: Fabric leaf-02/E1/5 spine-01--fabric--leaf-02
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.6:
+            prefixLen: 31
+  Ethernet4:
+    autoNegotiate: false
+    description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.8:
+            prefixLen: 31
+  Loopback1:
+    description: Protocol loopback
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.8.0:
+            prefixLen: 32
+  Management0:
+    autoNegotiate: true
+    description: Management link
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.0.7:
+            prefixLen: 21
+lldp:
+  enabled: true
+  helloTimer: 5
+  systemDescription: Hedgehog Fabric
+  systemName: spine-01
+ntp:
+  sourceInterface:
+  - Management0
+ntpServers:
+  172.30.0.1:
+    prefer: true
+prefixLists:
+  all-vtep-prefixes:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 172.30.12.0/22
+  any-prefix:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 0.0.0.0/0
+  ipns-subnets--default:
+    prefixes:
+      "1":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.0.0/16
+  protocol-loopback-prefix:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 172.30.8.0/32
+  static-ext-subnets: {}
+  vpc-loopback-prefix:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 172.30.96.0/19
+routeMaps:
+  filter-attached-hosts:
+    statements:
+      "10":
+        conditions:
+          attachedHost: true
+        result: reject
+      "100":
+        conditions: {}
+        result: accept
+  ipns-subnets--default:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ipns-subnets--default
+        result: accept
+  l2vpn-neighbors:
+    statements:
+      "65525":
+        conditions:
+          matchCommunityLists: all-externals
+        result: accept
+        setLocalPreference: 500
+      "65535":
+        conditions: {}
+        result: accept
+  loopback-all-vteps:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: all-vtep-prefixes
+        result: accept
+      "100":
+        conditions:
+          matchPrefixLists: static-ext-subnets
+        result: accept
+  protocol-loopback-only:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: protocol-loopback-prefix
+        result: accept
+users:
+  admin:
+    authorizedKeys:
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+    password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+    role: admin
+  op:
+    authorizedKeys:
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+    password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+    role: operator
+vrfs:
+  default:
+    anycastMAC: "00:00:00:11:11:11"
+    bgp:
+      as: 65100
+      ipv4Unicast:
+        enable: true
+        maxPaths: 16
+        networks:
+          172.30.8.0/32: {}
+      l2vpnEvpn:
+        advertiseAllVnis: true
+        enable: true
+      neighbors:
+        172.30.8.2:
+          description: Fabric leaf-01 loopback (spine-link)
+          disableConnectedCheck: true
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - loopback-all-vteps
+          l2vpnEvpn: true
+          l2vpnEvpnAllowOwnAS: true
+          l2vpnEvpnImportPolicies:
+          - l2vpn-neighbors
+          remoteAS: 65101
+          updateSource: 172.30.8.0
+        172.30.8.3:
+          description: Fabric leaf-02 loopback (spine-link)
+          disableConnectedCheck: true
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - loopback-all-vteps
+          l2vpnEvpn: true
+          l2vpnEvpnAllowOwnAS: true
+          l2vpnEvpnImportPolicies:
+          - l2vpn-neighbors
+          remoteAS: 65102
+          updateSource: 172.30.8.0
+        172.30.128.1:
+          bfdProfile: fabric
+          description: Fabric leaf-01/E1/5 spine-01--fabric--leaf-01
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65101
+        172.30.128.3:
+          bfdProfile: fabric
+          description: Fabric leaf-01/E1/6 spine-01--fabric--leaf-01
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65101
+        172.30.128.5:
+          bfdProfile: fabric
+          description: Fabric leaf-02/E1/4 spine-01--fabric--leaf-02
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65102
+        172.30.128.7:
+          bfdProfile: fabric
+          description: Fabric leaf-02/E1/5 spine-01--fabric--leaf-02
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65102
+        172.30.128.9:
+          bfdProfile: fabric
+          description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+          enabled: true
+          ipv4Unicast: true
+          l2vpnEvpn: true
+          l2vpnEvpnAllowOwnAS: true
+          l2vpnEvpnImportPolicies:
+          - l2vpn-neighbors
+          remoteAS: 65534
+      networkImportCheck: true
+      routerID: 172.30.8.0
+    enabled: true
+    evpnMH: {}
+    tableConnections:
+      connected: {}
+      static: {}
+ztp: false
