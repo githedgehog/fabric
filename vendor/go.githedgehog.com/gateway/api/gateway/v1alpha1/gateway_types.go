@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/netip"
 	"regexp"
@@ -141,6 +140,10 @@ func init() {
 }
 
 func (gw *Gateway) Default() {
+	if gw.Namespace == "" {
+		gw.Namespace = kmetav1.NamespaceDefault
+	}
+
 	if gw.Spec.Logs.Default == "" {
 		gw.Spec.Logs.Default = GatewayLogLevelInfo
 	}
@@ -167,6 +170,10 @@ func (gw *Gateway) Default() {
 var linuxIfaceNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,8}[a-zA-Z0-9]$`)
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
+	if gw.Namespace != kmetav1.NamespaceDefault {
+		return fmt.Errorf("gateway namespace must be %s: %w", kmetav1.NamespaceDefault, ErrInvalidGW)
+	}
+
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
 		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
 	}
@@ -387,9 +394,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 		}
 		for _, gwGroup := range gw.Spec.Groups {
 			if !gwGroups[gwGroup.Name] {
-				// TODO enable validation back after it's supplied by the fabricator
-				slog.Warn("Gateway group not found", "gateway", gw.Name, "group", gwGroup.Name)
-				// return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
+				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
 			}
 		}
 	}
