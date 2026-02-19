@@ -27,7 +27,6 @@ import (
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -233,111 +232,69 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 	return nil
 }
 
-type VPCSNATOptions struct {
-	VPC    string
-	Enable bool
+type VPCGwPeerOptions struct {
+	Name       string
+	VPC1       string
+	VPC1Expose gwapi.PeeringEntryExpose
+	VPC2       string
+	VPC2Expose gwapi.PeeringEntryExpose
 }
 
-func VPCSNAT(ctx context.Context, printYaml bool, options *VPCSNATOptions) error {
-	if options.VPC == "" {
-		return errors.Errorf("vpc is required")
+func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) error {
+	name := options.Name
+	if name == "" {
+		name = fmt.Sprintf("%s--%s", options.VPC1, options.VPC2)
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
+	peering := &gwapi.Peering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Name:      name,
+			Namespace: kmetav1.NamespaceDefault,
+		},
+		Spec: gwapi.PeeringSpec{
+			Peering: map[string]*gwapi.PeeringEntry{
+				options.VPC1: {
+					Expose: []gwapi.PeeringEntryExpose{
+						options.VPC1Expose,
+					},
+				},
+				options.VPC2: {
+					Expose: []gwapi.PeeringEntryExpose{
+						options.VPC2Expose,
+					},
+				},
+			},
+		},
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", gwapi.SchemeBuilder)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
 
-	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
+	peering.Default()
+	err = peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
 	if err != nil {
-		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
+		slog.Warn("Validation", "error", err)
+
+		return errors.Errorf("validation failed")
 	}
 
-	// TODO fix
-	// vpc.Spec.SNAT = options.Enable
-
-	err = kube.Update(ctx, vpc)
+	err = kube.Create(ctx, peering)
 	if err != nil {
-		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
+		return errors.Wrap(err, "cannot create gateway peering")
 	}
 
-	// TODO fix
-	// slog.Info("VPC SNAT set", "vpc", vpc.Name, "snat", vpc.Spec.SNAT)
+	slog.Info("Gateway Peering created", "name", peering.Name)
 
 	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
-		vpc.Status = vpcapi.VPCStatus{}
+		peering.ObjectMeta.ManagedFields = nil
+		peering.ObjectMeta.Generation = 0
+		peering.ObjectMeta.ResourceVersion = ""
 
-		out, err := kyaml.Marshal(vpc)
+		out, err := kyaml.Marshal(peering)
 		if err != nil {
-			return errors.Wrap(err, "cannot marshal vpc")
-		}
-
-		fmt.Println(string(out))
-	}
-
-	return nil
-}
-
-type VPCDNATOptions struct {
-	VPC      string
-	Requests []string
-}
-
-func VPCDNATRequest(ctx context.Context, printYaml bool, options *VPCDNATOptions) error {
-	if options.VPC == "" {
-		return errors.Errorf("vpc is required")
-	}
-	if len(options.Requests) == 0 {
-		return errors.Errorf("at least one request is required")
-	}
-
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
-	if err != nil {
-		return errors.Wrap(err, "cannot create kube client")
-	}
-
-	vpc := &vpcapi.VPC{}
-	err = kube.Get(ctx, ktypes.NamespacedName{Name: options.VPC, Namespace: kmetav1.NamespaceDefault}, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot get vpc %s", options.VPC)
-	}
-
-	// TODO fix
-	// if vpc.Spec.DNATRequests == nil {
-	// 	vpc.Spec.DNATRequests = map[string]string{}
-	// }
-
-	// for _, req := range options.Requests {
-	// 	parts := strings.Split(req, "=")
-	// 	if len(parts) == 1 {
-	// 		vpc.Spec.DNATRequests[parts[0]] = ""
-	// 	} else if len(parts) == 2 {
-	// 		vpc.Spec.DNATRequests[parts[0]] = parts[1]
-	// 	} else {
-	// 		return errors.Errorf("request should be privateIP=externalIP or privateIP, found: %s", req)
-	// 	}
-	// }
-
-	err = kube.Update(ctx, vpc)
-	if err != nil {
-		return errors.Wrapf(err, "cannot update vpc %s", options.VPC)
-	}
-
-	slog.Info("VPC DNAT requests", "vpc", vpc.Name, "requests", strings.Join(options.Requests, ", "))
-
-	if printYaml {
-		vpc.ObjectMeta.ManagedFields = nil
-		vpc.ObjectMeta.Generation = 0
-		vpc.ObjectMeta.ResourceVersion = ""
-		vpc.Status = vpcapi.VPCStatus{}
-
-		out, err := kyaml.Marshal(vpc)
-		if err != nil {
-			return errors.Wrap(err, "cannot marshal vpc")
+			return errors.Wrap(err, "cannot marshal gateway peering")
 		}
 
 		fmt.Println(string(out))
