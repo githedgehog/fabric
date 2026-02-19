@@ -6,7 +6,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"maps"
 	"net/netip"
 	"slices"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -277,13 +277,11 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 	if kube != nil {
 		gwGroup := &GatewayGroup{}
 		if err := kube.Get(ctx, kclient.ObjectKey{Name: p.Spec.GatewayGroup, Namespace: p.Namespace}, gwGroup); err != nil {
-			// TODO enable validation back after it's supplied by the fabricator
-			slog.Warn("Failed to get Gateway group", "name", p.Spec.GatewayGroup, "error", err.Error())
-			// if kapierrors.IsNotFound(err) {
-			// 	return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
-			// }
+			if kapierrors.IsNotFound(err) {
+				return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
+			}
 
-			// return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
+			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
 		// check for overlaps of exposed IPs towards either of the VPCs in the peering we are validating
 		peeringVPCs := maps.Keys(p.Spec.Peering)
