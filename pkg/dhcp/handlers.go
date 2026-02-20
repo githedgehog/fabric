@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	onieClassIdentifier   = "onie_vendor:"
+	onieClassIDPrefix     = "onie_vendor:"
+	cumulusClassID        = "cumulus-linux  x86_64"
 	cumulusRemoteIDPrefix = "cumulus:"
 	vrfPrefix             = "vrfv"
 )
@@ -119,11 +120,15 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 				subnet, ok = s.subnets[subnetKey(vrf, circuitID)]
 			}
 
-			// only use dhcp for onie in the management subnet
-			onieOnly := ok && (subnet.Spec.ONIEOnly || subnet.Name == dhcpapi.ManagementSubnet)
-			if onieOnly && !strings.HasPrefix(req.ClassIdentifier(), onieClassIdentifier) {
-				subnet = nil
-				ok = false
+			// only use dhcp for onie and cumulus in the management subnet
+			mgmtSkip := false
+			if ok && subnet.Name == dhcpapi.ManagementSubnet {
+				classID := req.ClassIdentifier()
+				if !strings.HasPrefix(classID, onieClassIDPrefix) && classID != cumulusClassID {
+					mgmtSkip = true
+					subnet = nil
+					ok = false
+				}
 			}
 			if ok {
 				subnet = subnet.DeepCopy()
@@ -136,10 +141,10 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 				if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID, remoteID); err != nil {
 					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
 				}
-			} else if !onieOnly {
+			} else if !mgmtSkip {
 				slog.Info("No subnet found", reqSummary(req, vrf, circuitID, remoteID)...)
 			}
-			// We aren't printing anything if !ok && onieOnly here because we don't want to spam the logs with unnecessary information
+			// We aren't printing anything if !ok && mgmtSkip here because we don't want to spam the logs with unnecessary information
 
 			return resp, false
 		}, nil

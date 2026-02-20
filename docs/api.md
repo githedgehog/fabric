@@ -758,6 +758,7 @@ _Appears in:_
 | `advertisedRoutes` _[DHCPRoute](#dhcproute) array_ | AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP |  |  |
 | `static` _object (keys:string, values:[DHCPSubnetStatic](#dhcpsubnetstatic))_ | Static is a map of static IP assignments for MAC addresses |  |  |
 | `onieOnly` _boolean_ | ONIEOnly (optional) is a boolean indicating whether this subnet is for ONIE only (check class identifier) |  |  |
+| `ztpBaseURL` _string_ | ZTPBaseURL (optional) is the base URL for Hedgehog ZTP (onie, cumulus ztp, etc) |  |  |
 
 
 #### DHCPSubnetStatic
