@@ -14,6 +14,8 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
+	"go.githedgehog.com/fabric/pkg/boot/server"
 	"go.githedgehog.com/fabric/pkg/util/netlinkutil"
 )
 
@@ -83,11 +85,20 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet 
 		})
 	}
 
-	if subnet.Spec.DefaultURL != "" {
+	classID := req.ClassIdentifier()
+	switch {
+	case strings.HasPrefix(classID, onieClassIDPrefix):
 		resp.Options.Update(dhcpv4.Option{
 			Code: dhcpv4.OptionURL,
 			Value: dhcpv4.OptionGeneric{
-				Data: []byte(subnet.Spec.DefaultURL),
+				Data: []byte(subnet.Spec.ZTPBaseURL + nosinstall.OnieURLSuffix),
+			},
+		})
+	case classID == cumulusClassID:
+		resp.Options.Update(dhcpv4.Option{
+			Code: dhcpv4.GenericOptionCode(239),
+			Value: dhcpv4.OptionGeneric{
+				Data: []byte(subnet.Spec.ZTPBaseURL + server.CumulusZTPURLSuffix),
 			},
 		})
 	}

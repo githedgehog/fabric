@@ -61,7 +61,7 @@ type DHCPSubnetSpec struct {
 	// +kubebuilder:validation:Maximum: 9036
 	InterfaceMTU uint16 `json:"interfaceMTU"`
 	// DefaultURL (optional) is the option 114 "default-url" to be sent to the clients
-	DefaultURL string `json:"defaultURL"`
+	DeprecatedDefaultURL string `json:"defaultURL"`
 	// L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients
 	L3Mode bool `json:"l3Mode,omitempty"`
 	// Disable default route advertisement in DHCP
@@ -71,7 +71,9 @@ type DHCPSubnetSpec struct {
 	// Static is a map of static IP assignments for MAC addresses
 	Static map[string]DHCPSubnetStatic `json:"static,omitempty"`
 	// ONIEOnly (optional) is a boolean indicating whether this subnet is for ONIE only (check class identifier)
-	ONIEOnly bool `json:"onieOnly,omitempty"`
+	DeprecatedONIEOnly bool `json:"onieOnly,omitempty"`
+	// ZTPBaseURL (optional) is the base URL for Hedgehog ZTP (onie, cumulus ztp, etc)
+	ZTPBaseURL string `json:"ztpBaseURL,omitempty"`
 }
 
 // DHCPSubnetStatic represents static IP assignment

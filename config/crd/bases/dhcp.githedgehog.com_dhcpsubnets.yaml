@@ -177,6 +177,10 @@ spec:
                   packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as
                   it's named on switch
                 type: string
+              ztpBaseURL:
+                description: ZTPBaseURL (optional) is the base URL for Hedgehog ZTP
+                  (onie, cumulus ztp, etc)
+                type: string
             required:
             - cidrBlock
             - circuitID
