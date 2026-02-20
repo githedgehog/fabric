@@ -32,6 +32,8 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet 
 	leaseTime := time.Duration(subnet.Spec.LeaseTimeSeconds) * time.Second
 	if subnet.Spec.L3Mode && req.ClientIPAddr.IsUnspecified() {
 		leaseTime = 10 * time.Second
+	} else if leaseTime == 0 {
+		leaseTime = 600 * time.Second
 	}
 
 	resp.YourIPAddr = ipnet.IP
