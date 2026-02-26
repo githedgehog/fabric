@@ -372,6 +372,38 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				return errors.New("k8s watch channel closed")
 			}
 
+			// skip queued events
+			startSkip := time.Now()
+			skipped := 0
+		skip:
+			for {
+				if time.Since(startSkip) > 5*time.Second {
+					slog.Debug("Skipping events for too long, processing")
+
+					break skip
+				}
+
+				select {
+				case <-ctx.Done():
+					slog.Info("Context done while skipping events, exiting")
+
+					return nil
+				case newEvent, ok := <-watcher.ResultChan():
+					if !ok {
+						slog.Warn("K8s watch channel closed while skipping events, restarting agent")
+
+						return errors.New("k8s watch channel closed while skipping events")
+					}
+					event = newEvent
+					skipped++
+				case <-time.After(1 * time.Second):
+					break skip
+				}
+			}
+			if skipped > 0 {
+				slog.Debug("Skipped queued events", "count", skipped)
+			}
+
 			// TODO why are we getting nil events?
 			if event.Object == nil {
 				slog.Warn("Received nil object from K8s, restarting agent")
