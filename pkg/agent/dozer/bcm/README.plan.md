@@ -208,6 +208,26 @@ On top of that, there is some additional configuration generated in response to
 fields of the switch object itself, such as breakouts, port autonegotiation etc.
 These are mostly self-explanatory, so I won't go over them in detail.
 
+## IPv4 Namespaces
+The following changes to the configuration are applied when creating an IPv4 namespace:
+
+1. We create a prefix list matching the ranges in the namespace, and a route-map to
+permit those, which will be used in the context of [BGP-speaking externals](#bgp-speaking-externals):
+    ```
+    ip prefix-list ipns-subnets--default seq 1 permit 10.0.0.0/16 le 32
+    route-map ipns-subnets--default permit 10
+     match ip address prefix-list ipns-subnets--default
+    !
+    ```
+1. We create an access list to prevent traffic local to the namespace from being
+routed to an external device in the presence of external peerings:
+    ```
+    ip access-list no-ipns-peering--default
+     remark "Prevent VPCs to cross-talk via the external"
+     seq 1 deny ip 10.0.0.0/16 10.0.0.0/16
+     seq 65535 permit ip any any
+    ```
+
 ## Connections
 
 ### Fabric Connections (i.e. spine-leaf)
@@ -963,54 +983,233 @@ route-map l2vpn-neighbors deny 102
 !
 ```
 
-The reason for this are not clear to me, and it could be a residual from old approaches using
+The reason for this is not clear to me, and it could be a residual from old approaches using
 default origination. **TODO: confirm whether this is needed and what it does in practice.**
 
 ## Externals
+Even though there's a single `External` object and a single `ExternalAttachment` object, in practice
+we support two types of externals. BGP speaking externals will have non-nil inbound and outbound
+communities, while Static externals will have non-nil static configuration.
 
-### BGP speaking Externals
+Creating an `External` object does not affect the switches in any major way; it is only when they are
+attached to a particular leaf via an `ExternalAttachment` that that leaf configuration is impacted.
+For this reason, even though some of the relevant config comes from information that lives in the
+`External`, in terms of config changes we'll only refer to the creation or deletion of an attachment.
 
-#### The External object
+### Common external config
+The following config is applied for all externals, regardless of their type:
+1. We create a VRF with the prefix `VrfE` followed by the name of the external; we also create an
+   IRB VLAN associated with the VRF, and we configure a VNI for both of these under the vxlan interface.
+   Note that we also apply the `no-ipns-peering--<IPV4NAMESPACE>` ACL on the IRB VLAN, to prevent traffic
+   local to the fabric from exiting via the external (see the [IPv4 Namespaces](#ipv4-namespaces) section).
+    ```
+    ip vrf VrfEext-name
+    !
+    interface Vlan3001
+     description "External ext-name IRB"
+     ip vrf forwarding VrfEext-name
+     ip access-group no-ipns-peering--default in
+    !
+    interface vxlan vtepfabric
+     map vni 300 vlan 3001
+     map vni 300 vrf VrfEext-name
+    !
+    ```
+1. We create a sub-interface to connect to the external device, place it in the VRF
+of the external, and apply an access-list to prevent traffic destined to the fabric
+from going out via the external attachment:
+    ```
+    interface Ethernet0.10
+     encapsulation dot1q vlan-id 10
+     no shutdown
+     ip vrf forwarding VrfEext-name
+     ip access-group ipns-egress--default out
+    !
+    ip access-list ipns-egress--default
+     remark ipns-egress--default
+     seq 10 deny ip any 10.0.0.0/16
+     seq 65535 permit ip any any
+    !
+    ```
+1. We configure a BGP instance for the external VRF. This is done for all externals,
+not just BGP-speaking ones, because it's part of how we handle external VRFs "as VPCs"
+and peer them via the gateway as needed. 
+    ```
+    router bgp 65101 vrf VrfEext-name
+     router-id 172.30.8.1
+     log-neighbor-changes
+     timers 60 180
+     !
+     address-family ipv4 unicast
+      maximum-paths 16
+      maximum-paths ibgp 1
+      import vrf route-map ipns-subnets--default
+     !
+     address-family l2vpn evpn
+      advertise ipv4 unicast
+      dup-addr-detection
+     !
+    !
+    ```
 
-```
-bgp community-list standard all-externals permit 65102:5001
-bgp community-list standard ext-inbound--default permit 65102:5001
-bgp community-list standard ipns-ext-communities--default permit 65102:5001
-```
+### BGP-speaking externals
 
-```
-router bgp 65103 vrf VrfEdefault
- router-id 172.30.8.2
- log-neighbor-changes
- timers 60 180
- !
- address-family ipv4 unicast
-  maximum-paths 64
-  maximum-paths ibgp 1
-  import vrf route-map ipns-subnets--default
- !
- address-family l2vpn evpn
-  advertise ipv4 unicast route-map ext-inbound--default
-  dup-addr-detection
- !
- neighbor 100.150.0.6
-  description "External attach ds5000-01--default"
-  remote-as 64102
+When attaching a BGP external to a leaf, in addition to the above, the following config is applied:
+1. On the sub-interface connected to the external we configure the IP address specified
+in the external attachment:
+    ```
+    interface Ethernet0.10
+     ip address 100.1.10.1/24
+     [...]
+    !
+    ```
+1. We add the inbound community of the BGP external to two community lists,
+`ext-inbound--<EXT-NAME>` and `ipns-ext-communities--<IPV4NAMESPACE>`:
+    ```
+    bgp community-list standard ext-inbound--ext-name permit 65102:1000
+    bgp community-list standard ipns-ext-communities--default permit 65102:1000
+    ```
+1. We create several route-maps. In the inbound route-map, used in the in direction with the external:
+  - we deny routes that match the IPv4 namespace the external belongs to
+  - we allow routes that match the inbound community above, and set a local preference of 500 for these
+  - we deny everything else
+In the outbound route-map, used in the out direction with the external:
+  - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community
+  - we deny everything else
+In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes leaked in the external VRF:
+  - we permit routes that match the corresponding community list mentioned above
+  - we deny everything else
+  ```
+  route-map ext-inbound--ext-name deny 5
+   match ip address prefix-list ipns-subnets--default
   !
-  address-family ipv4 unicast
-   activate
-   route-map ext-inbound--default in
-   route-map ext-outbound--default out
+  route-map ext-inbound--ext-name permit 10
+   match community ext-inbound--ext-name
+   set local-preference 500
   !
-  address-family l2vpn evpn
-```
+  route-map ext-inbound--ext-name deny 100
+  !
+  route-map ext-outbound--ext-name permit 10
+   match ip address prefix-list ipns-subnets--default
+   set community 64102:1000
+  !
+  route-map ext-outbound--ext-name deny 100
+  !
+  route-map ipns-ext-communities--default permit 10
+   match community ipns-ext-communities--default
+  !
+  route-map ipns-ext-communities--default deny 100
+  !
+  ```
+1. In the BGP instance for the external VRF, we peer with the external device
+using the IPv4 unicast AF. The route-maps described above are used to filter what is
+advertised and accepted.
+    ```
+    router bgp 65101 vrf VrfEext-name
+    [...]
+     address-family l2vpn evpn
+      advertise ipv4 unicast route-map ext-inbound--ext-name
+      dup-addr-detection
+     !
+     neighbor 100.1.10.6
+      description "External attach leaf-01--ext-name"
+      remote-as 64102
+      !
+      address-family ipv4 unicast
+       activate
+       route-map ext-inbound--ext-name in
+       route-map ext-outbound--ext-name out
+      !
+      address-family l2vpn evpn
+     !
+    !
+    ```
 
-#### External Attachments
+### Static externals
+For static externals, the following configuration is added on top of the common one:
 
-#### External Peerings
+1. For non-proxied static externals, we configure the IP address specified in the
+attachment on the sub-interface connecting to the external device:
+    ```
+    interface Ethernet0.10
+     ip address 100.1.10.2/24
+     [...]
+    !
+    ```
+For proxied externals, a /31 address is going to be allocated from the reserved range
+configured in Fabricator, and proxy-arp will be enabled; the address from the range is
+irrelevant but needs to be there for proxy-arp to be configurable. Proxy-arp is used so
+that the border leaf will answer ARP requests for the IP which is used in the gateway
+to masquerade the private VPCs' IPs.
+    ```
+    interface Ethernet0.10
+     ip address 172.30.16.0/31
+     ip proxy-arp enable remote-only
+     [...]
+    !
+    ```
+1. Static routes are added to the VRF of the external:
+  - a direct route to reach the /32 address of the external device (**FIXME: not needed for the non-proxy version**)
+  - one route per prefix reachable via the external, as defined by the `Prefixes` list in the external itself
+    ```
+    ip route vrf VrfEext-name 0.0.0.0/0 100.1.10.1 interface Ethernet0.10
+    ip route vrf VrfEext-name 100.1.10.1/32 interface Ethernet0.10
+    ```
+1. In the BGP instance of the external VRF, static routes are redistributed,
+so that peers of the static external can learn how to reach the prefixes that
+are "advertised" by it:
+    ```
+    router bgp 65101 vrf VrfEext-name
+    [...]
+     address-family ipv4 unicast
+      redistribute static
+     !
+    !
+    ```
 
-### L2 Externals
+### External peerings
+The configuration applied on an external peering is roughly the same
+regardless of the external type, with one minor caveat I will point out.
 
-#### The External object
-
-#### External Attachments
+1. We create a prefix list `import-vrf--<VPC-NAME>--<EXT-NAME>` with all
+the prefixes we allow for that external:
+    ```
+    ip prefix-list import-vrf--vpc-01--ext-name seq 102 permit 0.0.0.0/0 le 32
+    ```
+1. We create another prefix list `vpc-ext-prefixes--<VPC-NAME>` with the same thing;
+this appears to be used in the route-map to allow redistribution of static routes from
+a VPC VRF. **TODO: why a separate prefix-list?**
+    ```
+    ip prefix-list vpc-ext-prefixes--vpc-01 seq 102 permit 0.0.0.0/0 le 32
+    ```
+1. We add entries to the route-map filtering routes leaked into the VPC VRF;
+one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,
+and another to set a high local preference of 500 for routes imported from the external.
+Here is also the one difference between external types: for BGP externals, this second rule
+will also match on the inbound community of that external.
+    ```
+    route-map import-vrf--vpc-01 deny 5010
+     match ip address prefix-list ipns-subnets--default
+     match source-vrf VrfEext-name
+    !
+    route-map import-vrf--vpc-01 permit 50010
+     match ip address prefix-list import-vrf--vpc-01--ext-name
+     match community ext-inbound--ext-name
+     set local-preference 500
+    !
+    ```
+1. We enable route leaking between the VRFs of the VPC and the external:
+    ```
+    router bgp 65101 vrf VrfEext-name
+     address-family ipv4 unicast
+      import vrf VrfVvpc-01
+      [...]
+     !
+    !
+    router bgp 65101 vrf VrfVvpc-01
+     address-family ipv4 unicast
+      import vrf VrfEext-name
+      [...]
+     !
+    !
+    ```
