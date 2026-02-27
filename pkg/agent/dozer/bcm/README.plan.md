@@ -707,7 +707,7 @@ to a connection which belongs to it (i.e. where one of the two endpoints is a po
     ```
     ip vrf VrfVvpc-01
     ```
-1. We create a VLAN for each of the subnets of the VPC attached to the leaf:
+1. We create a VLAN for each of the non-host-BGP subnets of the VPC attached to the leaf:
     - the VLAN is placed in the VRF of the VPC
     - an anycast address is configured on the interface, using the address from the subnet gateway
     - if DHCP was enabled in the subnet, we enable DHCP relay on the interface, with link select and VRF select
@@ -855,6 +855,46 @@ in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:
      address-family l2vpn evpn
       advertise ipv4 unicast route-map filter-attached-hosts
       dup-addr-detection
+    !
+    ```
+
+#### Host-BGP subnets
+For subnets with `hostBGP: true`, the configuration above is slightly modified:
+1. We do not create a VLAN for the subnet, nor do we enable it as trunk on the parent interface.
+Instead, we create a sub-interface (if a VLAN was specified) or apply the configuration directly
+in the parent interface (if VLAN=0). In either case, we enslave the interface to the VPC VRF and enable
+IPv6, which we need for the unnumbered BGP sessions. Here's the config for the sub-interface case:
+    ```
+    interface Ethernet2.1001
+     encapsulation dot1q vlan-id 1001
+     no shutdown
+     ip vrf forwarding VrfVvpc-01
+     ipv6 enable
+    !
+    ```
+1. We create a prefix list and a route-map to only allow /32 routes in the VPC subnet when learning
+routes from the host BGP neighbor:
+    ```
+    ip prefix-list vips-only--vpc-01--default seq 10 permit 10.0.1.0/24 ge 32 le 32
+    route-map vips-only--vpc-01--default permit 10
+     match ip address prefix-list vips-only--vpc-01--default
+    !
+    ```
+1. We add the host as an unnumbered BGP neighbor in the VPC VRF instance:
+    ```
+    router bgp 65101 vrf VrfVvpc-01
+     neighbor interface Ethernet2.1001
+      description "HostBGP unnumbered Ethernet2.1001"
+      remote-as external
+      capability extended-nexthop
+      !
+      address-family ipv4 unicast
+       activate
+       route-map vips-only--vpc-01--default in
+       as-override
+      !
+      address-family l2vpn evpn
+     !
     !
     ```
 
