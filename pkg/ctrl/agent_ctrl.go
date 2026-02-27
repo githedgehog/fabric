@@ -23,6 +23,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -73,6 +74,10 @@ type AgentReconciler struct {
 	regCA       string
 	regUsername string
 	regPassword string
+
+	throttleM     sync.Mutex
+	throttleStep  time.Duration
+	throttleUntil map[ktypes.NamespacedName]time.Time
 }
 
 func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
@@ -99,6 +104,9 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		regCA:       ca,
 		regUsername: username,
 		regPassword: password,
+
+		throttleStep:  2 * time.Second,
+		throttleUntil: map[ktypes.NamespacedName]time.Time{},
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
@@ -223,6 +231,22 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Ob
 	return res
 }
 
+func (r *AgentReconciler) throttle(ctx context.Context, req kctrl.Request) *kctrl.Result {
+	r.throttleM.Lock()
+	defer r.throttleM.Unlock()
+
+	if next, ok := r.throttleUntil[req.NamespacedName]; ok {
+		until := time.Until(next)
+		if until > 0 {
+			kctrllog.FromContext(ctx).Info("Throttling")
+
+			return &kctrl.Result{RequeueAfter: until + 100*time.Millisecond}
+		}
+	}
+
+	return nil
+}
+
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/status,verbs=get;get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/finalizers,verbs=update
@@ -274,6 +298,10 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Ob
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+	if res := r.throttle(ctx, req); res != nil {
+		return *res, nil
+	}
+
 	l := kctrllog.FromContext(ctx)
 
 	sw := &wiringapi.Switch{}
@@ -869,7 +897,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, errors.Wrapf(err, "error creating agent")
 	}
 
-	l.Info("agent reconciled")
+	r.throttleM.Lock()
+	r.throttleUntil[req.NamespacedName] = time.Now().Add(r.throttleStep)
+	r.throttleM.Unlock()
+
+	l.Info("Reconciled")
 
 	return kctrl.Result{}, nil
 }
@@ -946,7 +978,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.Obje
 	// we don't yet have service account token for the agent
 	if len(tokenSecret.Data) < 3 {
 		// TODO is it the best we can do? or should we do few in-place retries?
-		l.Info("requeue to wait for service account token")
+		l.Info("Requeue to wait for service account token")
 
 		return &kctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
