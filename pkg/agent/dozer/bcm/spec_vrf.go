@@ -21,7 +21,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openconfig/gnmic/api"
+	"github.com/openconfig/gnmic/pkg/api"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"

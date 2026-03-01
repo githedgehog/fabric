@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openconfig/gnmic/api"
+	"github.com/openconfig/gnmic/pkg/api"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
