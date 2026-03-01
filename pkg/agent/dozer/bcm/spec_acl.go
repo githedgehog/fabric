@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openconfig/gnmic/api"
+	"github.com/openconfig/gnmic/pkg/api"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"

@@ -30,8 +30,8 @@ import (
 	"time"
 
 	"github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/gnmic/api"
-	"github.com/openconfig/gnmic/target"
+	"github.com/openconfig/gnmic/pkg/api"
+	"github.com/openconfig/gnmic/pkg/api/target"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 	"github.com/pkg/errors"
