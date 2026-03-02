@@ -189,6 +189,10 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
 		}
 
+		if vpc.Spec.IPv4Namespace != ext.Spec.IPv4Namespace {
+			return nil, errors.Errorf("vpc's IPv4 namespace %s is different from the external's IPv4 namespace %s", vpc.Spec.IPv4Namespace, ext.Spec.IPv4Namespace)
+		}
+
 		for _, subnet := range peering.Spec.Permit.VPC.Subnets {
 			if _, exists := vpc.Spec.Subnets[subnet]; !exists {
 				return nil, errors.Errorf("vpc %s does not have subnet %s", peering.Spec.Permit.VPC.Name, subnet)
