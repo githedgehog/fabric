@@ -183,6 +183,11 @@ func TestPlan(t *testing.T) {
 		{name: "l3vni-leaf-01"},  // standalone, static externals connected to it
 		{name: "l3vni-leaf-02"},  // standalone, no externals
 		{name: "l3vni-spine-01"}, // spine
+		// group: mesh
+		// vs lab with 2 eslag leaves and 1 orphan connected via mesh, 3 vpcs with 2 servers each
+		{name: "mesh-leaf-01"}, // eslag, gateway connected to it
+		{name: "mesh-leaf-02"}, // same as above
+		{name: "mesh-leaf-03"}, // standalone, bgp externals connected to it
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agData, err := os.ReadFile(filepath.Join(testdataDir, tt.name+".in.agent.yaml"))
