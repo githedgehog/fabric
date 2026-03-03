@@ -1,0 +1,88 @@
+- set:
+    interface:
+      eth0:
+        ipv4:
+          address:
+            {{ $.ManagementIP }}: {}
+        type: eth
+        vrf: mgmt
+    system:
+      aaa:
+        class:
+          nvapply:
+            action: allow
+            command-path:
+              /:
+                permission: all
+          nvshow:
+            action: allow
+            command-path:
+              /:
+                permission: ro
+          sudo:
+            action: allow
+            command-path:
+              /:
+                permission: all
+        role:
+          nvue-admin:
+            class:
+              nvapply: {}
+          nvue-monitor:
+            class:
+              nvshow: {}
+          system-admin:
+            class:
+              nvapply: {}
+              sudo: {}
+        user:
+          {{ range $user := $.Users }}
+            {{ $user.Name }}:
+              hashed-password: {{ $user.HashedPassword }}
+              role: {{ $user.Role }}
+              ssh:
+                authorized-key:
+                  {{ range $id, $key := $user.SSHKeys }}
+                    key-{{ $id }}:
+                      key: {{ $key.Key }}
+                      type: {{ $key.Type }}
+                  {{ end }}
+          {{ end }}
+      api:
+        state: enabled
+      config:
+        auto-save:
+          state: enabled
+      control-plane:
+        acl:
+          acl-default-dos:
+            inbound: {}
+          acl-default-whitelist:
+            inbound: {}
+      docker:
+        state: enabled
+        vrf: mgmt
+      hostname: {{ $.Hostname }}
+      ntp:
+        listen:
+          eth0: {}
+        server:
+          {{ $.NTPServer }}:
+            iburst: enabled
+        state: enabled
+        vrf: mgmt
+      ssh-server:
+        allow-users:
+          {{ range $user := $.Users }}
+            {{ $user.Name }}: {}
+          {{ end }}
+        permit-root-login: disabled
+        state: enabled
+      wjh:
+        channel:
+          forwarding:
+            trigger:
+              l2: {}
+              l3: {}
+              tunnel: {}
+        state: enabled

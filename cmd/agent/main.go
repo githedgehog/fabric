@@ -417,6 +417,7 @@ func main() {
 						BinPath: cCtx.String("bin-path"),
 						User:    cCtx.String("user"),
 						Control: cCtx.Bool("control"),
+						BaseDir: cCtx.String("basedir"),
 					}), "failed to install systemd unit")
 				},
 			},

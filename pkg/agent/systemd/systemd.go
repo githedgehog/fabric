@@ -31,7 +31,7 @@ Description=Hedgehog Agent
 
 [Service]
 User={{ .User }}
-ExecStart={{ .BinPath }} start
+ExecStart={{ .BinPath }} start{{ if .BaseDir }} --basedir={{ .BaseDir }}{{ end }}
 
 Restart=always
 RestartSec=5
@@ -69,6 +69,7 @@ type UnitConfig struct {
 	BinPath string
 	User    string
 	Control bool
+	BaseDir string
 }
 
 func Generate(cfg UnitConfig) (string, error) {
