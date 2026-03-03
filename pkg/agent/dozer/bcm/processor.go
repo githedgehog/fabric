@@ -42,8 +42,8 @@ type BroadcomProcessor struct {
 
 var _ dozer.Processor = &BroadcomProcessor{}
 
-func Processor() (*BroadcomProcessor, error) {
-	return &BroadcomProcessor{}, nil
+func Processor() *BroadcomProcessor {
+	return &BroadcomProcessor{}
 }
 
 func (p *BroadcomProcessor) SetClient(client *gnmi.Client) {
@@ -178,7 +178,7 @@ func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
 	// 	io.WriteString(stdin, "y\n")
 	// }()
 
-	panic("unimplemented")
+	return fmt.Errorf("not supported") //nolint:err113
 }
 
 func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {

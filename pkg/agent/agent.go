@@ -123,10 +123,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
-	bcmProcessor, err := bcm.Processor()
-	if err != nil {
-		return errors.Wrap(err, "failed to create BCM processor")
-	}
+	bcmProcessor := bcm.Processor()
 	svc.processor = bcmProcessor
 
 	if !svc.DryRun {
@@ -983,10 +980,7 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 		return fmt.Errorf("creating gNMI client: %w", err)
 	}
 
-	processor, err := bcm.Processor()
-	if err != nil {
-		return fmt.Errorf("creating processor: %w", err)
-	}
+	processor := bcm.Processor()
 	processor.SetClient(gnmiClient)
 	processor.SetSkipCustomFuncs(true)
 
