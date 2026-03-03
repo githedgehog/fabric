@@ -46,6 +46,9 @@ const (
 	CAPath     = "/ca/ca.crt"
 	CredsPath  = "/creds/" + corev1.DockerConfigJsonKey
 	CacheDir   = "/cache/v1"
+
+	AgentURLSuffix      = "/agent"
+	CumulusZTPURLSuffix = "/cumulus/ztp"
 )
 
 type service struct {
@@ -132,6 +135,12 @@ func Run(ctx context.Context) error {
 
 	// TODO what should be a correct number?
 	r.With(middleware.Throttle(20)).Get(ni.OnieURLSuffix, svc.handleONIE)
+
+	// TODO what should be a correct number?
+	r.With(middleware.Throttle(20)).Get(AgentURLSuffix, svc.handleAgent)
+
+	// TODO what should be a correct number?
+	r.With(middleware.Throttle(20)).Get(CumulusZTPURLSuffix, svc.handleCumulusZTP)
 
 	// TODO do we need to throttle it as well?
 	r.Post(ni.LogURLSuffix, svc.handleLog)

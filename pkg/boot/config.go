@@ -11,4 +11,6 @@ type ServerConfig struct {
 	NOSVersions          map[meta.NOSType]string `json:"nosVersions,omitempty"`
 	ONIERepos            map[string]string       `json:"onieRepos,omitempty"`
 	ONIEPlatformVersions map[string]string       `json:"oniePlatformVersions,omitempty"`
+	AgentRef             string                  `json:"agentRef,omitempty"`
+	AgentVersion         string                  `json:"agentVersion,omitempty"`
 }
