@@ -168,7 +168,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 		isCls := false
 		entries, err := os.ReadDir("/host")
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("reading host dir: %w", err)
 		}
 		for _, entry := range entries {

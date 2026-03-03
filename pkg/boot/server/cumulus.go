@@ -22,6 +22,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 func (svc *service) handleAgent(w http.ResponseWriter, r *http.Request) {
@@ -167,9 +168,17 @@ func (svc *service) writeCumulusZTP(w http.ResponseWriter, agent *agentapi.Agent
 		return fmt.Errorf("executing config template: %w", err)
 	}
 
+	agent.Status = agentapi.AgentStatus{}
+	agentConfig, err := kyaml.Marshal(agent)
+	if err != nil {
+		return fmt.Errorf("marshaling agent config: %w", err)
+	}
+
 	ztpIn := CumulusZTPIn{
 		ControlVIP:    controlVIP.Addr().String(),
 		InitialConfig: cfgBuf.String(),
+		KubeConfig:    string(kubeConfig),
+		AgentConfig:   string(agentConfig),
 	}
 
 	ztpTmpl, err := template.New("cumulus_ztp").Parse(cumulusZTPTemplate)
@@ -185,8 +194,6 @@ func (svc *service) writeCumulusZTP(w http.ResponseWriter, agent *agentapi.Agent
 	if _, err := io.Copy(w, ztpBuf); err != nil {
 		return fmt.Errorf("writing ztp script: %w", err)
 	}
-
-	_ = kubeConfig
 
 	return nil
 }
@@ -219,4 +226,6 @@ var cumulusZTPTemplate string
 type CumulusZTPIn struct {
 	ControlVIP    string
 	InitialConfig string
+	KubeConfig    string
+	AgentConfig   string
 }
