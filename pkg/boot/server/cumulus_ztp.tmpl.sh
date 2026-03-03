@@ -36,11 +36,11 @@ function ping_until_reachable(){
 }
 
 function do_ztp() {
-  cat > /tmp/config-ztp.yaml <<'EOF'
+  cat > config-ztp.yaml <<'EOF'
 {{ $.InitialConfig }}
 EOF
 
-  nv config replace /tmp/config-ztp.yaml
+  nv config replace config-ztp.yaml
   nv config diff || true
   nv config apply -y
 
@@ -53,6 +53,18 @@ EOF
   wget http://{{ $.ControlVIP }}:32000/agent
   mv agent /opt/hedgehog/bin/
   chmod +x /opt/hedgehog/bin/agent
+
+  mkdir -p /etc/hedgehog
+  cat > kubeconfig <<'EOF'
+{{ $.KubeConfig }}
+EOF
+  mv kubeconfig /etc/hedgehog/agent-kubeconfig
+
+cat > agent-config.yaml <<'EOF'
+{{ $.AgentConfig }}
+EOF
+  mv agent-config.yaml /etc/hedgehog/agent-config.yaml
+
   /opt/hedgehog/bin/agent install --basedir=/etc/hedgehog
   echo "$(date) INFO: Hedgehog Agent installed"
 }
