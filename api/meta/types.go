@@ -59,6 +59,12 @@ const (
 	SwitchProfileCmlsVX = "cumulus-vx"
 )
 
+var VirtualSwitchProfiles = []string{
+	SwitchProfileVS,
+	SwitchProfileVSCLSP,
+	SwitchProfileCmlsVX,
+}
+
 type UserCreds struct {
 	Name     string   `json:"name,omitempty"`
 	Password string   `json:"password,omitempty"`
