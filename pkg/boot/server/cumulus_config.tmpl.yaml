@@ -6,6 +6,14 @@
             {{ $.ManagementIP }}: {}
         type: eth
         vrf: mgmt
+      swp1-64:
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        lldp:
+          state: enabled
     system:
       aaa:
         class:
@@ -63,6 +71,10 @@
         state: enabled
         vrf: mgmt
       hostname: {{ $.Hostname }}
+      lldp:
+        state: enabled
+        tx-hold-multiplier: 24
+        tx-interval: 5
       ntp:
         listen:
           eth0: {}
