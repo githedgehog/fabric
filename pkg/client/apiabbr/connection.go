@@ -46,9 +46,6 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 			return &wiringapi.Connection{
 				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
 				Spec: wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: !disableFallback,
-					},
 					ESLAG: &wiringapi.ConnESLAG{
 						Fallback: !disableFallback,
 					},
@@ -65,13 +62,6 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 				return false
 			}
 
-			if conn.Spec.MCLAG != nil {
-				orig := conn.Spec.MCLAG.Fallback
-				conn.Spec.MCLAG.Fallback = false
-
-				return orig
-			}
-
 			if conn.Spec.ESLAG != nil {
 				orig := conn.Spec.ESLAG.Fallback
 				conn.Spec.ESLAG.Fallback = false
@@ -85,12 +75,10 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 			conn := &wiringapi.Connection{ObjectMeta: newObj.ObjectMeta}
 
 			return ctrlutil.CreateOrUpdate(ctx, kube, conn, func() error {
-				if conn.Spec.MCLAG != nil { //nolint:gocritic
-					conn.Spec.MCLAG.Fallback = newObj.Spec.MCLAG.Fallback
-				} else if conn.Spec.ESLAG != nil {
+				if conn.Spec.ESLAG != nil {
 					conn.Spec.ESLAG.Fallback = newObj.Spec.ESLAG.Fallback
 				} else {
-					return errors.New("only existing MCLAG and ESLAG connections are supported for fallback enforcement")
+					return errors.New("only existing ESLAG connections are supported for fallback enforcement")
 				}
 
 				return nil

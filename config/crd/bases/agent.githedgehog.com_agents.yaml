@@ -681,8 +681,9 @@ spec:
                           type: array
                       type: object
                     mclag:
-                      description: MCLAG defines the MCLAG connection (port channel,
-                        single server to pair of switches with multiple links)
+                      description: 'Deprecated: MCLAG defines the MCLAG connection
+                        (port channel, single server to pair of switches with multiple
+                        links)'
                       properties:
                         fallback:
                           description: Fallback is the optional flag that used to
@@ -722,9 +723,9 @@ spec:
                           type: integer
                       type: object
                     mclagDomain:
-                      description: MCLAGDomain defines the MCLAG domain connection
-                        which makes two switches into a single logical switch for
-                        server multi-homing
+                      description: 'Deprecated: MCLAGDomain defines the MCLAG domain
+                        connection which makes two switches into a single logical
+                        switch for server multi-homing'
                       properties:
                         peerLinks:
                           description: PeerLinks is the list of peer links between
@@ -1339,15 +1340,15 @@ spec:
                   redundancy:
                     description: Redundancy is the switch redundancy configuration
                       including name of the redundancy group switch belongs to and
-                      its type, used both for MCLAG and ESLAG connections
+                      its type, used for ESLAG connections
                     properties:
                       group:
                         description: Group is the name of the redundancy group switch
                           belongs to
                         type: string
                       type:
-                        description: Type is the type of the redundancy group, could
-                          be mclag or eslag
+                        description: Type is the type of the redundancy group, although
+                          only eslag is supported now
                         enum:
                         - mclag
                         - eslag
@@ -1701,15 +1702,15 @@ spec:
                     redundancy:
                       description: Redundancy is the switch redundancy configuration
                         including name of the redundancy group switch belongs to and
-                        its type, used both for MCLAG and ESLAG connections
+                        its type, used for ESLAG connections
                       properties:
                         group:
                           description: Group is the name of the redundancy group switch
                             belongs to
                           type: string
                         type:
-                          description: Type is the type of the redundancy group, could
-                            be mclag or eslag
+                          description: Type is the type of the redundancy group, although
+                            only eslag is supported now
                           enum:
                           - mclag
                           - eslag
