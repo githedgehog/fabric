@@ -304,10 +304,6 @@ func main() {
 								Usage:    "vpc",
 								Required: true,
 							},
-							&cli.StringFlag{
-								Name:  "remote",
-								Usage: "SwitchGroup name for remote peering",
-							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
@@ -315,9 +311,8 @@ func main() {
 						},
 						Action: func(cCtx *cli.Context) error {
 							return errors.Wrapf(hhfctl.VPCPeer(ctx, printYaml, &hhfctl.VPCPeerOptions{
-								Name:   name,
-								VPCs:   cCtx.StringSlice("vpc"),
-								Remote: cCtx.String("remote"),
+								Name: name,
+								VPCs: cCtx.StringSlice("vpc"),
 							}), "failed to peer vpcs")
 						},
 					},

@@ -215,11 +215,9 @@ const (
 )
 
 var (
-	VPCPeeringParamRemote = []string{"remote", "r"}
 	VPCPeeringParamPermit = []string{"permit", "p"}
 
 	VPCPeeringParams = [][]string{
-		VPCPeeringParamRemote,
 		VPCPeeringParamPermit,
 	}
 )
@@ -237,15 +235,10 @@ func newVPCPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC
 			spec := vpcapi.VPCPeeringSpec{
 				Permit: []map[string]vpcapi.VPCPeer{},
 			}
-			var err error
 
 			vpcNames := strings.Split(abbr, VPCPeeringAbbrSeparator)
 			if len(vpcNames) != 2 {
 				return nil, errors.New("VPCPeering abbr should contain exactly two VPC names separated by " + VPCPeeringAbbrSeparator)
-			}
-
-			if spec.Remote, err = params.GetString(VPCPeeringParamRemote); err != nil {
-				return nil, err
 			}
 
 			for _, permitRaw := range params.GetStringSlice(VPCPeeringParamPermit) {
