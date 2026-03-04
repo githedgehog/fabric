@@ -579,9 +579,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		case meta.RedundancyTypeNone:
 			// No redundancy, nothing to check
 		case meta.RedundancyTypeMCLAG:
-			if !sp.Spec.Features.MCLAG {
-				return nil, errors.Errorf("MCLAG is not supported on switch profile %s", sw.Spec.Profile)
-			}
+			return nil, errors.Errorf("MCLAG is deprecated and no longer supported")
 		case meta.RedundancyTypeESLAG:
 			if !sp.Spec.Features.ESLAG {
 				return nil, errors.Errorf("ESLAG is not supported on switch profile %s", sw.Spec.Profile)

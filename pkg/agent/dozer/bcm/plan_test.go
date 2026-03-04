@@ -172,7 +172,6 @@ func TestPlan(t *testing.T) {
 		// regular vs vlab with l2vni vpcs, 2 spines, 2 mclag leafs, 2 eslag leafs, 1 standalone
 		// virt ext connected to leaf-3 only, 2 subnets per vpc
 		// peers: 1+2 1+3:gw:vpc1=subnet-01:vpc2=subnet-01 3+4 1~external-01:subnets=subnet-01 3~external-01:subnets=subnet-01
-		{name: "reg-leaf-1"},  // mclag, no external connected to it, vpc peering and ext peering
 		{name: "reg-leaf-3"},  // eslag, external connected to it, vpc peering and ext peering
 		{name: "reg-leaf-4"},  // eslag, no external connected to it, vpc peering and no ext peering
 		{name: "reg-spine-1"}, // spine

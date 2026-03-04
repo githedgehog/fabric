@@ -258,11 +258,11 @@ type ConnectionSpec struct {
 	Unbundled *ConnUnbundled `json:"unbundled,omitempty"`
 	// Bundled defines the bundled connection (port channel, single server to a single switch with multiple links)
 	Bundled *ConnBundled `json:"bundled,omitempty"`
-	// MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
+	// Deprecated: MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
 	MCLAG *ConnMCLAG `json:"mclag,omitempty"`
 	// ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
 	ESLAG *ConnESLAG `json:"eslag,omitempty"`
-	// MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing
+	// Deprecated: MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing
 	MCLAGDomain *ConnMCLAGDomain `json:"mclagDomain,omitempty"`
 	// Fabric defines the fabric connection (single spine to a single leaf with at least one link)
 	Fabric *ConnFabric `json:"fabric,omitempty"`
@@ -383,29 +383,6 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 					return INVALID // TODO replace with error?
 				}
 			}
-		} else if connSpec.MCLAGDomain != nil {
-			role = "mclag-domain"
-			left = connSpec.MCLAGDomain.PeerLinks[0].Switch1.DeviceName() // TODO check session links?
-			right = []string{connSpec.MCLAGDomain.PeerLinks[0].Switch2.DeviceName()}
-			for _, link := range connSpec.MCLAGDomain.PeerLinks {
-				// check that we have the same switches on both ends in each link // TODO add validation
-				if link.Switch1.DeviceName() != left {
-					return INVALID // TODO replace with error?
-				}
-				if link.Switch2.DeviceName() != right[0] {
-					return INVALID // TODO replace with error?
-				}
-			}
-		} else if connSpec.MCLAG != nil {
-			role = "mclag"
-			left = connSpec.MCLAG.Links[0].Server.DeviceName()
-			for _, link := range connSpec.MCLAG.Links {
-				// check we have the same server in each link // TODO add validation
-				if link.Server.DeviceName() != left {
-					return INVALID // TODO replace with error?
-				}
-				right = append(right, link.Switch.DeviceName())
-			}
 		} else if connSpec.ESLAG != nil {
 			role = "eslag"
 			left = connSpec.ESLAG.Links[0].Server.DeviceName()
@@ -456,10 +433,6 @@ func (connSpec *ConnectionSpec) Type() string {
 		return ConnectionTypeUnbundled
 	} else if connSpec.Bundled != nil {
 		return ConnectionTypeBundled
-	} else if connSpec.MCLAGDomain != nil {
-		return ConnectionTypeMCLAGDomain
-	} else if connSpec.MCLAG != nil {
-		return ConnectionTypeMCLAG
 	} else if connSpec.ESLAG != nil {
 		return ConnectionTypeESLAG
 	} else if connSpec.Fabric != nil {
@@ -549,59 +522,6 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 		if len(ports) != 2*len(connSpec.Bundled.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
-		}
-	} else if connSpec.MCLAGDomain != nil {
-		nonNills++
-
-		for _, link := range connSpec.MCLAGDomain.PeerLinks {
-			switches[link.Switch1.DeviceName()] = struct{}{}
-			switches[link.Switch2.DeviceName()] = struct{}{}
-			ports[link.Switch1.PortName()] = struct{}{}
-			ports[link.Switch2.PortName()] = struct{}{}
-			links[link.Switch1.PortName()] = link.Switch2.PortName()
-		}
-		for _, link := range connSpec.MCLAGDomain.SessionLinks {
-			switches[link.Switch1.DeviceName()] = struct{}{}
-			switches[link.Switch2.DeviceName()] = struct{}{}
-			ports[link.Switch1.PortName()] = struct{}{}
-			ports[link.Switch2.PortName()] = struct{}{}
-			links[link.Switch1.PortName()] = link.Switch2.PortName()
-		}
-
-		if len(connSpec.MCLAGDomain.PeerLinks) < 1 {
-			return nil, nil, nil, nil, errors.Errorf("at least one peer link must be used for mclag domain connection")
-		}
-		if len(connSpec.MCLAGDomain.SessionLinks) < 1 {
-			return nil, nil, nil, nil, errors.Errorf("at least one session link must be used for mclag domain connection")
-		}
-		if len(switches) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mclag domain connection")
-		}
-		if len(ports) != 2*(len(connSpec.MCLAGDomain.PeerLinks)+len(connSpec.MCLAGDomain.SessionLinks)) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag domain connection")
-		}
-	} else if connSpec.MCLAG != nil {
-		nonNills++
-
-		for _, link := range connSpec.MCLAG.Links {
-			switches[link.Switch.DeviceName()] = struct{}{}
-			servers[link.Server.DeviceName()] = struct{}{}
-			ports[link.Switch.PortName()] = struct{}{}
-			ports[link.Server.PortName()] = struct{}{}
-			links[link.Switch.PortName()] = link.Server.PortName()
-		}
-
-		if len(switches) < 1 {
-			return nil, nil, nil, nil, errors.Errorf("at least one switch must be used for mclag connection")
-		}
-		if len(switches) > 2 {
-			return nil, nil, nil, nil, errors.Errorf("at most two switches must be used for mclag connection")
-		}
-		if len(servers) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one server must be used for mclag connection")
-		}
-		if len(ports) != 2*len(connSpec.MCLAG.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mclag connection")
 		}
 	} else if connSpec.ESLAG != nil {
 		nonNills++
@@ -762,21 +682,10 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 		}
 
 		out = append(out, fmt.Sprintf("%s%s", connSpec.StaticExternal.Link.Switch.PortName(), vpc))
-	} else if connSpec.MCLAGDomain != nil {
-		for _, link := range connSpec.MCLAGDomain.PeerLinks {
-			out = append(out, fmt.Sprintf("%s%s%s%s", colored("peer"), link.Switch1.PortName(), sep, link.Switch2.PortName()))
-		}
-		for _, link := range connSpec.MCLAGDomain.SessionLinks {
-			out = append(out, fmt.Sprintf("%s%s%s%s", colored("session"), link.Switch1.PortName(), sep, link.Switch2.PortName()))
-		}
 	} else if connSpec.Unbundled != nil {
 		out = append(out, fmt.Sprintf("%s%s%s", connSpec.Unbundled.Link.Server.PortName(), sep, connSpec.Unbundled.Link.Switch.PortName()))
 	} else if connSpec.Bundled != nil {
 		for _, link := range connSpec.Bundled.Links {
-			out = append(out, fmt.Sprintf("%s%s%s", link.Server.PortName(), sep, link.Switch.PortName()))
-		}
-	} else if connSpec.MCLAG != nil {
-		for _, link := range connSpec.MCLAG.Links {
 			out = append(out, fmt.Sprintf("%s%s%s", link.Server.PortName(), sep, link.Switch.PortName()))
 		}
 	} else if connSpec.ESLAG != nil {
@@ -806,9 +715,6 @@ func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, server
 	}
 	if connSpec.Bundled != nil && connSpec.Bundled.MTU > fabricMTU-serverFacingMTUOffset {
 		return errors.Errorf("bundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.Bundled.MTU, fabricMTU, serverFacingMTUOffset)
-	}
-	if connSpec.MCLAG != nil && connSpec.MCLAG.MTU > fabricMTU-serverFacingMTUOffset {
-		return errors.Errorf("mclag connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.MCLAG.MTU, fabricMTU, serverFacingMTUOffset)
 	}
 
 	return nil
@@ -882,6 +788,10 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		}
 	}
 
+	if conn.Spec.MCLAG != nil || conn.Spec.MCLAGDomain != nil {
+		return nil, errors.Errorf("MCLAG is deprecated and no longer supported")
+	}
+
 	if conn.Spec.ESLAG != nil && fabricCfg != nil && fabricCfg.FabricMode != meta.FabricModeSpineLeaf {
 		return nil, errors.Errorf("eslag connection is not allowed in current fabric configuration")
 	}
@@ -904,16 +814,16 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 				return nil, errors.Wrapf(err, "failed to get switch %s", switchName) // TODO replace with some internal error to not expose to the user
 			}
 
-			if conn.Spec.MCLAG != nil || conn.Spec.ESLAG != nil || conn.Spec.MCLAGDomain != nil {
+			if conn.Spec.ESLAG != nil {
 				if sw.Spec.Redundancy.Group != "" {
 					if rGroup != "" && rGroup != sw.Spec.Redundancy.Group {
-						return nil, errors.Errorf("all switches in MCLAG/ESLAG/MCLAGDomain connection should belong to the same redundancy group, found %s in %s", switchName, rGroup)
+						return nil, errors.Errorf("all switches in ESLAG connection should belong to the same redundancy group, found %s in %s", switchName, rGroup)
 					}
 					rGroup = sw.Spec.Redundancy.Group
 				}
 				if sw.Spec.Redundancy.Type != "" {
 					if rType != "" && rType != sw.Spec.Redundancy.Type {
-						return nil, errors.Errorf("all switches in MCLAG/ESLAG/MCLAGDomain connection should belong to the same redundancy type, found %s in %s", switchName, rType)
+						return nil, errors.Errorf("all switches in ESLAG connection should belong to the same redundancy type, found %s in %s", switchName, rType)
 					}
 					rType = sw.Spec.Redundancy.Type
 				}
@@ -946,28 +856,12 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 		}
 
-		if conn.Spec.MCLAG != nil {
-			if rGroup == "" {
-				return nil, errors.Errorf("all switches in MCLAG connection should have redundancy group")
-			}
-			if rType != meta.RedundancyTypeMCLAG {
-				return nil, errors.Errorf("all switches in MCLAG connection should have MCLAG redundancy type, found %s", rType)
-			}
-		}
 		if conn.Spec.ESLAG != nil {
 			if rGroup == "" {
 				return nil, errors.Errorf("all switches in ESLAG connection should have redundancy group")
 			}
 			if rType != meta.RedundancyTypeESLAG {
 				return nil, errors.Errorf("all switches in ESLAG connection should have ESLAG redundancy type, found %s", rType)
-			}
-		}
-		if conn.Spec.MCLAGDomain != nil {
-			if rGroup == "" {
-				return nil, errors.Errorf("all switches in MCLAGDomain connection should have redundancy group")
-			}
-			if rType != meta.RedundancyTypeMCLAG {
-				return nil, errors.Errorf("all switches in MCLAGDomain connection should have MCLAG redundancy type, found %s", rType)
 			}
 		}
 

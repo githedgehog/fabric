@@ -2606,9 +2606,9 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `unbundled` _[ConnUnbundled](#connunbundled)_ | Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link) |  |  |
 | `bundled` _[ConnBundled](#connbundled)_ | Bundled defines the bundled connection (port channel, single server to a single switch with multiple links) |  |  |
-| `mclag` _[ConnMCLAG](#connmclag)_ | MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
+| `mclag` _[ConnMCLAG](#connmclag)_ | Deprecated: MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
 | `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links) |  |  |
-| `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
+| `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | Deprecated: MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
 | `mesh` _[ConnMesh](#connmesh)_ | Mesh defines the mesh connection (direct leaf to leaf connection with at least one link) |  |  |
 | `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |

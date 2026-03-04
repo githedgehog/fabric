@@ -57,8 +57,6 @@ type Spec struct {
 	PortGroups         map[string]*SpecPortGroup         `json:"portGroupSpeeds,omitempty"`
 	PortBreakouts      map[string]*SpecPortBreakout      `json:"portBreakouts,omitempty"`
 	Interfaces         map[string]*SpecInterface         `json:"interfaces,omitempty"`
-	MCLAGs             map[uint32]*SpecMCLAGDomain       `json:"mclags,omitempty"`
-	MCLAGInterfaces    map[string]*SpecMCLAGInterface    `json:"mclagInterfaces,omitempty"`
 	VRFs               map[string]*SpecVRF               `json:"vrfs,omitempty"`
 	RouteMaps          map[string]*SpecRouteMap          `json:"routeMaps,omitempty"`
 	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
@@ -154,16 +152,6 @@ type SpecSubinterface struct {
 	ProxyARP        *SpecProxyARP               `json:"proxyARP,omitempty"`
 	StaticARPs      map[string]*SpecStaticARP   `json:"staticARPs,omitempty"`
 	IPv6            *SpecInterfaceIPv6          `json:"ipv6,omitempty"`
-}
-
-type SpecMCLAGDomain struct {
-	SourceIP string `json:"sourceIP,omitempty"`
-	PeerIP   string `json:"peerIP,omitempty"`
-	PeerLink string `json:"peerLink,omitempty"`
-}
-
-type SpecMCLAGInterface struct {
-	DomainID uint32 `json:"domainID,omitempty"`
 }
 
 type SpecVRF struct {
@@ -505,8 +493,6 @@ var (
 	_ SpecPart = (*SpecInterfaceIP)(nil)
 	_ SpecPart = (*SpecProxyARP)(nil)
 	_ SpecPart = (*SpecStaticARP)(nil)
-	_ SpecPart = (*SpecMCLAGDomain)(nil)
-	_ SpecPart = (*SpecMCLAGInterface)(nil)
 	_ SpecPart = (*SpecVRF)(nil)
 	_ SpecPart = (*SpecVRFInterface)(nil)
 	_ SpecPart = (*SpecVRFBGP)(nil)
@@ -587,14 +573,6 @@ func (s *SpecProxyARP) IsNil() bool {
 }
 
 func (s *SpecStaticARP) IsNil() bool {
-	return s == nil
-}
-
-func (s *SpecMCLAGInterface) IsNil() bool {
-	return s == nil
-}
-
-func (s *SpecMCLAGDomain) IsNil() bool {
 	return s == nil
 }
 
