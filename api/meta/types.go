@@ -91,8 +91,8 @@ type FabricConfig struct {
 	ControlProxyURL          string            `json:"controlProxyURL,omitempty"`
 	DefaultMaxPathsEBGP      uint32            `json:"defaultMaxPathsEBGP,omitempty"`
 	AllowExtraSwitchProfiles bool              `json:"allowExtraSwitchProfiles,omitempty"`
-	MCLAGSessionSubnet       string            `json:"mclagSessionSubnet,omitempty"`
-	GatewayASN               uint32            `json:"gatewayASN,omitempty"` // Temporarily assuming that all GWs are in the same AS
+	MCLAGSessionSubnet       string            `json:"mclagSessionSubnet,omitempty"` // TODO: deprecated, remove in future releases
+	GatewayASN               uint32            `json:"gatewayASN,omitempty"`         // Temporarily assuming that all GWs are in the same AS
 	GatewayAPISync           bool              `json:"gatewayAPISync,omitempty"`
 	LoopbackWorkaround       bool              `json:"loopbackWorkaround,omitempty"`
 	IncludeSONiCCLSPlus      bool              `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
@@ -300,10 +300,6 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		if len(cfg.ESLAGESIPrefix) != 12 {
 			return nil, errors.Errorf("config: eslagESIPrefix should be a valid 12 hex long prefix, e.g. '00:f2:00:00:'")
 		}
-	}
-
-	if cfg.MCLAGSessionSubnet == "" {
-		return nil, errors.Errorf("config: mclagSessionSubnet is required")
 	}
 
 	if err := cfg.AlloyTargets.Validate(); err != nil {
