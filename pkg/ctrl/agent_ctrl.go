@@ -421,7 +421,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		_, exists1 := vpcs[vpc1]
 		_, exists2 := vpcs[vpc2]
 
-		if exists1 || exists2 || peer.Spec.Remote != "" && slices.Contains(sw.Spec.Groups, peer.Spec.Remote) {
+		if exists1 || exists2 {
 			peerings[peer.Name] = peer.Spec
 			peeredVPCs[vpc1] = true
 			peeredVPCs[vpc2] = true
@@ -606,10 +606,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	loWorkaroundReqs := map[string]bool{}
 	if r.cfg.LoopbackWorkaround {
 		for name, peering := range peerings {
-			if peering.Remote != "" {
-				continue
-			}
-
 			vpc1, vpc2, err := peering.VPCs()
 			if err != nil {
 				return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)

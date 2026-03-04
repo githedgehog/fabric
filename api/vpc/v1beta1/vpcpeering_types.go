@@ -33,6 +33,7 @@ import (
 
 // VPCPeeringSpec defines the desired state of VPCPeering
 type VPCPeeringSpec struct {
+	// Deprecated and no longer supported
 	Remote string `json:"remote,omitempty"`
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=10
@@ -155,6 +156,10 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 		return nil, errors.Errorf("vpc peering is not allowed")
 	}
 
+	if peering.Spec.Remote != "" {
+		return nil, errors.Errorf("remote field is deprecated and no longer supported")
+	}
+
 	vpc1Name, vpc2Name, err := peering.Spec.VPCs()
 	if err != nil {
 		return nil, err
@@ -205,18 +210,6 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 		}
 		if vlanNamespaces[0] != vlanNamespaces[1] {
 			return nil, errors.Errorf("VPCs must be in the same VLAN namespace")
-		}
-
-		if peering.Spec.Remote != "" {
-			switchGroup := &wiringapi.SwitchGroup{}
-			err := kube.Get(ctx, ktypes.NamespacedName{Name: peering.Spec.Remote, Namespace: peering.Namespace}, switchGroup)
-			if err != nil {
-				if kapierrors.IsNotFound(err) {
-					return nil, errors.Errorf("switch group %s not found", peering.Spec.Remote)
-				}
-
-				return nil, errors.Wrapf(err, "failed to list switch groups") // TODO replace with some internal error to not expose to the user
-			}
 		}
 
 		vpc1 := &VPC{}

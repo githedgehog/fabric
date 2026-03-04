@@ -1383,7 +1383,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `remote` _string_ |  |  |  |
+| `remote` _string_ | Deprecated and no longer supported |  |  |
 | `permit` _[map[string]VPCPeer](#map[string]vpcpeer) array_ | Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets. |  | MaxItems: 10 <br />MinItems: 1 <br /> |
 
 
