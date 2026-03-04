@@ -1688,6 +1688,7 @@ spec:
                       minItems: 1
                       type: array
                     remote:
+                      description: Deprecated and no longer supported
                       type: string
                   type: object
                 type: object

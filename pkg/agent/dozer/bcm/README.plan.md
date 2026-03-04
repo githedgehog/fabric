@@ -87,7 +87,6 @@ This route-map serves multiple purposes:
     - it matches on the gateway priority-related community lists described above, and for each of
     those it sets a local preference, with a lower priority implying a higher local preference.
     This is needed to ensure that we prefer the desired routes in a multi-gateway scenario.
-    - it is a place-holder for rules used in [remote peering](#remote-peering)
     - it sets the local preference of routes matching any [externals](#externals)' community to a
     value of 150, to make sure that they win over similar VPC routes. Note that this value is currently
     lower than the lowest preference value for gateways, which means that in case of conflict prefixes
@@ -284,8 +283,7 @@ the point-to-point BGP sessions described above. We will use this session for bo
 unicast, where we will advertise all the VTEPs we know of, and for EVPN, where we will
 exchange overlay routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this switch is no longer able to reach this
-particular neighbor. Allowas-in is required to support remote peering, where
-traffic goes to a remote fabric switch and then comes back, thus creating an ASN loop.
+particular neighbor.
 
 Here's an example config for a leaf:
 ```
@@ -301,7 +299,6 @@ neighbor 172.30.8.0
  !
  address-family l2vpn evpn
   activate
-  allowas-in
   route-map evpn-default-remote-block in
 !
 ```
@@ -321,7 +318,6 @@ neighbor 172.30.8.3
  !
  address-family l2vpn evpn
   activate
-  allowas-in
   route-map evpn-default-remote-block in
 !
 ```
@@ -368,8 +364,7 @@ the point-to-point BGP sessions described above. We will use this session for bo
 unicast, where we will advertise all VTEPs we know about, and for EVPN, where we will
 exchange overlay routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this leaf is no longer able to reach this particular
-neighbor. Allowas-in is required to support remote peering, where traffic goes to a remote
-fabric switch and then comes back, thus creating an ASN loop.
+neighbor.
 ```
 neighbor 172.30.8.2
   description "Fabric leaf-03 loopback (mesh)"
@@ -383,7 +378,6 @@ neighbor 172.30.8.2
   !
   address-family l2vpn evpn
    activate
-   allowas-in
    route-map evpn-default-remote-block in
  !
 ```
@@ -431,7 +425,8 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
     ```
 1. create a BGP session with the other host in that /31 range. The ASN of the
 gateway currently comes from config (note: we could use `remote-as external` instead).
-Like for other EVPN peers in our config, we set `allowas-in` in the L2VPN AF.
+We set `allowas-in` in the L2VPN AF as we used to do for other BGP sessions; **TODO:
+verify whether this still makes any sense, I suspect the answer is no**.
 We also set the `l2vpn-neighbors` route-map in the import direction, which ensures
 that the correct gateway route will be picked based on priorities/communities.
     ```
@@ -907,33 +902,6 @@ interface Vlan1002
 ```
 And of course we would do something similar on `vpc-02` side.
 
-### Remote peering
-
-Remote peering is deprecated; it was originally introduced as an alternative to the
-loopback workaround, to deal with the CPU forwarding issue in older versions of Broadcom SONiC,
-and it doesn't really have a reason to exist right now. However, it has not been removed from
-the code base, and there is still a chance that we might use it if we find similar issues when
-porting our product to other platforms, so for now we need to make sure we do not break it.
-
-On any switch belonging to the remote group specified in the peering, we will configure VPCs
-as in the [VPC peering](#vpc-peerings) section above, creating the VRF, the BGP configuration
-etc. The only major difference is that we will add entries to the `l2vpn-neighbors` route-map,
-which we first described in the [switch invariants](#switch-invariants) section, to block any
-default route learned from EVPN peers with the VNI associated to that VPC; so for example:
-```
-route-map l2vpn-neighbors deny 101
- match evpn default-route
- match evpn vni 100
-!
-route-map l2vpn-neighbors deny 102
- match evpn default-route
- match evpn vni 200
-!
-```
-
-The reason for this is not clear to me, and it could be a residual from old approaches using
-default origination. **TODO: confirm whether this is needed and what it does in practice.**
-
 ## Externals
 Even though there's a single `External` object and a single `ExternalAttachment` object, in practice
 we support two types of externals. BGP speaking externals will have non-nil inbound and outbound
@@ -1166,7 +1134,7 @@ them through:
     ```
     ip prefix-list ext-import--ext-name seq 101 permit 10.0.1.0/24 le 32
     ```
-1. We enable route leaking between the VRFs of the VPC and the external:
+1. We enable route leaking between the VRFs of the VPC and t`he` external:
     ```
     router bgp 65101 vrf VrfEext-name
      address-family ipv4 unicast

@@ -587,9 +587,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
-		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
-		// TODO: remove allowas-in for spines when we fully deprecate remote peering
-		allowasIn := true // agent.Spec.Switch.Role.IsSpine()
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (spine-link)", peer)),
@@ -598,7 +595,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
-			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
 			DisableConnectedCheck:     pointer.To(true),
 			UpdateSource:              pointer.To(ownProtocolIPStr),
 		}
@@ -730,8 +726,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
-		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
-		allowasIn := true
+
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (mesh)", peer)),
@@ -740,7 +735,6 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
-			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
 			DisableConnectedCheck:     pointer.To(true),
 			UpdateSource:              pointer.To(ownProtocolIPStr),
 		}
@@ -842,7 +836,7 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				RemoteAS:                pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
 				IPv4Unicast:             pointer.To(true),
 				L2VPNEVPN:               pointer.To(true),
-				L2VPNEVPNAllowOwnAS:     pointer.To(true),
+				L2VPNEVPNAllowOwnAS:     pointer.To(true), // TODO: is this still needed?
 				L2VPNEVPNImportPolicies: []string{RouteMapL2VPNNeighbors},
 				BFDProfile:              bfdProfile,
 			}
@@ -1963,7 +1957,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to plan VPC peering %s", peeringName)
 			}
 		case vpcapi.VPCModeL3Flat:
-			if err := planL3FlatVPCPeering(agent, spec, peeringName, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
+			if err := planL3FlatVPCPeering(agent, spec, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
 				return errors.Wrapf(err, "failed to plan L3 VPC peering %s", peeringName)
 			}
 		}
@@ -2379,98 +2373,63 @@ func planVNIVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName stri
 	vpc1Attached := agent.Spec.AttachedVPCs[vpc1Name]
 	vpc2Attached := agent.Spec.AttachedVPCs[vpc2Name]
 
-	if peering.Remote == "" {
-		if vpc1Attached && !vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
-			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
-		}
-
-		if !vpc1Attached && vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
-			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
-		}
-
-		if vpc1Attached && vpc2Attached && agent.Spec.Config.LoopbackWorkaround {
-			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForVPC(peeringName))
-			if err != nil {
-				return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
-			}
-
-			spec.VRFs[vrf1Name].Interfaces[sub1] = &dozer.SpecVRFInterface{}
-			spec.VRFs[vrf2Name].Interfaces[sub2] = &dozer.SpecVRFInterface{}
-
-			// TODO deduplicate
-			for subnetName, subnet := range agent.Spec.VPCs[vpc1Name].Subnets {
-				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
-				if err != nil {
-					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
-				}
-				prefixLen, _ := ipNet.Mask.Size()
-
-				spec.VRFs[vrf2Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
-					NextHops: []dozer.SpecVRFStaticRouteNextHop{
-						{
-							IP:        ip1,
-							Interface: pointer.To(sub2),
-						},
-					},
-				}
-			}
-
-			for subnetName, subnet := range agent.Spec.VPCs[vpc2Name].Subnets {
-				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
-				if err != nil {
-					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
-				}
-				prefixLen, _ := ipNet.Mask.Size()
-
-				spec.VRFs[vrf1Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
-					NextHops: []dozer.SpecVRFStaticRouteNextHop{
-						{
-							IP:        ip2,
-							Interface: pointer.To(sub1),
-						},
-					},
-				}
-			}
-		}
-	} else if slices.Contains(agent.Spec.Switch.Groups, peering.Remote) {
-		if vpc1Attached || vpc2Attached {
-			slog.Warn("Skipping remote VPCPeering because one of the VPCs is locally attached",
-				"vpcPeering", peeringName,
-				"vpc1", vpc1Name, "vpc1Attached", vpc1Attached,
-				"vpc2", vpc2Name, "vpc2Attached", vpc2Attached)
-
-			return nil
-		}
-
+	if vpc1Attached && !vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
 		spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
-		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+	}
 
-		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", MaxGWPrioLevels+uint(vni1/100))] = &dozer.SpecRouteMapStatement{
-			Conditions: dozer.SpecRouteMapConditions{
-				MatchEVPNVNI:          pointer.To(vni1),
-				MatchEVPNDefaultRoute: pointer.To(true),
-			},
-			Result: dozer.SpecRouteMapResultReject,
+	if !vpc1Attached && vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
+		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+	}
+
+	if vpc1Attached && vpc2Attached && agent.Spec.Config.LoopbackWorkaround {
+		sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForVPC(peeringName))
+		if err != nil {
+			return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
 		}
-		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", MaxGWPrioLevels+uint(vni2/100))] = &dozer.SpecRouteMapStatement{
-			Conditions: dozer.SpecRouteMapConditions{
-				MatchEVPNVNI:          pointer.To(vni2),
-				MatchEVPNDefaultRoute: pointer.To(true),
-			},
-			Result: dozer.SpecRouteMapResultReject,
+
+		spec.VRFs[vrf1Name].Interfaces[sub1] = &dozer.SpecVRFInterface{}
+		spec.VRFs[vrf2Name].Interfaces[sub2] = &dozer.SpecVRFInterface{}
+
+		// TODO deduplicate
+		for subnetName, subnet := range agent.Spec.VPCs[vpc1Name].Subnets {
+			_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
+			}
+			prefixLen, _ := ipNet.Mask.Size()
+
+			spec.VRFs[vrf2Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        ip1,
+						Interface: pointer.To(sub2),
+					},
+				},
+			}
+		}
+
+		for subnetName, subnet := range agent.Spec.VPCs[vpc2Name].Subnets {
+			_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
+			}
+			prefixLen, _ := ipNet.Mask.Size()
+
+			spec.VRFs[vrf1Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        ip2,
+						Interface: pointer.To(sub1),
+					},
+				},
+			}
 		}
 	}
 
 	return nil
 }
 
-func planL3FlatVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
-	if peering.Remote != "" {
-		slog.Warn("Skipping remote peering for VPCs with L3 mode", "peering", peeringName, "vpc1", vpc1Name, "vpc2", vpc2Name)
-
-		return nil
-	}
-
+func planL3FlatVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
 	vpc1Allow := map[string]map[string]bool{}
 	vpc2Allow := map[string]map[string]bool{}
 	for vpc1SubnetName := range vpc1.Subnets {
