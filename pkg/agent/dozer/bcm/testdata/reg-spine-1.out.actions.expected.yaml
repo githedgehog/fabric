@@ -967,11 +967,11 @@
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 64
+  weight: 62
 - path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
   summary: Create VRF default EVPNMH
   type: update
-  weight: 65
+  weight: 63
 - path: /acl/acl-sets/acl-set
   summary: Create ACL no-ipns-peering--default base
   type: update
@@ -983,7 +983,7 @@
         type: ACL_IPV4
       name: no-ipns-peering--default
       type: ACL_IPV4
-  weight: 76
+  weight: 74
 - path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 1
   type: update
@@ -999,7 +999,7 @@
           destination-address: 10.0.0.0/16
           source-address: 10.0.0.0/16
       sequence-id: 1
-  weight: 78
+  weight: 76
 - path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 65535
   type: update
@@ -1011,7 +1011,7 @@
       config:
         sequence-id: 65535
       sequence-id: 65535
-  weight: 78
+  weight: 76
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp
   summary: Create VRF default BGP base
   type: update
@@ -1031,7 +1031,7 @@
           as: 65100
           network-import-check: true
           router-id: 172.30.8.0
-  weight: 80
+  weight: 78
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF default BGP L2VPN
   type: update
@@ -1045,7 +1045,7 @@
           advertise-all-vni: true
         route-advertise:
           route-advertise-list: []
-  weight: 81
+  weight: 79
 - path: /openconfig-bfd:bfd/openconfig-bfd-ext:bfd-profile/profile
   summary: Create BFD Profile fabric
   type: update
@@ -1059,7 +1059,7 @@
         profile-name: fabric
         required-minimum-receive: 300
       profile-name: fabric
-  weight: 82
+  weight: 80
 - path: /openconfig-errdisable-ext:errdisable/config
   summary: Create ErrDisable Global
   type: update
@@ -1068,7 +1068,7 @@
       cause:
       - LINK_FLAP
       interval: 300
-  weight: 83
+  weight: 81
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet0]/link-flap
   summary: Create ErrDisable Interface Ethernet0
   type: update
@@ -1079,7 +1079,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet1]/link-flap
   summary: Create ErrDisable Interface Ethernet1
   type: update
@@ -1090,7 +1090,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet10]/link-flap
   summary: Create ErrDisable Interface Ethernet10
   type: update
@@ -1101,7 +1101,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet2]/link-flap
   summary: Create ErrDisable Interface Ethernet2
   type: update
@@ -1112,7 +1112,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet3]/link-flap
   summary: Create ErrDisable Interface Ethernet3
   type: update
@@ -1123,7 +1123,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet4]/link-flap
   summary: Create ErrDisable Interface Ethernet4
   type: update
@@ -1134,7 +1134,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet5]/link-flap
   summary: Create ErrDisable Interface Ethernet5
   type: update
@@ -1145,7 +1145,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet6]/link-flap
   summary: Create ErrDisable Interface Ethernet6
   type: update
@@ -1156,7 +1156,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet7]/link-flap
   summary: Create ErrDisable Interface Ethernet7
   type: update
@@ -1167,7 +1167,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet8]/link-flap
   summary: Create ErrDisable Interface Ethernet8
   type: update
@@ -1178,7 +1178,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet9]/link-flap
   summary: Create ErrDisable Interface Ethernet9
   type: update
@@ -1189,7 +1189,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 84
+  weight: 82
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.1]
   summary: Create VRF BGP neighbor 172.30.128.1
   type: update
@@ -1218,7 +1218,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.1
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.11]
   summary: Create VRF BGP neighbor 172.30.128.11
   type: update
@@ -1247,7 +1247,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.11
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.13]
   summary: Create VRF BGP neighbor 172.30.128.13
   type: update
@@ -1276,7 +1276,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.13
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.15]
   summary: Create VRF BGP neighbor 172.30.128.15
   type: update
@@ -1305,7 +1305,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.15
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.17]
   summary: Create VRF BGP neighbor 172.30.128.17
   type: update
@@ -1334,7 +1334,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.17
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.19]
   summary: Create VRF BGP neighbor 172.30.128.19
   type: update
@@ -1363,7 +1363,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.19
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.21]
   summary: Create VRF BGP neighbor 172.30.128.21
   type: update
@@ -1392,7 +1392,7 @@
         neighbor-address: 172.30.128.21
         peer-as: 65534
       neighbor-address: 172.30.128.21
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.3]
   summary: Create VRF BGP neighbor 172.30.128.3
   type: update
@@ -1421,7 +1421,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.3
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.5]
   summary: Create VRF BGP neighbor 172.30.128.5
   type: update
@@ -1450,7 +1450,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.5
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.7]
   summary: Create VRF BGP neighbor 172.30.128.7
   type: update
@@ -1479,7 +1479,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.7
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.9]
   summary: Create VRF BGP neighbor 172.30.128.9
   type: update
@@ -1508,7 +1508,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.9
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.2]
   summary: Create VRF BGP neighbor 172.30.8.2
   type: update
@@ -1545,7 +1545,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.3]
   summary: Create VRF BGP neighbor 172.30.8.3
   type: update
@@ -1582,7 +1582,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.4]
   summary: Create VRF BGP neighbor 172.30.8.4
   type: update
@@ -1619,7 +1619,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.5]
   summary: Create VRF BGP neighbor 172.30.8.5
   type: update
@@ -1656,7 +1656,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.6]
   summary: Create VRF BGP neighbor 172.30.8.6
   type: update
@@ -1693,7 +1693,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=172.30.8.0/32]
   summary: Create VRF BGP network 172.30.8.0/32
   type: update
@@ -1702,7 +1702,7 @@
     - config:
         prefix: 172.30.8.0/32
       prefix: 172.30.8.0/32
-  weight: 86
+  weight: 84
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -1715,7 +1715,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 87
+  weight: 85
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -1728,7 +1728,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 87
+  weight: 85
 - path: /loadshare/roce-attrs
   summary: Update ECMP RoCE
   type: replace
@@ -1737,4 +1737,4 @@
       config:
         hash: hash
         qpn: false
-  weight: 130
+  weight: 126

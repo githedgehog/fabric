@@ -2604,7 +2604,7 @@ _Appears in:_
 
 
 
-ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
+Deprecated: ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
 
 
 
@@ -2622,7 +2622,7 @@ _Appears in:_
 
 
 
-ConnMCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch or
+Deprecated: ConnMCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch or
 redundancy group and allows to use MCLAG connections to connect servers in a multi-homed way.
 
 
@@ -2777,9 +2777,9 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `unbundled` _[ConnUnbundled](#connunbundled)_ | Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link) |  |  |
 | `bundled` _[ConnBundled](#connbundled)_ | Bundled defines the bundled connection (port channel, single server to a single switch with multiple links) |  |  |
-| `mclag` _[ConnMCLAG](#connmclag)_ | MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
+| `mclag` _[ConnMCLAG](#connmclag)_ | Deprecated: MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
 | `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links) |  |  |
-| `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
+| `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | Deprecated: MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
 | `mesh` _[ConnMesh](#connmesh)_ | Mesh defines the mesh connection (direct leaf to leaf connection with at least one link) |  |  |
 | `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |
@@ -2877,7 +2877,7 @@ Server is the Schema for the servers API
 
 
 
-ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
+ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled etc.) configuration
 
 
 
@@ -3290,7 +3290,7 @@ _Appears in:_
 
 
 SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
-to and its type, used both for MCLAG and ESLAG connections. It defines how redundancy will be configured and handled
+to and its type, used for ESLAG connections. It defines how redundancy will be configured and handled
 on the switch as well as which connection types will be available. If not specified, switch will not be part of any
 redundancy group. If name isn't empty, type must be specified as well and name should be the same as one of the
 SwitchGroup objects.
@@ -3303,7 +3303,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `group` _string_ | Group is the name of the redundancy group switch belongs to |  |  |
-| `type` _RedundancyType_ | Type is the type of the redundancy group, could be mclag or eslag |  |  |
+| `type` _RedundancyType_ | Type is the type of the redundancy group, although only eslag is supported now |  |  |
 
 
 #### SwitchRole
@@ -3343,7 +3343,7 @@ _Appears in:_
 | `description` _string_ | Description is a description of the switch |  |  |
 | `profile` _string_ | Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric |  |  |
 | `groups` _string array_ | Groups is a list of switch groups the switch belongs to |  |  |
-| `redundancy` _[SwitchRedundancy](#switchredundancy)_ | Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used both for MCLAG and ESLAG connections |  |  |
+| `redundancy` _[SwitchRedundancy](#switchredundancy)_ | Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used for ESLAG connections |  |  |
 | `vlanNamespaces` _string array_ | VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap |  |  |
 | `asn` _integer_ | ASN is the ASN of the switch |  |  |
 | `ip` _string_ | IP is the IP of the switch that could be used to access it from other switches and control nodes in the Fabric |  |  |
