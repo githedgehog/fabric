@@ -1525,9 +1525,6 @@
             afi-safi-name: IPV4_UNICAST
             enabled: true
         - afi-safi-name: L2VPN_EVPN
-          allow-own-as:
-            config:
-              enabled: true
           apply-policy:
             config:
               import-policy:
@@ -1562,9 +1559,6 @@
             afi-safi-name: IPV4_UNICAST
             enabled: true
         - afi-safi-name: L2VPN_EVPN
-          allow-own-as:
-            config:
-              enabled: true
           apply-policy:
             config:
               import-policy:
@@ -1599,9 +1593,6 @@
             afi-safi-name: IPV4_UNICAST
             enabled: true
         - afi-safi-name: L2VPN_EVPN
-          allow-own-as:
-            config:
-              enabled: true
           apply-policy:
             config:
               import-policy:
@@ -1636,9 +1627,6 @@
             afi-safi-name: IPV4_UNICAST
             enabled: true
         - afi-safi-name: L2VPN_EVPN
-          allow-own-as:
-            config:
-              enabled: true
           apply-policy:
             config:
               import-policy:
@@ -1673,9 +1661,6 @@
             afi-safi-name: IPV4_UNICAST
             enabled: true
         - afi-safi-name: L2VPN_EVPN
-          allow-own-as:
-            config:
-              enabled: true
           apply-policy:
             config:
               import-policy:
