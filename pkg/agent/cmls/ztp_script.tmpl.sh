@@ -46,8 +46,17 @@ EOF
 
   echo "$(date) INFO: Configuration applied successfully"
 
+  # TODO check if it's needed or affected by agent
+  mkdir /var/log/ntpsec/
+  chown -R ntpsec /var/log/ntpsec/
+  systemctl restart ntp@mgmt.service
+
+  # Wait for control VIP to be reachable before proceeding
+
   ping_until_reachable {{ $.ControlVIP }}
   echo "$(date) INFO: Control VIP is reachable"
+
+  # Install agent config and agent itself as a systemd unit
 
   mkdir -p /opt/hedgehog/bin
   wget http://{{ $.ControlVIP }}:32000/agent

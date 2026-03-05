@@ -4,25 +4,20 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"net/netip"
 	"os"
 	"strings"
-	"text/template"
-
-	_ "embed"
 
 	"github.com/go-chi/chi/v5/middleware"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/cmls"
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
-	kyaml "sigs.k8s.io/yaml"
 )
 
 func (svc *service) handleAgent(w http.ResponseWriter, r *http.Request) {
@@ -111,84 +106,9 @@ func (svc *service) writeCumulusZTP(w http.ResponseWriter, agent *agentapi.Agent
 		return fmt.Errorf("kubeconfig not found") //nolint:err113
 	}
 
-	controlVIP, err := netip.ParsePrefix(svc.cfg.ControlVIP)
+	ztpBuf, err := cmls.BuildZTPFor(agent, kubeConfig)
 	if err != nil {
-		return fmt.Errorf("parsing control VIP: %w", err)
-	}
-
-	users := []CmlsUser{}
-	for _, user := range agent.Spec.Users {
-		role := ""
-		switch user.Role {
-		case "admin":
-			role = "system-admin"
-		case "operator":
-			role = "nvue-monitor"
-		}
-
-		if role == "" {
-			return fmt.Errorf("invalid role: %s", user.Role) //nolint:err113
-		}
-
-		keys := []CmlsSSHKey{}
-		for _, key := range user.SSHKeys {
-			parts := strings.Split(key, " ")
-			if len(parts) < 2 {
-				return fmt.Errorf("invalid SSH key: %s", key) //nolint:err113
-			}
-
-			keys = append(keys, CmlsSSHKey{
-				Key:  parts[1],
-				Type: parts[0],
-			})
-		}
-
-		users = append(users, CmlsUser{
-			Name:           user.Name,
-			HashedPassword: user.Password,
-			Role:           role,
-			SSHKeys:        keys,
-		})
-	}
-
-	cfgIn := CmlsConfigIn{
-		Hostname:     agent.Name,
-		ManagementIP: agent.Spec.Switch.IP,
-		Users:        users,
-		NTPServer:    controlVIP.Addr().String(),
-	}
-
-	cfgTmpl, err := template.New("cumulus_config").Parse(cumulusConfigTemplate)
-	if err != nil {
-		return fmt.Errorf("parsing config template: %w", err)
-	}
-
-	cfgBuf := &bytes.Buffer{}
-	if err := cfgTmpl.Execute(cfgBuf, cfgIn); err != nil {
-		return fmt.Errorf("executing config template: %w", err)
-	}
-
-	agent.Status = agentapi.AgentStatus{}
-	agentConfig, err := kyaml.Marshal(agent)
-	if err != nil {
-		return fmt.Errorf("marshaling agent config: %w", err)
-	}
-
-	ztpIn := CumulusZTPIn{
-		ControlVIP:    controlVIP.Addr().String(),
-		InitialConfig: cfgBuf.String(),
-		KubeConfig:    string(kubeConfig),
-		AgentConfig:   string(agentConfig),
-	}
-
-	ztpTmpl, err := template.New("cumulus_ztp").Parse(cumulusZTPTemplate)
-	if err != nil {
-		return fmt.Errorf("parsing ztp template: %w", err)
-	}
-
-	ztpBuf := &bytes.Buffer{}
-	if err := ztpTmpl.Execute(ztpBuf, ztpIn); err != nil {
-		return fmt.Errorf("executing ztp template: %w", err)
+		return fmt.Errorf("building ztp: %w", err)
 	}
 
 	if _, err := io.Copy(w, ztpBuf); err != nil {
@@ -196,36 +116,4 @@ func (svc *service) writeCumulusZTP(w http.ResponseWriter, agent *agentapi.Agent
 	}
 
 	return nil
-}
-
-//go:embed cumulus_config.tmpl.yaml
-var cumulusConfigTemplate string
-
-type CmlsConfigIn struct {
-	Hostname     string
-	ManagementIP string
-	Users        []CmlsUser
-	NTPServer    string
-}
-
-type CmlsUser struct {
-	Name           string
-	HashedPassword string
-	Role           string
-	SSHKeys        []CmlsSSHKey
-}
-
-type CmlsSSHKey struct {
-	Key  string
-	Type string
-}
-
-//go:embed cumulus_ztp.tmpl.sh
-var cumulusZTPTemplate string
-
-type CumulusZTPIn struct {
-	ControlVIP    string
-	InitialConfig string
-	KubeConfig    string
-	AgentConfig   string
 }
