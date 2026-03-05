@@ -593,7 +593,13 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
-	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, svc.Basedir), "failed to ensure alloy installed")
+	if !svc.DryRun {
+		if err := alloy.EnsureInstalled(ctx, agent, svc.Basedir); err != nil {
+			return fmt.Errorf("ensuring alloy installed: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64) error {
