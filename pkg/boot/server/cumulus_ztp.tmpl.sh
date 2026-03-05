@@ -65,7 +65,7 @@ cat > agent-config.yaml <<'EOF'
 EOF
   mv agent-config.yaml /etc/hedgehog/agent-config.yaml
 
-  /opt/hedgehog/bin/agent install --basedir=/etc/hedgehog
+  /opt/hedgehog/bin/agent install --basedir=/etc/hedgehog --vrf=mgmt
   echo "$(date) INFO: Hedgehog Agent installed"
 }
 

@@ -405,6 +405,10 @@ func main() {
 						Name:  "control",
 						Usage: "install control agent systemd-unit",
 					},
+					&cli.StringFlag{
+						Name:  "vrf",
+						Usage: "VRF to run agent in",
+					},
 				},
 				Before: func(_ *cli.Context) error {
 					var err error
@@ -418,6 +422,7 @@ func main() {
 						User:    cCtx.String("user"),
 						Control: cCtx.Bool("control"),
 						BaseDir: cCtx.String("basedir"),
+						VRF:     cCtx.String("vrf"),
 					}), "failed to install systemd unit")
 				},
 			},

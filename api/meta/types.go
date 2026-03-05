@@ -155,6 +155,23 @@ var NOSTypes = []NOSType{
 	NOSTypeCumulusMlx,
 }
 
+var NOSTypesSONiCBCM = []NOSType{
+	NOSTypeSONiCBCMBase,
+	NOSTypeSONiCBCMCampus,
+	NOSTypeSONiCBCMVS,
+}
+
+var NOSTypesSONiCCLSPlus = []NOSType{
+	NOSTypeSONiCCLSPlusBroadcom,
+	NOSTypeSONiCCLSPlusMarvell,
+	NOSTypeSONiCCLSPlusVS,
+}
+
+var NOSTypesCumulus = []NOSType{
+	NOSTypeCumulusVX,
+	NOSTypeCumulusMlx,
+}
+
 // +kubebuilder:object:generate=true
 type Observability struct {
 	Agent ObservabilityAgent `json:"agent,omitempty"`

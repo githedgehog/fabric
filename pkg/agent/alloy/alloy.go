@@ -41,7 +41,7 @@ const (
 	binName     = "alloy"
 	listenPort  = 7043
 	storagePath = "/var/lib/alloy"
-	configPath  = "/etc/sonic/hedgehog/config.alloy"
+	configName  = "config.alloy"
 )
 
 type unitTemplateConf struct {
@@ -55,13 +55,15 @@ type unitTemplateConf struct {
 //go:embed alloy.service.tmpl
 var unitTemplate string
 
-func EnsureInstalled(ctx context.Context, agent *agentapi.Agent) error {
+func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, baseDir string) error {
 	if agent.Spec.Version.AlloyRepo == "" || agent.Spec.Version.AlloyVersion == "" {
 		return nil
 	}
 
 	start := time.Now()
 	slog.Debug("Ensuring alloy is installed and running")
+
+	configPath := filepath.Join(baseDir, configName)
 
 	binPath := filepath.Join(binDir, binName)
 	unitPath := filepath.Join("/etc/systemd/system/", unitName)

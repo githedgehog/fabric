@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -33,6 +34,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fmeta "go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
+	"go.githedgehog.com/fabric/pkg/agent/cmls"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
@@ -123,8 +125,21 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
-	bcmProcessor := bcm.Processor()
-	svc.processor = bcmProcessor
+	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
+	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
+	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
+
+	switch {
+	case isBCM:
+		bcmProcessor := bcm.Processor()
+		svc.processor = bcmProcessor
+	case isClsP:
+		// TODO add processor when there would be support for Celestica SONiC+
+	case isCumulus:
+		svc.SkipControlLink = true
+		cmlsProcessor := cmls.Processor()
+		svc.processor = cmlsProcessor
+	}
 
 	if !svc.DryRun {
 		if !svc.SkipControlLink {
@@ -162,66 +177,30 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				}
 			}
 		}
+	}
 
-		isCls := false
-		entries, err := os.ReadDir("/host")
-		if err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("reading host dir: %w", err)
-		}
-		for _, entry := range entries {
-			if !entry.IsDir() {
+	// setup gNMI client for Broadcom SONiC
+	if isBCM {
+		retriesStart := time.Now()
+		for time.Since(retriesStart) < 10*time.Minute {
+			svc.gnmiClient, err = getClient()
+			if err != nil {
+				slog.Warn("Failed to create gNMI client", "err", err)
+				time.Sleep(15 * time.Second)
+
 				continue
 			}
-			name := entry.Name()
 
-			if strings.HasPrefix(name, "image-cls") {
-				isCls = true
-
-				break
-			}
+			break
 		}
-
-		// temp hack to patch shadow file for admin user on Celestica SONiC+ to avoid prompt for changing password
-		if isCls {
-			slog.Info("Celestica SONiC+ detected, just enforcing admin password every 15 seconds")
-
-			for {
-				for _, user := range agent.Spec.Users {
-					name := user.Name
-
-					if name != "admin" {
-						continue
-					}
-
-					if err := patchShadowFile(name, user.Password); err != nil {
-						slog.Warn("Failed to patch shadow file", "err", err)
-					}
-				}
-
-				time.Sleep(15 * time.Second)
-			}
-		}
-	}
-
-	retriesStart := time.Now()
-	for time.Since(retriesStart) < 10*time.Minute {
-		svc.gnmiClient, err = getClient()
 		if err != nil {
-			slog.Warn("Failed to create gNMI client", "err", err)
-			time.Sleep(15 * time.Second)
-
-			continue
+			return errors.Wrap(err, "failed to create gNMI client after retries")
 		}
-
-		break
+		defer svc.gnmiClient.Close()
+		svc.processor.(*bcm.BroadcomProcessor).SetClient(svc.gnmiClient)
 	}
-	if err != nil {
-		return errors.Wrap(err, "failed to create gNMI client after retries")
-	}
-	defer svc.gnmiClient.Close()
-	bcmProcessor.SetClient(svc.gnmiClient)
 
-	if !svc.DryRun && !svc.ApplyOnce {
+	if !svc.DryRun && !svc.ApplyOnce && !isCumulus {
 		err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
 		if err != nil {
 			slog.Warn("Failed to write motd", "err", err)
@@ -460,6 +439,23 @@ func (svc *Service) setInstallAndRunIDs() error {
 }
 
 func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
+	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
+	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
+
+	switch {
+	case isBCM:
+		return enforceBroadcomState(ctx, processor, agent, basedir, dryRun)
+	case isClsP:
+		return enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
+	case isCumulus:
+		return enforceCumulusState(ctx, processor, agent, basedir, dryRun)
+	}
+
+	return fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType)
+}
+
+func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
 	desired, err := processor.PlanDesiredState(ctx, agent)
 	if err != nil {
 		return errors.Wrapf(err, "failed to plan spec")
@@ -537,6 +533,43 @@ func enforceState(ctx context.Context, processor dozer.Processor, agent *agentap
 	return nil
 }
 
+func enforceCelesticaState(_ context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, _ /* basedir */ string, dryRun bool) error {
+	if dryRun {
+		slog.Warn("Dry run, exiting")
+
+		return nil
+	}
+
+	// temp hack to patch shadow file for admin user on Celestica SONiC+ to avoid prompt for changing password
+	slog.Info("Celestica SONiC+ configuration not supported, just enforcing admin password")
+
+	for _, user := range agent.Spec.Users {
+		name := user.Name
+
+		if name != "admin" {
+			continue
+		}
+
+		if err := patchShadowFile(name, user.Password); err != nil {
+			return fmt.Errorf("patching shadow file: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func enforceCumulusState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+	if dryRun {
+		slog.Warn("Dry run, exiting")
+
+		return nil
+	}
+
+	slog.Info("Cumulus configuration not supported, skipping")
+
+	return nil
+}
+
 func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
 	start := time.Now()
 	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
@@ -546,8 +579,6 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 			return errors.Wrap(err, "failed to ensure control link")
 		}
 		slog.Info("Control link configuration applied")
-	} else {
-		slog.Info("Control link configuration is skipped")
 	}
 
 	if readyCheck {
@@ -557,11 +588,13 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	}
 
 	// Workaround to make sure we have an actual RoCE state in the agent status before planning the desired state
-	roce, err := svc.processor.GetRoCE(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to get RoCE state")
+	if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
+		roce, err := svc.processor.GetRoCE(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to get RoCE state")
+		}
+		agent.Status.State.RoCE = roce
 	}
-	agent.Status.State.RoCE = roce
 
 	if err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun); err != nil {
 		return err
@@ -572,7 +605,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
 	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
 
-	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent), "failed to ensure alloy installed")
+	return errors.Wrapf(alloy.EnsureInstalled(ctx, agent, svc.Basedir), "failed to ensure alloy installed")
 }
 
 func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64) error {
@@ -617,28 +650,31 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 		return errors.Wrap(err, "failed to save agent config to file")
 	}
 
-	roce, err := svc.processor.GetRoCE(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to get RoCE state")
-	}
-	if roce != agent.Spec.Switch.RoCE {
-		slog.Info("Requesting RoCE mode change, switch will reboot automatically...", "roce", agent.Spec.Switch.RoCE)
+	// workaround for Broadcom SONiC RoCE handling
+	if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
+		roce, err := svc.processor.GetRoCE(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to get RoCE state")
+		}
+		if roce != agent.Spec.Switch.RoCE {
+			slog.Info("Requesting RoCE mode change, switch will reboot automatically...", "roce", agent.Spec.Switch.RoCE)
 
-		for attempt := 0; attempt < 5; attempt++ {
-			if err := svc.processor.SetRoCE(ctx, agent.Spec.Switch.RoCE); err != nil {
-				slog.Warn("Failed to set RoCE state, retrying", "error", err, "desired", agent.Spec.Switch.RoCE)
-				time.Sleep(5 * time.Second)
+			for attempt := 0; attempt < 5; attempt++ {
+				if err := svc.processor.SetRoCE(ctx, agent.Spec.Switch.RoCE); err != nil {
+					slog.Warn("Failed to set RoCE state, retrying", "error", err, "desired", agent.Spec.Switch.RoCE)
+					time.Sleep(5 * time.Second)
 
-				continue
+					continue
+				}
+
+				break // retries
 			}
 
-			break // retries
+			slog.Info("Waiting for switch to reboot after RoCE change, it may take a while...")
+			time.Sleep(5 * time.Minute)
+
+			return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:goerr113
 		}
-
-		slog.Info("Waiting for switch to reboot after RoCE change, it may take a while...")
-		time.Sleep(5 * time.Minute)
-
-		return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:goerr113
 	}
 
 	// report that we've been able to apply config
@@ -759,7 +795,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		}
 	}
 
-	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true"})
+	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true", "--basedir=" + svc.Basedir})
 	if err != nil {
 		if errors.Is(err, common.ErrAgentUpgradeDownloadFailed) { //nolint:gocritic
 			// TODO properly retry it without restarting the agent
