@@ -10,7 +10,6 @@ import (
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
-	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 )
 
 type CumulusProcessor struct{}
@@ -49,11 +48,6 @@ func (c *CumulusProcessor) GetRoCE(ctx context.Context) (bool, error) {
 // TODO
 func (c *CumulusProcessor) SetRoCE(ctx context.Context, enable bool) error {
 	return fmt.Errorf("not supported") //nolint:err113
-}
-
-// TODO
-func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *v1beta1.Agent, reg *switchstate.Registry) error {
-	return nil
 }
 
 // TODO

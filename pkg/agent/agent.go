@@ -449,10 +449,10 @@ func enforceState(ctx context.Context, processor dozer.Processor, agent *agentap
 	case isClsP:
 		return enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
 	case isCumulus:
-		return enforceCumulusState(ctx, processor, agent, basedir, dryRun)
+		return cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
 	}
 
-	return fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType)
+	return fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 }
 
 func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
@@ -554,18 +554,6 @@ func enforceCelesticaState(_ context.Context, _ /* processor */ dozer.Processor,
 			return fmt.Errorf("patching shadow file: %w", err)
 		}
 	}
-
-	return nil
-}
-
-func enforceCumulusState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
-	if dryRun {
-		slog.Warn("Dry run, exiting")
-
-		return nil
-	}
-
-	slog.Info("Cumulus configuration not supported, skipping")
 
 	return nil
 }
