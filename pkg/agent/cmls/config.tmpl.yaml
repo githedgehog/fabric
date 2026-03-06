@@ -1,19 +1,222 @@
 - set:
     interface:
       eth0:
+        ipv6:
+          state: disabled
         ipv4:
           address:
             {{ $.ManagementIP }}: {}
         type: eth
         vrf: mgmt
+      lo:
+        ipv4:
+          address:
+            {{ $.ProtocolIP }}: {}
+            {{ if $.VTEPIP }}{{ $.VTEPIP }}: {}{{ end }}
+        type: loopback
       swp1-64:
         ipv6:
           state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+      {{ if $.PortConfigs }}
+      {{ range $port := $.PortConfigs }}
+      {{ $port.Name }}:
         link:
           state:
             up: {}
-        lldp:
+        {{ if $port.VRF }}vrf: {{ $port.VRF }}{{ end }}
+        {{ if $port.IP }}
+        ipv4:
+          address:
+            {{ $port.IP }}: {}
+        {{ end }}
+        {{ if $port.AdaptiveRouting }}
+        router:
+          adaptive-routing:
+            state: enabled
+        {{ end }}
+      {{ end }}
+      {{ end }}
+    evpn:
+      state: enabled
+    {{ if $.IsLeaf }}
+    nve:
+      vxlan:
+        arp-nd-suppress: enabled
+        decapsulation:
+          dscp:
+            action: preserve
+        encapsulation:
+          dscp:
+            action: copy
+        source:
+          address: {{ $.VXLANSource }}
+        state: enabled
+    {{ end }}
+    qos:
+      pfc:
+        default-global:
+          port-buffer: 363000
+          switch-priority:
+            '3': {}
+          xoff-threshold: 75000
+          xon-threshold: 75000
+      roce:
+        mode: lossless
+        state: enabled
+      traffic-pool:
+        default-lossy:
+          memory-percent: 10
+        roce-lossless:
+          memory-percent: 90
+    router:
+      bfd:
+        profile:
+          overlay:
+            detect-multiplier: 3
+            min-rx-interval: 1000
+            min-tx-interval: 1000
+          underlay:
+            detect-multiplier: 3
+            min-rx-interval: 300
+            min-tx-interval: 300
+        state: enabled
+      bgp:
+        autonomous-system: {{ $.ASN }}
+        router-id: {{ $.RouterID }}
+        state: enabled
+      policy:
+        prefix-list:
+          host_subnets:
+            rule:
+              '10':
+                action: permit
+                match:
+                  {{ $.HostSubnet }}:
+                    max-prefix-len: 31
+            type: ipv4
+        route-map:
+          host_subnets:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: permit_host_subnets
+                match:
+                  ip-prefix-list: host_subnets
+                  type: ipv4
+          lo_to_bgp:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: permit_lo_to_bgp
+                match:
+                  interface: lo
+                  type: ipv4
+          w_ecmp_cumulative:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: enable_w_ecmp_adjustment
+                set:
+                  ext-community-bw: cumulative
+          w_ecmp_origin:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: enable_w_ecmp_origination
+                set:
+                  ext-community-bw: multipaths
+      adaptive-routing:
+        state: enabled
+        profile: profile-custom
+    vrf:
+      default:
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                redistribute:
+                  connected:
+                    route-map: lo_to_bgp
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            peer-group:
+              underlay_spine:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      outbound:
+                        route-map: w_ecmp_origin
+                bfd:
+                  profile: underlay
+                remote-as: external
+              underlay_leaf:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      outbound:
+                        route-map: w_ecmp_cumulative
+                bfd:
+                  profile: underlay
+                remote-as: external
+              overlay:
+                address-family:
+                  ipv4-unicast:
+                    state: disabled
+                  l2vpn-evpn:
+                    state: enabled
+                bfd:
+                  profile: overlay
+                description: overlayyyy
+                multihop-ttl: 2
+                remote-as: external
+                update-source: lo
+            {{ if $.BGPNeighbors }}
+            neighbor:
+              {{ range $neigh := $.BGPNeighbors }}
+              {{ $neigh.IP }}:
+                {{ if $neigh.Description }}description: {{ $neigh.Description }}{{ end }}
+                peer-group: {{ $neigh.PeerGroup }}
+                type: numbered
+              {{ end }}
+            {{ end }}
+            state: enabled
+      {{ range $vpc := $.VPCs }}
+      {{ $vpc.Name }}:
+        evpn:
           state: enabled
+          vni:
+            '{{ $vpc.VNI }}': {}
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                redistribute:
+                  connected:
+                    route-map: host_subnets
+                    state: enabled
+                route-export:
+                  to-evpn:
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            path-selection:
+              multipath:
+                aspath-ignore: enabled
+            rd: {{ $.RouterID }}:{{ $vpc.VNI }}
+            state: enabled
+      {{ end }}
     system:
       aaa:
         class:
@@ -61,6 +264,24 @@
       config:
         auto-save:
           state: enabled
+        snippet:
+          adaptive_routing_conf-snippet:
+            file: /etc/cumulus/switchd.d/ar_profile_custom.conf
+            content: |
+              ar.p.m = 0
+              ar.ctl = 400
+              ar.ctm = 800
+              ar.cth = 2000
+              ar.srt = 10
+              ar.srf = 10
+              ar.p.bit = 0
+              ar.p.frt = 4
+              ar.p.but = 0
+              ar.p.sfe = FALSE
+              ar.p.ste = FALSE
+              ar.p.ef = FALSE
+              ar.ecs = 512
+              ar.ibm = ingress
       control-plane:
         acl:
           acl-default-dos:
