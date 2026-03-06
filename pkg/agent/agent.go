@@ -138,6 +138,8 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		svc.SkipControlLink = true
 		cmlsProcessor := cmls.Processor()
 		svc.processor = cmlsProcessor
+	default:
+		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 	}
 
 	if !svc.DryRun {
