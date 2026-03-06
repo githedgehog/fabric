@@ -177,7 +177,6 @@
                     state: enabled
                 bfd:
                   profile: overlay
-                description: overlayyyy
                 multihop-ttl: 2
                 remote-as: external
                 update-source: lo

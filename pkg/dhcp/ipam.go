@@ -17,7 +17,6 @@ import (
 
 const (
 	defaultVRF = "default"
-	vlanPrefix = "vlan"
 )
 
 func subnetKey(vrf, circuitID string) string {

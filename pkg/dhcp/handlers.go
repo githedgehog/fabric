@@ -101,7 +101,7 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 			// Cumulus doesn't support vrf-select so fallback to just checking the circuit ID (vlan interface name)
 			if strings.HasPrefix(remoteID, cumulusRemoteIDPrefix) && circuitID != "" {
 				for _, some := range s.subnets {
-					if some.Spec.CircuitID == circuitID {
+					if strings.EqualFold(some.Spec.CircuitID, circuitID) {
 						if ok && subnet != nil {
 							slog.Warn("Duplicate subnet found for Cumulus dhcp-relay, ignoring request",
 								append([]any{"subnet", some.Name, "other", subnet.Name}, reqSummary(req, vrf, circuitID, remoteID)...)...)

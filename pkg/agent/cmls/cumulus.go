@@ -421,7 +421,7 @@ func run(ctx context.Context, name, command string, arg ...string) error {
 	return nil
 }
 
-// TODO preoper impl by reading from API
+// TODO proper impl by reading from API
 func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error {
 	swState := &agentapi.SwitchState{
 		Interfaces:   map[string]agentapi.SwitchStateInterface{},

@@ -130,11 +130,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
 
 	switch {
-	case isBCM:
+	// TODO add separate processor when there would be support for Celestica SONiC+
+	case isBCM, isClsP:
 		bcmProcessor := bcm.Processor()
 		svc.processor = bcmProcessor
-	case isClsP:
-		// TODO add processor when there would be support for Celestica SONiC+
 	case isCumulus:
 		svc.SkipControlLink = true
 		cmlsProcessor := cmls.Processor()
