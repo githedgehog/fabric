@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DeRuina/timberjack"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	slogmulti "github.com/samber/slog-multi"
@@ -30,15 +31,14 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/version"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 //go:embed motd.txt
 var motd []byte
 
-func setupLogger(verbose, brief bool, env nosinstall.Env) error {
+func setupLogger(verbose, brief bool, env nosinstall.Env) (*timberjack.Logger, error) {
 	if verbose && brief {
-		return cli.Exit("verbose and brief are mutually exclusive", 1)
+		return nil, cli.Exit("verbose and brief are mutually exclusive", 1)
 	}
 
 	logLevel := slog.LevelInfo
@@ -50,13 +50,13 @@ func setupLogger(verbose, brief bool, env nosinstall.Env) error {
 
 	logConsole := os.Stderr
 
-	logFile := &lumberjack.Logger{
-		Filename:   "/var/log/install.log",
-		MaxSize:    5, // MB
-		MaxBackups: 4,
-		MaxAge:     30, // days
-		Compress:   true,
-		FileMode:   0o644,
+	logFile := &timberjack.Logger{
+		Filename:    "/var/log/install.log",
+		MaxSize:     5, // MB
+		MaxBackups:  4,
+		MaxAge:      30, // days
+		Compression: "gzip",
+		FileMode:    0o644,
 	}
 
 	handlers := []slog.Handler{
@@ -97,7 +97,7 @@ func setupLogger(verbose, brief bool, env nosinstall.Env) error {
 
 	_, err := logConsole.Write(motd)
 	if err != nil {
-		return fmt.Errorf("writing motd: %w", err)
+		return nil, fmt.Errorf("writing motd: %w", err)
 	}
 
 	slog.Info("Running fabric-nos-install", "version", version.Version)
@@ -108,7 +108,7 @@ func setupLogger(verbose, brief bool, env nosinstall.Env) error {
 		slog.Info("Sending logs to fabric-boot")
 	}
 
-	return nil
+	return logFile, nil
 }
 
 func main() {
@@ -138,6 +138,8 @@ func main() {
 		Destination: &dryRun,
 	}
 
+	var logFile *timberjack.Logger
+
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
 	app := &cli.App{
 		Name:                   "fabric-nos-install",
@@ -153,7 +155,10 @@ func main() {
 			dryRunFlag,
 		},
 		Before: func(_ *cli.Context) error {
-			return setupLogger(verbose, brief, env)
+			var err error
+			logFile, err = setupLogger(verbose, brief, env)
+
+			return err
 		},
 		Action: func(_ *cli.Context) error {
 			if err := nosinstall.Run(ctx, env, dryRun); err != nil {
@@ -164,7 +169,13 @@ func main() {
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	err := app.Run(os.Args)
+
+	if logFile != nil {
+		logFile.Close()
+	}
+
+	if err != nil {
 		slog.Error("Failed", "err", err.Error())
 		os.Exit(1)
 	}
