@@ -2,14 +2,13 @@ module go.githedgehog.com/fabric
 
 go 1.26
 
-replace gopkg.in/natefinch/lumberjack.v2 v2.2.1 => github.com/githedgehog/lumberjack/v2 v2.2.1-hh
-
 replace github.com/openconfig/ygot => github.com/githedgehog/ygot v0.32.0-hh1
 
 tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (
 	github.com/0x5a17ed/uefi v0.7.0
+	github.com/DeRuina/timberjack v1.3.9
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/dustin/go-humanize v1.0.1
@@ -42,7 +41,6 @@ require (
 	go.githedgehog.com/libmeta v0.3.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/sync v0.19.0
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.35.2
 	k8s.io/client-go v0.35.2

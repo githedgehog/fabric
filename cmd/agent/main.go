@@ -25,6 +25,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/DeRuina/timberjack"
 	"github.com/go-logr/logr"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
@@ -35,7 +36,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/systemd"
 	"go.githedgehog.com/fabric/pkg/version"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
 )
@@ -49,7 +49,7 @@ const (
 //go:embed motd.txt
 var motd []byte
 
-func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
+func setupLogger(verbose bool, logToFile bool, printMotd bool) (*timberjack.Logger, error) {
 	logLevel := slog.LevelInfo
 	if verbose {
 		logLevel = slog.LevelDebug
@@ -72,16 +72,16 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 		}),
 	}
 
+	var logFile *timberjack.Logger
 	if logToFile {
-		logFile := &lumberjack.Logger{
-			Filename:   "/var/log/agent.log",
-			MaxSize:    5, // MB
-			MaxBackups: 4,
-			MaxAge:     30, // days
-			Compress:   true,
-			FileMode:   0o644,
+		logFile = &timberjack.Logger{
+			Filename:    "/var/log/agent.log",
+			MaxSize:     5, // MB
+			MaxBackups:  4,
+			MaxAge:      30, // days
+			Compression: "gzip",
+			FileMode:    0o644,
 		}
-		// TODO do we need to close logFile?
 
 		handlers = append(handlers, slog.NewTextHandler(logFile, &slog.HandlerOptions{
 			Level: logLevel,
@@ -98,11 +98,11 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) error {
 	if printMotd {
 		_, err := logW.Write(motd)
 		if err != nil {
-			return errors.Wrapf(err, "failed to write motd")
+			return nil, errors.Wrapf(err, "failed to write motd")
 		}
 	}
 
-	return nil
+	return logFile, nil
 }
 
 func main() {
@@ -133,6 +133,8 @@ func main() {
 		Value:       DefaultBasedir,
 	}
 
+	var logFile *timberjack.Logger
+
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
 	app := &cli.App{
 		Name:                   "agent",
@@ -150,7 +152,10 @@ func main() {
 					basedirFlag,
 				},
 				Before: func(_ *cli.Context) error {
-					return setupLogger(verbose, true, true)
+					var err error
+					logFile, err = setupLogger(verbose, true, true)
+
+					return err
 				},
 				Action: func(_ *cli.Context) error {
 					return errors.Wrapf((&agent.Service{
@@ -203,7 +208,10 @@ func main() {
 					},
 				},
 				Before: func(_ *cli.Context) error {
-					return setupLogger(verbose, false, true)
+					var err error
+					logFile, err = setupLogger(verbose, false, true)
+
+					return err
 				},
 				Action: func(cCtx *cli.Context) error {
 					slog.Info("Applying", "version", version.Version)
@@ -296,7 +304,10 @@ func main() {
 					},
 				},
 				Before: func(_ *cli.Context) error {
-					return setupLogger(verbose, false, false)
+					var err error
+					logFile, err = setupLogger(verbose, false, false)
+
+					return err
 				},
 				Action: func(cCtx *cli.Context) error {
 					getGNMIClient := func() (*gnmi.Client, error) {
@@ -396,7 +407,10 @@ func main() {
 					},
 				},
 				Before: func(_ *cli.Context) error {
-					return setupLogger(verbose, true, false)
+					var err error
+					logFile, err = setupLogger(verbose, true, false)
+
+					return err
 				},
 				Action: func(cCtx *cli.Context) error {
 					return errors.Wrapf(systemd.Install(systemd.UnitConfig{
@@ -409,7 +423,13 @@ func main() {
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	err := app.Run(os.Args)
+
+	if logFile != nil {
+		logFile.Close()
+	}
+
+	if err != nil {
 		slog.Error("Failed", "err", err.Error())
 		os.Exit(1) //nolint:gocritic
 	}
