@@ -69,7 +69,7 @@ EOF
 EOF
   mv kubeconfig /etc/hedgehog/agent-kubeconfig
 
-cat > agent-config.yaml <<'EOF'
+  cat > agent-config.yaml <<'EOF'
 {{ $.AgentConfig }}
 EOF
   mv agent-config.yaml /etc/hedgehog/agent-config.yaml
