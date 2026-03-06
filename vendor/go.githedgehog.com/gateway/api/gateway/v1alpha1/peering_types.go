@@ -180,6 +180,11 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 	if len(vpcs) != 2 {
 		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs)) //nolint:err113
 	}
+	// track the NAT on each side of the peering and disallow unsupported configurations
+	vpcNAT := make(map[string]struct {
+		Stateful  bool
+		Stateless bool
+	}, 2)
 	for name, vpc := range p.Spec.Peering {
 		if vpc == nil {
 			continue
@@ -239,12 +244,21 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 				nonNils := 0
 				if expose.NAT.Static != nil {
 					nonNils++
+					vpcEntry := vpcNAT[name]
+					vpcEntry.Stateless = true
+					vpcNAT[name] = vpcEntry
 				}
 				if expose.NAT.Masquerade != nil {
 					nonNils++
+					vpcEntry := vpcNAT[name]
+					vpcEntry.Stateful = true
+					vpcNAT[name] = vpcEntry
 				}
 				if expose.NAT.PortForward != nil {
 					nonNils++
+					vpcEntry := vpcNAT[name]
+					vpcEntry.Stateful = true
+					vpcNAT[name] = vpcEntry
 				}
 
 				if nonNils != 1 {
@@ -272,6 +286,12 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 				}
 			}
 		}
+	}
+	if vpcNAT[vpcs[0]].Stateful && vpcNAT[vpcs[1]].Stateful {
+		return fmt.Errorf("unsupported configuration, only one side of a peering can use stateful NAT (i.e. masquerade or portForward)") //nolint:err113
+	}
+	if (vpcNAT[vpcs[0]].Stateless && vpcNAT[vpcs[1]].Stateful) || (vpcNAT[vpcs[1]].Stateless && vpcNAT[vpcs[0]].Stateful) {
+		return fmt.Errorf("unsupported configuration, one side of a peering using static NAT cannot peer with a side using stateful NAT") //nolint:err113
 	}
 
 	if kube != nil {
