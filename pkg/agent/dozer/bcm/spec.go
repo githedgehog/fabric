@@ -77,14 +77,6 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle interfaces")
 		}
 
-		if err := specMCLAGDomainsEnforcer.Handle(basePath, actual.MCLAGs, desired.MCLAGs, actions); err != nil {
-			return errors.Wrap(err, "failed to handle mclag domains")
-		}
-
-		if err := specMCLAGInterfacesEnforcer.Handle(basePath, actual.MCLAGInterfaces, desired.MCLAGInterfaces, actions); err != nil {
-			return errors.Wrap(err, "failed to handle mclag interfaces")
-		}
-
 		if err := specDHCPRelaysEnforcer.Handle(basePath, actual.DHCPRelays, desired.DHCPRelays, actions); err != nil {
 			return errors.Wrap(err, "failed to handle dhcp relays")
 		}
@@ -196,10 +188,6 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Cli
 
 	if err := loadActualInterfaces(ctx, agent, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load interfaces")
-	}
-
-	if err := loadActualMCLAGs(ctx, client, spec); err != nil {
-		return errors.Wrapf(err, "failed to load mclag")
 	}
 
 	if err := loadActualDHCPRelays(ctx, client, spec); err != nil {

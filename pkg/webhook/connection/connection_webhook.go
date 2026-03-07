@@ -134,21 +134,5 @@ func (w *Webhook) ValidateDelete(ctx context.Context, conn *wiringapi.Connection
 		return nil, errors.Errorf("connection has external attachments")
 	}
 
-	// This is a light check to make sure that no mclags links transit this domain before we delete the domain
-	if conn.Spec.MCLAGDomain != nil {
-		labels := conn.Spec.ConnectionLabels()
-		// overwrite the MCLAG-Domain ConnectionType with just an MCLAG type
-		labels[wiringapi.LabelConnectionType] = wiringapi.ConnectionTypeMCLAG
-		mclagList := &wiringapi.ConnectionList{}
-		// The matching here, will logically and the key/vals in labels together
-		// giving just the relevant connections
-		if err := w.Client.List(ctx, mclagList, kclient.MatchingLabels(labels)); err != nil {
-			return nil, errors.Errorf("error listing MCLAG connections")
-		}
-		if len(mclagList.Items) > 0 {
-			return nil, errors.Errorf("%d MCLAG connection(s) present. Delete those before the domain", len(mclagList.Items))
-		}
-	}
-
 	return nil, nil
 }
