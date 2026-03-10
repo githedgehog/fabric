@@ -194,7 +194,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		}
 
 		var switchNames []string
-		if conn.Spec.Unbundled != nil || conn.Spec.Bundled != nil || conn.Spec.MCLAG != nil || conn.Spec.ESLAG != nil {
+		if conn.Spec.Unbundled != nil || conn.Spec.Bundled != nil || conn.Spec.ESLAG != nil {
 			switchNames, _, _, _, err = conn.Spec.Endpoints()
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get endpoints for connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user

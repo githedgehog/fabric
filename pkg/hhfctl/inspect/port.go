@@ -379,7 +379,7 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to get loopback workaround info")
 			}
-		} else if conn.Unbundled != nil || conn.Bundled != nil || conn.MCLAG != nil || conn.ESLAG != nil {
+		} else if conn.Unbundled != nil || conn.Bundled != nil || conn.ESLAG != nil {
 			vpcAttaches := &vpcapi.VPCAttachmentList{}
 			if err := kube.List(ctx, vpcAttaches, kclient.MatchingLabels{
 				wiringapi.LabelConnection: *out.ConnectionName,

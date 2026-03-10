@@ -40,11 +40,7 @@ import (
 )
 
 const (
-	MCLAGDomainID                 = 100
-	MCLAGPeerLinkPortChannelID    = 250
-	MCLAGSessionLinkPortChannelID = 251
-	MCLAGPeerLinkTrunkVLANRange   = "2..4094" // TODO do we need to configure it?
-	AgentUser                     = "hhagent"
+	AgentUser = "hhagent"
 	// LoopbackSwitch                 = "Loopback0"
 	LoopbackProto                = "Loopback1"
 	LoopbackVTEP                 = "Loopback2"
@@ -72,19 +68,17 @@ const (
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
 	spec := &dozer.Spec{
-		ZTP:             pointer.To(false),
-		Hostname:        pointer.To(agent.Name),
-		ECMPRoCEQPN:     pointer.To(agent.Spec.Switch.ECMP.RoCEQPN),
-		LLDP:            &dozer.SpecLLDP{},
-		LLDPInterfaces:  map[string]*dozer.SpecLLDPInterface{},
-		NTP:             &dozer.SpecNTP{},
-		NTPServers:      map[string]*dozer.SpecNTPServer{},
-		PortGroups:      map[string]*dozer.SpecPortGroup{},
-		PortBreakouts:   map[string]*dozer.SpecPortBreakout{},
-		Interfaces:      map[string]*dozer.SpecInterface{},
-		MCLAGs:          map[uint32]*dozer.SpecMCLAGDomain{},
-		MCLAGInterfaces: map[string]*dozer.SpecMCLAGInterface{},
-		Users:           map[string]*dozer.SpecUser{},
+		ZTP:            pointer.To(false),
+		Hostname:       pointer.To(agent.Name),
+		ECMPRoCEQPN:    pointer.To(agent.Spec.Switch.ECMP.RoCEQPN),
+		LLDP:           &dozer.SpecLLDP{},
+		LLDPInterfaces: map[string]*dozer.SpecLLDPInterface{},
+		NTP:            &dozer.SpecNTP{},
+		NTPServers:     map[string]*dozer.SpecNTPServer{},
+		PortGroups:     map[string]*dozer.SpecPortGroup{},
+		PortBreakouts:  map[string]*dozer.SpecPortBreakout{},
+		Interfaces:     map[string]*dozer.SpecInterface{},
+		Users:          map[string]*dozer.SpecUser{},
 		VRFs: map[string]*dozer.SpecVRF{
 			VRFDefault: { // default VRF is always present
 				Enabled:          pointer.To(true),
@@ -194,12 +188,7 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		}
 	}
 
-	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
-		_ /* first */, err = planMCLAGDomain(agent, spec)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to plan mclag domain")
-		}
-	} else if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
+	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeESLAG {
 		err = planESLAG(agent, spec)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan eslag")
@@ -588,9 +577,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
-		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
-		// TODO: remove allowas-in for spines when we fully deprecate remote peering
-		allowasIn := true // agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG || agent.Spec.Switch.Role.IsSpine()
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (spine-link)", peer)),
@@ -599,7 +585,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
-			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
 			DisableConnectedCheck:     pointer.To(true),
 			UpdateSource:              pointer.To(ownProtocolIPStr),
 		}
@@ -731,8 +716,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse protocol IP %s for peer %s", peerSpec.ProtocolIP, peer)
 		}
-		// Use allowas-in for all switches for now b/c of https://github.com/githedgehog/fabricator/issues/830#issuecomment-3138205167
-		allowasIn := true // agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG
+
 		spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   pointer.To(true),
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (mesh)", peer)),
@@ -741,7 +725,6 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
-			L2VPNEVPNAllowOwnAS:       pointer.To(allowasIn),
 			DisableConnectedCheck:     pointer.To(true),
 			UpdateSource:              pointer.To(ownProtocolIPStr),
 		}
@@ -843,7 +826,7 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				RemoteAS:                pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
 				IPv4Unicast:             pointer.To(true),
 				L2VPNEVPN:               pointer.To(true),
-				L2VPNEVPNAllowOwnAS:     pointer.To(true),
+				L2VPNEVPNAllowOwnAS:     pointer.To(true), // TODO: is this still needed?
 				L2VPNEVPNImportPolicies: []string{RouteMapL2VPNNeighbors},
 				BFDProfile:              bfdProfile,
 			}
@@ -1425,14 +1408,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		var links []wiringapi.ServerToSwitchLink
 		fallback := agent.IsFirstInRedundancyGroup()
 
-		if conn.MCLAG != nil { //nolint:gocritic
-			connType = "MCLAG"
-			if conn.MCLAG.MTU != 0 {
-				mtu = pointer.To(conn.MCLAG.MTU) //nolint:ineffassign,staticcheck
-			}
-			fallback = fallback && conn.MCLAG.Fallback
-			links = conn.MCLAG.Links
-		} else if conn.Bundled != nil {
+		if conn.Bundled != nil { //nolint:gocritic
 			connType = "Bundled"
 			if conn.Bundled.MTU != 0 {
 				mtu = pointer.To(conn.Bundled.MTU) //nolint:ineffassign,staticcheck
@@ -1480,13 +1456,6 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.Interfaces[connPortChannelName] = connPortChannel
 
 			switch connType {
-			case "MCLAG":
-				spec.MCLAGInterfaces[connPortChannelName] = &dozer.SpecMCLAGInterface{
-					DomainID: MCLAGDomainID,
-				}
-				spec.PortChannelConfigs[connPortChannelName] = &dozer.SpecPortChannelConfig{
-					Fallback: pointer.To(fallback),
-				}
 			case "ESLAG":
 				mac, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
 				if err != nil {
@@ -1665,127 +1634,6 @@ func spineLinkTracking(agent *agentapi.Agent, spec *dozer.Spec) {
 	}
 }
 
-func planMCLAGDomain(agent *agentapi.Agent, spec *dozer.Spec) (bool, error) {
-	ok := false
-	mclagPeerLinks := map[string]string{}
-	mclagSessionLinks := map[string]string{}
-	mclagPeerSwitch := ""
-	for _, conn := range agent.Spec.Connections {
-		if conn.MCLAGDomain != nil {
-			ok = true
-			for _, link := range conn.MCLAGDomain.PeerLinks {
-				if link.Switch1.DeviceName() == agent.Name {
-					mclagPeerLinks[link.Switch1.LocalPortName()] = link.Switch2.Port
-					mclagPeerSwitch = link.Switch2.DeviceName()
-				} else if link.Switch2.DeviceName() == agent.Name {
-					mclagPeerLinks[link.Switch2.LocalPortName()] = link.Switch1.Port
-					mclagPeerSwitch = link.Switch1.DeviceName()
-				}
-			}
-			for _, link := range conn.MCLAGDomain.SessionLinks {
-				if link.Switch1.DeviceName() == agent.Name {
-					mclagSessionLinks[link.Switch1.LocalPortName()] = link.Switch2.Port
-				} else if link.Switch2.DeviceName() == agent.Name {
-					mclagSessionLinks[link.Switch2.LocalPortName()] = link.Switch1.Port
-				}
-			}
-
-			break
-		}
-	}
-
-	// if there is no MCLAG domain, we are done
-	if !ok {
-		return false, nil
-	}
-
-	if len(mclagPeerLinks) == 0 {
-		return false, errors.Errorf("no mclag peer links found")
-	}
-	if len(mclagSessionLinks) == 0 {
-		return false, errors.Errorf("no mclag session links found")
-	}
-	if mclagPeerSwitch == "" {
-		return false, errors.Errorf("no mclag peer switch found")
-	}
-
-	mclagSessionSubnet, err := netip.ParsePrefix(agent.Spec.Config.MCLAGSessionSubnet)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to parse MCLAG session subnet %s", agent.Spec.Config.MCLAGSessionSubnet)
-	}
-
-	mclagSessionIP1 := mclagSessionSubnet.Addr().String()
-	mclagSessionIP2 := mclagSessionSubnet.Addr().Next().String()
-
-	// using the same IP pair with switch with name < peer switch name getting first IP
-	sourceIP := mclagSessionIP1
-	peerIP := mclagSessionIP2
-	if agent.Name > mclagPeerSwitch {
-		sourceIP, peerIP = peerIP, sourceIP
-	}
-
-	mclagPeerPortChannelName := portChannelName(MCLAGPeerLinkPortChannelID)
-	mclagPeerPortChannel := &dozer.SpecInterface{
-		Description: pointer.To(fmt.Sprintf("MCLAG peer %s", mclagPeerSwitch)),
-		Enabled:     pointer.To(true),
-		TrunkVLANs:  []string{MCLAGPeerLinkTrunkVLANRange},
-	}
-	spec.Interfaces[mclagPeerPortChannelName] = mclagPeerPortChannel
-	for iface, peerPort := range mclagPeerLinks {
-		descr := fmt.Sprintf("PC%d MCLAG peer %s", MCLAGPeerLinkPortChannelID, peerPort)
-		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagPeerPortChannelName, nil, agent)
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG peer link", iface)
-		}
-	}
-
-	mclagSessionPortChannelName := portChannelName(MCLAGSessionLinkPortChannelID)
-	mclagSessionPortChannel := &dozer.SpecInterface{
-		Description: pointer.To(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
-		Enabled:     pointer.To(true),
-		Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-			0: {
-				IPs: map[string]*dozer.SpecInterfaceIP{
-					sourceIP: {
-						PrefixLen: pointer.To(uint8(mclagSessionSubnet.Bits())), //nolint:gosec
-					},
-				},
-			},
-		},
-	}
-	spec.Interfaces[mclagSessionPortChannelName] = mclagSessionPortChannel
-	for iface, peerPort := range mclagSessionLinks {
-		descr := fmt.Sprintf("PC%d MCLAG session %s", MCLAGSessionLinkPortChannelID, peerPort)
-		err := setupPhysicalInterfaceWithPortChannel(spec, iface, descr, mclagSessionPortChannelName, nil, agent)
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to setup physical interface %s for MCLAG session link", iface)
-		}
-	}
-
-	spec.MCLAGs[MCLAGDomainID] = &dozer.SpecMCLAGDomain{
-		SourceIP: sourceIP,
-		PeerIP:   peerIP,
-		PeerLink: mclagPeerPortChannelName,
-	}
-
-	spec.VRFs[VRFDefault].BGP.Neighbors[peerIP] = &dozer.SpecVRFBGPNeighbor{
-		Enabled:     pointer.To(true),
-		Description: pointer.To(fmt.Sprintf("MCLAG session %s", mclagPeerSwitch)),
-		PeerType:    pointer.To(dozer.SpecVRFBGPNeighborPeerTypeInternal),
-		IPv4Unicast: pointer.To(true),
-	}
-
-	spec.LSTGroups[LSTGroupSpineLink] = &dozer.SpecLSTGroup{
-		AllEVPNESDownstream: nil,
-		AllMCLAGDownstream:  pointer.To(true),
-		Timeout:             pointer.To(uint16(5)),
-	}
-
-	spineLinkTracking(agent, spec)
-
-	return sourceIP == mclagSessionIP1, nil
-}
-
 func planESLAG(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 	spec.VRFs[VRFDefault].EVPNMH = dozer.SpecVRFEVPNMH{
 		MACHoldtime:  pointer.To(uint32(60)),
@@ -1935,20 +1783,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		ifaces := []string{}
-		if conn.MCLAG != nil { //nolint:gocritic
-			for _, link := range conn.MCLAG.Links {
-				if link.Switch.DeviceName() != agent.Name {
-					continue
-				}
-
-				portChan := agent.Spec.Catalog.PortChannelIDs[attach.Connection]
-				if portChan == 0 {
-					return errors.Errorf("no port channel found for conn %s", attach.Connection)
-				}
-
-				ifaces = append(ifaces, portChannelName(portChan))
-			}
-		} else if conn.ESLAG != nil {
+		if conn.ESLAG != nil { //nolint:gocritic
 			for _, link := range conn.ESLAG.Links {
 				if link.Switch.DeviceName() != agent.Name {
 					continue
@@ -2067,7 +1902,7 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Wrapf(err, "failed to plan VPC peering %s", peeringName)
 			}
 		case vpcapi.VPCModeL3Flat:
-			if err := planL3FlatVPCPeering(agent, spec, peeringName, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
+			if err := planL3FlatVPCPeering(agent, spec, peering, vpc1Name, vpc2Name, vpc1, vpc2); err != nil {
 				return errors.Wrapf(err, "failed to plan L3 VPC peering %s", peeringName)
 			}
 		}
@@ -2483,98 +2318,63 @@ func planVNIVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName stri
 	vpc1Attached := agent.Spec.AttachedVPCs[vpc1Name]
 	vpc2Attached := agent.Spec.AttachedVPCs[vpc2Name]
 
-	if peering.Remote == "" {
-		if vpc1Attached && !vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
-			spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
-		}
-
-		if !vpc1Attached && vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
-			spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
-		}
-
-		if vpc1Attached && vpc2Attached && agent.Spec.Config.LoopbackWorkaround {
-			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForVPC(peeringName))
-			if err != nil {
-				return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
-			}
-
-			spec.VRFs[vrf1Name].Interfaces[sub1] = &dozer.SpecVRFInterface{}
-			spec.VRFs[vrf2Name].Interfaces[sub2] = &dozer.SpecVRFInterface{}
-
-			// TODO deduplicate
-			for subnetName, subnet := range agent.Spec.VPCs[vpc1Name].Subnets {
-				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
-				if err != nil {
-					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
-				}
-				prefixLen, _ := ipNet.Mask.Size()
-
-				spec.VRFs[vrf2Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
-					NextHops: []dozer.SpecVRFStaticRouteNextHop{
-						{
-							IP:        ip1,
-							Interface: pointer.To(sub2),
-						},
-					},
-				}
-			}
-
-			for subnetName, subnet := range agent.Spec.VPCs[vpc2Name].Subnets {
-				_, ipNet, err := net.ParseCIDR(subnet.Subnet)
-				if err != nil {
-					return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
-				}
-				prefixLen, _ := ipNet.Mask.Size()
-
-				spec.VRFs[vrf1Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
-					NextHops: []dozer.SpecVRFStaticRouteNextHop{
-						{
-							IP:        ip2,
-							Interface: pointer.To(sub1),
-						},
-					},
-				}
-			}
-		}
-	} else if slices.Contains(agent.Spec.Switch.Groups, peering.Remote) {
-		if vpc1Attached || vpc2Attached {
-			slog.Warn("Skipping remote VPCPeering because one of the VPCs is locally attached",
-				"vpcPeering", peeringName,
-				"vpc1", vpc1Name, "vpc1Attached", vpc1Attached,
-				"vpc2", vpc2Name, "vpc2Attached", vpc2Attached)
-
-			return nil
-		}
-
+	if vpc1Attached && !vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
 		spec.VRFs[vrf1Name].BGP.IPv4Unicast.ImportVRFs[vrf2Name] = &dozer.SpecVRFBGPImportVRF{}
-		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+	}
 
-		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", MaxGWPrioLevels+uint(vni1/100))] = &dozer.SpecRouteMapStatement{
-			Conditions: dozer.SpecRouteMapConditions{
-				MatchEVPNVNI:          pointer.To(vni1),
-				MatchEVPNDefaultRoute: pointer.To(true),
-			},
-			Result: dozer.SpecRouteMapResultReject,
+	if !vpc1Attached && vpc2Attached || !agent.Spec.Config.LoopbackWorkaround {
+		spec.VRFs[vrf2Name].BGP.IPv4Unicast.ImportVRFs[vrf1Name] = &dozer.SpecVRFBGPImportVRF{}
+	}
+
+	if vpc1Attached && vpc2Attached && agent.Spec.Config.LoopbackWorkaround {
+		sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.LoWReqForVPC(peeringName))
+		if err != nil {
+			return errors.Wrapf(err, "failed to plan loopback workaround for VPC peering %s", peeringName)
 		}
-		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", MaxGWPrioLevels+uint(vni2/100))] = &dozer.SpecRouteMapStatement{
-			Conditions: dozer.SpecRouteMapConditions{
-				MatchEVPNVNI:          pointer.To(vni2),
-				MatchEVPNDefaultRoute: pointer.To(true),
-			},
-			Result: dozer.SpecRouteMapResultReject,
+
+		spec.VRFs[vrf1Name].Interfaces[sub1] = &dozer.SpecVRFInterface{}
+		spec.VRFs[vrf2Name].Interfaces[sub2] = &dozer.SpecVRFInterface{}
+
+		// TODO deduplicate
+		for subnetName, subnet := range agent.Spec.VPCs[vpc1Name].Subnets {
+			_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
+			}
+			prefixLen, _ := ipNet.Mask.Size()
+
+			spec.VRFs[vrf2Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        ip1,
+						Interface: pointer.To(sub2),
+					},
+				},
+			}
+		}
+
+		for subnetName, subnet := range agent.Spec.VPCs[vpc2Name].Subnets {
+			_, ipNet, err := net.ParseCIDR(subnet.Subnet)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse subnet %s (%s) for VPC %s", subnetName, subnet.Subnet, vpc1Name)
+			}
+			prefixLen, _ := ipNet.Mask.Size()
+
+			spec.VRFs[vrf1Name].StaticRoutes[fmt.Sprintf("%s/%d", ipNet.IP.String(), prefixLen)] = &dozer.SpecVRFStaticRoute{
+				NextHops: []dozer.SpecVRFStaticRouteNextHop{
+					{
+						IP:        ip2,
+						Interface: pointer.To(sub1),
+					},
+				},
+			}
 		}
 	}
 
 	return nil
 }
 
-func planL3FlatVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
-	if peering.Remote != "" {
-		slog.Warn("Skipping remote peering for VPCs with L3 mode", "peering", peeringName, "vpc1", vpc1Name, "vpc2", vpc2Name)
-
-		return nil
-	}
-
+func planL3FlatVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
 	vpc1Allow := map[string]map[string]bool{}
 	vpc2Allow := map[string]map[string]bool{}
 	for vpc1SubnetName := range vpc1.Subnets {

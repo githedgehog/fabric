@@ -672,8 +672,9 @@ spec:
                           type: array
                       type: object
                     mclag:
-                      description: MCLAG defines the MCLAG connection (port channel,
-                        single server to pair of switches with multiple links)
+                      description: 'Deprecated: MCLAG defines the MCLAG connection
+                        (port channel, single server to pair of switches with multiple
+                        links)'
                       properties:
                         fallback:
                           description: Fallback is the optional flag that used to
@@ -713,9 +714,9 @@ spec:
                           type: integer
                       type: object
                     mclagDomain:
-                      description: MCLAGDomain defines the MCLAG domain connection
-                        which makes two switches into a single logical switch for
-                        server multi-homing
+                      description: 'Deprecated: MCLAGDomain defines the MCLAG domain
+                        connection which makes two switches into a single logical
+                        switch for server multi-homing'
                       properties:
                         peerLinks:
                           description: PeerLinks is the list of peer links between
@@ -1675,6 +1676,7 @@ spec:
                       minItems: 1
                       type: array
                     remote:
+                      description: Deprecated and no longer supported
                       type: string
                   type: object
                 type: object
