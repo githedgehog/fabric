@@ -1635,8 +1635,11 @@ spec:
                 type: object
               vpcAttachments:
                 additionalProperties:
-                  description: VPCAttachmentSpec defines the desired state of VPCAttachment
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
                     connection:
                       description: Connection is the name of the connection to attach
                         to the VPC

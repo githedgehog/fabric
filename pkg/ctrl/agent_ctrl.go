@@ -389,7 +389,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 
 	// TODO optimize by only getting related VPC attachments
-	attaches := map[string]vpcapi.VPCAttachmentSpec{}
+	attaches := map[string]agentapi.VPCAttachmentSpecAnn{}
 	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
 	attachedVPCs := map[string]bool{}
 	attachList := &vpcapi.VPCAttachmentList{}
@@ -402,7 +402,19 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		_, mclagConn := mclagConns[attach.Spec.Connection]
 
 		if conn {
-			attaches[attach.Name] = attach.Spec
+			anns := map[string]string{}
+			for k, v := range attach.Annotations {
+				if !strings.HasPrefix(k, "fabric.githedgehog.com/") {
+					continue
+				}
+
+				anns[k] = v
+			}
+
+			attaches[attach.Name] = agentapi.VPCAttachmentSpecAnn{
+				VPCAttachmentSpec: attach.Spec,
+				Annotations:       anns,
+			}
 		}
 
 		// whatever vpc subnet that got configured on our mclag peer should be configured on us too
