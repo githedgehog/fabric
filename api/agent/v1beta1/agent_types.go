@@ -45,7 +45,7 @@ type AgentSpec struct {
 	RedundancyGroupPeers []string                                 `json:"redundancyGroupPeers,omitempty"`
 	Connections          map[string]wiringapi.ConnectionSpec      `json:"connections,omitempty"`
 	VPCs                 map[string]vpcapi.VPCSpec                `json:"vpcs,omitempty"`
-	VPCAttachments       map[string]vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
+	VPCAttachments       map[string]VPCAttachmentSpecAnn          `json:"vpcAttachments,omitempty"`
 	VPCPeerings          map[string]vpcapi.VPCPeeringSpec         `json:"vpcPeers,omitempty"`
 	IPv4Namespaces       map[string]vpcapi.IPv4NamespaceSpec      `json:"ipv4Namespaces,omitempty"`
 	VLANNamespaces       map[string]wiringapi.VLANNamespaceSpec   `json:"vlanNamespaces,omitempty"`
@@ -61,6 +61,11 @@ type AgentSpec struct {
 
 	// TODO impl
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
+}
+
+type VPCAttachmentSpecAnn struct {
+	vpcapi.VPCAttachmentSpec `json:",inline"`
+	Annotations              map[string]string `json:"annotations,omitempty"`
 }
 
 type AgentSpecConfig struct {

@@ -21,6 +21,7 @@ import (
 	_ "embed"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
@@ -239,7 +240,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	for _, attach := range agent.Spec.VPCAttachments {
+	for attachName, attach := range agent.Spec.VPCAttachments {
 		conn, ok := agent.Spec.Connections[attach.Connection]
 		if !ok {
 			continue
@@ -255,9 +256,22 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		vpcName := attach.VPCName()
 
+		ip := ""
+		if p2pSubnet, ok := attach.Annotations[vpcapi.AnnotationVPCAttachmentP2PLink]; ok && p2pSubnet != "" {
+			p2p, err := netip.ParsePrefix(p2pSubnet)
+			if err != nil {
+				return nil, fmt.Errorf("parsing p2p subnet %q for vpc attachment %q: %w", p2pSubnet, attachName, err)
+			}
+			if !p2p.IsValid() || !p2p.Addr().Is4() || p2p.Bits() != 31 {
+				return nil, fmt.Errorf("p2p subnet %q for vpc attachment %q is not /31", p2pSubnet, attachName) //nolint:err113
+			}
+			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
+		}
+
 		portConfigs = append(portConfigs, PortConfig{
 			Name: swp(conn.Unbundled.Link.Switch.LocalPortName()),
 			VRF:  vpcName,
+			IP:   ip,
 		})
 	}
 

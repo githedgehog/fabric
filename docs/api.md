@@ -659,6 +659,8 @@ _Appears in:_
 
 
 
+
+
 ## dhcp.githedgehog.com/v1beta1
 
 Package v1beta1 contains API Schema definitions for the dhcp v1beta1 API group. It is the primary internal API
@@ -1199,6 +1201,7 @@ VPCAttachmentSpec defines the desired state of VPCAttachment
 
 _Appears in:_
 - [VPCAttachment](#vpcattachment)
+- [VPCAttachmentSpecAnn](#vpcattachmentspecann)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
