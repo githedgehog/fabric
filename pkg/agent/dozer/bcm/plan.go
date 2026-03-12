@@ -65,6 +65,7 @@ const (
 	NoCommunity                  = "no-community"
 	LSTGroupSpineLink            = "spinelink"
 	BGPCommListAllExternals      = "all-externals"
+	BGPCommListAllGwPrios        = "all-gw-prios"
 	MgmtIface                    = "Management0"
 	FabricBFDProfile             = "fabric"
 	MaxGWPrioLevels              = 100
@@ -409,6 +410,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		// we should be setting local preferences, given higher preference in reverse order
 		// of priority
 		prios := slices.Sorted(maps.Keys(agent.Spec.Config.GatewayCommunities))
+		comms := slices.Sorted(maps.Values(agent.Spec.Config.GatewayCommunities))
 		numPrios := len(agent.Spec.Config.GatewayCommunities)
 
 		// if we have more than 100 priority levels we will clash with the remote peering default route
@@ -416,6 +418,10 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		if numPrios > MaxGWPrioLevels {
 			return errors.Errorf("too many gateway communities defined (%d), max is %d", numPrios, MaxGWPrioLevels)
 		}
+
+		// create a separate community list for all gateway priorities, used to match prefixes
+		// learned from the gateway (e.g. to export them to BGP externals)
+		spec.CommunityLists[BGPCommListAllGwPrios] = &dozer.SpecCommunityList{Members: comms}
 
 		for idx, prioStr := range prios {
 			commVal := agent.Spec.Config.GatewayCommunities[prioStr]
@@ -1118,6 +1124,13 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					"10": {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+						},
+						SetCommunities: []string{external.OutboundCommunity},
+						Result:         dozer.SpecRouteMapResultAccept,
+					},
+					"20": {
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchCommunityList: pointer.To(string(BGPCommListAllGwPrios)),
 						},
 						SetCommunities: []string{external.OutboundCommunity},
 						Result:         dozer.SpecRouteMapResultAccept,
