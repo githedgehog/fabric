@@ -67,6 +67,21 @@ gateway over another. These are the community lists generated with the default c
     bgp community-list standard gw-prio-8 permit 50001:8
     bgp community-list standard gw-prio-9 permit 50001:9
     ```
+1. We create an additional community list `all-gw-prios` with all of the communities above, which
+is used to match prefixes that we learned from a gateway, specifically in the context of peering
+with BGP externals, when we want to advertise NATed prefixes that do not fall in the IPv4 namespace:
+    ```
+    bgp community-list standard all-gw-prios permit 50001:0
+    bgp community-list standard all-gw-prios permit 50001:1
+    bgp community-list standard all-gw-prios permit 50001:2
+    bgp community-list standard all-gw-prios permit 50001:3
+    bgp community-list standard all-gw-prios permit 50001:4
+    bgp community-list standard all-gw-prios permit 50001:5
+    bgp community-list standard all-gw-prios permit 50001:6
+    bgp community-list standard all-gw-prios permit 50001:7
+    bgp community-list standard all-gw-prios permit 50001:8
+    bgp community-list standard all-gw-prios permit 50001:9
+    ```
 1. We create a route-map applied to each L2VPN neighbor in the default VRF (in the `in` direction).
 This route-map serves multiple purposes:
     - it matches on the gateway priority-related community lists described above, and for each of
@@ -1115,6 +1130,8 @@ in the external attachment:
   - we deny everything else
 In the outbound route-map, used in the out direction with the external:
   - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community
+  - we permit any route matching the gateway priority community list (`all-gw-prios`), and we tag those with the external's outbound community;
+  this is to ensure that NATed prefixes learned from the gateway are exported to the external
   - we deny everything else
 In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes leaked in the external VRF:
   - we permit routes that match the corresponding community list mentioned above
@@ -1131,6 +1148,10 @@ In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes l
   !
   route-map ext-outbound--ext-name permit 10
    match ip address prefix-list ipns-subnets--default
+   set community 64102:1000
+  !
+  route-map ext-outbound--ext-name permit 20
+   match community all-gw-prios
    set community 64102:1000
   !
   route-map ext-outbound--ext-name deny 100

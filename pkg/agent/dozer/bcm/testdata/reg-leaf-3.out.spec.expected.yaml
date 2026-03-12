@@ -30,6 +30,18 @@ communityLists:
   all-externals:
     members:
     - 65102:1000
+  all-gw-prios:
+    members:
+    - "50001:0"
+    - "50001:1"
+    - "50001:2"
+    - "50001:3"
+    - "50001:4"
+    - "50001:5"
+    - "50001:6"
+    - "50001:7"
+    - "50001:8"
+    - "50001:9"
   ext-inbound--external-01:
     members:
     - 65102:1000
@@ -478,6 +490,12 @@ routeMaps:
       "10":
         conditions:
           matchPrefixLists: ipns-subnets--default
+        result: accept
+        setCommunities:
+        - 64102:1000
+      "20":
+        conditions:
+          matchCommunityLists: all-gw-prios
         result: accept
         setCommunities:
         - 64102:1000
