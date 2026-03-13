@@ -18,6 +18,7 @@ import (
 
 type Server struct {
 	ListenInterface string
+	AnyDeviceOnMgmt bool
 
 	kube    kclient.WithWatch
 	subnets map[string]*dhcpapi.DHCPSubnet

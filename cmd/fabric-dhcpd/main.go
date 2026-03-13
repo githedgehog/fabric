@@ -103,6 +103,14 @@ func main() {
 		Destination: &listenInterface,
 	}
 
+	var anyDeviceOnMgmt bool
+	anyDeviceOnMgmtFlag := &cli.BoolFlag{
+		Name:        "any-device-on-mgmt",
+		Usage:       "allow any device on management subnet",
+		Value:       false,
+		Destination: &anyDeviceOnMgmt,
+	}
+
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
 	app := &cli.App{
 		Name:                   "hhdhcpd",
@@ -118,6 +126,7 @@ func main() {
 				Flags: []cli.Flag{
 					verboseFlag,
 					listenInterfaceFlag,
+					anyDeviceOnMgmtFlag,
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
@@ -125,6 +134,7 @@ func main() {
 				Action: func(_ *cli.Context) error {
 					return errors.Wrapf((&dhcp.Server{
 						ListenInterface: listenInterface,
+						AnyDeviceOnMgmt: anyDeviceOnMgmt,
 					}).Run(ctx), "failed to run dhcp server")
 				},
 			},
