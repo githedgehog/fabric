@@ -28,6 +28,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 listenInterface: "eth0"
+anyDeviceOnMgmt: false
 
 serviceAccount:
   # Specifies whether a service account should be created
