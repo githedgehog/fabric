@@ -1237,6 +1237,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `relay` _string_ | Relay is the DHCP relay IP address, if specified, DHCP server will be disabled |  |  |
+| `relaySourceInterface` _string_ | RelaySourceInterface is the name of the switch interface to use as source for the DHCP relay; if empty, defaults to Management0 |  |  |
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |  |  |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled |  |  |
 | `options` _[VPCDHCPOptions](#vpcdhcpoptions)_ | Options (optional) is the DHCP options for the subnet if DHCP server is enabled |  |  |

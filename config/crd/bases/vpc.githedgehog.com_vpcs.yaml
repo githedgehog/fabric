@@ -191,6 +191,11 @@ spec:
                           description: Relay is the DHCP relay IP address, if specified,
                             DHCP server will be disabled
                           type: string
+                        relaySourceInterface:
+                          description: RelaySourceInterface is the name of the switch
+                            interface to use as source for the DHCP relay; if empty,
+                            defaults to Management0
+                          type: string
                         static:
                           additionalProperties:
                             description: VPCDHCPStatic represents static IP assignment
