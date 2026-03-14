@@ -808,9 +808,18 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
+	swAnns := map[string]string{}
+	for k, v := range sw.Annotations {
+		if !strings.Contains(k, "githedgehog.com/") {
+			continue
+		}
+
+		swAnns[k] = v
+	}
+
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
-		agent.Annotations = sw.Annotations
+		agent.Annotations = swAnns
 		agent.Labels = sw.Labels
 		agent.Spec.Role = sw.Spec.Role
 		agent.Spec.Description = sw.Spec.Description

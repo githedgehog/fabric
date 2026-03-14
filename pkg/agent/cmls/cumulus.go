@@ -22,6 +22,7 @@ import (
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
@@ -75,9 +76,10 @@ type BGPNeighbor struct {
 }
 
 type VPC struct {
-	Name   string
-	VNI    uint32
-	Subnet string
+	Name      string
+	VNI       uint32
+	Subnet    string
+	RouteSumm []string
 }
 
 type PortConfig struct {
@@ -219,6 +221,21 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
+	routeSumm := map[string][]string{}
+	if agent.Annotations != nil {
+		for hook := range strings.SplitSeq(agent.Annotations[wiringapi.AnnotationSwitchRouteSumm], ",") {
+			parts := strings.SplitN(hook, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			routeSumm[parts[0]] = append(routeSumm[parts[0]], parts[1])
+		}
+		for k, v := range routeSumm {
+			slices.Sort(v)
+			routeSumm[k] = v
+		}
+	}
+
 	vpcs := []VPC{}
 	for vpcName, vpc := range agent.Spec.VPCs {
 		if len(vpc.Subnets) != 1 {
@@ -232,8 +249,9 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			}
 
 			vpcs = append(vpcs, VPC{
-				Name: vpcName,
-				VNI:  vni,
+				Name:      vpcName,
+				VNI:       vni,
+				RouteSumm: routeSumm[vpcName],
 				// TODO make sure to only readvertise those subnets?
 				Subnet: subnet.Subnet,
 			})
