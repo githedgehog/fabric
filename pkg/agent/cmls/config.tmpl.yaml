@@ -88,6 +88,11 @@
       bgp:
         autonomous-system: {{ $.ASN }}
         router-id: {{ $.RouterID }}
+        graceful-restart:
+          mode: full
+          path-selection-deferral-time: 180
+          restart-time: 180
+          stale-routes-time: 180
         state: enabled
       policy:
         prefix-list:
@@ -207,6 +212,13 @@
                 route-export:
                   to-evpn:
                     state: enabled
+                {{ if $vpc.RouteSumm }}
+                aggregate-route:
+                  {{ range $route := $vpc.RouteSumm }}
+                  {{ $route }}:
+                    summary-only: enabled
+                  {{ end }}
+                {{ end }}
                 state: enabled
               l2vpn-evpn:
                 state: enabled

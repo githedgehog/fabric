@@ -120,9 +120,9 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 				subnet, ok = s.subnets[subnetKey(vrf, circuitID)]
 			}
 
-			// only use dhcp for onie and cumulus in the management subnet
+			// only use dhcp for onie and cumulus in the management subnet unless all devices are allowed
 			mgmtSkip := false
-			if ok && subnet.Name == dhcpapi.ManagementSubnet {
+			if !s.AnyDeviceOnMgmt && ok && subnet.Name == dhcpapi.ManagementSubnet {
 				classID := req.ClassIdentifier()
 				if !strings.HasPrefix(classID, onieClassIDPrefix) && classID != cumulusClassID {
 					mgmtSkip = true
