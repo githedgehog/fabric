@@ -99,6 +99,8 @@ type VPCSubnet struct {
 type VPCDHCP struct {
 	// Relay is the DHCP relay IP address, if specified, DHCP server will be disabled
 	Relay string `json:"relay,omitempty"`
+	// RelaySourceInterface is the name of the switch interface to use as source for the DHCP relay; if empty, defaults to Management0
+	RelaySourceInterface string `json:"relaySourceInterface,omitempty"`
 	// Enable enables DHCP server for the subnet
 	Enable bool `json:"enable,omitempty"`
 	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled
@@ -441,6 +443,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			if err != nil {
 				return nil, errors.Wrapf(err, "subnet %s: failed to parse dhcp relay %s", subnetName, subnetCfg.DHCP.Relay)
 			}
+		} else if subnetCfg.DHCP.RelaySourceInterface != "" {
+			return nil, errors.Errorf("subnet %s: dhcp relay source interface is set but dhcp relay is not set", subnetName)
 		}
 
 		if subnetCfg.DHCP.Options != nil && !subnetCfg.DHCP.Enable {

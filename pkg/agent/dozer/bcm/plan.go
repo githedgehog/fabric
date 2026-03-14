@@ -2807,6 +2807,7 @@ func planVNIVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, v
 
 	if subnet.DHCP.Enable || subnet.DHCP.Relay != "" {
 		var dhcpRelayIP net.IP
+		sourceInterface := MgmtIface
 
 		if subnet.DHCP.Enable {
 			dhcpRelayIP, _, err = net.ParseCIDR(agent.Spec.Config.ControlVIP)
@@ -2818,10 +2819,14 @@ func planVNIVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, v
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", subnet.DHCP.Relay, vpcName)
 			}
+			if subnet.DHCP.RelaySourceInterface != "" {
+				// TODO: check that it's a valid port
+				sourceInterface = subnet.DHCP.RelaySourceInterface
+			}
 		}
 
 		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
-			SourceInterface: pointer.To(MgmtIface),
+			SourceInterface: pointer.To(sourceInterface),
 			RelayAddress:    []string{dhcpRelayIP.String()},
 			LinkSelect:      true,
 			VRFSelect:       true,
