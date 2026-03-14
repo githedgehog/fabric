@@ -32,6 +32,10 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+const (
+	AnnotationSwitchRouteSumm = "fabric.githedgehog.com/route-summ"
+)
+
 // +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf;virtual-edge
 // SwitchRole is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
 type SwitchRole string
