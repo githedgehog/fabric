@@ -490,7 +490,7 @@ github.com/xrash/smetrics
 # go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
-# go.githedgehog.com/gateway v0.43.4
+# go.githedgehog.com/gateway v0.43.5
 ## explicit; go 1.26
 go.githedgehog.com/gateway/api/gateway/v1alpha1
 go.githedgehog.com/gateway/api/meta
