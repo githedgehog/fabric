@@ -299,7 +299,7 @@ jobs:
           go fmt pkg/fab/versions.go
 
       - name: Generate token for the fabricator repository
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         id: fab-app-token
         with:
           app-id: ${{ secrets.FAB_APP_ID }}
@@ -341,7 +341,7 @@ jobs:
           cp docs/supported-devices.md docs-repo/docs/install-upgrade/supported-devices.md.gen
 
       - name: Generate token for the docs repository
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         id: docs-app-token
         with:
           app-id: ${{ secrets.DOCS_APP_ID }}
