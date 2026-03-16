@@ -52,7 +52,7 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["--listen", "{{ .Values.listenInterface }}", "--any-device-on-mgmt", "{{ .Values.anyDeviceOnMgmt }}"]
+          args: ["--listen={{ .Values.listenInterface }}", "--any-device-on-mgmt={{ .Values.anyDeviceOnMgmt }}"]
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
