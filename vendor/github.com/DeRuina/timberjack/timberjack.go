@@ -652,9 +652,9 @@ func (l *Logger) rotate(reason string) error {
 // empty, it falls back to the default behavior used by Rotate(): "time" if an
 // interval rotation is due, otherwise "size".
 //
-// NOTE: Like Rotate(), this does not modify lastRotationTime. If an interval
-// rotation is already due, a subsequent write may still trigger another
-// interval-based rotation.
+// After a successful rotation, lastRotationTime is updated to the current time
+// so that a subsequent Write() does not trigger a duplicate interval-based or
+// scheduled rotation.
 func (l *Logger) RotateWithReason(reason string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -672,7 +672,11 @@ func (l *Logger) RotateWithReason(reason string) error {
 		}
 	}
 
-	return l.rotate(r)
+	if err := l.rotate(r); err != nil {
+		return err
+	}
+	l.lastRotationTime = l.resolvedTimeNow()
+	return nil
 }
 
 func backupNameWithResolved(name string, local bool, reason string, t time.Time, layout string, afterExt bool) string {
@@ -1234,6 +1238,16 @@ func (l *Logger) compressLogFile(src, dst string) error {
 			filepath.Base(src), dst, errChown, src)
 		// Note: Depending on requirements, a chown failure could be considered critical.
 		// For now, it's logged, and compression proceeds to remove the source.
+	}
+
+	// Windows file locking fix
+	// Close the source file explicitly BEFORE attempting to remove it.
+	// On Windows, you cannot delete an open file. The defer srcFile.Close() won't execute
+	// until this function returns, so we must close it here before calling resolvedRemove().
+	// This prevents "The process cannot access the file because it is being used" errors.
+	if err := srcFile.Close(); err != nil {
+		// Log the close error but continue with removal attempt
+		fmt.Fprintf(os.Stderr, "timberjack: [%s] failed to close source file before removal: %v\n", filepath.Base(src), err)
 	}
 
 	// Finally, after successful compression and closing (and optional chown), remove the original source file.
