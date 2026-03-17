@@ -304,6 +304,18 @@ prefixLists:
         prefix:
           le: 32
           prefix: 0.0.0.0/0
+  ext-import--external-01:
+    prefixes:
+      "103":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.5.0/24
+      "105":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.1.0/24
   import-vrf--vpc-01--external-01:
     prefixes:
       "106":
@@ -471,6 +483,12 @@ prefixLists:
           le: 32
           prefix: 10.0.8.0/24
 routeMaps:
+  ext-import--external-01:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ext-import--external-01
+        result: accept
   ext-inbound--external-01:
     statements:
       "5":
@@ -823,7 +841,7 @@ vrfs:
       as: 65102
       ipv4Unicast:
         enable: true
-        importPolicy: ipns-subnets--default
+        importPolicy: ext-import--external-01
         importVRFs:
           VrfVvpc-01: {}
           VrfVvpc-03: {}

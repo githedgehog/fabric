@@ -1086,6 +1086,15 @@ from going out via the external attachment:
      seq 65535 permit ip any any
     !
     ```
+1. We create a prefix list and a route-map to filter what is imported into the external's
+VRF via route leaking, i.e. when we peer a VPC with the external via the Fabric. The
+prefix list, initially empty, is dynamically populated with the prefixes of the VPC
+subnets that are permitted in the [external peerings](#external-peerings):
+    ```
+    route-map ext-import--ext-name permit 10
+     match ip address prefix-list ext-import--ext-name
+    !
+    ```
 1. We configure a BGP instance for the external VRF. This is done for all externals,
 not just BGP-speaking ones, because it's part of how we handle external VRFs "as VPCs"
 and peer them via the gateway as needed. 
@@ -1098,7 +1107,7 @@ and peer them via the gateway as needed.
      address-family ipv4 unicast
       maximum-paths 16
       maximum-paths ibgp 1
-      import vrf route-map ipns-subnets--default
+      import vrf route-map ext-import--ext-name
      !
      address-family l2vpn evpn
       advertise ipv4 unicast
@@ -1132,7 +1141,7 @@ In the outbound route-map, used in the out direction with the external:
   - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community
   - we permit any route matching the gateway priority community list (`all-gw-prios`), and we tag those with the external's outbound community;
   this is to ensure that NATed prefixes learned from the gateway are exported to the external
-  - we deny everything else
+  - we deny everything else. Note that in practice, due to the route-leaking route-map, nothing else should be present in the VRF anyway.
 In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes leaked in the external VRF:
   - we permit routes that match the corresponding community list mentioned above
   - we deny everything else
@@ -1258,6 +1267,11 @@ will also match on the inbound community of that external.
      match community ext-inbound--ext-name
      set local-preference 500
     !
+    ```
+1. We add the VPC subnet(s) to the prefix list for the external's VRF route leaking, allowing
+them through:
+    ```
+    ip prefix-list ext-import--ext-name seq 101 permit 10.0.1.0/24 le 32
     ```
 1. We enable route leaking between the VRFs of the VPC and the external:
     ```

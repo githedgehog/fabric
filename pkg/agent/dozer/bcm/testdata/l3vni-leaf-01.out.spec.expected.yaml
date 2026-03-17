@@ -257,6 +257,14 @@ prefixLists:
         prefix:
           le: 32
           prefix: 0.0.0.0/0
+  ext-import--ext-snp-02:
+    prefixes:
+      "101":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.2.0/24
+  ext-import--ext-sp-01: {}
   import-vrf--vpc-02--ext-snp-02:
     prefixes:
       "103":
@@ -387,6 +395,18 @@ prefixLists:
           le: 32
           prefix: 10.0.3.0/24
 routeMaps:
+  ext-import--ext-snp-02:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ext-import--ext-snp-02
+        result: accept
+  ext-import--ext-sp-01:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ext-import--ext-sp-01
+        result: accept
   filter-attached-hosts:
     statements:
       "10":
@@ -699,7 +719,7 @@ vrfs:
       as: 65101
       ipv4Unicast:
         enable: true
-        importPolicy: ipns-subnets--default
+        importPolicy: ext-import--ext-snp-02
         importVRFs:
           VrfVvpc-02: {}
         maxPaths: 16
@@ -729,7 +749,7 @@ vrfs:
       as: 65101
       ipv4Unicast:
         enable: true
-        importPolicy: ipns-subnets--default
+        importPolicy: ext-import--ext-sp-01
         maxPaths: 16
       l2vpnEvpn:
         advertiseIPv4Unicast: true
