@@ -239,6 +239,13 @@ prefixLists:
         prefix:
           le: 32
           prefix: 0.0.0.0/0
+  ext-import--ext-bgp-01:
+    prefixes:
+      "100":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.3.0/24
   import-vrf--vpc-03--ext-bgp-01:
     prefixes:
       "101":
@@ -297,6 +304,12 @@ prefixLists:
           le: 32
           prefix: 10.0.3.0/24
 routeMaps:
+  ext-import--ext-bgp-01:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ext-import--ext-bgp-01
+        result: accept
   ext-inbound--ext-bgp-01:
     statements:
       "5":
@@ -518,7 +531,7 @@ vrfs:
       as: 65103
       ipv4Unicast:
         enable: true
-        importPolicy: ipns-subnets--default
+        importPolicy: ext-import--ext-bgp-01
         importVRFs:
           VrfVvpc-03: {}
         maxPaths: 16

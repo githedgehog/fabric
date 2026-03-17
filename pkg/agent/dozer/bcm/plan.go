@@ -1052,6 +1052,20 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			seq += 10
 		}
 
+		spec.PrefixLists[extImportPrefixListName(externalName)] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+		}
+		spec.RouteMaps[extImportRouteMapName(externalName)] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(extImportPrefixListName(externalName)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+
 		if spec.VRFs[extVrfName] == nil {
 			protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 			if err != nil {
@@ -1073,7 +1087,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 						MaxPaths:     pointer.To(getMaxPaths(agent)),
 						Networks:     map[string]*dozer.SpecVRFBGPNetwork{},
 						ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
-						ImportPolicy: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+						ImportPolicy: pointer.To(extImportRouteMapName(externalName)),
 					},
 					L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
 						Enabled:              agent.IsSpineLeaf(),
@@ -3137,9 +3151,24 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		for _, subnetName := range peering.Permit.VPC.Subnets {
-			_, exists := vpc.Subnets[subnetName]
+			subnet, exists := vpc.Subnets[subnetName]
 			if !exists {
 				return errors.Errorf("VPC %s subnet %s not found for external peering %s", vpcName, subnetName, name)
+			}
+			idx := agent.Spec.Catalog.SubnetIDs[subnet.Subnet]
+			if idx == 0 {
+				return errors.Errorf("no vpc subnet id for subnet %s of vpc %s in peering %s", subnet.Subnet, vpcName, name)
+			}
+			if idx >= 65000 {
+				return errors.Errorf("vpc subnet id for subnet %s of vpc %s in peering %s is too large", subnet.Subnet, vpcName, name)
+			}
+
+			spec.PrefixLists[extImportPrefixListName(externalName)].Prefixes[idx] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{
+					Prefix: subnet.Subnet,
+					Le:     32,
+				},
+				Action: dozer.SpecPrefixListActionPermit,
 			}
 		}
 
@@ -3433,6 +3462,16 @@ func extInboundCommListName(external string) string {
 
 func extInboundRouteMapName(external string) string {
 	return fmt.Sprintf("ext-inbound--%s", external)
+}
+
+// route-map to filter what we import in the external's VRF. matches on the prefix list below
+func extImportRouteMapName(external string) string {
+	return fmt.Sprintf("ext-import--%s", external)
+}
+
+// prefix list with all the VPC subnets that have been peered with a given external, to filter what we import in the external's VRF
+func extImportPrefixListName(external string) string {
+	return fmt.Sprintf("ext-import--%s", external)
 }
 
 func extOutboundRouteMapName(external string) string {
