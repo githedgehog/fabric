@@ -80,8 +80,8 @@ rules:
   - gateway.githedgehog.com
   resources:
   - gatewaygroups
+  - gatewaypeerings
   - gateways
-  - peerings
   - vpcinfos
   verbs:
   - create
@@ -94,8 +94,8 @@ rules:
 - apiGroups:
   - gateway.githedgehog.com
   resources:
+  - gatewaypeerings/status
   - gateways/status
-  - peerings/status
   - vpcinfos/status
   verbs:
   - get
