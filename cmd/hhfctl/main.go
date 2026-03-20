@@ -28,12 +28,12 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"go.githedgehog.com/fabric/pkg/version"
-	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
 )

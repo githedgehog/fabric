@@ -1,0 +1,79 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+  name: vpcinfos.gateway.githedgehog.com
+spec:
+  group: gateway.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hedgehog-gateway
+    kind: VPCInfo
+    listKind: VPCInfoList
+    plural: vpcinfos
+    shortNames:
+    - gwvpc
+    singular: vpcinfo
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.internalID
+      name: InternalID
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VPCInfo is the Schema for the vpcinfos API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VPCInfoSpec defines the desired state of VPCInfo.
+            properties:
+              subnets:
+                additionalProperties:
+                  properties:
+                    cidr:
+                      description: CIDR is the subnet CIDR block, such as "10.0.0.0/24"
+                      type: string
+                  type: object
+                description: Subnets is a map of all subnets in the VPC (incl. CIDRs,
+                  VNIs, etc) keyed by the subnet name
+                type: object
+              vni:
+                description: VNI is the VNI for the VPC
+                format: int32
+                type: integer
+            type: object
+          status:
+            description: VPCInfoStatus defines the observed state of VPCInfo.
+            properties:
+              internalID:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

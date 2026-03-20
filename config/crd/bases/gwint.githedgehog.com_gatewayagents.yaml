@@ -1,0 +1,550 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+  name: gatewayagents.gwint.githedgehog.com
+spec:
+  group: gwint.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hedgehog-gateway
+    kind: GatewayAgent
+    listKind: GatewayAgentList
+    plural: gatewayagents
+    shortNames:
+    - gwag
+    singular: gatewayagent
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.lastAppliedTime
+      name: Applied
+      type: date
+    - jsonPath: .status.lastAppliedGen
+      name: AppliedG
+      type: integer
+    - jsonPath: .metadata.generation
+      name: CurrentG
+      type: integer
+    - jsonPath: .status.agentVersion
+      name: Version
+      type: string
+    - jsonPath: .spec.gateway.protocolIP
+      name: ProtoIP
+      priority: 1
+      type: string
+    - jsonPath: .spec.gateway.vtepIP
+      name: VTEPIP
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: GatewayAgent is the Schema for the gatewayagents API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GatewayAgentSpec defines the desired state of GatewayAgent.
+            properties:
+              agentVersion:
+                description: AgentVersion is the desired version of the gateway agent
+                  to trigger generation changes on controller upgrades
+                type: string
+              communities:
+                additionalProperties:
+                  type: string
+                type: object
+              config:
+                properties:
+                  fabricBFD:
+                    description: FabricBFD defines if fabric-facing links should be
+                      configured with BFD
+                    type: boolean
+                type: object
+              gateway:
+                description: GatewaySpec defines the desired state of Gateway.
+                properties:
+                  asn:
+                    description: ASN is the ASN of the gateway
+                    format: int32
+                    type: integer
+                  groups:
+                    description: Groups is a list of group memberships for the gateway
+                    items:
+                      properties:
+                        name:
+                          description: Name is the name of the group to which the
+                            gateway belongs
+                          type: string
+                        priority:
+                          description: Priority is the priority of the gateway within
+                            the group
+                          format: int32
+                          type: integer
+                      type: object
+                    type: array
+                  interfaces:
+                    additionalProperties:
+                      description: GatewayInterface defines the configuration for
+                        a gateway interface
+                      properties:
+                        ips:
+                          description: IPs is the list of IP address to assign to
+                            the interface
+                          items:
+                            type: string
+                          type: array
+                        kernel:
+                          description: Kernel is the kernel name of the interface
+                            to use (required for kernel driver), e.g. enp2s1
+                          type: string
+                        mtu:
+                          description: MTU for the interface
+                          format: int32
+                          type: integer
+                        pci:
+                          description: PCI address of the interface (required for
+                            DPDK driver), e.g. 0000:00:01.0
+                          type: string
+                      type: object
+                    description: Interfaces is a map of interface names to their configurations
+                    type: object
+                  logs:
+                    description: Logs defines the configuration for logging levels
+                    properties:
+                      default:
+                        type: string
+                      tags:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
+                  neighbors:
+                    description: Neighbors is a list of BGP neighbors
+                    items:
+                      description: GatewayBGPNeighbor defines the configuration for
+                        a BGP neighbor
+                      properties:
+                        asn:
+                          description: ASN is the remote ASN of the BGP neighbor
+                          format: int32
+                          type: integer
+                        ip:
+                          description: IP is the IP address of the BGP neighbor
+                          type: string
+                        source:
+                          description: Source is the source interface for the BGP
+                            neighbor configuration
+                          type: string
+                      type: object
+                    type: array
+                  profiling:
+                    description: Profiling defines the configuration for profiling
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  protocolIP:
+                    description: ProtocolIP is used as a loopback IP and BGP Router
+                      ID
+                    type: string
+                  vtepIP:
+                    description: VTEP IP to be used by the gateway
+                    type: string
+                  vtepMAC:
+                    description: VTEP MAC address to be used by the gateway
+                    type: string
+                  vtepMTU:
+                    description: VTEPMTU is the MTU for the VTEP interface
+                    format: int32
+                    type: integer
+                  workers:
+                    description: Workers defines the number of worker threads to use
+                      for dataplane
+                    type: integer
+                type: object
+              groups:
+                additionalProperties:
+                  properties:
+                    members:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          priority:
+                            format: int32
+                            type: integer
+                          vtepIP:
+                            type: string
+                        required:
+                        - name
+                        - priority
+                        - vtepIP
+                        type: object
+                      type: array
+                  type: object
+                type: object
+              peerings:
+                additionalProperties:
+                  description: PeeringSpec defines the desired state of Peering.
+                  properties:
+                    gatewayGroup:
+                      description: GatewayGroup is the name of the gateway group that
+                        should process the peering
+                      type: string
+                    peering:
+                      additionalProperties:
+                        properties:
+                          expose:
+                            items:
+                              properties:
+                                as:
+                                  items:
+                                    properties:
+                                      cidr:
+                                        description: CIDR to include, only one of
+                                          cidr, not can be set
+                                        type: string
+                                      not:
+                                        description: CIDR to exclude, only one of
+                                          cidr, not can be set
+                                        type: string
+                                    type: object
+                                  type: array
+                                default:
+                                  type: boolean
+                                ips:
+                                  items:
+                                    properties:
+                                      cidr:
+                                        description: CIDR to include, only one of
+                                          cidr, not, vpcSubnet can be set
+                                        type: string
+                                      not:
+                                        description: CIDR to exclude, only one of
+                                          cidr, not, vpcSubnet can be set
+                                        type: string
+                                      vpcSubnet:
+                                        description: CIDR by VPC subnet name to include,
+                                          only one of cidr, not, vpcSubnet can be
+                                          set
+                                        type: string
+                                    type: object
+                                  type: array
+                                nat:
+                                  properties:
+                                    masquerade:
+                                      properties:
+                                        idleTimeout:
+                                          description: Time since the last packet
+                                            after which flows are removed from the
+                                            connection state table
+                                          type: string
+                                      type: object
+                                    portForward:
+                                      properties:
+                                        idleTimeout:
+                                          description: Time since the last packet
+                                            after which flows are removed from the
+                                            connection state table
+                                          type: string
+                                        ports:
+                                          items:
+                                            properties:
+                                              as:
+                                                type: string
+                                              port:
+                                                type: string
+                                              proto:
+                                                enum:
+                                                - tcp
+                                                - udp
+                                                - ""
+                                                type: string
+                                            type: object
+                                          type: array
+                                      type: object
+                                    static:
+                                      type: object
+                                  type: object
+                              type: object
+                            type: array
+                        type: object
+                      description: Peerings is a map of peering entries for each VPC
+                        participating in the peering (keyed by VPC name)
+                      type: object
+                  type: object
+                type: object
+              vpcs:
+                additionalProperties:
+                  properties:
+                    internalID:
+                      type: string
+                    subnets:
+                      additionalProperties:
+                        properties:
+                          cidr:
+                            description: CIDR is the subnet CIDR block, such as "10.0.0.0/24"
+                            type: string
+                        type: object
+                      description: Subnets is a map of all subnets in the VPC (incl.
+                        CIDRs, VNIs, etc) keyed by the subnet name
+                      type: object
+                    vni:
+                      description: VNI is the VNI for the VPC
+                      format: int32
+                      type: integer
+                  type: object
+                type: object
+            type: object
+            x-kubernetes-map-type: atomic
+          status:
+            description: GatewayAgentStatus defines the observed state of GatewayAgent.
+            properties:
+              agentVersion:
+                description: AgentVersion is the version of the gateway agent
+                type: string
+              lastAppliedGen:
+                description: Generation of the last successful configuration application
+                format: int64
+                type: integer
+              lastAppliedTime:
+                description: Time of the last successful configuration application
+                format: date-time
+                type: string
+              lastHeartbeat:
+                description: Time of the last heartbeat from the agent
+                format: date-time
+                type: string
+              state:
+                description: State represents collected data from the dataplane API
+                  that includes FRR as well
+                properties:
+                  bgp:
+                    description: BGP is BGP status
+                    properties:
+                      vrfs:
+                        additionalProperties:
+                          properties:
+                            neighbors:
+                              additionalProperties:
+                                properties:
+                                  connectionsDropped:
+                                    format: int64
+                                    type: integer
+                                  enabled:
+                                    type: boolean
+                                  establishedTransitions:
+                                    format: int64
+                                    type: integer
+                                  ipv4UnicastPrefixes:
+                                    properties:
+                                      received:
+                                        format: int32
+                                        type: integer
+                                      receivedPrePolicy:
+                                        format: int32
+                                        type: integer
+                                      sent:
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                  ipv6UnicastPrefixes:
+                                    properties:
+                                      received:
+                                        format: int32
+                                        type: integer
+                                      receivedPrePolicy:
+                                        format: int32
+                                        type: integer
+                                      sent:
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                  l2VPNEVPNPrefixes:
+                                    properties:
+                                      received:
+                                        format: int32
+                                        type: integer
+                                      receivedPrePolicy:
+                                        format: int32
+                                        type: integer
+                                      sent:
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                  lastResetReason:
+                                    type: string
+                                  localAS:
+                                    format: int32
+                                    type: integer
+                                  messages:
+                                    properties:
+                                      received:
+                                        properties:
+                                          capability:
+                                            format: int64
+                                            type: integer
+                                          keepalive:
+                                            format: int64
+                                            type: integer
+                                          notification:
+                                            format: int64
+                                            type: integer
+                                          open:
+                                            format: int64
+                                            type: integer
+                                          routeRefresh:
+                                            format: int64
+                                            type: integer
+                                          update:
+                                            format: int64
+                                            type: integer
+                                        type: object
+                                      sent:
+                                        properties:
+                                          capability:
+                                            format: int64
+                                            type: integer
+                                          keepalive:
+                                            format: int64
+                                            type: integer
+                                          notification:
+                                            format: int64
+                                            type: integer
+                                          open:
+                                            format: int64
+                                            type: integer
+                                          routeRefresh:
+                                            format: int64
+                                            type: integer
+                                          update:
+                                            format: int64
+                                            type: integer
+                                        type: object
+                                    type: object
+                                  peerAS:
+                                    format: int32
+                                    type: integer
+                                  remoteRouterID:
+                                    type: string
+                                  sessionState:
+                                    description: BGPNeighborSessionState represents
+                                      the BGP FSM state for a neighbor.
+                                    enum:
+                                    - unset
+                                    - idle
+                                    - connect
+                                    - active
+                                    - open
+                                    - established
+                                    type: string
+                                type: object
+                              description: Neighbors keyed by an ip address string
+                              type: object
+                          type: object
+                        description: VRFs keyed by VRF name (e.g. "default", "vrfVvpc-1")
+                        type: object
+                    type: object
+                  dataplane:
+                    description: Dataplane is the status of the dataplane
+                    properties:
+                      version:
+                        type: string
+                    type: object
+                  frr:
+                    description: FRR is the status of the FRR daemon
+                    properties:
+                      lastAppliedGen:
+                        description: LastAppliedGen is the generation of the last
+                          successful application of a configuration to the FRR
+                        format: int64
+                        type: integer
+                    type: object
+                  lastCollectedTime:
+                    description: LastCollectedTime is the time of the last successful
+                      collection of data from the dataplane API
+                    format: date-time
+                    type: string
+                  peerings:
+                    additionalProperties:
+                      description: PeeringStatus represents the status of a peering
+                        between a pair of VPCs in one direction
+                      properties:
+                        b:
+                          description: Bytes is the number of bytes sent on the peering
+                          format: int64
+                          type: integer
+                        bps:
+                          description: BytesPerSecond is the number of bytes sent
+                            per second on the peering
+                          type: number
+                        d:
+                          description: Drops is the number of packets dropped on the
+                            peering
+                          format: int64
+                          type: integer
+                        p:
+                          description: Packets is the number of packets sent on the
+                            peering
+                          format: int64
+                          type: integer
+                        pps:
+                          description: PktsPerSecond is the number of packets sent
+                            per second on the peering
+                          type: number
+                      type: object
+                    description: Peerings is the status of the VPCs peerings where
+                      key is VPC1->VPC2 and data is for one direction only
+                    type: object
+                  vpcs:
+                    additionalProperties:
+                      properties:
+                        b:
+                          description: Bytes is the number of bytes sent on the vpc
+                          format: int64
+                          type: integer
+                        d:
+                          description: Drops is the number of packets dropped on the
+                            vpc
+                          format: int64
+                          type: integer
+                        p:
+                          description: Packets is the number of packets sent on the
+                            vpc
+                          format: int64
+                          type: integer
+                      type: object
+                    description: VPCs is the status of the VPCs where key is the vpc
+                      (vpcinfo) name
+                    type: object
+                type: object
+            type: object
+            x-kubernetes-map-type: atomic
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

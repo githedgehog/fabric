@@ -34,4 +34,22 @@ resources:
 # For each CRD, "Editor" and "Viewer" roles are scaffolded by
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the fabric itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- gwint_gatewayagent_admin_role.yaml
+- gwint_gatewayagent_editor_role.yaml
+- gwint_gatewayagent_viewer_role.yaml
+- gateway_vpcinfo_admin_role.yaml
+- gateway_vpcinfo_editor_role.yaml
+- gateway_vpcinfo_viewer_role.yaml
+- gateway_gatewaypeering_admin_role.yaml
+- gateway_gatewaypeering_editor_role.yaml
+- gateway_gatewaypeering_viewer_role.yaml
+- gateway_gatewaygroup_admin_role.yaml
+- gateway_gatewaygroup_editor_role.yaml
+- gateway_gatewaygroup_viewer_role.yaml
+- gateway_gateway_admin_role.yaml
+- gateway_gateway_editor_role.yaml
+- gateway_gateway_viewer_role.yaml

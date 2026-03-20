@@ -33,6 +33,11 @@ resources:
   - bases/vpc.githedgehog.com_externalpeerings.yaml
   - bases/dhcp.githedgehog.com_dhcpsubnets.yaml
   - bases/agent.githedgehog.com_catalogs.yaml
+  - bases/gateway.githedgehog.com_gateways.yaml
+  - bases/gateway.githedgehog.com_gatewaygroups.yaml
+  - bases/gateway.githedgehog.com_gatewaypeerings.yaml
+  - bases/gateway.githedgehog.com_vpcinfos.yaml
+  - bases/gwint.githedgehog.com_gatewayagents.yaml
   #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
