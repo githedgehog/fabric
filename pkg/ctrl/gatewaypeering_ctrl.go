@@ -17,8 +17,8 @@ import (
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=peerings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=peerings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaypeerings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaypeerings/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch;create;update;patch;delete
 
 type PeeringReconciler struct {
