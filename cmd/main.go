@@ -181,6 +181,15 @@ func run() error {
 	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
 	}
+	if err := ctrl.SetupGatewayReconcilerWith(mgr, cfg); err != nil {
+		return fmt.Errorf("setting up gateway controller: %w", err)
+	}
+	if err := ctrl.SetupGatewayPeeringReconcilerWith(mgr); err != nil {
+		return fmt.Errorf("setting up gateway peering controller: %w", err)
+	}
+	if err := ctrl.SetupVPCInfoReconcilerWith(mgr); err != nil {
+		return fmt.Errorf("setting up vpc info controller: %w", err)
+	}
 	if cfg.GatewayAPISync {
 		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr); err != nil {
 			return fmt.Errorf("setting up gateway vpc sync controller: %w", err)
@@ -226,6 +235,19 @@ func run() error {
 	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile webhook: %w", err)
 	}
+	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg); err != nil {
+		return fmt.Errorf("setting up gateway webhook: %w", err)
+	}
+	if err := ctrl.SetupGatewayGroupWebhookWith(mgr); err != nil {
+		return fmt.Errorf("setting up gateway group webhook: %w", err)
+	}
+	if err := ctrl.SetupGatewayPeeringWebhookWith(mgr); err != nil {
+		return fmt.Errorf("setting up gateway peering webhook: %w", err)
+	}
+	if err := ctrl.SetupVPCInfoWebhookWith(mgr); err != nil {
+		return fmt.Errorf("setting up vpc info webhook: %w", err)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
