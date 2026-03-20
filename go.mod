@@ -41,8 +41,8 @@ require (
 	go.githedgehog.com/libmeta v0.3.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/sync v0.20.0
-	k8s.io/api v0.35.2
-	k8s.io/apimachinery v0.35.2
+	k8s.io/api v0.35.3
+	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.2
 	k8s.io/klog/v2 v2.140.0
 	oras.land/oras-go/v2 v2.6.0
