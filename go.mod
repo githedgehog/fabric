@@ -12,7 +12,7 @@ require (
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
@@ -138,7 +138,7 @@ require (
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
