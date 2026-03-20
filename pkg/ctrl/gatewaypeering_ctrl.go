@@ -21,17 +21,17 @@ import (
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaypeerings/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch;create;update;patch;delete
 
-type PeeringReconciler struct {
+type GatewayPeeringReconciler struct {
 	kclient.Client
 }
 
-func SetupPeeringReconcilerWith(mgr kctrl.Manager) error {
-	r := &PeeringReconciler{
+func SetupGatewayPeeringReconcilerWith(mgr kctrl.Manager) error {
+	r := &GatewayPeeringReconciler{
 		Client: mgr.GetClient(),
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
-		Named("Peering").
+		Named("GatewayPeering").
 		For(&gwapi.GatewayPeering{}).
 		Complete(r); err != nil {
 		return fmt.Errorf("setting up controller: %w", err)
@@ -40,7 +40,7 @@ func SetupPeeringReconcilerWith(mgr kctrl.Manager) error {
 	return nil
 }
 
-func (r *PeeringReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+func (r *GatewayPeeringReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
 	peering := &gwapi.GatewayPeering{}
