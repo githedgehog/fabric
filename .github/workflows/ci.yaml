@@ -157,7 +157,7 @@ jobs:
             matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
         }}
-      fabricatorref: master
+      fabricatorref: dev/frostman/merge-gw
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: spine-leaf
       mesh: ${{ matrix.mesh }}
