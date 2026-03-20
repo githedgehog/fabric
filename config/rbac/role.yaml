@@ -39,6 +39,18 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - dhcp.githedgehog.com
   resources:
   - dhcpsubnets
@@ -67,6 +79,9 @@ rules:
 - apiGroups:
   - gateway.githedgehog.com
   resources:
+  - gatewaygroups
+  - gateways
+  - peerings
   - vpcinfos
   verbs:
   - create
@@ -79,17 +94,57 @@ rules:
 - apiGroups:
   - gateway.githedgehog.com
   resources:
-  - vpcinfos/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - gateway.githedgehog.com
-  resources:
+  - gateways/status
+  - peerings/status
   - vpcinfos/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - vpcinfos/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gwint.githedgehog.com
+  resources:
+  - gatewayagents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gwint.githedgehog.com
+  resources:
+  - gatewayagents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gwint.githedgehog.com
+  resources:
+  - gatewayagents/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - helm.cattle.io
+  resources:
+  - helmcharts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

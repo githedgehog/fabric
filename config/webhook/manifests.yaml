@@ -90,6 +90,69 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-gateway-githedgehog-com-v1alpha1-gateway
+  failurePolicy: Fail
+  name: mgateway.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gateways
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-gateway-githedgehog-com-v1alpha1-gatewaygroup
+  failurePolicy: Fail
+  name: mgatewaygroup.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gatewaygroups
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-gateway-githedgehog-com-v1alpha1-gatewaypeering
+  failurePolicy: Fail
+  name: mgatewaypeering.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gatewaypeerings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-vpc-githedgehog-com-v1beta1-ipv4namespace
   failurePolicy: Fail
   name: mipv4namespace.kb.io
@@ -230,6 +293,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-gateway-githedgehog-com-v1alpha1-vpcinfo
+  failurePolicy: Fail
+  name: mvpcinfo.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - vpcinfos
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-vpc-githedgehog-com-v1beta1-vpcpeering
   failurePolicy: Fail
   name: mvpcpeering.kb.io
@@ -333,6 +417,69 @@ webhooks:
     - DELETE
     resources:
     - externalpeerings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-githedgehog-com-v1alpha1-gateway
+  failurePolicy: Fail
+  name: vgateway.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gateways
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-githedgehog-com-v1alpha1-gatewaygroup
+  failurePolicy: Fail
+  name: vgatewaygroup.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gatewaygroups
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-githedgehog-com-v1alpha1-gatewaypeering
+  failurePolicy: Fail
+  name: vgatewaypeering.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gatewaypeerings
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -480,6 +627,27 @@ webhooks:
     - DELETE
     resources:
     - vpcattachments
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-githedgehog-com-v1alpha1-vpcinfo
+  failurePolicy: Fail
+  name: vvpcinfo.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - vpcinfos
   sideEffects: None
 - admissionReviewVersions:
   - v1
