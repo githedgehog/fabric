@@ -27,6 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/libmeta/pkg/alloy"
+	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	kyaml "sigs.k8s.io/yaml"
@@ -117,6 +118,15 @@ type FabricConfig struct {
 	ManagementDHCPEnd        string            `json:"managementDHCPEnd,omitempty"`
 	GatewayCommunities       map[uint32]string `json:"gatewayCommunities,omitempty"`
 	L2ProxyExternalSubnet    string            `json:"l2ProxyExternalSubnet,omitempty"`
+
+	// Gateway-specific configuration
+	GatewayNamespace     string              `json:"gatewayNamespace,omitempty"` // Namespace where pods for gateways are deployed
+	GatewayTolerations   []corev1.Toleration `json:"gatewayTolerations,omitempty"`
+	DataplaneRef         string              `json:"dataplaneRef,omitempty"`
+	FRRRef               string              `json:"frrRef,omitempty"`
+	ToolboxRef           string              `json:"toolboxRef,omitempty"`
+	DataplaneMetricsPort uint16              `json:"dataplaneMetricsPort,omitempty"`
+	FRRMetricsPort       uint16              `json:"frrMetricsPort,omitempty"`
 
 	reservedSubnets []*net.IPNet
 }
