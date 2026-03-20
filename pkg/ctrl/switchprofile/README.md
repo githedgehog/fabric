@@ -179,3 +179,40 @@ ping and iperf3 testing to ensure that traffic is flowing as expected.
 A leaf will need similar testing to a spine. Create a VPC attached to leaf and
 have the traffic transit the leaf in and out of the VPC. Additionally test that
 the leaf allows for Remote VPC peering.
+
+# Cumulus Switch Profiles
+
+## Get Platform info
+
+This command and output will give you the cpu, port type and count, system type, asic, etc.
+
+```
+cumulus@nv-sn3700c:mgmt:~$ nv show platform
+               operational
+-------------  -------------------------------------------------
+system-mac     9c:05:91:28:4b:fd
+manufacturer   Mellanox
+cpu            x86_64 Intel(R) Pentium(R) CPU D1508 @ 2.20GHz x4
+memory         7.28 GB
+disk-size      28GB
+port-layout    32 x 100G-QSFP28
+part-number    MSN3700-CS2FC
+serial-number  MT2249J39547
+asic-model     Spectrum-2
+system-uuid    6fb8ea6e-7335-11ed-8000-9c0591284b00
+system-type    MSN3700C
+```
+
+## Breakouts
+
+When creating a profile, for the single breakout ports use the empty string "" to indicate a 1 port breakout. When for examples port swp1 is broken out 4 ways, any configuration applied to swp1 will apply to all the breakout ports. There are test cases for Cumulus switches that follow this convention as well.
+
+The port breakouts and limitations are best copied from the nvidia documentation, and then verified at the cli.
+The [nvidia switch documentation](https://docs.nvidia.com/networking/switches/index.html#nvidiatab-ethernet-switches) for switches does get modified by nvidia so it won't exist forever, sadly.
+
+If a picture of the available breakouts isn't available, the manual process of configuring breakouts via the cli is the best option.
+
+0. Start with adjacent ports for example swp5 and swp6. Attempt the largest breakouts first. If there is a limitation on adjacent ports that will cut down on the options that you need to test.
+
+  **note** In the past breakout limitations have been on physically adjacent ports, if there are 4 ports in a column on the fron panel of a switch include all of those ports in the breakout testing from the previous step
+1. once the breakout is settled, set the speed of the ports via the cli.

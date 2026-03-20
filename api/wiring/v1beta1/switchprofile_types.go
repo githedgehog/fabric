@@ -35,8 +35,9 @@ import (
 const (
 	ManagementPortPrefix        = "M"
 	ManagementPortNOSNamePrefix = "Management"
-	DataPortPrefix              = "E"
+	SonicDataPortPrefix         = "E"
 	DataPortNOSNamePrefix       = "Ethernet"
+	DataPortCmlsNamePrefix      = "swp"
 	BreakoutNOSNamePrefix       = "1/"
 	ONIEPortNamePrefix          = "eth"
 
@@ -286,62 +287,72 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 		}
 		nosPortNames[port.NOSName] = true
 
-		if port.BaseNOSName != "" {
-			if _, ok := baseNOSPortNames[port.BaseNOSName]; ok {
-				return nil, errors.Errorf("port %q base NOS name %q is duplicated", name, port.BaseNOSName)
+		if sp.Spec.NOSType != meta.NOSTypeCumulusMlx {
+			if port.BaseNOSName != "" {
+				if _, ok := baseNOSPortNames[port.BaseNOSName]; ok {
+					return nil, errors.Errorf("port %q base NOS name %q is duplicated", name, port.BaseNOSName)
+				}
+				baseNOSPortNames[port.BaseNOSName] = true
 			}
-			baseNOSPortNames[port.BaseNOSName] = true
 		}
 
 		if port.Management {
-			if !strings.HasPrefix(name, ManagementPortPrefix) {
-				return nil, errors.Errorf("management port %q name must start with M", name)
-			}
+			if sp.Spec.NOSType == meta.NOSTypeCumulusMlx {
+				if port.NOSName != "eth0" {
+					return nil, errors.Errorf("management port %q name must be eth0 in Cumulus", name)
+				}
+			} else {
 
-			if port, err := strconv.Atoi(name[1:]); err != nil || port <= 0 {
-				return nil, errors.Errorf("management port %q name must end with a positive integer", name)
-			}
+				if !strings.HasPrefix(name, ManagementPortPrefix) {
+					return nil, errors.Errorf("management port %q name must start with M", name)
+				}
 
-			if !strings.HasPrefix(port.NOSName, ManagementPortNOSNamePrefix) {
-				return nil, errors.Errorf("management port %q NOS name must start with Management", name)
-			}
+				if port, err := strconv.Atoi(name[1:]); err != nil || port <= 0 {
+					return nil, errors.Errorf("management port %q name must end with a positive integer", name)
+				}
 
-			if port, err := strconv.Atoi(port.NOSName[len(ManagementPortNOSNamePrefix):]); err != nil || port < 0 {
-				return nil, errors.Errorf("management port %q NOS name must end with a positive integer", name)
-			}
+				if !strings.HasPrefix(port.NOSName, ManagementPortNOSNamePrefix) {
+					return nil, errors.Errorf("management port %q NOS name must start with Management", name)
+				}
 
-			if port.OniePortName == "" {
-				return nil, errors.Errorf("management port %q must have an ONIE port name", name)
-			}
+				if port, err := strconv.Atoi(port.NOSName[len(ManagementPortNOSNamePrefix):]); err != nil || port < 0 {
+					return nil, errors.Errorf("management port %q NOS name must end with a positive integer", name)
+				}
 
-			if !strings.HasPrefix(port.OniePortName, ONIEPortNamePrefix) {
-				return nil, errors.Errorf("management port %q ONIE port name must start with eth", name)
-			}
+				if port.OniePortName == "" {
+					return nil, errors.Errorf("management port %q must have an ONIE port name", name)
+				}
 
-			if port, err := strconv.Atoi(port.OniePortName[len(ONIEPortNamePrefix):]); err != nil || port < 0 {
-				return nil, errors.Errorf("management port %q ONIE port name must end with a zero or positive integer", name)
-			}
+				if !strings.HasPrefix(port.OniePortName, ONIEPortNamePrefix) {
+					return nil, errors.Errorf("management port %q ONIE port name must start with eth", name)
+				}
 
-			if port.Group != "" {
-				return nil, errors.Errorf("management port %q must not have a group", name)
-			}
+				if port, err := strconv.Atoi(port.OniePortName[len(ONIEPortNamePrefix):]); err != nil || port < 0 {
+					return nil, errors.Errorf("management port %q ONIE port name must end with a zero or positive integer", name)
+				}
 
-			if port.Profile != "" {
-				return nil, errors.Errorf("management port %q must not have a profile", name)
-			}
+				if port.Group != "" {
+					return nil, errors.Errorf("management port %q must not have a group", name)
+				}
 
-			if port.BaseNOSName != "" {
-				return nil, errors.Errorf("management port %q must not have a base NOS name", name)
+				if port.Profile != "" {
+					return nil, errors.Errorf("management port %q must not have a profile", name)
+				}
+
+				if port.BaseNOSName != "" {
+					return nil, errors.Errorf("management port %q must not have a base NOS name", name)
+				}
 			}
 
 			continue
+
 		}
 
-		if !strings.HasPrefix(name, DataPortPrefix) {
+		if !strings.HasPrefix(name, SonicDataPortPrefix) {
 			return nil, errors.Errorf("data port %q must start with E", name)
 		}
 
-		portParts := strings.Split(name[len(DataPortPrefix):], "/")
+		portParts := strings.Split(name[len(SonicDataPortPrefix):], "/")
 		if len(portParts) != 2 {
 			return nil, errors.Errorf("data port %q name must have two segments separated by a slash (e.g. asic/port)", name)
 		}
@@ -385,24 +396,26 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 					return nil, errors.Errorf("breakout port %q must have a NOS name", name)
 				}
 
-				if !strings.HasPrefix(port.NOSName, BreakoutNOSNamePrefix) {
-					return nil, errors.Errorf("breakout port %q NOS name must start with %s", name, BreakoutNOSNamePrefix)
-				}
-
-				if _, err := strconv.Atoi(port.NOSName[len(BreakoutNOSNamePrefix):]); err != nil {
-					return nil, errors.Errorf("breakout port %q NOS name must end with a positive integer", name)
+				if sp.Spec.NOSType != meta.NOSTypeCumulusMlx {
+					if !strings.HasPrefix(port.NOSName, BreakoutNOSNamePrefix) {
+						return nil, errors.Errorf("breakout port %q NOS name must start with %s", name, BreakoutNOSNamePrefix)
+					}
+					if _, err := strconv.Atoi(port.NOSName[len(BreakoutNOSNamePrefix):]); err != nil {
+						return nil, errors.Errorf("breakout port %q NOS name must end with a positive integer", name)
+					}
 				}
 
 				if port.BaseNOSName == "" {
 					return nil, errors.Errorf("breakout port %q must have a base NOS name", name)
 				}
+				if sp.Spec.NOSType != meta.NOSTypeCumulusMlx {
+					if !strings.HasPrefix(port.BaseNOSName, DataPortNOSNamePrefix) {
+						return nil, errors.Errorf("breakout port %q base NOS name must start with %s", name, DataPortNOSNamePrefix)
+					}
 
-				if !strings.HasPrefix(port.BaseNOSName, DataPortNOSNamePrefix) {
-					return nil, errors.Errorf("breakout port %q base NOS name must start with %s", name, DataPortNOSNamePrefix)
-				}
-
-				if port, err := strconv.Atoi(port.BaseNOSName[len(DataPortNOSNamePrefix):]); err != nil || port < 0 {
-					return nil, errors.Errorf("breakout port %q base NOS name must end with a zero or positive integer", name)
+					if port, err := strconv.Atoi(port.BaseNOSName[len(DataPortNOSNamePrefix):]); err != nil || port < 0 {
+						return nil, errors.Errorf("breakout port %q base NOS name must end with a zero or positive integer", name)
+					}
 				}
 			}
 		}
@@ -626,7 +639,6 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 
 			continue
 		}
-
 		if port.Profile != "" && sp.PortProfiles[port.Profile].Breakout != nil {
 			breakoutProfile := sp.PortProfiles[port.Profile].Breakout
 
@@ -634,30 +646,45 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 			if !ok {
 				swBreakout = breakoutProfile.Default
 			}
-
 			if breakoutMode, ok := breakoutProfile.Supported[swBreakout]; ok {
-				nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
-				if !cut {
-					return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
-				}
-				nosNameBase, err := strconv.Atoi(nosNameBaseStr)
-				if err != nil {
-					return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
-				}
-
-				for breakoutIdx, offsetStr := range breakoutMode.Offsets {
-					offset, err := strconv.Atoi(offsetStr)
+				if sp.NOSType == meta.NOSTypeCumulusMlx {
+					for breakoutIdx, offsetStr := range breakoutMode.Offsets {
+						nosName := port.BaseNOSName + port.NOSName
+						if offsetStr == "" {
+							ports[portName] = nosName
+							ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName
+							continue
+						} else if offsetStr == "0" {
+							ports[portName] = nosName + "s" + offsetStr
+							ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName + "s" + offsetStr
+						} else {
+							ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName + "s" + offsetStr
+						}
+					}
+				} else {
+					nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
+					if !cut {
+						return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+					}
+					nosNameBase, err := strconv.Atoi(nosNameBaseStr)
 					if err != nil {
-						return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, swBreakout, offsetStr)
+						return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
 					}
 
-					nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
+					for breakoutIdx, offsetStr := range breakoutMode.Offsets {
+						offset, err := strconv.Atoi(offsetStr)
+						if err != nil {
+							return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, swBreakout, offsetStr)
+						}
 
-					if breakoutIdx == 0 {
-						ports[portName] = nosName
+						nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
+
+						if breakoutIdx == 0 {
+							ports[portName] = nosName
+						}
+
+						ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName
 					}
-
-					ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName
 				}
 			} else {
 				return nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, swBreakout, port.Profile)
@@ -677,29 +704,49 @@ func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]stri
 	if sw == nil {
 		return nil, errors.Errorf("switch spec is nil")
 	}
-
-	api2NOS, err := sp.GetAPI2NOSPortsFor(sw)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get API to NOS ports")
-	}
-
 	ports := map[string]string{}
-	for apiPort, nosPort := range api2NOS {
-		if prevAPIPort, exists := ports[nosPort]; exists {
-			if prevAPIPort+"/1" == apiPort {
-				ports[nosPort] = apiPort
 
-				continue
-			} else if prevAPIPort == apiPort+"/1" {
-				continue
+	if sp.NOSType == meta.NOSTypeCumulusMlx {
+		for portName, port := range sp.Ports {
+			if port.Management {
+				ports[port.NOSName] = "M1"
 			}
-
-			return nil, errors.Errorf("NOS port %q is duplicated", nosPort)
+			if port.Profile != "" && sp.PortProfiles[port.Profile].Breakout != nil {
+				breakoutProfile := sp.PortProfiles[port.Profile].Breakout
+				swBreakout, ok := sw.PortBreakouts[portName]
+				if !ok {
+					swBreakout = breakoutProfile.Default
+				}
+				if breakoutMode, ok := breakoutProfile.Supported[swBreakout]; ok {
+					for breakoutIdx, offsetStr := range breakoutMode.Offsets {
+						switch {
+						case offsetStr == "":
+							ports[port.BaseNOSName+port.NOSName] = "E1/" + port.NOSName + "/1"
+						default:
+							ports[port.BaseNOSName+port.NOSName+"s"+offsetStr] = "E1/" + port.NOSName + "/" + strconv.Itoa(breakoutIdx+1)
+						}
+					}
+				}
+			}
 		}
-
-		ports[nosPort] = apiPort
+	} else {
+		api2NOS, err := sp.GetAPI2NOSPortsFor(sw)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get API to NOS ports")
+		}
+		for apiPort, nosPort := range api2NOS {
+			if prevAPIPort, exists := ports[nosPort]; exists {
+				if prevAPIPort+"/1" == apiPort {
+					ports[nosPort] = apiPort
+					continue
+				} else if prevAPIPort == apiPort+"/1" {
+					continue
+				}
+				return nil, errors.Errorf("NOS port %q is duplicated", nosPort)
+			}
+			ports[nosPort] = apiPort
+		}
 	}
-
 	return ports, nil
 }
 
@@ -753,24 +800,38 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 			continue
 		}
 
-		nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
-		if !cut {
-			return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
-		}
-		nosNameBase, err := strconv.Atoi(nosNameBaseStr)
-		if err != nil {
-			return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
-		}
-
-		for _, breakoutMode := range profile.Breakout.Supported {
-			for _, offsetStr := range breakoutMode.Offsets {
-				offset, err := strconv.Atoi(offsetStr)
-				if err != nil {
-					return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, breakoutMode, offsetStr)
+		if sp.NOSType == meta.NOSTypeCumulusMlx {
+			for _, breakoutMode := range profile.Breakout.Supported {
+				for _, offsetStr := range breakoutMode.Offsets {
+					if offsetStr == "" {
+						continue
+					} else {
+						nosName := port.BaseNOSName + port.NOSName + "s" + offsetStr
+						ports[nosName] = true
+					}
 				}
+			}
 
-				nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
-				ports[nosName] = true
+		} else {
+			nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
+			if !cut {
+				return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+			}
+			nosNameBase, err := strconv.Atoi(nosNameBaseStr)
+			if err != nil {
+				return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
+			}
+
+			for _, breakoutMode := range profile.Breakout.Supported {
+				for _, offsetStr := range breakoutMode.Offsets {
+					offset, err := strconv.Atoi(offsetStr)
+					if err != nil {
+						return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, breakoutMode, offsetStr)
+					}
+
+					nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
+					ports[nosName] = true
+				}
 			}
 		}
 	}
