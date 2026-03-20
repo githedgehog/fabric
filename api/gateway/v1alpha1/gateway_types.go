@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.githedgehog.com/gateway/api/meta"
+	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )

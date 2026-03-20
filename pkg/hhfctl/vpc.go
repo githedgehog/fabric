@@ -22,9 +22,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
-	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -246,7 +246,7 @@ func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) e
 		name = fmt.Sprintf("%s--%s", options.VPC1, options.VPC2)
 	}
 
-	peering := &gwapi.Peering{
+	peering := &gwapi.GatewayPeering{
 		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      name,
 			Namespace: kmetav1.NamespaceDefault,
@@ -321,7 +321,7 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 	}
 
 	// delete all gateway peerings
-	if err := kube.DeleteAllOf(ctx, &gwapi.Peering{}, &delAllOpts); err != nil && !kmeta.IsNoMatchError(err) {
+	if err := kube.DeleteAllOf(ctx, &gwapi.GatewayPeering{}, &delAllOpts); err != nil && !kmeta.IsNoMatchError(err) {
 		return errors.Wrap(err, "cannot delete gateway peerings")
 	}
 

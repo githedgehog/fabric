@@ -1,0 +1,166 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+  name: gateways.gateway.githedgehog.com
+spec:
+  group: gateway.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hedgehog-gateway
+    kind: Gateway
+    listKind: GatewayList
+    plural: gateways
+    shortNames:
+    - gw
+    singular: gateway
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.protocolIP
+      name: ProtoIP
+      type: string
+    - jsonPath: .spec.vtepIP
+      name: VTEPIP
+      type: string
+    - jsonPath: .spec.groups
+      name: Groups
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Gateway is the Schema for the gateways API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GatewaySpec defines the desired state of Gateway.
+            properties:
+              asn:
+                description: ASN is the ASN of the gateway
+                format: int32
+                type: integer
+              groups:
+                description: Groups is a list of group memberships for the gateway
+                items:
+                  properties:
+                    name:
+                      description: Name is the name of the group to which the gateway
+                        belongs
+                      type: string
+                    priority:
+                      description: Priority is the priority of the gateway within
+                        the group
+                      format: int32
+                      type: integer
+                  type: object
+                type: array
+              interfaces:
+                additionalProperties:
+                  description: GatewayInterface defines the configuration for a gateway
+                    interface
+                  properties:
+                    ips:
+                      description: IPs is the list of IP address to assign to the
+                        interface
+                      items:
+                        type: string
+                      type: array
+                    kernel:
+                      description: Kernel is the kernel name of the interface to use
+                        (required for kernel driver), e.g. enp2s1
+                      type: string
+                    mtu:
+                      description: MTU for the interface
+                      format: int32
+                      type: integer
+                    pci:
+                      description: PCI address of the interface (required for DPDK
+                        driver), e.g. 0000:00:01.0
+                      type: string
+                  type: object
+                description: Interfaces is a map of interface names to their configurations
+                type: object
+              logs:
+                description: Logs defines the configuration for logging levels
+                properties:
+                  default:
+                    type: string
+                  tags:
+                    additionalProperties:
+                      type: string
+                    type: object
+                type: object
+              neighbors:
+                description: Neighbors is a list of BGP neighbors
+                items:
+                  description: GatewayBGPNeighbor defines the configuration for a
+                    BGP neighbor
+                  properties:
+                    asn:
+                      description: ASN is the remote ASN of the BGP neighbor
+                      format: int32
+                      type: integer
+                    ip:
+                      description: IP is the IP address of the BGP neighbor
+                      type: string
+                    source:
+                      description: Source is the source interface for the BGP neighbor
+                        configuration
+                      type: string
+                  type: object
+                type: array
+              profiling:
+                description: Profiling defines the configuration for profiling
+                properties:
+                  enabled:
+                    type: boolean
+                type: object
+              protocolIP:
+                description: ProtocolIP is used as a loopback IP and BGP Router ID
+                type: string
+              vtepIP:
+                description: VTEP IP to be used by the gateway
+                type: string
+              vtepMAC:
+                description: VTEP MAC address to be used by the gateway
+                type: string
+              vtepMTU:
+                description: VTEPMTU is the MTU for the VTEP interface
+                format: int32
+                type: integer
+              workers:
+                description: Workers defines the number of worker threads to use for
+                  dataplane
+                type: integer
+            type: object
+          status:
+            description: GatewayStatus defines the observed state of Gateway.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

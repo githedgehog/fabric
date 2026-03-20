@@ -31,6 +31,8 @@ import (
 	"github.com/mattn/go-isatty"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -38,7 +40,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"
-	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -117,10 +118,11 @@ func run() error {
 	if err := dhcpapi.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("adding dhcpapi scheme: %w", err)
 	}
-	if cfg.GatewayAPISync {
-		if err := gwapi.AddToScheme(scheme); err != nil {
-			return fmt.Errorf("adding gatewayapi scheme: %w", err)
-		}
+	if err := gwapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding gatewayapi scheme: %w", err)
+	}
+	if err := gwintapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding gwintapi scheme: %w", err)
 	}
 	//+kubebuilder:scaffold:scheme
 
