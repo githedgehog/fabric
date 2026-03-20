@@ -38,18 +38,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/version"
-	connectionwh "go.githedgehog.com/fabric/pkg/webhook/connection"
-	externalwh "go.githedgehog.com/fabric/pkg/webhook/external"
-	externalattachmentwh "go.githedgehog.com/fabric/pkg/webhook/externalattachment"
-	externalpeeringwh "go.githedgehog.com/fabric/pkg/webhook/externalpeering"
-	ipv4namespacewh "go.githedgehog.com/fabric/pkg/webhook/ipv4ns"
-	serverwh "go.githedgehog.com/fabric/pkg/webhook/server"
-	switchwh "go.githedgehog.com/fabric/pkg/webhook/switchh"
-	switchprofilewh "go.githedgehog.com/fabric/pkg/webhook/switchprofile"
-	vlannamespacewh "go.githedgehog.com/fabric/pkg/webhook/vlanns"
-	vpcwh "go.githedgehog.com/fabric/pkg/webhook/vpc"
-	vpcattachmentwh "go.githedgehog.com/fabric/pkg/webhook/vpcattachment"
-	vpcpeeringwh "go.githedgehog.com/fabric/pkg/webhook/vpcpeering"
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -200,40 +188,40 @@ func run() error {
 		}
 	}
 
-	if err = connectionwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupConnectionWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up connection webhook: %w", err)
 	}
-	if err = serverwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupServerWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up server webhook: %w", err)
 	}
-	if err = switchwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupSwitchWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up switch webhook: %w", err)
 	}
-	if err = vpcwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupVPCWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vpc webhook: %w", err)
 	}
-	if err = vpcattachmentwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupVPCAttachmentWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vpc attachment webhook: %w", err)
 	}
-	if err = vpcpeeringwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupVPCPeeringWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vpc peering webhook: %w", err)
 	}
-	if err = ipv4namespacewh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupIPv4NamespaceWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up ipv4 namespace webhook: %w", err)
 	}
-	if err = vlannamespacewh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupVLANNamespaceWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vlan namespace webhook: %w", err)
 	}
-	if err = externalwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupExternalWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up external webhook: %w", err)
 	}
-	if err = externalattachmentwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupExternalAttachmentWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up external attachment webhook: %w", err)
 	}
-	if err = externalpeeringwh.SetupWithManager(mgr, cfg); err != nil {
+	if err = ctrl.SetupExternalPeeringWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up external peering webhook: %w", err)
 	}
-	if err = switchprofilewh.SetupWithManager(mgr, cfg, profiles); err != nil {
+	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile webhook: %w", err)
 	}
 	//+kubebuilder:scaffold:builder
