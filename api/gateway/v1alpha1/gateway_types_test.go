@@ -251,8 +251,8 @@ func TestGatewayValidate(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1alpha1.AddToScheme(scheme), "should add gateway API to scheme")
-	cfg := &meta.GatewayCtrlConfig{
-		Communities: map[uint32]string{
+	cfg := &meta.FabricConfig{
+		GatewayCommunities: map[uint32]string{
 			0: "50000:1000",
 			1: "50000:1001",
 		},
