@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/netip"
 
+	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -68,10 +69,19 @@ func (vpc *VPCInfo) IsReady() bool {
 }
 
 func (vpc *VPCInfo) Default() {
-	// TODO add defaulting logic
+	if vpc.Namespace == "" {
+		vpc.Namespace = kmetav1.NamespaceDefault
+	}
 }
 
-func (vpc *VPCInfo) Validate(_ context.Context, _ kclient.Reader) error {
+func (vpc *VPCInfo) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	if fabricCfg != nil && !fabricCfg.EnableGateway {
+		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+	}
+	if vpc.Namespace != kmetav1.NamespaceDefault {
+		return fmt.Errorf("vpcinfo namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	}
+
 	if vpc.Spec.VNI == 0 {
 		return fmt.Errorf("VPCInfo VNI must be set and non-zero") //nolint:goerr113
 	}

@@ -171,6 +171,9 @@ func (gw *Gateway) Default() {
 var linuxIfaceNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,8}[a-zA-Z0-9]$`)
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	if fabricCfg != nil && !fabricCfg.EnableGateway {
+		return fmt.Errorf("gateway support is not enabled: %w", ErrInvalidGW)
+	}
 	if gw.Namespace != kmetav1.NamespaceDefault {
 		return fmt.Errorf("gateway namespace must be %s: %w", kmetav1.NamespaceDefault, ErrInvalidGW)
 	}

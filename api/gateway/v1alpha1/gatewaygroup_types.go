@@ -5,7 +5,9 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 
+	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -56,8 +58,18 @@ func init() {
 }
 
 func (gg *GatewayGroup) Default() {
+	if gg.Namespace == "" {
+		gg.Namespace = kmetav1.NamespaceDefault
+	}
 }
 
-func (gg *GatewayGroup) Validate(_ context.Context, _ kclient.Reader) error {
+func (gg *GatewayGroup) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	if fabricCfg != nil && !fabricCfg.EnableGateway {
+		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+	}
+	if gg.Namespace != kmetav1.NamespaceDefault {
+		return fmt.Errorf("gatewaygroup namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	}
+
 	return nil
 }

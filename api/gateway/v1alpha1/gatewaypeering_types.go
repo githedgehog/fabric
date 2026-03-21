@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"go.githedgehog.com/fabric/api/meta"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -134,6 +135,9 @@ func init() {
 }
 
 func (p *GatewayPeering) Default() {
+	if p.Namespace == "" {
+		p.Namespace = kmetav1.NamespaceDefault
+	}
 	if p.Labels == nil {
 		p.Labels = map[string]string{}
 	}
@@ -171,7 +175,13 @@ func (p *GatewayPeering) Default() {
 	}
 }
 
-func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader) error {
+func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	if fabricCfg != nil && !fabricCfg.EnableGateway {
+		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+	}
+	if p.Namespace != kmetav1.NamespaceDefault {
+		return fmt.Errorf("gatewaypeering namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	}
 	if p.Spec.GatewayGroup == "" {
 		return fmt.Errorf("gateway group must be specified %s", p.Name) //nolint:err113
 	}

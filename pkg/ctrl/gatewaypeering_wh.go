@@ -43,13 +43,13 @@ func (w *GatewayPeeringWebhook) Default(_ context.Context, peer *gwapi.GatewayPe
 }
 
 func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.GatewayPeering) (admission.Warnings, error) {
-	return nil, peer.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, peer.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
 }
 
 func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
 
-	return nil, newPeer.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newPeer.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
 }
 
 func (w *GatewayPeeringWebhook) ValidateDelete(_ context.Context, _ *gwapi.GatewayPeering) (admission.Warnings, error) {
