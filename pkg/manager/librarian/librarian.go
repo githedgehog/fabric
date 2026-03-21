@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -35,6 +36,7 @@ const (
 	Namespace         = kmetav1.NamespaceDefault
 	CatConns          = "connections"
 	CatVNIs           = "vpcs" // contains both VPC and External VNIs
+	CatVPCInfos       = "vpcinfos"
 	CatSwitchPrefix   = "switch."
 	CatRedGroupPrefix = "redundancy."
 	VPCVNIOffset      = 100
@@ -80,6 +82,9 @@ func (m *Manager) getCatalog(ctx context.Context, kube kclient.Client, key strin
 	}
 	if cat.Spec.PortChannelIDs == nil {
 		cat.Spec.PortChannelIDs = map[string]uint16{}
+	}
+	if cat.Spec.VPCInfoIDs == nil {
+		cat.Spec.VPCInfoIDs = map[string]uint32{}
 	}
 
 	return cat, nil
@@ -449,4 +454,38 @@ func (m *Manager) GetExternalVNI(ctx context.Context, kube kclient.Client, exter
 	}
 
 	return 0, errors.Errorf("failed to find VNI for external %s", external)
+}
+
+func (m *Manager) UpdateAndGetVPCInfoID(ctx context.Context, kube kclient.Client, maxVal uint32, vpcInfoName string) (uint32, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	cat, err := m.getCatalog(ctx, kube, CatVPCInfos)
+	if err != nil {
+		return 0, err
+	}
+
+	vpcList := &gwapi.VPCInfoList{}
+	if err := kube.List(ctx, vpcList); err != nil {
+		return 0, errors.Wrapf(err, "error listing VPC infos")
+	}
+	vpcs := map[string]bool{}
+	for _, vpc := range vpcList.Items {
+		vpcs[vpc.Name] = true
+	}
+
+	a := &Allocator[uint32]{
+		Values: NewNextFreeValueFromRanges([][2]uint32{{0, maxVal}}, 1),
+	}
+	cat.Spec.VPCInfoIDs, err = a.Allocate(cat.Spec.VPCInfoIDs, vpcs)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to allocate VPCInfo IDs")
+	}
+
+	vpcInfoID, exists := cat.Spec.VPCInfoIDs[vpcInfoName]
+	if !exists {
+		return 0, errors.Errorf("failed to find VPCInfo ID for vpcInfo %s", vpcInfoName)
+	}
+
+	return vpcInfoID, m.saveCatalog(ctx, kube, CatVPCInfos, cat)
 }

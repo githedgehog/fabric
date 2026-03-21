@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,13 +18,17 @@ import (
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
+
 type VPCInfoReconciler struct {
 	kclient.Client
+	libr *librarian.Manager
 }
 
-func SetupVPCInfoReconcilerWith(mgr kctrl.Manager) error {
+func SetupVPCInfoReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager) error {
 	r := &VPCInfoReconciler{
 		Client: mgr.GetClient(),
+		libr:   libMngr,
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
@@ -45,55 +50,27 @@ func (r *VPCInfoReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 			return kctrl.Result{}, nil
 		}
 
-		return kctrl.Result{}, fmt.Errorf("getting vpc info: %w", err)
+		return kctrl.Result{}, fmt.Errorf("getting vpcinfo: %w", err)
 	}
 
 	if vpc.DeletionTimestamp != nil {
-		l.Info("VPCInfo is being deleted, skipping")
-
-		return kctrl.Result{}, nil
-	}
-
-	if vpc.IsReady() {
 		return kctrl.Result{}, nil
 	}
 
 	l.Info("Reconciling VPCInfo")
 
-	// TODO actually generate a unique ID in a reliable way
-	// this is a temporary solution, we should use a proper way of generating unique IDs
-	vpcs := &gwapi.VPCInfoList{}
-	if err := r.List(ctx, vpcs); err != nil {
-		return kctrl.Result{}, fmt.Errorf("listing vpc info: %w", err)
+	vpcID, err := r.libr.UpdateAndGetVPCInfoID(ctx, r, VPCID.GetMaxValue(), req.Name)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("updating vpcinfo id: %w", err)
 	}
 
-	taken := map[uint32]bool{}
-	for _, v := range vpcs.Items {
-		if v.Status.InternalID == "" {
-			continue
-		}
-
-		id, err := VPCID.Decode(v.Status.InternalID)
-		if err != nil {
-			return kctrl.Result{}, fmt.Errorf("decoding vpc id: %w", err)
-		}
-		taken[id] = true
-	}
-
-	for i := range VPCID.GetMaxValue() {
-		if !taken[i] {
-			vpc.Status.InternalID, _ = VPCID.Encode(i)
-
-			break
-		}
-	}
-
-	if vpc.Status.InternalID == "" {
-		return kctrl.Result{}, fmt.Errorf("no available vpc id") //nolint:err113
+	vpc.Status.InternalID, err = VPCID.Encode(vpcID)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("encoding vpcinfo id: %w", err)
 	}
 
 	if err := r.Status().Update(ctx, vpc); err != nil {
-		return kctrl.Result{}, fmt.Errorf("updating vpc status: %w", err)
+		return kctrl.Result{}, fmt.Errorf("updating vpcinfo status: %w", err)
 	}
 
 	return kctrl.Result{}, nil

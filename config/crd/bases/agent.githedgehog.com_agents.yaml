@@ -246,6 +246,12 @@ spec:
                     description: TH5WorkaroundVLANs stores TH5 workaround mesh link
                       -> VLAN ID, unique per switch
                     type: object
+                  vpcInfoIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: Global (for gw)
+                    type: object
                   vpcSubnetVNIs:
                     additionalProperties:
                       additionalProperties:

@@ -31,6 +31,9 @@ type CatalogSpec struct {
 	// VPCSubnetVNIs stores VPC name -> subnet name -> VPC Subnet VNI, globally unique for the fabric
 	VPCSubnetVNIs map[string]map[string]uint32 `json:"vpcSubnetVNIs,omitempty"`
 
+	// Global (for gw)
+	VPCInfoIDs map[string]uint32 `json:"vpcInfoIDs,omitempty"`
+
 	// Per redundancy group (or switch if no redundancy group)
 
 	// IRBVLANs stores VPC name -> IRB VLAN ID, unique per redundancy group (or switch), it includes Externals too with ext@ prefix
