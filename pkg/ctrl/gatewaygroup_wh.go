@@ -43,13 +43,13 @@ func (w *GatewayGroupWebhook) Default(_ context.Context, gwGr *gwapi.GatewayGrou
 }
 
 func (w *GatewayGroupWebhook) ValidateCreate(ctx context.Context, gwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
-	return nil, gwGr.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, gwGr.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
 }
 
 func (w *GatewayGroupWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayGroup, newGwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
 
-	return nil, newGwGr.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newGwGr.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
 }
 
 func (w *GatewayGroupWebhook) ValidateDelete(_ context.Context, _ *gwapi.GatewayGroup) (admission.Warnings, error) {

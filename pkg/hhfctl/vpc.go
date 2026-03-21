@@ -273,7 +273,7 @@ func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) e
 	}
 
 	peering.Default()
-	err = peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil)
+	err = peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
 	if err != nil {
 		slog.Warn("Validation", "error", err)
 

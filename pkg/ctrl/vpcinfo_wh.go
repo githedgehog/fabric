@@ -42,13 +42,13 @@ func (w *VPCInfoWebhook) Default(_ context.Context, vpc *gwapi.VPCInfo) error {
 }
 
 func (w *VPCInfoWebhook) ValidateCreate(ctx context.Context, vpc *gwapi.VPCInfo) (admission.Warnings, error) {
-	return nil, vpc.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, vpc.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
 }
 
 func (w *VPCInfoWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.VPCInfo, newVPC *gwapi.VPCInfo) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
 
-	return nil, newVPC.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newVPC.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
 }
 
 func (w *VPCInfoWebhook) ValidateDelete(_ context.Context, _ *gwapi.VPCInfo) (admission.Warnings, error) {

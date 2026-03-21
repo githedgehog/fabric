@@ -17,7 +17,11 @@ import (
 )
 
 func TestPeeringDefaultEmpty(t *testing.T) {
-	ref := &GatewayPeering{}
+	ref := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	ref.Labels = map[string]string{}
 
 	peering := &GatewayPeering{}
@@ -27,7 +31,11 @@ func TestPeeringDefaultEmpty(t *testing.T) {
 }
 
 func TestPeeringWithVpcsNoNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -58,13 +66,17 @@ func TestPeeringWithVpcsNoNAT(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
 
 	assert.Equal(t, ref, peering)
 }
 
 func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -94,11 +106,15 @@ func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil), "multiple selection in the same PeeringEntryIP should be invalid")
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "multiple selection in the same PeeringEntryIP should be invalid")
 }
 
 func TestPeeringWithMultipleItemsInAs(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -135,11 +151,15 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil), "multiple selection in the same PeeringEntryAs should be invalid")
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "multiple selection in the same PeeringEntryAs should be invalid")
 }
 
 func TestPeeringWithStaticNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -182,13 +202,17 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
 
 	assert.Equal(t, ref, peering)
 }
 
 func TestPeeringWithDoubleMasqueradeNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -238,12 +262,16 @@ func TestPeeringWithDoubleMasqueradeNAT(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil), "masquerade on both sides should not be allowed")
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "masquerade on both sides should not be allowed")
 	assert.Equal(t, ref, peering)
 }
 
 func TestPeeringWithMasqueradeAndStaticNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -287,12 +315,16 @@ func TestPeeringWithMasqueradeAndStaticNAT(t *testing.T) {
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil), "masquerade plus static should not be allowed")
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "masquerade plus static should not be allowed")
 	assert.Equal(t, ref, peering)
 }
 
 func TestPeeringWithPortForwardNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -336,13 +368,17 @@ func TestPeeringWithPortForwardNAT(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
 
 	assert.Equal(t, ref, peering)
 }
 
 func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -398,12 +434,16 @@ func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
 	assert.Equal(t, ref, peering)
 }
 
 func TestPeeringWithPortForwardAndMasqueradeNAT(t *testing.T) {
-	common := &GatewayPeering{}
+	common := &GatewayPeering{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+		},
+	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
 			Expose: []PeeringEntryExpose{
@@ -454,7 +494,7 @@ func TestPeeringWithPortForwardAndMasqueradeNAT(t *testing.T) {
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil), "masquerade + portForward should not be allowed")
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "masquerade + portForward should not be allowed")
 	assert.Equal(t, ref, peering)
 }
 
@@ -554,7 +594,8 @@ func TestValidateDefaultDestination(t *testing.T) {
 				},
 			}
 			ctx := t.Context()
-			err := peering.Validate(ctx, nil)
+			peering.Default()
+			err := peering.Validate(ctx, nil, nil)
 			if tt.error {
 				require.Error(t, err)
 			} else {
@@ -764,7 +805,7 @@ func TestValidateCIDROverlap(t *testing.T) {
 				WithObjects(tt.objs...).
 				Build()
 			tt.peering.Default()
-			actual := tt.peering.Validate(ctx, kube)
+			actual := tt.peering.Validate(ctx, kube, nil)
 			if tt.err {
 				require.Error(t, actual)
 			} else {
