@@ -187,7 +187,7 @@ func run() error {
 	if err := ctrl.SetupGatewayPeeringReconcilerWith(mgr); err != nil {
 		return fmt.Errorf("setting up gateway peering controller: %w", err)
 	}
-	if err := ctrl.SetupVPCInfoReconcilerWith(mgr); err != nil {
+	if err := ctrl.SetupVPCInfoReconcilerWith(mgr, libMngr); err != nil {
 		return fmt.Errorf("setting up vpc info controller: %w", err)
 	}
 	if cfg.GatewayAPISync {

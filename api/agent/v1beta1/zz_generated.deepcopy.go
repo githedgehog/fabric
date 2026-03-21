@@ -429,6 +429,13 @@ func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 			(*out)[key] = outVal
 		}
 	}
+	if in.VPCInfoIDs != nil {
+		in, out := &in.VPCInfoIDs, &out.VPCInfoIDs
+		*out = make(map[string]uint32, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.IRBVLANs != nil {
 		in, out := &in.IRBVLANs, &out.IRBVLANs
 		*out = make(map[string]uint16, len(*in))
