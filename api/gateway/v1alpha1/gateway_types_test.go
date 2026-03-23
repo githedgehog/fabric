@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -88,6 +89,12 @@ func TestGatewayValidate(t *testing.T) {
 						ASN:    65100,
 					},
 				},
+			},
+		}),
+		withName("sw-1", &wiringapi.Switch{
+			Spec: wiringapi.SwitchSpec{
+				ProtocolIP: "172.30.8.45/32",
+				VTEPIP:     "172.30.12.45/32",
 			},
 		}),
 	}
@@ -247,10 +254,28 @@ func TestGatewayValidate(t *testing.T) {
 				}),
 			),
 		},
+		{
+			name: "test-proto-ip-overlap-with-switch",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.8.45/32" }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-vtep-ip-overlap-with-switch",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "172.30.12.45/32" }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-proto-ip-no-overlap-with-switch-vtep",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.12.45/32" }),
+			objs: base,
+		},
 	}
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1alpha1.AddToScheme(scheme), "should add gateway API to scheme")
+	require.NoError(t, wiringapi.AddToScheme(scheme), "should add wiring API to scheme")
 	cfg := &meta.FabricConfig{
 		EnableGateway: true,
 		GatewayCommunities: map[uint32]string{
