@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +21,7 @@ func TestHydrationValidation(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
 	leafSwitch := &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{
 			Name:      "leaf1",
@@ -91,6 +93,7 @@ func TestHydrationValidation(t *testing.T) {
 		ManagementSubnet:    "172.30.0.0/21",
 		ManagementDHCPStart: "172.30.4.0",
 		ManagementDHCPEnd:   "172.30.7.254",
+		EnableGateway:       true,
 	}
 
 	for _, test := range []struct {
@@ -306,6 +309,57 @@ func TestHydrationValidation(t *testing.T) {
 			},
 			dut:         mclagSwitch,
 			expectError: true,
+		},
+		{
+			name: "VTEPCollisionWithGateway",
+			objects: []kclient.Object{
+				&gwapi.Gateway{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "gw-1",
+						Namespace: "default",
+					},
+					Spec: gwapi.GatewaySpec{
+						ProtocolIP: "172.30.8.45/32",
+						VTEPIP:     "172.30.12.0/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "ProtocolIPCollisionWithGateway",
+			objects: []kclient.Object{
+				&gwapi.Gateway{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "gw-1",
+						Namespace: "default",
+					},
+					Spec: gwapi.GatewaySpec{
+						ProtocolIP: "172.30.8.2/32",
+						VTEPIP:     "172.30.12.45/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "noCollisionWithGateway",
+			objects: []kclient.Object{
+				&gwapi.Gateway{
+					ObjectMeta: kmetav1.ObjectMeta{
+						Name:      "gw-1",
+						Namespace: "default",
+					},
+					Spec: gwapi.GatewaySpec{
+						ProtocolIP: "172.30.8.45/32",
+						VTEPIP:     "172.30.12.45/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: false,
 		},
 		{
 			name: "mclagPeerAllGood",

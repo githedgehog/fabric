@@ -25,6 +25,8 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -232,8 +234,6 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if err := kube.List(ctx, switches); err != nil {
 		return errors.Wrapf(err, "failed to list switches for hydration validation")
 	}
-	// TODO: collect gateways as well for VTEP and protocol IP uniqueness checks
-	// (cannot be done now as gateway webhook would create a circular dependency)
 
 	leafASNs := map[uint32]bool{}
 	VTEPs := map[string]bool{}
@@ -283,6 +283,31 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG && other.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG &&
 			other.Spec.Redundancy.Group == sw.Spec.Redundancy.Group {
 			mclagPeer = &other
+		}
+	}
+
+	// collect gateways as well for VTEP and protocol IP uniqueness checks
+	// use unstructured list to avoid import dependency cycle
+	if fabricCfg != nil && fabricCfg.EnableGateway {
+		gateways := &unstructured.UnstructuredList{}
+		gateways.SetGroupVersionKind(schema.GroupVersionKind{
+			Group: "gateway.githedgehog.com", Version: "v1alpha1", Kind: "GatewayList",
+		})
+		if err := kube.List(ctx, gateways); err != nil {
+			return errors.Wrapf(err, "failed to list gateways for hydration validation")
+		}
+
+		for _, gw := range gateways.Items {
+			spec, ok := gw.Object["spec"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if vtepIP, ok := spec["vtepIP"].(string); ok && vtepIP != "" {
+				VTEPs[vtepIP] = true
+			}
+			if protoIP, ok := spec["protocolIP"].(string); ok && protoIP != "" {
+				protocolIPs[protoIP] = true
+			}
 		}
 	}
 
