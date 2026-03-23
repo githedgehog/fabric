@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -363,10 +364,10 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		vtepIPs := map[netip.Addr]bool{}
 		gwGroupMembers := map[string]int{}
 		gateways := &GatewayList{}
+		switches := &wiringapi.SwitchList{}
 		if err := kube.List(ctx, gateways); err != nil {
 			return fmt.Errorf("listing gateways: %w", err)
 		}
-		// TODO: check switches too when we remove the circular dependency issue
 		for _, other := range gateways.Items {
 			if other.Name == gw.Name {
 				continue
@@ -385,6 +386,23 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 				gwGroupMembers[group.Name]++
 			}
 		}
+		// ProtocolIP and VTEPIP ranges are shared with switches too
+		if err := kube.List(ctx, switches); err != nil {
+			return fmt.Errorf("listing switches: %w", err)
+		}
+		for _, sw := range switches.Items {
+			if sw.Spec.ProtocolIP != "" {
+				if ip, err := netip.ParsePrefix(sw.Spec.ProtocolIP); err == nil {
+					protocolIPs[ip.Addr()] = true
+				}
+			}
+			if sw.Spec.VTEPIP != "" {
+				if ip, err := netip.ParsePrefix(sw.Spec.VTEPIP); err == nil {
+					vtepIPs[ip.Addr()] = true
+				}
+			}
+		}
+
 		if _, exist := protocolIPs[protoIP.Addr()]; exist {
 			return fmt.Errorf("gateway %s protocol IP %s is already in use: %w", gw.Name, protoIP, ErrInvalidGW)
 		}
