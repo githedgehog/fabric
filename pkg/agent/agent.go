@@ -1004,9 +1004,23 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 
 			slog.Debug("SSH port forwarding finished")
 		})
+
+		// just give a tunnel chance to establish before creating the client
+		time.Sleep(1 * time.Second)
 	}
 
-	gnmiClient, err := getClient()
+	var gnmiClient *gnmi.Client
+	for attempt := range 5 {
+		if attempt > 0 {
+			slog.Debug("Failed to create gNMI client, retrying", "err", err.Error())
+			time.Sleep(1 * time.Second)
+		}
+
+		gnmiClient, err = getClient()
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return fmt.Errorf("creating gNMI client: %w", err)
 	}
