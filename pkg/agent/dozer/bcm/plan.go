@@ -2821,31 +2821,24 @@ func planVNIVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, v
 
 	if subnet.DHCP.Enable || subnet.DHCP.Relay != "" {
 		var dhcpRelayIP net.IP
-		var srcInterface *string
-		var relayVRF *string
 
 		if subnet.DHCP.Enable {
 			dhcpRelayIP, _, err = net.ParseCIDR(agent.Spec.Config.ControlVIP)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
 			}
-			srcInterface = pointer.To(MgmtIface)
 		} else {
 			dhcpRelayIP, _, err = net.ParseCIDR(subnet.DHCP.Relay)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", subnet.DHCP.Relay, vpcName)
 			}
-			if subnet.DHCP.RelayVPC != "" {
-				relayVRF = pointer.To(vpcVrfName(subnet.DHCP.RelayVPC))
-			}
 		}
 
 		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
-			SourceInterface: srcInterface,
+			SourceInterface: pointer.To(MgmtIface),
 			RelayAddress:    []string{dhcpRelayIP.String()},
-			LinkSelect:      srcInterface != nil,
+			LinkSelect:      true,
 			VRFSelect:       true,
-			VRF:             relayVRF,
 		}
 	}
 
@@ -2882,31 +2875,24 @@ func planL3FlatVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string
 
 	if subnet.DHCP.Enable || subnet.DHCP.Relay != "" {
 		var dhcpRelayIP net.IP
-		var srcInterface *string
-		var relayVRF *string
 
 		if subnet.DHCP.Enable {
 			dhcpRelayIP, _, err = net.ParseCIDR(agent.Spec.Config.ControlVIP)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse DHCP relay %s (control vip) for vpc %s", agent.Spec.Config.ControlVIP, vpcName)
 			}
-			srcInterface = pointer.To(MgmtIface)
 		} else {
 			dhcpRelayIP, _, err = net.ParseCIDR(subnet.DHCP.Relay)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse DHCP relay %s for vpc %s", subnet.DHCP.Relay, vpcName)
 			}
-			if subnet.DHCP.RelayVPC != "" {
-				relayVRF = pointer.To(vpcVrfName(subnet.DHCP.RelayVPC))
-			}
 		}
 
 		spec.DHCPRelays[subnetIface] = &dozer.SpecDHCPRelay{
-			SourceInterface: srcInterface,
+			SourceInterface: pointer.To(MgmtIface),
 			RelayAddress:    []string{dhcpRelayIP.String()},
-			LinkSelect:      srcInterface != nil,
+			LinkSelect:      true,
 			VRFSelect:       true, // just for consistency, not used in L3 VPCs as it's always in a default VRF
-			VRF:             relayVRF,
 		}
 	}
 

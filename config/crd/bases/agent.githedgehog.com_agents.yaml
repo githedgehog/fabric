@@ -1828,10 +1828,6 @@ spec:
                                 description: Relay is the DHCP relay IP address, if
                                   specified, DHCP server will be disabled
                                 type: string
-                              relayVPC:
-                                description: RelayVPC is the name of the VPC where
-                                  the selected DHCP relay lives
-                                type: string
                               static:
                                 additionalProperties:
                                   description: VPCDHCPStatic represents static IP
