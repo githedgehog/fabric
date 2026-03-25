@@ -32,6 +32,7 @@ require (
 	github.com/samber/slog-webhook/v2 v2.8.3
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
+	github.com/tetratelabs/wazero v1.11.0
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vishvananda/netlink v1.3.1
 	go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0

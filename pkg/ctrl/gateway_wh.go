@@ -21,12 +21,14 @@ import (
 type GatewayWebhook struct {
 	kclient.Reader
 	cfg *meta.FabricConfig
+	v   *GatewayValidator
 }
 
-func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
 	w := &GatewayWebhook{
 		Reader: mgr.GetClient(),
 		cfg:    cfg,
+		v:      v,
 	}
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.Gateway{}).
@@ -46,12 +48,20 @@ func (w *GatewayWebhook) Default(_ context.Context, obj *gwapi.Gateway) error {
 }
 
 func (w *GatewayWebhook) ValidateCreate(ctx context.Context, gw *gwapi.Gateway) (admission.Warnings, error) {
-	return nil, gw.Validate(ctx, w.Reader, w.cfg) //nolint:wrapcheck
+	if err := gw.Validate(ctx, w.Reader, w.cfg); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+
+	return nil, w.v.Validate()
 }
 
 func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
-	return nil, newGw.Validate(ctx, w.Reader, w.cfg) //nolint:wrapcheck
+	if err := newGw.Validate(ctx, w.Reader, w.cfg); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+
+	return nil, w.v.Validate()
 }
 
 func (w *GatewayWebhook) ValidateDelete(_ context.Context, _ *gwapi.Gateway) (admission.Warnings, error) {

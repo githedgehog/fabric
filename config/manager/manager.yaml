@@ -125,6 +125,9 @@ spec:
             - name: creds
               mountPath: /creds
               readOnly: true
+            - name: creds-docker
+              mountPath: /creds-docker
+              readOnly: true
       serviceAccountName: ctrl
       terminationGracePeriodSeconds: 10
       volumes:
@@ -139,3 +142,6 @@ spec:
         - name: creds
           secret:
             secretName: registry-user-reader # TODO pass using values
+        - name: creds-docker
+          secret:
+            secretName: registry-user-reader-docker # TODO pass using values
