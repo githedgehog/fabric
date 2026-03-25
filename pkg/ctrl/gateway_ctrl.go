@@ -6,7 +6,9 @@ package ctrl
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"path/filepath"
 	"reflect"
@@ -165,14 +167,44 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 
 	l.Info("Reconciling Gateway")
 
+	newGwAg, err := BuildGatewayAgent(ctx, r.Client, r.cfg, gw)
+	if err != nil {
+		if errors.Is(err, ErrRetryLater) {
+			return kctrl.Result{Requeue: true, RequeueAfter: 1 * time.Second}, nil
+		}
+
+		return kctrl.Result{}, fmt.Errorf("building gateway agent: %w", err)
+	}
+
+	// we intentionally manage gateway agent in the default namespace
+	gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
+		// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
+		gwAg.Spec = newGwAg.Spec
+
+		return nil
+	}); err != nil {
+		return kctrl.Result{}, fmt.Errorf("creating or updating gateway agent: %w", err)
+	}
+
+	if err := r.deployGateway(ctx, gw); err != nil {
+		return kctrl.Result{}, fmt.Errorf("deploying gateway: %w", err)
+	}
+
+	return kctrl.Result{}, nil
+}
+
+var ErrRetryLater = fmt.Errorf("retry later")
+
+func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, gw *gwapi.Gateway) (*gwintapi.GatewayAgent, error) {
 	inGwGroups := map[string]bool{}
 	for _, gr := range gw.Spec.Groups {
 		inGwGroups[gr.Name] = true
 	}
 	gwGroups := map[string]gwintapi.GatewayGroupInfo{}
 	gws := &gwapi.GatewayList{}
-	if err := r.List(ctx, gws); err != nil {
-		return kctrl.Result{}, fmt.Errorf("listing gateways: %w", err)
+	if err := kube.List(ctx, gws); err != nil {
+		return nil, fmt.Errorf("listing gateways: %w", err)
 	}
 	for _, gw := range gws.Items {
 		for _, gr := range gw.Spec.Groups {
@@ -200,16 +232,16 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	vpcList := &gwapi.VPCInfoList{}
-	if err := r.List(ctx, vpcList); err != nil {
-		return kctrl.Result{}, fmt.Errorf("listing vpcinfos: %w", err)
+	if err := kube.List(ctx, vpcList); err != nil {
+		return nil, fmt.Errorf("listing vpcinfos: %w", err)
 	}
 	vpcs := map[string]gwintapi.VPCInfoData{}
 	for _, vpc := range vpcList.Items {
 		if !vpc.IsReady() {
-			l.Info("VPCInfo not ready, retrying")
-
 			// TODO consider ignoring non-ready VPCs
-			return kctrl.Result{Requeue: true, RequeueAfter: 1 * time.Second}, nil
+			slog.Info("VPC not ready while building gateway agent, retrying", "gateway", gw.Name, "vpc", vpc.Name, "ns", vpc.Namespace)
+
+			return nil, fmt.Errorf("vpcinfo not ready: %s: %w", vpc.Name, ErrRetryLater)
 		}
 		vpcs[vpc.Name] = gwintapi.VPCInfoData{
 			VPCInfoSpec:   vpc.Spec,
@@ -218,8 +250,8 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	peeringList := &gwapi.GatewayPeeringList{}
-	if err := r.List(ctx, peeringList); err != nil {
-		return kctrl.Result{}, fmt.Errorf("listing peerings: %w", err)
+	if err := kube.List(ctx, peeringList); err != nil {
+		return nil, fmt.Errorf("listing peerings: %w", err)
 	}
 	peerings := map[string]gwapi.PeeringSpec{}
 	for _, peering := range peeringList.Items {
@@ -227,7 +259,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 
 		for peerVPC := range peering.Spec.Peering {
 			if _, exists := vpcs[peerVPC]; !exists {
-				l.Info("Peered VPC not found, skipping", "peering", peering.Name, "vpc", peerVPC, "ns", peering.Namespace)
+				slog.Info("Peered VPC not found while building gateway agent, skipping", "gateway", gw.Name, "peering", peering.Name, "vpc", peerVPC, "ns", peering.Namespace)
 
 				missingVPC = true
 
@@ -243,37 +275,26 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	comms := map[string]string{}
-	for id, comm := range r.cfg.GatewayCommunities {
+	for id, comm := range cfg.GatewayCommunities {
 		comms[strconv.FormatUint(uint64(id), 10)] = comm
 	}
 
-	// we intentionally manage gateway agent in the default namespace
-	{
-		gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
-			// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
-
-			gwAg.Spec.AgentVersion = ""
-			gwAg.Spec.Gateway = gw.Spec
-			gwAg.Spec.VPCs = vpcs
-			gwAg.Spec.Peerings = peerings
-			gwAg.Spec.Groups = gwGroups
-			gwAg.Spec.Communities = comms
-			gwAg.Spec.Config = gwintapi.GatewayAgentSpecConfig{
-				FabricBFD: !r.cfg.DisableBFD,
-			}
-
-			return nil
-		}); err != nil {
-			return kctrl.Result{}, fmt.Errorf("creating or updating gateway agent: %w", err)
-		}
+	gwAg := &gwintapi.GatewayAgent{
+		ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name},
+		Spec: gwintapi.GatewayAgentSpec{
+			AgentVersion: "",
+			Gateway:      gw.Spec,
+			VPCs:         vpcs,
+			Peerings:     peerings,
+			Groups:       gwGroups,
+			Communities:  comms,
+			Config: gwintapi.GatewayAgentSpecConfig{
+				FabricBFD: !cfg.DisableBFD,
+			},
+		},
 	}
 
-	if err := r.deployGateway(ctx, gw); err != nil {
-		return kctrl.Result{}, fmt.Errorf("deploying gateway: %w", err)
-	}
-
-	return kctrl.Result{}, nil
+	return gwAg, nil
 }
 
 func entityName(gwName string, t ...string) string {
