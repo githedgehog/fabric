@@ -333,7 +333,6 @@ type SpecDHCPRelay struct {
 	RelayAddress    []string `json:"relayAddress,omitempty"`
 	LinkSelect      bool     `json:"linkSelect,omitempty"`
 	VRFSelect       bool     `json:"vrfSelect,omitempty"`
-	VRF             *string  `json:"vrf,omitempty"`
 }
 
 type SpecACL struct {
