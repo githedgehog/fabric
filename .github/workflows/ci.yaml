@@ -156,7 +156,6 @@ jobs:
           ) && (
             matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
-          || github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && matrix.hybrid
         }}
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
