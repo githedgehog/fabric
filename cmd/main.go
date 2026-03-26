@@ -106,15 +106,17 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("reading registry password: %w", err)
 	}
 
-	var gwValid *ctrl.GatewayValidator
-	func() {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-		defer cancel()
+	gwValid := &ctrl.GatewayValidator{}
+	if cfg.EnableGateway {
+		func() {
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
 
-		gwValid, err = ctrl.NewGatewayValidator(ctx, cfg, ca, DockerCredsPath)
-	}()
-	if err != nil {
-		return fmt.Errorf("creating gateway validator: %w", err)
+			gwValid, err = ctrl.NewGatewayValidator(ctx, cfg, ca, DockerCredsPath)
+		}()
+		if err != nil {
+			return fmt.Errorf("creating gateway validator: %w", err)
+		}
 	}
 
 	scheme := runtime.NewScheme()
