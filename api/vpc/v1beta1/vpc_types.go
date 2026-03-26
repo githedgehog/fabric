@@ -99,6 +99,8 @@ type VPCSubnet struct {
 type VPCDHCP struct {
 	// Relay is the DHCP relay IP address, if specified, DHCP server will be disabled
 	Relay string `json:"relay,omitempty"`
+	// RelayVPC is the name of the VPC where the selected DHCP relay lives
+	RelayVPC string `json:"relayVPC,omitempty"`
 	// Enable enables DHCP server for the subnet
 	Enable bool `json:"enable,omitempty"`
 	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled
@@ -441,6 +443,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			if err != nil {
 				return nil, errors.Wrapf(err, "subnet %s: failed to parse dhcp relay %s", subnetName, subnetCfg.DHCP.Relay)
 			}
+		} else if subnetCfg.DHCP.RelayVPC != "" {
+			return nil, errors.Errorf("subnet %s: dhcp relay VPC specified but dhcp relay is not enabled", subnetName)
 		}
 
 		if subnetCfg.DHCP.Options != nil && !subnetCfg.DHCP.Enable {
@@ -703,6 +707,18 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 
 			if !subnetCfg.HostBGP && !vlanNs.Spec.Contains(subnetCfg.VLAN) {
 				return nil, errors.Errorf("vpc subnet %s (%s) vlan %d doesn't belong to the VLANNamespace %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN, vpc.Spec.VLANNamespace)
+			}
+
+			if subnetCfg.DHCP.RelayVPC != "" {
+				relayVPC := &VPC{}
+				err := kube.Get(ctx, ktypes.NamespacedName{Name: subnetCfg.DHCP.RelayVPC, Namespace: vpc.Namespace}, relayVPC)
+				if err != nil {
+					if kapierrors.IsNotFound(err) {
+						return nil, errors.Errorf("subnet %s: dhcp relay VPC %s not found", subnetName, subnetCfg.DHCP.RelayVPC)
+					}
+
+					return nil, errors.Wrapf(err, "subnet %s: failed to get dhcp relay VPC %s", subnetName, subnetCfg.DHCP.RelayVPC) // TODO replace with some internal error to not expose to the user
+				}
 			}
 		}
 

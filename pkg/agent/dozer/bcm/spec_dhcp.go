@@ -61,6 +61,7 @@ var specDHCPRelayEnforcer = &DefaultValueEnforcer[string, *dozer.SpecDHCPRelay]{
 					Config: &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces_Interface_Config{
 						HelperAddress: value.RelayAddress,
 						SrcIntf:       value.SourceInterface,
+						Vrf:           value.VRF,
 					},
 				},
 			},
@@ -106,6 +107,7 @@ func unmarshalOCDHCPRelays(ocVal *oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interf
 			RelayAddress:    ocRelayIface.Config.HelperAddress,
 			LinkSelect:      cfg.LinkSelect == oc.OpenconfigRelayAgentExt_Mode_ENABLE,
 			VRFSelect:       cfg.VrfSelect == oc.OpenconfigRelayAgentExt_Mode_ENABLE,
+			VRF:             ocRelayIface.Config.Vrf,
 		}
 	}
 
