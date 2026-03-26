@@ -438,20 +438,29 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	vpcs := map[string]vpcapi.VPCSpec{}
 	vpcList := &vpcapi.VPCList{}
+	vpcRelays := map[string]bool{}
 	err = r.List(ctx, vpcList, kclient.InNamespace(sw.Namespace))
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error listing vpcs")
 	}
 	for _, vpc := range vpcList.Items {
 		ok := attachedVPCs[vpc.Name] || staticExtVPCs[vpc.Name]
-		for subnetName := range vpc.Spec.Subnets {
+		for subnetName, subnetSpec := range vpc.Spec.Subnets {
 			if configuredSubnets[fmt.Sprintf("%s/%s", vpc.Name, subnetName)] {
 				ok = true
-
-				break
+				// if an attached VPC subnet refers to another VPC as DHCP relay, we need to add the VPC too
+				if subnetSpec.DHCP.RelayVPC != "" {
+					vpcRelays[subnetSpec.DHCP.RelayVPC] = true
+				}
 			}
 		}
 		if ok {
+			vpcs[vpc.Name] = vpc.Spec
+		}
+	}
+
+	for _, vpc := range vpcList.Items {
+		if vpcRelays[vpc.Name] {
 			vpcs[vpc.Name] = vpc.Spec
 		}
 	}
