@@ -59,18 +59,23 @@ func TestExternalValidation(t *testing.T) {
 			err: true,
 		},
 		{
-			name: "bgp missing inbound",
-			external: extGen("invalid-bgp", func(ext *v1beta1.External) {
+			name: "bgp missing outbound",
+			external: extGen("no-out", func(ext *v1beta1.External) {
 				ext.Spec.InboundCommunity = InboundCommunity
 			}),
-			err: true,
+			err: false,
 		},
 		{
-			name: "bgp missing outbound",
-			external: extGen("invalid-bgp", func(ext *v1beta1.External) {
+			name: "bgp missing inbound",
+			external: extGen("no-in", func(ext *v1beta1.External) {
 				ext.Spec.OutboundCommunity = OutboundCommunity
 			}),
-			err: true,
+			err: false,
+		},
+		{
+			name:     "bgp missing both communities",
+			external: extGen("no-comms", func(ext *v1beta1.External) {}),
+			err:      false,
 		},
 		{
 			name: "bgp invalid inbound",
