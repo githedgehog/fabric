@@ -48,9 +48,9 @@ type ExternalStaticSpec struct {
 type ExternalSpec struct {
 	// IPv4Namespace is the name of the IPv4Namespace this External belongs to
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
-	// InboundCommunity is the inbound community to filter routes from the external system (e.g. 65102:5000)
+	// InboundCommunity is the optional inbound community to filter routes from the external system (e.g. 65102:5000)
 	InboundCommunity string `json:"inboundCommunity,omitempty"`
-	// OutboundCommunity is theoutbound community that all outbound routes will be stamped with (e.g. 50000:50001)
+	// OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001)
 	OutboundCommunity string `json:"outboundCommunity,omitempty"`
 	// Static contains parameters specific to static externals
 	// +optional
@@ -136,19 +136,11 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 	}
 
 	if external.Spec.Static == nil {
-		if external.Spec.InboundCommunity == "" {
-			return nil, errors.Errorf("inboundCommunity is required")
-		}
-
-		if external.Spec.OutboundCommunity == "" {
-			return nil, errors.Errorf("outboundCommunity is required")
-		}
-
-		if !communityCheck.MatchString(external.Spec.InboundCommunity) {
+		if external.Spec.InboundCommunity != "" && !communityCheck.MatchString(external.Spec.InboundCommunity) {
 			return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 50000:50001", external.Spec.InboundCommunity)
 		}
 
-		if !communityCheck.MatchString(external.Spec.OutboundCommunity) {
+		if external.Spec.OutboundCommunity != "" && !communityCheck.MatchString(external.Spec.OutboundCommunity) {
 			return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
 		}
 	} else {
