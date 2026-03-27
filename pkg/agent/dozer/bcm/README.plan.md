@@ -94,6 +94,8 @@ This route-map serves multiple purposes:
     advertised by a gateway will always win over prefixes advertised by an external; this is on purpose
     to avoid route flaps when a gateway route is advertised to an external via an attachment and later
     learned on another leaf via another attachment, where it would win over the shorter gateway route.
+    Additionally, routes that come from static externals or from BGP externals with no inbound community
+    will not be matched and their preference will not be increased.
     - it allows any other non-matched prefix through.
     ```
     route-map l2vpn-neighbors permit 1
@@ -1044,7 +1046,7 @@ default origination. **TODO: confirm whether this is needed and what it does in 
 
 ## Externals
 Even though there's a single `External` object and a single `ExternalAttachment` object, in practice
-we support two types of externals. BGP speaking externals will have non-nil inbound and outbound
+we support two types of externals. BGP speaking externals will optionally have non-nil inbound and outbound
 communities, while Static externals will have non-nil static configuration.
 
 Creating an `External` object does not affect the switches in any major way; it is only when they are
@@ -1128,24 +1130,21 @@ in the external attachment:
      [...]
     !
     ```
-1. We add the inbound community of the BGP external to two community lists,
-`ext-inbound--<EXT-NAME>` and `ipns-ext-communities--<IPV4NAMESPACE>`:
+1. Assuming it is not empty, we add the inbound community of the BGP external to the community list
+`ext-inbound--<EXT-NAME>`:
     ```
     bgp community-list standard ext-inbound--ext-name permit 65102:1000
-    bgp community-list standard ipns-ext-communities--default permit 65102:1000
     ```
-1. We create several route-maps. In the inbound route-map, used in the in direction with the external:
+1. We create several route-maps. In the inbound route-map, used in the import direction from the external:
   - we deny routes that match the IPv4 namespace the external belongs to
-  - we allow routes that match the inbound community above, and set a local preference of 150 for these
-  - we deny everything else
+  - we allow routes that match the inbound community above (if specified), and set a local preference of 150. If no inbound community was specified, this applies to all routes.
+  - we deny everything else (assuming there was an inbound community)
+
 In the outbound route-map, used in the out direction with the external:
-  - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community
-  - we permit any route matching the gateway priority community list (`all-gw-prios`), and we tag those with the external's outbound community;
+  - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community if specified
+  - we permit any route matching the gateway priority community list (`all-gw-prios`), and we tag those with the external's outbound community if specified;
   this is to ensure that NATed prefixes learned from the gateway are exported to the external
-  - we deny everything else. Note that in practice, due to the route-leaking route-map, nothing else should be present in the VRF anyway.
-In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes leaked in the external VRF:
-  - we permit routes that match the corresponding community list mentioned above
-  - we deny everything else
+
   ```
   route-map ext-inbound--ext-name deny 5
    match ip address prefix-list ipns-subnets--default
@@ -1154,8 +1153,6 @@ In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes l
    match community ext-inbound--ext-name
    set local-preference 150
   !
-  route-map ext-inbound--ext-name deny 100
-  !
   route-map ext-outbound--ext-name permit 10
    match ip address prefix-list ipns-subnets--default
    set community 64102:1000
@@ -1163,13 +1160,6 @@ In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes l
   route-map ext-outbound--ext-name permit 20
    match community all-gw-prios
    set community 64102:1000
-  !
-  route-map ext-outbound--ext-name deny 100
-  !
-  route-map ipns-ext-communities--default permit 10
-   match community ipns-ext-communities--default
-  !
-  route-map ipns-ext-communities--default deny 100
   !
   ```
 1. In the BGP instance for the external VRF, we peer with the external device

@@ -1013,37 +1013,9 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for externalName, external := range agent.Spec.Externals {
 		extVrfName := extVrfName(externalName)
 
-		if external.Static == nil {
+		if external.Static == nil && external.InboundCommunity != "" {
 			if agent.IsSpineLeaf() && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity) {
 				spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity)
-			}
-
-			if !attachedExternals[externalName] {
-				continue
-			}
-
-			externalCommsCommList := ipNsExtCommsCommListName(external.IPv4Namespace)
-			externalCommsRouteMap := ipNsExternalCommsRouteMapName(external.IPv4Namespace)
-
-			if _, exists := spec.CommunityLists[externalCommsCommList]; !exists {
-				spec.CommunityLists[externalCommsCommList] = &dozer.SpecCommunityList{
-					Members: []string{},
-				}
-			}
-			spec.CommunityLists[externalCommsCommList].Members = append(spec.CommunityLists[externalCommsCommList].Members, external.InboundCommunity)
-
-			spec.RouteMaps[externalCommsRouteMap] = &dozer.SpecRouteMap{
-				Statements: map[string]*dozer.SpecRouteMapStatement{
-					"10": {
-						Conditions: dozer.SpecRouteMapConditions{
-							MatchCommunityList: pointer.To(externalCommsCommList),
-						},
-						Result: dozer.SpecRouteMapResultAccept,
-					},
-					"100": {
-						Result: dozer.SpecRouteMapResultReject,
-					},
-				},
 			}
 		}
 		if !attachedExternals[externalName] {
@@ -1126,9 +1098,16 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		if external.Static == nil {
-			commList := extInboundCommListName(externalName)
-			spec.CommunityLists[commList] = &dozer.SpecCommunityList{
-				Members: []string{external.InboundCommunity},
+			locPrefStatement := &dozer.SpecRouteMapStatement{
+				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+				Result:             dozer.SpecRouteMapResultAccept,
+			}
+			if external.InboundCommunity != "" {
+				commList := extInboundCommListName(externalName)
+				spec.CommunityLists[commList] = &dozer.SpecCommunityList{
+					Members: []string{external.InboundCommunity},
+				}
+				locPrefStatement.Conditions = dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commList)}
 			}
 
 			inboundStatements := map[string]*dozer.SpecRouteMapStatement{
@@ -1138,16 +1117,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
-				"15": {
-					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: pointer.To(commList),
-					},
-					SetLocalPreference: pointer.To(uint32(ExternalPreference)),
-					Result:             dozer.SpecRouteMapResultAccept,
-				},
-				"100": {
-					Result: dozer.SpecRouteMapResultReject,
-				},
+				"15": locPrefStatement,
 			}
 			if _, ok := spec.AsPathLists[AsPathListFabricGW]; ok {
 				inboundStatements["5"] = &dozer.SpecRouteMapStatement{
@@ -1161,27 +1131,27 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Statements: inboundStatements,
 			}
 
-			spec.RouteMaps[extOutboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
+			outboundRMap := &dozer.SpecRouteMap{
 				Statements: map[string]*dozer.SpecRouteMapStatement{
 					"10": {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
 						},
-						SetCommunities: []string{external.OutboundCommunity},
-						Result:         dozer.SpecRouteMapResultAccept,
+						Result: dozer.SpecRouteMapResultAccept,
 					},
 					"20": {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchCommunityList: pointer.To(string(BGPCommListAllGwPrios)),
 						},
-						SetCommunities: []string{external.OutboundCommunity},
-						Result:         dozer.SpecRouteMapResultAccept,
-					},
-					"100": {
-						Result: dozer.SpecRouteMapResultReject,
+						Result: dozer.SpecRouteMapResultAccept,
 					},
 				},
 			}
+			if external.OutboundCommunity != "" {
+				outboundRMap.Statements["10"].SetCommunities = []string{external.OutboundCommunity}
+				outboundRMap.Statements["20"].SetCommunities = []string{external.OutboundCommunity}
+			}
+			spec.RouteMaps[extOutboundRouteMapName(externalName)] = outboundRMap
 		}
 
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
@@ -3271,9 +3241,9 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 				Result: dozer.SpecRouteMapResultReject,
 			}
-			// do not use the external comunity list if this is a static external
+			// do not use the external community list if this is a static external or if there is no inbound community
 			var commListMatch *string
-			if external.Static == nil {
+			if external.Static == nil && external.InboundCommunity != "" {
 				commListMatch = pointer.To(extInboundCommListName(externalName))
 			}
 			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
@@ -3504,14 +3474,6 @@ func extImportPrefixListName(external string) string {
 
 func extOutboundRouteMapName(external string) string {
 	return fmt.Sprintf("ext-outbound--%s", external)
-}
-
-func ipNsExtCommsCommListName(ipns string) string {
-	return fmt.Sprintf("ipns-ext-communities--%s", ipns)
-}
-
-func ipNsExternalCommsRouteMapName(ipns string) string {
-	return fmt.Sprintf("ipns-ext-communities--%s", ipns)
 }
 
 func ipNsNoExtPeeringACLName(ipns string) string {
