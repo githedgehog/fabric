@@ -227,12 +227,12 @@ github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6g
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
 github.com/samber/lo v1.53.0 h1:t975lj2py4kJPQ6haz1QMgtId2gtmfktACxIXArw3HM=
 github.com/samber/lo v1.53.0/go.mod h1:4+MXEGsJzbKGaUEQFKBq2xtfuznW9oz/WrgyzMzRoM0=
-github.com/samber/slog-common v0.20.0 h1:WaLnm/aCvBJSk5nR5aXZTFBaV0B47A+AEaEOiZDeUnc=
-github.com/samber/slog-common v0.20.0/go.mod h1:+Ozat1jgnnE59UAlmNX1IF3IByHsODnnwf9jUcBZ+m8=
+github.com/samber/slog-common v0.21.0 h1:Wo2hTly1Br5RjYqX/BTWJJeDnTE85oWk/7vqlpZuAUc=
+github.com/samber/slog-common v0.21.0/go.mod h1:d/6OaSlzdkl9PFpfRLgn8FwY1OW6EFmPtBpsHX4MrU0=
 github.com/samber/slog-multi v1.7.1 h1:aCLXHRxgU+2v0PVlEOh7phynzM7CRo89ZgFtOwaqVEE=
 github.com/samber/slog-multi v1.7.1/go.mod h1:A4KQC99deqfkCDJcL/cO3kX6McX7FffQAx/8QHink+c=
-github.com/samber/slog-webhook/v2 v2.8.3 h1:5rmjuOODSOPo4/4uN0JKAv0OcUfN1voXbXBOoMp26wE=
-github.com/samber/slog-webhook/v2 v2.8.3/go.mod h1:wTiajOEtG35SzOYkJnze1yH3VIit/f7O9ZSSnKyEwKU=
+github.com/samber/slog-webhook/v2 v2.8.4 h1:tttdG6OOk2sp3vFzInLswvS8ek2wR17ZkU/uQh0uVzg=
+github.com/samber/slog-webhook/v2 v2.8.4/go.mod h1:8+fKJUrOE1Rwbs2fyET1lOrtD8NUV7wrM5gjdmcNIFE=
 github.com/shopspring/decimal v1.4.0 h1:bxl37RwXBklmTi0C79JfXCEBD1cqqHt0bbgBAGFp81k=
 github.com/shopspring/decimal v1.4.0/go.mod h1:gawqmDU56v4yIKSwfBSFip1HdCCXN8/+DMd9qYNcwME=
 github.com/sirupsen/logrus v1.9.4 h1:TsZE7l11zFCLZnZ+teH4Umoq5BhEIfIzfRDZ1Uzql2w=
