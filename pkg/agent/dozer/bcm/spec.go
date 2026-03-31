@@ -133,6 +133,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle community lists")
 		}
 
+		if err := specAsPathListsEnforcer.Handle(basePath, actual.AsPathLists, desired.AsPathLists, actions); err != nil {
+			return errors.Wrap(err, "failed to handle as-path lists")
+		}
+
 		if err := specLSTGroupsEnforcer.Handle(basePath, actual.LSTGroups, desired.LSTGroups, actions); err != nil {
 			return errors.Wrap(err, "failed to handle lst groups")
 		}
@@ -222,6 +226,9 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Cli
 		return errors.Wrapf(err, "failed to load prefix lists")
 	}
 
+	if err := loadActualAsPathLists(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load actual as-path lists")
+	}
 	if err := loadActualCommunityLists(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load community lists")
 	}

@@ -120,6 +120,17 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 			}
 			conditions.BgpConditions.Config.CommunitySet = statement.Conditions.MatchCommunityList
 		}
+		if statement.Conditions.MatchAsPathList != nil {
+			if conditions.BgpConditions == nil {
+				conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
+			}
+			conditions.BgpConditions.MatchAsPathSet = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchAsPathSet{
+				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchAsPathSet_Config{
+					AsPathSet:       statement.Conditions.MatchAsPathList,
+					MatchSetOptions: oc.OpenconfigRoutingPolicy_MatchSetOptionsType_ANY,
+				},
+			}
+		}
 		if statement.Conditions.MatchNextHopPrefixList != nil {
 			if conditions.BgpConditions == nil {
 				conditions.BgpConditions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions{}
@@ -290,6 +301,10 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 					if statement.Conditions.BgpConditions.Config != nil {
 						conditions.MatchCommunityList = statement.Conditions.BgpConditions.Config.CommunitySet
 						conditions.MatchNextHopPrefixList = statement.Conditions.BgpConditions.Config.NextHopSet
+					}
+
+					if statement.Conditions.BgpConditions.MatchAsPathSet != nil && statement.Conditions.BgpConditions.MatchAsPathSet.Config != nil {
+						conditions.MatchAsPathList = statement.Conditions.BgpConditions.MatchAsPathSet.Config.AsPathSet
 					}
 				}
 				if statement.Conditions.MatchSrcNetworkInstance != nil && statement.Conditions.MatchSrcNetworkInstance.Config != nil {

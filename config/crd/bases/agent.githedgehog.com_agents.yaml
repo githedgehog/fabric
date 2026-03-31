@@ -473,6 +473,9 @@ spec:
                     type: string
                   serverFacingMTUOffset:
                     type: integer
+                  spineASN:
+                    format: int32
+                    type: integer
                   spineLeaf:
                     type: object
                   vpcLoopbackSubnet:
