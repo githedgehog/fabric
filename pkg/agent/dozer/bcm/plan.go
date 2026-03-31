@@ -64,6 +64,7 @@ const (
 	PrefixListStaticExternals    = "static-ext-subnets"
 	NoCommunity                  = "no-community"
 	LSTGroupSpineLink            = "spinelink"
+	AsPathListFabricGW           = "fabric-gw-aspath"
 	BGPCommListAllExternals      = "all-externals"
 	BGPCommListAllGwPrios        = "all-gw-prios"
 	MgmtIface                    = "Management0"
@@ -101,6 +102,7 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		RouteMaps:          map[string]*dozer.SpecRouteMap{},
 		PrefixLists:        map[string]*dozer.SpecPrefixList{},
 		CommunityLists:     map[string]*dozer.SpecCommunityList{},
+		AsPathLists:        map[string]*dozer.SpecAsPathList{},
 		DHCPRelays:         map[string]*dozer.SpecDHCPRelay{},
 		ACLs:               map[string]*dozer.SpecACL{},
 		ACLInterfaces:      map[string]*dozer.SpecACLInterface{},
@@ -901,6 +903,21 @@ func addToAddr(addr netip.Addr, n uint32) netip.Addr {
 }
 
 func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
+	// Build AS-path list to deny routes with fabric spine or gateway ASNs in the path
+	// TODO: also exclude leaf ASNs - regex for the generic case is complex
+	asPathMembers := []string{}
+	if agent.Spec.Config.SpineASN != 0 {
+		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", agent.Spec.Config.SpineASN))
+	}
+	if agent.Spec.Config.GatewayASN != 0 {
+		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", agent.Spec.Config.GatewayASN))
+	}
+	if len(asPathMembers) > 0 {
+		spec.AsPathLists[AsPathListFabricGW] = &dozer.SpecAsPathList{
+			Members: asPathMembers,
+		}
+	}
+
 	spec.PrefixLists[PrefixListAny] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
 			10: {
@@ -1114,25 +1131,34 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Members: []string{external.InboundCommunity},
 			}
 
-			spec.RouteMaps[extInboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
-				Statements: map[string]*dozer.SpecRouteMapStatement{
-					"5": {
-						Conditions: dozer.SpecRouteMapConditions{
-							MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
-						},
-						Result: dozer.SpecRouteMapResultReject,
+			inboundStatements := map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
 					},
-					"10": {
-						Conditions: dozer.SpecRouteMapConditions{
-							MatchCommunityList: pointer.To(commList),
-						},
-						SetLocalPreference: pointer.To(uint32(ExternalPreference)),
-						Result:             dozer.SpecRouteMapResultAccept,
-					},
-					"100": {
-						Result: dozer.SpecRouteMapResultReject,
-					},
+					Result: dozer.SpecRouteMapResultReject,
 				},
+				"15": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchCommunityList: pointer.To(commList),
+					},
+					SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+					Result:             dozer.SpecRouteMapResultAccept,
+				},
+				"100": {
+					Result: dozer.SpecRouteMapResultReject,
+				},
+			}
+			if _, ok := spec.AsPathLists[AsPathListFabricGW]; ok {
+				inboundStatements["5"] = &dozer.SpecRouteMapStatement{
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchAsPathList: pointer.To(AsPathListFabricGW),
+					},
+					Result: dozer.SpecRouteMapResultReject,
+				}
+			}
+			spec.RouteMaps[extInboundRouteMapName(externalName)] = &dozer.SpecRouteMap{
+				Statements: inboundStatements,
 			}
 
 			spec.RouteMaps[extOutboundRouteMapName(externalName)] = &dozer.SpecRouteMap{

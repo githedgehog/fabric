@@ -75,6 +75,7 @@ const (
 	ActionWeightPrefixListEntryUpdate
 
 	ActionWeightCommunityListUpdate
+	ActionWeightAsPathListUpdate
 
 	ActionWeightVLANProxyARPDelete
 	ActionWeightSubinterfaceProxyARPDelete
@@ -221,6 +222,7 @@ const (
 	ActionWeightRouteMapDelete
 	ActionWeightPrefixListDelete
 	ActionWeightCommunityListDelete
+	ActionWeightAsPathListDelete
 
 	ActionWeightECMPRoCE
 

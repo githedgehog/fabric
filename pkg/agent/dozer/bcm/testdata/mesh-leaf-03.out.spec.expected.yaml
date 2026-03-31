@@ -20,6 +20,10 @@ acls:
         sourceAddress: 10.0.0.0/16
       "65535":
         action: ACCEPT
+asPathLists:
+  fabric-gw-aspath:
+    members:
+    - _65534_
 bfdProfiles:
   fabric:
     desiredMinimumTxInterval: 300
@@ -314,9 +318,13 @@ routeMaps:
     statements:
       "5":
         conditions:
-          matchPrefixLists: ipns-subnets--default
+          matchAsPathList: fabric-gw-aspath
         result: reject
       "10":
+        conditions:
+          matchPrefixLists: ipns-subnets--default
+        result: reject
+      "15":
         conditions:
           matchCommunityLists: ext-inbound--ext-bgp-01
         result: accept

@@ -8,6 +8,10 @@ acls:
         sourceAddress: 10.0.0.0/16
       "65535":
         action: ACCEPT
+asPathLists:
+  fabric-gw-aspath:
+    members:
+    - _65534_
 bfdProfiles:
   fabric:
     desiredMinimumTxInterval: 300

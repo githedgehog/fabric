@@ -82,6 +82,7 @@ type AgentSpecConfig struct {
 	DefaultMaxPathsEBGP   uint32                    `json:"defaultMaxPathsEBGP,omitempty"`
 	MCLAGSessionSubnet    string                    `json:"mclagSessionSubnet,omitempty"`
 	GatewayASN            uint32                    `json:"gatewayASN,omitempty"`
+	SpineASN              uint32                    `json:"spineASN,omitempty"`
 	LoopbackWorkaround    bool                      `json:"loopbackWorkaround,omitempty"`
 	ProtocolSubnet        string                    `json:"protocolSubnet,omitempty"`
 	VTEPSubnet            string                    `json:"vtepSubnet,omitempty"`

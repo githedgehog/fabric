@@ -63,6 +63,7 @@ type Spec struct {
 	RouteMaps          map[string]*SpecRouteMap          `json:"routeMaps,omitempty"`
 	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
 	CommunityLists     map[string]*SpecCommunityList     `json:"communityLists,omitempty"`
+	AsPathLists        map[string]*SpecAsPathList        `json:"asPathLists,omitempty"`
 	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
 	ACLs               map[string]*SpecACL               `json:"acls,omitempty"`
 	ACLInterfaces      map[string]*SpecACLInterface      `json:"aclInterfaces,omitempty"`
@@ -275,6 +276,7 @@ type SpecRouteMapConditions struct {
 	MatchPrefixList        *string `json:"matchPrefixLists,omitempty"`
 	MatchNextHopPrefixList *string `json:"matchNextHopPrefixLists,omitempty"`
 	MatchCommunityList     *string `json:"matchCommunityLists,omitempty"`
+	MatchAsPathList        *string `json:"matchAsPathList,omitempty"`
 	MatchSourceVRF         *string `json:"matchSourceVrf,omitempty"`
 	Call                   *string `json:"call,omitempty"`
 }
@@ -304,6 +306,10 @@ type SpecPrefixListPrefix struct {
 type SpecPrefixListAction string
 
 type SpecCommunityList struct {
+	Members []string `json:"members,omitempty"`
+}
+
+type SpecAsPathList struct {
 	Members []string `json:"members,omitempty"`
 }
 
@@ -516,6 +522,7 @@ var (
 	_ SpecPart = (*SpecPrefixList)(nil)
 	_ SpecPart = (*SpecPrefixListEntry)(nil)
 	_ SpecPart = (*SpecCommunityList)(nil)
+	_ SpecPart = (*SpecAsPathList)(nil)
 	_ SpecPart = (*SpecDHCPRelay)(nil)
 	_ SpecPart = (*SpecACL)(nil)
 	_ SpecPart = (*SpecACLEntry)(nil)
@@ -648,6 +655,10 @@ func (s *SpecPrefixListEntry) IsNil() bool {
 }
 
 func (s *SpecCommunityList) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecAsPathList) IsNil() bool {
 	return s == nil
 }
 
