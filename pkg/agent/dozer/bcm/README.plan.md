@@ -88,56 +88,57 @@ This route-map serves multiple purposes:
     those it sets a local preference, with a lower priority implying a higher local preference.
     This is needed to ensure that we prefer the desired routes in a multi-gateway scenario.
     - it is a place-holder for rules used in [remote peering](#remote-peering)
-    - it sets the local preference of routes matching any [externals](#externals)' community to a high
-    value of 500, to make sure that they win over similar VPC routes. Note that this value is currently
-    higher than the highest preference value for gateways, which means that in case of conflict prefixes
-    advertised by an external will always win over prefixes advertised by a gateway; we might want to make
-    this behavior configurable at some point.
+    - it sets the local preference of routes matching any [externals](#externals)' community to a
+    value of 150, to make sure that they win over similar VPC routes. Note that this value is currently
+    lower than the lowest preference value for gateways, which means that in case of conflict prefixes
+    advertised by a gateway will always win over prefixes advertised by an external; this is on purpose
+    to avoid route flaps when a gateway route is advertised to an external via an attachment and later
+    learned on another leaf via another attachment, where it would win over the shorter gateway route.
     - it allows any other non-matched prefix through.
     ```
     route-map l2vpn-neighbors permit 1
     match community gw-prio-0
-    set local-preference 110
+    set local-preference 210
     !
     route-map l2vpn-neighbors permit 2
     match community gw-prio-1
-    set local-preference 109
+    set local-preference 209
     !
     route-map l2vpn-neighbors permit 3
     match community gw-prio-2
-    set local-preference 108
+    set local-preference 208
     !
     route-map l2vpn-neighbors permit 4
     match community gw-prio-3
-    set local-preference 107
+    set local-preference 207
     !
     route-map l2vpn-neighbors permit 5
     match community gw-prio-4
-    set local-preference 106
+    set local-preference 206
     !
     route-map l2vpn-neighbors permit 6
     match community gw-prio-5
-    set local-preference 105
+    set local-preference 205
     !
     route-map l2vpn-neighbors permit 7
     match community gw-prio-6
-    set local-preference 104
+    set local-preference 204
     !
     route-map l2vpn-neighbors permit 8
     match community gw-prio-7
-    set local-preference 103
+    set local-preference 203
     !
     route-map l2vpn-neighbors permit 9
     match community gw-prio-8
-    set local-preference 102
+    set local-preference 202
     !
     route-map l2vpn-neighbors permit 10
     match community gw-prio-9
-    set local-preference 101
+    set local-preference 201
     !
     route-map l2vpn-neighbors permit 65525
      match community all-externals
-     set local-preference 500
+     set local-preference 150
     !
     route-map l2vpn-neighbors permit 65535
     ```
@@ -1135,7 +1136,7 @@ in the external attachment:
     ```
 1. We create several route-maps. In the inbound route-map, used in the in direction with the external:
   - we deny routes that match the IPv4 namespace the external belongs to
-  - we allow routes that match the inbound community above, and set a local preference of 500 for these
+  - we allow routes that match the inbound community above, and set a local preference of 150 for these
   - we deny everything else
 In the outbound route-map, used in the out direction with the external:
   - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community
@@ -1151,7 +1152,7 @@ In the `ipns-ext-communities-<IPV4NAMESPACE>` route-map, used to filter routes l
   !
   route-map ext-inbound--ext-name permit 10
    match community ext-inbound--ext-name
-   set local-preference 500
+   set local-preference 150
   !
   route-map ext-inbound--ext-name deny 100
   !
@@ -1254,7 +1255,7 @@ a VPC VRF. **TODO: why a separate prefix-list?**
     ```
 1. We add entries to the route-map filtering routes leaked into the VPC VRF;
 one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,
-and another to set a high local preference of 500 for routes imported from the external.
+and another to set a local preference of 150 for routes imported from the external.
 Here is also the one difference between external types: for BGP externals, this second rule
 will also match on the inbound community of that external.
     ```
@@ -1265,7 +1266,7 @@ will also match on the inbound community of that external.
     route-map import-vrf--vpc-01 permit 50010
      match ip address prefix-list import-vrf--vpc-01--ext-name
      match community ext-inbound--ext-name
-     set local-preference 500
+     set local-preference 150
     !
     ```
 1. We add the VPC subnet(s) to the prefix list for the external's VRF route leaking, allowing

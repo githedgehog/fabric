@@ -154,7 +154,7 @@ routeMaps:
         conditions:
           matchCommunityLists: all-externals
         result: accept
-        setLocalPreference: 500
+        setLocalPreference: 150
       "65535":
         conditions: {}
         result: accept
