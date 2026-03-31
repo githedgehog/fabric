@@ -4,6 +4,7 @@
 package ctrl
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
@@ -23,6 +25,7 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"oras.land/oras-go/v2/registry/remote/credentials"
 	"oras.land/oras-go/v2/registry/remote/retry"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 type GatewayValidator struct {
@@ -149,7 +152,62 @@ func (v *GatewayValidator) Close(ctx context.Context) {
 	}
 }
 
-// Should it take gw *gwintapi.GatewayAgent?
-func (v *GatewayValidator) Validate() error {
+func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayAgent) error {
+	if v == nil {
+		return nil
+	}
+	if v.compiled == nil || v.runtime == nil {
+		return fmt.Errorf("validator uninitialized") //nolint:err113
+	}
+
+	if gwAg.Generation == 0 {
+		gwAg.Generation = 1
+	}
+
+	data, err := kyaml.Marshal(gwAg)
+	if err != nil {
+		return fmt.Errorf("marshalling gateway agent: %w", err)
+	}
+
+	stdin := bytes.NewBuffer(data)
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	cfg := wazero.NewModuleConfig().
+		WithStdin(stdin).
+		WithStdout(stdout).
+		WithStderr(stderr).
+		WithName("")
+	mod, err := v.runtime.InstantiateModule(ctx, v.compiled, cfg)
+	if stderr.Len() > 0 {
+		slog.Warn("Dp-validator stderr non-empty", "stderr", stderr.String())
+	}
+	if err != nil {
+		return fmt.Errorf("running dp-validator: %w", err)
+	}
+	defer mod.Close(ctx)
+
+	output := &DataplaneValidatorOutput{}
+	if err := kyaml.Unmarshal(stdout.Bytes(), output); err != nil {
+		return fmt.Errorf("unmarshalling dp-validator output: %w", err)
+	}
+	if !output.Success {
+		msgs := make([]string, 0, len(output.Errors))
+		for _, err := range output.Errors {
+			msgs = append(msgs, err.Message)
+		}
+
+		return fmt.Errorf("dp-validator: %s", strings.Join(msgs, ", ")) //nolint:err113
+	}
+
 	return nil
+}
+
+type DataplaneValidatorOutput struct {
+	Success bool                      `json:"success"`
+	Errors  []DataplaneValidatorError `json:"errors"`
+}
+
+type DataplaneValidatorError struct {
+	Message string `json:"message"`
 }
