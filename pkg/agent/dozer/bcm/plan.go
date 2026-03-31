@@ -69,6 +69,8 @@ const (
 	MgmtIface                    = "Management0"
 	FabricBFDProfile             = "fabric"
 	MaxGWPrioLevels              = 100
+	GwPrioPreferenceBase         = 200
+	ExternalPreference           = 150
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -429,7 +431,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.CommunityLists[commName] = &dozer.SpecCommunityList{Members: []string{commVal}}
 			l2vpnNeighRMap.Statements[fmt.Sprintf("%d", idx+1)] = &dozer.SpecRouteMapStatement{
 				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
-				SetLocalPreference: pointer.To(100 + uint32(numPrios-idx)), //nolint: gosec
+				SetLocalPreference: pointer.To(GwPrioPreferenceBase + uint32(numPrios-idx)), //nolint: gosec
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 		}
@@ -986,7 +988,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchCommunityList: pointer.To(BGPCommListAllExternals),
 			},
-			SetLocalPreference: pointer.To(uint32(500)),
+			SetLocalPreference: pointer.To(uint32(ExternalPreference)),
 			Result:             dozer.SpecRouteMapResultAccept,
 		}
 	}
@@ -1124,7 +1126,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 						Conditions: dozer.SpecRouteMapConditions{
 							MatchCommunityList: pointer.To(commList),
 						},
-						SetLocalPreference: pointer.To(uint32(500)),
+						SetLocalPreference: pointer.To(uint32(ExternalPreference)),
 						Result:             dozer.SpecRouteMapResultAccept,
 					},
 					"100": {
@@ -3253,7 +3255,7 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 					MatchCommunityList: commListMatch,
 					MatchPrefixList:    pointer.To(importVrfPrefixList),
 				},
-				SetLocalPreference: pointer.To(uint32(500)),
+				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 

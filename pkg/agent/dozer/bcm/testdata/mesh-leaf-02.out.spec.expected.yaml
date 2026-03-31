@@ -427,57 +427,57 @@ routeMaps:
         conditions:
           matchCommunityLists: gw-prio-0
         result: accept
-        setLocalPreference: 110
+        setLocalPreference: 210
       "2":
         conditions:
           matchCommunityLists: gw-prio-1
         result: accept
-        setLocalPreference: 109
+        setLocalPreference: 209
       "3":
         conditions:
           matchCommunityLists: gw-prio-2
         result: accept
-        setLocalPreference: 108
+        setLocalPreference: 208
       "4":
         conditions:
           matchCommunityLists: gw-prio-3
         result: accept
-        setLocalPreference: 107
+        setLocalPreference: 207
       "5":
         conditions:
           matchCommunityLists: gw-prio-4
         result: accept
-        setLocalPreference: 106
+        setLocalPreference: 206
       "6":
         conditions:
           matchCommunityLists: gw-prio-5
         result: accept
-        setLocalPreference: 105
+        setLocalPreference: 205
       "7":
         conditions:
           matchCommunityLists: gw-prio-6
         result: accept
-        setLocalPreference: 104
+        setLocalPreference: 204
       "8":
         conditions:
           matchCommunityLists: gw-prio-7
         result: accept
-        setLocalPreference: 103
+        setLocalPreference: 203
       "9":
         conditions:
           matchCommunityLists: gw-prio-8
         result: accept
-        setLocalPreference: 102
+        setLocalPreference: 202
       "10":
         conditions:
           matchCommunityLists: gw-prio-9
         result: accept
-        setLocalPreference: 101
+        setLocalPreference: 201
       "65525":
         conditions:
           matchCommunityLists: all-externals
         result: accept
-        setLocalPreference: 500
+        setLocalPreference: 150
       "65535":
         conditions: {}
         result: accept
