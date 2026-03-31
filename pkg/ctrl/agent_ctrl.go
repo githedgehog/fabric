@@ -867,6 +867,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			DefaultMaxPathsEBGP:   r.cfg.DefaultMaxPathsEBGP,
 			MCLAGSessionSubnet:    r.cfg.MCLAGSessionSubnet,
 			GatewayASN:            r.cfg.GatewayASN,
+			SpineASN:              r.cfg.SpineASN,
 			LoopbackWorkaround:    r.cfg.LoopbackWorkaround,
 			ProtocolSubnet:        r.cfg.ProtocolSubnet,
 			VTEPSubnet:            r.cfg.VTEPSubnet,
