@@ -48,6 +48,8 @@ type GatewaySpec struct {
 	Workers uint8 `json:"workers,omitempty"`
 	// Groups is a list of group memberships for the gateway
 	Groups []GatewayGroupMembership `json:"groups,omitempty"`
+	// FlowTableCapacity defines the maximum number of flow entres
+	FlowTableCapacity uint32 `json:"flowTableCapacity,omitempty"`
 }
 
 // GatewayInterface defines the configuration for a gateway interface

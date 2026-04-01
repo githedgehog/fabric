@@ -1025,6 +1025,7 @@ _Appears in:_
 | `profiling` _[GatewayProfiling](#gatewayprofiling)_ | Profiling defines the configuration for profiling |  |  |
 | `workers` _integer_ | Workers defines the number of worker threads to use for dataplane |  |  |
 | `groups` _[GatewayGroupMembership](#gatewaygroupmembership) array_ | Groups is a list of group memberships for the gateway |  |  |
+| `flowTableCapacity` _integer_ | FlowTableCapacity defines the maximum number of flow entres |  |  |
 
 
 #### GatewayStatus

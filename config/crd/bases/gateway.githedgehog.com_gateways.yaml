@@ -62,6 +62,11 @@ spec:
                 description: ASN is the ASN of the gateway
                 format: int32
                 type: integer
+              flowTableCapacity:
+                description: FlowTableCapacity defines the maximum number of flow
+                  entres
+                format: int32
+                type: integer
               groups:
                 description: Groups is a list of group memberships for the gateway
                 items:
