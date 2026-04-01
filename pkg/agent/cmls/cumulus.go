@@ -47,6 +47,7 @@ type ConfigIn struct {
 	ProtocolIP   string
 	VTEPIP       string
 	ASN          uint32
+	FrontPorts   uint16
 	HostSubnet   string
 	RouterID     string
 	VXLANSource  string
@@ -313,6 +314,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
 		VTEPIP:       agent.Spec.Switch.VTEPIP,
 		ASN:          agent.Spec.Switch.ASN,
+		FrontPorts:   uint16(len(agent.Spec.SwitchProfile.Ports) - 1),
 		RouterID:     protocolIP.Addr().String(),
 		VXLANSource:  vtepIP.Addr().String(),
 		VPCs:         vpcs,
@@ -423,6 +425,7 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	}
 
 	// TODO use API instead and probably create a revision named after agent generation + agent version?
+	// LOGAN CODE HERE
 
 	if err := run(ctx, "nv-replace", "nv", "config", "replace", cfgPath); err != nil {
 		return fmt.Errorf("replacing config: %w", err)

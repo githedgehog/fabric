@@ -6,7 +6,7 @@
             {{ $.ManagementIP }}: {}
         type: eth
         vrf: mgmt
-      swp1-64:
+      swp1-{{- $.FrontPorts }}:
         ipv6:
           state: disabled
         link:
