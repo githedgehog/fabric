@@ -85,6 +85,8 @@ var CelesticaDS3000 = wiringapi.SwitchProfile{
 						"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
 					},
 				},
+				AutoNegAllowed: true,
+				AutoNegDefault: false,
 			},
 		},
 	},
