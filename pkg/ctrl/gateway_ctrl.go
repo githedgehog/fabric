@@ -632,17 +632,13 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								Args: []string{
 									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
 									"--frr.socket.dir-path", frrRootRunMountPath,
+									"--no-collector.ospf",
 								},
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
 								},
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      frrRootRunVolumeName,
-										MountPath: frrRootRunMountPath,
-									},
-								},
+								VolumeMounts: frrVolumeMounts,
 							},
 						},
 						Volumes: []corev1.Volume{
