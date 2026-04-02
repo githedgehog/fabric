@@ -188,7 +188,7 @@ jobs:
           - false
         upgradefrom:
           - ""
-          - "25.05"
+          - "26.01"
         include:
           # mesh l2vni
           - mesh: true
@@ -208,14 +208,14 @@ jobs:
             hybrid: true
             upgradefrom: ""
 
-          # mesh l2vni from 25.05
+          # mesh l2vni from 26.01
           - mesh: true
             includeonie: false
             gateway: false
             buildmode: iso
             vpcmode: l2vni
             hybrid: false
-            upgradefrom: "25.05"
+            upgradefrom: "26.01"
 
           # gateway l2vni
           - mesh: false
