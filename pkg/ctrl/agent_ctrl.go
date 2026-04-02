@@ -329,7 +329,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 
 	neighborSwitches := map[string]bool{}
-	mclagPeerName := ""
 	for _, conn := range connList.Items {
 		sws, _, _, _, err := conn.Spec.Endpoints()
 		if err != nil {
@@ -337,17 +336,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 		for _, sw := range sws {
 			neighborSwitches[sw] = true
-		}
-
-		if conn.Spec.MCLAGDomain != nil {
-			// TODO add some helpers
-			for _, link := range conn.Spec.MCLAGDomain.PeerLinks {
-				if link.Switch1.DeviceName() == sw.Name {
-					mclagPeerName = link.Switch2.DeviceName()
-				} else if link.Switch2.DeviceName() == sw.Name {
-					mclagPeerName = link.Switch1.DeviceName()
-				}
-			}
 		}
 	}
 
@@ -365,29 +353,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		switches[sw.Name] = sw.Spec
 	}
 
-	// handle MCLAG things if we see a peer switch
-	// We only support MCLAG switch pairs for now
-	// It means that 2 switches would have the same MCLAG connections and same set of PortChannels
-	var mclagPeer *agentapi.Agent
-	mclagConns := map[string]wiringapi.ConnectionSpec{}
-	if mclagPeerName != "" {
-		mclagPeer = &agentapi.Agent{}
-		err = r.Get(ctx, ktypes.NamespacedName{Namespace: sw.Namespace, Name: mclagPeerName}, mclagPeer)
-		if err != nil && !kapierrors.IsNotFound(err) {
-			return kctrl.Result{}, errors.Wrapf(err, "error getting peer agent")
-		}
-
-		connList := &wiringapi.ConnectionList{}
-		err = r.List(ctx, connList, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(mclagPeerName))
-		if err != nil {
-			return kctrl.Result{}, errors.Wrapf(err, "error getting mclag peer switch connections")
-		}
-
-		for _, conn := range connList.Items {
-			mclagConns[conn.Name] = conn.Spec
-		}
-	}
-
 	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]agentapi.VPCAttachmentSpecAnn{}
 	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
@@ -399,7 +364,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 	for _, attach := range attachList.Items {
 		_, conn := conns[attach.Spec.Connection]
-		_, mclagConn := mclagConns[attach.Spec.Connection]
 
 		if conn {
 			anns := map[string]string{}
@@ -415,10 +379,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 				VPCAttachmentSpec: attach.Spec,
 				Annotations:       anns,
 			}
-		}
 
-		// whatever vpc subnet that got configured on our mclag peer should be configured on us too
-		if conn || mclagConn {
 			attachedVPCs[attach.Spec.VPCName()] = true
 			configuredSubnets[attach.Spec.Subnet] = true
 		}
@@ -473,7 +434,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		_, exists1 := vpcs[vpc1]
 		_, exists2 := vpcs[vpc2]
 
-		if exists1 || exists2 || peer.Spec.Remote != "" && slices.Contains(sw.Spec.Groups, peer.Spec.Remote) {
+		if exists1 || exists2 {
 			peerings[peer.Name] = peer.Spec
 			peeredVPCs[vpc1] = true
 			peeredVPCs[vpc2] = true
@@ -579,7 +540,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	portChanConns := map[string]bool{}
 	for name, conn := range conns {
-		if conn.Bundled == nil && conn.MCLAG == nil && conn.ESLAG == nil {
+		if conn.Bundled == nil && conn.ESLAG == nil {
 			continue
 		}
 
@@ -607,7 +568,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 
 		for _, conn := range connList.Items {
-			if conn.Spec.Bundled == nil && conn.Spec.MCLAG == nil && conn.Spec.ESLAG == nil {
+			if conn.Spec.Bundled == nil && conn.Spec.ESLAG == nil {
 				continue
 			}
 
@@ -658,10 +619,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	loWorkaroundReqs := map[string]bool{}
 	if r.cfg.LoopbackWorkaround {
 		for name, peering := range peerings {
-			if peering.Remote != "" {
-				continue
-			}
-
 			vpc1, vpc2, err := peering.VPCs()
 			if err != nil {
 				return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
@@ -865,7 +822,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			ESLAGMACBase:          r.cfg.ESLAGMACBase,
 			ESLAGESIPrefix:        r.cfg.ESLAGESIPrefix,
 			DefaultMaxPathsEBGP:   r.cfg.DefaultMaxPathsEBGP,
-			MCLAGSessionSubnet:    r.cfg.MCLAGSessionSubnet,
 			GatewayASN:            r.cfg.GatewayASN,
 			SpineASN:              r.cfg.SpineASN,
 			LoopbackWorkaround:    r.cfg.LoopbackWorkaround,

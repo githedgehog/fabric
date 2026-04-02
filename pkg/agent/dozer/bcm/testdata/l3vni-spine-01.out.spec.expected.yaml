@@ -214,7 +214,6 @@ vrfs:
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
           l2vpnEvpn: true
-          l2vpnEvpnAllowOwnAS: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65101
@@ -227,7 +226,6 @@ vrfs:
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
           l2vpnEvpn: true
-          l2vpnEvpnAllowOwnAS: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65102

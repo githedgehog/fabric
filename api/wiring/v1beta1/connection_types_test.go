@@ -649,7 +649,24 @@ func TestConnectionValidation(t *testing.T) {
 					},
 				},
 			}),
-		}} {
+		},
+		{
+			name: "mclag-is-deprecated",
+			conn: withName("mclag-1", &wiringapi.Connection{
+				Spec: wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.NewBasePortName("server-01/enp2s1"),
+								Switch: wiringapi.NewBasePortName("leaf-01/E1/1/2"),
+							},
+						},
+					},
+				},
+			}),
+			err: true,
+		},
+	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
 				ReservedSubnets: []string{"172.30.1.0/24"},

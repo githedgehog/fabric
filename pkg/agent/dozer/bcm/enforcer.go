@@ -125,9 +125,6 @@ const (
 	ActionWeightNTP
 	ActionWeightNTPServerUpdate
 
-	ActionWeightMCLAGDomainUpdate
-	ActionWeightMCLAGInterfaceUpdate
-
 	ActionWeightNATBaseUpdate
 	ActionWeightNATPoolUpdate
 	ActionWeightNATBindingUpdate
@@ -200,9 +197,6 @@ const (
 
 	ActionWeightLLDPInterfaceDelete
 	ActionWeightNTPServerDelete
-
-	ActionWeightMCLAGInterfaceDelete
-	ActionWeightMCLAGDomainDelete
 
 	ActionWeightPortChannelConfigMACDelete
 	ActionWeightPortChannelConfigFallbackDelete

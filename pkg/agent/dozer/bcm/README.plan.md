@@ -87,7 +87,6 @@ This route-map serves multiple purposes:
     - it matches on the gateway priority-related community lists described above, and for each of
     those it sets a local preference, with a lower priority implying a higher local preference.
     This is needed to ensure that we prefer the desired routes in a multi-gateway scenario.
-    - it is a place-holder for rules used in [remote peering](#remote-peering)
     - it sets the local preference of routes matching any [externals](#externals)' community to a
     value of 150, to make sure that they win over similar VPC routes. Note that this value is currently
     lower than the lowest preference value for gateways, which means that in case of conflict prefixes
@@ -284,8 +283,7 @@ the point-to-point BGP sessions described above. We will use this session for bo
 unicast, where we will advertise all the VTEPs we know of, and for EVPN, where we will
 exchange overlay routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this switch is no longer able to reach this
-particular neighbor. Allowas-in is required to support remote peering, where
-traffic goes to a remote fabric switch and then comes back, thus creating an ASN loop.
+particular neighbor.
 
 Here's an example config for a leaf:
 ```
@@ -301,7 +299,6 @@ neighbor 172.30.8.0
  !
  address-family l2vpn evpn
   activate
-  allowas-in
   route-map evpn-default-remote-block in
 !
 ```
@@ -321,7 +318,6 @@ neighbor 172.30.8.3
  !
  address-family l2vpn evpn
   activate
-  allowas-in
   route-map evpn-default-remote-block in
 !
 ```
@@ -368,8 +364,7 @@ the point-to-point BGP sessions described above. We will use this session for bo
 unicast, where we will advertise all VTEPs we know about, and for EVPN, where we will
 exchange overlay routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this leaf is no longer able to reach this particular
-neighbor. Allowas-in is required to support remote peering, where traffic goes to a remote
-fabric switch and then comes back, thus creating an ASN loop.
+neighbor.
 ```
 neighbor 172.30.8.2
   description "Fabric leaf-03 loopback (mesh)"
@@ -383,7 +378,6 @@ neighbor 172.30.8.2
   !
   address-family l2vpn evpn
    activate
-   allowas-in
    route-map evpn-default-remote-block in
  !
 ```
@@ -431,7 +425,8 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
     ```
 1. create a BGP session with the other host in that /31 range. The ASN of the
 gateway currently comes from config (note: we could use `remote-as external` instead).
-Like for other EVPN peers in our config, we set `allowas-in` in the L2VPN AF.
+We set `allowas-in` in the L2VPN AF as we used to do for other BGP sessions; **TODO:
+verify whether this still makes any sense, I suspect the answer is no**.
 We also set the `l2vpn-neighbors` route-map in the import direction, which ensures
 that the correct gateway route will be picked based on priorities/communities.
     ```
@@ -453,114 +448,6 @@ that the correct gateway route will be picked based on priorities/communities.
 The same exact workaround steps described for Mesh connections also apply to the
 gateway case, i.e. an Access VLAN from the dedicated range is configured on the switch
 interface and the hydration IP address is configured on that VLAN instead.
-
-### MCLAGDomain Connections
-
-These are processed on switches that belong to a redundancy group of type MCLAG.
-Each MCLAGDomain connection defines a pair of switches that act like a single logical
-switch, and the connections between them. Specifically:
-1. for each of the links defined in the `peerLinks` section of the CRD, we will add
-those interfaces to a port channel, e.g.:
-    ```
-    interface Ethernet120
-     description "PC250 MCLAG peer s5248-06/E1/55/1"
-     mtu 9100
-     speed 25000
-     unreliable-los auto
-     channel-group 250
-     no shutdown
-    ```
-    and configure that port channel so that it can carry traffic from any usable VLAN,
-    in case the MCLAG peer gets disconnected:
-    ```
-    interface PortChannel250
-     description "MCLAG peer s5248-06"
-     switchport trunk allowed Vlan 2-4094
-     no shutdown
-    ```
-1. for each of the links defined in the `sessionLinks` section, we will similarly add
-these to a port channel, e.g.:
-    ```
-    interface Ethernet122
-     description "PC251 MCLAG session s5248-06/E1/55/3"
-     mtu 9100
-     speed 25000
-     unreliable-los auto
-     channel-group 251
-     no shutdown
-    ```
-    and configure each end of that port channel with addresses from a /31 prefix; these
-    channels are going to be used to exchange keepalives between the MCLAG peers, so that
-    they can monitor each other's health.
-    ```
-    interface PortChannel251
-     description "MCLAG session s5248-06"
-     no shutdown
-     ip address 172.30.95.0/31
-    ```
-1. each MCLAGDomain object identifies an MCLAG domain, which is configured on both
-peering switches with some self-explanatory parameters:
-    ```
-    mclag domain 100
-     source-ip 172.30.95.0
-     peer-ip 172.30.95.1
-     peer-link PortChannel250
-     keepalive-interval 1
-     session-timeout 30
-     delay-restore 300
-     backup-keepalive interval 30
-    ```
-1. we create a BGP session in the default VRF with the MCLAG peer. **TODO: why? the BCM
-User Guide only mentions a BGP session for keepalives via the spine, but we always assume
-a direct session connection between the peers**
-    ```
-    [...]
-    neighbor 172.30.95.1
-     description "MCLAG session s5248-06"
-     remote-as internal
-     !
-     address-family ipv4 unicast
-      activate
-     !
-     address-family l2vpn evpn
-    !
-    ```
-1. we configure link state tracking; that is, we identify each link towards the spine
-(or towards another mesh leaf, for mesh topologies) as belonging to a `spinelink` group:
-    ```
-    interface Ethernet104
-     description "Fabric as7712-03/E1/27 as7712-03--fabric--s5232-03"
-     [...]
-     link state track spinelink upstream
-    ```
-    and then configure the switch to shutdown all downstream MCLAG connections
-    if it detects that all of the interfaces in the link state group are down:
-    ```
-    link state track spinelink
-     timeout 5
-     downstream all-mclag
-    ```
-
-### MCLAG Connections
-
-For each of the leaves in an MCLAG connection and each of the links, we will
-configure that interface to be part of a port channel, and add that port channel
-to the leaf MCLAG domain, e.g.:
-```
-interface Ethernet4
- description "PC1 MCLAG server-01 server-01--mclag--leaf-01--leaf-02"
- mtu 9036
- speed 25000
- unreliable-los auto
- channel-group 1
- no shutdown
-!
-interface PortChannel1
- description "MCLAG server-01 server-01--mclag--leaf-01--leaf-02"
- mtu 9036
- no shutdown
- mclag 100
-```
 
 ### ESLAG Connections
 
@@ -1015,33 +902,6 @@ interface Vlan1002
 ```
 And of course we would do something similar on `vpc-02` side.
 
-### Remote peering
-
-Remote peering is deprecated; it was originally introduced as an alternative to the
-loopback workaround, to deal with the CPU forwarding issue in older versions of Broadcom SONiC,
-and it doesn't really have a reason to exist right now. However, it has not been removed from
-the code base, and there is still a chance that we might use it if we find similar issues when
-porting our product to other platforms, so for now we need to make sure we do not break it.
-
-On any switch belonging to the remote group specified in the peering, we will configure VPCs
-as in the [VPC peering](#vpc-peerings) section above, creating the VRF, the BGP configuration
-etc. The only major difference is that we will add entries to the `l2vpn-neighbors` route-map,
-which we first described in the [switch invariants](#switch-invariants) section, to block any
-default route learned from EVPN peers with the VNI associated to that VPC; so for example:
-```
-route-map l2vpn-neighbors deny 101
- match evpn default-route
- match evpn vni 100
-!
-route-map l2vpn-neighbors deny 102
- match evpn default-route
- match evpn vni 200
-!
-```
-
-The reason for this is not clear to me, and it could be a residual from old approaches using
-default origination. **TODO: confirm whether this is needed and what it does in practice.**
-
 ## Externals
 Even though there's a single `External` object and a single `ExternalAttachment` object, in practice
 we support two types of externals. BGP speaking externals will have non-nil inbound and outbound
@@ -1274,7 +1134,7 @@ them through:
     ```
     ip prefix-list ext-import--ext-name seq 101 permit 10.0.1.0/24 le 32
     ```
-1. We enable route leaking between the VRFs of the VPC and the external:
+1. We enable route leaking between the VRFs of the VPC and t`he` external:
     ```
     router bgp 65101 vrf VrfEext-name
      address-family ipv4 unicast

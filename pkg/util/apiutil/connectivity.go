@@ -167,17 +167,6 @@ func IsSubnetReachableBetweenVPCs(ctx context.Context, kube kclient.Reader, vpc1
 	}
 
 	for _, vpcPeering := range vpcPeerings.Items {
-		if vpcPeering.Spec.Remote != "" {
-			notEmpty, err := IsVPCPeeringRemoteNotEmpty(ctx, kube, &vpcPeering)
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to check if VPC peering %s has non-empty remote", vpcPeering.Name)
-			}
-
-			if !notEmpty {
-				continue
-			}
-		}
-
 		for _, permit := range vpcPeering.Spec.Permit {
 			vpc1Permit, exist := permit[vpc1Name]
 			if !exist {
@@ -199,33 +188,6 @@ func IsSubnetReachableBetweenVPCs(ctx context.Context, kube kclient.Reader, vpc1
 	}
 
 	return false, nil
-}
-
-func IsVPCPeeringRemoteNotEmpty(ctx context.Context, kube kclient.Reader, vpcPeering *vpcapi.VPCPeering) (bool, error) {
-	if vpcPeering == nil {
-		return false, errors.New("VPC peering is nil")
-	}
-
-	if vpcPeering.Spec.Remote == "" {
-		return false, errors.Errorf("VPC peering %s has no remote", vpcPeering.Name)
-	}
-
-	if err := kube.Get(ctx, kclient.ObjectKey{
-		Namespace: kmetav1.NamespaceDefault,
-		Name:      vpcPeering.Spec.Remote,
-	}, &wiringapi.SwitchGroup{}); err != nil {
-		return false, errors.Wrapf(err, "failed to get switch group %s", vpcPeering.Spec.Remote)
-	}
-
-	switches := wiringapi.SwitchList{}
-	if err := kube.List(ctx, &switches,
-		kclient.InNamespace(kmetav1.NamespaceDefault),
-		wiringapi.MatchingLabelsForSwitchGroup(vpcPeering.Spec.Remote),
-	); err != nil {
-		return false, errors.Wrapf(err, "failed to list switches")
-	}
-
-	return len(switches.Items) > 0, nil
 }
 
 func SubnetContains(sourceSubnet, destSubnet string) (bool, error) {
@@ -569,17 +531,6 @@ func GetReachableFrom(ctx context.Context, kube kclient.Reader, vpcName string) 
 	}
 
 	for _, vpcPeering := range vpcPeerings.Items {
-		if vpcPeering.Spec.Remote != "" {
-			nonEmpty, err := IsVPCPeeringRemoteNotEmpty(ctx, kube, &vpcPeering)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to check if VPC peering %s has non-empty remote", vpcPeering.Name)
-			}
-
-			if !nonEmpty {
-				continue
-			}
-		}
-
 		otherVPCName := ""
 		for _, permit := range vpcPeering.Spec.Permit {
 			for otherVPC := range permit {
