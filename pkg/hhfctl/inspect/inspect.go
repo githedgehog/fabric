@@ -17,6 +17,7 @@ package inspect
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"slices"
@@ -143,7 +144,7 @@ func Render[TIn In, TOut Out[TIn]](now time.Time, output OutputType, w io.Writer
 		}
 
 		if len(errs) > 0 {
-			return errors.Errorf("inspect function reported %d errors", len(errs))
+			return fmt.Errorf("inspect function reported %d errors", len(errs)) //nolint:err113
 		}
 	}
 
