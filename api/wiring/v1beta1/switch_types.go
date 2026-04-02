@@ -67,6 +67,17 @@ func (r SwitchRole) IsLeaf() bool {
 	return r == SwitchRoleServerLeaf || r == SwitchRoleBorderLeaf || r == SwitchRoleMixedLeaf
 }
 
+// +kubebuilder:validation:Enum=rs;fc;auto;disabled
+// PortFECMode is the FEC mode for a port
+type PortFECMode string
+
+const (
+	PortFECModeRS       PortFECMode = "rs"
+	PortFECModeFC       PortFECMode = "fc"
+	PortFECModeAuto     PortFECMode = "auto"
+	PortFECModeDisabled PortFECMode = "disabled"
+)
+
 // SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
 // to and its type, used both for MCLAG and ESLAG connections. It defines how redundancy will be configured and handled
 // on the switch as well as which connection types will be available. If not specified, switch will not be part of any
@@ -117,6 +128,9 @@ type SwitchSpec struct {
 	PortBreakouts map[string]string `json:"portBreakouts,omitempty"`
 	// PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false
 	PortAutoNegs map[string]bool `json:"portAutoNegs,omitempty"`
+	// PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).
+	// Only ports with an entry are managed; ports without one are left untouched at the NOS default.
+	PortFECs map[string]PortFECMode `json:"portFECs,omitempty"`
 	// Boot is the boot/provisioning information of the switch
 	Boot SwitchBoot `json:"boot,omitempty"`
 	// EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not
@@ -619,6 +633,18 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		for name := range sw.Spec.PortAutoNegs {
 			if !autoNegAllowed[name] {
 				return nil, errors.Errorf("port %s does not support configuring auto negotiation", name)
+			}
+		}
+
+		fecPorts, err := sp.Spec.GetFECConfigurablePorts(&sw.Spec)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get FEC-configurable ports")
+		}
+
+		for name := range sw.Spec.PortFECs {
+			if !fecPorts[name] {
+				return nil, errors.Errorf("port %s does not support configuring FEC "+
+					"(a broken-out port must be configured per sub-port, e.g. E1/53/1)", name)
 			}
 		}
 
