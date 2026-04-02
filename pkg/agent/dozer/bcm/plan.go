@@ -247,6 +247,12 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to translate port names")
 	}
 
+	// after translatePortNames: spec.Interfaces is keyed by NOS names, which planPortFECs needs
+	err = planPortFECs(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan port FECs")
+	}
+
 	spec.Normalize()
 
 	return spec, nil
@@ -3900,6 +3906,39 @@ func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		if iface, exists := spec.Interfaces[name]; exists {
 			iface.AutoNegotiate = pointer.To(autoNeg)
+		}
+	}
+
+	return nil
+}
+
+// planPortFECs must run AFTER translatePortNames: it resolves each user-provided PortFECs
+// key (a hedgehog name, base or breakout sub-port form) to its NOS name and applies the FEC
+// mode to the now-NOS-keyed interface. Resolving through GetAPI2NOSPortsFor means a port
+// referenced in a connection as either "E1/53" or "E1/53/1" lands on the same NOS interface.
+//
+// Only ports explicitly listed in PortFECs are managed; the rest are left untouched at the
+// NOS default. We deliberately do not write a default FEC mode to every port: the device
+// resolves an abstract DEFAULT to a concrete mode and never echoes DEFAULT back, which would
+// make the desired state perpetually differ from the actual one (drift).
+func planPortFECs(agent *agentapi.Agent, spec *dozer.Spec) error {
+	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get NOS port mapping for FEC")
+	}
+
+	for name, fec := range agent.Spec.Switch.PortFECs {
+		if strings.HasPrefix(name, wiringapi.ManagementPortPrefix) {
+			continue
+		}
+
+		nosName, ok := api2nos[name]
+		if !ok {
+			continue // validated at admission
+		}
+
+		if iface, exists := spec.Interfaces[nosName]; exists {
+			iface.FEC = pointer.To(string(fec))
 		}
 	}
 
