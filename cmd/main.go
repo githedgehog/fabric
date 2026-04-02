@@ -52,6 +52,10 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+const (
+	DockerCredsPath = "/creds-docker/" + corev1.DockerConfigJsonKey
+)
+
 func main() {
 	// TODO make it configurable
 	logLevel := slog.LevelDebug
@@ -72,13 +76,13 @@ func main() {
 	kctrl.SetLogger(logr.FromSlogHandler(kubeHandler))
 	klog.SetSlogLogger(slog.New(kubeHandler))
 
-	if err := run(); err != nil {
+	if err := run(kctrl.SetupSignalHandler()); err != nil {
 		slog.Error("Failed to run", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func run(ctx context.Context) error {
 	slog.Info("Starting fabric-ctrl", "version", version.Version)
 
 	cfgBasedir := "/etc/hedgehog/fabric"
@@ -100,6 +104,19 @@ func run() error {
 	password, err := os.ReadFile("/creds/" + corev1.BasicAuthPasswordKey)
 	if err != nil {
 		return fmt.Errorf("reading registry password: %w", err)
+	}
+
+	gwValid := &ctrl.GatewayValidator{}
+	if cfg.EnableGateway {
+		func() {
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
+
+			gwValid, err = ctrl.NewGatewayValidator(ctx, cfg, ca, DockerCredsPath)
+		}()
+		if err != nil {
+			return fmt.Errorf("creating gateway validator: %w", err)
+		}
 	}
 
 	scheme := runtime.NewScheme()
@@ -165,7 +182,7 @@ func run() error {
 	libMngr := librarian.NewManager(cfg)
 
 	profiles := switchprofile.NewDefaultSwitchProfiles()
-	if err := profiles.RegisterAll(context.TODO(), mgr.GetClient(), cfg); err != nil {
+	if err := profiles.RegisterAll(ctx, mgr.GetClient(), cfg); err != nil {
 		return fmt.Errorf("registering default switch profiles: %w", err)
 	}
 
@@ -235,7 +252,7 @@ func run() error {
 	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile webhook: %w", err)
 	}
-	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg, gwValid); err != nil {
 		return fmt.Errorf("setting up gateway webhook: %w", err)
 	}
 	if err := ctrl.SetupGatewayGroupWebhookWith(mgr); err != nil {
@@ -259,7 +276,7 @@ func run() error {
 
 	slog.Info("Starting manager")
 
-	if err := mgr.Start(kctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		return fmt.Errorf("running manager: %w", err)
 	}
 
