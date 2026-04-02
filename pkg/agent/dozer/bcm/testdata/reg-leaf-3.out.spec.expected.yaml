@@ -80,9 +80,6 @@ communityLists:
   gw-prio-9:
     members:
     - "50001:9"
-  ipns-ext-communities--default:
-    members:
-    - 65102:1000
   no-community:
     members:
     - REGEX:^$
@@ -509,9 +506,6 @@ routeMaps:
           matchCommunityLists: ext-inbound--external-01
         result: accept
         setLocalPreference: 150
-      "100":
-        conditions: {}
-        result: reject
   ext-outbound--external-01:
     statements:
       "10":
@@ -526,9 +520,6 @@ routeMaps:
         result: accept
         setCommunities:
         - 64102:1000
-      "100":
-        conditions: {}
-        result: reject
   filter-attached-hosts:
     statements:
       "10":
@@ -622,15 +613,6 @@ routeMaps:
           matchPrefixLists: vpc-peers--vpc-04
         result: accept
       "65535":
-        conditions: {}
-        result: reject
-  ipns-ext-communities--default:
-    statements:
-      "10":
-        conditions:
-          matchCommunityLists: ipns-ext-communities--default
-        result: accept
-      "100":
         conditions: {}
         result: reject
   ipns-subnets--default:
