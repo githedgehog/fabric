@@ -236,6 +236,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to plan port auto negs")
 	}
 
+	err = planPortFECs(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan port FECs")
+	}
+
 	err = translatePortNames(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to translate port names")
@@ -3656,6 +3661,37 @@ func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		if iface, exists := spec.Interfaces[name]; exists {
 			iface.AutoNegotiate = pointer.To(autoNeg)
+		}
+	}
+
+	return nil
+}
+
+func planPortFECs(agent *agentapi.Agent, spec *dozer.Spec) error {
+	fecAllowed, fecDefault, err := agent.Spec.SwitchProfile.GetFECDefaultsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get FEC settings for switch")
+	}
+
+	for name, iface := range spec.Interfaces {
+		if !isHedgehogPortName(name) || strings.HasPrefix(name, wiringapi.ManagementPortPrefix) {
+			continue
+		}
+
+		if mode, ok := fecDefault[name]; ok && mode != "" {
+			iface.FEC = pointer.To(string(mode))
+		} else {
+			iface.FEC = pointer.To(string(wiringapi.PortFECModeDisabled))
+		}
+	}
+
+	for name, fec := range agent.Spec.Switch.PortFECs {
+		if !isHedgehogPortName(name) || strings.HasPrefix(name, wiringapi.ManagementPortPrefix) || !fecAllowed[name] {
+			continue
+		}
+
+		if iface, exists := spec.Interfaces[name]; exists {
+			iface.FEC = pointer.To(string(fec))
 		}
 	}
 

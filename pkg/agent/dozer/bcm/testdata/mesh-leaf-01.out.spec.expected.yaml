@@ -95,6 +95,7 @@ interfaces:
     autoNegotiate: false
     description: PC2 ESLAG server-01 server-01--eslag--leaf-01--leaf-02
     enabled: true
+    fec: disabled
     mtu: 9036
     portChannel: PortChannel2
     subinterfaces:
@@ -103,6 +104,7 @@ interfaces:
     autoNegotiate: false
     description: PC1 ESLAG server-02 server-02--eslag--leaf-01--leaf-02
     enabled: true
+    fec: disabled
     mtu: 9036
     portChannel: PortChannel1
     subinterfaces:
@@ -111,6 +113,7 @@ interfaces:
     autoNegotiate: false
     description: Unbundled server-03 server-03--unbundled--leaf-01
     enabled: true
+    fec: disabled
     mtu: 9036
     subinterfaces:
       "0": {}
@@ -120,6 +123,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-02/E1/5 leaf-01--mesh--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -129,6 +133,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-02/E1/6 leaf-01--mesh--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -138,6 +143,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-03/E1/5 leaf-01--mesh--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -147,6 +153,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-03/E1/6 leaf-01--mesh--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -156,6 +163,7 @@ interfaces:
     autoNegotiate: false
     description: Gateway gateway-1/enp2s1 leaf-01--gateway--gateway-1
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:

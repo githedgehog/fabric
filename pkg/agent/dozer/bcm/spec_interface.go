@@ -462,7 +462,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Summary: "Interface %s Ethernet Base", // TODO better summary
 	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
 	Getter: func(_ string, value *dozer.SpecInterface) any {
-		return []any{value.PortChannel, value.Speed, value.AutoNegotiate} // , value.TrunkVLANs, value.AccessVLAN}
+		return []any{value.PortChannel, value.Speed, value.AutoNegotiate, value.FEC} // , value.TrunkVLANs, value.AccessVLAN}
 	},
 	Path:      "/ethernet",
 	NoReplace: true,
@@ -472,6 +472,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
 		autoNeg := value.AutoNegotiate
 		speed := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
+		fecMode := oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_DISABLED
 
 		if (autoNeg == nil || !*autoNeg) && value.Speed != nil {
 			var ok bool
@@ -483,12 +484,21 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 			autoNeg = nil
 		}
 
+		if value.FEC != nil {
+			var ok bool
+			fecMode, ok = MarshalPortFEC(*value.FEC)
+			if !ok {
+				return nil, errors.Errorf("invalid FEC mode %s", *value.FEC)
+			}
+		}
+
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			Ethernet: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
 					AggregateId:   value.PortChannel,
 					PortSpeed:     speed,
 					AutoNegotiate: autoNeg,
+					PortFec:       fecMode,
 				},
 			},
 		}, nil

@@ -78,15 +78,15 @@ var CelesticaDS4000 = wiringapi.SwitchProfile{
 				Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
 					Default: "1x400G",
 					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
-						"1x400G": {Offsets: []string{"0"}},
+						"1x400G": {Offsets: []string{"0"}, FECDefault: wiringapi.PortFECModeRS},
 						"1x100G": {Offsets: []string{"0"}},
 						"1x40G":  {Offsets: []string{"0"}},
 						"1x25G":  {Offsets: []string{"0"}},
 						"1x10G":  {Offsets: []string{"0"}},
-						"2x200G": {Offsets: []string{"0", "4"}},
+						"2x200G": {Offsets: []string{"0", "4"}, FECDefault: wiringapi.PortFECModeRS},
 						"2x100G": {Offsets: []string{"0", "4"}},
 						"2x40G":  {Offsets: []string{"0", "4"}},
-						"4x100G": {Offsets: []string{"0", "2", "4", "6"}},
+						"4x100G": {Offsets: []string{"0", "2", "4", "6"}, FECDefault: wiringapi.PortFECModeRS},
 						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
 						"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
 						"8x50G":  {Offsets: []string{"0", "1", "2", "3", "4", "5", "6", "7"}},
@@ -94,6 +94,7 @@ var CelesticaDS4000 = wiringapi.SwitchProfile{
 						"8x10G":  {Offsets: []string{"0", "1", "2", "3", "4", "5", "6", "7"}},
 					},
 				},
+				FECAllowed: true,
 			},
 		},
 		Pipelines: map[string]wiringapi.SwitchProfilePipeline{

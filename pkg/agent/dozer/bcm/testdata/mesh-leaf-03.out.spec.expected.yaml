@@ -102,6 +102,7 @@ interfaces:
     autoNegotiate: false
     description: External leaf-03--external
     enabled: true
+    fec: disabled
     subinterfaces:
       "0": {}
       "10":
@@ -113,6 +114,7 @@ interfaces:
     autoNegotiate: false
     description: Unbundled server-05 server-05--unbundled--leaf-03
     enabled: true
+    fec: disabled
     mtu: 9036
     subinterfaces:
       "0": {}
@@ -122,6 +124,7 @@ interfaces:
     autoNegotiate: false
     description: PC1 Bundled server-06 server-06--bundled--leaf-03
     enabled: true
+    fec: disabled
     mtu: 9036
     portChannel: PortChannel1
     subinterfaces:
@@ -130,6 +133,7 @@ interfaces:
     autoNegotiate: false
     description: PC1 Bundled server-06 server-06--bundled--leaf-03
     enabled: true
+    fec: disabled
     mtu: 9036
     portChannel: PortChannel1
     subinterfaces:
@@ -138,6 +142,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-01/E1/6 leaf-01--mesh--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -147,6 +152,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-01/E1/7 leaf-01--mesh--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -156,6 +162,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-02/E1/7 leaf-02--mesh--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -165,6 +172,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-02/E1/8 leaf-02--mesh--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:

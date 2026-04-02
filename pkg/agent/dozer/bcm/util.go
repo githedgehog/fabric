@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -63,6 +64,21 @@ func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, b
 	}
 
 	return res, ok
+}
+
+func MarshalPortFEC(fec string) (oc.E_OpenconfigPlatformTypes_FEC_MODE_TYPE, bool) {
+	switch wiringapi.PortFECMode(fec) {
+	case wiringapi.PortFECModeRS:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS, true
+	case wiringapi.PortFECModeFC:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_FC, true
+	case wiringapi.PortFECModeAuto:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_AUTO, true
+	case wiringapi.PortFECModeDisabled:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_DISABLED, true
+	default:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_UNSET, false
+	}
 }
 
 func UnmarshalPortBreakout(mode string) string {

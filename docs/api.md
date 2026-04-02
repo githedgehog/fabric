@@ -2683,6 +2683,28 @@ _Appears in:_
 | `leaf2` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |  |  |
 
 
+#### PortFECMode
+
+_Underlying type:_ _string_
+
+PortFECMode is the FEC mode for a port
+
+_Validation:_
+- Enum: [rs fc auto disabled]
+
+_Appears in:_
+- [SwitchProfilePortProfile](#switchprofileportprofile)
+- [SwitchProfilePortProfileBreakoutMode](#switchprofileportprofilebreakoutmode)
+- [SwitchSpec](#switchspec)
+
+| Field | Description |
+| --- | --- |
+| `rs` |  |
+| `fc` |  |
+| `auto` |  |
+| `disabled` |  |
+
+
 #### Server
 
 
@@ -3000,6 +3022,8 @@ _Appears in:_
 | `breakout` _[SwitchProfilePortProfileBreakout](#switchprofileportprofilebreakout)_ | Breakout defines the breakout configuration for the profile, exclusive with speed |  |  |
 | `autoNegAllowed` _boolean_ | AutoNegAllowed defines if configuring auto-negotiation is allowed for the port |  |  |
 | `autoNegDefault` _boolean_ | AutoNegDefault defines the default auto-negotiation state for the port |  |  |
+| `fecAllowed` _boolean_ | FECAllowed defines if configuring FEC is allowed for the port |  |  |
+| `fecDefault` _[PortFECMode](#portfecmode)_ | FECDefault defines the default FEC mode for the port; for breakout profiles, the per-mode FECDefault takes precedence |  | Enum: [rs fc auto disabled] <br /> |
 
 
 #### SwitchProfilePortProfileBreakout
@@ -3033,6 +3057,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `offsets` _string array_ | Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode |  |  |
+| `fecDefault` _[PortFECMode](#portfecmode)_ | FECDefault defines the default FEC mode for this specific breakout mode; overrides the profile-level FECDefault |  | Enum: [rs fc auto disabled] <br /> |
 
 
 #### SwitchProfilePortProfileSpeed
@@ -3163,6 +3188,7 @@ _Appears in:_
 | `portSpeeds` _object (keys:string, values:string)_ | PortSpeeds is a map of port speeds, key is the port name, value is the speed |  |  |
 | `portBreakouts` _object (keys:string, values:string)_ | PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G" |  |  |
 | `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
+| `portFECs` _object (keys:string, values:[PortFECMode](#portfecmode))_ | PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled) |  |  |
 | `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
 | `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |

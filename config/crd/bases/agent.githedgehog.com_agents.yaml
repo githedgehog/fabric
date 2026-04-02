@@ -1206,6 +1206,18 @@ spec:
                       the port name, value is the breakout configuration, such as
                       "1/55: 4x25G"'
                     type: object
+                  portFECs:
+                    additionalProperties:
+                      description: PortFECMode is the FEC mode for a port
+                      enum:
+                      - rs
+                      - fc
+                      - auto
+                      - disabled
+                      type: string
+                    description: PortFECs is a map of port FEC modes, key is the port
+                      name, value is the FEC mode (rs/fc/auto/disabled)
+                    type: object
                   portGroupSpeeds:
                     additionalProperties:
                       type: string
@@ -1386,6 +1398,16 @@ spec:
                                 description: Defines a switch port profile breakout
                                   mode configuration
                                 properties:
+                                  fecDefault:
+                                    description: FECDefault defines the default FEC
+                                      mode for this specific breakout mode; overrides
+                                      the profile-level FECDefault
+                                    enum:
+                                    - rs
+                                    - fc
+                                    - auto
+                                    - disabled
+                                    type: string
                                   offsets:
                                     description: Offsets defines the breakout NOS
                                       port name offset from the port NOS Name for
@@ -1398,6 +1420,20 @@ spec:
                                 modes for the profile with the NOS name offsets
                               type: object
                           type: object
+                        fecAllowed:
+                          description: FECAllowed defines if configuring FEC is allowed
+                            for the port
+                          type: boolean
+                        fecDefault:
+                          description: FECDefault defines the default FEC mode for
+                            the port; for breakout profiles, the per-mode FECDefault
+                            takes precedence
+                          enum:
+                          - rs
+                          - fc
+                          - auto
+                          - disabled
+                          type: string
                         speed:
                           description: Speed defines the speed configuration for the
                             profile, exclusive with breakout
@@ -1518,6 +1554,18 @@ spec:
                       description: 'PortBreakouts is a map of port breakouts, key
                         is the port name, value is the breakout configuration, such
                         as "1/55: 4x25G"'
+                      type: object
+                    portFECs:
+                      additionalProperties:
+                        description: PortFECMode is the FEC mode for a port
+                        enum:
+                        - rs
+                        - fc
+                        - auto
+                        - disabled
+                        type: string
+                      description: PortFECs is a map of port FEC modes, key is the
+                        port name, value is the FEC mode (rs/fc/auto/disabled)
                       type: object
                     portGroupSpeeds:
                       additionalProperties:

@@ -33,6 +33,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-01/E1/8 spine-01--fabric--leaf-01
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -42,6 +43,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-01/E1/9 spine-01--fabric--leaf-01
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -51,6 +53,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -60,6 +63,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -69,6 +73,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -78,6 +83,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -87,6 +93,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -96,6 +103,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -105,6 +113,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-05/E1/4 spine-01--fabric--leaf-05
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -114,6 +123,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric leaf-05/E1/5 spine-01--fabric--leaf-05
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -123,6 +133,7 @@ interfaces:
     autoNegotiate: false
     description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:

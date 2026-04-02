@@ -159,6 +159,7 @@ var DellS5248FON = wiringapi.SwitchProfile{
 						"1x10G":  {Offsets: []string{"0"}},
 					},
 				},
+				FECAllowed: true,
 			},
 		},
 	},
