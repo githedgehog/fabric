@@ -66,7 +66,7 @@ jobs:
       - name: More Go lint
         uses: golangci/golangci-lint-action@v6
         with:
-          # keep in sync with hack/tools.just
+          # keep version in sync with hack/tools.just and .zed/settings.json
           version: v1.64.8
           install-mode: goinstall
 
