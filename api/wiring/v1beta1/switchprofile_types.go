@@ -302,7 +302,6 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 					return nil, errors.Errorf("management port %q name must be eth0 in Cumulus", name)
 				}
 			} else {
-
 				if !strings.HasPrefix(name, ManagementPortPrefix) {
 					return nil, errors.Errorf("management port %q name must start with M", name)
 				}
@@ -345,13 +344,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 			}
 
 			continue
-
 		}
-
 		if !strings.HasPrefix(name, SonicDataPortPrefix) {
 			return nil, errors.Errorf("data port %q must start with E", name)
 		}
-
 		portParts := strings.Split(name[len(SonicDataPortPrefix):], "/")
 		if len(portParts) != 2 {
 			return nil, errors.Errorf("data port %q name must have two segments separated by a slash (e.g. asic/port)", name)
@@ -650,14 +646,14 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 				if sp.NOSType == meta.NOSTypeCumulusMlx {
 					for breakoutIdx, offsetStr := range breakoutMode.Offsets {
 						nosName := port.BaseNOSName + port.NOSName
-						if offsetStr == "" {
+						switch {
+						case offsetStr == "":
 							ports[portName] = nosName
 							ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName
-							continue
-						} else if offsetStr == "0" {
+						case offsetStr == "0":
 							ports[portName] = nosName + "s" + offsetStr
 							ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName + "s" + offsetStr
-						} else {
+						default:
 							ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName + "s" + offsetStr
 						}
 					}
@@ -738,15 +734,18 @@ func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]stri
 			if prevAPIPort, exists := ports[nosPort]; exists {
 				if prevAPIPort+"/1" == apiPort {
 					ports[nosPort] = apiPort
+
 					continue
 				} else if prevAPIPort == apiPort+"/1" {
 					continue
 				}
+
 				return nil, errors.Errorf("NOS port %q is duplicated", nosPort)
 			}
 			ports[nosPort] = apiPort
 		}
 	}
+
 	return ports, nil
 }
 
@@ -805,13 +804,11 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 				for _, offsetStr := range breakoutMode.Offsets {
 					if offsetStr == "" {
 						continue
-					} else {
-						nosName := port.BaseNOSName + port.NOSName + "s" + offsetStr
-						ports[nosName] = true
 					}
+					nosName := port.BaseNOSName + port.NOSName + "s" + offsetStr
+					ports[nosName] = true
 				}
 			}
-
 		} else {
 			nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
 			if !cut {
