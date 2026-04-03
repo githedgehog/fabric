@@ -87,6 +87,7 @@ var CelesticaDS3000 = wiringapi.SwitchProfile{
 				},
 				AutoNegAllowed: true,
 				AutoNegDefault: false,
+				FECAllowed:     true,
 			},
 		},
 	},

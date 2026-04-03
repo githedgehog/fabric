@@ -123,6 +123,7 @@ var CelesticaDS2000 = wiringapi.SwitchProfile{
 						"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
 					},
 				},
+				FECAllowed: true,
 			},
 		},
 	},

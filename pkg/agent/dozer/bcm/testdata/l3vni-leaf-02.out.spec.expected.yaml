@@ -91,6 +91,7 @@ interfaces:
     autoNegotiate: false
     description: Unbundled server-02 server-02--unbundled--leaf-02
     enabled: true
+    fec: disabled
     mtu: 9036
     subinterfaces:
       "0": {}
@@ -100,6 +101,7 @@ interfaces:
     autoNegotiate: false
     description: Unbundled server-03 server-03--unbundled--leaf-02
     enabled: true
+    fec: disabled
     mtu: 9036
     subinterfaces:
       "0": {}
@@ -115,6 +117,7 @@ interfaces:
     autoNegotiate: false
     description: Unbundled server-04 server-04--unbundled--leaf-02
     enabled: true
+    fec: disabled
     mtu: 9036
     subinterfaces:
       "0": {}
@@ -130,6 +133,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-01/E1/3 spine-01--fabric--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -139,6 +143,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-01/E1/4 spine-01--fabric--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -148,6 +153,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-02/E1/3 spine-02--fabric--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:
@@ -157,6 +163,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-02/E1/4 spine-02--fabric--leaf-02
     enabled: true
+    fec: disabled
     subinterfaces:
       "0":
         ips:

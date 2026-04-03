@@ -119,6 +119,8 @@ type SwitchProfilePortProfileBreakout struct {
 type SwitchProfilePortProfileBreakoutMode struct {
 	// Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode
 	Offsets []string `json:"offsets,omitempty"`
+	// FECDefault defines the default FEC mode for this specific breakout mode; overrides the profile-level FECDefault
+	FECDefault PortFECMode `json:"fecDefault,omitempty"`
 }
 
 // Defines a switch port profile configuration
@@ -131,6 +133,10 @@ type SwitchProfilePortProfile struct {
 	AutoNegAllowed bool `json:"autoNegAllowed,omitempty"`
 	// AutoNegDefault defines the default auto-negotiation state for the port
 	AutoNegDefault bool `json:"autoNegDefault,omitempty"`
+	// FECAllowed defines if configuring FEC is allowed for the port
+	FECAllowed bool `json:"fecAllowed,omitempty"`
+	// FECDefault defines the default FEC mode for the port; for breakout profiles, the per-mode FECDefault takes precedence
+	FECDefault PortFECMode `json:"fecDefault,omitempty"`
 }
 
 type SwitchProfilePipeline struct {
@@ -959,6 +965,64 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 			}
 		} else if port.Group != "" {
 			// autoneg is not allowed for groups
+			continue
+		} else {
+			return nil, nil, errors.Errorf("port %q must have a profile or group", portName)
+		}
+	}
+
+	return allowed, def, nil
+}
+
+func (sp *SwitchProfileSpec) GetFECDefaultsFor(sw *SwitchSpec) (map[string]bool, map[string]PortFECMode, error) {
+	if sp == nil {
+		return nil, nil, errors.Errorf("switch profile spec is nil")
+	}
+	if sw == nil {
+		return nil, nil, errors.Errorf("switch spec is nil")
+	}
+
+	allowed, def := map[string]bool{}, map[string]PortFECMode{}
+
+	for portName, port := range sp.Ports {
+		if port.Management {
+			continue
+		}
+
+		if port.Profile != "" { //nolint:gocritic
+			profile, exists := sp.PortProfiles[port.Profile]
+			if !exists {
+				return nil, nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+			}
+
+			if profile.Speed != nil { //nolint:gocritic
+				allowed[portName] = profile.FECAllowed
+				def[portName] = profile.FECDefault
+			} else if profile.Breakout != nil {
+				breakout := profile.Breakout.Default
+				if swBreakout, ok := sw.PortBreakouts[portName]; ok {
+					breakout = swBreakout
+				}
+
+				breakoutMode, ok := profile.Breakout.Supported[breakout]
+				if !ok {
+					return nil, nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, breakout, port.Profile)
+				}
+
+				fecDefault := profile.FECDefault
+				if breakoutMode.FECDefault != "" {
+					fecDefault = breakoutMode.FECDefault
+				}
+
+				for idx := range breakoutMode.Offsets {
+					allowed[fmt.Sprintf("%s/%d", portName, idx+1)] = profile.FECAllowed
+					def[fmt.Sprintf("%s/%d", portName, idx+1)] = fecDefault
+				}
+			} else {
+				return nil, nil, errors.Errorf("port %q profile %q has no speed or breakout", portName, port.Profile)
+			}
+		} else if port.Group != "" {
+			// FEC is not configurable for port groups
 			continue
 		} else {
 			return nil, nil, errors.Errorf("port %q must have a profile or group", portName)

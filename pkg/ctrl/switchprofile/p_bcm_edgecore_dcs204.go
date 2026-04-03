@@ -94,6 +94,7 @@ var EdgecoreDCS204 = wiringapi.SwitchProfile{
 						"1x10G":  {Offsets: []string{"0"}},
 					},
 				},
+				FECAllowed: true,
 			},
 		},
 	},
