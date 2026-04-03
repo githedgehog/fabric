@@ -257,25 +257,8 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 				return nil, errors.Errorf("unsupported gnmi action %+v", act)
 			}
 
-			for attempt := 0; attempt < 50; attempt++ {
-				req, err := api.NewSetRequest(options...)
-				if err != nil {
-					return nil, errors.Wrapf(err, "cannot create GNMI set request")
-				}
-
-				if err := p.client.Set(ctx, req); err != nil {
-					// workaround for port breakout being still in progress when configuring interfaces
-					if strings.Contains(err.Error(), "Port breakout is in progress") {
-						slog.Warn("Port breakout is in progress, retrying in 2 seconds")
-						time.Sleep(2 * time.Second)
-
-						continue // retry
-					}
-
-					return nil, errors.Wrapf(err, "GNMI set request failed")
-				}
-
-				break // retries
+			if err := retrySetRequest(ctx, p.client, act.Path, options...); err != nil {
+				return nil, err
 			}
 		}
 
@@ -283,6 +266,74 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 	}
 
 	return nil, nil
+}
+
+func retrySetRequest(ctx context.Context, client *gnmi.Client, path string, opts ...api.GNMIOption) error {
+	sendRequest := func(ctx context.Context) error {
+		req, err := api.NewSetRequest(opts...)
+		if err != nil {
+			return fmt.Errorf("creating gNMI set request: %w", err)
+		}
+
+		return client.Set(ctx, req)
+	}
+
+	var err error
+	maxAttempts := 1
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if err = sendRequest(ctx); err != nil {
+			errStr := strings.ToLower(err.Error())
+
+			switch {
+			// Handle port breakout still being in progress when trying to configure resulting ports
+			case strings.Contains(errStr, "port breakout is in progress"):
+				maxAttempts = 50
+
+				slog.Warn("Port breakout is in progress, retrying in 2 seconds")
+				time.Sleep(2 * time.Second)
+
+				continue // retry
+
+			// Handle errors related to modifying member of the port channel
+			// Speed configuration is not allowed as Ethernet52 is a member of PortChannel53.
+			// Configuration not allowed when port is member of Portchannel."
+			case strings.HasPrefix(path, "/interfaces/interface[name=Ethernet") &&
+				strings.Contains(errStr, "not allowed") &&
+				strings.Contains(errStr, "member of portchannel"):
+				// remove member first and retry
+				maxAttempts = 5
+				delPath := strings.TrimSuffix(path, "/ethernet") + "/ethernet/config/aggregate-id"
+				slog.Warn("Can't modify member of the PortChannel, removing to retry", "path", delPath)
+
+				req, err := api.NewSetRequest(api.Delete(delPath))
+				if err != nil {
+					slog.Warn("Failed to create gNMI set request, retrying")
+
+					continue // retry
+				}
+
+				if err := client.Set(ctx, req); err != nil {
+					slog.Warn("Failed to remove member from PortChannel, retrying")
+
+					continue // retry
+				}
+
+				// TODO member will be added back to the PortChannel only on the next enforcement cycle
+				continue // retry
+
+			default:
+				return fmt.Errorf("gNMI set request failed: %w", err)
+			}
+		}
+
+		break
+	}
+
+	if err != nil {
+		return fmt.Errorf("gNMI set request failed after %d attempts: %w", maxAttempts, err)
+	}
+
+	return nil
 }
 
 func (p *BroadcomProcessor) GetRoCE(ctx context.Context) (bool, error) {
