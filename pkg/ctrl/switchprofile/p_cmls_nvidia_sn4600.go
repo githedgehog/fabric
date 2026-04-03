@@ -24,7 +24,7 @@ var CmlsNvidiaSN4600 = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         false,
 			ESLAG:         true,
-			ECMPRoCEQPN:   true,
+			ECMPRoCEQPN:   false,
 		},
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86-64-nv-sn4600",
