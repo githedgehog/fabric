@@ -1,0 +1,35 @@
+{
+  "languages": {
+    "Git Commit": {
+      "wrap_guides": [50, 72],
+      "preferred_line_length": 72,
+      "soft_wrap": "editor_width",
+      "allow_rewrap": "anywhere",
+    },
+    "Go": {
+      "language_servers": ["gopls", "golangci-lint"],
+    },
+  },
+
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        "gofumpt": true,
+      },
+    },
+
+    "golangci-lint": {
+      "initialization_options": {
+        // TODO make a symlink for it
+        // keep version in sync with ci.yaml and .zed/settings.json
+        "command": [
+          "bin/golangci-lint-v1.64.8",
+          "run",
+          "--out-format=json",
+          "--show-stats=false",
+          "--issues-exit-code=1",
+        ], // v1
+      },
+    },
+  },
+}
