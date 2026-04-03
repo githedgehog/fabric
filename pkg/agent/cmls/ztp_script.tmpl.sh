@@ -47,7 +47,7 @@ EOF
   echo "$(date) INFO: Configuration applied successfully"
 
   # TODO check if it's needed or affected by agent
-  mkdir /var/log/ntpsec/
+  mkdir -p /var/log/ntpsec/
   chown -R ntpsec /var/log/ntpsec/
   systemctl restart ntp@mgmt.service
 
