@@ -49,8 +49,9 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 
 		data := [][]string{}
 
-		for vrf, neighs := range out.Neighbors[swName] {
-			for name, n := range neighs {
+		for _, vrf := range slices.Sorted(maps.Keys(out.Neighbors[swName])) {
+			for _, name := range slices.Sorted(maps.Keys(out.Neighbors[swName][vrf])) {
+				n := out.Neighbors[swName][vrf][name]
 				t := string(n.Type)
 				if !n.Expected {
 					if t != "" {

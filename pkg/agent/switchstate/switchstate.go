@@ -44,6 +44,7 @@ type Registry struct {
 	InterfaceCounters  InterfaceCounters
 	TransceiverMetrics TransceiverMetrics
 	BGPNeighborMetrics BGPNeighborMetrics
+	BFDPeerMetrics     BFDPeerMetrics
 	PlatformMetrics    PlatformMetrics
 	CriticalResources  CRMMetrics
 
@@ -158,6 +159,11 @@ type BGPNeighborMetricsMessagesCounters struct {
 	Open         *prometheus.GaugeVec
 	RouteRefresh *prometheus.GaugeVec
 	Update       *prometheus.GaugeVec
+}
+
+type BFDPeerMetrics struct {
+	SessionState       *prometheus.GaugeVec
+	FailureTransitions *prometheus.GaugeVec
 }
 
 type PlatformMetrics struct {
@@ -305,6 +311,16 @@ func NewRegistry() *Registry {
 		}, []string{"vrf", "neighbor", "afisafi"})
 	}
 
+	newBFDPeerGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"vrf", "peer"})
+	}
+
 	newPlatformGaugeVec := func(name string, help string) *prometheus.GaugeVec {
 		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace:   MetricNamespace,
@@ -444,6 +460,10 @@ func NewRegistry() *Registry {
 				ReceivedPrePolicy: newBGPNeighborPrefixesGaugeVec("bgp_neighbor_prefixes_received_pre_policy", "Number of received BGP prefixes pre-policy"),
 				Sent:              newBGPNeighborPrefixesGaugeVec("bgp_neighbor_prefixes_sent", "Number of sent BGP prefixes"),
 			},
+		},
+		BFDPeerMetrics: BFDPeerMetrics{
+			SessionState:       newBFDPeerGaugeVec("bfd_peer_session_state", "State of BFD peer session"),
+			FailureTransitions: newBFDPeerGaugeVec("bfd_peer_failure_transitions", "Number of BFD peer failure transitions"),
 		},
 		PlatformMetrics: PlatformMetrics{
 			Fan: PlatformFanMetrics{
