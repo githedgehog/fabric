@@ -176,6 +176,8 @@ type SwitchState struct {
 	Transceivers map[string]SwitchStateTransceiver `json:"transceivers,omitempty"`
 	// State of all BGP neighbors (VRF -> neighbor address -> state)
 	BGPNeighbors map[string]map[string]SwitchStateBGPNeighbor `json:"bgpNeighbors,omitempty"`
+	// State of all BFD peers (VRF -> peer address -> state)
+	BFDPeers map[string]map[string]SwitchStateBFDPeer `json:"bfdPeers,omitempty"`
 	// State of the switch platform (fans, PSUs, sensors)
 	Platform SwitchStatePlatform `json:"platform,omitempty"`
 	// State of the critical resources (ACLs, routes, etc.)
@@ -429,6 +431,40 @@ type BGPMessagesCounters struct {
 	Open         uint64 `json:"open,omitempty"`
 	RouteRefresh uint64 `json:"rrefresh,omitempty"`
 	Update       uint64 `json:"update,omitempty"`
+}
+
+type SwitchStateBFDPeer struct {
+	SessionState       BFDSessionState `json:"state,omitempty"`
+	Profile            string          `json:"profile,omitempty"`
+	LastUpTime         kmetav1.Time    `json:"lastUpTime,omitempty"`
+	FailureTransitions uint64          `json:"fails,omitempty"`
+}
+
+type BFDSessionState string
+
+const (
+	BFDSessionStateUnset     BFDSessionState = ""
+	BFDSessionStateUp        BFDSessionState = "up"
+	BFDSessionStateDown      BFDSessionState = "down"
+	BFDSessionStateAdminDown BFDSessionState = "adminDown"
+	BFDSessionStateInit      BFDSessionState = "init"
+)
+
+func (b BFDSessionState) ID() (uint8, error) {
+	switch b {
+	case BFDSessionStateUnset:
+		return 0, nil
+	case BFDSessionStateUp:
+		return 1, nil
+	case BFDSessionStateDown:
+		return 2, nil
+	case BFDSessionStateAdminDown:
+		return 3, nil
+	case BFDSessionStateInit:
+		return 4, nil
+	default:
+		return 0, errors.Errorf("unknown BFDSessionState %s", b)
+	}
 }
 
 type SwitchStatePlatform struct {

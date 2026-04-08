@@ -50,6 +50,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		Breakouts:    map[string]agentapi.SwitchStateBreakout{},
 		Transceivers: map[string]agentapi.SwitchStateTransceiver{},
 		BGPNeighbors: map[string]map[string]agentapi.SwitchStateBGPNeighbor{},
+		BFDPeers:     map[string]map[string]agentapi.SwitchStateBFDPeer{},
 		Platform: agentapi.SwitchStatePlatform{
 			Fans:         map[string]agentapi.SwitchStatePlatformFan{},
 			PSUs:         map[string]agentapi.SwitchStatePlatformPSU{},
@@ -99,6 +100,10 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 
 	if err := p.updateBGPNeighborMetrics(ctx, reg, swState); err != nil {
 		return errors.Wrapf(err, "failed to update bgp neighbor metrics")
+	}
+
+	if err := p.updateBFDPeerMetrics(ctx, reg, swState); err != nil {
+		return errors.Wrapf(err, "failed to update bfd peer metrics")
 	}
 
 	if err := p.updatePlatformMetrics(ctx, agent, reg, swState); err != nil {
@@ -1697,4 +1702,86 @@ func cleanupFloat(val float64) float64 {
 	}
 
 	return val
+}
+
+func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+	ocBFD := &oc.OpenconfigBfd_Bfd{}
+	if err := p.client.Get(ctx, "/openconfig-bfd:bfd/openconfig-bfd-ext:bfd-shop-sessions", ocBFD); err != nil {
+		if !strings.Contains(err.Error(), "rpc error: code = NotFound") {
+			return errors.Wrapf(err, "failed to get bfd shop sessions")
+		}
+
+		return nil
+	}
+
+	if ocBFD.BfdShopSessions == nil {
+		return nil
+	}
+
+	now := time.Now()
+
+	for key, session := range ocBFD.BfdShopSessions.SingleHop {
+		if session.State == nil {
+			continue
+		}
+
+		ocSt := session.State
+		vrf := key.Vrf
+		remoteAddress := key.RemoteAddress
+
+		if vrf == "" {
+			vrf = VRFDefault
+		}
+
+		st := agentapi.SwitchStateBFDPeer{}
+
+		sessionState, err := mapBFDSessionState(ocSt.SessionState)
+		if err != nil {
+			return errors.Wrapf(err, "failed to map bfd session state")
+		}
+		st.SessionState = sessionState
+
+		sessionStateID, err := sessionState.ID()
+		if err != nil {
+			return errors.Wrapf(err, "failed to get bfd session state ID")
+		}
+		reg.BFDPeerMetrics.SessionState.WithLabelValues(vrf, remoteAddress).Set(float64(sessionStateID))
+
+		if ocSt.ActiveProfile != nil {
+			st.Profile = *ocSt.ActiveProfile
+		}
+
+		if ocSt.LastUpTime != nil && *ocSt.LastUpTime != 0 {
+			st.LastUpTime = kmetav1.Time{Time: now.Add(-time.Duration(*ocSt.LastUpTime) * time.Second)} //nolint:gosec
+		}
+
+		if ocSt.FailureTransitions != nil {
+			st.FailureTransitions = *ocSt.FailureTransitions
+			reg.BFDPeerMetrics.FailureTransitions.WithLabelValues(vrf, remoteAddress).Set(float64(*ocSt.FailureTransitions))
+		}
+
+		if swState.BFDPeers[vrf] == nil {
+			swState.BFDPeers[vrf] = map[string]agentapi.SwitchStateBFDPeer{}
+		}
+		swState.BFDPeers[vrf][remoteAddress] = st
+	}
+
+	return nil
+}
+
+func mapBFDSessionState(in oc.E_OpenconfigBfd_BfdSessionState) (agentapi.BFDSessionState, error) {
+	switch in {
+	case oc.OpenconfigBfd_BfdSessionState_UNSET:
+		return agentapi.BFDSessionStateUnset, nil
+	case oc.OpenconfigBfd_BfdSessionState_UP:
+		return agentapi.BFDSessionStateUp, nil
+	case oc.OpenconfigBfd_BfdSessionState_DOWN:
+		return agentapi.BFDSessionStateDown, nil
+	case oc.OpenconfigBfd_BfdSessionState_ADMIN_DOWN:
+		return agentapi.BFDSessionStateAdminDown, nil
+	case oc.OpenconfigBfd_BfdSessionState_INIT:
+		return agentapi.BFDSessionStateInit, nil
+	default:
+		return agentapi.BFDSessionStateUnset, errors.Errorf("unknown bfd session state from gnmi: %d", in)
+	}
 }

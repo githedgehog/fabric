@@ -89,6 +89,26 @@ _Appears in:_
 | `rebootRequired` _boolean_ | RebootRequired indicates whether a reboot is required |  |  |
 
 
+#### BFDSessionState
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBFDPeer](#switchstatebfdpeer)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `up` |  |
+| `down` |  |
+| `adminDown` |  |
+| `init` |  |
+
+
 #### BGPMessages
 
 
@@ -208,10 +228,30 @@ _Appears in:_
 | `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
 | `transceivers` _object (keys:string, values:[SwitchStateTransceiver](#switchstatetransceiver))_ | Transceivers state (port -> transceiver state) |  |  |
 | `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#map[string]switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
+| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#map[string]switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
 | `roce` _boolean_ | State of the roce configuration |  |  |
 | `firmware` _object (keys:string, values:string)_ | Firmware versions of the switch |  |  |
+
+
+#### SwitchStateBFDPeer
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `state` _[BFDSessionState](#bfdsessionstate)_ |  |  |  |
+| `profile` _string_ |  |  |  |
+| `lastUpTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ |  |  |  |
+| `fails` _integer_ |  |  |  |
 
 
 #### SwitchStateBGPNeighbor

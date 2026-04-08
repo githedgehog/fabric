@@ -1253,6 +1253,35 @@ func main() {
 						},
 					},
 					{
+						Name:  "bfd",
+						Usage: "Inspect BFD peers",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringSliceFlag{
+								Name:    "switch-name",
+								Aliases: []string{"name", "n"},
+								Usage:   "Switch names to inspect BFD peers for (if not specified, will inspect all switches)",
+							},
+							&cli.BoolFlag{
+								Name:  "strict",
+								Usage: "strict BFD check (will fail if any peer is missing, not expected or not up)",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.BFD, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.BFDIn{
+								Switches: cCtx.StringSlice("switch-name"),
+								Strict:   cCtx.Bool("strict"),
+							}, os.Stdout), "failed to inspect BFD")
+						},
+					},
+					{
 						Name:  "lldp",
 						Usage: "Inspect LLDP neighbors",
 						Flags: []cli.Flag{

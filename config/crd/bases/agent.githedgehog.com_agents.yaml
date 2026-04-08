@@ -2050,6 +2050,24 @@ spec:
               state:
                 description: Detailed switch state updated with each heartbeat
                 properties:
+                  bfdPeers:
+                    additionalProperties:
+                      additionalProperties:
+                        properties:
+                          fails:
+                            format: int64
+                            type: integer
+                          lastUpTime:
+                            format: date-time
+                            type: string
+                          profile:
+                            type: string
+                          state:
+                            type: string
+                        type: object
+                      type: object
+                    description: State of all BFD peers (VRF -> peer address -> state)
+                    type: object
                   bgpNeighbors:
                     additionalProperties:
                       additionalProperties:
