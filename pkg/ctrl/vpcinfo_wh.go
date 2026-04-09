@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -18,11 +19,13 @@ import (
 
 type VPCInfoWebhook struct {
 	kclient.Reader
+	cfg *meta.FabricConfig
 }
 
-func SetupVPCInfoWebhookWith(mgr kctrl.Manager) error {
+func SetupVPCInfoWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	w := &VPCInfoWebhook{
 		Reader: mgr.GetClient(),
+		cfg:    cfg,
 	}
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.VPCInfo{}).
@@ -42,13 +45,13 @@ func (w *VPCInfoWebhook) Default(_ context.Context, vpc *gwapi.VPCInfo) error {
 }
 
 func (w *VPCInfoWebhook) ValidateCreate(ctx context.Context, vpc *gwapi.VPCInfo) (admission.Warnings, error) {
-	return nil, vpc.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
+	return nil, vpc.Validate(ctx, w.Reader, w.cfg) //nolint:wrapcheck
 }
 
 func (w *VPCInfoWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.VPCInfo, newVPC *gwapi.VPCInfo) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
 
-	return nil, newVPC.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
+	return nil, newVPC.Validate(ctx, w.Reader, w.cfg) //nolint:wrapcheck
 }
 
 func (w *VPCInfoWebhook) ValidateDelete(_ context.Context, _ *gwapi.VPCInfo) (admission.Warnings, error) {

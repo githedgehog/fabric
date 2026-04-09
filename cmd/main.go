@@ -255,13 +255,13 @@ func run(ctx context.Context) error {
 	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg, gwValid); err != nil {
 		return fmt.Errorf("setting up gateway webhook: %w", err)
 	}
-	if err := ctrl.SetupGatewayGroupWebhookWith(mgr); err != nil {
+	if err := ctrl.SetupGatewayGroupWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up gateway group webhook: %w", err)
 	}
 	if err := ctrl.SetupGatewayPeeringWebhookWith(mgr); err != nil {
 		return fmt.Errorf("setting up gateway peering webhook: %w", err)
 	}
-	if err := ctrl.SetupVPCInfoWebhookWith(mgr); err != nil {
+	if err := ctrl.SetupVPCInfoWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vpc info webhook: %w", err)
 	}
 
