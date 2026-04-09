@@ -18,6 +18,7 @@ import (
 	"context"
 	"net"
 	"net/netip"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -30,6 +31,130 @@ import (
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+type ACLProtocol string
+
+const (
+	ACLProtocolIP   ACLProtocol = "ip"
+	ACLProtocolTCP  ACLProtocol = "tcp"
+	ACLProtocolUDP  ACLProtocol = "udp"
+	ACLProtocolICMP ACLProtocol = "icmp"
+	ACLAny                      = "any"
+)
+
+var ACLProtocols = []ACLProtocol{
+	ACLProtocolIP,
+	ACLProtocolTCP,
+	ACLProtocolUDP,
+	ACLProtocolICMP,
+}
+
+type ACLTCPFilters struct {
+	Established bool `json:"established,omitempty"`
+	Fin         bool `json:"fin,omitempty"`
+	NotFin      bool `json:"notFin,omitempty"`
+	Syn         bool `json:"syn,omitempty"`
+	NotSyn      bool `json:"notSyn,omitempty"`
+	Rst         bool `json:"rst,omitempty"`
+	NotRst      bool `json:"notRst,omitempty"`
+	Psh         bool `json:"psh,omitempty"`
+	NotPsh      bool `json:"notPsh,omitempty"`
+	Ack         bool `json:"ack,omitempty"`
+	NotAck      bool `json:"notAck,omitempty"`
+	Urg         bool `json:"urg,omitempty"`
+	NotUrg      bool `json:"notUrg,omitempty"`
+}
+
+type ACLStatement struct {
+	Seq            uint16         `json:"seq"`
+	Permit         bool           `json:"permit"`
+	Protocol       ACLProtocol    `json:"protocol"`
+	SrcPrefix      string         `json:"srcPrefix"`
+	DstPrefix      string         `json:"dstPrefix"`
+	PortRangeBegin uint16         `json:"portRangeBegin,omitempty"`
+	PortRangeEnd   uint16         `json:"portRangeEnd,omitempty"`
+	TCPFilters     *ACLTCPFilters `json:"tcpFilters,omitempty"`
+	ICMPType       *uint8         `json:"icmpType,omitempty"`
+	ICMPCode       *uint8         `json:"icmpCode,omitempty"`
+}
+
+// ACLSpec defines an IPv4 Access Control List applied to inbound traffic on an external attachment.
+type ACLSpec struct {
+	Statements []ACLStatement `json:"statements,omitempty"`
+}
+
+func (spec *ACLSpec) Validate() (admission.Warnings, error) {
+	if spec == nil {
+		return nil, nil
+	}
+
+	seqNos := map[uint16]bool{}
+	for _, stmt := range spec.Statements {
+		if seqNos[stmt.Seq] {
+			return nil, errors.Errorf("duplicate sequence number %d", stmt.Seq)
+		}
+		seqNos[stmt.Seq] = true
+
+		if !slices.Contains(ACLProtocols, stmt.Protocol) {
+			return nil, errors.Errorf("invalid protocol %q in statement %d", stmt.Protocol, stmt.Seq)
+		}
+
+		if stmt.SrcPrefix == "" {
+			return nil, errors.Errorf("srcPrefix is required in statement %d", stmt.Seq)
+		}
+		if stmt.SrcPrefix != ACLAny {
+			if _, _, err := net.ParseCIDR(stmt.SrcPrefix); err != nil {
+				return nil, errors.Errorf("invalid srcPrefix %q in statement %d", stmt.SrcPrefix, stmt.Seq)
+			}
+		}
+		if stmt.DstPrefix == "" {
+			return nil, errors.Errorf("dstPrefix is required in statement %d", stmt.Seq)
+		}
+		if stmt.DstPrefix != ACLAny {
+			if _, _, err := net.ParseCIDR(stmt.DstPrefix); err != nil {
+				return nil, errors.Errorf("invalid dstPrefix %q in statement %d", stmt.DstPrefix, stmt.Seq)
+			}
+		}
+
+		if stmt.TCPFilters != nil {
+			if stmt.Protocol != ACLProtocolTCP {
+				return nil, errors.Errorf("tcpFilters can only be used with tcp protocol in statement %d", stmt.Seq)
+			}
+			if stmt.TCPFilters.Established && (stmt.TCPFilters.Ack || stmt.TCPFilters.NotAck ||
+				stmt.TCPFilters.Fin || stmt.TCPFilters.NotFin ||
+				stmt.TCPFilters.Syn || stmt.TCPFilters.NotSyn ||
+				stmt.TCPFilters.Rst || stmt.TCPFilters.NotRst ||
+				stmt.TCPFilters.Psh || stmt.TCPFilters.NotPsh ||
+				stmt.TCPFilters.Urg || stmt.TCPFilters.NotUrg) {
+				return nil, errors.Errorf("established is mutually exclusive with individual TCP flags in statement %d", stmt.Seq)
+			}
+			if (stmt.TCPFilters.Fin && stmt.TCPFilters.NotFin) ||
+				(stmt.TCPFilters.Syn && stmt.TCPFilters.NotSyn) ||
+				(stmt.TCPFilters.Rst && stmt.TCPFilters.NotRst) ||
+				(stmt.TCPFilters.Psh && stmt.TCPFilters.NotPsh) ||
+				(stmt.TCPFilters.Ack && stmt.TCPFilters.NotAck) ||
+				(stmt.TCPFilters.Urg && stmt.TCPFilters.NotUrg) {
+				return nil, errors.Errorf("contradictory TCP flags (flag and its negation) in statement %d", stmt.Seq)
+			}
+		}
+		if (stmt.ICMPType != nil || stmt.ICMPCode != nil) && stmt.Protocol != ACLProtocolICMP {
+			return nil, errors.Errorf("icmpType/icmpCode can only be used with icmp protocol in statement %d", stmt.Seq)
+		}
+		if stmt.PortRangeEnd > 0 || stmt.PortRangeBegin > 0 {
+			if stmt.Protocol != ACLProtocolTCP && stmt.Protocol != ACLProtocolUDP {
+				return nil, errors.Errorf("portRange can only be used with tcp or udp protocol in statement %d", stmt.Seq)
+			}
+			if stmt.PortRangeBegin == 0 {
+				return nil, errors.Errorf("portRangeBegin must be >= 1 in statement %d", stmt.Seq)
+			}
+			if stmt.PortRangeBegin > stmt.PortRangeEnd {
+				return nil, errors.Errorf("portRangeBegin must be <= portRangeEnd in statement %d", stmt.Seq)
+			}
+		}
+	}
+
+	return nil, nil
+}
 
 // ExternalAttachmentSpec defines the desired state of ExternalAttachment
 type ExternalAttachmentSpec struct {
@@ -44,6 +169,9 @@ type ExternalAttachmentSpec struct {
 	// Static contains parameters specific to a static external attachment
 	// +optional
 	Static *ExternalAttachmentStatic `json:"static,omitempty"`
+	// InboundACL defines the ACL statements to apply to inbound traffic on this external attachment
+	// +optional
+	InboundACL *ACLSpec `json:"inboundACL,omitempty"`
 }
 
 // ExternalAttachmentSwitch defines the switch port configuration for the external attachment
@@ -188,6 +316,10 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 				return nil, errors.New("static.ip is not a valid IP CIDR") //nolint: goerr113
 			}
 		}
+	}
+
+	if _, err := attach.Spec.InboundACL.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "invalid inboundACL")
 	}
 
 	if kube != nil {

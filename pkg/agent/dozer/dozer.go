@@ -348,20 +348,45 @@ type SpecACL struct {
 }
 
 type SpecACLEntry struct {
-	Description        *string              `json:"description,omitempty"`
-	Action             SpecACLEntryAction   `json:"action,omitempty"`
-	Protocol           SpecACLEntryProtocol `json:"protocol,omitempty"`
-	SourceAddress      *string              `json:"sourceAddress,omitempty"`
-	SourcePort         *uint16              `json:"sourcePort,omitempty"`
-	DestinationAddress *string              `json:"destinationAddress,omitempty"`
-	DestinationPort    *uint16              `json:"destinationPort,omitempty"`
+	Description           *string               `json:"description,omitempty"`
+	Action                SpecACLEntryAction    `json:"action,omitempty"`
+	Protocol              SpecACLEntryProtocol  `json:"protocol,omitempty"`
+	SourceAddress         *string               `json:"sourceAddress,omitempty"`
+	SourcePort            *uint16               `json:"sourcePort,omitempty"`
+	DestinationAddress    *string               `json:"destinationAddress,omitempty"`
+	DestinationPort       *uint16               `json:"destinationPort,omitempty"`
+	DestinationPortRange  *string               `json:"destinationPortRange,omitempty"` // "begin..end" format
+	TCPFlags              []SpecACLEntryTCPFlag `json:"tcpFlags,omitempty"`
+	TCPSessionEstablished *bool                 `json:"tcpSessionEstablished,omitempty"`
+	ICMPType              *uint8                `json:"icmpType,omitempty"`
+	ICMPCode              *uint8                `json:"icmpCode,omitempty"`
 }
 
 type SpecACLEntryProtocol string
 
 const (
 	SpecACLEntryProtocolUnset SpecACLEntryProtocol = ""
+	SpecACLEntryProtocolIP    SpecACLEntryProtocol = "IP"
+	SpecACLEntryProtocolTCP   SpecACLEntryProtocol = "TCP"
 	SpecACLEntryProtocolUDP   SpecACLEntryProtocol = "UDP"
+	SpecACLEntryProtocolICMP  SpecACLEntryProtocol = "ICMP"
+)
+
+type SpecACLEntryTCPFlag string
+
+const (
+	SpecACLEntryTCPFlagFin    SpecACLEntryTCPFlag = "TCP_FIN"
+	SpecACLEntryTCPFlagNotFin SpecACLEntryTCPFlag = "TCP_NOT_FIN"
+	SpecACLEntryTCPFlagSyn    SpecACLEntryTCPFlag = "TCP_SYN"
+	SpecACLEntryTCPFlagNotSyn SpecACLEntryTCPFlag = "TCP_NOT_SYN"
+	SpecACLEntryTCPFlagRst    SpecACLEntryTCPFlag = "TCP_RST"
+	SpecACLEntryTCPFlagNotRst SpecACLEntryTCPFlag = "TCP_NOT_RST"
+	SpecACLEntryTCPFlagPsh    SpecACLEntryTCPFlag = "TCP_PSH"
+	SpecACLEntryTCPFlagNotPsh SpecACLEntryTCPFlag = "TCP_NOT_PSH"
+	SpecACLEntryTCPFlagAck    SpecACLEntryTCPFlag = "TCP_ACK"
+	SpecACLEntryTCPFlagNotAck SpecACLEntryTCPFlag = "TCP_NOT_ACK"
+	SpecACLEntryTCPFlagUrg    SpecACLEntryTCPFlag = "TCP_URG"
+	SpecACLEntryTCPFlagNotUrg SpecACLEntryTCPFlag = "TCP_NOT_URG"
 )
 
 type SpecACLEntryAction string
@@ -447,6 +472,20 @@ func (s *Spec) Normalize() {
 
 	for _, comm := range s.CommunityLists {
 		slices.Sort(comm.Members)
+	}
+
+	// Normalize ACL entry protocols: SpecACLEntryProtocolUnset ("") and
+	// SpecACLEntryProtocolIP ("IP") are semantically identical for ACL_IPV4
+	// entries (both mean "match any IP protocol"). Normalize to IP so that
+	// actual state read from the switch (which returns no protocol field for
+	// match-any entries) compares equal to desired state entries that
+	// explicitly set Protocol: IP.
+	for _, acl := range s.ACLs {
+		for _, entry := range acl.Entries {
+			if entry.Protocol == SpecACLEntryProtocolUnset {
+				entry.Protocol = SpecACLEntryProtocolIP
+			}
+		}
 	}
 }
 
