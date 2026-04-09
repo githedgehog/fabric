@@ -81,6 +81,69 @@ spec:
                 description: External is the name of the External object this attachment
                   belongs to
                 type: string
+              inboundACL:
+                description: InboundACL defines the ACL statements to apply to inbound
+                  traffic on this external attachment
+                properties:
+                  statements:
+                    items:
+                      properties:
+                        dstPrefix:
+                          type: string
+                        icmpCode:
+                          type: integer
+                        icmpType:
+                          type: integer
+                        permit:
+                          type: boolean
+                        portRangeBegin:
+                          type: integer
+                        portRangeEnd:
+                          type: integer
+                        protocol:
+                          type: string
+                        seq:
+                          type: integer
+                        srcPrefix:
+                          type: string
+                        tcpFilters:
+                          properties:
+                            ack:
+                              type: boolean
+                            established:
+                              type: boolean
+                            fin:
+                              type: boolean
+                            notAck:
+                              type: boolean
+                            notFin:
+                              type: boolean
+                            notPsh:
+                              type: boolean
+                            notRst:
+                              type: boolean
+                            notSyn:
+                              type: boolean
+                            notUrg:
+                              type: boolean
+                            psh:
+                              type: boolean
+                            rst:
+                              type: boolean
+                            syn:
+                              type: boolean
+                            urg:
+                              type: boolean
+                          type: object
+                      required:
+                      - dstPrefix
+                      - permit
+                      - protocol
+                      - seq
+                      - srcPrefix
+                      type: object
+                    type: array
+                type: object
               neighbor:
                 description: Neighbor is the BGP neighbor configuration for the external
                   attachment in case of a BGP external

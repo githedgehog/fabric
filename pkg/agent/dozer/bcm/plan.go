@@ -1240,9 +1240,16 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 			}
 
-			spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
+			aclIface := &dozer.SpecACLInterface{
 				Egress: pointer.To(ipnsEgressAccessList(ipns)),
 			}
+			if attach.InboundACL != nil {
+				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
+					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
+				}
+				aclIface.Ingress = pointer.To(extInboundACLName(name))
+			}
+			spec.ACLInterfaces[ifaceName] = aclIface
 		} else {
 			// static attachment
 			ifaceName := port
@@ -1319,7 +1326,109 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 				}
 			}
+
+			if attach.InboundACL != nil {
+				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
+					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
+				}
+				spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
+					Ingress: pointer.To(extInboundACLName(name)),
+				}
+			}
 		}
+	}
+
+	return nil
+}
+
+func planInboundACL(spec *dozer.Spec, attachName string, aclSpec *vpcapi.ACLSpec) error {
+	dozerName := extInboundACLName(attachName)
+	if _, exists := spec.ACLs[dozerName]; exists {
+		return nil // already planned
+	}
+
+	entries := map[uint32]*dozer.SpecACLEntry{}
+	for _, stmt := range aclSpec.Statements {
+		entry := &dozer.SpecACLEntry{}
+
+		if stmt.Permit {
+			entry.Action = dozer.SpecACLEntryActionAccept
+		} else {
+			entry.Action = dozer.SpecACLEntryActionDrop
+		}
+
+		switch stmt.Protocol {
+		case vpcapi.ACLProtocolIP:
+			entry.Protocol = dozer.SpecACLEntryProtocolIP
+		case vpcapi.ACLProtocolTCP:
+			entry.Protocol = dozer.SpecACLEntryProtocolTCP
+		case vpcapi.ACLProtocolUDP:
+			entry.Protocol = dozer.SpecACLEntryProtocolUDP
+		case vpcapi.ACLProtocolICMP:
+			entry.Protocol = dozer.SpecACLEntryProtocolICMP
+		default:
+			return errors.Errorf("unknown ACL protocol %q in statement %d", stmt.Protocol, stmt.Seq)
+		}
+
+		if stmt.SrcPrefix != vpcapi.ACLAny {
+			entry.SourceAddress = pointer.To(stmt.SrcPrefix)
+		}
+		if stmt.DstPrefix != vpcapi.ACLAny {
+			entry.DestinationAddress = pointer.To(stmt.DstPrefix)
+		}
+
+		if stmt.PortRangeBegin > 0 || stmt.PortRangeEnd > 0 {
+			if stmt.PortRangeBegin == stmt.PortRangeEnd {
+				entry.DestinationPort = pointer.To(stmt.PortRangeBegin)
+			} else {
+				entry.DestinationPortRange = pointer.To(fmt.Sprintf("%d..%d", stmt.PortRangeBegin, stmt.PortRangeEnd))
+			}
+		}
+
+		if stmt.TCPFilters != nil {
+			if stmt.TCPFilters.Established {
+				entry.TCPSessionEstablished = pointer.To(true)
+			}
+			var flags []dozer.SpecACLEntryTCPFlag
+			for _, mapping := range []struct {
+				set  bool
+				flag dozer.SpecACLEntryTCPFlag
+			}{
+				{stmt.TCPFilters.Fin, dozer.SpecACLEntryTCPFlagFin},
+				{stmt.TCPFilters.NotFin, dozer.SpecACLEntryTCPFlagNotFin},
+				{stmt.TCPFilters.Syn, dozer.SpecACLEntryTCPFlagSyn},
+				{stmt.TCPFilters.NotSyn, dozer.SpecACLEntryTCPFlagNotSyn},
+				{stmt.TCPFilters.Rst, dozer.SpecACLEntryTCPFlagRst},
+				{stmt.TCPFilters.NotRst, dozer.SpecACLEntryTCPFlagNotRst},
+				{stmt.TCPFilters.Psh, dozer.SpecACLEntryTCPFlagPsh},
+				{stmt.TCPFilters.NotPsh, dozer.SpecACLEntryTCPFlagNotPsh},
+				{stmt.TCPFilters.Ack, dozer.SpecACLEntryTCPFlagAck},
+				{stmt.TCPFilters.NotAck, dozer.SpecACLEntryTCPFlagNotAck},
+				{stmt.TCPFilters.Urg, dozer.SpecACLEntryTCPFlagUrg},
+				{stmt.TCPFilters.NotUrg, dozer.SpecACLEntryTCPFlagNotUrg},
+			} {
+				if mapping.set {
+					flags = append(flags, mapping.flag)
+				}
+			}
+			if len(flags) > 0 {
+				entry.TCPFlags = flags
+			}
+		}
+
+		if stmt.ICMPType != nil {
+			entry.ICMPType = pointer.To(*stmt.ICMPType)
+		}
+		if stmt.ICMPCode != nil {
+			entry.ICMPCode = pointer.To(*stmt.ICMPCode)
+		}
+
+		entries[uint32(stmt.Seq)] = entry
+	}
+
+	spec.ACLs[dozerName] = &dozer.SpecACL{
+		Description: pointer.To(fmt.Sprintf("Inbound ACL %s", attachName)),
+		Entries:     entries,
 	}
 
 	return nil
@@ -3538,6 +3647,10 @@ func vpcExtPrefixesPrefixListName(vpc string) string {
 
 func ipnsEgressAccessList(ipns string) string {
 	return fmt.Sprintf("ipns-egress--%s", ipns)
+}
+
+func extInboundACLName(attachName string) string {
+	return fmt.Sprintf("ext-inbound--%s", attachName)
 }
 
 func vpcRedistributeConnectedRouteMapName(vpc string) string {

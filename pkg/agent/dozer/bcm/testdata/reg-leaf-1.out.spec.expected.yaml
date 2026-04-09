@@ -5,9 +5,11 @@ acls:
       "1":
         action: DROP
         destinationAddress: 10.0.0.0/16
+        protocol: IP
         sourceAddress: 10.0.0.0/16
       "65535":
         action: ACCEPT
+        protocol: IP
 asPathLists:
   fabric-gw-aspath:
     members:

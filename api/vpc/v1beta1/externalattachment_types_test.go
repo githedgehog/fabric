@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+func ptr[T any](v T) *T { return &v }
+
 func l3ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
 	base := &v1beta1.ExternalAttachment{
 		ObjectMeta: kmetav1.ObjectMeta{
@@ -190,7 +192,41 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			}),
 			objects: baseObjs,
 		},
-		// TODO: add tests to validate individual fields
+		{
+			name: "valid attachment with inline inbound ACL",
+			extAtt: l3ExtAttGen("ext-att-10", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.InboundACL = &v1beta1.ACLSpec{
+					Statements: []v1beta1.ACLStatement{
+						{
+							Seq:       10,
+							Permit:    true,
+							Protocol:  v1beta1.ACLProtocolIP,
+							SrcPrefix: v1beta1.ACLAny,
+							DstPrefix: v1beta1.ACLAny,
+						},
+					},
+				}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "invalid inline inbound ACL",
+			extAtt: l3ExtAttGen("ext-att-11", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.InboundACL = &v1beta1.ACLSpec{
+					Statements: []v1beta1.ACLStatement{
+						{
+							Seq:       10,
+							Permit:    true,
+							Protocol:  "gre",
+							SrcPrefix: v1beta1.ACLAny,
+							DstPrefix: v1beta1.ACLAny,
+						},
+					},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
 	}
 
 	scheme := runtime.NewScheme()
@@ -208,6 +244,254 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				require.Error(t, err, "expected error but got none")
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
+			}
+		})
+	}
+}
+
+func extAttWithACL(stmts ...v1beta1.ACLStatement) *v1beta1.ExternalAttachment {
+	return l3ExtAttGen("acl-test", func(att *v1beta1.ExternalAttachment) {
+		att.Spec.InboundACL = &v1beta1.ACLSpec{Statements: stmts}
+	})
+}
+
+func TestExternalAttachmentInboundACLValidation(t *testing.T) {
+	tests := []struct {
+		name   string
+		extAtt *v1beta1.ExternalAttachment
+		err    bool
+	}{
+		{
+			name: "valid TCP statement",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       10,
+				Permit:    true,
+				Protocol:  v1beta1.ACLProtocolTCP,
+				SrcPrefix: "10.0.0.0/8",
+				DstPrefix: v1beta1.ACLAny,
+			}),
+		},
+		{
+			name: "valid UDP statement with port range",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Permit:         true,
+				Protocol:       v1beta1.ACLProtocolUDP,
+				SrcPrefix:      v1beta1.ACLAny,
+				DstPrefix:      "192.168.0.0/16",
+				PortRangeBegin: 1024,
+				PortRangeEnd:   65535,
+			}),
+		},
+		{
+			name: "valid ICMP statement with type and code",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       10,
+				Permit:    false,
+				Protocol:  v1beta1.ACLProtocolICMP,
+				SrcPrefix: v1beta1.ACLAny,
+				DstPrefix: v1beta1.ACLAny,
+				ICMPType:  ptr[uint8](8),
+				ICMPCode:  ptr[uint8](0),
+			}),
+		},
+		{
+			name: "valid IP statement with any prefixes",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       10,
+				Permit:    true,
+				Protocol:  v1beta1.ACLProtocolIP,
+				SrcPrefix: v1beta1.ACLAny,
+				DstPrefix: v1beta1.ACLAny,
+			}),
+		},
+		{
+			name: "valid TCP statement with TCP filters",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Permit:     true,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  v1beta1.ACLAny,
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Established: true},
+			}),
+		},
+		{
+			name: "invalid TCP statement with illegal TCP filter combo",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Permit:     true,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  v1beta1.ACLAny,
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Established: true, NotSyn: true},
+			}),
+			err: true,
+		},
+		{
+			name: "valid empty ACL",
+			extAtt: l3ExtAttGen("acl-empty", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.InboundACL = &v1beta1.ACLSpec{}
+			}),
+		},
+		{
+			name: "valid multiple statements",
+			extAtt: extAttWithACL(
+				v1beta1.ACLStatement{Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny},
+				v1beta1.ACLStatement{Seq: 20, Permit: false, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny},
+			),
+		},
+		{
+			name: "duplicate sequence numbers",
+			extAtt: extAttWithACL(
+				v1beta1.ACLStatement{Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny},
+				v1beta1.ACLStatement{Seq: 10, Permit: false, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny},
+			),
+			err: true,
+		},
+		{
+			name: "invalid protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: "gre", SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "invalid srcPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "not-a-cidr", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "invalid dstPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: "300.0.0.0/8",
+			}),
+			err: true,
+		},
+		{
+			name: "TCP filters on UDP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Permit:     true,
+				Protocol:   v1beta1.ACLProtocolUDP,
+				SrcPrefix:  "10.0.0.0/8",
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Syn: true},
+			}),
+			err: true,
+		},
+		{
+			name: "ICMP type on TCP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+				ICMPType: ptr[uint8](8),
+			}),
+			err: true,
+		},
+		{
+			name: "ICMP code on UDP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+				ICMPCode: ptr[uint8](0),
+			}),
+			err: true,
+		},
+		{
+			name: "port range on IP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Permit:         true,
+				Protocol:       v1beta1.ACLProtocolIP,
+				SrcPrefix:      "10.0.0.0/8",
+				DstPrefix:      v1beta1.ACLAny,
+				PortRangeBegin: 80,
+				PortRangeEnd:   443,
+			}),
+			err: true,
+		},
+		{
+			name: "port range begin greater than end",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Permit:         true,
+				Protocol:       v1beta1.ACLProtocolTCP,
+				SrcPrefix:      "10.0.0.0/8",
+				DstPrefix:      v1beta1.ACLAny,
+				PortRangeBegin: 443,
+				PortRangeEnd:   80,
+			}),
+			err: true,
+		},
+		{
+			name: "port range on ICMP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Permit:         true,
+				Protocol:       v1beta1.ACLProtocolICMP,
+				SrcPrefix:      "10.0.0.0/8",
+				DstPrefix:      v1beta1.ACLAny,
+				PortRangeBegin: 1,
+				PortRangeEnd:   100,
+			}),
+			err: true,
+		},
+		{
+			name: "empty srcPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "empty dstPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: "",
+			}),
+			err: true,
+		},
+		{
+			name: "port range begin is zero",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Permit: true, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+				PortRangeEnd: 80,
+			}),
+			err: true,
+		},
+		{
+			name: "contradictory TCP flags fin and notFin",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Permit:     true,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  "10.0.0.0/8",
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Fin: true, NotFin: true},
+			}),
+			err: true,
+		},
+		{
+			name: "contradictory TCP flags syn and notSyn",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Permit:     true,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  "10.0.0.0/8",
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Syn: true, NotSyn: true},
+			}),
+			err: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.extAtt.Spec.InboundACL.Validate()
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}

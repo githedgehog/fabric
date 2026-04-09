@@ -9,17 +9,21 @@ acls:
       "10":
         action: DROP
         destinationAddress: 10.0.0.0/16
+        protocol: IP
       "65535":
         action: ACCEPT
+        protocol: IP
   no-ipns-peering--default:
     description: Prevent VPCs to cross-talk via the external
     entries:
       "1":
         action: DROP
         destinationAddress: 10.0.0.0/16
+        protocol: IP
         sourceAddress: 10.0.0.0/16
       "65535":
         action: ACCEPT
+        protocol: IP
 asPathLists:
   fabric-gw-aspath:
     members:

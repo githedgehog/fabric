@@ -17,6 +17,8 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/openconfig/gnmic/pkg/api"
 	"github.com/openconfig/ygot/ygot"
@@ -117,10 +119,14 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 
 		var protocol oc.E_OpenconfigPacketMatchTypes_IP_PROTOCOL
 		switch value.Protocol { //nolint:exhaustive
-		case "":
-			// just unset
+		case "", dozer.SpecACLEntryProtocolIP:
+			// unset — matches any IP protocol
+		case dozer.SpecACLEntryProtocolTCP:
+			protocol = oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_TCP
 		case dozer.SpecACLEntryProtocolUDP:
 			protocol = oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_UDP
+		case dozer.SpecACLEntryProtocolICMP:
+			protocol = oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_ICMP
 		default:
 			return nil, errors.Errorf("unknown ACL Entry protocol: %s", value.Protocol)
 		}
@@ -133,6 +139,25 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 		}
 		if value.DestinationPort != nil {
 			transport.Config.DestinationPort = oc.UnionUint16(*value.DestinationPort)
+		}
+		if value.DestinationPortRange != nil { // mutually exclusive with DestinationPort; range takes precedence
+			transport.Config.DestinationPort = oc.UnionString(*value.DestinationPortRange)
+		}
+		if len(value.TCPFlags) > 0 {
+			flags, err := marshalTCPFlags(value.TCPFlags)
+			if err != nil {
+				return nil, err
+			}
+			transport.Config.TcpFlags = flags
+		}
+		if value.TCPSessionEstablished != nil {
+			transport.Config.TcpSessionEstablished = value.TCPSessionEstablished
+		}
+		if value.ICMPType != nil {
+			transport.Config.IcmpType = value.ICMPType
+		}
+		if value.ICMPCode != nil {
+			transport.Config.IcmpCode = value.ICMPCode
 		}
 
 		return &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries{
@@ -167,69 +192,150 @@ var specACLInterfacesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecACLInterf
 	ValueHandler: specACLInterfaceEnforcer,
 }
 
-// TODO there is a good chance that it'll not be able to replace the ACLs for interface but we don't need it now
 var specACLInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACLInterface]{
 	Summary:      "ACL interface %s",
 	Path:         "/acl/interfaces/interface[id=%s]",
 	UpdateWeight: ActionWeightACLInterfaceUpdate,
 	DeleteWeight: ActionWeightACLInterfaceDelete,
-	Marshal: func(name string, value *dozer.SpecACLInterface) (ygot.ValidatedGoStruct, error) {
-		var ingressACLSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets
-		if value.Ingress != nil {
-			ingressACLSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
+	// CustomHandler is used to work around a SONiC gNMI server bug: when an ingress ACL set
+	// is included in a combined replace request, the SONiC handler panics with "assignment
+	// to entry in nil map". The fix is to send the interface entry (with egress only) first,
+	// then send ingress in a separate gNMI update.
+	CustomHandler: func(_ string, name string, actual, desired *dozer.SpecACLInterface, actions *ActionQueue) error {
+		ifacePath := fmt.Sprintf("/acl/interfaces/interface[id=%s]", name)
+
+		if desired == nil {
+			return actions.Add(&Action{
+				Weight:   ActionWeightACLInterfaceDelete,
+				ASummary: fmt.Sprintf("Delete ACL interface %s", name),
+				Type:     ActionTypeDelete,
+				Path:     ifacePath,
+			})
+		}
+
+		actionType := ActionTypeUpdate
+		actionSummary := fmt.Sprintf("Create ACL interface %s", name)
+		if actual != nil {
+			actionType = ActionTypeReplace
+			actionSummary = fmt.Sprintf("Update ACL interface %s", name)
+		}
+
+		// omit ingress from the main request and send it separately below.
+		val, err := marshalACLInterface(name, desired, false)
+		if err != nil {
+			return err
+		}
+
+		if err := actions.Add(&Action{
+			Weight:   ActionWeightACLInterfaceUpdate,
+			ASummary: actionSummary,
+			Type:     actionType,
+			Path:     ifacePath,
+			Value:    val,
+		}); err != nil {
+			return errors.Wrap(err, "failed to add ACL interface action")
+		}
+
+		if desired.Ingress != nil {
+			ingressVal := &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
 				IngressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet{
 					{
-						SetName: *value.Ingress,
+						SetName: *desired.Ingress,
 						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 					}: {
-						SetName: value.Ingress,
+						SetName: desired.Ingress,
 						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 						Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Config{
-							SetName: value.Ingress,
+							SetName: desired.Ingress,
 							Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 						},
 					},
 				},
 			}
-		}
 
-		var egressACLSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets
-		if value.Egress != nil {
-			egressACLSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets{
-				EgressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet{
-					{
-						SetName: *value.Egress,
-						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
-					}: {
-						SetName: value.Egress,
-						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
-						Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Config{
-							SetName: value.Egress,
-							Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
-						},
-					},
-				},
+			if err := actions.Add(&Action{
+				Weight:   ActionWeightACLInterfaceUpdate,
+				ASummary: fmt.Sprintf("Update ACL interface %s ingress", name),
+				Type:     ActionTypeUpdate,
+				Path:     ifacePath + "/ingress-acl-sets/ingress-acl-set",
+				Value:    ingressVal,
+			}); err != nil {
+				return errors.Wrap(err, "failed to add ACL interface ingress action")
 			}
 		}
 
-		return &oc.OpenconfigAcl_Acl_Interfaces{
-			Interface: map[string]*oc.OpenconfigAcl_Acl_Interfaces_Interface{
-				name: {
-					Id: pointer.To(name),
-					Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_Config{
-						Id: pointer.To(name),
+		return nil
+	},
+}
+
+// marshalACLInterface builds the ygot value for an ACL interface binding.
+// When includeIngress is false, IngressAclSets is omitted from the result.
+func marshalACLInterface(name string, value *dozer.SpecACLInterface, includeIngress bool) (ygot.ValidatedGoStruct, error) {
+	var ingressACLSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets
+	if includeIngress && value.Ingress != nil {
+		ingressACLSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets{
+			IngressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet{
+				{
+					SetName: *value.Ingress,
+					Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+				}: {
+					SetName: value.Ingress,
+					Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+					Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_IngressAclSets_IngressAclSet_Config{
+						SetName: value.Ingress,
+						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 					},
-					InterfaceRef: &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef{
-						Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef_Config{
-							Interface: pointer.To(name),
-						},
-					},
-					IngressAclSets: ingressACLSets,
-					EgressAclSets:  egressACLSets,
 				},
 			},
-		}, nil
-	},
+		}
+	}
+
+	var egressACLSets *oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets
+	if value.Egress != nil {
+		egressACLSets = &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets{
+			EgressAclSet: map[oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Key]*oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet{
+				{
+					SetName: *value.Egress,
+					Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+				}: {
+					SetName: value.Egress,
+					Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+					Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_EgressAclSets_EgressAclSet_Config{
+						SetName: value.Egress,
+						Type:    oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
+					},
+				},
+			},
+		}
+	}
+
+	ifaceRef := &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef_Config{
+		Interface: pointer.To(name),
+	}
+	if before, after, ok := strings.Cut(name, "."); ok {
+		idx, err := strconv.ParseUint(after, 10, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid subinterface index in ACL interface name %q", name)
+		}
+		ifaceRef.Interface = pointer.To(before)
+		ifaceRef.Subinterface = pointer.To(uint32(idx))
+	}
+
+	return &oc.OpenconfigAcl_Acl_Interfaces{
+		Interface: map[string]*oc.OpenconfigAcl_Acl_Interfaces_Interface{
+			name: {
+				Id: pointer.To(name),
+				Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_Config{
+					Id: pointer.To(name),
+				},
+				InterfaceRef: &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef{
+					Config: ifaceRef,
+				},
+				IngressAclSets: ingressACLSets,
+				EgressAclSets:  egressACLSets,
+			},
+		},
+	}, nil
 }
 
 func loadActualACLs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
@@ -275,12 +381,32 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 					if entry.Ipv4.Config.DestinationAddress != nil {
 						destinationAddress = entry.Ipv4.Config.DestinationAddress
 					}
-					if entry.Ipv4.Config.Protocol == oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_UDP {
+					// Protocol is a union type (E_IP_PROTOCOL or UnionUint8). When absent
+					// in the gNMI response, ygot leaves the interface as nil — not as the
+					// UNSET enum value (0). Match nil explicitly so that other valid but
+					// unsupported protocols (IP_GRE, IP_AUTH, …) are not silently mapped to IP.
+					switch entry.Ipv4.Config.Protocol {
+					case nil, oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET:
+						// absent or explicitly unset → match any IP
+						protocol = dozer.SpecACLEntryProtocolIP
+					case oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_TCP:
+						protocol = dozer.SpecACLEntryProtocolTCP
+					case oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_UDP:
 						protocol = dozer.SpecACLEntryProtocolUDP
+					case oc.OpenconfigPacketMatchTypes_IP_PROTOCOL_IP_ICMP:
+						protocol = dozer.SpecACLEntryProtocolICMP
 					}
+				} else {
+					// No IPv4 container returned by switch (e.g. entry with no addresses
+					// and no specific protocol) → match any IP
+					protocol = dozer.SpecACLEntryProtocolIP
 				}
 
 				var sourcePort, destinationPort *uint16
+				var destinationPortRange *string
+				var tcpFlags []dozer.SpecACLEntryTCPFlag
+				var tcpSessionEstablished *bool
+				var icmpType, icmpCode *uint8
 				if entry.Transport != nil && entry.Transport.Config != nil {
 					if entry.Transport.Config.SourcePort != nil {
 						if union, ok := entry.Transport.Config.SourcePort.(oc.UnionUint16); ok {
@@ -288,10 +414,17 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 						}
 					}
 					if entry.Transport.Config.DestinationPort != nil {
-						if union, ok := entry.Transport.Config.DestinationPort.(oc.UnionUint16); ok {
-							destinationPort = pointer.To(uint16(union))
+						switch v := entry.Transport.Config.DestinationPort.(type) {
+						case oc.UnionUint16:
+							destinationPort = pointer.To(uint16(v))
+						case oc.UnionString:
+							destinationPortRange = pointer.To(string(v))
 						}
 					}
+					tcpFlags = unmarshalTCPFlags(entry.Transport.Config.TcpFlags)
+					tcpSessionEstablished = entry.Transport.Config.TcpSessionEstablished
+					icmpType = entry.Transport.Config.IcmpType
+					icmpCode = entry.Transport.Config.IcmpCode
 				}
 
 				var action dozer.SpecACLEntryAction
@@ -309,13 +442,18 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 				}
 
 				entries[seq] = &dozer.SpecACLEntry{
-					Description:        entry.Config.Description,
-					SourceAddress:      sourceAddress,
-					DestinationAddress: destinationAddress,
-					Protocol:           protocol,
-					SourcePort:         sourcePort,
-					DestinationPort:    destinationPort,
-					Action:             action,
+					Description:           entry.Config.Description,
+					SourceAddress:         sourceAddress,
+					DestinationAddress:    destinationAddress,
+					Protocol:              protocol,
+					SourcePort:            sourcePort,
+					DestinationPort:       destinationPort,
+					DestinationPortRange:  destinationPortRange,
+					TCPFlags:              tcpFlags,
+					TCPSessionEstablished: tcpSessionEstablished,
+					ICMPType:              icmpType,
+					ICMPCode:              icmpCode,
+					Action:                action,
 				}
 			}
 		}
@@ -386,4 +524,61 @@ func unmarshalOCACLInterfaces(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.Sp
 	}
 
 	return interfaces, nil
+}
+
+var tcpFlagToOC = map[dozer.SpecACLEntryTCPFlag]oc.E_OpenconfigPacketMatchTypes_TCP_FLAGS{
+	dozer.SpecACLEntryTCPFlagFin:    oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_FIN,
+	dozer.SpecACLEntryTCPFlagNotFin: oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_FIN,
+	dozer.SpecACLEntryTCPFlagSyn:    oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_SYN,
+	dozer.SpecACLEntryTCPFlagNotSyn: oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_SYN,
+	dozer.SpecACLEntryTCPFlagRst:    oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_RST,
+	dozer.SpecACLEntryTCPFlagNotRst: oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_RST,
+	dozer.SpecACLEntryTCPFlagPsh:    oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_PSH,
+	dozer.SpecACLEntryTCPFlagNotPsh: oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_PSH,
+	dozer.SpecACLEntryTCPFlagAck:    oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_ACK,
+	dozer.SpecACLEntryTCPFlagNotAck: oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_ACK,
+	dozer.SpecACLEntryTCPFlagUrg:    oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_URG,
+	dozer.SpecACLEntryTCPFlagNotUrg: oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_URG,
+}
+
+var ocToTCPFlag = map[oc.E_OpenconfigPacketMatchTypes_TCP_FLAGS]dozer.SpecACLEntryTCPFlag{ //nolint:exhaustive
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_FIN:     dozer.SpecACLEntryTCPFlagFin,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_FIN: dozer.SpecACLEntryTCPFlagNotFin,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_SYN:     dozer.SpecACLEntryTCPFlagSyn,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_SYN: dozer.SpecACLEntryTCPFlagNotSyn,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_RST:     dozer.SpecACLEntryTCPFlagRst,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_RST: dozer.SpecACLEntryTCPFlagNotRst,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_PSH:     dozer.SpecACLEntryTCPFlagPsh,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_PSH: dozer.SpecACLEntryTCPFlagNotPsh,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_ACK:     dozer.SpecACLEntryTCPFlagAck,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_ACK: dozer.SpecACLEntryTCPFlagNotAck,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_URG:     dozer.SpecACLEntryTCPFlagUrg,
+	oc.OpenconfigPacketMatchTypes_TCP_FLAGS_TCP_NOT_URG: dozer.SpecACLEntryTCPFlagNotUrg,
+}
+
+func marshalTCPFlags(flags []dozer.SpecACLEntryTCPFlag) ([]oc.E_OpenconfigPacketMatchTypes_TCP_FLAGS, error) {
+	result := make([]oc.E_OpenconfigPacketMatchTypes_TCP_FLAGS, 0, len(flags))
+	for _, f := range flags {
+		ocFlag, ok := tcpFlagToOC[f]
+		if !ok {
+			return nil, errors.Errorf("unknown TCP flag: %s", f)
+		}
+		result = append(result, ocFlag)
+	}
+
+	return result, nil
+}
+
+func unmarshalTCPFlags(flags []oc.E_OpenconfigPacketMatchTypes_TCP_FLAGS) []dozer.SpecACLEntryTCPFlag {
+	if len(flags) == 0 {
+		return nil
+	}
+	result := make([]dozer.SpecACLEntryTCPFlag, 0, len(flags))
+	for _, f := range flags {
+		if specFlag, ok := ocToTCPFlag[f]; ok {
+			result = append(result, specFlag)
+		}
+	}
+
+	return result
 }

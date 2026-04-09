@@ -1587,6 +1587,94 @@ and Externals APIs. Intended to be used by the user.
 
 
 
+#### ACLProtocol
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [ACLStatement](#aclstatement)
+
+| Field | Description |
+| --- | --- |
+| `ip` |  |
+| `tcp` |  |
+| `udp` |  |
+| `icmp` |  |
+
+
+#### ACLSpec
+
+
+
+ACLSpec defines an IPv4 Access Control List applied to inbound traffic on an external attachment.
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `statements` _[ACLStatement](#aclstatement) array_ |  |  |  |
+
+
+#### ACLStatement
+
+
+
+
+
+
+
+_Appears in:_
+- [ACLSpec](#aclspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `seq` _integer_ |  |  |  |
+| `permit` _boolean_ |  |  |  |
+| `protocol` _[ACLProtocol](#aclprotocol)_ |  |  |  |
+| `srcPrefix` _string_ |  |  |  |
+| `dstPrefix` _string_ |  |  |  |
+| `portRangeBegin` _integer_ |  |  |  |
+| `portRangeEnd` _integer_ |  |  |  |
+| `tcpFilters` _[ACLTCPFilters](#acltcpfilters)_ |  |  |  |
+| `icmpType` _integer_ |  |  |  |
+| `icmpCode` _integer_ |  |  |  |
+
+
+#### ACLTCPFilters
+
+
+
+
+
+
+
+_Appears in:_
+- [ACLStatement](#aclstatement)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `established` _boolean_ |  |  |  |
+| `fin` _boolean_ |  |  |  |
+| `notFin` _boolean_ |  |  |  |
+| `syn` _boolean_ |  |  |  |
+| `notSyn` _boolean_ |  |  |  |
+| `rst` _boolean_ |  |  |  |
+| `notRst` _boolean_ |  |  |  |
+| `psh` _boolean_ |  |  |  |
+| `notPsh` _boolean_ |  |  |  |
+| `ack` _boolean_ |  |  |  |
+| `notAck` _boolean_ |  |  |  |
+| `urg` _boolean_ |  |  |  |
+| `notUrg` _boolean_ |  |  |  |
+
+
 #### External
 
 
@@ -1663,6 +1751,7 @@ _Appears in:_
 | `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment in case of a BGP external |  |  |
 | `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external |  |  |
 | `static` _[ExternalAttachmentStatic](#externalattachmentstatic)_ | Static contains parameters specific to a static external attachment |  |  |
+| `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL defines the ACL statements to apply to inbound traffic on this external attachment |  |  |
 
 
 #### ExternalAttachmentStatic
