@@ -122,7 +122,6 @@ func TestExternalValidation(t *testing.T) {
 		{
 			name: "l2 without prefixes",
 			external: extGen("invalid-st", func(ext *v1beta1.External) {
-				ext.Spec.InboundCommunity = InboundCommunity
 				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
 					Prefixes: []string{},
 				}
@@ -132,7 +131,6 @@ func TestExternalValidation(t *testing.T) {
 		{
 			name: "l2 with overlapping prefixes",
 			external: extGen("invalid-st", func(ext *v1beta1.External) {
-				ext.Spec.InboundCommunity = InboundCommunity
 				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
 					Prefixes: []string{"0.0.0.0/0", "10.10.0.0/24"},
 				}
@@ -142,7 +140,6 @@ func TestExternalValidation(t *testing.T) {
 		{
 			name: "l2 with invalid prefix",
 			external: extGen("invalid-st", func(ext *v1beta1.External) {
-				ext.Spec.InboundCommunity = InboundCommunity
 				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
 					Prefixes: []string{"0.0.0.4350/0"},
 				}
