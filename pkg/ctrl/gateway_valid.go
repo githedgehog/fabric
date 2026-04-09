@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
@@ -159,6 +160,11 @@ func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayA
 	if v.compiled == nil || v.runtime == nil {
 		return fmt.Errorf("validator uninitialized") //nolint:err113
 	}
+
+	start := time.Now()
+	defer func() {
+		slog.Debug("Validated using dp-valid", "gw", gwAg.Name, "took", time.Since(start))
+	}()
 
 	if gwAg.Generation == 0 {
 		gwAg.Generation = 1

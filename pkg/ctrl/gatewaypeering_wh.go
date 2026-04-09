@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
 )
 
 // +kubebuilder:webhook:path=/mutate-gateway-githedgehog-com-v1alpha1-gatewaypeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=gateway.githedgehog.com,resources=gatewaypeerings,verbs=create;update;delete,versions=v1alpha1,name=mgatewaypeering.kb.io,admissionReviewVersions=v1
@@ -19,11 +20,15 @@ import (
 
 type GatewayPeeringWebhook struct {
 	kclient.Reader
+	cfg *meta.FabricConfig
+	v   *GatewayValidator
 }
 
-func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager) error {
+func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
 	w := &GatewayPeeringWebhook{
 		Reader: mgr.GetClient(),
+		cfg:    cfg,
+		v:      v,
 	}
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.GatewayPeering{}).
@@ -43,13 +48,30 @@ func (w *GatewayPeeringWebhook) Default(_ context.Context, peer *gwapi.GatewayPe
 }
 
 func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.GatewayPeering) (admission.Warnings, error) {
-	return nil, peer.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
+	if err := peer.Validate(ctx, w.Reader, nil); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+
+	gwAg, err := BuildGatewayAgentForPeering(ctx, w.Reader, w.cfg, peer)
+	if err != nil {
+		return nil, fmt.Errorf("building gateway agent: %w", err)
+	}
+
+	return nil, w.v.Validate(ctx, gwAg)
 }
 
 func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
+	if err := newPeer.Validate(ctx, w.Reader, nil); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
 
-	return nil, newPeer.Validate(ctx, w.Reader, nil) //nolint:wrapcheck
+	gwAg, err := BuildGatewayAgentForPeering(ctx, w.Reader, w.cfg, newPeer)
+	if err != nil {
+		return nil, fmt.Errorf("building gateway agent: %w", err)
+	}
+
+	return nil, w.v.Validate(ctx, gwAg)
 }
 
 func (w *GatewayPeeringWebhook) ValidateDelete(_ context.Context, _ *gwapi.GatewayPeering) (admission.Warnings, error) {
