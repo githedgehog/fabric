@@ -197,6 +197,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 var ErrRetryLater = fmt.Errorf("retry later")
 
 func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, gw *gwapi.Gateway) (*gwintapi.GatewayAgent, error) {
+	if gw == nil {
+		return nil, fmt.Errorf("gw is nil") //nolint:err113
+	}
+
 	inGwGroups := map[string]bool{}
 	for _, gr := range gw.Spec.Groups {
 		inGwGroups[gr.Name] = true
@@ -295,6 +299,39 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 	}
 
 	return gwAg, nil
+}
+
+// BuildGatewayAgentForPeering builds a GatewayAgent for the first gateway that matches the peering gateway group.
+func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, peering *gwapi.GatewayPeering) (*gwintapi.GatewayAgent, error) {
+	if peering == nil {
+		return nil, fmt.Errorf("peering is nil") //nolint:err113
+	}
+
+	gws := &gwapi.GatewayList{}
+	if err := kube.List(ctx, gws); err != nil {
+		return nil, fmt.Errorf("listing gateways: %w", err)
+	}
+	slices.SortFunc(gws.Items, func(a, b gwapi.Gateway) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
+	for _, gw := range gws.Items {
+		for _, group := range gw.Spec.Groups {
+			if group.Name == peering.Spec.GatewayGroup {
+				ag, err := BuildGatewayAgent(ctx, kube, cfg, &gw)
+				if err != nil {
+					return nil, err
+				}
+
+				// make sure the peering that is currently being processed is added to the agent
+				ag.Spec.Peerings[peering.Name] = peering.Spec
+
+				return ag, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("gateway not found for gateway group: %s", peering.Spec.GatewayGroup) //nolint:err113
 }
 
 func entityName(gwName string, t ...string) string {
