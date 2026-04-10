@@ -6,4 +6,5 @@ package meta
 const (
 	AgentExporterPort = 7042
 	AlloyUser         = "alloy"
+	AgentUser         = "hhagent"
 )

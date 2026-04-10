@@ -44,7 +44,7 @@ const (
 	MCLAGPeerLinkPortChannelID    = 250
 	MCLAGSessionLinkPortChannelID = 251
 	MCLAGPeerLinkTrunkVLANRange   = "2..4094" // TODO do we need to configure it?
-	AgentUser                     = "hhagent"
+	AgentUser                     = meta.AgentUser
 	// LoopbackSwitch                 = "Loopback0"
 	LoopbackProto                = "Loopback1"
 	LoopbackVTEP                 = "Loopback2"
