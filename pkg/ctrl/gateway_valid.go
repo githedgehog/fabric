@@ -38,20 +38,17 @@ func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca [
 	if fabricCfg == nil {
 		return nil, fmt.Errorf("fabricCfg is nil") //nolint:err113
 	}
-
-	v := &GatewayValidator{}
 	if fabricCfg.DataplaneValidatorRef == "" {
-		slog.Info("Skipping Dataplane validator as it is not configured")
-
-		return v, nil
+		return nil, fmt.Errorf("dataplane validator ref is empty") //nolint:err113
 	}
-
 	if len(ca) == 0 {
 		return nil, fmt.Errorf("ca is empty") //nolint:err113
 	}
 	if credsPath == "" {
 		return nil, fmt.Errorf("credsPath is empty") //nolint:err113
 	}
+
+	v := &GatewayValidator{}
 
 	colonIdx := strings.LastIndex(fabricCfg.DataplaneValidatorRef, ":")
 	if colonIdx == -1 {
@@ -136,10 +133,6 @@ func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca [
 }
 
 func (v *GatewayValidator) Close(ctx context.Context) {
-	if v == nil {
-		return
-	}
-
 	if v.compiled != nil {
 		if err := v.compiled.Close(ctx); err != nil {
 			slog.Warn("Error closing compiled validator module", "err", err.Error())
@@ -154,11 +147,11 @@ func (v *GatewayValidator) Close(ctx context.Context) {
 }
 
 func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayAgent) error {
-	if v == nil {
-		return nil
-	}
-	if v.compiled == nil || v.runtime == nil {
+	if v == nil || v.compiled == nil || v.runtime == nil {
 		return fmt.Errorf("validator uninitialized") //nolint:err113
+	}
+	if gwAg == nil {
+		return fmt.Errorf("gateway agent is nil") //nolint:err113
 	}
 
 	start := time.Now()

@@ -25,6 +25,10 @@ type GatewayPeeringWebhook struct {
 }
 
 func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
+	if v == nil {
+		return fmt.Errorf("validator is nil") //nolint:err113
+	}
+
 	w := &GatewayPeeringWebhook{
 		Reader: mgr.GetClient(),
 		cfg:    cfg,
