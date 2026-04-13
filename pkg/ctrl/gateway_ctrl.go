@@ -197,6 +197,9 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 var ErrRetryLater = fmt.Errorf("retry later")
 
 func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, gw *gwapi.Gateway) (*gwintapi.GatewayAgent, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("cfg is nil") //nolint:err113
+	}
 	if gw == nil {
 		return nil, fmt.Errorf("gw is nil") //nolint:err113
 	}
@@ -303,6 +306,9 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 
 // BuildGatewayAgentForPeering builds a GatewayAgent for the first gateway that matches the peering gateway group.
 func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, peering *gwapi.GatewayPeering) (*gwintapi.GatewayAgent, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("cfg is nil") //nolint:err113
+	}
 	if peering == nil {
 		return nil, fmt.Errorf("peering is nil") //nolint:err113
 	}
