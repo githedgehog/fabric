@@ -28,7 +28,7 @@ func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *Gatew
 	if v == nil {
 		return fmt.Errorf("validator is nil") //nolint:err113
 	}
-	
+
 	w := &GatewayWebhook{
 		Reader: mgr.GetClient(),
 		cfg:    cfg,

@@ -52,7 +52,7 @@ func (w *GatewayPeeringWebhook) Default(_ context.Context, peer *gwapi.GatewayPe
 }
 
 func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.GatewayPeering) (admission.Warnings, error) {
-	if err := peer.Validate(ctx, w.Reader, nil); err != nil {
+	if err := peer.Validate(ctx, w.Reader, w.cfg); err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 
@@ -66,7 +66,7 @@ func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.
 
 func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
-	if err := newPeer.Validate(ctx, w.Reader, nil); err != nil {
+	if err := newPeer.Validate(ctx, w.Reader, w.cfg); err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 
