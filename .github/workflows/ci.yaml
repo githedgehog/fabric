@@ -275,7 +275,7 @@ jobs:
           just --timestamp oci_repo=ghcr.io push push-multi
 
       - name: Create GH Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           make_latest: true # TODO do it for master only
           files: |
