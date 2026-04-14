@@ -107,24 +107,26 @@ func run(ctx context.Context) error {
 	}
 
 	var gwValid *ctrl.GatewayValidator
-	func() {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-		defer cancel()
+	if cfg.EnableGateway {
+		func() {
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
 
-		gwValid, err = ctrl.NewGatewayValidator(ctx, cfg, ca, DockerCredsPath)
-	}()
-	if err != nil {
-		return fmt.Errorf("creating gateway validator: %w", err)
-	}
-	if gwValid == nil {
-		return fmt.Errorf("gateway validator is nil") //nolint:err113
-	}
-	defer func() { //nolint:contextcheck
-		closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+			gwValid, err = ctrl.NewGatewayValidator(ctx, cfg, ca, DockerCredsPath)
+		}()
+		if err != nil {
+			return fmt.Errorf("creating gateway validator: %w", err)
+		}
+		if gwValid == nil {
+			return fmt.Errorf("gateway validator is nil") //nolint:err113
+		}
+		defer func() { //nolint:contextcheck
+			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
-		gwValid.Close(closeCtx)
-	}()
+			gwValid.Close(closeCtx)
+		}()
+	}
 
 	scheme := runtime.NewScheme()
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
