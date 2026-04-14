@@ -25,7 +25,7 @@ type GatewayWebhook struct {
 }
 
 func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
-	if v == nil {
+	if cfg.EnableGateway && v == nil {
 		return fmt.Errorf("validator is nil") //nolint:err113
 	}
 
@@ -61,7 +61,11 @@ func (w *GatewayWebhook) ValidateCreate(ctx context.Context, gw *gwapi.Gateway) 
 		return nil, fmt.Errorf("building gateway agent: %w", err)
 	}
 
-	return nil, w.v.Validate(ctx, gwAg)
+	if w.v != nil {
+		return nil, w.v.Validate(ctx, gwAg)
+	}
+
+	return nil, nil
 }
 
 func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
@@ -75,7 +79,11 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Gateway, n
 		return nil, fmt.Errorf("building gateway agent: %w", err)
 	}
 
-	return nil, w.v.Validate(ctx, gwAg)
+	if w.v != nil {
+		return nil, w.v.Validate(ctx, gwAg)
+	}
+
+	return nil, nil
 }
 
 func (w *GatewayWebhook) ValidateDelete(_ context.Context, _ *gwapi.Gateway) (admission.Warnings, error) {

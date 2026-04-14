@@ -25,7 +25,7 @@ type GatewayPeeringWebhook struct {
 }
 
 func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
-	if v == nil {
+	if cfg.EnableGateway && v == nil {
 		return fmt.Errorf("validator is nil") //nolint:err113
 	}
 
@@ -61,7 +61,11 @@ func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.
 		return nil, fmt.Errorf("building gateway agent: %w", err)
 	}
 
-	return nil, w.v.Validate(ctx, gwAg)
+	if w.v != nil {
+		return nil, w.v.Validate(ctx, gwAg)
+	}
+
+	return nil, nil
 }
 
 func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
@@ -75,7 +79,11 @@ func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Gat
 		return nil, fmt.Errorf("building gateway agent: %w", err)
 	}
 
-	return nil, w.v.Validate(ctx, gwAg)
+	if w.v != nil {
+		return nil, w.v.Validate(ctx, gwAg)
+	}
+
+	return nil, nil
 }
 
 func (w *GatewayPeeringWebhook) ValidateDelete(_ context.Context, _ *gwapi.GatewayPeering) (admission.Warnings, error) {
