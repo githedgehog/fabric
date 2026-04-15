@@ -17,12 +17,14 @@ package bcm
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -221,6 +223,58 @@ func TestPlan(t *testing.T) {
 
 			require.Equal(t, string(expectedSpecData), string(actualSpecData),
 				"spec mismatch, you can compare expected and actual spec files in testdata dir or re-generate expected by running just test-update")
+
+			actions, err := bp.CalculateActions(t.Context(), &dozer.Spec{}, actualSpec)
+			require.NoError(t, err, "calculating actions")
+
+			golden := make([]goldenAction, 0, len(actions))
+			for _, a := range actions {
+				act := a.(*Action)
+
+				var val map[string]any
+				if act.Value != nil && !(reflect.ValueOf(act.Value).Kind() == reflect.Pointer && reflect.ValueOf(act.Value).IsNil()) {
+					val, err = gnmi.Marshal(act.Value)
+					require.NoError(t, err, "marshalling action value")
+				}
+
+				golden = append(golden, goldenAction{
+					Weight:     act.Weight,
+					Summary:    act.ASummary,
+					Type:       act.Type,
+					Path:       act.Path,
+					Value:      val,
+					CustomFunc: act.CustomFunc != nil,
+				})
+			}
+
+			actualActionsData, err := kyaml.Marshal(golden)
+			require.NoError(t, err, "marshalling actions")
+
+			expectedActionsFileName := filepath.Join(testdataDir, tt.name+".out.actions.expected.yaml")
+			actualActionsFileName := filepath.Join(testdataDir, tt.name+".out.actions.actual.yaml")
+
+			err = os.WriteFile(actualActionsFileName, actualActionsData, 0o600)
+			require.NoError(t, err, "writing actual actions file")
+
+			if os.Getenv("UPDATE") == "true" {
+				err = os.WriteFile(expectedActionsFileName, actualActionsData, 0o600)
+				require.NoError(t, err, "writing expected actions file")
+			}
+
+			expectedActionsData, err := os.ReadFile(expectedActionsFileName)
+			require.NoError(t, err, "reading expected actions file")
+
+			require.Equal(t, string(expectedActionsData), string(actualActionsData),
+				"actions mismatch, you can compare expected and actual actions files in testdata dir or re-generate expected by running just test-update")
 		})
 	}
+}
+
+type goldenAction struct {
+	Weight     ActionWeight   `json:"weight"`
+	Summary    string         `json:"summary"`
+	Type       ActionType     `json:"type"`
+	Path       string         `json:"path"`
+	Value      map[string]any `json:"value,omitempty"`
+	CustomFunc bool           `json:"customFunc,omitempty"`
 }

@@ -1,0 +1,3286 @@
+- path: /ztp/config
+  summary: Update ZTP
+  type: replace
+  value:
+    config:
+      admin-mode: false
+  weight: 1
+- path: /system/config
+  summary: Update Hostname
+  type: replace
+  value:
+    config:
+      hostname: leaf-01
+  weight: 2
+- path: /lldp/config
+  summary: Create LLDP
+  type: update
+  value:
+    config:
+      enabled: true
+      hello-timer: "5"
+      system-description: Hedgehog Fabric
+      system-name: leaf-01
+  weight: 3
+- path: /system/aaa/authentication/users/user[username=admin]
+  summary: Create User admin
+  type: update
+  value:
+    user:
+    - config:
+        password-hashed: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+        role: admin
+        username: admin
+      username: admin
+  weight: 4
+- path: /system/aaa/authentication/users/user[username=op]
+  summary: Create User op
+  type: update
+  value:
+    user:
+    - config:
+        password-hashed: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+        role: operator
+        username: op
+      username: op
+  weight: 4
+- customFunc: true
+  path: ""
+  summary: User admin authorized keys
+  type: ""
+  weight: 5
+- customFunc: true
+  path: ""
+  summary: User op authorized keys
+  type: ""
+  weight: 5
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=all-vtep-prefixes]
+  summary: Create Prefix List Base all-vtep-prefixes
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: all-vtep-prefixes
+      name: all-vtep-prefixes
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=any-prefix]
+  summary: Create Prefix List Base any-prefix
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: any-prefix
+      name: any-prefix
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ipns-subnets--default]
+  summary: Create Prefix List Base ipns-subnets--default
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: ipns-subnets--default
+      name: ipns-subnets--default
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=protocol-loopback-prefix]
+  summary: Create Prefix List Base protocol-loopback-prefix
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: protocol-loopback-prefix
+      name: protocol-loopback-prefix
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=static-ext-subnets]
+  summary: Create Prefix List Base static-ext-subnets
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: static-ext-subnets
+      name: static-ext-subnets
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-01]
+  summary: Create Prefix List Base vpc-ext-prefixes--vpc-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-ext-prefixes--vpc-01
+      name: vpc-ext-prefixes--vpc-01
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-02]
+  summary: Create Prefix List Base vpc-ext-prefixes--vpc-02
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-ext-prefixes--vpc-02
+      name: vpc-ext-prefixes--vpc-02
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]
+  summary: Create Prefix List Base vpc-loopback-prefix
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-loopback-prefix
+      name: vpc-loopback-prefix
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-01]
+  summary: Create Prefix List Base vpc-not-subnets--vpc-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-not-subnets--vpc-01
+      name: vpc-not-subnets--vpc-01
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-02]
+  summary: Create Prefix List Base vpc-not-subnets--vpc-02
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-not-subnets--vpc-02
+      name: vpc-not-subnets--vpc-02
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-peers--vpc-01]
+  summary: Create Prefix List Base vpc-peers--vpc-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-peers--vpc-01
+      name: vpc-peers--vpc-01
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-peers--vpc-02]
+  summary: Create Prefix List Base vpc-peers--vpc-02
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-peers--vpc-02
+      name: vpc-peers--vpc-02
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-static-ext-subnets--vpc-01]
+  summary: Create Prefix List Base vpc-static-ext-subnets--vpc-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-static-ext-subnets--vpc-01
+      name: vpc-static-ext-subnets--vpc-01
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-static-ext-subnets--vpc-02]
+  summary: Create Prefix List Base vpc-static-ext-subnets--vpc-02
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-static-ext-subnets--vpc-02
+      name: vpc-static-ext-subnets--vpc-02
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-subnets--vpc-01]
+  summary: Create Prefix List Base vpc-subnets--vpc-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-subnets--vpc-01
+      name: vpc-subnets--vpc-01
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-subnets--vpc-02]
+  summary: Create Prefix List Base vpc-subnets--vpc-02
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vpc-subnets--vpc-02
+      name: vpc-subnets--vpc-02
+  weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=all-vtep-prefixes]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.12.0/22][masklength-range=22..32]
+  summary: Create Prefix Lists Entry 10
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 172.30.12.0/22
+        masklength-range: 22..32
+        sequence-number: 10
+      ip-prefix: 172.30.12.0/22
+      masklength-range: 22..32
+      sequence-number: 10
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=any-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=0.0.0.0/0][masklength-range=0..32]
+  summary: Create Prefix Lists Entry 10
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 0.0.0.0/0
+        masklength-range: 0..32
+        sequence-number: 10
+      ip-prefix: 0.0.0.0/0
+      masklength-range: 0..32
+      sequence-number: 10
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ipns-subnets--default]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.0.0/16][masklength-range=16..32]
+  summary: Create Prefix Lists Entry 1
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.0.0/16
+        masklength-range: 16..32
+        sequence-number: 1
+      ip-prefix: 10.0.0.0/16
+      masklength-range: 16..32
+      sequence-number: 1
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=protocol-loopback-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.8.2/32][masklength-range=32..32]
+  summary: Create Prefix Lists Entry 10
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 172.30.8.2/32
+        masklength-range: 32..32
+        sequence-number: 10
+      ip-prefix: 172.30.8.2/32
+      masklength-range: 32..32
+      sequence-number: 10
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.96.0/19][masklength-range=19..32]
+  summary: Create Prefix Lists Entry 10
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 172.30.96.0/19
+        masklength-range: 19..32
+        sequence-number: 10
+      ip-prefix: 172.30.96.0/19
+      masklength-range: 19..32
+      sequence-number: 10
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-01]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.1.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 1
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: DENY
+        ip-prefix: 10.0.1.0/24
+        masklength-range: 24..32
+        sequence-number: 1
+      ip-prefix: 10.0.1.0/24
+      masklength-range: 24..32
+      sequence-number: 1
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-01]/extended-prefixes/extended-prefix[sequence-number=2][ip-prefix=10.0.2.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 2
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: DENY
+        ip-prefix: 10.0.2.0/24
+        masklength-range: 24..32
+        sequence-number: 2
+      ip-prefix: 10.0.2.0/24
+      masklength-range: 24..32
+      sequence-number: 2
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-01]/extended-prefixes/extended-prefix[sequence-number=65535][ip-prefix=0.0.0.0/0][masklength-range=0..32]
+  summary: Create Prefix Lists Entry 65535
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 0.0.0.0/0
+        masklength-range: 0..32
+        sequence-number: 65535
+      ip-prefix: 0.0.0.0/0
+      masklength-range: 0..32
+      sequence-number: 65535
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-02]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.3.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 1
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: DENY
+        ip-prefix: 10.0.3.0/24
+        masklength-range: 24..32
+        sequence-number: 1
+      ip-prefix: 10.0.3.0/24
+      masklength-range: 24..32
+      sequence-number: 1
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-02]/extended-prefixes/extended-prefix[sequence-number=2][ip-prefix=10.0.4.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 2
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: DENY
+        ip-prefix: 10.0.4.0/24
+        masklength-range: 24..32
+        sequence-number: 2
+      ip-prefix: 10.0.4.0/24
+      masklength-range: 24..32
+      sequence-number: 2
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-02]/extended-prefixes/extended-prefix[sequence-number=65535][ip-prefix=0.0.0.0/0][masklength-range=0..32]
+  summary: Create Prefix Lists Entry 65535
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 0.0.0.0/0
+        masklength-range: 0..32
+        sequence-number: 65535
+      ip-prefix: 0.0.0.0/0
+      masklength-range: 0..32
+      sequence-number: 65535
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-peers--vpc-01]/extended-prefixes/extended-prefix[sequence-number=501][ip-prefix=10.0.3.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 501
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.3.0/24
+        masklength-range: 24..32
+        sequence-number: 501
+      ip-prefix: 10.0.3.0/24
+      masklength-range: 24..32
+      sequence-number: 501
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-peers--vpc-01]/extended-prefixes/extended-prefix[sequence-number=502][ip-prefix=10.0.4.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 502
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.4.0/24
+        masklength-range: 24..32
+        sequence-number: 502
+      ip-prefix: 10.0.4.0/24
+      masklength-range: 24..32
+      sequence-number: 502
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-peers--vpc-02]/extended-prefixes/extended-prefix[sequence-number=201][ip-prefix=10.0.1.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 201
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.1.0/24
+        masklength-range: 24..32
+        sequence-number: 201
+      ip-prefix: 10.0.1.0/24
+      masklength-range: 24..32
+      sequence-number: 201
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-peers--vpc-02]/extended-prefixes/extended-prefix[sequence-number=202][ip-prefix=10.0.2.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 202
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.2.0/24
+        masklength-range: 24..32
+        sequence-number: 202
+      ip-prefix: 10.0.2.0/24
+      masklength-range: 24..32
+      sequence-number: 202
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-subnets--vpc-01]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.1.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 1
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.1.0/24
+        masklength-range: 24..32
+        sequence-number: 1
+      ip-prefix: 10.0.1.0/24
+      masklength-range: 24..32
+      sequence-number: 1
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-subnets--vpc-01]/extended-prefixes/extended-prefix[sequence-number=2][ip-prefix=10.0.2.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 2
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.2.0/24
+        masklength-range: 24..32
+        sequence-number: 2
+      ip-prefix: 10.0.2.0/24
+      masklength-range: 24..32
+      sequence-number: 2
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-subnets--vpc-02]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.3.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 1
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.3.0/24
+        masklength-range: 24..32
+        sequence-number: 1
+      ip-prefix: 10.0.3.0/24
+      masklength-range: 24..32
+      sequence-number: 1
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-subnets--vpc-02]/extended-prefixes/extended-prefix[sequence-number=2][ip-prefix=10.0.4.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 2
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.0.4.0/24
+        masklength-range: 24..32
+        sequence-number: 2
+      ip-prefix: 10.0.4.0/24
+      masklength-range: 24..32
+      sequence-number: 2
+  weight: 10
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=all-externals]
+  summary: Create Community Lists all-externals
+  type: update
+  value:
+    community-set:
+    - community-set-name: all-externals
+      config:
+        action: PERMIT
+        community-member:
+        - 65102:1000
+        community-set-name: all-externals
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=all-gw-prios]
+  summary: Create Community Lists all-gw-prios
+  type: update
+  value:
+    community-set:
+    - community-set-name: all-gw-prios
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:0"
+        - "50001:1"
+        - "50001:2"
+        - "50001:3"
+        - "50001:4"
+        - "50001:5"
+        - "50001:6"
+        - "50001:7"
+        - "50001:8"
+        - "50001:9"
+        community-set-name: all-gw-prios
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-0]
+  summary: Create Community Lists gw-prio-0
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-0
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:0"
+        community-set-name: gw-prio-0
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-1]
+  summary: Create Community Lists gw-prio-1
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-1
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:1"
+        community-set-name: gw-prio-1
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-2]
+  summary: Create Community Lists gw-prio-2
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-2
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:2"
+        community-set-name: gw-prio-2
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-3]
+  summary: Create Community Lists gw-prio-3
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-3
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:3"
+        community-set-name: gw-prio-3
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-4]
+  summary: Create Community Lists gw-prio-4
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-4
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:4"
+        community-set-name: gw-prio-4
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-5]
+  summary: Create Community Lists gw-prio-5
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-5
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:5"
+        community-set-name: gw-prio-5
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-6]
+  summary: Create Community Lists gw-prio-6
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-6
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:6"
+        community-set-name: gw-prio-6
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-7]
+  summary: Create Community Lists gw-prio-7
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-7
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:7"
+        community-set-name: gw-prio-7
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-8]
+  summary: Create Community Lists gw-prio-8
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-8
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:8"
+        community-set-name: gw-prio-8
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-9]
+  summary: Create Community Lists gw-prio-9
+  type: update
+  value:
+    community-set:
+    - community-set-name: gw-prio-9
+      config:
+        action: PERMIT
+        community-member:
+        - "50001:9"
+        community-set-name: gw-prio-9
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=no-community]
+  summary: Create Community Lists no-community
+  type: update
+  value:
+    community-set:
+    - community-set-name: no-community
+      config:
+        action: PERMIT
+        community-member:
+        - REGEX:^$
+        community-set-name: no-community
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=vpc-peers--vpc-01]
+  summary: Create Community Lists vpc-peers--vpc-01
+  type: update
+  value:
+    community-set:
+    - community-set-name: vpc-peers--vpc-01
+      config:
+        action: PERMIT
+        community-member:
+        - "50000:2"
+        - "50000:5"
+        community-set-name: vpc-peers--vpc-01
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=vpc-peers--vpc-02]
+  summary: Create Community Lists vpc-peers--vpc-02
+  type: update
+  value:
+    community-set:
+    - community-set-name: vpc-peers--vpc-02
+      config:
+        action: PERMIT
+        community-member:
+        - "50000:2"
+        - "50000:5"
+        community-set-name: vpc-peers--vpc-02
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/as-path-sets/as-path-set[as-path-set-name=fabric-gw-aspath]
+  summary: Create AS Path Lists fabric-gw-aspath
+  type: update
+  value:
+    as-path-set:
+    - as-path-set-name: fabric-gw-aspath
+      config:
+        action: PERMIT
+        as-path-set-member:
+        - _65534_
+        as-path-set-name: fabric-gw-aspath
+  weight: 12
+- path: /interfaces/interface[name=PortChannel1]
+  summary: Create Interface PortChannel1 Base PortChannels
+  type: update
+  value:
+    interface:
+    - config:
+        description: MCLAG server-01 server-01--mclag--leaf-01--leaf-02
+        enabled: true
+        mtu: 9036
+        name: PortChannel1
+      name: PortChannel1
+  weight: 15
+- path: /interfaces/interface[name=PortChannel2]
+  summary: Create Interface PortChannel2 Base PortChannels
+  type: update
+  value:
+    interface:
+    - config:
+        description: MCLAG server-02 server-02--mclag--leaf-01--leaf-02
+        enabled: true
+        mtu: 9036
+        name: PortChannel2
+      name: PortChannel2
+  weight: 15
+- path: /interfaces/interface[name=PortChannel250]
+  summary: Create Interface PortChannel250 Base PortChannels
+  type: update
+  value:
+    interface:
+    - config:
+        description: MCLAG peer leaf-02
+        enabled: true
+        name: PortChannel250
+      name: PortChannel250
+  weight: 15
+- path: /interfaces/interface[name=PortChannel251]
+  summary: Create Interface PortChannel251 Base PortChannels
+  type: update
+  value:
+    interface:
+    - config:
+        description: MCLAG session leaf-02
+        enabled: true
+        name: PortChannel251
+      name: PortChannel251
+  weight: 15
+- path: /interfaces/interface[name=Ethernet0]
+  summary: Create Interface Ethernet0 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: PC251 MCLAG session leaf-02/E1/1
+        enabled: true
+        name: Ethernet0
+      name: Ethernet0
+  weight: 16
+- path: /interfaces/interface[name=Ethernet1]
+  summary: Create Interface Ethernet1 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: PC251 MCLAG session leaf-02/E1/2
+        enabled: true
+        name: Ethernet1
+      name: Ethernet1
+  weight: 16
+- path: /interfaces/interface[name=Ethernet10]
+  summary: Create Interface Ethernet10 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
+        enabled: true
+        name: Ethernet10
+      name: Ethernet10
+  weight: 16
+- path: /interfaces/interface[name=Ethernet2]
+  summary: Create Interface Ethernet2 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: PC250 MCLAG peer leaf-02/E1/3
+        enabled: true
+        name: Ethernet2
+      name: Ethernet2
+  weight: 16
+- path: /interfaces/interface[name=Ethernet3]
+  summary: Create Interface Ethernet3 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: PC250 MCLAG peer leaf-02/E1/4
+        enabled: true
+        name: Ethernet3
+      name: Ethernet3
+  weight: 16
+- path: /interfaces/interface[name=Ethernet4]
+  summary: Create Interface Ethernet4 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: PC1 MCLAG server-01 server-01--mclag--leaf-01--leaf-02
+        enabled: true
+        mtu: 9036
+        name: Ethernet4
+      name: Ethernet4
+  weight: 16
+- path: /interfaces/interface[name=Ethernet5]
+  summary: Create Interface Ethernet5 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: PC2 MCLAG server-02 server-02--mclag--leaf-01--leaf-02
+        enabled: true
+        mtu: 9036
+        name: Ethernet5
+      name: Ethernet5
+  weight: 16
+- path: /interfaces/interface[name=Ethernet6]
+  summary: Create Interface Ethernet6 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Unbundled server-03 server-03--unbundled--leaf-01
+        enabled: true
+        mtu: 9036
+        name: Ethernet6
+      name: Ethernet6
+  weight: 16
+- path: /interfaces/interface[name=Ethernet7]
+  summary: Create Interface Ethernet7 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+        enabled: true
+        name: Ethernet7
+      name: Ethernet7
+  weight: 16
+- path: /interfaces/interface[name=Ethernet8]
+  summary: Create Interface Ethernet8 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+        enabled: true
+        name: Ethernet8
+      name: Ethernet8
+  weight: 16
+- path: /interfaces/interface[name=Ethernet9]
+  summary: Create Interface Ethernet9 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+        enabled: true
+        name: Ethernet9
+      name: Ethernet9
+  weight: 16
+- path: /interfaces/interface[name=Loopback1]
+  summary: Create Interface Loopback1 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Protocol loopback
+        enabled: true
+        name: Loopback1
+      name: Loopback1
+  weight: 16
+- path: /interfaces/interface[name=Loopback2]
+  summary: Create Interface Loopback2 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VTEP loopback
+        enabled: true
+        name: Loopback2
+      name: Loopback2
+  weight: 16
+- path: /interfaces/interface[name=Management0]
+  summary: Create Interface Management0 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Management link
+        enabled: true
+        name: Management0
+      name: Management0
+  weight: 16
+- path: /interfaces/interface[name=Vlan1001]
+  summary: Create Interface Vlan1001 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VPC vpc-01/subnet-01
+        enabled: true
+        name: Vlan1001
+      name: Vlan1001
+  weight: 16
+- path: /interfaces/interface[name=Vlan1002]
+  summary: Create Interface Vlan1002 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VPC vpc-01/subnet-02
+        enabled: true
+        name: Vlan1002
+      name: Vlan1002
+  weight: 16
+- path: /interfaces/interface[name=Vlan1003]
+  summary: Create Interface Vlan1003 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VPC vpc-02/subnet-01
+        enabled: true
+        name: Vlan1003
+      name: Vlan1003
+  weight: 16
+- path: /interfaces/interface[name=Vlan1004]
+  summary: Create Interface Vlan1004 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VPC vpc-02/subnet-02
+        enabled: true
+        name: Vlan1004
+      name: Vlan1004
+  weight: 16
+- path: /interfaces/interface[name=Vlan3000]
+  summary: Create Interface Vlan3000 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VPC vpc-01 IRB
+        enabled: true
+        name: Vlan3000
+      name: Vlan3000
+  weight: 16
+- path: /interfaces/interface[name=Vlan3001]
+  summary: Create Interface Vlan3001 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: VPC vpc-02 IRB
+        enabled: true
+        name: Vlan3001
+      name: Vlan3001
+  weight: 16
+- path: /network-instances/network-instance[name=VrfVvpc-01]
+  summary: Create VRF VrfVvpc-01 base
+  type: update
+  value:
+    network-instance:
+    - config:
+        enabled: true
+        name: VrfVvpc-01
+      name: VrfVvpc-01
+  weight: 17
+- path: /network-instances/network-instance[name=VrfVvpc-02]
+  summary: Create VRF VrfVvpc-02 base
+  type: update
+  value:
+    network-instance:
+    - config:
+        enabled: true
+        name: VrfVvpc-02
+      name: VrfVvpc-02
+  weight: 17
+- path: /network-instances/network-instance[name=default]
+  summary: Create VRF default base
+  type: update
+  value:
+    network-instance:
+    - config:
+        enabled: true
+        name: default
+      name: default
+  weight: 17
+- path: /sonic-vrf/VRF/VRF_LIST[vrf_name=VrfVvpc-01]/vni
+  summary: Create VRF VNI VrfVvpc-01
+  type: update
+  value:
+    vni: 200
+    vrf_name: VrfVvpc-01
+  weight: 18
+- path: /sonic-vrf/VRF/VRF_LIST[vrf_name=VrfVvpc-02]/vni
+  summary: Create VRF VNI VrfVvpc-02
+  type: update
+  value:
+    vni: 500
+    vrf_name: VrfVvpc-02
+  weight: 18
+- path: /routing-policy/policy-definitions/policy-definition[name=filter-attached-hosts]
+  summary: Create Route Maps Base filter-attached-hosts
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: filter-attached-hosts
+      name: filter-attached-hosts
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]
+  summary: Create Route Maps Base import-vrf--vpc-01
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: import-vrf--vpc-01
+      name: import-vrf--vpc-01
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-02]
+  summary: Create Route Maps Base import-vrf--vpc-02
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: import-vrf--vpc-02
+      name: import-vrf--vpc-02
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=ipns-subnets--default]
+  summary: Create Route Maps Base ipns-subnets--default
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: ipns-subnets--default
+      name: ipns-subnets--default
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]
+  summary: Create Route Maps Base l2vpn-neighbors
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: l2vpn-neighbors
+      name: l2vpn-neighbors
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-all-vteps]
+  summary: Create Route Maps Base loopback-all-vteps
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: loopback-all-vteps
+      name: loopback-all-vteps
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=protocol-loopback-only]
+  summary: Create Route Maps Base protocol-loopback-only
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: protocol-loopback-only
+      name: protocol-loopback-only
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-01]
+  summary: Create Route Maps Base vpc-redistribute-connected--vpc-01
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: vpc-redistribute-connected--vpc-01
+      name: vpc-redistribute-connected--vpc-01
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-02]
+  summary: Create Route Maps Base vpc-redistribute-connected--vpc-02
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: vpc-redistribute-connected--vpc-02
+      name: vpc-redistribute-connected--vpc-02
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]
+  summary: Create Route Maps Base vpc-redistribute-static--vpc-01
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: vpc-redistribute-static--vpc-01
+      name: vpc-redistribute-static--vpc-01
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-02]
+  summary: Create Route Maps Base vpc-redistribute-static--vpc-02
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: vpc-redistribute-static--vpc-02
+      name: vpc-redistribute-static--vpc-02
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=filter-attached-hosts]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        config:
+          install-protocol-eq: ATTACHED_HOST
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=filter-attached-hosts]/statements/statement[name=100]
+  summary: Create Route Map Statement 100
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      config:
+        name: "100"
+      name: "100"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            next-hop-set: vpc-loopback-prefix
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=10005]
+  summary: Create Route Map Statement 10005
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-not-subnets--vpc-02
+        match-src-network-instance:
+          config:
+            name: VrfVvpc-02
+      config:
+        name: "10005"
+      name: "10005"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=50000]
+  summary: Create Route Map Statement 50000
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: vpc-peers--vpc-01
+      config:
+        name: "50000"
+      name: "50000"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=50001]
+  summary: Create Route Map Statement 50001
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: no-community
+        match-prefix-set:
+          config:
+            prefix-set: vpc-peers--vpc-01
+      config:
+        name: "50001"
+      name: "50001"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=65535]
+  summary: Create Route Map Statement 65535
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      config:
+        name: "65535"
+      name: "65535"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-02]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            next-hop-set: vpc-loopback-prefix
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-02]/statements/statement[name=10002]
+  summary: Create Route Map Statement 10002
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-not-subnets--vpc-01
+        match-src-network-instance:
+          config:
+            name: VrfVvpc-01
+      config:
+        name: "10002"
+      name: "10002"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-02]/statements/statement[name=50000]
+  summary: Create Route Map Statement 50000
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: vpc-peers--vpc-02
+      config:
+        name: "50000"
+      name: "50000"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-02]/statements/statement[name=50001]
+  summary: Create Route Map Statement 50001
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: no-community
+        match-prefix-set:
+          config:
+            prefix-set: vpc-peers--vpc-02
+      config:
+        name: "50001"
+      name: "50001"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-02]/statements/statement[name=65535]
+  summary: Create Route Map Statement 65535
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      config:
+        name: "65535"
+      name: "65535"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ipns-subnets--default]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ipns-subnets--default
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 210
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-0
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 201
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-9
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=2]
+  summary: Create Route Map Statement 2
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 209
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-1
+      config:
+        name: "2"
+      name: "2"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=3]
+  summary: Create Route Map Statement 3
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 208
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-2
+      config:
+        name: "3"
+      name: "3"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=4]
+  summary: Create Route Map Statement 4
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 207
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-3
+      config:
+        name: "4"
+      name: "4"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=5]
+  summary: Create Route Map Statement 5
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 206
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-4
+      config:
+        name: "5"
+      name: "5"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=6]
+  summary: Create Route Map Statement 6
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 205
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-5
+      config:
+        name: "6"
+      name: "6"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65525]
+  summary: Create Route Map Statement 65525
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 150
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: all-externals
+      config:
+        name: "65525"
+      name: "65525"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65535]
+  summary: Create Route Map Statement 65535
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      config:
+        name: "65535"
+      name: "65535"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=7]
+  summary: Create Route Map Statement 7
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 204
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-6
+      config:
+        name: "7"
+      name: "7"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=8]
+  summary: Create Route Map Statement 8
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 203
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-7
+      config:
+        name: "8"
+      name: "8"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=9]
+  summary: Create Route Map Statement 9
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 202
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: gw-prio-8
+      config:
+        name: "9"
+      name: "9"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-all-vteps]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: all-vtep-prefixes
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-all-vteps]/statements/statement[name=100]
+  summary: Create Route Map Statement 100
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: static-ext-subnets
+      config:
+        name: "100"
+      name: "100"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=protocol-loopback-only]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: protocol-loopback-prefix
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-01]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-loopback-prefix
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-01]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-01]/statements/statement[name=5]
+  summary: Create Route Map Statement 5
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          set-community:
+            config:
+              method: INLINE
+              options: ADD
+            inline:
+              config:
+                communities:
+                - "50000:2"
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-subnets--vpc-01
+      config:
+        name: "5"
+      name: "5"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-01]/statements/statement[name=6]
+  summary: Create Route Map Statement 6
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-static-ext-subnets--vpc-01
+      config:
+        name: "6"
+      name: "6"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-02]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-loopback-prefix
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-02]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-02]/statements/statement[name=5]
+  summary: Create Route Map Statement 5
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          set-community:
+            config:
+              method: INLINE
+              options: ADD
+            inline:
+              config:
+                communities:
+                - "50000:5"
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-subnets--vpc-02
+      config:
+        name: "5"
+      name: "5"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-02]/statements/statement[name=6]
+  summary: Create Route Map Statement 6
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-static-ext-subnets--vpc-02
+      config:
+        name: "6"
+      name: "6"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-loopback-prefix
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-ext-prefixes--vpc-01
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=5]
+  summary: Create Route Map Statement 5
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-static-ext-subnets--vpc-01
+      config:
+        name: "5"
+      name: "5"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-02]/statements/statement[name=1]
+  summary: Create Route Map Statement 1
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-loopback-prefix
+      config:
+        name: "1"
+      name: "1"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-02]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-ext-prefixes--vpc-02
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-02]/statements/statement[name=5]
+  summary: Create Route Map Statement 5
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vpc-static-ext-subnets--vpc-02
+      config:
+        name: "5"
+      name: "5"
+  weight: 21
+- path: /interfaces/interface[name=PortChannel1]/aggregation/switched-vlan/config/trunk-vlans
+  summary: Create PortChannel PortChannel1 Switched Trunk VLANs
+  type: update
+  value:
+    trunk-vlans:
+    - 1001
+  weight: 24
+- path: /interfaces/interface[name=PortChannel2]/aggregation/switched-vlan/config/trunk-vlans
+  summary: Create PortChannel PortChannel2 Switched Trunk VLANs
+  type: update
+  value:
+    trunk-vlans:
+    - 1002
+  weight: 24
+- path: /interfaces/interface[name=PortChannel250]/aggregation/switched-vlan/config/trunk-vlans
+  summary: Create PortChannel PortChannel250 Switched Trunk VLANs
+  type: update
+  value:
+    trunk-vlans:
+    - 2..4094
+  weight: 24
+- path: /interfaces/interface[name=Ethernet0]/ethernet
+  summary: Create Interface Ethernet0 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        aggregate-id: PortChannel251
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet1]/ethernet
+  summary: Create Interface Ethernet1 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        aggregate-id: PortChannel251
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet10]/ethernet
+  summary: Create Interface Ethernet10 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet2]/ethernet
+  summary: Create Interface Ethernet2 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        aggregate-id: PortChannel250
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet3]/ethernet
+  summary: Create Interface Ethernet3 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        aggregate-id: PortChannel250
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet4]/ethernet
+  summary: Create Interface Ethernet4 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        aggregate-id: PortChannel1
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet5]/ethernet
+  summary: Create Interface Ethernet5 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        aggregate-id: PortChannel2
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet6]/ethernet
+  summary: Create Interface Ethernet6 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet7]/ethernet
+  summary: Create Interface Ethernet7 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet8]/ethernet
+  summary: Create Interface Ethernet8 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet9]/ethernet
+  summary: Create Interface Ethernet9 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        auto-negotiate: false
+  weight: 25
+- path: /interfaces/interface[name=Ethernet6]/ethernet/switched-vlan/config/trunk-vlans
+  summary: Create Interface Ethernet6 Switched Trunk VLANs
+  type: update
+  value:
+    trunk-vlans:
+    - 1003
+  weight: 27
+- path: /interfaces/interface[name=Vlan1001]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
+  summary: Create Interface Vlan1001 VLAN Anycast Gateway
+  type: update
+  value:
+    static-anycast-gateway:
+    - 10.0.1.1/24
+  weight: 28
+- path: /interfaces/interface[name=Vlan1002]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
+  summary: Create Interface Vlan1002 VLAN Anycast Gateway
+  type: update
+  value:
+    static-anycast-gateway:
+    - 10.0.2.1/24
+  weight: 28
+- path: /interfaces/interface[name=Vlan1003]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
+  summary: Create Interface Vlan1003 VLAN Anycast Gateway
+  type: update
+  value:
+    static-anycast-gateway:
+    - 10.0.3.1/24
+  weight: 28
+- path: /interfaces/interface[name=Vlan1004]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
+  summary: Create Interface Vlan1004 VLAN Anycast Gateway
+  type: update
+  value:
+    static-anycast-gateway:
+    - 10.0.4.1/24
+  weight: 28
+- path: /interfaces/interface[name=Vlan3000]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
+  summary: Create Interface Vlan3000 VLAN Anycast Gateway
+  type: update
+  weight: 28
+- path: /interfaces/interface[name=Vlan3001]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
+  summary: Create Interface Vlan3001 VLAN Anycast Gateway
+  type: update
+  weight: 28
+- path: /sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=PortChannel1]/fallback
+  summary: Create PortChannel Fallback PortChannel1
+  type: update
+  value:
+    fallback: false
+  weight: 31
+- path: /sonic-portchannel/PORTCHANNEL/PORTCHANNEL_LIST[name=PortChannel2]/fallback
+  summary: Create PortChannel Fallback PortChannel2
+  type: update
+  value:
+    fallback: false
+  weight: 31
+- path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet10]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet8]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Ethernet9]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Loopback2]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=PortChannel1]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=PortChannel2]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=PortChannel250]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /interfaces/interface[name=PortChannel251]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 41
+- path: /network-instances/network-instance[name=VrfVvpc-01]/interfaces/interface[id=Vlan1001]
+  summary: Create VRF interface Vlan1001
+  type: update
+  value:
+    interface:
+    - config:
+        id: Vlan1001
+      id: Vlan1001
+  weight: 44
+- path: /network-instances/network-instance[name=VrfVvpc-01]/interfaces/interface[id=Vlan1002]
+  summary: Create VRF interface Vlan1002
+  type: update
+  value:
+    interface:
+    - config:
+        id: Vlan1002
+      id: Vlan1002
+  weight: 44
+- path: /network-instances/network-instance[name=VrfVvpc-01]/interfaces/interface[id=Vlan3000]
+  summary: Create VRF interface Vlan3000
+  type: update
+  value:
+    interface:
+    - config:
+        id: Vlan3000
+      id: Vlan3000
+  weight: 44
+- path: /network-instances/network-instance[name=VrfVvpc-02]/interfaces/interface[id=Vlan1003]
+  summary: Create VRF interface Vlan1003
+  type: update
+  value:
+    interface:
+    - config:
+        id: Vlan1003
+      id: Vlan1003
+  weight: 44
+- path: /network-instances/network-instance[name=VrfVvpc-02]/interfaces/interface[id=Vlan1004]
+  summary: Create VRF interface Vlan1004
+  type: update
+  value:
+    interface:
+    - config:
+        id: Vlan1004
+      id: Vlan1004
+  weight: 44
+- path: /network-instances/network-instance[name=VrfVvpc-02]/interfaces/interface[id=Vlan3001]
+  summary: Create VRF interface Vlan3001
+  type: update
+  value:
+    interface:
+    - config:
+        id: Vlan3001
+      id: Vlan3001
+  weight: 44
+- path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet10]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet8]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Ethernet9]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Loopback2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=PortChannel1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=PortChannel2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=PortChannel250]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /interfaces/interface[name=PortChannel251]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  weight: 45
+- path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1001]
+  summary: Create VRF attached host
+  type: update
+  value:
+    interface:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        interface-id: Vlan1001
+      interface-id: Vlan1001
+  weight: 46
+- path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1002]
+  summary: Create VRF attached host
+  type: update
+  value:
+    interface:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        interface-id: Vlan1002
+      interface-id: Vlan1002
+  weight: 46
+- path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1003]
+  summary: Create VRF attached host
+  type: update
+  value:
+    interface:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        interface-id: Vlan1003
+      interface-id: Vlan1003
+  weight: 46
+- path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1004]
+  summary: Create VRF attached host
+  type: update
+  value:
+    interface:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        interface-id: Vlan1004
+      interface-id: Vlan1004
+  weight: 46
+- path: /interfaces/interface[name=Ethernet10]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.128.25
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.128.25
+        prefix-length: 31
+        secondary: false
+      ip: 172.30.128.25
+  weight: 47
+- path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.128.1
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.128.1
+        prefix-length: 31
+        secondary: false
+      ip: 172.30.128.1
+  weight: 47
+- path: /interfaces/interface[name=Ethernet8]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.128.3
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.128.3
+        prefix-length: 31
+        secondary: false
+      ip: 172.30.128.3
+  weight: 47
+- path: /interfaces/interface[name=Ethernet9]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.128.23
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.128.23
+        prefix-length: 31
+        secondary: false
+      ip: 172.30.128.23
+  weight: 47
+- path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.8.2
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.8.2
+        prefix-length: 32
+        secondary: false
+      ip: 172.30.8.2
+  weight: 47
+- path: /interfaces/interface[name=Loopback2]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.12.0
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.12.0
+        prefix-length: 32
+        secondary: false
+      ip: 172.30.12.0
+  weight: 47
+- path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.0.9
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.0.9
+        prefix-length: 21
+        secondary: false
+      ip: 172.30.0.9
+  weight: 47
+- path: /interfaces/interface[name=PortChannel251]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.95.0
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.95.0
+        prefix-length: 31
+        secondary: false
+      ip: 172.30.95.0
+  weight: 47
+- path: /system/ntp/config
+  summary: Create NTP
+  type: update
+  value:
+    config:
+      source-interface:
+      - Management0
+  weight: 51
+- path: /system/ntp/servers/server[address=172.30.0.1]
+  summary: Create NTP server 172.30.0.1
+  type: update
+  value:
+    server:
+    - address: 172.30.0.1
+      config:
+        address: 172.30.0.1
+        prefer: true
+  weight: 52
+- path: /mclag/mclag-domains/mclag-domain[domain-id=100]
+  summary: Create MCLAG domain 100
+  type: update
+  value:
+    mclag-domain:
+    - config:
+        domain-id: 100
+        peer-address: 172.30.95.1
+        peer-link: PortChannel250
+        source-address: 172.30.95.0
+      domain-id: 100
+  weight: 53
+- path: /mclag/interfaces/interface[name=PortChannel1]
+  summary: Create MCLAG interface PortChannel1
+  type: update
+  value:
+    interface:
+    - config:
+        mclag-domain-id: 100
+      name: PortChannel1
+  weight: 54
+- path: /mclag/interfaces/interface[name=PortChannel2]
+  summary: Create MCLAG interface PortChannel2
+  type: update
+  value:
+    interface:
+    - config:
+        mclag-domain-id: 100
+      name: PortChannel2
+  weight: 54
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1001
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1001
+      suppress: "on"
+  weight: 59
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1002
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1002
+      suppress: "on"
+  weight: 59
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1003
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1003
+      suppress: "on"
+  weight: 59
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1004
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1004
+      suppress: "on"
+  weight: 59
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan3000
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan3000
+      suppress: "on"
+  weight: 59
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan3001
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan3001
+      suppress: "on"
+  weight: 59
+- path: /network-instances/network-instance[name=VrfVvpc-01]/global-sag/config
+  summary: Create VRF VrfVvpc-01 SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 62
+- path: /network-instances/network-instance[name=VrfVvpc-02]/global-sag/config
+  summary: Create VRF VrfVvpc-02 SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 62
+- path: /network-instances/network-instance[name=default]/global-sag/config
+  summary: Create VRF default SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 62
+- path: /network-instances/network-instance[name=VrfVvpc-01]/evpn/evpn-mh/config
+  summary: Create VRF VrfVvpc-01 EVPNMH
+  type: update
+  weight: 63
+- path: /network-instances/network-instance[name=VrfVvpc-02]/evpn/evpn-mh/config
+  summary: Create VRF VrfVvpc-02 EVPNMH
+  type: update
+  weight: 63
+- path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
+  summary: Create VRF default EVPNMH
+  type: update
+  weight: 63
+- path: /lst/lst-groups/lst-group
+  summary: Create LST Group spinelink
+  type: update
+  value:
+    lst-group:
+    - config:
+        all-mclags-downstream: true
+        name: spinelink
+        timeout: 5
+      name: spinelink
+  weight: 65
+- path: /lst/interfaces/interface[id=Ethernet10]
+  summary: Create LST Interface Ethernet10
+  type: update
+  value:
+    interface:
+    - config:
+        id: Ethernet10
+      id: Ethernet10
+      interface-ref:
+        config:
+          interface: Ethernet10
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+  weight: 66
+- path: /lst/interfaces/interface[id=Ethernet7]
+  summary: Create LST Interface Ethernet7
+  type: update
+  value:
+    interface:
+    - config:
+        id: Ethernet7
+      id: Ethernet7
+      interface-ref:
+        config:
+          interface: Ethernet7
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+  weight: 66
+- path: /lst/interfaces/interface[id=Ethernet8]
+  summary: Create LST Interface Ethernet8
+  type: update
+  value:
+    interface:
+    - config:
+        id: Ethernet8
+      id: Ethernet8
+      interface-ref:
+        config:
+          interface: Ethernet8
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+  weight: 66
+- path: /lst/interfaces/interface[id=Ethernet9]
+  summary: Create LST Interface Ethernet9
+  type: update
+  value:
+    interface:
+    - config:
+        id: Ethernet9
+      id: Ethernet9
+      interface-ref:
+        config:
+          interface: Ethernet9
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+  weight: 66
+- path: /sonic-vxlan/VXLAN_TUNNEL/VXLAN_TUNNEL_LIST
+  summary: Create VXLAN tunnel vtepfabric
+  type: update
+  value:
+    VXLAN_TUNNEL_LIST:
+    - name: vtepfabric
+      src_intf: Loopback2
+      src_ip: 172.30.12.0
+  weight: 69
+- path: /sonic-vxlan/VXLAN_EVPN_NVO/VXLAN_EVPN_NVO_LIST
+  summary: Create VXLAN EVPN NVO nvo1
+  type: update
+  value:
+    VXLAN_EVPN_NVO_LIST:
+    - name: nvo1
+      source_vtep: vtepfabric
+  weight: 71
+- path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
+  summary: Create VXLAN tunnel map map_200_Vlan3000
+  type: update
+  value:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_200_Vlan3000
+      name: vtepfabric
+      vlan: Vlan3000
+      vni: 200
+  weight: 73
+- path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
+  summary: Create VXLAN tunnel map map_201_Vlan1001
+  type: update
+  value:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_201_Vlan1001
+      name: vtepfabric
+      vlan: Vlan1001
+      vni: 201
+  weight: 73
+- path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
+  summary: Create VXLAN tunnel map map_202_Vlan1002
+  type: update
+  value:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_202_Vlan1002
+      name: vtepfabric
+      vlan: Vlan1002
+      vni: 202
+  weight: 73
+- path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
+  summary: Create VXLAN tunnel map map_500_Vlan3001
+  type: update
+  value:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_500_Vlan3001
+      name: vtepfabric
+      vlan: Vlan3001
+      vni: 500
+  weight: 73
+- path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
+  summary: Create VXLAN tunnel map map_501_Vlan1003
+  type: update
+  value:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_501_Vlan1003
+      name: vtepfabric
+      vlan: Vlan1003
+      vni: 501
+  weight: 73
+- path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
+  summary: Create VXLAN tunnel map map_502_Vlan1004
+  type: update
+  value:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_502_Vlan1004
+      name: vtepfabric
+      vlan: Vlan1004
+      vni: 502
+  weight: 73
+- path: /acl/acl-sets/acl-set
+  summary: Create ACL no-ipns-peering--default base
+  type: update
+  value:
+    acl-set:
+    - config:
+        description: Prevent VPCs to cross-talk via the external
+        name: no-ipns-peering--default
+        type: ACL_IPV4
+      name: no-ipns-peering--default
+      type: ACL_IPV4
+  weight: 74
+- path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 1
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 1
+      ipv4:
+        config:
+          destination-address: 10.0.0.0/16
+          source-address: 10.0.0.0/16
+      sequence-id: 1
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 65535
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: ACCEPT
+      config:
+        sequence-id: 65535
+      sequence-id: 65535
+  weight: 76
+- path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp
+  summary: Create VRF VrfVvpc-01 BGP base
+  type: update
+  value:
+    bgp:
+      global:
+        afi-safis:
+          afi-safi:
+          - afi-safi-name: IPV4_UNICAST
+            config:
+              afi-safi-name: IPV4_UNICAST
+            use-multiple-paths:
+              ebgp:
+                config:
+                  maximum-paths: 16
+        config:
+          as: 65101
+          network-import-check: true
+          router-id: 172.30.8.2
+  weight: 78
+- path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp
+  summary: Create VRF VrfVvpc-02 BGP base
+  type: update
+  value:
+    bgp:
+      global:
+        afi-safis:
+          afi-safi:
+          - afi-safi-name: IPV4_UNICAST
+            config:
+              afi-safi-name: IPV4_UNICAST
+            use-multiple-paths:
+              ebgp:
+                config:
+                  maximum-paths: 16
+        config:
+          as: 65101
+          network-import-check: true
+          router-id: 172.30.8.2
+  weight: 78
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp
+  summary: Create VRF default BGP base
+  type: update
+  value:
+    bgp:
+      global:
+        afi-safis:
+          afi-safi:
+          - afi-safi-name: IPV4_UNICAST
+            config:
+              afi-safi-name: IPV4_UNICAST
+            use-multiple-paths:
+              ebgp:
+                config:
+                  maximum-paths: 16
+        config:
+          as: 65101
+          network-import-check: true
+          router-id: 172.30.8.2
+  weight: 78
+- path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
+  summary: Create VRF VrfVvpc-01 BGP L2VPN
+  type: update
+  value:
+    afi-safi:
+    - afi-safi-name: L2VPN_EVPN
+      config:
+        afi-safi-name: L2VPN_EVPN
+      l2vpn-evpn:
+        route-advertise:
+          route-advertise-list:
+          - advertise-afi-safi: IPV4_UNICAST
+            config:
+              advertise-afi-safi: IPV4_UNICAST
+              route-map:
+              - filter-attached-hosts
+  weight: 79
+- path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
+  summary: Create VRF VrfVvpc-02 BGP L2VPN
+  type: update
+  value:
+    afi-safi:
+    - afi-safi-name: L2VPN_EVPN
+      config:
+        afi-safi-name: L2VPN_EVPN
+      l2vpn-evpn:
+        route-advertise:
+          route-advertise-list:
+          - advertise-afi-safi: IPV4_UNICAST
+            config:
+              advertise-afi-safi: IPV4_UNICAST
+              route-map:
+              - filter-attached-hosts
+  weight: 79
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
+  summary: Create VRF default BGP L2VPN
+  type: update
+  value:
+    afi-safi:
+    - afi-safi-name: L2VPN_EVPN
+      config:
+        afi-safi-name: L2VPN_EVPN
+      l2vpn-evpn:
+        config:
+          advertise-all-vni: true
+        route-advertise:
+          route-advertise-list: []
+  weight: 79
+- path: /openconfig-bfd:bfd/openconfig-bfd-ext:bfd-profile/profile
+  summary: Create BFD Profile fabric
+  type: update
+  value:
+    profile:
+    - config:
+        desired-minimum-tx-interval: 300
+        detection-multiplier: 3
+        enabled: true
+        passive-mode: false
+        profile-name: fabric
+        required-minimum-receive: 300
+      profile-name: fabric
+  weight: 80
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.0]
+  summary: Create VRF BGP neighbor 172.30.128.0
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - protocol-loopback-only
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          config:
+            afi-safi-name: L2VPN_EVPN
+      config:
+        description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+        enabled: true
+        neighbor-address: 172.30.128.0
+        peer-as: 65100
+      enable-bfd:
+        config:
+          bfd-profile: fabric
+          enabled: true
+      neighbor-address: 172.30.128.0
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.2]
+  summary: Create VRF BGP neighbor 172.30.128.2
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - protocol-loopback-only
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          config:
+            afi-safi-name: L2VPN_EVPN
+      config:
+        description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+        enabled: true
+        neighbor-address: 172.30.128.2
+        peer-as: 65100
+      enable-bfd:
+        config:
+          bfd-profile: fabric
+          enabled: true
+      neighbor-address: 172.30.128.2
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.22]
+  summary: Create VRF BGP neighbor 172.30.128.22
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - protocol-loopback-only
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          config:
+            afi-safi-name: L2VPN_EVPN
+      config:
+        description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+        enabled: true
+        neighbor-address: 172.30.128.22
+        peer-as: 65100
+      enable-bfd:
+        config:
+          bfd-profile: fabric
+          enabled: true
+      neighbor-address: 172.30.128.22
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.24]
+  summary: Create VRF BGP neighbor 172.30.128.24
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - protocol-loopback-only
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          config:
+            afi-safi-name: L2VPN_EVPN
+      config:
+        description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
+        enabled: true
+        neighbor-address: 172.30.128.24
+        peer-as: 65100
+      enable-bfd:
+        config:
+          bfd-profile: fabric
+          enabled: true
+      neighbor-address: 172.30.128.24
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.0]
+  summary: Create VRF BGP neighbor 172.30.8.0
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - loopback-all-vteps
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          allow-own-as:
+            config:
+              enabled: true
+          apply-policy:
+            config:
+              import-policy:
+              - l2vpn-neighbors
+          config:
+            afi-safi-name: L2VPN_EVPN
+            enabled: true
+      config:
+        description: Fabric spine-01 loopback (spine-link)
+        disable-ebgp-connected-route-check: true
+        enabled: true
+        neighbor-address: 172.30.8.0
+        peer-as: 65100
+      neighbor-address: 172.30.8.0
+      transport:
+        config:
+          local-address: 172.30.8.2
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.1]
+  summary: Create VRF BGP neighbor 172.30.8.1
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - loopback-all-vteps
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          allow-own-as:
+            config:
+              enabled: true
+          apply-policy:
+            config:
+              import-policy:
+              - l2vpn-neighbors
+          config:
+            afi-safi-name: L2VPN_EVPN
+            enabled: true
+      config:
+        description: Fabric spine-02 loopback (spine-link)
+        disable-ebgp-connected-route-check: true
+        enabled: true
+        neighbor-address: 172.30.8.1
+        peer-as: 65100
+      neighbor-address: 172.30.8.1
+      transport:
+        config:
+          local-address: 172.30.8.2
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.95.1]
+  summary: Create VRF BGP neighbor 172.30.95.1
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          config:
+            afi-safi-name: L2VPN_EVPN
+      config:
+        description: MCLAG session leaf-02
+        enabled: true
+        neighbor-address: 172.30.95.1
+        peer-type: INTERNAL
+      neighbor-address: 172.30.95.1
+  weight: 81
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=172.30.8.2/32]
+  summary: Create VRF BGP network 172.30.8.2/32
+  type: update
+  value:
+    network:
+    - config:
+        prefix: 172.30.8.2/32
+      prefix: 172.30.8.2/32
+  weight: 82
+- path: /network-instances/network-instance[name=VrfVvpc-01]/table-connections/table-connection
+  summary: Create VRF table connection attachedhost
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        src-protocol: ATTACHED_HOST
+      dst-protocol: BGP
+      src-protocol: ATTACHED_HOST
+  weight: 83
+- path: /network-instances/network-instance[name=VrfVvpc-01]/table-connections/table-connection
+  summary: Create VRF table connection connected
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        import-policy:
+        - vpc-redistribute-connected--vpc-01
+        src-protocol: DIRECTLY_CONNECTED
+      dst-protocol: BGP
+      src-protocol: DIRECTLY_CONNECTED
+  weight: 83
+- path: /network-instances/network-instance[name=VrfVvpc-01]/table-connections/table-connection
+  summary: Create VRF table connection static
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        import-policy:
+        - vpc-redistribute-static--vpc-01
+        src-protocol: STATIC
+      dst-protocol: BGP
+      src-protocol: STATIC
+  weight: 83
+- path: /network-instances/network-instance[name=VrfVvpc-02]/table-connections/table-connection
+  summary: Create VRF table connection attachedhost
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        src-protocol: ATTACHED_HOST
+      dst-protocol: BGP
+      src-protocol: ATTACHED_HOST
+  weight: 83
+- path: /network-instances/network-instance[name=VrfVvpc-02]/table-connections/table-connection
+  summary: Create VRF table connection connected
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        import-policy:
+        - vpc-redistribute-connected--vpc-02
+        src-protocol: DIRECTLY_CONNECTED
+      dst-protocol: BGP
+      src-protocol: DIRECTLY_CONNECTED
+  weight: 83
+- path: /network-instances/network-instance[name=VrfVvpc-02]/table-connections/table-connection
+  summary: Create VRF table connection static
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        import-policy:
+        - vpc-redistribute-static--vpc-02
+        src-protocol: STATIC
+      dst-protocol: BGP
+      src-protocol: STATIC
+  weight: 83
+- path: /network-instances/network-instance[name=default]/table-connections/table-connection
+  summary: Create VRF table connection connected
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        src-protocol: DIRECTLY_CONNECTED
+      dst-protocol: BGP
+      src-protocol: DIRECTLY_CONNECTED
+  weight: 83
+- path: /network-instances/network-instance[name=default]/table-connections/table-connection
+  summary: Create VRF table connection static
+  type: update
+  value:
+    table-connection:
+    - address-family: IPV4
+      config:
+        address-family: IPV4
+        dst-protocol: BGP
+        src-protocol: STATIC
+      dst-protocol: BGP
+      src-protocol: STATIC
+  weight: 83
+- path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name
+  summary: Create VRF BGP import policy VrfVvpc-01
+  type: update
+  value:
+    policy-name: import-vrf--vpc-01
+  weight: 84
+- path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name
+  summary: Create VRF BGP import policy VrfVvpc-02
+  type: update
+  value:
+    policy-name: import-vrf--vpc-02
+  weight: 84
+- path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name
+  summary: Create VRF BGP import VRF VrfVvpc-01
+  type: update
+  value:
+    name:
+    - VrfVvpc-02
+  weight: 85
+- path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name
+  summary: Create VRF BGP import VRF VrfVvpc-02
+  type: update
+  value:
+    name:
+    - VrfVvpc-01
+  weight: 85
+- path: relay-agent/dhcp/interfaces/interface[id=Vlan1001]
+  summary: Create DHCP relay Vlan1001
+  type: update
+  value:
+    interface:
+    - agent-information-option:
+        config:
+          link-select: ENABLE
+          vrf-select: ENABLE
+      config:
+        helper-address:
+        - 172.30.0.1
+        src-intf: Management0
+      id: Vlan1001
+  weight: 86
+- path: relay-agent/dhcp/interfaces/interface[id=Vlan1002]
+  summary: Create DHCP relay Vlan1002
+  type: update
+  value:
+    interface:
+    - agent-information-option:
+        config:
+          link-select: ENABLE
+          vrf-select: ENABLE
+      config:
+        helper-address:
+        - 172.30.0.1
+        src-intf: Management0
+      id: Vlan1002
+  weight: 86
+- path: relay-agent/dhcp/interfaces/interface[id=Vlan1003]
+  summary: Create DHCP relay Vlan1003
+  type: update
+  value:
+    interface:
+    - agent-information-option:
+        config:
+          link-select: ENABLE
+          vrf-select: ENABLE
+      config:
+        helper-address:
+        - 172.30.0.1
+        src-intf: Management0
+      id: Vlan1003
+  weight: 86
+- path: relay-agent/dhcp/interfaces/interface[id=Vlan1004]
+  summary: Create DHCP relay Vlan1004
+  type: update
+  value:
+    interface:
+    - agent-information-option:
+        config:
+          link-select: ENABLE
+          vrf-select: ENABLE
+      config:
+        helper-address:
+        - 172.30.0.1
+        src-intf: Management0
+      id: Vlan1004
+  weight: 86
+- path: /loadshare/roce-attrs
+  summary: Update ECMP RoCE
+  type: replace
+  value:
+    roce-attrs:
+      config:
+        hash: hash
+        qpn: false
+  weight: 126
