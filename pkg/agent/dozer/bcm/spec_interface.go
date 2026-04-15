@@ -345,7 +345,7 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 		// ignore actual ipv6 enable state for management interfaces, as their logic is inverted (no config means they are v6 enabled).
 		// if we ever want to support configuring that, we'll need to fix it; however the "proper" fix (always enforcing the desired
 		// v6 state) brings more issues, e.g. we cannot remove a subinterface from a VRF because we have ipv6 config on it
-		if strings.Contains(basePath, "[name=Management") {
+		if strings.Contains(basePath, "[name=Management") && actual != nil {
 			actual.IPv6 = nil
 		}
 
