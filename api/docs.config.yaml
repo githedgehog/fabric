@@ -21,3 +21,25 @@ processor:
 render:
   # Version of Kubernetes to use when generating links to Kubernetes API documentation.
   kubernetesVersion: 1.35
+  knownTypes:
+  - name: "map[string]VPCPeer"
+    package: go.githedgehog.com/fabric/api/vpc/v1beta1
+    link: "#vpcpeer"
+  - name: "map[string]SwitchStateBGPNeighbor"
+    package: go.githedgehog.com/fabric/api/agent/v1beta1
+    link: "#switchstatebgpneighbor"
+  - name: "map[string]SwitchStateBFDPeer"
+    package: go.githedgehog.com/fabric/api/agent/v1beta1
+    link: "#switchstatebfdpeer"
+  - name: NOSType
+    package: go.githedgehog.com/fabric/api/meta
+    link: ""
+  - name: PeeringNATPortForwardEntry
+    package: go.githedgehog.com/fabric/api/gateway/v1alpha1
+    link: ""
+  - name: VPCAttachmentSpecAnn
+    package: go.githedgehog.com/fabric/api/agent/v1beta1
+    link: ""
+  - name: RedundancyType
+    package: go.githedgehog.com/fabric/api/meta
+    link: ""
