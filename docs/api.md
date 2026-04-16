@@ -227,8 +227,8 @@ _Appears in:_
 | `interfaces` _object (keys:string, values:[SwitchStateInterface](#switchstateinterface))_ | Switch interfaces state (incl. physical, management and port channels) |  |  |
 | `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
 | `transceivers` _object (keys:string, values:[SwitchStateTransceiver](#switchstatetransceiver))_ | Transceivers state (port -> transceiver state) |  |  |
-| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#map[string]switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
-| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#map[string]switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address -> state) |  |  |
+| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
+| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
 | `roce` _boolean_ | State of the roce configuration |  |  |
@@ -1199,7 +1199,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `idleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | Time since the last packet after which flows are removed from the connection state table |  |  |
-| `ports` _[PeeringNATPortForwardEntry](#peeringnatportforwardentry) array_ |  |  |  |
+| `ports` _PeeringNATPortForwardEntry array_ |  |  |  |
 
 
 
@@ -1214,7 +1214,7 @@ _Validation:_
 - Enum: [tcp udp ]
 
 _Appears in:_
-- [PeeringNATPortForwardEntry](#peeringnatportforwardentry)
+- PeeringNATPortForwardEntry
 
 | Field | Description |
 | --- | --- |
@@ -2105,7 +2105,7 @@ VPCAttachmentSpec defines the desired state of VPCAttachment
 
 _Appears in:_
 - [VPCAttachment](#vpcattachment)
-- [VPCAttachmentSpecAnn](#vpcattachmentspecann)
+- VPCAttachmentSpecAnn
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2293,7 +2293,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `remote` _string_ |  |  |  |
-| `permit` _[map[string]VPCPeer](#map[string]vpcpeer) array_ | Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets. |  | MaxItems: 10 <br />MinItems: 1 <br /> |
+| `permit` _[map[string]VPCPeer](#vpcpeer) array_ | Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets. |  | MaxItems: 10 <br />MinItems: 1 <br /> |
 
 
 #### VPCPeeringStatus
@@ -3207,7 +3207,7 @@ _Appears in:_
 | `ports` _object (keys:string, values:[SwitchProfilePort](#switchprofileport))_ | Ports defines the switch port configuration |  |  |
 | `portGroups` _object (keys:string, values:[SwitchProfilePortGroup](#switchprofileportgroup))_ | PortGroups defines the switch port group configuration |  |  |
 | `portProfiles` _object (keys:string, values:[SwitchProfilePortProfile](#switchprofileportprofile))_ | PortProfiles defines the switch port profile configuration |  |  |
-| `nosType` _[NOSType](#nostype)_ | NOSType defines the NOS type to be used for the switch |  |  |
+| `nosType` _NOSType_ | NOSType defines the NOS type to be used for the switch |  |  |
 | `platform` _string_ | Platform is what expected to be request by ONIE and displayed in the NOS |  |  |
 | `pipelines` _object (keys:string, values:[SwitchProfilePipeline](#switchprofilepipeline))_ | Pipelines defines the switch pipeline configuration |  |  |
 | `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the switch |  |  |
@@ -3244,7 +3244,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `group` _string_ | Group is the name of the redundancy group switch belongs to |  |  |
-| `type` _[RedundancyType](#redundancytype)_ | Type is the type of the redundancy group, could be mclag or eslag |  |  |
+| `type` _RedundancyType_ | Type is the type of the redundancy group, could be mclag or eslag |  |  |
 
 
 #### SwitchRole
