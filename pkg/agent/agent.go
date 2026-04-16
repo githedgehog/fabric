@@ -34,6 +34,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fmeta "go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
+	"go.githedgehog.com/fabric/pkg/agent/clsp"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
 	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
@@ -130,10 +131,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
 
 	switch {
-	// TODO add separate processor when there would be support for Celestica SONiC+
-	case isBCM, isClsP:
+	case isBCM:
 		bcmProcessor := bcm.Processor()
 		svc.processor = bcmProcessor
+	case isClsP:
+		svc.processor = clsp.Processor()
 	case isCumulus:
 		svc.SkipControlLink = true
 		cmlsProcessor := cmls.Processor()
