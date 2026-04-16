@@ -257,25 +257,8 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 				return nil, errors.Errorf("unsupported gnmi action %+v", act)
 			}
 
-			for attempt := 0; attempt < 50; attempt++ {
-				req, err := api.NewSetRequest(options...)
-				if err != nil {
-					return nil, errors.Wrapf(err, "cannot create GNMI set request")
-				}
-
-				if err := p.client.Set(ctx, req); err != nil {
-					// workaround for port breakout being still in progress when configuring interfaces
-					if strings.Contains(err.Error(), "Port breakout is in progress") {
-						slog.Warn("Port breakout is in progress, retrying in 2 seconds")
-						time.Sleep(2 * time.Second)
-
-						continue // retry
-					}
-
-					return nil, errors.Wrapf(err, "GNMI set request failed")
-				}
-
-				break // retries
+			if err := retrySetRequest(ctx, p.client, act.Path, options...); err != nil {
+				return nil, err
 			}
 		}
 
@@ -283,6 +266,114 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 	}
 
 	return nil, nil
+}
+
+// retrySetRequest retries a gNMI set requests which failed with recoverable or retriable errors.
+func retrySetRequest(ctx context.Context, client GNMICClient, path string, opts ...api.GNMIOption) error {
+	sendRequest := func(ctx context.Context) error {
+		req, err := api.NewSetRequest(opts...)
+		if err != nil {
+			return fmt.Errorf("creating gNMI set request: %w", err)
+		}
+
+		return client.Set(ctx, req)
+	}
+
+	err := sendRequest(ctx)
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	// Handle port breakout still being in progress when trying to configure resulting ports
+	case isPortBreakoutInProgress(err):
+		for range 50 {
+			slog.Warn("Port breakout is in progress, retrying in 2 seconds")
+			select {
+			case <-time.After(2 * time.Second):
+				// proceed with retry
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled during retry: %w", ctx.Err())
+			}
+
+			if err = sendRequest(ctx); isPortBreakoutInProgress(err) {
+				continue // retry
+			}
+
+			break
+		}
+
+	// Handle errors related to modifying member of the port channel
+	// - Speed configuration is not allowed as Ethernet52 is a member of PortChannel53.
+	// - Configuration not allowed when port is member of Portchannel.
+	case isPortChannelMemberError(path, err):
+		for range 5 {
+			// there are two cases that lead to the same error - one with and one without /ethernet in the end
+			delPath := strings.TrimSuffix(path, "/ethernet") + "/ethernet/config/aggregate-id"
+			slog.Warn("Can't modify member of the PortChannel, removing to retry", "path", delPath)
+			select {
+			case <-time.After(100 * time.Millisecond):
+				// proceed
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled during retry: %w", ctx.Err())
+			}
+
+			// remove the member from the PortChannel
+			{
+				req, delErr := api.NewSetRequest(api.Delete(delPath))
+				if delErr != nil {
+					return fmt.Errorf("creating gNMI set request to delete member from PortChannel: %w", delErr)
+				}
+
+				if delErr := client.Set(ctx, req); delErr != nil {
+					slog.Warn("Failed to remove member from PortChannel, retrying", "err", delErr.Error())
+
+					continue // retry
+				}
+
+				select {
+				case <-time.After(1 * time.Second):
+					// proceed
+				case <-ctx.Done():
+					return fmt.Errorf("context cancelled during retry: %w", ctx.Err())
+				}
+			}
+
+			if err = sendRequest(ctx); isPortChannelMemberError(path, err) {
+				continue // retry
+			}
+
+			break
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("gNMI set request failed: %w", err)
+	}
+
+	return nil
+}
+
+func isPortBreakoutInProgress(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := strings.ToLower(err.Error())
+
+	return strings.Contains(errStr, "port breakout is in progress")
+}
+
+func isPortChannelMemberError(path string, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := strings.ToLower(err.Error())
+
+	return strings.HasPrefix(path, "/interfaces/interface[name=Ethernet") &&
+		strings.Contains(errStr, "not allowed") &&
+		strings.Contains(errStr, "member of portchannel")
 }
 
 func (p *BroadcomProcessor) GetRoCE(ctx context.Context) (bool, error) {
