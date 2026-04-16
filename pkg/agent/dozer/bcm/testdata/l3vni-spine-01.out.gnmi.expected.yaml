@@ -1,0 +1,665 @@
+acl:
+  acl-sets:
+    acl-set:
+    - acl-entries:
+        acl-entry:
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 1
+          ipv4:
+            config:
+              destination-address: 10.0.0.0/16
+              source-address: 10.0.0.0/16
+          sequence-id: 1
+        - actions:
+            config:
+              forwarding-action: ACCEPT
+          config:
+            sequence-id: 65535
+          sequence-id: 65535
+      config:
+        description: Prevent VPCs to cross-talk via the external
+        name: no-ipns-peering--default
+        type: ACL_IPV4
+      name: no-ipns-peering--default
+      type: ACL_IPV4
+bfd:
+  bfd-profile:
+    profile:
+    - config:
+        desired-minimum-tx-interval: 300
+        detection-multiplier: 3
+        enabled: true
+        passive-mode: true
+        profile-name: fabric
+        required-minimum-receive: 300
+      profile-name: fabric
+interfaces:
+  interface:
+  - config:
+      description: Fabric leaf-01/E1/5 spine-01--fabric--leaf-01
+      enabled: true
+      name: Ethernet0
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet0
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.0
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.0
+  - config:
+      description: Fabric leaf-01/E1/6 spine-01--fabric--leaf-01
+      enabled: true
+      name: Ethernet1
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet1
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.2
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.2
+  - config:
+      description: Fabric leaf-02/E1/4 spine-01--fabric--leaf-02
+      enabled: true
+      name: Ethernet2
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet2
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.4
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.4
+  - config:
+      description: Fabric leaf-02/E1/5 spine-01--fabric--leaf-02
+      enabled: true
+      name: Ethernet3
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet3
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.6
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.6
+  - config:
+      description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+      enabled: true
+      name: Ethernet4
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet4
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.8
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.8
+  - config:
+      description: Protocol loopback
+      enabled: true
+      name: Loopback1
+    name: Loopback1
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.8.0
+                prefix-length: 32
+                secondary: false
+              ip: 172.30.8.0
+  - config:
+      description: Management link
+      enabled: true
+      name: Management0
+    name: Management0
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.0.7
+                prefix-length: 21
+                secondary: false
+              ip: 172.30.0.7
+lldp:
+  config:
+    enabled: true
+    hello-timer: "5"
+    system-description: Hedgehog Fabric
+    system-name: spine-01
+loadshare:
+  roce-attrs:
+    config:
+      hash: hash
+      qpn: false
+network-instances:
+  network-instance:
+  - config:
+      enabled: true
+      name: default
+    global-sag:
+      config:
+        anycast-mac: "00:00:00:11:11:11"
+    name: default
+    protocols:
+      protocol:
+      - bgp:
+          global:
+            afi-safis:
+              afi-safi:
+              - afi-safi-name: IPV4_UNICAST
+                config:
+                  afi-safi-name: IPV4_UNICAST
+                network-config:
+                  network:
+                  - config:
+                      prefix: 172.30.8.0/32
+                    prefix: 172.30.8.0/32
+                use-multiple-paths:
+                  ebgp:
+                    config:
+                      maximum-paths: 16
+              - afi-safi-name: L2VPN_EVPN
+                config:
+                  afi-safi-name: L2VPN_EVPN
+                l2vpn-evpn:
+                  config:
+                    advertise-all-vni: true
+                  route-advertise:
+                    route-advertise-list: []
+            config:
+              as: 65100
+              network-import-check: true
+              router-id: 172.30.8.0
+          neighbors:
+            neighbor:
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric leaf-01/E1/5 spine-01--fabric--leaf-01
+                enabled: true
+                neighbor-address: 172.30.128.1
+                peer-as: 65101
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.1
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric leaf-01/E1/6 spine-01--fabric--leaf-01
+                enabled: true
+                neighbor-address: 172.30.128.3
+                peer-as: 65101
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.3
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric leaf-02/E1/4 spine-01--fabric--leaf-02
+                enabled: true
+                neighbor-address: 172.30.128.5
+                peer-as: 65102
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.5
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric leaf-02/E1/5 spine-01--fabric--leaf-02
+                enabled: true
+                neighbor-address: 172.30.128.7
+                peer-as: 65102
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.7
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  allow-own-as:
+                    config:
+                      enabled: true
+                  apply-policy:
+                    config:
+                      import-policy:
+                      - l2vpn-neighbors
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+                    enabled: true
+              config:
+                description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+                enabled: true
+                neighbor-address: 172.30.128.9
+                peer-as: 65534
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.9
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - loopback-all-vteps
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  allow-own-as:
+                    config:
+                      enabled: true
+                  apply-policy:
+                    config:
+                      import-policy:
+                      - l2vpn-neighbors
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+                    enabled: true
+              config:
+                description: Fabric leaf-01 loopback (spine-link)
+                disable-ebgp-connected-route-check: true
+                enabled: true
+                neighbor-address: 172.30.8.2
+                peer-as: 65101
+              neighbor-address: 172.30.8.2
+              transport:
+                config:
+                  local-address: 172.30.8.0
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - loopback-all-vteps
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  allow-own-as:
+                    config:
+                      enabled: true
+                  apply-policy:
+                    config:
+                      import-policy:
+                      - l2vpn-neighbors
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+                    enabled: true
+              config:
+                description: Fabric leaf-02 loopback (spine-link)
+                disable-ebgp-connected-route-check: true
+                enabled: true
+                neighbor-address: 172.30.8.3
+                peer-as: 65102
+              neighbor-address: 172.30.8.3
+              transport:
+                config:
+                  local-address: 172.30.8.0
+        identifier: BGP
+        name: bgp
+    table-connections:
+      table-connection:
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          src-protocol: DIRECTLY_CONNECTED
+        dst-protocol: BGP
+        src-protocol: DIRECTLY_CONNECTED
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          src-protocol: STATIC
+        dst-protocol: BGP
+        src-protocol: STATIC
+routing-policy:
+  defined-sets:
+    bgp-defined-sets:
+      as-path-sets:
+        as-path-set:
+        - as-path-set-name: fabric-gw-aspath
+          config:
+            action: PERMIT
+            as-path-set-member:
+            - _65100_
+            - _65534_
+            as-path-set-name: fabric-gw-aspath
+      community-sets:
+        community-set:
+        - community-set-name: all-externals
+          config:
+            action: PERMIT
+            community-set-name: all-externals
+            match-set-options: ANY
+        - community-set-name: no-community
+          config:
+            action: PERMIT
+            community-member:
+            - REGEX:^$
+            community-set-name: no-community
+            match-set-options: ANY
+    prefix-sets:
+      prefix-set:
+      - config:
+          mode: IPV4
+          name: all-vtep-prefixes
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.12.0/22
+              masklength-range: 22..32
+              sequence-number: 10
+            ip-prefix: 172.30.12.0/22
+            masklength-range: 22..32
+            sequence-number: 10
+        name: all-vtep-prefixes
+      - config:
+          mode: IPV4
+          name: any-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 0.0.0.0/0
+              masklength-range: 0..32
+              sequence-number: 10
+            ip-prefix: 0.0.0.0/0
+            masklength-range: 0..32
+            sequence-number: 10
+        name: any-prefix
+      - config:
+          mode: IPV4
+          name: ipns-subnets--default
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.0.0/16
+              masklength-range: 16..32
+              sequence-number: 1
+            ip-prefix: 10.0.0.0/16
+            masklength-range: 16..32
+            sequence-number: 1
+        name: ipns-subnets--default
+      - config:
+          mode: IPV4
+          name: protocol-loopback-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.8.0/32
+              masklength-range: 32..32
+              sequence-number: 10
+            ip-prefix: 172.30.8.0/32
+            masklength-range: 32..32
+            sequence-number: 10
+        name: protocol-loopback-prefix
+      - config:
+          mode: IPV4
+          name: static-ext-subnets
+        name: static-ext-subnets
+      - config:
+          mode: IPV4
+          name: vpc-loopback-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.96.0/19
+              masklength-range: 19..32
+              sequence-number: 10
+            ip-prefix: 172.30.96.0/19
+            masklength-range: 19..32
+            sequence-number: 10
+        name: vpc-loopback-prefix
+  policy-definitions:
+    policy-definition:
+    - config:
+        name: filter-attached-hosts
+      name: filter-attached-hosts
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            config:
+              install-protocol-eq: ATTACHED_HOST
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          config:
+            name: "100"
+          name: "100"
+    - config:
+        name: ipns-subnets--default
+      name: ipns-subnets--default
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: ipns-subnets--default
+          config:
+            name: "10"
+          name: "10"
+    - config:
+        name: l2vpn-neighbors
+      name: l2vpn-neighbors
+      statements:
+        statement:
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 150
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: all-externals
+          config:
+            name: "65525"
+          name: "65525"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          config:
+            name: "65535"
+          name: "65535"
+    - config:
+        name: loopback-all-vteps
+      name: loopback-all-vteps
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: all-vtep-prefixes
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: static-ext-subnets
+          config:
+            name: "100"
+          name: "100"
+    - config:
+        name: protocol-loopback-only
+      name: protocol-loopback-only
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: protocol-loopback-prefix
+          config:
+            name: "10"
+          name: "10"
+system:
+  aaa:
+    authentication:
+      users:
+        user:
+        - config:
+            password-hashed: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+            role: admin
+            username: admin
+          username: admin
+        - config:
+            password-hashed: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+            role: operator
+            username: op
+          username: op
+  config:
+    hostname: spine-01
+  ntp:
+    config:
+      source-interface:
+      - Management0
+    servers:
+      server:
+      - address: 172.30.0.1
+        config:
+          address: 172.30.0.1
+          prefer: true
+ztp:
+  config:
+    admin-mode: false

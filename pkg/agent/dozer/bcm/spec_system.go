@@ -46,7 +46,7 @@ var specZTPEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	},
 }
 
-func loadActualZTP(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualZTP(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocZTP := &oc.OpenconfigZtp_Ztp_Config{}
 	err := client.Get(ctx, "/ztp/config", ocZTP, api.DataTypeCONFIG())
 	if err != nil {
@@ -86,7 +86,7 @@ var specHostnameEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	},
 }
 
-func loadActualHostname(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualHostname(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	gnmiSystemConfig := &oc.OpenconfigSystem_System{}
 	err := client.Get(ctx, "/system/config", gnmiSystemConfig, api.DataTypeCONFIG())
 	if err != nil {
@@ -148,7 +148,7 @@ var specPortGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortGroup]{
 	},
 }
 
-func loadActualPortGroups(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualPortGroups(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigPortGroup_PortGroups{}
 	err := client.Get(ctx, "/port-groups/port-group", ocVal)
 	if err != nil {
@@ -239,7 +239,7 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 	},
 }
 
-func loadActualPortBreakouts(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualPortBreakouts(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.SonicPortBreakout_SonicPortBreakout{}
 	err := client.Get(ctx, "/sonic-port-breakout/BREAKOUT_CFG", ocVal)
 	if err != nil {
@@ -322,7 +322,7 @@ var specUserAuthorizedKeysEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUs
 			if err := actions.Add(&Action{
 				ASummary: fmt.Sprintf("User %s authorized keys", name),
 				Weight:   ActionWeightUserAuthorizedKeys,
-				CustomFunc: func(_ context.Context, _ *gnmi.Client) error {
+				CustomFunc: func(_ context.Context, _ GNMICClient) error {
 					return installAuthorizedKeys(user, name, false)
 				},
 			}); err != nil {
@@ -378,7 +378,7 @@ func installAuthorizedKeys(user *dozer.SpecUser, name string, skipUnknown bool) 
 	return nil
 }
 
-func loadActualUsers(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualUsers(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigSystem_System_Aaa_Authentication_Users{}
 	err := client.Get(ctx, "/system/aaa/authentication/users/user", ocVal)
 	if err != nil {

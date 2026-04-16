@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -58,7 +57,7 @@ var specAsPathListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecAsPathList
 	},
 }
 
-func loadActualAsPathLists(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualAsPathLists(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocAsPathLists := &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets{}
 	err := client.Get(ctx, "/routing-policy/defined-sets/bgp-defined-sets/as-path-sets", ocAsPathLists)
 	if err != nil {

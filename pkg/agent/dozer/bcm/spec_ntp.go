@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -63,7 +62,7 @@ var specNTPServerEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNTPServer]{
 	},
 }
 
-func loadActualNTP(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualNTP(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocNTP := &oc.OpenconfigSystem_System_Ntp{}
 	err := client.Get(ctx, "/system/ntp/config", ocNTP)
 	if err != nil {
@@ -87,7 +86,7 @@ func unmarshalOCNTP(ocVal *oc.OpenconfigSystem_System_Ntp) (*dozer.SpecNTP, erro
 	}, nil
 }
 
-func loadActualNTPServers(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualNTPServers(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocNTP := &oc.OpenconfigSystem_System_Ntp{}
 	err := client.Get(ctx, "/system/ntp/servers", ocNTP)
 	if err != nil {

@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -69,7 +68,7 @@ var specDHCPRelayEnforcer = &DefaultValueEnforcer[string, *dozer.SpecDHCPRelay]{
 	},
 }
 
-func loadActualDHCPRelays(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualDHCPRelays(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocDHCPRelayInterfaces := &oc.OpenconfigRelayAgent_RelayAgent_Dhcp_Interfaces{}
 	err := client.Get(ctx, "/relay-agent/dhcp/interfaces/interface", ocDHCPRelayInterfaces, api.DataTypeCONFIG())
 	if err != nil {

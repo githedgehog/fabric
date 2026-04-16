@@ -25,7 +25,6 @@ import (
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -640,7 +639,7 @@ var specInterfaceVLANAnycastGatewayEnforcer = &DefaultValueEnforcer[string, *doz
 	},
 }
 
-func loadActualInterfaces(ctx context.Context, agent *agentapi.Agent, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualInterfaces(ctx context.Context, agent *agentapi.Agent, client GNMICClient, spec *dozer.Spec) error {
 	ocInterfaces := &oc.OpenconfigInterfaces_Interfaces{}
 	err := client.Get(ctx, "/interfaces/interface", ocInterfaces)
 	if err != nil {

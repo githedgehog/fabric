@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -247,7 +246,7 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 	},
 }
 
-func loadActualRouteMaps(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualRouteMaps(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocRouteMaps := &oc.OpenconfigRoutingPolicy_RoutingPolicy{}
 	err := client.Get(ctx, "/routing-policy/policy-definitions", ocRouteMaps, api.DataTypeCONFIG())
 	if err != nil {

@@ -27,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"k8s.io/apimachinery/pkg/api/equality"
 )
 
@@ -45,7 +44,7 @@ type Action struct {
 	Type           ActionType             `json:"type,omitempty"`
 	Path           string                 `json:"path,omitempty"`
 	Value          ygot.ValidatedGoStruct `json:"value,omitempty"`
-	CustomFunc     func(ctx context.Context, client *gnmi.Client) error
+	CustomFunc     func(ctx context.Context, client GNMICClient) error
 	WarningOnError bool
 }
 

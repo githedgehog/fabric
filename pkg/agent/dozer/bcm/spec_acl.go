@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -338,7 +337,7 @@ func marshalACLInterface(name string, value *dozer.SpecACLInterface, includeIngr
 	}, nil
 }
 
-func loadActualACLs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualACLs(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigAcl_Acl{}
 	err := client.Get(ctx, "/acl/acl-sets", ocVal, api.DataTypeCONFIG())
 	if err != nil {
@@ -467,7 +466,7 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 	return acls, nil
 }
 
-func loadActualACLInterfaces(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualACLInterfaces(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigAcl_Acl{}
 	err := client.Get(ctx, "/acl/interfaces", ocVal, api.DataTypeCONFIG())
 	if err != nil {

@@ -15,6 +15,7 @@
 package bcm
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -192,6 +193,8 @@ func TestPlan(t *testing.T) {
 		{name: "mesh-leaf-03"}, // standalone, bgp externals connected to it
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			updateGoldens := os.Getenv("UPDATE") == "true"
+
 			agData, err := os.ReadFile(filepath.Join(testdataDir, tt.name+".in.agent.yaml"))
 			require.NoError(t, err, "reading agent file")
 
@@ -213,7 +216,7 @@ func TestPlan(t *testing.T) {
 			err = os.WriteFile(actualFileName, actualSpecData, 0o600)
 			require.NoError(t, err, "writing actual spec file")
 
-			if os.Getenv("UPDATE") == "true" {
+			if updateGoldens {
 				err = os.WriteFile(expectedFileName, actualSpecData, 0o600)
 				require.NoError(t, err, "writing expected spec file")
 			}
@@ -256,7 +259,7 @@ func TestPlan(t *testing.T) {
 			err = os.WriteFile(actualActionsFileName, actualActionsData, 0o600)
 			require.NoError(t, err, "writing actual actions file")
 
-			if os.Getenv("UPDATE") == "true" {
+			if updateGoldens {
 				err = os.WriteFile(expectedActionsFileName, actualActionsData, 0o600)
 				require.NoError(t, err, "writing expected actions file")
 			}
@@ -266,8 +269,100 @@ func TestPlan(t *testing.T) {
 
 			require.Equal(t, string(expectedActionsData), string(actualActionsData),
 				"actions mismatch, you can compare expected and actual actions files in testdata dir or re-generate expected by running just test-update")
+
+			mock := newGNMIMock()
+			bp.client = mock
+			bp.skipCustomFuncs = true
+			_, err = bp.ApplyActions(t.Context(), actions)
+			require.NoError(t, err, "applying actions to mock gnmi client")
+
+			state, err := mock.StateMap()
+			require.NoError(t, err, "marshalling mock gnmi state")
+
+			actualGNMIData, err := kyaml.Marshal(state)
+			require.NoError(t, err, "marshalling gnmi state to yaml")
+
+			expectedGNMIFileName := filepath.Join(testdataDir, tt.name+".out.gnmi.expected.yaml")
+			actualGNMIFileName := filepath.Join(testdataDir, tt.name+".out.gnmi.actual.yaml")
+
+			err = os.WriteFile(actualGNMIFileName, actualGNMIData, 0o600)
+			require.NoError(t, err, "writing actual gnmi state file")
+
+			if updateGoldens {
+				err = os.WriteFile(expectedGNMIFileName, actualGNMIData, 0o600)
+				require.NoError(t, err, "writing expected gnmi state file")
+			}
+
+			expectedGNMIData, err := os.ReadFile(expectedGNMIFileName)
+			require.NoError(t, err, "reading expected gnmi state file")
+
+			require.Equal(t, string(expectedGNMIData), string(actualGNMIData),
+				"gnmi state mismatch, you can compare expected and actual gnmi state files in testdata dir or re-generate expected by running just test-update")
+
+			loadedSpec, err := bp.LoadActualState(t.Context(), ag)
+			require.NoError(t, err, "loading actual state from mock gnmi client")
+
+			// Strip fields that production loadActual* deliberately doesn't
+			// reconstruct from gNMI (so the round-trip is fair). Mirror the
+			// stripping on the planned spec so the comparison is symmetric.
+			roundTripStrippedSpec, err := stripNonRoundTrippable(actualSpec)
+			require.NoError(t, err, "stripping non-round-trippable fields from actual spec")
+
+			roundTripData, err := kyaml.Marshal(roundTripStrippedSpec)
+			require.NoError(t, err, "marshalling stripped planned spec")
+
+			loadedSpecData, err := kyaml.Marshal(loadedSpec)
+			require.NoError(t, err, "marshalling loaded spec")
+
+			// Compare via YAML to normalise nil-vs-empty-map differences that
+			// arise from the OC marshal/unmarshal round-trip (semantically
+			// identical, but trip up reflect.DeepEqual).
+			require.Equal(t, string(roundTripData), string(loadedSpecData),
+				"round-trip mismatch: spec loaded back from gnmi state differs from the planned spec")
 		})
 	}
+}
+
+// stripNonRoundTrippable returns a deep copy of spec with fields cleared that
+// production loadActual* functions deliberately don't reconstruct from gNMI.
+// These are real gaps in the round-trip — by design, not bugs:
+//
+//   - User Password / AuthorizedKeys: the password is hashed and write-only on
+//     the device; authorized keys are installed by a CustomFunc to the local
+//     filesystem, never sent to gNMI. unmarshalOCUsers (spec_system.go) only
+//     reads Role.
+//   - Interface AutoNegotiate on management interfaces: PlanDesiredState sets
+//     AutoNegotiate=true for Management0 (plan.go), but
+//     specInterfaceEthernetBaseEnforcer skips non-physical interfaces, so it
+//     never reaches gNMI.
+//   - VRF AttachedHosts: written under
+//     /protocols/protocol[ATTACHED_HOST]/attached-host but loadActualVRFs
+//     does not currently parse them back.
+func stripNonRoundTrippable(spec *dozer.Spec) (*dozer.Spec, error) {
+	// Deep copy via YAML round-trip so we don't mutate the input spec.
+	data, err := kyaml.Marshal(spec)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling spec: %w", err)
+	}
+	out := &dozer.Spec{}
+	if err := kyaml.Unmarshal(data, out); err != nil {
+		return nil, fmt.Errorf("unmarshaling spec: %w", err)
+	}
+
+	for _, user := range out.Users {
+		user.Password = ""
+		user.AuthorizedKeys = nil
+	}
+	for name, iface := range out.Interfaces {
+		if isManagement(name) {
+			iface.AutoNegotiate = nil
+		}
+	}
+	for _, vrf := range out.VRFs {
+		vrf.AttachedHosts = nil
+	}
+
+	return out, nil
 }
 
 type goldenAction struct {

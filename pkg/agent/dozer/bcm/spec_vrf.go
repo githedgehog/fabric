@@ -27,7 +27,6 @@ import (
 	"github.com/samber/lo"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -706,7 +705,7 @@ var specVRFAttachedHostEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFAt
 	},
 }
 
-func loadActualVRFs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualVRFs(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{}
 	err := client.Get(ctx, "/network-instances/network-instance", ocVal, api.DataTypeCONFIG())
 	if err != nil {

@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -78,7 +77,7 @@ var specMCLAGInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecMCLAGI
 	},
 }
 
-func loadActualMCLAGs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualMCLAGs(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	gnmiMCLAG := &oc.OpenconfigMclag_Mclag{}
 	err := client.Get(ctx, "/mclag/mclag-domains", gnmiMCLAG, api.DataTypeCONFIG())
 	if err != nil {
