@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -137,7 +136,7 @@ var specVRFVNIEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFVNIEntry]{
 	},
 }
 
-func loadActualVXLANs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualVXLANs(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.Device{}
 	err := client.Get(ctx, "/sonic-vxlan", ocVal)
 	if err != nil {
@@ -205,7 +204,7 @@ func unmarshalActualVXLANs(ocVal *oc.SonicVxlan_SonicVxlan) (map[string]*dozer.S
 	return vxlanTunnels, vxlanEvpnNvos, vxlanTunnelMaps, nil
 }
 
-func loadActualVRFVNIMap(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualVRFVNIMap(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVRFMap := &oc.SonicVrf_SonicVrf_VRF{}
 	err := client.Get(ctx, "/sonic-vrf/VRF/VRF_LIST", ocVRFMap)
 	if err != nil {
@@ -262,7 +261,7 @@ var specSuppressVLANNeighEnforcer = &DefaultValueEnforcer[string, *dozer.SpecSup
 	},
 }
 
-func loadActualSuppressVLANNeighs(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualSuppressVLANNeighs(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocVal := &oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH{}
 	err := client.Get(ctx, "/sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST", ocVal)
 	if err != nil {

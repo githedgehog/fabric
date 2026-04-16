@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -64,7 +63,7 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 	},
 }
 
-func loadActualCommunityLists(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualCommunityLists(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocCommLists := &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets{}
 	err := client.Get(ctx, "/routing-policy/defined-sets/bgp-defined-sets/community-sets", ocCommLists)
 	if err != nil {

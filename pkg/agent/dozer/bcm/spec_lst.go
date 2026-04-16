@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -53,7 +52,7 @@ var specLSTGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTGroup]{
 	},
 }
 
-func loadActualLSTGroups(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualLSTGroups(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocLST := &oc.OpenconfigLstExt_Lst{}
 	err := client.Get(ctx, "/lst/lst-groups", ocLST)
 	if err != nil {
@@ -132,7 +131,7 @@ var specLSTInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTInter
 	},
 }
 
-func loadActualLSTInterfaces(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualLSTInterfaces(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocLST := &oc.OpenconfigLstExt_Lst{}
 	err := client.Get(ctx, "/lst/interfaces", ocLST)
 	if err != nil {

@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -41,7 +40,7 @@ var specLLDPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLLDP]{
 	},
 }
 
-func loadActualLLDP(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualLLDP(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocLLDP := &oc.OpenconfigLldp_Lldp{}
 	err := client.Get(ctx, "/lldp/config", ocLLDP)
 	if err != nil {
@@ -100,7 +99,7 @@ var specLLDPInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLLDPInt
 	},
 }
 
-func loadActualLLDPInterfaces(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualLLDPInterfaces(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocLLDP := &oc.OpenconfigLldp_Lldp{}
 	err := client.Get(ctx, "/lldp/interfaces", ocLLDP)
 	if err != nil {

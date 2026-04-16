@@ -36,7 +36,7 @@ import (
 )
 
 type BroadcomProcessor struct {
-	client          *gnmi.Client
+	client          GNMICClient
 	skipCustomFuncs bool
 }
 
@@ -46,7 +46,7 @@ func Processor() *BroadcomProcessor {
 	return &BroadcomProcessor{}
 }
 
-func (p *BroadcomProcessor) SetClient(client *gnmi.Client) {
+func (p *BroadcomProcessor) SetClient(client GNMICClient) {
 	p.client = client
 }
 

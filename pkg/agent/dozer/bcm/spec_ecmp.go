@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -32,7 +31,7 @@ var specECMPRoCEEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	},
 }
 
-func loadActualECMPRoCE(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualECMPRoCE(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocECMP := &oc.OpenconfigLoadshareModeExt_Loadshare{}
 	err := client.Get(ctx, "/loadshare/roce-attrs", ocECMP, api.DataTypeCONFIG())
 	if err != nil {

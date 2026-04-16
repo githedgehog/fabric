@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 )
 
 var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
@@ -161,7 +160,7 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 	},
 }
 
-func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client GNMICClient, spec *dozer.Spec) error {
 	if err := loadActualZTP(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load ztp")
 	}

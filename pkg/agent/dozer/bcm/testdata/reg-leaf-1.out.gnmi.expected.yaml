@@ -1,0 +1,1919 @@
+acl:
+  acl-sets:
+    acl-set:
+    - acl-entries:
+        acl-entry:
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 1
+          ipv4:
+            config:
+              destination-address: 10.0.0.0/16
+              source-address: 10.0.0.0/16
+          sequence-id: 1
+        - actions:
+            config:
+              forwarding-action: ACCEPT
+          config:
+            sequence-id: 65535
+          sequence-id: 65535
+      config:
+        description: Prevent VPCs to cross-talk via the external
+        name: no-ipns-peering--default
+        type: ACL_IPV4
+      name: no-ipns-peering--default
+      type: ACL_IPV4
+bfd:
+  bfd-profile:
+    profile:
+    - config:
+        desired-minimum-tx-interval: 300
+        detection-multiplier: 3
+        enabled: true
+        passive-mode: false
+        profile-name: fabric
+        required-minimum-receive: 300
+      profile-name: fabric
+interfaces:
+  interface:
+  - config:
+      description: PC251 MCLAG session leaf-02/E1/1
+      enabled: true
+      name: Ethernet0
+    ethernet:
+      config:
+        aggregate-id: PortChannel251
+        auto-negotiate: false
+    name: Ethernet0
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: PC251 MCLAG session leaf-02/E1/2
+      enabled: true
+      name: Ethernet1
+    ethernet:
+      config:
+        aggregate-id: PortChannel251
+        auto-negotiate: false
+    name: Ethernet1
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
+      enabled: true
+      name: Ethernet10
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet10
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.25
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.25
+  - config:
+      description: PC250 MCLAG peer leaf-02/E1/3
+      enabled: true
+      name: Ethernet2
+    ethernet:
+      config:
+        aggregate-id: PortChannel250
+        auto-negotiate: false
+    name: Ethernet2
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: PC250 MCLAG peer leaf-02/E1/4
+      enabled: true
+      name: Ethernet3
+    ethernet:
+      config:
+        aggregate-id: PortChannel250
+        auto-negotiate: false
+    name: Ethernet3
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: PC1 MCLAG server-01 server-01--mclag--leaf-01--leaf-02
+      enabled: true
+      mtu: 9036
+      name: Ethernet4
+    ethernet:
+      config:
+        aggregate-id: PortChannel1
+        auto-negotiate: false
+    name: Ethernet4
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: PC2 MCLAG server-02 server-02--mclag--leaf-01--leaf-02
+      enabled: true
+      mtu: 9036
+      name: Ethernet5
+    ethernet:
+      config:
+        aggregate-id: PortChannel2
+        auto-negotiate: false
+    name: Ethernet5
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: Unbundled server-03 server-03--unbundled--leaf-01
+      enabled: true
+      mtu: 9036
+      name: Ethernet6
+    ethernet:
+      config:
+        auto-negotiate: false
+      switched-vlan:
+        config:
+          trunk-vlans:
+          - 1003
+    name: Ethernet6
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+      enabled: true
+      name: Ethernet7
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet7
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.1
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.1
+  - config:
+      description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+      enabled: true
+      name: Ethernet8
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet8
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.3
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.3
+  - config:
+      description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+      enabled: true
+      name: Ethernet9
+    ethernet:
+      config:
+        auto-negotiate: false
+    name: Ethernet9
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.128.23
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.128.23
+  - config:
+      description: Protocol loopback
+      enabled: true
+      name: Loopback1
+    name: Loopback1
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.8.2
+                prefix-length: 32
+                secondary: false
+              ip: 172.30.8.2
+  - config:
+      description: VTEP loopback
+      enabled: true
+      name: Loopback2
+    name: Loopback2
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.12.0
+                prefix-length: 32
+                secondary: false
+              ip: 172.30.12.0
+  - config:
+      description: Management link
+      enabled: true
+      name: Management0
+    name: Management0
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.0.9
+                prefix-length: 21
+                secondary: false
+              ip: 172.30.0.9
+  - aggregation:
+      switched-vlan:
+        config:
+          trunk-vlans:
+          - 1001
+    config:
+      description: MCLAG server-01 server-01--mclag--leaf-01--leaf-02
+      enabled: true
+      mtu: 9036
+      name: PortChannel1
+    name: PortChannel1
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - aggregation:
+      switched-vlan:
+        config:
+          trunk-vlans:
+          - 1002
+    config:
+      description: MCLAG server-02 server-02--mclag--leaf-01--leaf-02
+      enabled: true
+      mtu: 9036
+      name: PortChannel2
+    name: PortChannel2
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - aggregation:
+      switched-vlan:
+        config:
+          trunk-vlans:
+          - 2..4094
+    config:
+      description: MCLAG peer leaf-02
+      enabled: true
+      name: PortChannel250
+    name: PortChannel250
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+  - config:
+      description: MCLAG session leaf-02
+      enabled: true
+      name: PortChannel251
+    name: PortChannel251
+    subinterfaces:
+      subinterface:
+      - config:
+          index: 0
+        index: 0
+        ipv4:
+          addresses:
+            address:
+            - config:
+                ip: 172.30.95.0
+                prefix-length: 31
+                secondary: false
+              ip: 172.30.95.0
+  - config:
+      description: VPC vpc-01/subnet-01
+      enabled: true
+      name: Vlan1001
+    name: Vlan1001
+    routed-vlan:
+      ipv4:
+        sag-ipv4:
+          config:
+            static-anycast-gateway:
+            - 10.0.1.1/24
+  - config:
+      description: VPC vpc-01/subnet-02
+      enabled: true
+      name: Vlan1002
+    name: Vlan1002
+    routed-vlan:
+      ipv4:
+        sag-ipv4:
+          config:
+            static-anycast-gateway:
+            - 10.0.2.1/24
+  - config:
+      description: VPC vpc-02/subnet-01
+      enabled: true
+      name: Vlan1003
+    name: Vlan1003
+    routed-vlan:
+      ipv4:
+        sag-ipv4:
+          config:
+            static-anycast-gateway:
+            - 10.0.3.1/24
+  - config:
+      description: VPC vpc-02/subnet-02
+      enabled: true
+      name: Vlan1004
+    name: Vlan1004
+    routed-vlan:
+      ipv4:
+        sag-ipv4:
+          config:
+            static-anycast-gateway:
+            - 10.0.4.1/24
+  - config:
+      description: VPC vpc-01 IRB
+      enabled: true
+      name: Vlan3000
+    name: Vlan3000
+  - config:
+      description: VPC vpc-02 IRB
+      enabled: true
+      name: Vlan3001
+    name: Vlan3001
+lldp:
+  config:
+    enabled: true
+    hello-timer: "5"
+    system-description: Hedgehog Fabric
+    system-name: leaf-01
+loadshare:
+  roce-attrs:
+    config:
+      hash: hash
+      qpn: false
+lst:
+  interfaces:
+    interface:
+    - config:
+        id: Ethernet10
+      id: Ethernet10
+      interface-ref:
+        config:
+          interface: Ethernet10
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+    - config:
+        id: Ethernet7
+      id: Ethernet7
+      interface-ref:
+        config:
+          interface: Ethernet7
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+    - config:
+        id: Ethernet8
+      id: Ethernet8
+      interface-ref:
+        config:
+          interface: Ethernet8
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+    - config:
+        id: Ethernet9
+      id: Ethernet9
+      interface-ref:
+        config:
+          interface: Ethernet9
+      upstream-groups:
+        upstream-group:
+        - config:
+            group-name: spinelink
+          group-name: spinelink
+  lst-groups:
+    lst-group:
+    - config:
+        all-mclags-downstream: true
+        name: spinelink
+        timeout: 5
+      name: spinelink
+mclag:
+  interfaces:
+    interface:
+    - config:
+        mclag-domain-id: 100
+      name: PortChannel1
+    - config:
+        mclag-domain-id: 100
+      name: PortChannel2
+  mclag-domains:
+    mclag-domain:
+    - config:
+        domain-id: 100
+        peer-address: 172.30.95.1
+        peer-link: PortChannel250
+        source-address: 172.30.95.0
+      domain-id: 100
+network-instances:
+  network-instance:
+  - config:
+      enabled: true
+      name: VrfVvpc-01
+    global-sag:
+      config:
+        anycast-mac: "00:00:00:11:11:11"
+    interfaces:
+      interface:
+      - config:
+          id: Vlan1001
+        id: Vlan1001
+      - config:
+          id: Vlan1002
+        id: Vlan1002
+      - config:
+          id: Vlan3000
+        id: Vlan3000
+    name: VrfVvpc-01
+    protocols:
+      protocol:
+      - attached-host:
+          interfaces:
+            interface:
+            - address-family: IPV4
+              config:
+                address-family: IPV4
+                interface-id: Vlan1001
+              interface-id: Vlan1001
+            - address-family: IPV4
+              config:
+                address-family: IPV4
+                interface-id: Vlan1002
+              interface-id: Vlan1002
+        identifier: ATTACHED_HOST
+        name: attached-host
+      - bgp:
+          global:
+            afi-safis:
+              afi-safi:
+              - afi-safi-name: IPV4_UNICAST
+                config:
+                  afi-safi-name: IPV4_UNICAST
+                import-network-instance:
+                  config:
+                    name:
+                    - VrfVvpc-02
+                    policy-name: import-vrf--vpc-01
+                use-multiple-paths:
+                  ebgp:
+                    config:
+                      maximum-paths: 16
+              - afi-safi-name: L2VPN_EVPN
+                config:
+                  afi-safi-name: L2VPN_EVPN
+                l2vpn-evpn:
+                  route-advertise:
+                    route-advertise-list:
+                    - advertise-afi-safi: IPV4_UNICAST
+                      config:
+                        advertise-afi-safi: IPV4_UNICAST
+                        route-map:
+                        - filter-attached-hosts
+            config:
+              as: 65101
+              network-import-check: true
+              router-id: 172.30.8.2
+        identifier: BGP
+        name: bgp
+    table-connections:
+      table-connection:
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          src-protocol: ATTACHED_HOST
+        dst-protocol: BGP
+        src-protocol: ATTACHED_HOST
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          import-policy:
+          - vpc-redistribute-connected--vpc-01
+          src-protocol: DIRECTLY_CONNECTED
+        dst-protocol: BGP
+        src-protocol: DIRECTLY_CONNECTED
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          import-policy:
+          - vpc-redistribute-static--vpc-01
+          src-protocol: STATIC
+        dst-protocol: BGP
+        src-protocol: STATIC
+  - config:
+      enabled: true
+      name: VrfVvpc-02
+    global-sag:
+      config:
+        anycast-mac: "00:00:00:11:11:11"
+    interfaces:
+      interface:
+      - config:
+          id: Vlan1003
+        id: Vlan1003
+      - config:
+          id: Vlan1004
+        id: Vlan1004
+      - config:
+          id: Vlan3001
+        id: Vlan3001
+    name: VrfVvpc-02
+    protocols:
+      protocol:
+      - attached-host:
+          interfaces:
+            interface:
+            - address-family: IPV4
+              config:
+                address-family: IPV4
+                interface-id: Vlan1003
+              interface-id: Vlan1003
+            - address-family: IPV4
+              config:
+                address-family: IPV4
+                interface-id: Vlan1004
+              interface-id: Vlan1004
+        identifier: ATTACHED_HOST
+        name: attached-host
+      - bgp:
+          global:
+            afi-safis:
+              afi-safi:
+              - afi-safi-name: IPV4_UNICAST
+                config:
+                  afi-safi-name: IPV4_UNICAST
+                import-network-instance:
+                  config:
+                    name:
+                    - VrfVvpc-01
+                    policy-name: import-vrf--vpc-02
+                use-multiple-paths:
+                  ebgp:
+                    config:
+                      maximum-paths: 16
+              - afi-safi-name: L2VPN_EVPN
+                config:
+                  afi-safi-name: L2VPN_EVPN
+                l2vpn-evpn:
+                  route-advertise:
+                    route-advertise-list:
+                    - advertise-afi-safi: IPV4_UNICAST
+                      config:
+                        advertise-afi-safi: IPV4_UNICAST
+                        route-map:
+                        - filter-attached-hosts
+            config:
+              as: 65101
+              network-import-check: true
+              router-id: 172.30.8.2
+        identifier: BGP
+        name: bgp
+    table-connections:
+      table-connection:
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          src-protocol: ATTACHED_HOST
+        dst-protocol: BGP
+        src-protocol: ATTACHED_HOST
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          import-policy:
+          - vpc-redistribute-connected--vpc-02
+          src-protocol: DIRECTLY_CONNECTED
+        dst-protocol: BGP
+        src-protocol: DIRECTLY_CONNECTED
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          import-policy:
+          - vpc-redistribute-static--vpc-02
+          src-protocol: STATIC
+        dst-protocol: BGP
+        src-protocol: STATIC
+  - config:
+      enabled: true
+      name: default
+    global-sag:
+      config:
+        anycast-mac: "00:00:00:11:11:11"
+    name: default
+    protocols:
+      protocol:
+      - bgp:
+          global:
+            afi-safis:
+              afi-safi:
+              - afi-safi-name: IPV4_UNICAST
+                config:
+                  afi-safi-name: IPV4_UNICAST
+                network-config:
+                  network:
+                  - config:
+                      prefix: 172.30.8.2/32
+                    prefix: 172.30.8.2/32
+                use-multiple-paths:
+                  ebgp:
+                    config:
+                      maximum-paths: 16
+              - afi-safi-name: L2VPN_EVPN
+                config:
+                  afi-safi-name: L2VPN_EVPN
+                l2vpn-evpn:
+                  config:
+                    advertise-all-vni: true
+                  route-advertise:
+                    route-advertise-list: []
+            config:
+              as: 65101
+              network-import-check: true
+              router-id: 172.30.8.2
+          neighbors:
+            neighbor:
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+                enabled: true
+                neighbor-address: 172.30.128.0
+                peer-as: 65100
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.0
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+                enabled: true
+                neighbor-address: 172.30.128.2
+                peer-as: 65100
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.2
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+                enabled: true
+                neighbor-address: 172.30.128.22
+                peer-as: 65100
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.22
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - protocol-loopback-only
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
+                enabled: true
+                neighbor-address: 172.30.128.24
+                peer-as: 65100
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
+              neighbor-address: 172.30.128.24
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - loopback-all-vteps
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  allow-own-as:
+                    config:
+                      enabled: true
+                  apply-policy:
+                    config:
+                      import-policy:
+                      - l2vpn-neighbors
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+                    enabled: true
+              config:
+                description: Fabric spine-01 loopback (spine-link)
+                disable-ebgp-connected-route-check: true
+                enabled: true
+                neighbor-address: 172.30.8.0
+                peer-as: 65100
+              neighbor-address: 172.30.8.0
+              transport:
+                config:
+                  local-address: 172.30.8.2
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - loopback-all-vteps
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  allow-own-as:
+                    config:
+                      enabled: true
+                  apply-policy:
+                    config:
+                      import-policy:
+                      - l2vpn-neighbors
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+                    enabled: true
+              config:
+                description: Fabric spine-02 loopback (spine-link)
+                disable-ebgp-connected-route-check: true
+                enabled: true
+                neighbor-address: 172.30.8.1
+                peer-as: 65100
+              neighbor-address: 172.30.8.1
+              transport:
+                config:
+                  local-address: 172.30.8.2
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+              config:
+                description: MCLAG session leaf-02
+                enabled: true
+                neighbor-address: 172.30.95.1
+                peer-type: INTERNAL
+              neighbor-address: 172.30.95.1
+        identifier: BGP
+        name: bgp
+    table-connections:
+      table-connection:
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          src-protocol: DIRECTLY_CONNECTED
+        dst-protocol: BGP
+        src-protocol: DIRECTLY_CONNECTED
+      - address-family: IPV4
+        config:
+          address-family: IPV4
+          dst-protocol: BGP
+          src-protocol: STATIC
+        dst-protocol: BGP
+        src-protocol: STATIC
+relay-agent:
+  dhcp:
+    interfaces:
+      interface:
+      - agent-information-option:
+          config:
+            link-select: ENABLE
+            vrf-select: ENABLE
+        config:
+          helper-address:
+          - 172.30.0.1
+          src-intf: Management0
+        id: Vlan1001
+      - agent-information-option:
+          config:
+            link-select: ENABLE
+            vrf-select: ENABLE
+        config:
+          helper-address:
+          - 172.30.0.1
+          src-intf: Management0
+        id: Vlan1002
+      - agent-information-option:
+          config:
+            link-select: ENABLE
+            vrf-select: ENABLE
+        config:
+          helper-address:
+          - 172.30.0.1
+          src-intf: Management0
+        id: Vlan1003
+      - agent-information-option:
+          config:
+            link-select: ENABLE
+            vrf-select: ENABLE
+        config:
+          helper-address:
+          - 172.30.0.1
+          src-intf: Management0
+        id: Vlan1004
+routing-policy:
+  defined-sets:
+    bgp-defined-sets:
+      as-path-sets:
+        as-path-set:
+        - as-path-set-name: fabric-gw-aspath
+          config:
+            action: PERMIT
+            as-path-set-member:
+            - _65534_
+            as-path-set-name: fabric-gw-aspath
+      community-sets:
+        community-set:
+        - community-set-name: all-externals
+          config:
+            action: PERMIT
+            community-member:
+            - 65102:1000
+            community-set-name: all-externals
+            match-set-options: ANY
+        - community-set-name: all-gw-prios
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:0"
+            - "50001:1"
+            - "50001:2"
+            - "50001:3"
+            - "50001:4"
+            - "50001:5"
+            - "50001:6"
+            - "50001:7"
+            - "50001:8"
+            - "50001:9"
+            community-set-name: all-gw-prios
+            match-set-options: ANY
+        - community-set-name: gw-prio-0
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:0"
+            community-set-name: gw-prio-0
+            match-set-options: ANY
+        - community-set-name: gw-prio-1
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:1"
+            community-set-name: gw-prio-1
+            match-set-options: ANY
+        - community-set-name: gw-prio-2
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:2"
+            community-set-name: gw-prio-2
+            match-set-options: ANY
+        - community-set-name: gw-prio-3
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:3"
+            community-set-name: gw-prio-3
+            match-set-options: ANY
+        - community-set-name: gw-prio-4
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:4"
+            community-set-name: gw-prio-4
+            match-set-options: ANY
+        - community-set-name: gw-prio-5
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:5"
+            community-set-name: gw-prio-5
+            match-set-options: ANY
+        - community-set-name: gw-prio-6
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:6"
+            community-set-name: gw-prio-6
+            match-set-options: ANY
+        - community-set-name: gw-prio-7
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:7"
+            community-set-name: gw-prio-7
+            match-set-options: ANY
+        - community-set-name: gw-prio-8
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:8"
+            community-set-name: gw-prio-8
+            match-set-options: ANY
+        - community-set-name: gw-prio-9
+          config:
+            action: PERMIT
+            community-member:
+            - "50001:9"
+            community-set-name: gw-prio-9
+            match-set-options: ANY
+        - community-set-name: no-community
+          config:
+            action: PERMIT
+            community-member:
+            - REGEX:^$
+            community-set-name: no-community
+            match-set-options: ANY
+        - community-set-name: vpc-peers--vpc-01
+          config:
+            action: PERMIT
+            community-member:
+            - "50000:2"
+            - "50000:5"
+            community-set-name: vpc-peers--vpc-01
+            match-set-options: ANY
+        - community-set-name: vpc-peers--vpc-02
+          config:
+            action: PERMIT
+            community-member:
+            - "50000:2"
+            - "50000:5"
+            community-set-name: vpc-peers--vpc-02
+            match-set-options: ANY
+    prefix-sets:
+      prefix-set:
+      - config:
+          mode: IPV4
+          name: all-vtep-prefixes
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.12.0/22
+              masklength-range: 22..32
+              sequence-number: 10
+            ip-prefix: 172.30.12.0/22
+            masklength-range: 22..32
+            sequence-number: 10
+        name: all-vtep-prefixes
+      - config:
+          mode: IPV4
+          name: any-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 0.0.0.0/0
+              masklength-range: 0..32
+              sequence-number: 10
+            ip-prefix: 0.0.0.0/0
+            masklength-range: 0..32
+            sequence-number: 10
+        name: any-prefix
+      - config:
+          mode: IPV4
+          name: ipns-subnets--default
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.0.0/16
+              masklength-range: 16..32
+              sequence-number: 1
+            ip-prefix: 10.0.0.0/16
+            masklength-range: 16..32
+            sequence-number: 1
+        name: ipns-subnets--default
+      - config:
+          mode: IPV4
+          name: protocol-loopback-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.8.2/32
+              masklength-range: 32..32
+              sequence-number: 10
+            ip-prefix: 172.30.8.2/32
+            masklength-range: 32..32
+            sequence-number: 10
+        name: protocol-loopback-prefix
+      - config:
+          mode: IPV4
+          name: static-ext-subnets
+        name: static-ext-subnets
+      - config:
+          mode: IPV4
+          name: vpc-ext-prefixes--vpc-01
+        name: vpc-ext-prefixes--vpc-01
+      - config:
+          mode: IPV4
+          name: vpc-ext-prefixes--vpc-02
+        name: vpc-ext-prefixes--vpc-02
+      - config:
+          mode: IPV4
+          name: vpc-loopback-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.96.0/19
+              masklength-range: 19..32
+              sequence-number: 10
+            ip-prefix: 172.30.96.0/19
+            masklength-range: 19..32
+            sequence-number: 10
+        name: vpc-loopback-prefix
+      - config:
+          mode: IPV4
+          name: vpc-not-subnets--vpc-01
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: DENY
+              ip-prefix: 10.0.1.0/24
+              masklength-range: 24..32
+              sequence-number: 1
+            ip-prefix: 10.0.1.0/24
+            masklength-range: 24..32
+            sequence-number: 1
+          - config:
+              action: DENY
+              ip-prefix: 10.0.2.0/24
+              masklength-range: 24..32
+              sequence-number: 2
+            ip-prefix: 10.0.2.0/24
+            masklength-range: 24..32
+            sequence-number: 2
+          - config:
+              action: PERMIT
+              ip-prefix: 0.0.0.0/0
+              masklength-range: 0..32
+              sequence-number: 65535
+            ip-prefix: 0.0.0.0/0
+            masklength-range: 0..32
+            sequence-number: 65535
+        name: vpc-not-subnets--vpc-01
+      - config:
+          mode: IPV4
+          name: vpc-not-subnets--vpc-02
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: DENY
+              ip-prefix: 10.0.3.0/24
+              masklength-range: 24..32
+              sequence-number: 1
+            ip-prefix: 10.0.3.0/24
+            masklength-range: 24..32
+            sequence-number: 1
+          - config:
+              action: DENY
+              ip-prefix: 10.0.4.0/24
+              masklength-range: 24..32
+              sequence-number: 2
+            ip-prefix: 10.0.4.0/24
+            masklength-range: 24..32
+            sequence-number: 2
+          - config:
+              action: PERMIT
+              ip-prefix: 0.0.0.0/0
+              masklength-range: 0..32
+              sequence-number: 65535
+            ip-prefix: 0.0.0.0/0
+            masklength-range: 0..32
+            sequence-number: 65535
+        name: vpc-not-subnets--vpc-02
+      - config:
+          mode: IPV4
+          name: vpc-peers--vpc-01
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.3.0/24
+              masklength-range: 24..32
+              sequence-number: 501
+            ip-prefix: 10.0.3.0/24
+            masklength-range: 24..32
+            sequence-number: 501
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.4.0/24
+              masklength-range: 24..32
+              sequence-number: 502
+            ip-prefix: 10.0.4.0/24
+            masklength-range: 24..32
+            sequence-number: 502
+        name: vpc-peers--vpc-01
+      - config:
+          mode: IPV4
+          name: vpc-peers--vpc-02
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.1.0/24
+              masklength-range: 24..32
+              sequence-number: 201
+            ip-prefix: 10.0.1.0/24
+            masklength-range: 24..32
+            sequence-number: 201
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.2.0/24
+              masklength-range: 24..32
+              sequence-number: 202
+            ip-prefix: 10.0.2.0/24
+            masklength-range: 24..32
+            sequence-number: 202
+        name: vpc-peers--vpc-02
+      - config:
+          mode: IPV4
+          name: vpc-static-ext-subnets--vpc-01
+        name: vpc-static-ext-subnets--vpc-01
+      - config:
+          mode: IPV4
+          name: vpc-static-ext-subnets--vpc-02
+        name: vpc-static-ext-subnets--vpc-02
+      - config:
+          mode: IPV4
+          name: vpc-subnets--vpc-01
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.1.0/24
+              masklength-range: 24..32
+              sequence-number: 1
+            ip-prefix: 10.0.1.0/24
+            masklength-range: 24..32
+            sequence-number: 1
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.2.0/24
+              masklength-range: 24..32
+              sequence-number: 2
+            ip-prefix: 10.0.2.0/24
+            masklength-range: 24..32
+            sequence-number: 2
+        name: vpc-subnets--vpc-01
+      - config:
+          mode: IPV4
+          name: vpc-subnets--vpc-02
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.3.0/24
+              masklength-range: 24..32
+              sequence-number: 1
+            ip-prefix: 10.0.3.0/24
+            masklength-range: 24..32
+            sequence-number: 1
+          - config:
+              action: PERMIT
+              ip-prefix: 10.0.4.0/24
+              masklength-range: 24..32
+              sequence-number: 2
+            ip-prefix: 10.0.4.0/24
+            masklength-range: 24..32
+            sequence-number: 2
+        name: vpc-subnets--vpc-02
+  policy-definitions:
+    policy-definition:
+    - config:
+        name: filter-attached-hosts
+      name: filter-attached-hosts
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            config:
+              install-protocol-eq: ATTACHED_HOST
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          config:
+            name: "100"
+          name: "100"
+    - config:
+        name: import-vrf--vpc-01
+      name: import-vrf--vpc-01
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                next-hop-set: vpc-loopback-prefix
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-not-subnets--vpc-02
+            match-src-network-instance:
+              config:
+                name: VrfVvpc-02
+          config:
+            name: "10005"
+          name: "10005"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: vpc-peers--vpc-01
+          config:
+            name: "50000"
+          name: "50000"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: no-community
+            match-prefix-set:
+              config:
+                prefix-set: vpc-peers--vpc-01
+          config:
+            name: "50001"
+          name: "50001"
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          config:
+            name: "65535"
+          name: "65535"
+    - config:
+        name: import-vrf--vpc-02
+      name: import-vrf--vpc-02
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                next-hop-set: vpc-loopback-prefix
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-not-subnets--vpc-01
+            match-src-network-instance:
+              config:
+                name: VrfVvpc-01
+          config:
+            name: "10002"
+          name: "10002"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: vpc-peers--vpc-02
+          config:
+            name: "50000"
+          name: "50000"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: no-community
+            match-prefix-set:
+              config:
+                prefix-set: vpc-peers--vpc-02
+          config:
+            name: "50001"
+          name: "50001"
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          config:
+            name: "65535"
+          name: "65535"
+    - config:
+        name: ipns-subnets--default
+      name: ipns-subnets--default
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: ipns-subnets--default
+          config:
+            name: "10"
+          name: "10"
+    - config:
+        name: l2vpn-neighbors
+      name: l2vpn-neighbors
+      statements:
+        statement:
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 210
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-0
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 201
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-9
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 209
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-1
+          config:
+            name: "2"
+          name: "2"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 208
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-2
+          config:
+            name: "3"
+          name: "3"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 207
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-3
+          config:
+            name: "4"
+          name: "4"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 206
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-4
+          config:
+            name: "5"
+          name: "5"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 205
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-5
+          config:
+            name: "6"
+          name: "6"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 150
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: all-externals
+          config:
+            name: "65525"
+          name: "65525"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          config:
+            name: "65535"
+          name: "65535"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 204
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-6
+          config:
+            name: "7"
+          name: "7"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 203
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-7
+          config:
+            name: "8"
+          name: "8"
+        - actions:
+            bgp-actions:
+              config:
+                set-local-pref: 202
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: gw-prio-8
+          config:
+            name: "9"
+          name: "9"
+    - config:
+        name: loopback-all-vteps
+      name: loopback-all-vteps
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: all-vtep-prefixes
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: static-ext-subnets
+          config:
+            name: "100"
+          name: "100"
+    - config:
+        name: protocol-loopback-only
+      name: protocol-loopback-only
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: protocol-loopback-prefix
+          config:
+            name: "10"
+          name: "10"
+    - config:
+        name: vpc-redistribute-connected--vpc-01
+      name: vpc-redistribute-connected--vpc-01
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-loopback-prefix
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            bgp-actions:
+              set-community:
+                config:
+                  method: INLINE
+                  options: ADD
+                inline:
+                  config:
+                    communities:
+                    - "50000:2"
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-subnets--vpc-01
+          config:
+            name: "5"
+          name: "5"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-static-ext-subnets--vpc-01
+          config:
+            name: "6"
+          name: "6"
+    - config:
+        name: vpc-redistribute-connected--vpc-02
+      name: vpc-redistribute-connected--vpc-02
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-loopback-prefix
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            bgp-actions:
+              set-community:
+                config:
+                  method: INLINE
+                  options: ADD
+                inline:
+                  config:
+                    communities:
+                    - "50000:5"
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-subnets--vpc-02
+          config:
+            name: "5"
+          name: "5"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-static-ext-subnets--vpc-02
+          config:
+            name: "6"
+          name: "6"
+    - config:
+        name: vpc-redistribute-static--vpc-01
+      name: vpc-redistribute-static--vpc-01
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-loopback-prefix
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-ext-prefixes--vpc-01
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-static-ext-subnets--vpc-01
+          config:
+            name: "5"
+          name: "5"
+    - config:
+        name: vpc-redistribute-static--vpc-02
+      name: vpc-redistribute-static--vpc-02
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-loopback-prefix
+          config:
+            name: "1"
+          name: "1"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-ext-prefixes--vpc-02
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vpc-static-ext-subnets--vpc-02
+          config:
+            name: "5"
+          name: "5"
+sonic-portchannel:
+  PORTCHANNEL:
+    PORTCHANNEL_LIST:
+    - fallback: false
+      name: PortChannel1
+    - fallback: false
+      name: PortChannel2
+sonic-vrf:
+  VRF:
+    VRF_LIST:
+    - vni: 200
+      vrf_name: VrfVvpc-01
+    - vni: 500
+      vrf_name: VrfVvpc-02
+sonic-vxlan:
+  SUPPRESS_VLAN_NEIGH:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1001
+      suppress: "on"
+    - name: Vlan1002
+      suppress: "on"
+    - name: Vlan1003
+      suppress: "on"
+    - name: Vlan1004
+      suppress: "on"
+    - name: Vlan3000
+      suppress: "on"
+    - name: Vlan3001
+      suppress: "on"
+  VXLAN_EVPN_NVO:
+    VXLAN_EVPN_NVO_LIST:
+    - name: nvo1
+      source_vtep: vtepfabric
+  VXLAN_TUNNEL:
+    VXLAN_TUNNEL_LIST:
+    - name: vtepfabric
+      src_intf: Loopback2
+      src_ip: 172.30.12.0
+  VXLAN_TUNNEL_MAP:
+    VXLAN_TUNNEL_MAP_LIST:
+    - mapname: map_200_Vlan3000
+      name: vtepfabric
+      vlan: Vlan3000
+      vni: 200
+    - mapname: map_201_Vlan1001
+      name: vtepfabric
+      vlan: Vlan1001
+      vni: 201
+    - mapname: map_202_Vlan1002
+      name: vtepfabric
+      vlan: Vlan1002
+      vni: 202
+    - mapname: map_500_Vlan3001
+      name: vtepfabric
+      vlan: Vlan3001
+      vni: 500
+    - mapname: map_501_Vlan1003
+      name: vtepfabric
+      vlan: Vlan1003
+      vni: 501
+    - mapname: map_502_Vlan1004
+      name: vtepfabric
+      vlan: Vlan1004
+      vni: 502
+system:
+  aaa:
+    authentication:
+      users:
+        user:
+        - config:
+            password-hashed: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+            role: admin
+            username: admin
+          username: admin
+        - config:
+            password-hashed: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+            role: operator
+            username: op
+          username: op
+  config:
+    hostname: leaf-01
+  ntp:
+    config:
+      source-interface:
+      - Management0
+    servers:
+      server:
+      - address: 172.30.0.1
+        config:
+          address: 172.30.0.1
+          prefer: true
+ztp:
+  config:
+    admin-mode: false

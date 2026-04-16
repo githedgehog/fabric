@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -44,7 +43,7 @@ var specBFDProfileEnforcer = &DefaultValueEnforcer[string, *dozer.SpecBFDProfile
 	},
 }
 
-func loadActualBFDProfiles(ctx context.Context, client *gnmi.Client, spec *dozer.Spec) error {
+func loadActualBFDProfiles(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
 	ocBFD := &oc.OpenconfigBfd_Bfd{}
 	err := client.Get(ctx, "/openconfig-bfd:bfd/openconfig-bfd-ext:bfd-profile", ocBFD)
 	if err != nil {
