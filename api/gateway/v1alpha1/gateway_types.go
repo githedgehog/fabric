@@ -364,6 +364,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	if kube != nil {
 		protocolIPs := map[netip.Addr]bool{}
 		vtepIPs := map[netip.Addr]bool{}
+		vtepMACs := map[string]bool{}
 		gwGroupMembers := map[string]int{}
 		gateways := &GatewayList{}
 		switches := &wiringapi.SwitchList{}
@@ -382,6 +383,11 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 			if other.Spec.VTEPIP != "" {
 				if ip, err := netip.ParsePrefix(other.Spec.VTEPIP); err == nil {
 					vtepIPs[ip.Addr()] = true
+				}
+			}
+			if other.Spec.VTEPMAC != "" {
+				if mac, err := net.ParseMAC(other.Spec.VTEPMAC); err == nil {
+					vtepMACs[mac.String()] = true
 				}
 			}
 			for _, group := range other.Spec.Groups {
@@ -410,6 +416,9 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		}
 		if _, exist := vtepIPs[vtepIP.Addr()]; exist {
 			return fmt.Errorf("gateway %s VTEP IP %s is already in use: %w", gw.Name, vtepIP, ErrInvalidGW)
+		}
+		if _, exist := vtepMACs[vtepMAC.String()]; exist {
+			return fmt.Errorf("gateway %s VTEP MAC %s is already in use: %w", gw.Name, vtepMAC, ErrInvalidGW)
 		}
 
 		gwGroupList := &GatewayGroupList{}
