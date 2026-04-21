@@ -16,11 +16,12 @@ package ctrl
 
 import (
 	"context"
-	"net"
+	"net/netip"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 	"k8s.io/apimachinery/pkg/runtime"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,9 +74,9 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.IPv
 		return warn, errors.Wrapf(err, "failed to validate ipv4namespace")
 	}
 
-	nsSubnets := []*net.IPNet{}
+	nsSubnets := []netip.Prefix{}
 	for _, subnet := range newNs.Spec.Subnets {
-		_, ipNet, err := net.ParseCIDR(subnet)
+		ipNet, err := netip.ParsePrefix(subnet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
 		}
@@ -92,14 +93,14 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.IPv
 
 	for _, vpc := range vpcs.Items {
 		for subnetName, subnetCfg := range vpc.Spec.Subnets {
-			_, vpcSubnet, err := net.ParseCIDR(subnetCfg.Subnet)
+			vpcSubnet, err := netip.ParsePrefix(subnetCfg.Subnet)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse vpc subnet %s", subnetCfg.Subnet)
 			}
 
 			ok := false
 			for _, nsSubnet := range nsSubnets {
-				if nsSubnet.Contains(vpcSubnet.IP) {
+				if iputil.IsSubset(vpcSubnet, nsSubnet) {
 					ok = true
 
 					break
