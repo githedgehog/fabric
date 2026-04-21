@@ -74,7 +74,7 @@ func TestGatewayValidate(t *testing.T) {
 				ProtocolIP: "172.30.8.2/32",
 				VTEPIP:     "172.30.12.0/32",
 				ASN:        65101,
-				VTEPMAC:    "ca:fe:ba:be:00:01",
+				VTEPMAC:    "ca:fe:ba:be:00:02",
 				VTEPMTU:    1500,
 				Interfaces: map[string]v1alpha1.GatewayInterface{
 					"eth0": {
@@ -270,6 +270,12 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-proto-ip-no-overlap-with-switch-vtep",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.12.45/32" }),
 			objs: base,
+		},
+		{
+			name: "test-vtep-mac-overlap",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPMAC = "ca:fe:ba:be:00:02" }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
 		},
 	}
 
