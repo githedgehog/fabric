@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -130,7 +131,7 @@ type FabricConfig struct {
 	FRRMetricsPort        uint16              `json:"frrMetricsPort,omitempty"`
 	DataplaneValidatorRef string              `json:"dataplaneValidatorRef,omitempty"`
 
-	reservedSubnets []*net.IPNet
+	reservedSubnets []netip.Prefix
 }
 
 type FabricMode string
@@ -207,7 +208,7 @@ type ObservabilityUnix struct {
 	Syslog            bool                      `json:"syslog,omitempty"`
 }
 
-func (cfg *FabricConfig) ParsedReservedSubnets() []*net.IPNet {
+func (cfg *FabricConfig) ParsedReservedSubnets() []netip.Prefix {
 	return cfg.reservedSubnets
 }
 
@@ -425,11 +426,11 @@ func (cfg *FabricConfig) WithReservedSubnets() error {
 	}
 
 	for _, subnet := range cfg.ReservedSubnets {
-		_, ipnet, err := net.ParseCIDR(subnet)
+		ipnet, err := netip.ParsePrefix(subnet)
 		if err != nil {
 			return errors.Wrapf(err, "config: reservedSubnets: invalid subnet %s", subnet)
 		}
-		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet)
+		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet.Masked())
 	}
 
 	return nil

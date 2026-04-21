@@ -17,7 +17,7 @@ package v1beta1
 import (
 	"context"
 	"maps"
-	"net"
+	"net/netip"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -118,14 +118,14 @@ func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
 	}
 
-	subnets := []*net.IPNet{}
+	subnets := []netip.Prefix{}
 	for _, subnet := range ns.Spec.Subnets {
-		_, ipNet, err := net.ParseCIDR(subnet)
+		prefix, err := netip.ParsePrefix(subnet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
 		}
 
-		subnets = append(subnets, ipNet)
+		subnets = append(subnets, prefix.Masked())
 	}
 
 	// we need ACLs between each source/destination subnet of a namespace
@@ -135,7 +135,7 @@ func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		return nil, errors.Errorf("too many subnets defined (%d), maximum is %d", len(subnets), MaxIPv4NamespaceSubnets)
 	}
 
-	if err := iputil.VerifyNoOverlap(subnets); err != nil {
+	if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
 		return nil, errors.Wrapf(err, "subnets overlap")
 	}
 
@@ -143,5 +143,5 @@ func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
 	}
 
-	return nil, errors.Wrapf(iputil.VerifyNoOverlap(subnets), "subnets overlap with reserved subnets")
+	return nil, errors.Wrapf(iputil.VerifyNoOverlapNetip(subnets), "subnets overlap with reserved subnets")
 }

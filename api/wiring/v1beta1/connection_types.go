@@ -847,9 +847,9 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			return nil, errors.Errorf("next hop %s is not in cidr %s", nextHop, ipNet)
 		}
 
-		subnets := []*net.IPNet{}
+		subnets := []netip.Prefix{}
 		for _, subnet := range se.Subnets {
-			ip, ipNet, err := net.ParseCIDR(subnet)
+			prefix, err := netip.ParsePrefix(subnet)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
 			}
@@ -862,14 +862,14 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 				break
 			}
 
-			if !ipNet.IP.Equal(ip) {
+			if prefix.Addr() != prefix.Masked().Addr() {
 				return nil, errors.Errorf("invalid subnet %s: inconsistent IP address and mask", subnet)
 			}
 
-			subnets = append(subnets, ipNet)
+			subnets = append(subnets, prefix)
 		}
 
-		if err := iputil.VerifyNoOverlap(subnets); err != nil {
+		if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
 			return nil, errors.Wrapf(err, "subnets overlap")
 		}
 
@@ -877,7 +877,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
 		}
 
-		if err := iputil.VerifyNoOverlap(subnets); err != nil {
+		if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
 			return nil, errors.Wrapf(err, "subnets overlap with reserved subnets")
 		}
 	}

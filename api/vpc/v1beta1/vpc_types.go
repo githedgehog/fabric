@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"net"
+	"net/netip"
 	"slices"
 	"strings"
 
@@ -385,7 +386,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		return nil, errors.Errorf("L3Flat mode is not supported yet")
 	}
 
-	subnets := []*net.IPNet{}
+	subnets := []netip.Prefix{}
 	vlans := map[uint16]bool{}
 	hostBGPSubnets := 0
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
@@ -393,24 +394,24 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
 		}
 
-		_, ipNet, err := net.ParseCIDR(subnetCfg.Subnet)
+		ipNet, err := netip.ParsePrefix(subnetCfg.Subnet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "subnet %s: failed to parse subnet %s", subnetName, subnetCfg.Subnet)
 		}
 
-		if prefixLen, _ := ipNet.Mask.Size(); prefixLen > 30 {
+		if prefixLen := ipNet.Bits(); prefixLen > 30 {
 			return nil, errors.Errorf("subnet %s: prefix length %d is too large, must be <= 30", subnetName, prefixLen)
 		}
 
 		if fabricCfg != nil {
 			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
-				if reserved.Contains(ipNet.IP) {
+				if reserved.Overlaps(ipNet) {
 					return nil, errors.Errorf("subnet %s: subnet %s is reserved", subnetName, subnetCfg.Subnet)
 				}
 			}
 		}
 
-		var gateway net.IP
+		var gateway netip.Addr
 		if subnetCfg.HostBGP {
 			hostBGPSubnets++
 			if subnetCfg.DHCP.Enable {
@@ -421,7 +422,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
 			}
 
-			gateway = net.ParseIP(subnetCfg.Gateway)
+			gateway, err = netip.ParseAddr(subnetCfg.Gateway)
+			if err != nil {
+				return nil, errors.Errorf("subnet %s: gateway %s is not a valid IP address", subnetName, subnetCfg.Gateway)
+			}
 			if !ipNet.Contains(gateway) {
 				return nil, errors.Errorf("subnet %s: gateway %s is not in the subnet", subnetName, subnetCfg.Gateway)
 			}
@@ -439,7 +443,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 
 		if subnetCfg.DHCP.Relay != "" {
-			_, _, err := net.ParseCIDR(subnetCfg.DHCP.Relay)
+			_, err := netip.ParsePrefix(subnetCfg.DHCP.Relay)
 			if err != nil {
 				return nil, errors.Wrapf(err, "subnet %s: failed to parse dhcp relay %s", subnetName, subnetCfg.DHCP.Relay)
 			}
@@ -485,17 +489,17 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, errors.Errorf("subnet %s: dhcp range start is required", subnetName)
 			}
 
-			ip := net.ParseIP(subnetCfg.DHCP.Range.Start)
-			if ip == nil {
+			start, err := netip.ParseAddr(subnetCfg.DHCP.Range.Start)
+			if err != nil {
 				return nil, errors.Errorf("subnet %s: invalid dhcp range start %s", subnetName, subnetCfg.DHCP.Range.Start)
 			}
-			if ip.Equal(ipNet.IP) {
+			if start == ipNet.Masked().Addr() {
 				return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.Start)
 			}
-			if ip.Equal(gateway) {
+			if start == gateway {
 				return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to gateway", subnetName, subnetCfg.DHCP.Range.Start)
 			}
-			if !ipNet.Contains(ip) {
+			if !ipNet.Contains(start) {
 				return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
 			}
 
@@ -503,31 +507,33 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, errors.Errorf("subnet %s: dhcp range end is required", subnetName)
 			}
 
-			ip = net.ParseIP(subnetCfg.DHCP.Range.End)
-			if ip == nil {
+			end, err := netip.ParseAddr(subnetCfg.DHCP.Range.End)
+			if err != nil {
 				return nil, errors.Errorf("subnet %s: invalid dhcp range end %s", subnetName, subnetCfg.DHCP.Range.End)
 			}
-			if ip.Equal(ipNet.IP) {
+			if end == ipNet.Masked().Addr() {
 				return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.End)
 			}
-			if ip.Equal(gateway) {
+			if end == gateway {
 				return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to gateway", subnetName, subnetCfg.DHCP.Range.End)
 			}
-			if !ipNet.Contains(ip) {
+			if !ipNet.Contains(end) {
 				return nil, errors.Errorf("subnet %s: dhcp range end %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.End)
 			}
 
-			// TODO check start < end
+			if !start.Less(end) {
+				return nil, errors.Errorf("subnet %s: dhcp range start %s does not come before dhcp range end %s", subnetName, subnetCfg.DHCP.Range.Start, subnetCfg.DHCP.Range.End)
+			}
 
 			if subnetCfg.DHCP.Options != nil {
 				for _, dnsServer := range subnetCfg.DHCP.Options.DNSServers {
-					if ip := net.ParseIP(dnsServer); ip == nil {
+					if _, err := netip.ParseAddr(dnsServer); err != nil {
 						return nil, errors.Errorf("subnet %s: dns address %s is not a valid IP", subnetName, dnsServer)
 					}
 				}
 
 				for _, timeServer := range subnetCfg.DHCP.Options.TimeServers {
-					if ip := net.ParseIP(timeServer); ip == nil {
+					if _, err := netip.ParseAddr(timeServer); err != nil {
 						return nil, errors.Errorf("subnet %s: time server %s address is not a valid IP", subnetName, timeServer)
 					}
 				}
@@ -551,13 +557,13 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 						return nil, errors.Errorf("subnet %s: advertised route gateway is required", subnetName)
 					}
 
-					_, _, err := net.ParseCIDR(advertisedRoute.Destination)
+					_, err := netip.ParsePrefix(advertisedRoute.Destination)
 					if err != nil {
 						return nil, errors.Wrapf(err, "subnet %s: failed to parse advertised route destination %s", subnetName, advertisedRoute.Destination)
 					}
 
-					gwIP := net.ParseIP(advertisedRoute.Gateway)
-					if gwIP == nil {
+					gwIP, err := netip.ParseAddr(advertisedRoute.Gateway)
+					if err != nil {
 						return nil, errors.Errorf("subnet %s: invalid advertised route gateway %s", subnetName, advertisedRoute.Gateway)
 					}
 					if !ipNet.Contains(gwIP) {
@@ -577,20 +583,20 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				if _, err := net.ParseMAC(mac); err != nil {
 					return nil, errors.Errorf("subnet %s: invalid MAC %s for static IP %s", subnetName, mac, static.IP)
 				}
-				ip := net.ParseIP(static.IP)
-				if ip == nil {
+				ip, err := netip.ParseAddr(static.IP)
+				if err != nil {
 					return nil, errors.Errorf("subnet %s: invalid static IP %s", subnetName, static.IP)
 				}
 				if !ipNet.Contains(ip) {
 					return nil, errors.Errorf("subnet %s: static IP %s is not in the subnet", subnetName, static.IP)
 				}
-				if static.IP == ipNet.IP.String() {
+				if ip == ipNet.Masked().Addr() {
 					return nil, errors.Errorf("subnet %s: static IP %s is the same as the subnet IP", subnetName, static.IP)
 				}
 				if static.IP == subnetCfg.Gateway {
 					return nil, errors.Errorf("subnet %s: static IP %s is the same as the gateway IP", subnetName, static.IP)
 				}
-				if static.IP == iputil.LastIP(ipNet).IP.String() {
+				if static.IP == iputil.LastIPNetip(ipNet).String() {
 					return nil, errors.Errorf("subnet %s: static IP %s is the same as the broadcast IP", subnetName, static.IP)
 				}
 
@@ -616,7 +622,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		return nil, errors.Errorf("duplicate subnet VLANs")
 	}
 
-	if err := iputil.VerifyNoOverlap(subnets); err != nil {
+	if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
 		return nil, errors.Wrapf(err, "failed to verify no overlap subnets")
 	}
 
@@ -644,12 +650,12 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			return nil, errors.Errorf("static route #%d: prefix is required", idx)
 		}
 
-		ip, ipNet, err := net.ParseCIDR(staticRoute.Prefix)
+		staticNet, err := netip.ParsePrefix(staticRoute.Prefix)
 		if err != nil {
 			return nil, errors.Wrapf(err, "static route #%d: failed to parse prefix %s", idx, staticRoute.Prefix)
 		}
 
-		if !ipNet.IP.Equal(ip) {
+		if staticNet.Addr() != staticNet.Masked().Addr() {
 			return nil, errors.Errorf("static route #%d: prefix %s is invalid: inconsistent IP address and mask", idx, staticRoute.Prefix)
 		}
 
@@ -682,19 +688,19 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 
 		for subnetName, subnetCfg := range vpc.Spec.Subnets {
-			_, vpcSubnet, err := net.ParseCIDR(subnetCfg.Subnet)
+			vpcSubnet, err := netip.ParsePrefix(subnetCfg.Subnet)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse vpc subnet %s", subnetCfg.Subnet)
 			}
 
 			ok := false
 			for _, ipNsSubnetCfg := range ipNs.Spec.Subnets {
-				_, ipNsSubnet, err := net.ParseCIDR(ipNsSubnetCfg)
+				ipNsSubnet, err := netip.ParsePrefix(ipNsSubnetCfg)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to parse IPv4Namespace %s subnet %s", vpc.Spec.IPv4Namespace, ipNsSubnetCfg)
 				}
 
-				if ipNsSubnet.Contains(vpcSubnet.IP) {
+				if iputil.IsSubset(vpcSubnet, ipNsSubnet) {
 					ok = true
 
 					break
@@ -739,13 +745,13 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			}
 
 			for _, otherSubnet := range other.Spec.Subnets {
-				_, otherNet, err := net.ParseCIDR(otherSubnet.Subnet)
+				otherNet, err := netip.ParsePrefix(otherSubnet.Subnet)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to parse subnet %s", otherSubnet.Subnet)
 				}
 
 				for _, subnet := range subnets {
-					if subnet.Contains(otherNet.IP) {
+					if subnet.Overlaps(otherNet) {
 						return nil, errors.Errorf("subnet %s overlaps with subnet %s of VPC %s", subnet.String(), otherSubnet.Subnet, other.Name)
 					}
 				}

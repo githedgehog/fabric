@@ -16,6 +16,7 @@ package iputil
 
 import (
 	"net"
+	"net/netip"
 	"testing"
 )
 
@@ -140,6 +141,15 @@ func TestParseCIDR(t *testing.T) {
 	}
 }
 
+func mustParsePrefix(s string) netip.Prefix {
+	p, err := netip.ParsePrefix(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return p
+}
+
 func mustParseCIDR(s string) *net.IPNet {
 	_, ipNet, err := net.ParseCIDR(s)
 	if err != nil {
@@ -180,5 +190,183 @@ func TestLastIP(t *testing.T) {
 		if !actual.IP.Equal(tt.expected) {
 			t.Errorf("LastIP(%v) = %v, want %v", tt.ipNet, actual, tt.expected)
 		}
+	}
+}
+
+func TestLastIPNetip(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		prefix   netip.Prefix
+		expected netip.Addr
+	}{
+		{
+			name:     "IPv4 /24",
+			prefix:   mustParsePrefix("10.0.0.0/24"),
+			expected: netip.MustParseAddr("10.0.0.255"),
+		},
+		{
+			name:     "IPv4 /30",
+			prefix:   mustParsePrefix("192.168.0.0/30"),
+			expected: netip.MustParseAddr("192.168.0.3"),
+		},
+		{
+			name:     "IPv4 /22",
+			prefix:   mustParsePrefix("10.0.0.0/22"),
+			expected: netip.MustParseAddr("10.0.3.255"),
+		},
+		{
+			name:     "IPv4 /10",
+			prefix:   mustParsePrefix("192.168.0.0/10"),
+			expected: netip.MustParseAddr("192.191.255.255"),
+		},
+		{
+			name:     "IPv4 /32 host route",
+			prefix:   mustParsePrefix("10.0.0.1/32"),
+			expected: netip.MustParseAddr("10.0.0.1"),
+		},
+		{
+			name:     "IPv6 /32",
+			prefix:   mustParsePrefix("2001:db8::/32"),
+			expected: netip.MustParseAddr("2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
+		},
+		{
+			name:     "IPv6 /128 host route",
+			prefix:   mustParsePrefix("2001:db8::1/128"),
+			expected: netip.MustParseAddr("2001:db8::1"),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := LastIPNetip(tt.prefix)
+			if actual != tt.expected {
+				t.Errorf("LastIPNetip(%v) = %v, want %v", tt.prefix, actual, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsSubset(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		inner    netip.Prefix
+		outer    netip.Prefix
+		expected bool
+	}{
+		{
+			name:     "exact match",
+			inner:    mustParsePrefix("10.0.0.0/24"),
+			outer:    mustParsePrefix("10.0.0.0/24"),
+			expected: true,
+		},
+		{
+			name:     "inner is narrower same base",
+			inner:    mustParsePrefix("10.0.0.0/25"),
+			outer:    mustParsePrefix("10.0.0.0/24"),
+			expected: true,
+		},
+		{
+			name:     "inner is second half of outer",
+			inner:    mustParsePrefix("10.0.0.128/25"),
+			outer:    mustParsePrefix("10.0.0.0/24"),
+			expected: true,
+		},
+		{
+			name:     "inner is a /24 inside a /16",
+			inner:    mustParsePrefix("10.0.1.0/24"),
+			outer:    mustParsePrefix("10.0.0.0/16"),
+			expected: true,
+		},
+		{
+			name:     "inner wider than outer",
+			inner:    mustParsePrefix("10.0.0.0/23"),
+			outer:    mustParsePrefix("10.0.0.0/24"),
+			expected: false,
+		},
+		{
+			name:     "inner not in outer",
+			inner:    mustParsePrefix("10.1.0.0/24"),
+			outer:    mustParsePrefix("10.0.0.0/24"),
+			expected: false,
+		},
+		{
+			name:     "different address families",
+			inner:    mustParsePrefix("10.0.0.0/24"),
+			outer:    mustParsePrefix("2001:db8::/32"),
+			expected: false,
+		},
+		{
+			name:     "inner network addr inside outer but prefix straddles boundary",
+			inner:    mustParsePrefix("10.0.0.0/23"),
+			outer:    mustParsePrefix("10.0.0.0/24"),
+			expected: false,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := IsSubset(tt.inner, tt.outer)
+			if actual != tt.expected {
+				t.Errorf("IsProperSubset(%v, %v) = %v, want %v", tt.inner, tt.outer, actual, tt.expected)
+			}
+		})
+	}
+}
+
+func TestVerifyNoOverlapNetip(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		subnets []netip.Prefix
+		wantErr bool
+	}{
+		{
+			name:    "empty list",
+			subnets: nil,
+			wantErr: false,
+		},
+		{
+			name:    "single subnet",
+			subnets: []netip.Prefix{mustParsePrefix("10.0.0.0/24")},
+			wantErr: false,
+		},
+		{
+			name: "non-overlapping adjacent subnets",
+			subnets: []netip.Prefix{
+				mustParsePrefix("10.0.0.0/24"),
+				mustParsePrefix("10.0.1.0/24"),
+				mustParsePrefix("10.0.2.0/24"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "identical subnets",
+			subnets: []netip.Prefix{
+				mustParsePrefix("10.0.0.0/24"),
+				mustParsePrefix("10.0.0.0/24"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "one subnet contains the other",
+			subnets: []netip.Prefix{
+				mustParsePrefix("10.0.0.0/16"),
+				mustParsePrefix("10.0.1.0/24"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "partially overlapping subnets",
+			subnets: []netip.Prefix{
+				mustParsePrefix("10.0.0.0/23"),
+				mustParsePrefix("10.0.1.0/24"),
+			},
+			wantErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := VerifyNoOverlapNetip(tt.subnets)
+			if tt.wantErr && err == nil {
+				t.Error("VerifyNoOverlapNetip: expected error but got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("VerifyNoOverlapNetip: unexpected error: %v", err)
+			}
+		})
 	}
 }
