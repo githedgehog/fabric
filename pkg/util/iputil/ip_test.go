@@ -15,7 +15,6 @@
 package iputil
 
 import (
-	"net"
 	"net/netip"
 	"testing"
 )
@@ -32,9 +31,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.0/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:        net.ParseIP("192.168.1.1"),
-				DHCPRangeStart: net.ParseIP("192.168.1.2"),
-				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
+				Gateway:        netip.MustParseAddr("192.168.1.1"),
+				DHCPRangeStart: netip.MustParseAddr("192.168.1.2"),
+				DHCPRangeEnd:   netip.MustParseAddr("192.168.1.255"),
 			},
 		},
 		{
@@ -42,9 +41,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.1/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:        net.ParseIP("192.168.1.1"),
-				DHCPRangeStart: net.ParseIP("192.168.1.2"),
-				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
+				Gateway:        netip.MustParseAddr("192.168.1.1"),
+				DHCPRangeStart: netip.MustParseAddr("192.168.1.2"),
+				DHCPRangeEnd:   netip.MustParseAddr("192.168.1.255"),
 			},
 		},
 		{
@@ -52,9 +51,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.2/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:        net.ParseIP("192.168.1.1"),
-				DHCPRangeStart: net.ParseIP("192.168.1.2"),
-				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
+				Gateway:        netip.MustParseAddr("192.168.1.1"),
+				DHCPRangeStart: netip.MustParseAddr("192.168.1.2"),
+				DHCPRangeEnd:   netip.MustParseAddr("192.168.1.255"),
 			},
 		},
 		{
@@ -62,9 +61,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.3/24",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:        net.ParseIP("192.168.1.1"),
-				DHCPRangeStart: net.ParseIP("192.168.1.2"),
-				DHCPRangeEnd:   net.ParseIP("192.168.1.255"),
+				Gateway:        netip.MustParseAddr("192.168.1.1"),
+				DHCPRangeStart: netip.MustParseAddr("192.168.1.2"),
+				DHCPRangeEnd:   netip.MustParseAddr("192.168.1.255"),
 			},
 		},
 		{
@@ -72,9 +71,9 @@ func TestParseCIDR(t *testing.T) {
 			arg:  "192.168.1.100/27",
 			err:  false,
 			want: &ParsedCIDR{
-				Gateway:        net.ParseIP("192.168.1.97"),
-				DHCPRangeStart: net.ParseIP("192.168.1.98"),
-				DHCPRangeEnd:   net.ParseIP("192.168.1.127"),
+				Gateway:        netip.MustParseAddr("192.168.1.97"),
+				DHCPRangeStart: netip.MustParseAddr("192.168.1.98"),
+				DHCPRangeEnd:   netip.MustParseAddr("192.168.1.127"),
 			},
 		},
 		{
@@ -148,49 +147,6 @@ func mustParsePrefix(s string) netip.Prefix {
 	}
 
 	return p
-}
-
-func mustParseCIDR(s string) *net.IPNet {
-	_, ipNet, err := net.ParseCIDR(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return ipNet
-}
-
-func TestLastIP(t *testing.T) {
-	for _, tt := range []struct {
-		name     string
-		ipNet    *net.IPNet
-		expected net.IP
-	}{
-		{
-			name:     "IPv4 1",
-			ipNet:    mustParseCIDR("192.168.0.0/24"),
-			expected: net.IPv4(192, 168, 0, 255),
-		},
-		{
-			name:     "IPv4 2",
-			ipNet:    mustParseCIDR("192.168.0.0/30"),
-			expected: net.IPv4(192, 168, 0, 3),
-		},
-		{
-			name:     "IPv4 3",
-			ipNet:    mustParseCIDR("192.168.0.0/10"),
-			expected: net.IPv4(192, 191, 255, 255),
-		},
-		{
-			name:     "IPv6",
-			ipNet:    mustParseCIDR("2001:db8::/32"),
-			expected: net.ParseIP("2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"),
-		},
-	} {
-		actual := LastIP(tt.ipNet)
-		if !actual.IP.Equal(tt.expected) {
-			t.Errorf("LastIP(%v) = %v, want %v", tt.ipNet, actual, tt.expected)
-		}
-	}
 }
 
 func TestLastIPNetip(t *testing.T) {

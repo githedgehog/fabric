@@ -2886,7 +2886,7 @@ func planVNIVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, v
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse subnet %s for VPC %s", subnet.Subnet, vpcName)
 	}
-	prefixLen, _ := subnetCIDR.Subnet.Mask.Size()
+	prefixLen := subnetCIDR.Subnet.Bits()
 
 	subnetIface := vlanName(subnet.VLAN)
 	spec.Interfaces[subnetIface] = &dozer.SpecInterface{
@@ -2969,7 +2969,7 @@ func planL3FlatVPCSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse subnet %s for VPC %s", subnet.Subnet, vpcName)
 	}
-	prefixLen, _ := subnetCIDR.Subnet.Mask.Size()
+	prefixLen := subnetCIDR.Subnet.Bits()
 
 	subnetIface := vlanName(subnet.VLAN)
 	spec.Interfaces[subnetIface] = &dozer.SpecInterface{

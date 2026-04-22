@@ -281,7 +281,7 @@ func (vpc *VPC) Default() {
 			subnet.Gateway = cidr.Gateway.String()
 		}
 
-		if prefixLen, _ := cidr.Subnet.Mask.Size(); prefixLen > 30 {
+		if prefixLen := cidr.Subnet.Bits(); prefixLen > 30 {
 			continue
 		}
 

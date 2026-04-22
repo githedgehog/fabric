@@ -15,69 +15,37 @@
 package iputil
 
 import (
-	"net"
 	"net/netip"
 
-	cidrlib "github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
 )
 
 type ParsedCIDR struct {
-	IP             net.IP
-	Subnet         net.IPNet
-	Gateway        net.IP
-	DHCPRangeStart net.IP
-	DHCPRangeEnd   net.IP
+	IP             netip.Addr
+	Subnet         netip.Prefix
+	Gateway        netip.Addr
+	DHCPRangeStart netip.Addr
+	DHCPRangeEnd   netip.Addr
 }
 
 func ParseCIDR(cidr string) (*ParsedCIDR, error) {
-	ip, ipNet, err := net.ParseCIDR(cidr)
+	ipNet, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse cidr %s", cidr)
 	}
-
-	_, last, err := Range(cidr)
-	if err != nil {
-		return nil, err
-	}
+	ipNet = ipNet.Masked()
+	ip := ipNet.Addr()
+	gw := ip.Next()
+	first := gw.Next()
+	last := LastIPNetip(ipNet)
 
 	return &ParsedCIDR{
 		IP:             ip,
-		Subnet:         *ipNet,
-		Gateway:        cidrlib.Inc(ipNet.IP),
-		DHCPRangeStart: cidrlib.Inc(cidrlib.Inc(ipNet.IP)),
-		DHCPRangeEnd:   net.ParseIP(last),
+		Subnet:         ipNet,
+		Gateway:        gw,
+		DHCPRangeStart: first,
+		DHCPRangeEnd:   last,
 	}, nil
-}
-
-func Range(cidr string) (string, string, error) {
-	_, subnet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to parse cidr %s", cidr)
-	}
-
-	first, last := cidrlib.AddressRange(subnet)
-
-	return first.String(), last.String(), nil
-}
-
-func VerifyNoOverlap(subnets []*net.IPNet) error {
-	anyNetCIDR := "0.0.0.0/0"
-	_, anyNet, err := net.ParseCIDR(anyNetCIDR)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse cidr %s", anyNetCIDR)
-	}
-
-	return errors.Wrapf(cidrlib.VerifyNoOverlap(subnets, anyNet), "failed to verify no overlap subnets")
-}
-
-func LastIP(ipNet *net.IPNet) *net.IPNet {
-	last := make(net.IP, len(ipNet.IP))
-	for i := range last {
-		last[i] = ipNet.IP[i] | (^ipNet.Mask[i])
-	}
-
-	return &net.IPNet{IP: last, Mask: ipNet.Mask}
 }
 
 // IsSubset reports whether inner is contained in outer with a prefix
