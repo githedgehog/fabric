@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	vpcv1beta1 "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -651,6 +652,41 @@ func generatePeering(name string, f ...func(p *GatewayPeering)) *GatewayPeering 
 	return peering
 }
 
+func generateExternalPeering(name string, f ...func(p *GatewayPeering)) *GatewayPeering {
+	peering := withName(name, &GatewayPeering{
+		Spec: PeeringSpec{
+			GatewayGroup: DefaultGatewayGroup,
+			Peering: map[string]*PeeringEntry{
+				"vpc-1": {
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.1.0/24",
+								},
+							},
+						},
+					},
+				},
+				"ext.out-1": {
+					Expose: []PeeringEntryExpose{
+						{
+							DefaultDestination: true,
+						},
+					},
+				},
+			},
+		},
+	})
+	peering.Default()
+
+	for _, fn := range f {
+		fn(peering)
+	}
+
+	return peering
+}
+
 func TestValidateCIDROverlap(t *testing.T) {
 	basePeering := withName("base", &GatewayPeering{
 		Spec: PeeringSpec{
@@ -685,8 +721,30 @@ func TestValidateCIDROverlap(t *testing.T) {
 	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{
 		Spec: GatewayGroupSpec{},
 	})
+	// broad subnets so any CIDR in the overlap tests is considered part of the VPC
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"default": {Subnet: "10.0.0.0/8"},
+			},
+		},
+	})
+	vpc2 := withName("vpc-2", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"default": {Subnet: "10.0.0.0/8"},
+			},
+		},
+	})
+	vpc45 := withName("vpc-45", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"default": {Subnet: "10.0.0.0/8"},
+			},
+		},
+	})
 
-	baseObjs := []kclient.Object{basePeering, gwGroup}
+	baseObjs := []kclient.Object{basePeering, gwGroup, vpc1, vpc2, vpc45}
 
 	tests := []struct {
 		name    string
@@ -797,6 +855,157 @@ func TestValidateCIDROverlap(t *testing.T) {
 	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, AddToScheme(scheme), "should add gateway API to scheme")
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme), "should add vpc API to scheme")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tt.objs...).
+				Build()
+			tt.peering.Default()
+			actual := tt.peering.Validate(ctx, kube, nil)
+			if tt.err {
+				require.Error(t, actual)
+			} else {
+				require.NoError(t, actual)
+			}
+		})
+	}
+}
+
+func TestValidateCIDRBelongsToVPC(t *testing.T) {
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{})
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.1.0/24"},
+			},
+		},
+	})
+	vpc2 := withName("vpc-2", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.2.0/24"},
+			},
+		},
+	})
+	external := withName("out-1", &vpcv1beta1.External{
+		Spec: vpcv1beta1.ExternalSpec{},
+	})
+
+	tests := []struct {
+		name    string
+		peering *GatewayPeering
+		objs    []kclient.Object
+		err     bool
+	}{
+		{
+			name:    "exact subnet match",
+			peering: generatePeering("exact-match"),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "CIDR is sub-range of VPC subnet",
+			peering: generatePeering("sub-range", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0].CIDR = "10.0.1.128/25"
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "CIDR not in any VPC subnet",
+			peering: generatePeering("cidr-not-in-vpc", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0].CIDR = "192.168.1.0/24"
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name: "CIDR is exact subnet match of another VPC",
+			peering: generatePeering("match-wrong-vpc", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0].CIDR = "10.0.2.0/24"
+				p.Spec.Peering["vpc-2"].Expose[0].IPs[0].CIDR = "10.0.1.0/24"
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name:    "VPC not found",
+			peering: generatePeering("vpc-not-found"),
+			objs:    []kclient.Object{gwGroup, vpc1}, // vpc-2 absent
+			err:     true,
+		},
+		{
+			name: "default destination skipped",
+			peering: generatePeering("default-destination", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+					{DefaultDestination: true},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "VPCSubnet reference exists",
+			peering: generatePeering("vpcsubnet-valid", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0] = PeeringEntryIP{VPCSubnet: "sub1"}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "VPCSubnet reference not found in VPC",
+			peering: generatePeering("vpcsubnet-invalid", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0] = PeeringEntryIP{VPCSubnet: "nonexistent"}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name:    "external peering with default flag",
+			peering: generateExternalPeering("ext-default"),
+			objs:    []kclient.Object{gwGroup, vpc1, external},
+		},
+		{
+			name: "external peering with IP CIDR",
+			peering: generateExternalPeering("ext-ip", func(p *GatewayPeering) {
+				expose := PeeringEntryExpose{
+					DefaultDestination: false,
+					IPs: []PeeringEntryIP{
+						{
+							CIDR: "1.0.0.0/8",
+						},
+					},
+				}
+				p.Spec.Peering["ext.out-1"].Expose[0] = expose
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, external},
+		},
+		{
+			name:    "external not found",
+			peering: generateExternalPeering("ext-missing"),
+			objs:    []kclient.Object{gwGroup, vpc1},
+			err:     true,
+		},
+		{
+			name: "external with VPCSubnet",
+			peering: generateExternalPeering("ext-vpcsubnet", func(p *GatewayPeering) {
+				expose := PeeringEntryExpose{
+					DefaultDestination: false,
+					IPs: []PeeringEntryIP{
+						{
+							VPCSubnet: "subnet-01",
+						},
+					},
+				}
+				p.Spec.Peering["ext.out-1"].Expose[0] = expose
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, external},
+			err:  true,
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme))
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
