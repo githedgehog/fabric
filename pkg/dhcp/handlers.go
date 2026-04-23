@@ -75,6 +75,24 @@ func reqSummary(req *dhcpv4.DHCPv4, vrf, circuitID, remoteID string) []any {
 	return res
 }
 
+// checkRelayedRequest returns an error when a relayed DHCP request should be
+// dropped. Returns nil for unrelayed packets (GIADDR 0.0.0.0) and for packets
+// whose GIADDR belongs to a known leaf switch.
+func (s *Server) checkRelayedRequest(giaddr net.IP) error {
+	if giaddr.IsUnspecified() {
+		return nil
+	}
+	str := giaddr.String()
+	s.m.RLock()
+	_, known := s.relayAllowlist[str]
+	s.m.RUnlock()
+	if !known {
+		return fmt.Errorf("unknown GIADDR %s", str) //nolint:goerr113
+	}
+
+	return nil
+}
+
 func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 	return func(args ...string) (handler.Handler4, error) {
 		return func(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
@@ -91,6 +109,14 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 
 				circuitID = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption))))
 				remoteID = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.AgentRemoteIDSubOption))))
+			}
+
+			if violation := s.checkRelayedRequest(req.GatewayIPAddr); violation != nil {
+				slog.Error("DHCP relay validation failed, dropping",
+					append(reqSummary(req, vrf, circuitID, remoteID),
+						"giaddr", req.GatewayIPAddr.String(), "reason", violation)...)
+
+				return resp, false
 			}
 
 			s.m.RLock()

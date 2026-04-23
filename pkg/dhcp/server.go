@@ -20,9 +20,11 @@ type Server struct {
 	ListenInterface string
 	AnyDeviceOnMgmt bool
 
-	kube    kclient.WithWatch
-	subnets map[string]*dhcpapi.DHCPSubnet
-	m       sync.RWMutex
+	kube           kclient.WithWatch
+	subnets        map[string]*dhcpapi.DHCPSubnet
+	switchToIP     map[string]string   // switch name → relay IP (for cleanup)
+	relayAllowlist map[string]struct{} // known leaf relay IPs
+	m              sync.RWMutex
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -32,6 +34,12 @@ func (s *Server) Run(ctx context.Context) error {
 	if s.subnets == nil {
 		s.subnets = map[string]*dhcpapi.DHCPSubnet{}
 	}
+	if s.switchToIP == nil {
+		s.switchToIP = map[string]string{}
+	}
+	if s.relayAllowlist == nil {
+		s.relayAllowlist = map[string]struct{}{}
+	}
 
 	if err := s.setupKube(ctx); err != nil {
 		return err
@@ -39,26 +47,8 @@ func (s *Server) Run(ctx context.Context) error {
 
 	wg := sync.WaitGroup{}
 
-	wg.Go(func() {
-		retry := false
-		for {
-			if retry {
-				select {
-				case <-ctx.Done():
-					os.Exit(1) // TODO graceful handling
-				case <-time.After(1 * time.Second):
-					// Retry watching after a delay
-				}
-			}
-			retry = true
-
-			if err := s.watchKube(ctx); err != nil {
-				slog.Debug("Watch K8s failed, will retry", "err", err)
-
-				continue
-			}
-		}
-	})
+	wg.Go(func() { s.watchWithRetry(ctx, "DHCPSubnet", s.watchDHCPSubnets) })
+	wg.Go(func() { s.watchWithRetry(ctx, "Switch", s.watchSwitches) })
 
 	wg.Go(func() {
 		if err := s.startCoreDHCP(ctx); err != nil {
@@ -77,4 +67,22 @@ func (s *Server) Run(ctx context.Context) error {
 	wg.Wait()
 
 	return nil
+}
+
+func (s *Server) watchWithRetry(ctx context.Context, name string, fn func(context.Context) error) {
+	first := true
+	for {
+		if !first {
+			select {
+			case <-ctx.Done():
+				os.Exit(1) // TODO graceful handling
+			case <-time.After(1 * time.Second):
+			}
+		}
+		first = false
+
+		if err := fn(ctx); err != nil {
+			slog.Debug("Watch failed, will retry", "name", name, "err", err)
+		}
+	}
 }

@@ -42,3 +42,11 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switches
+  verbs:
+  - get
+  - list
+  - watch
