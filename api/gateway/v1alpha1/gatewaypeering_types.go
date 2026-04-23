@@ -14,8 +14,11 @@ import (
 	"time"
 
 	"go.githedgehog.com/fabric/api/meta"
+	"go.githedgehog.com/fabric/api/vpc/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -221,6 +224,9 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					nonnil++
 				}
 				if ip.VPCSubnet != "" {
+					if extName, isExternal := strings.CutPrefix(name, v1beta1.VPCInfoExtPrefix); isExternal {
+						return fmt.Errorf("external %s cannot have an IP block with VPC Subnets specified", extName) //nolint:err113
+					}
 					nonnil++
 				}
 				if nonnil != 1 {
@@ -360,6 +366,71 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					}
 					if ourP.Overlaps(otherP) {
 						return fmt.Errorf("overlap between existing exposed CIDR %s and new exposed CIDR %s", otherCIDR, ourCIDR) //nolint:err113
+					}
+				}
+			}
+		}
+
+		// check that the exposed CIDRs actually belong to the VPCs the peering is for
+		for vpcName, peering := range p.Spec.Peering {
+			if peering == nil {
+				continue
+			}
+			// A GatewayPeering could be with an external too; in this case, the name will start with
+			// the VPCInfoExtPrefix prefix (currently "ext.")
+			if extName, isExt := strings.CutPrefix(vpcName, v1beta1.VPCInfoExtPrefix); isExt {
+				var external v1beta1.External
+				if err := kube.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: kmetav1.NamespaceDefault}, &external); err != nil {
+					if kapierrors.IsNotFound(err) {
+						return fmt.Errorf("external %s not found", extName) //nolint:err113
+					}
+
+					return fmt.Errorf("failed to get External %s: %w", extName, err)
+				}
+
+				// checking whether the prefix is part of the external is possible only if the external
+				// is static, as we know exactly which prefixes are reachable in that case. For BGP speaking
+				// externals there is no way to know that. For simplicity, I'm just skipping the check for both.
+				continue
+			}
+			var vpc v1beta1.VPC
+			if err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, &vpc); err != nil {
+				if kapierrors.IsNotFound(err) {
+					return fmt.Errorf("VPC %s not found", vpcName) //nolint:err113
+				}
+
+				return fmt.Errorf("failed to get VPC %s: %w", vpcName, err)
+			}
+			for _, expose := range peering.Expose {
+				if expose.DefaultDestination {
+					continue
+				}
+				for _, ip := range expose.IPs {
+					if ip.CIDR != "" {
+						exposePrefix, err := netip.ParsePrefix(ip.CIDR)
+						if err != nil {
+							return fmt.Errorf("failed to parse prefix of exposed CIDR %s for VPC %s: %w", ip.CIDR, vpcName, err)
+						}
+						found := false
+						for subnetName, subnet := range vpc.Spec.Subnets {
+							subnetPrefix, err := netip.ParsePrefix(subnet.Subnet)
+							if err != nil {
+								return fmt.Errorf("failed to parse prefix of subnet %s of VPC %s: %w", subnetName, vpcName, err)
+							}
+							if iputil.IsSubset(exposePrefix, subnetPrefix) {
+								found = true
+
+								break
+							}
+						}
+						if !found {
+							return fmt.Errorf("CIDR %s is not part of VPC %s", ip.CIDR, vpcName) //nolint:err113
+						}
+					}
+					if ip.VPCSubnet != "" {
+						if _, ok := vpc.Spec.Subnets[ip.VPCSubnet]; !ok {
+							return fmt.Errorf("VPC subnet %s referenced in peering expose does not exist in VPC %s", ip.VPCSubnet, vpcName) //nolint:err113
+						}
 					}
 				}
 			}
