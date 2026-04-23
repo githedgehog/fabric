@@ -7,11 +7,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
@@ -19,7 +22,7 @@ import (
 )
 
 func (s *Server) setupKube(ctx context.Context) error {
-	kube, err := kubeutil.NewClient(ctx, "", dhcpapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", dhcpapi.SchemeBuilder, wiringapi.SchemeBuilder)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -28,65 +31,110 @@ func (s *Server) setupKube(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) watchKube(ctx context.Context) error {
-	slog.Debug("Starting K8s watcher")
-
-	watcher, err := s.kube.Watch(ctx, &dhcpapi.DHCPSubnetList{}, kclient.InNamespace(kmetav1.NamespaceDefault))
+// watchList is the shared event loop for all K8s watches. handle is called for
+// Added, Modified and Deleted events with the event type and object.
+func (s *Server) watchList(
+	ctx context.Context,
+	name string,
+	list kclient.ObjectList,
+	handle func(watch.EventType, kruntime.Object),
+) error {
+	watcher, err := s.kube.Watch(ctx, list, kclient.InNamespace(kmetav1.NamespaceDefault))
 	if err != nil {
-		return fmt.Errorf("starting watcher: %w", err)
+		return fmt.Errorf("starting %s watcher: %w", name, err)
 	}
 	defer watcher.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return nil // TODO
+			return nil
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
-				return fmt.Errorf("watch channel closed") //nolint:err113
+				return fmt.Errorf("%s watch channel closed", name) //nolint:err113
 			}
-
 			if event.Object == nil {
-				return fmt.Errorf("received nil object from K8s") //nolint:err113
+				return fmt.Errorf("received nil object from %s watch", name) //nolint:err113
 			}
 
 			switch event.Type {
 			case watch.Error:
 				if err, ok := event.Object.(error); ok {
-					return fmt.Errorf("watch error: %w", err)
+					return fmt.Errorf("%s watch error: %w", name, err)
 				}
 
-				return fmt.Errorf("watch error") //nolint:err113
+				return fmt.Errorf("%s watch error", name) //nolint:err113
 			case watch.Bookmark:
 				continue
-			case watch.Added, watch.Modified:
-				subnet := event.Object.(*dhcpapi.DHCPSubnet)
-				if subnet.Status.Allocated == nil {
-					subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
-				}
-
-				key := subnetKeyFrom(subnet)
-				slog.Debug("Received", "event", event.Type, "subnet", subnet.Name, "key", key)
-
-				s.m.Lock()
-				existing, ok := s.subnets[key]
-				if !ok || subnet.ResourceVersion > existing.ResourceVersion {
-					s.subnets[key] = subnet
-				}
-				s.m.Unlock()
-			case watch.Deleted:
-				subnet := event.Object.(*dhcpapi.DHCPSubnet)
-				key := subnetKeyFrom(subnet)
-				slog.Debug("Received", "event", event.Type, "subnet", subnet.Name, "key", key)
-
-				s.m.Lock()
-				delete(s.subnets, key)
-				s.m.Unlock()
+			case watch.Added, watch.Modified, watch.Deleted:
+				handle(event.Type, event.Object)
 			default:
-				slog.Warn("Unexpected", "event", event.Type)
+				slog.Warn("Unexpected watch event", "resource", name, "event", event.Type)
 			}
 		}
 	}
+}
+
+func (s *Server) watchDHCPSubnets(ctx context.Context) error {
+	slog.Debug("Starting DHCPSubnet watcher")
+
+	return s.watchList(ctx, "DHCPSubnet", &dhcpapi.DHCPSubnetList{}, func(et watch.EventType, obj kruntime.Object) {
+		subnet := obj.(*dhcpapi.DHCPSubnet)
+		key := subnetKeyFrom(subnet)
+		slog.Debug("Received", "event", et, "subnet", subnet.Name, "key", key)
+
+		s.m.Lock()
+		if et == watch.Deleted {
+			delete(s.subnets, key)
+		} else {
+			if subnet.Status.Allocated == nil {
+				subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
+			}
+			s.subnets[key] = subnet
+		}
+		s.m.Unlock()
+	})
+}
+
+func (s *Server) watchSwitches(ctx context.Context) error {
+	slog.Debug("Starting Switch watcher")
+
+	return s.watchList(ctx, "Switch", &wiringapi.SwitchList{}, func(et watch.EventType, obj kruntime.Object) {
+		sw := obj.(*wiringapi.Switch)
+		slog.Debug("Switch received", "event", et, "switch", sw.Name)
+
+		if et == watch.Deleted {
+			s.m.Lock()
+			if oldIP := s.switchToIP[sw.Name]; oldIP != "" {
+				delete(s.switchToIP, sw.Name)
+				delete(s.relayAllowlist, oldIP)
+			}
+			s.m.Unlock()
+
+			return
+		}
+
+		if !sw.Spec.Role.IsLeaf() || sw.Spec.IP == "" {
+			return
+		}
+
+		prefix, err := netip.ParsePrefix(sw.Spec.IP)
+		if err != nil {
+			slog.Warn("Switch has unparseable IP, skipping relay allowlist update",
+				"switch", sw.Name, "ip", sw.Spec.IP)
+
+			return
+		}
+		newIP := prefix.Addr().String()
+
+		s.m.Lock()
+		if oldIP := s.switchToIP[sw.Name]; oldIP != "" && oldIP != newIP {
+			delete(s.relayAllowlist, oldIP)
+		}
+		s.switchToIP[sw.Name] = newIP
+		s.relayAllowlist[newIP] = struct{}{}
+		s.m.Unlock()
+	})
 }
 
 func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, mutate func(subnet *dhcpapi.DHCPSubnet) error) error {
