@@ -485,7 +485,7 @@ go.githedgehog.com/fabric-bcm-ygot/pkg/oc
 ## explicit; go 1.25
 go.githedgehog.com/libmeta/pkg/alloy
 go.githedgehog.com/libmeta/pkg/tmpl
-# go.opentelemetry.io/otel v1.40.0
+# go.opentelemetry.io/otel v1.41.0
 ## explicit; go 1.24.0
 # go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.36.0
 ## explicit; go 1.23.0
