@@ -9,6 +9,7 @@ const (
 	SiliconBroadcomTD3_X5      = "Broadcom TD3-X5 2.0T" //nolint:revive,stylecheck
 	SiliconBroadcomTD3_X7_2_0T = "Broadcom TD3-X7 2.0T" //nolint:revive,stylecheck
 	SiliconBroadcomTD3_X7_3_2T = "Broadcom TD3-X7 3.2T" //nolint:revive,stylecheck
+	SiliconBroadcomTD4         = "Broadcom TD4"
 	SiliconBroadcomTH          = "Broadcom TH"
 	SiliconBroadcomTH3         = "Broadcom TH3"
 	SiliconBroadcomTH4G        = "Broadcom TH4G"
