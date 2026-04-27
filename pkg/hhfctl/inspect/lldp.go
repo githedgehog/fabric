@@ -20,12 +20,11 @@ import (
 )
 
 type LLDPIn struct {
-	Switches      []string
-	Fabric        bool
-	Server        bool
-	External      bool
-	Strict        bool
-	GatewayStrict bool // TODO remove after gateway is implemented and supports LLDP on spine uplinks
+	Switches []string
+	Fabric   bool
+	Server   bool
+	External bool
+	Strict   bool
 }
 
 type LLDPOut struct {
@@ -151,7 +150,7 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 
 			out.Neighbors[sw.Name][name] = n
 
-			if in.Strict && n.Type != apiutil.LLDPNeighborTypeExternal && (in.GatewayStrict || n.Type != apiutil.LLDPNeighborTypeGateway) {
+			if in.Strict && n.Type != apiutil.LLDPNeighborTypeExternal {
 				found := false
 				unexpected := []string{}
 
