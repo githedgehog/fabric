@@ -613,6 +613,22 @@ func (l *Logger) Close() error {
 	return err
 }
 
+// Sync flushes buffered data to the underlying file, satisfying the
+// zapcore.WriteSyncer interface. It is a no-op when no file is currently open
+// (e.g. before the first write or after Close).
+func (l *Logger) Sync() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if atomic.LoadUint32(&l.isClosed) == 1 {
+		return nil
+	}
+	if l.file == nil {
+		return nil
+	}
+	return l.file.Sync()
+}
+
 // closeFile closes the file if it is open. This is an internal method.
 // It expects l.mu to be held.
 func (l *Logger) closeFile() error {
@@ -1184,6 +1200,9 @@ func truncateFractional(t time.Time, n int) (time.Time, error) {
 
 // compressLogFile compresses the given source log file (src) to a destination file (dst),
 // removing the source file if compression is successful.
+//
+// Compression is written to a temporary file (dst+".tmp") first, then atomically
+// renamed to dst. This ensures dst never appears partially-written on disk.
 func (l *Logger) compressLogFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -1196,23 +1215,23 @@ func (l *Logger) compressLogFile(src, dst string) error {
 		return fmt.Errorf("failed to stat source log file %s: %v", src, err)
 	}
 
-	// Create or open the destination file for writing the compressed content
-	dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, srcInfo.Mode())
+	// Write to a temp file so that dst only appears once fully written (atomic publish).
+	tmpDst := dst + ".tmp"
+	dstFile, err := os.OpenFile(tmpDst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, srcInfo.Mode())
 	if err != nil {
-		return fmt.Errorf("failed to open destination compressed log file %s: %v", dst, err)
+		return fmt.Errorf("failed to open destination compressed log file %s: %v", tmpDst, err)
 	}
-	// No `defer dstFile.Close()` here, explicit closing in sequence is critical.
+	// No `defer dstFile.Close()` here; explicit close ordering is critical.
 
 	var copyErr error // To capture error from io.Copy
 
-	// Choose compression algorithm based on dst suffix
-	// Default to gzip if no recognized suffix
-	// This allows future extension to other algorithms by checking dst suffix
+	// Choose compression algorithm based on dst suffix.
+	// Default to gzip if no recognized suffix.
 	if strings.HasSuffix(dst, zstdSuffix) {
 		enc, err := zstd.NewWriter(dstFile)
 		if err != nil { // Error creating zstd writer
-			_ = dstFile.Close() // Close dstFile before removing
-			_ = l.resolvedRemove(dst)
+			_ = dstFile.Close()
+			_ = os.Remove(tmpDst)
 			return fmt.Errorf("failed to init zstd writer for %s: %v", dst, err)
 		}
 		_, copyErr = io.Copy(enc, srcFile) // Copy data from source file to zstd writer
@@ -1230,16 +1249,20 @@ func (l *Logger) compressLogFile(src, dst string) error {
 	}
 
 	if copyErr != nil { // Error during copy or close
-		_ = dstFile.Close()       // Try to close destination file
-		_ = l.resolvedRemove(dst) // Try to remove potentially partial destination file
+		_ = dstFile.Close()
+		_ = os.Remove(tmpDst)
 		return fmt.Errorf("failed to write compressed data to %s: %w", dst, copyErr)
 	}
 
-	if err := dstFile.Close(); err != nil { // Close destination file
-		// Data is likely written and compressor closed successfully, but closing the file descriptor failed.
-		// The destination file might still be valid on disk. We typically wouldn't remove dst here
-		// as the data might be recoverable or fully written despite the close error.
-		return fmt.Errorf("failed to close destination compressed file %s: %w", dst, err)
+	if err := dstFile.Close(); err != nil {
+		_ = os.Remove(tmpDst)
+		return fmt.Errorf("failed to close destination compressed file %s: %w", tmpDst, err)
+	}
+
+	// Atomically publish the completed compressed file.
+	if err := l.resolvedRename(tmpDst, dst); err != nil {
+		_ = os.Remove(tmpDst)
+		return fmt.Errorf("failed to rename temp compressed file to %s: %w", dst, err)
 	}
 
 	if errChown := chown(dst, srcInfo); errChown != nil { // Attempt to chown the destination file
@@ -1261,7 +1284,7 @@ func (l *Logger) compressLogFile(src, dst string) error {
 		fmt.Fprintf(os.Stderr, "timberjack: [%s] failed to close source file before removal: %v\n", filepath.Base(src), err)
 	}
 
-	// Finally, after successful compression and closing (and optional chown), remove the original source file.
+	// Finally, after successful compression and atomic rename, remove the original source file.
 	if err = l.resolvedRemove(src); err != nil {
 		// This is a more significant error if the original isn't removed, as it might be re-processed.
 		return fmt.Errorf("failed to remove original source log file %s after compression: %w", src, err)
