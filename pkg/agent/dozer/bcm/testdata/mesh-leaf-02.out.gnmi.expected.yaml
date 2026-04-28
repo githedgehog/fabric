@@ -36,6 +36,33 @@ bfd:
         profile-name: fabric
         required-minimum-receive: 300
       profile-name: fabric
+errdisable:
+  config:
+    cause:
+    - LINK_FLAP
+    interval: 300
+errdisable-port:
+  port:
+  - link-flap:
+      config:
+        error-disable: "on"
+    name: Ethernet4
+  - link-flap:
+      config:
+        error-disable: "on"
+    name: Ethernet5
+  - link-flap:
+      config:
+        error-disable: "on"
+    name: Ethernet6
+  - link-flap:
+      config:
+        error-disable: "on"
+    name: Ethernet7
+  - link-flap:
+      config:
+        error-disable: "on"
+    name: Ethernet8
 interfaces:
   interface:
   - config:

@@ -99,22 +99,23 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 				AttachedHosts:    map[string]*dozer.SpecVRFAttachedHost{},
 			},
 		},
-		RouteMaps:          map[string]*dozer.SpecRouteMap{},
-		PrefixLists:        map[string]*dozer.SpecPrefixList{},
-		CommunityLists:     map[string]*dozer.SpecCommunityList{},
-		AsPathLists:        map[string]*dozer.SpecAsPathList{},
-		DHCPRelays:         map[string]*dozer.SpecDHCPRelay{},
-		ACLs:               map[string]*dozer.SpecACL{},
-		ACLInterfaces:      map[string]*dozer.SpecACLInterface{},
-		VXLANTunnels:       map[string]*dozer.SpecVXLANTunnel{},
-		VXLANEVPNNVOs:      map[string]*dozer.SpecVXLANEVPNNVO{},
-		VXLANTunnelMap:     map[string]*dozer.SpecVXLANTunnelMap{},
-		VRFVNIMap:          map[string]*dozer.SpecVRFVNIEntry{},
-		SuppressVLANNeighs: map[string]*dozer.SpecSuppressVLANNeigh{},
-		PortChannelConfigs: map[string]*dozer.SpecPortChannelConfig{},
-		LSTGroups:          map[string]*dozer.SpecLSTGroup{},
-		LSTInterfaces:      map[string]*dozer.SpecLSTInterface{},
-		BFDProfiles:        map[string]*dozer.SpecBFDProfile{},
+		RouteMaps:            map[string]*dozer.SpecRouteMap{},
+		PrefixLists:          map[string]*dozer.SpecPrefixList{},
+		CommunityLists:       map[string]*dozer.SpecCommunityList{},
+		AsPathLists:          map[string]*dozer.SpecAsPathList{},
+		DHCPRelays:           map[string]*dozer.SpecDHCPRelay{},
+		ACLs:                 map[string]*dozer.SpecACL{},
+		ACLInterfaces:        map[string]*dozer.SpecACLInterface{},
+		VXLANTunnels:         map[string]*dozer.SpecVXLANTunnel{},
+		VXLANEVPNNVOs:        map[string]*dozer.SpecVXLANEVPNNVO{},
+		VXLANTunnelMap:       map[string]*dozer.SpecVXLANTunnelMap{},
+		VRFVNIMap:            map[string]*dozer.SpecVRFVNIEntry{},
+		SuppressVLANNeighs:   map[string]*dozer.SpecSuppressVLANNeigh{},
+		PortChannelConfigs:   map[string]*dozer.SpecPortChannelConfig{},
+		LSTGroups:            map[string]*dozer.SpecLSTGroup{},
+		LSTInterfaces:        map[string]*dozer.SpecLSTInterface{},
+		BFDProfiles:          map[string]*dozer.SpecBFDProfile{},
+		ErrDisableInterfaces: map[string]*dozer.SpecErrDisable{},
 	}
 
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
@@ -175,6 +176,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	err = planGatewayConnections(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan gateway connections")
+	}
+
+	err = planLinkErrorDisable(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan link error disable")
 	}
 
 	err = planVPCLoopbacks(agent, spec)
@@ -858,6 +864,44 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				BFDProfile:              bfdProfile,
 			}
 		}
+	}
+
+	return nil
+}
+
+func planLinkErrorDisable(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
+	for _, conn := range agent.Spec.Connections {
+		if conn.Fabric != nil {
+			for _, link := range conn.Fabric.Links {
+				if link.Spine.DeviceName() == agent.Name {
+					spec.ErrDisableInterfaces[link.Spine.LocalPortName()] = &dozer.SpecErrDisable{}
+				} else if link.Leaf.DeviceName() == agent.Name {
+					spec.ErrDisableInterfaces[link.Leaf.LocalPortName()] = &dozer.SpecErrDisable{}
+				}
+			}
+		}
+
+		if conn.Mesh != nil {
+			for _, link := range conn.Mesh.Links {
+				if link.Leaf1.DeviceName() == agent.Name {
+					spec.ErrDisableInterfaces[link.Leaf1.LocalPortName()] = &dozer.SpecErrDisable{}
+				} else if link.Leaf2.DeviceName() == agent.Name {
+					spec.ErrDisableInterfaces[link.Leaf2.LocalPortName()] = &dozer.SpecErrDisable{}
+				}
+			}
+		}
+
+		if conn.Gateway != nil {
+			for _, link := range conn.Gateway.Links {
+				if link.Switch.DeviceName() == agent.Name {
+					spec.ErrDisableInterfaces[link.Switch.LocalPortName()] = &dozer.SpecErrDisable{}
+				}
+			}
+		}
+	}
+
+	if len(spec.ErrDisableInterfaces) > 0 {
+		spec.ErrDisableGlobal = &dozer.SpecErrDisableGlobal{RecoveryInterval: pointer.To(uint32(300))}
 	}
 
 	return nil
@@ -3940,6 +3984,20 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		newLSTIfaces[portName] = iface
 	}
 	spec.LSTInterfaces = newLSTIfaces
+
+	newErrDisableIfaces := map[string]*dozer.SpecErrDisable{}
+	for name, iface := range spec.ErrDisableInterfaces {
+		portName := name
+		if isHedgehogPortName(name) {
+			portName, err = getNOSPortName(ports, name)
+			if err != nil {
+				return errors.Wrapf(err, "failed to translate port name for errdisable interfaces %s", name)
+			}
+		}
+
+		newErrDisableIfaces[portName] = iface
+	}
+	spec.ErrDisableInterfaces = newErrDisableIfaces
 
 	for vrfName, vrf := range spec.VRFs {
 		newIfaces := map[string]*dozer.SpecVRFInterface{}

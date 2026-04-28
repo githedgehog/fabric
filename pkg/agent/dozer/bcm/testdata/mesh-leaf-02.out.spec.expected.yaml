@@ -91,6 +91,14 @@ dhcpRelays:
     sourceInterface: Management0
     vrfSelect: true
 ecmpRoCEQPN: false
+errDisableGlobal:
+  recoveryInterval: 300
+errDisableInterfaces:
+  Ethernet4: {}
+  Ethernet5: {}
+  Ethernet6: {}
+  Ethernet7: {}
+  Ethernet8: {}
 hostname: leaf-02
 interfaces:
   Ethernet0:

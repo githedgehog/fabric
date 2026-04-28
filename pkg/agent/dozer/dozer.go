@@ -47,36 +47,38 @@ type Action interface {
 }
 
 type Spec struct {
-	ZTP                *bool                             `json:"ztp,omitempty"`
-	Hostname           *string                           `json:"hostname,omitempty"`
-	LLDP               *SpecLLDP                         `json:"lldp,omitempty"`
-	LLDPInterfaces     map[string]*SpecLLDPInterface     `json:"lldpInterfaces,omitempty"`
-	NTP                *SpecNTP                          `json:"ntp,omitempty"`
-	NTPServers         map[string]*SpecNTPServer         `json:"ntpServers,omitempty"`
-	Users              map[string]*SpecUser              `json:"users,omitempty"`
-	PortGroups         map[string]*SpecPortGroup         `json:"portGroupSpeeds,omitempty"`
-	PortBreakouts      map[string]*SpecPortBreakout      `json:"portBreakouts,omitempty"`
-	Interfaces         map[string]*SpecInterface         `json:"interfaces,omitempty"`
-	MCLAGs             map[uint32]*SpecMCLAGDomain       `json:"mclags,omitempty"`
-	MCLAGInterfaces    map[string]*SpecMCLAGInterface    `json:"mclagInterfaces,omitempty"`
-	VRFs               map[string]*SpecVRF               `json:"vrfs,omitempty"`
-	RouteMaps          map[string]*SpecRouteMap          `json:"routeMaps,omitempty"`
-	PrefixLists        map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
-	CommunityLists     map[string]*SpecCommunityList     `json:"communityLists,omitempty"`
-	AsPathLists        map[string]*SpecAsPathList        `json:"asPathLists,omitempty"`
-	DHCPRelays         map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
-	ACLs               map[string]*SpecACL               `json:"acls,omitempty"`
-	ACLInterfaces      map[string]*SpecACLInterface      `json:"aclInterfaces,omitempty"`
-	VXLANTunnels       map[string]*SpecVXLANTunnel       `json:"vxlanTunnels,omitempty"`
-	VXLANEVPNNVOs      map[string]*SpecVXLANEVPNNVO      `json:"vxlanEVPNNVOs,omitempty"`
-	VXLANTunnelMap     map[string]*SpecVXLANTunnelMap    `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
-	VRFVNIMap          map[string]*SpecVRFVNIEntry       `json:"vrfVNIMap,omitempty"`
-	SuppressVLANNeighs map[string]*SpecSuppressVLANNeigh `json:"suppressVLANNeighs,omitempty"`
-	PortChannelConfigs map[string]*SpecPortChannelConfig `json:"portChannelConfigs,omitempty"`
-	LSTGroups          map[string]*SpecLSTGroup          `json:"lstGroups,omitempty"`
-	LSTInterfaces      map[string]*SpecLSTInterface      `json:"lstInterfaces,omitempty"`
-	ECMPRoCEQPN        *bool                             `json:"ecmpRoCEQPN,omitempty"`
-	BFDProfiles        map[string]*SpecBFDProfile        `json:"bfdProfiles,omitempty"`
+	ZTP                  *bool                             `json:"ztp,omitempty"`
+	Hostname             *string                           `json:"hostname,omitempty"`
+	LLDP                 *SpecLLDP                         `json:"lldp,omitempty"`
+	LLDPInterfaces       map[string]*SpecLLDPInterface     `json:"lldpInterfaces,omitempty"`
+	NTP                  *SpecNTP                          `json:"ntp,omitempty"`
+	NTPServers           map[string]*SpecNTPServer         `json:"ntpServers,omitempty"`
+	Users                map[string]*SpecUser              `json:"users,omitempty"`
+	PortGroups           map[string]*SpecPortGroup         `json:"portGroupSpeeds,omitempty"`
+	PortBreakouts        map[string]*SpecPortBreakout      `json:"portBreakouts,omitempty"`
+	Interfaces           map[string]*SpecInterface         `json:"interfaces,omitempty"`
+	MCLAGs               map[uint32]*SpecMCLAGDomain       `json:"mclags,omitempty"`
+	MCLAGInterfaces      map[string]*SpecMCLAGInterface    `json:"mclagInterfaces,omitempty"`
+	VRFs                 map[string]*SpecVRF               `json:"vrfs,omitempty"`
+	RouteMaps            map[string]*SpecRouteMap          `json:"routeMaps,omitempty"`
+	PrefixLists          map[string]*SpecPrefixList        `json:"prefixLists,omitempty"`
+	CommunityLists       map[string]*SpecCommunityList     `json:"communityLists,omitempty"`
+	AsPathLists          map[string]*SpecAsPathList        `json:"asPathLists,omitempty"`
+	DHCPRelays           map[string]*SpecDHCPRelay         `json:"dhcpRelays,omitempty"`
+	ACLs                 map[string]*SpecACL               `json:"acls,omitempty"`
+	ACLInterfaces        map[string]*SpecACLInterface      `json:"aclInterfaces,omitempty"`
+	VXLANTunnels         map[string]*SpecVXLANTunnel       `json:"vxlanTunnels,omitempty"`
+	VXLANEVPNNVOs        map[string]*SpecVXLANEVPNNVO      `json:"vxlanEVPNNVOs,omitempty"`
+	VXLANTunnelMap       map[string]*SpecVXLANTunnelMap    `json:"vxlanTunnelMap,omitempty"` // e.g. map_5011_Vlan1000 -> 5011 + Vlan1000
+	VRFVNIMap            map[string]*SpecVRFVNIEntry       `json:"vrfVNIMap,omitempty"`
+	SuppressVLANNeighs   map[string]*SpecSuppressVLANNeigh `json:"suppressVLANNeighs,omitempty"`
+	PortChannelConfigs   map[string]*SpecPortChannelConfig `json:"portChannelConfigs,omitempty"`
+	LSTGroups            map[string]*SpecLSTGroup          `json:"lstGroups,omitempty"`
+	LSTInterfaces        map[string]*SpecLSTInterface      `json:"lstInterfaces,omitempty"`
+	ECMPRoCEQPN          *bool                             `json:"ecmpRoCEQPN,omitempty"`
+	BFDProfiles          map[string]*SpecBFDProfile        `json:"bfdProfiles,omitempty"`
+	ErrDisableGlobal     *SpecErrDisableGlobal             `json:"errDisableGlobal,omitempty"`
+	ErrDisableInterfaces map[string]*SpecErrDisable        `json:"errDisableInterfaces,omitempty"`
 }
 
 type SpecLLDP struct {
@@ -334,6 +336,16 @@ type SpecBFDProfile struct {
 	DetectionMultiplier      *uint8  `json:"detectionMultiplier,omitempty"`
 }
 
+type SpecErrDisableGlobal struct {
+	RecoveryInterval *uint32 `json:"recoveryInterval,omitempty"`
+}
+
+type SpecErrDisable struct {
+	FlapThreshold    *uint8  `json:"flapThreshold,omitempty"`
+	SamplingInterval *uint32 `json:"samplingInterval,omitempty"`
+	RecoveryInterval *uint32 `json:"recoveryInterval,omitempty"`
+}
+
 type SpecDHCPRelay struct {
 	SourceInterface *string  `json:"sourceInterface,omitempty"`
 	RelayAddress    []string `json:"relayAddress,omitempty"`
@@ -576,6 +588,8 @@ var (
 	_ SpecPart = (*SpecLSTGroup)(nil)
 	_ SpecPart = (*SpecLSTInterface)(nil)
 	_ SpecPart = (*SpecBFDProfile)(nil)
+	_ SpecPart = (*SpecErrDisableGlobal)(nil)
+	_ SpecPart = (*SpecErrDisable)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -751,6 +765,14 @@ func (s *SpecLSTInterface) IsNil() bool {
 }
 
 func (s *SpecBFDProfile) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecErrDisableGlobal) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecErrDisable) IsNil() bool {
 	return s == nil
 }
 
