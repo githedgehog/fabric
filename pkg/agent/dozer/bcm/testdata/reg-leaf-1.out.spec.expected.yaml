@@ -103,6 +103,13 @@ dhcpRelays:
     sourceInterface: Management0
     vrfSelect: true
 ecmpRoCEQPN: false
+errDisableGlobal:
+  recoveryInterval: 300
+errDisableInterfaces:
+  Ethernet7: {}
+  Ethernet8: {}
+  Ethernet9: {}
+  Ethernet10: {}
 hostname: leaf-01
 interfaces:
   Ethernet0:

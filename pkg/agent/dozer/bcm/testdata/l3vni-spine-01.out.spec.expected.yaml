@@ -27,6 +27,14 @@ communityLists:
     members:
     - REGEX:^$
 ecmpRoCEQPN: false
+errDisableGlobal:
+  recoveryInterval: 300
+errDisableInterfaces:
+  Ethernet0: {}
+  Ethernet1: {}
+  Ethernet2: {}
+  Ethernet3: {}
+  Ethernet4: {}
 hostname: spine-01
 interfaces:
   Ethernet0:

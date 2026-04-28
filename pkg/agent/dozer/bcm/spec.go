@@ -156,6 +156,14 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle bfd profiles")
 		}
 
+		if err := specErrDisableGlobalEnforcer.Handle(basePath, "", actual.ErrDisableGlobal, desired.ErrDisableGlobal, actions); err != nil {
+			return errors.Wrap(err, "failed to handle errdisable global")
+		}
+
+		if err := specErrDisableInterfacesEnforcer.Handle(basePath, actual.ErrDisableInterfaces, desired.ErrDisableInterfaces, actions); err != nil {
+			return errors.Wrap(err, "failed to handle errdisable interfaces")
+		}
+
 		return nil
 	},
 }
@@ -266,6 +274,14 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client GNMICClie
 
 	if err := loadActualBFDProfiles(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load bfd profiles")
+	}
+
+	if err := loadActualErrDisableGlobal(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load errdisable global")
+	}
+
+	if err := loadActualErrDisableInterfaces(ctx, client, spec); err != nil {
+		return errors.Wrapf(err, "failed to load errdisable interfaces")
 	}
 
 	return nil

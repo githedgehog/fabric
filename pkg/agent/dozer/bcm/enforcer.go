@@ -161,6 +161,8 @@ const (
 	ActionWeightVRFBGPBaseUpdate
 	ActionWeightVRFBGPL2VPNUpdate
 	ActionWeightBFDProfileUpdate
+	ActionWeightErrDisableGlobalUpdate
+	ActionWeightErrDisablePortUpdate
 	ActionWeightVRFBGPNeighborUpdate
 	ActionWeightVRFBGPNetworkUpdate
 	ActionWrightVRFTableConnectionUpdate
@@ -185,6 +187,8 @@ const (
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
 	ActionWeightBFDProfileDelete
+	ActionWeightErrDisablePortDelete
+	ActionWeightErrDisableGlobalDelete
 	ActionWeightVRFSAGDelete
 	ActionWeightVRFBGPL2VPNDelete
 	ActionWeightVRFBGPBaseDelete

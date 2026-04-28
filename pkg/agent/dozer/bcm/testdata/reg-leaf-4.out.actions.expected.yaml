@@ -2680,6 +2680,47 @@
         required-minimum-receive: 300
       profile-name: fabric
   weight: 80
+- path: /openconfig-errdisable-ext:errdisable/config
+  summary: Create ErrDisable Global
+  type: update
+  value:
+    config:
+      cause:
+      - LINK_FLAP
+      interval: 300
+  weight: 81
+- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet4]/link-flap
+  summary: Create ErrDisable Interface Ethernet4
+  type: update
+  value:
+    link-flap:
+      config:
+        error-disable: "on"
+  weight: 82
+- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet5]/link-flap
+  summary: Create ErrDisable Interface Ethernet5
+  type: update
+  value:
+    link-flap:
+      config:
+        error-disable: "on"
+  weight: 82
+- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet6]/link-flap
+  summary: Create ErrDisable Interface Ethernet6
+  type: update
+  value:
+    link-flap:
+      config:
+        error-disable: "on"
+  weight: 82
+- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet7]/link-flap
+  summary: Create ErrDisable Interface Ethernet7
+  type: update
+  value:
+    link-flap:
+      config:
+        error-disable: "on"
+  weight: 82
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.12]
   summary: Create VRF BGP neighbor 172.30.128.12
   type: update
@@ -2708,7 +2749,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.12
-  weight: 81
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.14]
   summary: Create VRF BGP neighbor 172.30.128.14
   type: update
@@ -2737,7 +2778,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.14
-  weight: 81
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.34]
   summary: Create VRF BGP neighbor 172.30.128.34
   type: update
@@ -2766,7 +2807,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.34
-  weight: 81
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.36]
   summary: Create VRF BGP neighbor 172.30.128.36
   type: update
@@ -2795,7 +2836,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.36
-  weight: 81
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.0]
   summary: Create VRF BGP neighbor 172.30.8.0
   type: update
@@ -2832,7 +2873,7 @@
       transport:
         config:
           local-address: 172.30.8.5
-  weight: 81
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.1]
   summary: Create VRF BGP neighbor 172.30.8.1
   type: update
@@ -2869,7 +2910,7 @@
       transport:
         config:
           local-address: 172.30.8.5
-  weight: 81
+  weight: 83
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=172.30.8.5/32]
   summary: Create VRF BGP network 172.30.8.5/32
   type: update
@@ -2878,7 +2919,7 @@
     - config:
         prefix: 172.30.8.5/32
       prefix: 172.30.8.5/32
-  weight: 82
+  weight: 84
 - path: /network-instances/network-instance[name=VrfVvpc-03]/table-connections/table-connection
   summary: Create VRF table connection attachedhost
   type: update
@@ -2891,7 +2932,7 @@
         src-protocol: ATTACHED_HOST
       dst-protocol: BGP
       src-protocol: ATTACHED_HOST
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=VrfVvpc-03]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -2906,7 +2947,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=VrfVvpc-03]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -2921,7 +2962,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=VrfVvpc-04]/table-connections/table-connection
   summary: Create VRF table connection attachedhost
   type: update
@@ -2934,7 +2975,7 @@
         src-protocol: ATTACHED_HOST
       dst-protocol: BGP
       src-protocol: ATTACHED_HOST
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=VrfVvpc-04]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -2949,7 +2990,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=VrfVvpc-04]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -2964,7 +3005,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -2977,7 +3018,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -2990,33 +3031,33 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=VrfVvpc-03]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name
   summary: Create VRF BGP import policy VrfVvpc-03
   type: update
   value:
     policy-name: import-vrf--vpc-03
-  weight: 84
+  weight: 86
 - path: /network-instances/network-instance[name=VrfVvpc-04]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name
   summary: Create VRF BGP import policy VrfVvpc-04
   type: update
   value:
     policy-name: import-vrf--vpc-04
-  weight: 84
+  weight: 86
 - path: /network-instances/network-instance[name=VrfVvpc-03]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name
   summary: Create VRF BGP import VRF VrfVvpc-03
   type: update
   value:
     name:
     - VrfVvpc-04
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=VrfVvpc-04]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name
   summary: Create VRF BGP import VRF VrfVvpc-04
   type: update
   value:
     name:
     - VrfVvpc-03
-  weight: 85
+  weight: 87
 - path: relay-agent/dhcp/interfaces/interface[id=Vlan1005]
   summary: Create DHCP relay Vlan1005
   type: update
@@ -3031,7 +3072,7 @@
         - 172.30.0.1
         src-intf: Management0
       id: Vlan1005
-  weight: 86
+  weight: 88
 - path: relay-agent/dhcp/interfaces/interface[id=Vlan1006]
   summary: Create DHCP relay Vlan1006
   type: update
@@ -3046,7 +3087,7 @@
         - 172.30.0.1
         src-intf: Management0
       id: Vlan1006
-  weight: 86
+  weight: 88
 - path: relay-agent/dhcp/interfaces/interface[id=Vlan1008]
   summary: Create DHCP relay Vlan1008
   type: update
@@ -3061,7 +3102,7 @@
         - 172.30.0.1
         src-intf: Management0
       id: Vlan1008
-  weight: 86
+  weight: 88
 - path: /loadshare/roce-attrs
   summary: Update ECMP RoCE
   type: replace
@@ -3070,4 +3111,4 @@
       config:
         hash: hash
         qpn: false
-  weight: 126
+  weight: 130
