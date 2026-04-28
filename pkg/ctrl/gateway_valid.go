@@ -29,9 +29,14 @@ import (
 	kyaml "sigs.k8s.io/yaml"
 )
 
+const (
+	gwValidatorMaxConcurrent = 8
+)
+
 type GatewayValidator struct {
-	runtime  wazero.Runtime
-	compiled wazero.CompiledModule
+	runtime    wazero.Runtime
+	compiled   wazero.CompiledModule
+	concurrent chan struct{}
 }
 
 func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca []byte, credsPath string) (*GatewayValidator, error) {
@@ -48,7 +53,9 @@ func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca [
 		return nil, fmt.Errorf("credsPath is empty") //nolint:err113
 	}
 
-	v := &GatewayValidator{}
+	v := &GatewayValidator{
+		concurrent: make(chan struct{}, gwValidatorMaxConcurrent),
+	}
 
 	colonIdx := strings.LastIndex(fabricCfg.DataplaneValidatorRef, ":")
 	if colonIdx == -1 {
@@ -153,6 +160,15 @@ func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayA
 	if gwAg == nil {
 		return fmt.Errorf("gateway agent is nil") //nolint:err113
 	}
+
+	select {
+	case v.concurrent <- struct{}{}:
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled: %w", ctx.Err())
+	}
+	defer func() {
+		<-v.concurrent
+	}()
 
 	start := time.Now()
 	defer func() {
