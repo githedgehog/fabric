@@ -57,6 +57,7 @@ test-docs:
   # Create minimal mkdocs.yml config file; warn on broken links
   echo 'site_name: API Reference Build Test' > "{{docs_test_dir}}/mkdocs.yml"
   echo 'validation:'                        >> "{{docs_test_dir}}/mkdocs.yml"
+  echo '  not_found: warn'                  >> "{{docs_test_dir}}/mkdocs.yml"
   echo '  absolute_links: warn'             >> "{{docs_test_dir}}/mkdocs.yml"
   echo '  unrecognized_links: warn'         >> "{{docs_test_dir}}/mkdocs.yml"
   echo '  anchors: warn'                    >> "{{docs_test_dir}}/mkdocs.yml"
