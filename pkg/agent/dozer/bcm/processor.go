@@ -58,15 +58,6 @@ func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 
-	// TODO replace with better handling
-	cmd := exec.CommandContext(ctx, "bash", "-c", "(sudo dmidecode -t system | grep 'QEMU') && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT) || true")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		return errors.Wrap(err, "failed to fix iptables for vxlan on VS")
-	}
-
 	slog.Info("Waiting for system is ready")
 
 	timeout := 10 * time.Minute

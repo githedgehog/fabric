@@ -180,6 +180,12 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				}
 			}
 		}
+
+		if isBCM || isClsP {
+			if err := prepareSONiC(ctx); err != nil {
+				return fmt.Errorf("preparing SONiC: %w", err)
+			}
+		}
 	}
 
 	// setup gNMI client for Broadcom SONiC
@@ -1057,6 +1063,64 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 	}
 
 	slog.Info("See last-* files for the last state & agent data")
+
+	return nil
+}
+
+func prepareSONiC(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	// TODO replace with better handling
+	// Workaround for VXLAN on VS
+	{
+		cmd := exec.CommandContext(ctx, "bash", "-c",
+			"(sudo dmidecode -t system | grep 'QEMU')"+
+				" && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT)"+
+				" || true")
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "iptables(vs): ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "iptables(vs): ")
+		err := cmd.Run()
+		if err != nil {
+			return fmt.Errorf("fixing iptables for vxlan on VS: %w", err)
+		}
+	}
+
+	for _, e := range []struct {
+		port   uint16
+		proto  string
+		reject string
+	}{
+		{port: 22, proto: "tcp", reject: "tcp-reset"},               // SSH
+		{port: 443, proto: "tcp", reject: "tcp-reset"},              // REST API
+		{port: 8080, proto: "tcp", reject: "tcp-reset"},             // GNMI API
+		{port: 67, proto: "udp", reject: "icmp-port-unreachable"},   // DHCP
+		{port: 161, proto: "udp", reject: "icmp-port-unreachable"},  // SNMP
+		{port: 4789, proto: "udp", reject: "icmp-port-unreachable"}, // VXLAN
+	} {
+		cmd := exec.CommandContext(ctx, "bash", "-c", fmt.Sprintf( //nolint:gosec
+			"sudo iptables -C INPUT -i Vrf+ -p %s --dport %d -j REJECT --reject-with %s 2>/dev/null"+
+				" || sudo iptables -A INPUT -i Vrf+ -p %s --dport %d -j REJECT --reject-with %s",
+			e.proto, e.port, e.reject, e.proto, e.port, e.reject))
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, fmt.Sprintf("iptables(%s/%d): ", e.proto, e.port))
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, fmt.Sprintf("iptables(%s/%d): ", e.proto, e.port))
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("applying iptables for %s/%d: %w", e.proto, e.port, err)
+		}
+	}
+
+	// remove entry for SSH reject-with icmp-port-unreachable as we're using tcp-reset instead
+	{
+		cmd := exec.CommandContext(ctx, "bash", "-c",
+			"sudo iptables -C INPUT -i Vrf+ -p tcp --dport 22 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null"+
+				" && sudo iptables -D INPUT -i Vrf+ -p tcp --dport 22 -j REJECT --reject-with icmp-port-unreachable"+
+				" || true")
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "iptables(ssh): ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "iptables(ssh): ")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("removing duplicate iptables entry for SSH: %w", err)
+		}
+	}
 
 	return nil
 }
