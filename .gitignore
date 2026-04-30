@@ -40,3 +40,5 @@ codebook.toml
 last-actual.yaml
 last-agent.yaml
 last-desired.yaml
+
+docs/test

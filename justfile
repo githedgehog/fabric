@@ -44,8 +44,28 @@ _kube_gen:
   # Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
   {{controller_gen}} rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
+docs_image_name := "ghcr.io/githedgehog/hhdocs"
+docs_image_version := "20241202"
+docs_image := docs_image_name + ":" + docs_image_version
+docs_test_dir := './docs/test'
+
+test-docs:
+  rm -rf "{{docs_test_dir}}" || true
+  mkdir -p "{{docs_test_dir}}/docs"
+  cp docs/api.md "{{docs_test_dir}}/docs/"
+
+  # Create minimal mkdocs.yml config file; warn on broken links
+  echo 'site_name: API Reference Build Test' > "{{docs_test_dir}}/mkdocs.yml"
+  echo 'validation:'                        >> "{{docs_test_dir}}/mkdocs.yml"
+  echo '  absolute_links: warn'             >> "{{docs_test_dir}}/mkdocs.yml"
+  echo '  unrecognized_links: warn'         >> "{{docs_test_dir}}/mkdocs.yml"
+  echo '  anchors: warn'                    >> "{{docs_test_dir}}/mkdocs.yml"
+
+  # Make sure that docs/api.md builds as HTML with no warnings
+  docker run --rm -v "{{docs_test_dir}}":/docs "{{docs_image}}" mkdocs build --strict
+
 # Generate docs, code/manifests, things to embed, etc
-gen: _kube_gen _embed _crd_ref_docs
+gen: _kube_gen _embed _crd_ref_docs && test-docs
   {{crd_ref_docs}} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
   go run cmd/fabric-gen/main.go profiles-ref
 
