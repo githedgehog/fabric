@@ -1087,21 +1087,22 @@ func prepareSONiC(ctx context.Context) error {
 	}
 
 	for _, e := range []struct {
+		iface  string
 		port   uint16
 		proto  string
 		reject string
 	}{
-		{port: 22, proto: "tcp", reject: "tcp-reset"},               // SSH
-		{port: 443, proto: "tcp", reject: "tcp-reset"},              // REST API
-		{port: 8080, proto: "tcp", reject: "tcp-reset"},             // GNMI API
-		{port: 67, proto: "udp", reject: "icmp-port-unreachable"},   // DHCP
-		{port: 161, proto: "udp", reject: "icmp-port-unreachable"},  // SNMP
-		{port: 4789, proto: "udp", reject: "icmp-port-unreachable"}, // VXLAN
+		{iface: "Vrf+", port: 22, proto: "tcp", reject: "tcp-reset"},               // SSH
+		{iface: "Vrf+", port: 443, proto: "tcp", reject: "tcp-reset"},              // REST API
+		{iface: "Vrf+", port: 8080, proto: "tcp", reject: "tcp-reset"},             // GNMI API
+		{iface: "VrfE+", port: 67, proto: "udp", reject: "icmp-port-unreachable"},  // DHCP (for externals only)
+		{iface: "Vrf+", port: 161, proto: "udp", reject: "icmp-port-unreachable"},  // SNMP
+		{iface: "Vrf+", port: 4789, proto: "udp", reject: "icmp-port-unreachable"}, // VXLAN (only makes sense on VS)
 	} {
 		cmd := exec.CommandContext(ctx, "bash", "-c", fmt.Sprintf( //nolint:gosec
-			"sudo iptables -C INPUT -i Vrf+ -p %s --dport %d -j REJECT --reject-with %s 2>/dev/null"+
-				" || sudo iptables -A INPUT -i Vrf+ -p %s --dport %d -j REJECT --reject-with %s",
-			e.proto, e.port, e.reject, e.proto, e.port, e.reject))
+			"sudo iptables -C INPUT -i %s -p %s --dport %d -j REJECT --reject-with %s 2>/dev/null"+
+				" || sudo iptables -A INPUT -i %s -p %s --dport %d -j REJECT --reject-with %s",
+			e.iface, e.proto, e.port, e.reject, e.iface, e.proto, e.port, e.reject))
 		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, fmt.Sprintf("iptables(%s/%d): ", e.proto, e.port))
 		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, fmt.Sprintf("iptables(%s/%d): ", e.proto, e.port))
 		if err := cmd.Run(); err != nil {
