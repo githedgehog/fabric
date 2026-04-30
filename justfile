@@ -63,7 +63,11 @@ test-docs:
   echo '  anchors: warn'                    >> "{{docs_test_dir}}/mkdocs.yml"
 
   # Make sure that docs/api.md builds as HTML with no warnings
-  docker run --rm -v "{{docs_test_dir}}":/docs "{{docs_image}}" mkdocs build --strict
+  docker run --rm \
+      --user "$(id -u):$(id -g)" \
+      -v "{{docs_test_dir}}":/docs \
+      "{{docs_image}}" \
+      mkdocs build --strict
 
 # Generate docs, code/manifests, things to embed, etc
 gen: _kube_gen _embed _crd_ref_docs && test-docs
