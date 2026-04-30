@@ -40,6 +40,9 @@ const (
 	ACLProtocolUDP  ACLProtocol = "udp"
 	ACLProtocolICMP ACLProtocol = "icmp"
 	ACLAny                      = "any"
+	// ACLUserMinSeq is the minimum sequence number allowed for user-defined ACL rules.
+	// Sequence numbers below this are reserved for hardcoded security rules.
+	ACLUserMinSeq = 10
 )
 
 var ACLProtocols = []ACLProtocol{
@@ -90,6 +93,9 @@ func (spec *ACLSpec) Validate() (admission.Warnings, error) {
 
 	seqNos := map[uint16]bool{}
 	for _, stmt := range spec.Statements {
+		if stmt.Seq < ACLUserMinSeq {
+			return nil, errors.Errorf("sequence number %d is reserved for security rules (user-defined rules must use seq >= %d)", stmt.Seq, ACLUserMinSeq)
+		}
 		if seqNos[stmt.Seq] {
 			return nil, errors.Errorf("duplicate sequence number %d", stmt.Seq)
 		}

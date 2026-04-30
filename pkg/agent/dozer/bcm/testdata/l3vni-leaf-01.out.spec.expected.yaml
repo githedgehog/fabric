@@ -1,9 +1,42 @@
 aclInterfaces:
+  Ethernet0.20:
+    ingress: ext-inbound--leaf-01--ext-snp-02
   Vlan3000:
     ingress: no-ipns-peering--default
   Vlan3001:
     ingress: no-ipns-peering--default
 acls:
+  ext-inbound--leaf-01--ext-snp-02:
+    description: Inbound ACL leaf-01--ext-snp-02
+    entries:
+      "1":
+        action: DROP
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 443
+        protocol: TCP
+      "2":
+        action: DROP
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 8080
+        protocol: TCP
+      "3":
+        action: DROP
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 67
+        protocol: UDP
+      "4":
+        action: DROP
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 161
+        protocol: UDP
+      "5":
+        action: DROP
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 4789
+        protocol: UDP
+      "65535":
+        action: ACCEPT
+        protocol: IP
   ipns-egress--default:
     entries:
       "10":

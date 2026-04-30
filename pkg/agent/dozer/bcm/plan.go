@@ -1209,11 +1209,15 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				vlan = pointer.To(attach.Switch.VLAN)
 			}
 
-			ip, ipNet, err := net.ParseCIDR(attach.Switch.IP)
+			ipNet, err := netip.ParsePrefix(attach.Switch.IP)
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse external attach switch ip %s", attach.Switch.IP)
 			}
-			prefixLength, _ := ipNet.Mask.Size()
+			prefixLength := ipNet.Bits()
+			ip := ipNet.Addr()
+			if !ip.Is4() {
+				return fmt.Errorf("invalid external attach switch ip %s, expected IPv4", attach.Switch.IP) //nolint:err113
+			}
 
 			spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = &dozer.SpecSubinterface{
 				VLAN: vlan,
@@ -1240,16 +1244,13 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 			}
 
-			aclIface := &dozer.SpecACLInterface{
-				Egress: pointer.To(ipnsEgressAccessList(ipns)),
+			if err := planHardenedInboundACL(spec, name, ip.String(), attach.InboundACL); err != nil {
+				return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 			}
-			if attach.InboundACL != nil {
-				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
-					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
-				}
-				aclIface.Ingress = pointer.To(extInboundACLName(name))
+			spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
+				Egress:  pointer.To(ipnsEgressAccessList(ipns)),
+				Ingress: pointer.To(extInboundACLName(name)),
 			}
-			spec.ACLInterfaces[ifaceName] = aclIface
 		} else {
 			// static attachment
 			ifaceName := port
@@ -1291,6 +1292,9 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				if err != nil {
 					return errors.Wrapf(err, "failed to parse static external attach IP %s", attach.Static.IP)
 				}
+				if !fabricEdgeIP.Addr().Is4() {
+					return fmt.Errorf("invalid static external attach IP %s, expected IPv4", attach.Static.IP) //nolint:err113
+				}
 			}
 			prefixLen := uint8(fabricEdgeIP.Bits()) //nolint:gosec
 			switchIP := fabricEdgeIP.Addr().String()
@@ -1327,7 +1331,14 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 
-			if attach.InboundACL != nil {
+			if !attach.Static.Proxy {
+				if err := planHardenedInboundACL(spec, name, switchIP, attach.InboundACL); err != nil {
+					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
+				}
+				spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
+					Ingress: pointer.To(extInboundACLName(name)),
+				}
+			} else if attach.InboundACL != nil {
 				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
 					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 				}
@@ -1341,89 +1352,159 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+func aclStatementToEntry(stmt vpcapi.ACLStatement) (*dozer.SpecACLEntry, error) {
+	entry := &dozer.SpecACLEntry{}
+
+	if stmt.Permit {
+		entry.Action = dozer.SpecACLEntryActionAccept
+	} else {
+		entry.Action = dozer.SpecACLEntryActionDrop
+	}
+
+	switch stmt.Protocol {
+	case vpcapi.ACLProtocolIP:
+		entry.Protocol = dozer.SpecACLEntryProtocolIP
+	case vpcapi.ACLProtocolTCP:
+		entry.Protocol = dozer.SpecACLEntryProtocolTCP
+	case vpcapi.ACLProtocolUDP:
+		entry.Protocol = dozer.SpecACLEntryProtocolUDP
+	case vpcapi.ACLProtocolICMP:
+		entry.Protocol = dozer.SpecACLEntryProtocolICMP
+	default:
+		return nil, errors.Errorf("unknown ACL protocol %q in statement %d", stmt.Protocol, stmt.Seq)
+	}
+
+	if stmt.SrcPrefix != vpcapi.ACLAny {
+		entry.SourceAddress = pointer.To(stmt.SrcPrefix)
+	}
+	if stmt.DstPrefix != vpcapi.ACLAny {
+		entry.DestinationAddress = pointer.To(stmt.DstPrefix)
+	}
+
+	if stmt.PortRangeBegin > 0 || stmt.PortRangeEnd > 0 {
+		if stmt.PortRangeBegin == stmt.PortRangeEnd {
+			entry.DestinationPort = pointer.To(stmt.PortRangeBegin)
+		} else {
+			entry.DestinationPortRange = pointer.To(fmt.Sprintf("%d..%d", stmt.PortRangeBegin, stmt.PortRangeEnd))
+		}
+	}
+
+	if stmt.TCPFilters != nil {
+		if stmt.TCPFilters.Established {
+			entry.TCPSessionEstablished = pointer.To(true)
+		}
+		var flags []dozer.SpecACLEntryTCPFlag
+		for _, mapping := range []struct {
+			set  bool
+			flag dozer.SpecACLEntryTCPFlag
+		}{
+			{stmt.TCPFilters.Fin, dozer.SpecACLEntryTCPFlagFin},
+			{stmt.TCPFilters.NotFin, dozer.SpecACLEntryTCPFlagNotFin},
+			{stmt.TCPFilters.Syn, dozer.SpecACLEntryTCPFlagSyn},
+			{stmt.TCPFilters.NotSyn, dozer.SpecACLEntryTCPFlagNotSyn},
+			{stmt.TCPFilters.Rst, dozer.SpecACLEntryTCPFlagRst},
+			{stmt.TCPFilters.NotRst, dozer.SpecACLEntryTCPFlagNotRst},
+			{stmt.TCPFilters.Psh, dozer.SpecACLEntryTCPFlagPsh},
+			{stmt.TCPFilters.NotPsh, dozer.SpecACLEntryTCPFlagNotPsh},
+			{stmt.TCPFilters.Ack, dozer.SpecACLEntryTCPFlagAck},
+			{stmt.TCPFilters.NotAck, dozer.SpecACLEntryTCPFlagNotAck},
+			{stmt.TCPFilters.Urg, dozer.SpecACLEntryTCPFlagUrg},
+			{stmt.TCPFilters.NotUrg, dozer.SpecACLEntryTCPFlagNotUrg},
+		} {
+			if mapping.set {
+				flags = append(flags, mapping.flag)
+			}
+		}
+		if len(flags) > 0 {
+			entry.TCPFlags = flags
+		}
+	}
+
+	entry.ICMPType = stmt.ICMPType
+	entry.ICMPCode = stmt.ICMPCode
+
+	return entry, nil
+}
+
 func planInboundACL(spec *dozer.Spec, attachName string, aclSpec *vpcapi.ACLSpec) error {
 	dozerName := extInboundACLName(attachName)
 	if _, exists := spec.ACLs[dozerName]; exists {
-		return nil // already planned
+		return nil
 	}
 
 	entries := map[uint32]*dozer.SpecACLEntry{}
 	for _, stmt := range aclSpec.Statements {
-		entry := &dozer.SpecACLEntry{}
-
-		if stmt.Permit {
-			entry.Action = dozer.SpecACLEntryActionAccept
-		} else {
-			entry.Action = dozer.SpecACLEntryActionDrop
+		entry, err := aclStatementToEntry(stmt)
+		if err != nil {
+			return err
 		}
-
-		switch stmt.Protocol {
-		case vpcapi.ACLProtocolIP:
-			entry.Protocol = dozer.SpecACLEntryProtocolIP
-		case vpcapi.ACLProtocolTCP:
-			entry.Protocol = dozer.SpecACLEntryProtocolTCP
-		case vpcapi.ACLProtocolUDP:
-			entry.Protocol = dozer.SpecACLEntryProtocolUDP
-		case vpcapi.ACLProtocolICMP:
-			entry.Protocol = dozer.SpecACLEntryProtocolICMP
-		default:
-			return errors.Errorf("unknown ACL protocol %q in statement %d", stmt.Protocol, stmt.Seq)
-		}
-
-		if stmt.SrcPrefix != vpcapi.ACLAny {
-			entry.SourceAddress = pointer.To(stmt.SrcPrefix)
-		}
-		if stmt.DstPrefix != vpcapi.ACLAny {
-			entry.DestinationAddress = pointer.To(stmt.DstPrefix)
-		}
-
-		if stmt.PortRangeBegin > 0 || stmt.PortRangeEnd > 0 {
-			if stmt.PortRangeBegin == stmt.PortRangeEnd {
-				entry.DestinationPort = pointer.To(stmt.PortRangeBegin)
-			} else {
-				entry.DestinationPortRange = pointer.To(fmt.Sprintf("%d..%d", stmt.PortRangeBegin, stmt.PortRangeEnd))
-			}
-		}
-
-		if stmt.TCPFilters != nil {
-			if stmt.TCPFilters.Established {
-				entry.TCPSessionEstablished = pointer.To(true)
-			}
-			var flags []dozer.SpecACLEntryTCPFlag
-			for _, mapping := range []struct {
-				set  bool
-				flag dozer.SpecACLEntryTCPFlag
-			}{
-				{stmt.TCPFilters.Fin, dozer.SpecACLEntryTCPFlagFin},
-				{stmt.TCPFilters.NotFin, dozer.SpecACLEntryTCPFlagNotFin},
-				{stmt.TCPFilters.Syn, dozer.SpecACLEntryTCPFlagSyn},
-				{stmt.TCPFilters.NotSyn, dozer.SpecACLEntryTCPFlagNotSyn},
-				{stmt.TCPFilters.Rst, dozer.SpecACLEntryTCPFlagRst},
-				{stmt.TCPFilters.NotRst, dozer.SpecACLEntryTCPFlagNotRst},
-				{stmt.TCPFilters.Psh, dozer.SpecACLEntryTCPFlagPsh},
-				{stmt.TCPFilters.NotPsh, dozer.SpecACLEntryTCPFlagNotPsh},
-				{stmt.TCPFilters.Ack, dozer.SpecACLEntryTCPFlagAck},
-				{stmt.TCPFilters.NotAck, dozer.SpecACLEntryTCPFlagNotAck},
-				{stmt.TCPFilters.Urg, dozer.SpecACLEntryTCPFlagUrg},
-				{stmt.TCPFilters.NotUrg, dozer.SpecACLEntryTCPFlagNotUrg},
-			} {
-				if mapping.set {
-					flags = append(flags, mapping.flag)
-				}
-			}
-			if len(flags) > 0 {
-				entry.TCPFlags = flags
-			}
-		}
-
-		if stmt.ICMPType != nil {
-			entry.ICMPType = pointer.To(*stmt.ICMPType)
-		}
-		if stmt.ICMPCode != nil {
-			entry.ICMPCode = pointer.To(*stmt.ICMPCode)
-		}
-
 		entries[uint32(stmt.Seq)] = entry
+	}
+
+	spec.ACLs[dozerName] = &dozer.SpecACL{
+		Description: pointer.To(fmt.Sprintf("Inbound ACL %s", attachName)),
+		Entries:     entries,
+	}
+
+	return nil
+}
+
+func planHardenedInboundACL(spec *dozer.Spec, attachName string, switchIP string, userACL *vpcapi.ACLSpec) error {
+	dozerName := extInboundACLName(attachName)
+	if _, exists := spec.ACLs[dozerName]; exists {
+		return nil
+	}
+
+	dstAddr := switchIP + "/32"
+
+	entries := map[uint32]*dozer.SpecACLEntry{
+		1: {
+			Protocol:           dozer.SpecACLEntryProtocolTCP,
+			DestinationAddress: pointer.To(dstAddr),
+			DestinationPort:    pointer.To(uint16(443)),
+			Action:             dozer.SpecACLEntryActionDrop,
+		},
+		2: {
+			Protocol:           dozer.SpecACLEntryProtocolTCP,
+			DestinationAddress: pointer.To(dstAddr),
+			DestinationPort:    pointer.To(uint16(8080)),
+			Action:             dozer.SpecACLEntryActionDrop,
+		},
+		3: {
+			Protocol:           dozer.SpecACLEntryProtocolUDP,
+			DestinationAddress: pointer.To(dstAddr),
+			DestinationPort:    pointer.To(uint16(67)),
+			Action:             dozer.SpecACLEntryActionDrop,
+		},
+		4: {
+			Protocol:           dozer.SpecACLEntryProtocolUDP,
+			DestinationAddress: pointer.To(dstAddr),
+			DestinationPort:    pointer.To(uint16(161)),
+			Action:             dozer.SpecACLEntryActionDrop,
+		},
+		5: {
+			Protocol:           dozer.SpecACLEntryProtocolUDP,
+			DestinationAddress: pointer.To(dstAddr),
+			DestinationPort:    pointer.To(uint16(4789)),
+			Action:             dozer.SpecACLEntryActionDrop,
+		},
+	}
+
+	if userACL != nil {
+		for _, stmt := range userACL.Statements {
+			if stmt.Seq < 10 {
+				return fmt.Errorf("invalid user ACL statement with sequence number %d in the reserved range", stmt.Seq) //nolint:err113
+			}
+			entry, err := aclStatementToEntry(stmt)
+			if err != nil {
+				return err
+			}
+			entries[uint32(stmt.Seq)] = entry
+		}
+	} else {
+		entries[65535] = &dozer.SpecACLEntry{
+			Action: dozer.SpecACLEntryActionAccept,
+		}
 	}
 
 	spec.ACLs[dozerName] = &dozer.SpecACL{

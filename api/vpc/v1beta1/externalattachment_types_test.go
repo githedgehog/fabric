@@ -350,6 +350,17 @@ func TestExternalAttachmentInboundACLValidation(t *testing.T) {
 			err: true,
 		},
 		{
+			name: "sequence number below minimum",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       9,
+				Permit:    true,
+				Protocol:  v1beta1.ACLProtocolTCP,
+				SrcPrefix: v1beta1.ACLAny,
+				DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
 			name: "invalid protocol",
 			extAtt: extAttWithACL(v1beta1.ACLStatement{
 				Seq: 10, Permit: true, Protocol: "gre", SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
