@@ -2041,6 +2041,18 @@
       vni: 401
   weight: 73
 - path: /acl/acl-sets/acl-set
+  summary: Create ACL ext-inbound--leaf-03--ext-bgp-01 base
+  type: update
+  value:
+    acl-set:
+    - config:
+        description: Inbound ACL leaf-03--ext-bgp-01
+        name: ext-inbound--leaf-03--ext-bgp-01
+        type: ACL_IPV4
+      name: ext-inbound--leaf-03--ext-bgp-01
+      type: ACL_IPV4
+  weight: 74
+- path: /acl/acl-sets/acl-set
   summary: Create ACL ipns-egress--default base
   type: update
   value:
@@ -2064,6 +2076,113 @@
       name: no-ipns-peering--default
       type: ACL_IPV4
   weight: 74
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-03--ext-bgp-01][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 1
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 1
+      ipv4:
+        config:
+          destination-address: 100.1.10.1/32
+          protocol: IP_TCP
+      sequence-id: 1
+      transport:
+        config:
+          destination-port: 443
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-03--ext-bgp-01][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 2
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 2
+      ipv4:
+        config:
+          destination-address: 100.1.10.1/32
+          protocol: IP_TCP
+      sequence-id: 2
+      transport:
+        config:
+          destination-port: 8080
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-03--ext-bgp-01][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 3
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 3
+      ipv4:
+        config:
+          destination-address: 100.1.10.1/32
+          protocol: IP_UDP
+      sequence-id: 3
+      transport:
+        config:
+          destination-port: 67
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-03--ext-bgp-01][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 4
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 4
+      ipv4:
+        config:
+          destination-address: 100.1.10.1/32
+          protocol: IP_UDP
+      sequence-id: 4
+      transport:
+        config:
+          destination-port: 161
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-03--ext-bgp-01][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 5
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 5
+      ipv4:
+        config:
+          destination-address: 100.1.10.1/32
+          protocol: IP_UDP
+      sequence-id: 5
+      transport:
+        config:
+          destination-port: 4789
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-03--ext-bgp-01][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 65535
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: ACCEPT
+      config:
+        sequence-id: 65535
+      sequence-id: 65535
+  weight: 76
 - path: /acl/acl-sets/acl-set[name=ipns-egress--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 10
   type: update
@@ -2138,6 +2257,17 @@
         config:
           interface: Ethernet0
           subinterface: 10
+  weight: 77
+- path: /acl/interfaces/interface[id=Ethernet0.10]/ingress-acl-sets/ingress-acl-set
+  summary: Update ACL interface Ethernet0.10 ingress
+  type: update
+  value:
+    ingress-acl-set:
+    - config:
+        set-name: ext-inbound--leaf-03--ext-bgp-01
+        type: ACL_IPV4
+      set-name: ext-inbound--leaf-03--ext-bgp-01
+      type: ACL_IPV4
   weight: 77
 - path: /acl/interfaces/interface[id=Vlan3000]
   summary: Create ACL interface Vlan3000

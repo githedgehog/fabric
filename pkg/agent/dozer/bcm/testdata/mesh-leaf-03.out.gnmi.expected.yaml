@@ -7,6 +7,85 @@ acl:
             config:
               forwarding-action: DROP
           config:
+            sequence-id: 1
+          ipv4:
+            config:
+              destination-address: 100.1.10.1/32
+              protocol: IP_TCP
+          sequence-id: 1
+          transport:
+            config:
+              destination-port: 443
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 2
+          ipv4:
+            config:
+              destination-address: 100.1.10.1/32
+              protocol: IP_TCP
+          sequence-id: 2
+          transport:
+            config:
+              destination-port: 8080
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 3
+          ipv4:
+            config:
+              destination-address: 100.1.10.1/32
+              protocol: IP_UDP
+          sequence-id: 3
+          transport:
+            config:
+              destination-port: 67
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 4
+          ipv4:
+            config:
+              destination-address: 100.1.10.1/32
+              protocol: IP_UDP
+          sequence-id: 4
+          transport:
+            config:
+              destination-port: 161
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 5
+          ipv4:
+            config:
+              destination-address: 100.1.10.1/32
+              protocol: IP_UDP
+          sequence-id: 5
+          transport:
+            config:
+              destination-port: 4789
+        - actions:
+            config:
+              forwarding-action: ACCEPT
+          config:
+            sequence-id: 65535
+          sequence-id: 65535
+      config:
+        description: Inbound ACL leaf-03--ext-bgp-01
+        name: ext-inbound--leaf-03--ext-bgp-01
+        type: ACL_IPV4
+      name: ext-inbound--leaf-03--ext-bgp-01
+      type: ACL_IPV4
+    - acl-entries:
+        acl-entry:
+        - actions:
+            config:
+              forwarding-action: DROP
+          config:
             sequence-id: 10
           ipv4:
             config:
@@ -60,6 +139,13 @@ acl:
           set-name: ipns-egress--default
           type: ACL_IPV4
       id: Ethernet0.10
+      ingress-acl-sets:
+        ingress-acl-set:
+        - config:
+            set-name: ext-inbound--leaf-03--ext-bgp-01
+            type: ACL_IPV4
+          set-name: ext-inbound--leaf-03--ext-bgp-01
+          type: ACL_IPV4
       interface-ref:
         config:
           interface: Ethernet0
