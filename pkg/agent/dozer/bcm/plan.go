@@ -1462,31 +1462,31 @@ func planHardenedInboundACL(spec *dozer.Spec, attachName string, switchIP string
 			Protocol:           dozer.SpecACLEntryProtocolTCP,
 			DestinationAddress: pointer.To(dstAddr),
 			DestinationPort:    pointer.To(uint16(443)),
-			Action:             dozer.SpecACLEntryActionDrop,
+			Action:             dozer.SpecACLEntryActionDiscard,
 		},
 		2: {
 			Protocol:           dozer.SpecACLEntryProtocolTCP,
 			DestinationAddress: pointer.To(dstAddr),
 			DestinationPort:    pointer.To(uint16(8080)),
-			Action:             dozer.SpecACLEntryActionDrop,
+			Action:             dozer.SpecACLEntryActionDiscard,
 		},
 		3: {
 			Protocol:           dozer.SpecACLEntryProtocolUDP,
 			DestinationAddress: pointer.To(dstAddr),
 			DestinationPort:    pointer.To(uint16(67)),
-			Action:             dozer.SpecACLEntryActionDrop,
+			Action:             dozer.SpecACLEntryActionDiscard,
 		},
 		4: {
 			Protocol:           dozer.SpecACLEntryProtocolUDP,
 			DestinationAddress: pointer.To(dstAddr),
 			DestinationPort:    pointer.To(uint16(161)),
-			Action:             dozer.SpecACLEntryActionDrop,
+			Action:             dozer.SpecACLEntryActionDiscard,
 		},
 		5: {
 			Protocol:           dozer.SpecACLEntryProtocolUDP,
 			DestinationAddress: pointer.To(dstAddr),
 			DestinationPort:    pointer.To(uint16(4789)),
-			Action:             dozer.SpecACLEntryActionDrop,
+			Action:             dozer.SpecACLEntryActionDiscard,
 		},
 	}
 
