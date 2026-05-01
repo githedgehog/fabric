@@ -5,7 +5,7 @@ acl:
         acl-entry:
         - actions:
             config:
-              forwarding-action: DROP
+              forwarding-action: DISCARD
           config:
             sequence-id: 1
           ipv4:
@@ -18,7 +18,7 @@ acl:
               destination-port: 443
         - actions:
             config:
-              forwarding-action: DROP
+              forwarding-action: DISCARD
           config:
             sequence-id: 2
           ipv4:
@@ -31,7 +31,7 @@ acl:
               destination-port: 8080
         - actions:
             config:
-              forwarding-action: DROP
+              forwarding-action: DISCARD
           config:
             sequence-id: 3
           ipv4:
@@ -44,7 +44,7 @@ acl:
               destination-port: 67
         - actions:
             config:
-              forwarding-action: DROP
+              forwarding-action: DISCARD
           config:
             sequence-id: 4
           ipv4:
@@ -57,7 +57,7 @@ acl:
               destination-port: 161
         - actions:
             config:
-              forwarding-action: DROP
+              forwarding-action: DISCARD
           config:
             sequence-id: 5
           ipv4:

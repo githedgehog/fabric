@@ -3390,7 +3390,7 @@
     acl-entry:
     - actions:
         config:
-          forwarding-action: DROP
+          forwarding-action: DISCARD
       config:
         sequence-id: 1
       ipv4:
@@ -3409,7 +3409,7 @@
     acl-entry:
     - actions:
         config:
-          forwarding-action: DROP
+          forwarding-action: DISCARD
       config:
         sequence-id: 2
       ipv4:
@@ -3428,7 +3428,7 @@
     acl-entry:
     - actions:
         config:
-          forwarding-action: DROP
+          forwarding-action: DISCARD
       config:
         sequence-id: 3
       ipv4:
@@ -3447,7 +3447,7 @@
     acl-entry:
     - actions:
         config:
-          forwarding-action: DROP
+          forwarding-action: DISCARD
       config:
         sequence-id: 4
       ipv4:
@@ -3466,7 +3466,7 @@
     acl-entry:
     - actions:
         config:
-          forwarding-action: DROP
+          forwarding-action: DISCARD
       config:
         sequence-id: 5
       ipv4:
