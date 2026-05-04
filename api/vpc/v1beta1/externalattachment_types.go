@@ -33,13 +33,18 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type ACLProtocol string
+type ACLAction string
 
 const (
-	ACLProtocolIP   ACLProtocol = "ip"
-	ACLProtocolTCP  ACLProtocol = "tcp"
-	ACLProtocolUDP  ACLProtocol = "udp"
-	ACLProtocolICMP ACLProtocol = "icmp"
-	ACLAny                      = "any"
+	ACLProtocolIP    ACLProtocol = "ip"
+	ACLProtocolTCP   ACLProtocol = "tcp"
+	ACLProtocolUDP   ACLProtocol = "udp"
+	ACLProtocolICMP  ACLProtocol = "icmp"
+	ACLAny                       = "any"
+	ACLActionPermit  ACLAction   = "permit"
+	ACLActionDeny    ACLAction   = "deny"
+	ACLActionDiscard ACLAction   = "discard"
+	ACLActionTransit ACLAction   = "transit"
 	// ACLUserMinSeq is the minimum sequence number allowed for user-defined ACL rules.
 	// Sequence numbers below this are reserved for hardcoded security rules.
 	ACLUserMinSeq = 10
@@ -50,6 +55,13 @@ var ACLProtocols = []ACLProtocol{
 	ACLProtocolTCP,
 	ACLProtocolUDP,
 	ACLProtocolICMP,
+}
+
+var ACLActions = []ACLAction{
+	ACLActionDeny,
+	ACLActionDiscard,
+	ACLActionPermit,
+	ACLActionTransit,
 }
 
 type ACLTCPFilters struct {
@@ -70,7 +82,7 @@ type ACLTCPFilters struct {
 
 type ACLStatement struct {
 	Seq            uint16         `json:"seq"`
-	Permit         bool           `json:"permit"`
+	Action         ACLAction      `json:"action"`
 	Protocol       ACLProtocol    `json:"protocol"`
 	SrcPrefix      string         `json:"srcPrefix"`
 	DstPrefix      string         `json:"dstPrefix"`
@@ -100,6 +112,10 @@ func (spec *ACLSpec) Validate() (admission.Warnings, error) {
 			return nil, errors.Errorf("duplicate sequence number %d", stmt.Seq)
 		}
 		seqNos[stmt.Seq] = true
+
+		if !slices.Contains(ACLActions, stmt.Action) {
+			return nil, errors.Errorf("invalid action %q in statement %d", stmt.Action, stmt.Seq)
+		}
 
 		if !slices.Contains(ACLProtocols, stmt.Protocol) {
 			return nil, errors.Errorf("invalid protocol %q in statement %d", stmt.Protocol, stmt.Seq)

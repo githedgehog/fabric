@@ -39,9 +39,24 @@ acls:
         destinationAddress: 100.1.20.2/32
         destinationPort: 22
         protocol: TCP
-      "65535":
+      "15":
         action: ACCEPT
-        protocol: IP
+        destinationAddress: 10.50.10.3/32
+        destinationPort: 22
+        protocol: TCP
+      "20":
+        action: DROP
+        destinationAddress: 10.50.10.3/32
+        destinationPort: 4789
+        protocol: UDP
+      "25":
+        action: DISCARD
+        destinationAddress: 10.50.10.3/32
+        protocol: TCP
+      "30":
+        action: TRANSIT
+        destinationAddress: 10.50.10.3/32
+        protocol: UDP
   ipns-egress--default:
     entries:
       "10":

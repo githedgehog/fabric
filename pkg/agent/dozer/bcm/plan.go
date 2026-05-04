@@ -1355,10 +1355,17 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 func aclStatementToEntry(stmt vpcapi.ACLStatement) (*dozer.SpecACLEntry, error) {
 	entry := &dozer.SpecACLEntry{}
 
-	if stmt.Permit {
+	switch stmt.Action {
+	case vpcapi.ACLActionPermit:
 		entry.Action = dozer.SpecACLEntryActionAccept
-	} else {
+	case vpcapi.ACLActionDeny:
 		entry.Action = dozer.SpecACLEntryActionDrop
+	case vpcapi.ACLActionTransit:
+		entry.Action = dozer.SpecACLEntryActionTransit
+	case vpcapi.ACLActionDiscard:
+		entry.Action = dozer.SpecACLEntryActionDiscard
+	default:
+		return nil, errors.Errorf("unknown ACL action %q in statement %d", stmt.Action, stmt.Seq)
 	}
 
 	switch stmt.Protocol {
