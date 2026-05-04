@@ -3233,6 +3233,25 @@
           destination-port: 4789
   weight: 76
 - path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-01--ext-snp-02][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 6
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DISCARD
+      config:
+        sequence-id: 6
+      ipv4:
+        config:
+          destination-address: 100.1.20.2/32
+          protocol: IP_TCP
+      sequence-id: 6
+      transport:
+        config:
+          destination-port: 22
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-01--ext-snp-02][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 65535
   type: update
   value:
