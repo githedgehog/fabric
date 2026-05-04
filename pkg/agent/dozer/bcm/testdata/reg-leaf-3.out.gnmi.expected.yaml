@@ -70,6 +70,19 @@ acl:
               destination-port: 4789
         - actions:
             config:
+              forwarding-action: DISCARD
+          config:
+            sequence-id: 6
+          ipv4:
+            config:
+              destination-address: 100.1.10.1/32
+              protocol: IP_TCP
+          sequence-id: 6
+          transport:
+            config:
+              destination-port: 22
+        - actions:
+            config:
               forwarding-action: ACCEPT
           config:
             sequence-id: 65535

@@ -33,6 +33,11 @@ acls:
         destinationAddress: 100.1.10.1/32
         destinationPort: 4789
         protocol: UDP
+      "6":
+        action: DISCARD
+        destinationAddress: 100.1.10.1/32
+        destinationPort: 22
+        protocol: TCP
       "65535":
         action: ACCEPT
         protocol: IP
