@@ -3252,7 +3252,7 @@
           destination-port: 22
   weight: 76
 - path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-01--ext-snp-02][type=ACL_IPV4]/acl-entries/acl-entry
-  summary: Create ACL entry 65535
+  summary: Create ACL entry 15
   type: update
   value:
     acl-entry:
@@ -3260,8 +3260,66 @@
         config:
           forwarding-action: ACCEPT
       config:
-        sequence-id: 65535
-      sequence-id: 65535
+        sequence-id: 15
+      ipv4:
+        config:
+          destination-address: 10.50.10.3/32
+          protocol: IP_TCP
+      sequence-id: 15
+      transport:
+        config:
+          destination-port: 22
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-01--ext-snp-02][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 20
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DROP
+      config:
+        sequence-id: 20
+      ipv4:
+        config:
+          destination-address: 10.50.10.3/32
+          protocol: IP_UDP
+      sequence-id: 20
+      transport:
+        config:
+          destination-port: 4789
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-01--ext-snp-02][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 25
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: DISCARD
+      config:
+        sequence-id: 25
+      ipv4:
+        config:
+          destination-address: 10.50.10.3/32
+          protocol: IP_TCP
+      sequence-id: 25
+  weight: 76
+- path: /acl/acl-sets/acl-set[name=ext-inbound--leaf-01--ext-snp-02][type=ACL_IPV4]/acl-entries/acl-entry
+  summary: Create ACL entry 30
+  type: update
+  value:
+    acl-entry:
+    - actions:
+        config:
+          forwarding-action: TRANSIT
+      config:
+        sequence-id: 30
+      ipv4:
+        config:
+          destination-address: 10.50.10.3/32
+          protocol: IP_UDP
+      sequence-id: 30
   weight: 76
 - path: /acl/acl-sets/acl-set[name=ipns-egress--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 10

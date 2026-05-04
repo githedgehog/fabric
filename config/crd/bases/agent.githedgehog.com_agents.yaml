@@ -970,14 +970,14 @@ spec:
                         statements:
                           items:
                             properties:
+                              action:
+                                type: string
                               dstPrefix:
                                 type: string
                               icmpCode:
                                 type: integer
                               icmpType:
                                 type: integer
-                              permit:
-                                type: boolean
                               portRangeBegin:
                                 type: integer
                               portRangeEnd:
@@ -1018,8 +1018,8 @@ spec:
                                     type: boolean
                                 type: object
                             required:
+                            - action
                             - dstPrefix
-                            - permit
                             - protocol
                             - seq
                             - srcPrefix

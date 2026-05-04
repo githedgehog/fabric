@@ -176,6 +176,32 @@ spec:
         remoteIP: 100.1.20.1
         vlan: 20
       switch: {}
+      inboundACL:
+        statements:
+          - seq: 15
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+            portRangeBegin: 22
+            portRangeEnd: 22
+          - seq: 20
+            action: deny
+            protocol: udp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+            portRangeBegin: 4789
+            portRangeEnd: 4789
+          - seq: 25
+            action: discard
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+          - seq: 30
+            action: transit
+            protocol: udp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
     leaf-01--ext-sp-01:
       connection: leaf-01--external
       external: ext-sp-01

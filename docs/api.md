@@ -1627,6 +1627,25 @@ and Externals APIs. Intended to be used by the user.
 
 
 
+#### ACLAction
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [ACLStatement](#aclstatement)
+
+| Field | Description |
+| --- | --- |
+| `permit` |  |
+| `deny` |  |
+| `discard` |  |
+| `transit` |  |
+
+
 #### ACLProtocol
 
 _Underlying type:_ _string_
@@ -1676,7 +1695,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `seq` _integer_ |  |  |  |
-| `permit` _boolean_ |  |  |  |
+| `action` _[ACLAction](#aclaction)_ |  |  |  |
 | `protocol` _[ACLProtocol](#aclprotocol)_ |  |  |  |
 | `srcPrefix` _string_ |  |  |  |
 | `dstPrefix` _string_ |  |  |  |

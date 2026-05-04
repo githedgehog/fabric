@@ -18,6 +18,19 @@ acl:
               destination-port: 443
         - actions:
             config:
+              forwarding-action: ACCEPT
+          config:
+            sequence-id: 15
+          ipv4:
+            config:
+              destination-address: 10.50.10.3/32
+              protocol: IP_TCP
+          sequence-id: 15
+          transport:
+            config:
+              destination-port: 22
+        - actions:
+            config:
               forwarding-action: DISCARD
           config:
             sequence-id: 2
@@ -31,6 +44,29 @@ acl:
               destination-port: 8080
         - actions:
             config:
+              forwarding-action: DROP
+          config:
+            sequence-id: 20
+          ipv4:
+            config:
+              destination-address: 10.50.10.3/32
+              protocol: IP_UDP
+          sequence-id: 20
+          transport:
+            config:
+              destination-port: 4789
+        - actions:
+            config:
+              forwarding-action: DISCARD
+          config:
+            sequence-id: 25
+          ipv4:
+            config:
+              destination-address: 10.50.10.3/32
+              protocol: IP_TCP
+          sequence-id: 25
+        - actions:
+            config:
               forwarding-action: DISCARD
           config:
             sequence-id: 3
@@ -42,6 +78,16 @@ acl:
           transport:
             config:
               destination-port: 67
+        - actions:
+            config:
+              forwarding-action: TRANSIT
+          config:
+            sequence-id: 30
+          ipv4:
+            config:
+              destination-address: 10.50.10.3/32
+              protocol: IP_UDP
+          sequence-id: 30
         - actions:
             config:
               forwarding-action: DISCARD
@@ -81,12 +127,6 @@ acl:
           transport:
             config:
               destination-port: 22
-        - actions:
-            config:
-              forwarding-action: ACCEPT
-          config:
-            sequence-id: 65535
-          sequence-id: 65535
       config:
         description: Inbound ACL leaf-01--ext-snp-02
         name: ext-inbound--leaf-01--ext-snp-02
