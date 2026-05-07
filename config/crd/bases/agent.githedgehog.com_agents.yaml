@@ -2509,8 +2509,13 @@ spec:
                           type: object
                         enabled:
                           type: boolean
+                        errDisabled:
+                          type: boolean
                         fec:
                           type: string
+                        linkFlapCount:
+                          format: int32
+                          type: integer
                         lldpNeighbors:
                           items:
                             properties:

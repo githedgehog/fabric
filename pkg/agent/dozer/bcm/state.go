@@ -33,9 +33,14 @@ import (
 )
 
 const (
-	fanIgnore         = ""
-	psuIgnore         = "None"
-	temperatureIgnore = "N/A"
+	fanIgnore                    = ""
+	psuIgnore                    = "None"
+	temperatureIgnore            = "N/A"
+	errDisablePortStatusDisabled = "disabled"
+	errDisableLinkFlapCause      = "link-flap"
+	// gRPC NotFound is returned when a YANG path has no data yet (e.g. errdisable on a fresh switch).
+	// TODO: rework gnmi client to surface this as a typed sentinel instead of string matching.
+	errGRPCNotFound = "rpc error: code = NotFound"
 )
 
 func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error {
@@ -96,6 +101,10 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 
 	if err := p.updateLLDPNeighbors(ctx, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update lldp neighbors")
+	}
+
+	if err := p.updateErrDisableState(ctx, swState, portMap); err != nil {
+		return errors.Wrapf(err, "failed to update errdisable state")
 	}
 
 	if err := p.updateBGPNeighborMetrics(ctx, reg, swState); err != nil {
@@ -717,6 +726,54 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 	return nil
 }
 
+func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
+	ocErrDisable := &oc.OpenconfigErrdisableExt_ErrdisablePort{}
+	if err := p.client.Get(ctx, "/openconfig-errdisable-ext:errdisable-port/port", ocErrDisable); err != nil {
+		if strings.Contains(err.Error(), errGRPCNotFound) {
+			return nil
+		}
+
+		return errors.Wrapf(err, "failed to get errdisable port state")
+	}
+
+	for nosName, port := range ocErrDisable.Port {
+		if port.LinkFlap == nil || port.LinkFlap.State == nil || port.LinkFlap.State.Status == nil {
+			continue
+		}
+
+		ifaceName, exists := portMap[nosName]
+		if !exists {
+			continue
+		}
+
+		intSt := swState.Interfaces[ifaceName]
+		intSt.ErrDisabled = *port.LinkFlap.State.Status == errDisablePortStatusDisabled
+		swState.Interfaces[ifaceName] = intSt
+	}
+
+	// The link-flap counter is not in the OpenConfig state model; read it from the SONiC
+	// native table as a best-effort secondary source.
+	ocPortErrTable := &oc.SonicErrdisable_SonicErrdisable_PORT_ERR_DISABLE_TABLE{}
+	if err := p.client.Get(ctx, "/sonic-errdisable/sonic-errdisable/PORT_ERR_DISABLE_TABLE", ocPortErrTable); err == nil {
+		for nosName, entry := range ocPortErrTable.PORT_ERR_DISABLE_TABLE_LIST {
+			if entry.ErrorDisable == nil || *entry.ErrorDisable != errDisableLinkFlapCause || entry.LinkFlaps == nil {
+				continue
+			}
+
+			ifaceName, exists := portMap[nosName]
+			if !exists {
+				continue
+			}
+
+			intSt := swState.Interfaces[ifaceName]
+			intSt.LinkFlapCount = entry.LinkFlaps
+			swState.Interfaces[ifaceName] = intSt
+		}
+	}
+
+	return nil
+}
+
 func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
 	sonicVRFs := &oc.SonicVrf_SonicVrf_VRF{}
 	if err := p.client.Get(ctx, "/sonic-vrf/VRF/VRF_LIST", sonicVRFs, api.DataTypeCONFIG()); err != nil {
@@ -731,7 +788,7 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 		neighs := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{}
 		path := fmt.Sprintf("/network-instances/network-instance[name=%s]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor", vrfName)
 		if err := p.client.Get(ctx, path, neighs); err != nil {
-			if !strings.Contains(err.Error(), "rpc error: code = NotFound") { // TODO rework client to handle it
+			if !strings.Contains(err.Error(), errGRPCNotFound) {
 				return errors.Wrapf(err, "failed to get bgp neighbors for vrf %s", vrfName)
 			}
 		}
@@ -1707,7 +1764,7 @@ func cleanupFloat(val float64) float64 {
 func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
 	ocBFD := &oc.OpenconfigBfd_Bfd{}
 	if err := p.client.Get(ctx, "/openconfig-bfd:bfd/openconfig-bfd-ext:bfd-shop-sessions", ocBFD); err != nil {
-		if !strings.Contains(err.Error(), "rpc error: code = NotFound") {
+		if !strings.Contains(err.Error(), errGRPCNotFound) {
 			return errors.Wrapf(err, "failed to get bfd shop sessions")
 		}
 
