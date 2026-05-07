@@ -2598,6 +2598,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet5]/link-flap
   summary: Create ErrDisable Interface Ethernet5
@@ -2606,6 +2609,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet6]/link-flap
   summary: Create ErrDisable Interface Ethernet6
@@ -2614,6 +2620,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet7]/link-flap
   summary: Create ErrDisable Interface Ethernet7
@@ -2622,6 +2631,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet8]/link-flap
   summary: Create ErrDisable Interface Ethernet8
@@ -2630,6 +2642,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.11]
   summary: Create VRF BGP neighbor 172.30.128.11

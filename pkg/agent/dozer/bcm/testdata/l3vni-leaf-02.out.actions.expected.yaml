@@ -2845,6 +2845,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet4]/link-flap
   summary: Create ErrDisable Interface Ethernet4
@@ -2853,6 +2856,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet5]/link-flap
   summary: Create ErrDisable Interface Ethernet5
@@ -2861,6 +2867,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet6]/link-flap
   summary: Create ErrDisable Interface Ethernet6
@@ -2869,6 +2878,9 @@
     link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
   weight: 82
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=Ethernet1.1001]
   summary: Create VRF BGP neighbor Ethernet1.1001

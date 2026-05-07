@@ -46,46 +46,79 @@ errdisable-port:
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet0
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet1
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet10
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet2
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet3
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet4
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet5
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet6
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet7
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet8
   - link-flap:
       config:
         error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
     name: Ethernet9
 interfaces:
   interface:

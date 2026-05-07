@@ -106,10 +106,22 @@ ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300
 errDisableInterfaces:
-  Ethernet7: {}
-  Ethernet8: {}
-  Ethernet9: {}
-  Ethernet10: {}
+  Ethernet7:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet8:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet9:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet10:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
 hostname: leaf-01
 interfaces:
   Ethernet0:

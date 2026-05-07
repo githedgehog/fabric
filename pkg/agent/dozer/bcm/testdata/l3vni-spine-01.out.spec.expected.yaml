@@ -30,11 +30,26 @@ ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300
 errDisableInterfaces:
-  Ethernet0: {}
-  Ethernet1: {}
-  Ethernet2: {}
-  Ethernet3: {}
-  Ethernet4: {}
+  Ethernet0:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet1:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet2:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet3:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
+  Ethernet4:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
 hostname: spine-01
 interfaces:
   Ethernet0:

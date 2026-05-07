@@ -115,25 +115,28 @@ spec:
                   disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never).
                 properties:
                   flapThreshold:
+                    default: 3
                     description: |-
                       FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
-                      When nil the switch default is used (3).
+                      Defaults to 3.
                     maximum: 50
                     minimum: 1
                     type: integer
                   recoveryInterval:
+                    default: 300
                     description: |-
                       RecoveryInterval is how long in seconds before the port is automatically re-enabled.
                       0 means the port is never automatically re-enabled and must be recovered manually.
-                      When nil the switch default is used (300 s).
+                      Defaults to 300 s.
                     format: int32
                     maximum: 65534
                     minimum: 0
                     type: integer
                   samplingInterval:
+                    default: 30
                     description: |-
                       SamplingInterval is the observation window in seconds for counting flap events.
-                      When nil the switch default is used (30 s).
+                      Defaults to 30 s.
                     format: int32
                     maximum: 65535
                     minimum: 1

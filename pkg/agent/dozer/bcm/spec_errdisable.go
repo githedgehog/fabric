@@ -108,8 +108,14 @@ func unmarshalActualErrDisableInterfaces(ocVal *oc.OpenconfigErrdisableExt_Errdi
 		if port.LinkFlap == nil || port.LinkFlap.Config == nil {
 			continue
 		}
-		if cfg := port.LinkFlap.Config; cfg.ErrorDisable != nil && *cfg.ErrorDisable == errDisableLinkFlapEnabled {
-			result[name] = &dozer.SpecErrDisable{}
+		cfg := port.LinkFlap.Config
+		if cfg.ErrorDisable == nil || *cfg.ErrorDisable != errDisableLinkFlapEnabled {
+			continue
+		}
+		result[name] = &dozer.SpecErrDisable{
+			FlapThreshold:    cfg.FlapThreshold,
+			SamplingInterval: cfg.SamplingInterval,
+			RecoveryInterval: cfg.RecoveryInterval,
 		}
 	}
 
