@@ -187,6 +187,7 @@ spec:
       mac: 0c:20:12:ff:05:00
     description: VS-06
     ecmp: {}
+    linkFlapErrDisable: {}
     ip: 172.30.0.7/21
     profile: vs
     protocolIP: 172.30.8.0/32
