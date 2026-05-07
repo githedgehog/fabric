@@ -3034,9 +3034,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `flapThreshold` _integer_ | FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.<br />When nil the switch default is used (3). |  | Maximum: 50 <br />Minimum: 1 <br /> |
-| `samplingInterval` _integer_ | SamplingInterval is the observation window in seconds for counting flap events.<br />When nil the switch default is used (30 s). |  | Maximum: 65535 <br />Minimum: 1 <br /> |
-| `recoveryInterval` _integer_ | RecoveryInterval is how long in seconds before the port is automatically re-enabled.<br />0 means the port is never automatically re-enabled and must be recovered manually.<br />When nil the switch default is used (300 s). |  | Maximum: 65534 <br />Minimum: 0 <br /> |
+| `flapThreshold` _integer_ | FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.<br />Defaults to 3. | 3 | Maximum: 50 <br />Minimum: 1 <br /> |
+| `samplingInterval` _integer_ | SamplingInterval is the observation window in seconds for counting flap events.<br />Defaults to 30 s. | 30 | Maximum: 65535 <br />Minimum: 1 <br /> |
+| `recoveryInterval` _integer_ | RecoveryInterval is how long in seconds before the port is automatically re-enabled.<br />0 means the port is never automatically re-enabled and must be recovered manually.<br />Defaults to 300 s. | 300 | Maximum: 65534 <br />Minimum: 0 <br /> |
 
 
 #### SwitchProfile

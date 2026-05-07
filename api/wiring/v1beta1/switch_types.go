@@ -139,19 +139,22 @@ type SwitchECMP struct {
 type SwitchLinkFlapErrDisable struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=50
+	// +kubebuilder:default=3
 	// FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
-	// When nil the switch default is used (3).
+	// Defaults to 3.
 	FlapThreshold *uint8 `json:"flapThreshold,omitempty"`
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=30
 	// SamplingInterval is the observation window in seconds for counting flap events.
-	// When nil the switch default is used (30 s).
+	// Defaults to 30 s.
 	SamplingInterval *uint32 `json:"samplingInterval,omitempty"`
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=65534
+	// +kubebuilder:default=300
 	// RecoveryInterval is how long in seconds before the port is automatically re-enabled.
 	// 0 means the port is never automatically re-enabled and must be recovered manually.
-	// When nil the switch default is used (300 s).
+	// Defaults to 300 s.
 	RecoveryInterval *uint32 `json:"recoveryInterval,omitempty"`
 }
 
