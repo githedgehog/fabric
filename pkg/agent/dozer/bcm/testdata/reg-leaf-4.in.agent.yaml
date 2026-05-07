@@ -201,6 +201,7 @@ spec:
       mac: 0c:20:12:ff:03:00
     description: VS-04 ESLAG 1
     ecmp: {}
+    linkFlapErrDisable: {}
     groups:
       - eslag-1
     ip: 172.30.0.12/21

@@ -870,13 +870,24 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 func planLinkErrorDisable(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
+	cfg := agent.Spec.Switch.LinkFlapErrDisable
+	if cfg == nil {
+		return nil
+	}
+
+	portSpec := &dozer.SpecErrDisable{
+		FlapThreshold:    cfg.FlapThreshold,
+		SamplingInterval: cfg.SamplingInterval,
+		RecoveryInterval: cfg.RecoveryInterval,
+	}
+
 	for _, conn := range agent.Spec.Connections {
 		if conn.Fabric != nil {
 			for _, link := range conn.Fabric.Links {
 				if link.Spine.DeviceName() == agent.Name {
-					spec.ErrDisableInterfaces[link.Spine.LocalPortName()] = &dozer.SpecErrDisable{}
+					spec.ErrDisableInterfaces[link.Spine.LocalPortName()] = portSpec
 				} else if link.Leaf.DeviceName() == agent.Name {
-					spec.ErrDisableInterfaces[link.Leaf.LocalPortName()] = &dozer.SpecErrDisable{}
+					spec.ErrDisableInterfaces[link.Leaf.LocalPortName()] = portSpec
 				}
 			}
 		}
@@ -884,9 +895,9 @@ func planLinkErrorDisable(agent *agentapi.Agent, spec *dozer.Spec) error { //nol
 		if conn.Mesh != nil {
 			for _, link := range conn.Mesh.Links {
 				if link.Leaf1.DeviceName() == agent.Name {
-					spec.ErrDisableInterfaces[link.Leaf1.LocalPortName()] = &dozer.SpecErrDisable{}
+					spec.ErrDisableInterfaces[link.Leaf1.LocalPortName()] = portSpec
 				} else if link.Leaf2.DeviceName() == agent.Name {
-					spec.ErrDisableInterfaces[link.Leaf2.LocalPortName()] = &dozer.SpecErrDisable{}
+					spec.ErrDisableInterfaces[link.Leaf2.LocalPortName()] = portSpec
 				}
 			}
 		}
@@ -894,14 +905,18 @@ func planLinkErrorDisable(agent *agentapi.Agent, spec *dozer.Spec) error { //nol
 		if conn.Gateway != nil {
 			for _, link := range conn.Gateway.Links {
 				if link.Switch.DeviceName() == agent.Name {
-					spec.ErrDisableInterfaces[link.Switch.LocalPortName()] = &dozer.SpecErrDisable{}
+					spec.ErrDisableInterfaces[link.Switch.LocalPortName()] = portSpec
 				}
 			}
 		}
 	}
 
 	if len(spec.ErrDisableInterfaces) > 0 {
-		spec.ErrDisableGlobal = &dozer.SpecErrDisableGlobal{RecoveryInterval: pointer.To(uint32(300))}
+		recoveryInterval := cfg.RecoveryInterval
+		if recoveryInterval == nil {
+			recoveryInterval = pointer.To(uint32(300))
+		}
+		spec.ErrDisableGlobal = &dozer.SpecErrDisableGlobal{RecoveryInterval: recoveryInterval}
 	}
 
 	return nil

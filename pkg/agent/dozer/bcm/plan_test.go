@@ -147,6 +147,7 @@ func TestTranslatePortNames(t *testing.T) {
 					"Ethernet0":  {Groups: []string{"group1"}},
 					"Ethernet26": {Groups: []string{"group1"}},
 				},
+				ErrDisableInterfaces: map[string]*dozer.SpecErrDisable{},
 			},
 		},
 	} {

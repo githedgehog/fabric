@@ -108,6 +108,37 @@ spec:
                 description: IP is the IP of the switch that could be used to access
                   it from other switches and control nodes in the Fabric
                 type: string
+              linkFlapErrDisable:
+                description: |-
+                  LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.
+                  When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is
+                  disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never).
+                properties:
+                  flapThreshold:
+                    description: |-
+                      FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
+                      When nil the switch default is used (3).
+                    maximum: 50
+                    minimum: 1
+                    type: integer
+                  recoveryInterval:
+                    description: |-
+                      RecoveryInterval is how long in seconds before the port is automatically re-enabled.
+                      0 means the port is never automatically re-enabled and must be recovered manually.
+                      When nil the switch default is used (300 s).
+                    format: int32
+                    maximum: 65534
+                    minimum: 0
+                    type: integer
+                  samplingInterval:
+                    description: |-
+                      SamplingInterval is the observation window in seconds for counting flap events.
+                      When nil the switch default is used (30 s).
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                type: object
               portAutoNegs:
                 additionalProperties:
                   type: boolean

@@ -214,6 +214,7 @@ spec:
       mac: 0c:20:12:ff:00:00
     description: VS-01 MCLAG 1
     ecmp: {}
+    linkFlapErrDisable: {}
     groups:
     - mclag-1
     ip: 172.30.0.9/21

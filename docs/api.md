@@ -3020,6 +3020,25 @@ _Appears in:_
 
 
 
+#### SwitchLinkFlapErrDisable
+
+
+
+SwitchLinkFlapErrDisable configures link-flap errdisable on fabric-facing ports.
+Presence of this struct enables the feature; omitting it leaves the ports unprotected.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `flapThreshold` _integer_ | FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.<br />When nil the switch default is used (3). |  | Maximum: 50 <br />Minimum: 1 <br /> |
+| `samplingInterval` _integer_ | SamplingInterval is the observation window in seconds for counting flap events.<br />When nil the switch default is used (30 s). |  | Maximum: 65535 <br />Minimum: 1 <br /> |
+| `recoveryInterval` _integer_ | RecoveryInterval is how long in seconds before the port is automatically re-enabled.<br />0 means the port is never automatically re-enabled and must be recovered manually.<br />When nil the switch default is used (300 s). |  | Maximum: 65534 <br />Minimum: 0 <br /> |
+
+
 #### SwitchProfile
 
 
@@ -3319,6 +3338,7 @@ _Appears in:_
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
 | `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
 | `ecmp` _[SwitchECMP](#switchecmp)_ | ECMP is the ECMP configuration for the switch |  |  |
+| `linkFlapErrDisable` _[SwitchLinkFlapErrDisable](#switchlinkflaperrdisable)_ | LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.<br />When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is<br />disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never). |  |  |
 
 
 #### SwitchStatus

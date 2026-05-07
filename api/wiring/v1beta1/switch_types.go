@@ -122,12 +122,37 @@ type SwitchSpec struct {
 	RoCE bool `json:"roce,omitempty"`
 	// ECMP is the ECMP configuration for the switch
 	ECMP SwitchECMP `json:"ecmp,omitempty"`
+	// LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.
+	// When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is
+	// disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never).
+	LinkFlapErrDisable *SwitchLinkFlapErrDisable `json:"linkFlapErrDisable,omitempty"`
 }
 
 // SwitchECMP is a struct that defines the ECMP configuration for the switch
 type SwitchECMP struct {
 	// RoCEQPN is a flag to enable RoCE QPN hashing
 	RoCEQPN bool `json:"roceQPN,omitempty"`
+}
+
+// SwitchLinkFlapErrDisable configures link-flap errdisable on fabric-facing ports.
+// Presence of this struct enables the feature; omitting it leaves the ports unprotected.
+type SwitchLinkFlapErrDisable struct {
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=50
+	// FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
+	// When nil the switch default is used (3).
+	FlapThreshold *uint8 `json:"flapThreshold,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// SamplingInterval is the observation window in seconds for counting flap events.
+	// When nil the switch default is used (30 s).
+	SamplingInterval *uint32 `json:"samplingInterval,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65534
+	// RecoveryInterval is how long in seconds before the port is automatically re-enabled.
+	// 0 means the port is never automatically re-enabled and must be recovered manually.
+	// When nil the switch default is used (300 s).
+	RecoveryInterval *uint32 `json:"recoveryInterval,omitempty"`
 }
 
 // SwitchStatus defines the observed state of Switch
