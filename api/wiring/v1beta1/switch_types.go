@@ -35,7 +35,10 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 const (
-	AnnotationSwitchRouteSumm = "fabric.githedgehog.com/route-summ"
+	AnnotationSwitchRouteSumm       = "fabric.githedgehog.com/route-summ"
+	DefaultLinkFlapThreshold        = 3
+	DefaultLinkFlapSamplingInterval = 30
+	DefaultLinkFlapRecoveryInterval = 300
 )
 
 // +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf;virtual-edge
@@ -237,6 +240,18 @@ func (sw *Switch) Default() {
 
 	if sw.Spec.Redundancy.Group != "" && !slices.Contains(sw.Spec.Groups, sw.Spec.Redundancy.Group) {
 		sw.Spec.Groups = append(sw.Spec.Groups, sw.Spec.Redundancy.Group)
+	}
+
+	if sw.Spec.LinkFlapErrDisable != nil {
+		if sw.Spec.LinkFlapErrDisable.FlapThreshold == nil {
+			sw.Spec.LinkFlapErrDisable.FlapThreshold = new(uint8(DefaultLinkFlapThreshold))
+		}
+		if sw.Spec.LinkFlapErrDisable.SamplingInterval == nil {
+			sw.Spec.LinkFlapErrDisable.SamplingInterval = new(uint32(DefaultLinkFlapSamplingInterval))
+		}
+		if sw.Spec.LinkFlapErrDisable.RecoveryInterval == nil {
+			sw.Spec.LinkFlapErrDisable.RecoveryInterval = new(uint32(DefaultLinkFlapRecoveryInterval))
+		}
 	}
 
 	for _, group := range sw.Spec.Groups {
@@ -468,6 +483,18 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	}
 	if sw.Spec.Redundancy.Group == "" && sw.Spec.Redundancy.Type != meta.RedundancyTypeNone {
 		return nil, errors.Errorf("redundancy type specified without group")
+	}
+
+	if sw.Spec.LinkFlapErrDisable != nil {
+		if sw.Spec.LinkFlapErrDisable.FlapThreshold == nil {
+			return nil, errors.Errorf("link-flap error-disable is enabled but no flap threshold provided")
+		}
+		if sw.Spec.LinkFlapErrDisable.SamplingInterval == nil {
+			return nil, errors.Errorf("link-flap error-disable is enabled but no sampling interval provided")
+		}
+		if sw.Spec.LinkFlapErrDisable.RecoveryInterval == nil {
+			return nil, errors.Errorf("link-flap error-disable is enabled but no recovery interval provided")
+		}
 	}
 
 	if kube != nil {
