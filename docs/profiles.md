@@ -19,6 +19,7 @@ features and port naming scheme.
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
 | [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | **spine**, **leaf** | Broadcom TD4 | 32xQSFP56DD-400G, 2xSFP28-10G |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | **spine** | Broadcom TH | 32xQSFP28-100G |
+| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | **spine**, **leaf (limited)** | Broadcom TD3-X3 | 48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **leaf (limited)** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
 
@@ -45,6 +46,7 @@ The following table shows which features are supported by each switch profile:
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
 | [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
+| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
 | [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
@@ -1044,6 +1046,94 @@ Label column is a port label on a physical switch.
 | E1/30 | 30 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 | E1/31 | 31 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 | E1/32 | 32 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
+
+
+## Edgecore EPS202
+
+Profile Name (to use in switch object `.spec.profile`): **edgecore-eps202**
+
+Other names: Edgecore AS4630-54PE
+
+**Supported roles**: **spine**, **leaf (limited)**
+
+Switch Silicon: **Broadcom TD3-X3**
+
+Ports Summary: **48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G**
+
+Notes: Doesn't support StaticExternals and ExternalAttachments with VLANs due to the lack of subinterfaces support.
+
+**Supported features:**
+
+- Subinterfaces: false
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: false
+- MCLAG: false
+- ESLAG: true
+- ECMP RoCE QPN hashing: false
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/2 | 2 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/3 | 3 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/4 | 4 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/5 | 5 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/6 | 6 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/7 | 7 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/8 | 8 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/9 | 9 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/10 | 10 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/11 | 11 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/12 | 12 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/13 | 13 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/14 | 14 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/15 | 15 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/16 | 16 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/17 | 17 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/18 | 18 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/19 | 19 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/20 | 20 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/21 | 21 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/22 | 22 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/23 | 23 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/24 | 24 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/25 | 25 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/26 | 26 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/27 | 27 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/28 | 28 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/29 | 29 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/30 | 30 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/31 | 31 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/32 | 32 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/33 | 33 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/34 | 34 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/35 | 35 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/36 | 36 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/37 | 37 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/38 | 38 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/39 | 39 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/40 | 40 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/41 | 41 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/42 | 42 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/43 | 43 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/44 | 44 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/45 | 45 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/46 | 46 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/47 | 47 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/48 | 48 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/49 | 49 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/50 | 50 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/51 | 51 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/52 | 52 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/53 | 53 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
+| E1/54 | 54 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 
 
 ## Edgecore EPS203
