@@ -1,0 +1,74 @@
+name: Trivy IaC Scan
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-iac:
+    # Skip on fork PRs: GITHUB_TOKEN lacks security-events:write, so SARIF upload would fail.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: "0"
+          skip-dirs: "vendor,.claude"
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-iac.sarif
+          category: trivy-iac
+
+      - name: Write summary
+        if: always() && hashFiles('trivy-iac.sarif') != ''
+        run: |
+          sev_rules() {
+            jq --arg sev "$1" '[.runs[0].tool.driver.rules[]? | select(.properties.tags | contains([$sev]))] | length' trivy-iac.sarif 2>/dev/null || echo 0
+          }
+          sev_inst() {
+            jq --arg sev "$1" '[.runs[0].results[]? | select((.message.text // "") | contains($sev))] | length' trivy-iac.sarif 2>/dev/null || echo 0
+          }
+          files=$(jq '[.runs[0].results[]? | .locations[0].physicalLocation.artifactLocation.uri] | unique | length' trivy-iac.sarif 2>/dev/null || echo 0)
+          total=$(jq '.runs[0].results | length' trivy-iac.sarif 2>/dev/null || echo 0)
+          crit_rules=$(sev_rules CRITICAL); high_rules=$(sev_rules HIGH)
+          med_rules=$(sev_rules MEDIUM); low_rules=$(sev_rules LOW)
+          crit_inst=$(sev_inst CRITICAL); high_inst=$(sev_inst HIGH)
+          med_inst=$(sev_inst MEDIUM); low_inst=$(sev_inst LOW)
+
+          {
+            echo "## IaC Scan Summary"
+            echo "- **Files with findings:** $files"
+            echo "- **Unique Critical vulnerability rules:** $crit_rules"
+            echo "- **Unique High vulnerability rules:** $high_rules"
+            echo "- **Unique Medium vulnerability rules:** $med_rules"
+            echo "- **Unique Low vulnerability rules:** $low_rules"
+            echo "- **Critical vulnerability instances:** $crit_inst"
+            echo "- **High vulnerability instances:** $high_inst"
+            echo "- **Medium vulnerability instances:** $med_inst"
+            echo "- **Low vulnerability instances:** $low_inst"
+            echo "- **Total vulnerability instances:** $total"
+            echo ""
+            echo "Check the [Security tab](https://github.com/$GITHUB_REPOSITORY/security/code-scanning?query=is%3Aopen+category%3Atrivy-iac) for detailed findings."
+          } >> "$GITHUB_STEP_SUMMARY"
