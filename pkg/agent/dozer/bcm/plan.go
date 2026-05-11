@@ -875,23 +875,10 @@ func planLinkErrorDisable(agent *agentapi.Agent, spec *dozer.Spec) error { //nol
 		return nil
 	}
 
-	flapThreshold := cfg.FlapThreshold
-	if flapThreshold == nil {
-		flapThreshold = pointer.To(uint8(3))
-	}
-	samplingInterval := cfg.SamplingInterval
-	if samplingInterval == nil {
-		samplingInterval = pointer.To(uint32(30))
-	}
-	recoveryInterval := cfg.RecoveryInterval
-	if recoveryInterval == nil {
-		recoveryInterval = pointer.To(uint32(300))
-	}
-
 	portSpec := &dozer.SpecErrDisable{
-		FlapThreshold:    flapThreshold,
-		SamplingInterval: samplingInterval,
-		RecoveryInterval: recoveryInterval,
+		FlapThreshold:    cfg.FlapThreshold,
+		SamplingInterval: cfg.SamplingInterval,
+		RecoveryInterval: cfg.RecoveryInterval,
 	}
 
 	for _, conn := range agent.Spec.Connections {
@@ -925,7 +912,7 @@ func planLinkErrorDisable(agent *agentapi.Agent, spec *dozer.Spec) error { //nol
 	}
 
 	if len(spec.ErrDisableInterfaces) > 0 {
-		spec.ErrDisableGlobal = &dozer.SpecErrDisableGlobal{RecoveryInterval: recoveryInterval}
+		spec.ErrDisableGlobal = &dozer.SpecErrDisableGlobal{RecoveryInterval: cfg.RecoveryInterval}
 	}
 
 	return nil
