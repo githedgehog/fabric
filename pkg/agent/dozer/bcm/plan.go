@@ -1719,14 +1719,15 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		connType := ""
 		var mtu *uint16
 		var links []wiringapi.ServerToSwitchLink
-		fallback := agent.IsFirstInRedundancyGroup()
+		var fallback bool
 
 		if conn.MCLAG != nil { //nolint:gocritic
 			connType = "MCLAG"
 			if conn.MCLAG.MTU != 0 {
 				mtu = pointer.To(conn.MCLAG.MTU) //nolint:ineffassign,staticcheck
 			}
-			fallback = fallback && conn.MCLAG.Fallback
+			// first-only: MCLAG syncs over the peer link
+			fallback = agent.IsFirstInRedundancyGroup() && conn.MCLAG.Fallback
 			links = conn.MCLAG.Links
 		} else if conn.Bundled != nil {
 			connType = "Bundled"
@@ -1740,7 +1741,8 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if conn.ESLAG.MTU != 0 {
 				mtu = pointer.To(conn.ESLAG.MTU) //nolint:ineffassign,staticcheck
 			}
-			fallback = fallback && conn.ESLAG.Fallback
+			// per-leaf: ESLAG has no peer link, unlike MCLAG
+			fallback = conn.ESLAG.Fallback
 			links = conn.ESLAG.Links
 		} else {
 			continue
