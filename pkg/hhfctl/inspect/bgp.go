@@ -81,6 +81,18 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 			}
 		}
 
+		// sort by port, then vrf, then neighbor name for stable output
+		slices.SortFunc(data, func(a, b []string) int {
+			if c := comparePortNames(a[1], b[1]); c != 0 {
+				return c
+			}
+			if c := strings.Compare(a[2], b[2]); c != 0 {
+				return c
+			}
+
+			return strings.Compare(a[3], b[3])
+		})
+
 		str.WriteString(RenderTable(
 			[]string{"Type", "Port", "VRF", "Neighbor", "RemoteName", "Connection", "State", "LastEstablished"},
 			data,
