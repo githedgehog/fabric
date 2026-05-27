@@ -87,7 +87,19 @@ func MAC(ctx context.Context, kube kclient.Reader, in MACIn) (*MACOut, error) {
 		}
 	}
 
-	slices.Sort(out.Ports)
+	// ports are formatted as "agentName/ifaceName"; sort by agent first, then
+	// by the port component so management ports keep their priority within a
+	// switch (agentName never contains "/", so cut on the first separator)
+	slices.SortFunc(out.Ports, func(a, b string) int {
+		aAgent, aPort, _ := strings.Cut(a, "/")
+		bAgent, bPort, _ := strings.Cut(b, "/")
+
+		if c := comparePortNames(aAgent, bAgent); c != 0 {
+			return c
+		}
+
+		return comparePortNames(aPort, bPort)
+	})
 
 	dhcpSubnets := &dhcpapi.DHCPSubnetList{}
 	if err := kube.List(ctx, dhcpSubnets); err != nil {
