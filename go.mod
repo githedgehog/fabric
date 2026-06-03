@@ -8,7 +8,7 @@ tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (
 	github.com/0x5a17ed/uefi v0.7.0
-	github.com/DeRuina/timberjack v1.4.2
+	github.com/DeRuina/timberjack v1.4.5
 	github.com/coredhcp/coredhcp v0.0.0-20231020075302-1cd0fca8759a
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.19.0
