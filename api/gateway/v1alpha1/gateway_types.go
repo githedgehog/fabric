@@ -77,9 +77,26 @@ type GatewayBGPNeighbor struct {
 
 // GatewayLogs defines the configuration for logging levels
 type GatewayLogs struct {
-	Default GatewayLogLevel            `json:"default,omitempty"`
-	Tags    map[string]GatewayLogLevel `json:"tags,omitempty"`
+	Default   GatewayLogLevel            `json:"default,omitempty"`
+	Tags      map[string]GatewayLogLevel `json:"tags,omitempty"`
+	RateLimit *GatewayLogRateLimit       `json:"rateLimit,omitempty"`
 }
+
+// GatewayLogRateLimit configures the token-bucket rate limiter applied to log
+// output. Both fields must be greater than zero when the limiter is set.
+type GatewayLogRateLimit struct {
+	// token bucket capacity
+	// +kubebuilder:validation:Minimum=1
+	Burst uint32 `json:"burst,omitempty"`
+	// ReplenishPerSecond is the number of tokens (messages) replenished per second
+	// +kubebuilder:validation:Minimum=1
+	ReplenishPerSecond uint32 `json:"replenishPerSecond,omitempty"`
+}
+
+const (
+	DefaultGatewayLogRateLimitBurst              uint32 = 50
+	DefaultGatewayLogRateLimitReplenishPerSecond uint32 = 5
+)
 
 type GatewayLogLevel string
 
@@ -161,6 +178,12 @@ func (gw *Gateway) Default() {
 			"all": GatewayLogLevelInfo,
 		}
 	}
+	if gw.Spec.Logs.RateLimit == nil {
+		gw.Spec.Logs.RateLimit = &GatewayLogRateLimit{
+			Burst:              DefaultGatewayLogRateLimitBurst,
+			ReplenishPerSecond: DefaultGatewayLogRateLimitReplenishPerSecond,
+		}
+	}
 	if gw.Spec.Workers == 0 {
 		gw.Spec.Workers = 4
 	}
@@ -188,6 +211,15 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
 		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
+	}
+
+	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		if rl.Burst == 0 {
+			return fmt.Errorf("log rate limit burst must be greater than 0: %w", ErrInvalidGW)
+		}
+		if rl.ReplenishPerSecond == 0 {
+			return fmt.Errorf("log rate limit replenishPerSecond must be greater than 0: %w", ErrInvalidGW)
+		}
 	}
 
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
