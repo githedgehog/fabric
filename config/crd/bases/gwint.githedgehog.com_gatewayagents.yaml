@@ -141,6 +141,23 @@ spec:
                     properties:
                       default:
                         type: string
+                      rateLimit:
+                        description: |-
+                          RateLimit optionally throttles repeated log messages using a token
+                          bucket. When unset, log output is not rate limited.
+                        properties:
+                          burst:
+                            description: |-
+                              Burst is the maximum number of log messages allowed in a burst, i.e. the
+                              token bucket capacity
+                            format: int32
+                            type: integer
+                          replenishPerSecond:
+                            description: ReplenishPerSecond is the number of tokens
+                              (messages) replenished per second
+                            format: int32
+                            type: integer
+                        type: object
                       tags:
                         additionalProperties:
                           type: string

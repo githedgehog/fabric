@@ -78,6 +78,19 @@ type GatewayBGPNeighbor struct {
 type GatewayLogs struct {
 	Default GatewayLogLevel            `json:"default,omitempty"`
 	Tags    map[string]GatewayLogLevel `json:"tags,omitempty"`
+	// RateLimit optionally throttles repeated log messages using a token
+	// bucket. When unset, log output is not rate limited.
+	RateLimit *GatewayLogRateLimit `json:"rateLimit,omitempty"`
+}
+
+// GatewayLogRateLimit configures the token-bucket rate limiter applied to log
+// output. Both fields must be greater than zero when the limiter is set.
+type GatewayLogRateLimit struct {
+	// Burst is the maximum number of log messages allowed in a burst, i.e. the
+	// token bucket capacity
+	Burst uint32 `json:"burst,omitempty"`
+	// ReplenishPerSecond is the number of tokens (messages) replenished per second
+	ReplenishPerSecond uint32 `json:"replenishPerSecond,omitempty"`
 }
 
 type GatewayLogLevel string
@@ -183,6 +196,15 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
 		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
+	}
+
+	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		if rl.Burst == 0 {
+			return fmt.Errorf("log rate limit burst must be greater than 0: %w", ErrInvalidGW)
+		}
+		if rl.ReplenishPerSecond == 0 {
+			return fmt.Errorf("log rate limit replenishPerSecond must be greater than 0: %w", ErrInvalidGW)
+		}
 	}
 
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
