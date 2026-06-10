@@ -34,24 +34,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-func NewClient(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (kclient.WithWatch, error) {
+func NewClient(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (kclient.WithWatch, error) { //nolint:staticcheck
 	_, kube, err := newClient(ctx, kubeconfigPath, false, false, schemeBuilders...)
 
 	return kube, err
 }
 
-func NewClientWithCore(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (kclient.WithWatch, error) {
+func NewClientWithCore(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (kclient.WithWatch, error) { //nolint:staticcheck
 	_, kube, err := newClient(ctx, kubeconfigPath, true, false, schemeBuilders...)
 
 	return kube, err
 }
 
-func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) {
+func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) { //nolint:staticcheck
 	return newClient(ctx, kubeconfigPath, false, true, schemeBuilders...)
 }
 
 // TODO cached version is minimal naive implementation with hanging go routine, need to be improved
-func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) { //nolint:contextcheck
+func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) { //nolint:contextcheck,staticcheck
 	cancel := func() {}
 	cfg, err := NewClientConfig(ctx, kubeconfigPath)
 	if err != nil {
@@ -145,7 +145,7 @@ func NewClientConfig(ctx context.Context, kubeconfigPath string) (*rest.Config, 
 	return cfg, nil
 }
 
-func NewScheme(schemeBuilders ...*scheme.Builder) (*runtime.Scheme, error) {
+func NewScheme(schemeBuilders ...*scheme.Builder) (*runtime.Scheme, error) { //nolint:staticcheck
 	scheme := runtime.NewScheme()
 
 	for _, schemeBuilder := range schemeBuilders {
