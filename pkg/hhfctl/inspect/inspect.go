@@ -83,7 +83,7 @@ func Run[TIn In, TOut Out[TIn]](ctx context.Context, f Func[TIn, TOut], args Arg
 		vpcapi.SchemeBuilder,
 		agentapi.SchemeBuilder,
 		dhcpapi.SchemeBuilder,
-		&scheme.Builder{
+		&scheme.Builder{ //nolint:staticcheck
 			GroupVersion:  coreapi.SchemeGroupVersion,
 			SchemeBuilder: coreapi.SchemeBuilder,
 		})
