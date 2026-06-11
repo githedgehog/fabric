@@ -31,34 +31,33 @@ import (
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-func NewClient(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (kclient.WithWatch, error) { //nolint:staticcheck
-	_, kube, err := newClient(ctx, kubeconfigPath, false, false, schemeBuilders...)
+func NewClient(ctx context.Context, kubeconfigPath string, addToSchemes ...func(*runtime.Scheme) error) (kclient.WithWatch, error) {
+	_, kube, err := newClient(ctx, kubeconfigPath, false, false, addToSchemes...)
 
 	return kube, err
 }
 
-func NewClientWithCore(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (kclient.WithWatch, error) { //nolint:staticcheck
-	_, kube, err := newClient(ctx, kubeconfigPath, true, false, schemeBuilders...)
+func NewClientWithCore(ctx context.Context, kubeconfigPath string, addToSchemes ...func(*runtime.Scheme) error) (kclient.WithWatch, error) {
+	_, kube, err := newClient(ctx, kubeconfigPath, true, false, addToSchemes...)
 
 	return kube, err
 }
 
-func NewClientWithCache(ctx context.Context, kubeconfigPath string, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) { //nolint:staticcheck
-	return newClient(ctx, kubeconfigPath, false, true, schemeBuilders...)
+func NewClientWithCache(ctx context.Context, kubeconfigPath string, addToSchemes ...func(*runtime.Scheme) error) (context.CancelFunc, kclient.WithWatch, error) {
+	return newClient(ctx, kubeconfigPath, false, true, addToSchemes...)
 }
 
 // TODO cached version is minimal naive implementation with hanging go routine, need to be improved
-func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, schemeBuilders ...*scheme.Builder) (context.CancelFunc, kclient.WithWatch, error) { //nolint:contextcheck,staticcheck
+func newClient(ctx context.Context, kubeconfigPath string, core, cached bool, addToSchemes ...func(*runtime.Scheme) error) (context.CancelFunc, kclient.WithWatch, error) { //nolint:contextcheck
 	cancel := func() {}
 	cfg, err := NewClientConfig(ctx, kubeconfigPath)
 	if err != nil {
 		return cancel, nil, errors.Wrapf(err, "failed to create kube config")
 	}
 
-	scheme, err := NewScheme(schemeBuilders...)
+	scheme, err := NewScheme(addToSchemes...)
 	if err != nil {
 		return cancel, nil, errors.Wrapf(err, "failed to create scheme")
 	}
@@ -145,12 +144,12 @@ func NewClientConfig(ctx context.Context, kubeconfigPath string) (*rest.Config, 
 	return cfg, nil
 }
 
-func NewScheme(schemeBuilders ...*scheme.Builder) (*runtime.Scheme, error) { //nolint:staticcheck
+func NewScheme(addToSchemes ...func(*runtime.Scheme) error) (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 
-	for _, schemeBuilder := range schemeBuilders {
-		if err := schemeBuilder.AddToScheme(scheme); err != nil {
-			return nil, fmt.Errorf("adding scheme %s to runtime: %w", schemeBuilder.GroupVersion.String(), err)
+	for _, addToScheme := range addToSchemes {
+		if err := addToScheme(scheme); err != nil {
+			return nil, fmt.Errorf("adding types to scheme: %w", err)
 		}
 	}
 

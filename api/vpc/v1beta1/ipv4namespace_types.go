@@ -25,6 +25,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -73,7 +74,11 @@ type IPv4NamespaceList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IPv4Namespace{}, &IPv4NamespaceList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &IPv4Namespace{}, &IPv4NamespaceList{})
+
+		return nil
+	})
 }
 
 var (

@@ -29,6 +29,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -312,7 +313,11 @@ type ConnectionList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Connection{}, &ConnectionList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Connection{}, &ConnectionList{})
+
+		return nil
+	})
 }
 
 var (

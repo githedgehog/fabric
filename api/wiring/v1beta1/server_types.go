@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -66,7 +67,11 @@ type ServerList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Server{}, &ServerList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Server{}, &ServerList{})
+
+		return nil
+	})
 }
 
 var (

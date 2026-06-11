@@ -18,6 +18,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -134,7 +135,11 @@ type GatewayPeeringList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&GatewayPeering{}, &GatewayPeeringList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &GatewayPeering{}, &GatewayPeeringList{})
+
+		return nil
+	})
 }
 
 func (p *GatewayPeering) Default() {

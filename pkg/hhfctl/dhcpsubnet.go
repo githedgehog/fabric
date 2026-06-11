@@ -37,7 +37,7 @@ func DHCPSubnetCleanup(ctx context.Context, options DHCPSubnetCleanupOptions) er
 	}
 
 	kube, err := kubeutil.NewClient(ctx, "",
-		vpcapi.SchemeBuilder, dhcpapi.SchemeBuilder)
+		vpcapi.AddToScheme, dhcpapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -92,7 +92,7 @@ func DHCPSubnetStaticLease(ctx context.Context, opts DHCPSubnetStaticLeaseOpts) 
 	slog.Info("Static lease", "op", op, "vpc", opts.VPC, "subnet", opts.Subnet, "mac", opts.MAC, "ip", opts.IP)
 
 	kube, err := kubeutil.NewClient(ctx, "",
-		vpcapi.SchemeBuilder, dhcpapi.SchemeBuilder)
+		vpcapi.AddToScheme, dhcpapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

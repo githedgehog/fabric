@@ -19,8 +19,9 @@
 package v1beta1
 
 import (
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
 var (
@@ -28,7 +29,11 @@ var (
 	GroupVersion = schema.GroupVersion{Group: "wiring.githedgehog.com", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
-	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion} //nolint:staticcheck
+	SchemeBuilder = runtime.NewSchemeBuilder(func(s *runtime.Scheme) error {
+		kmetav1.AddToGroupVersion(s, GroupVersion)
+
+		return nil
+	})
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme

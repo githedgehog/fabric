@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -141,5 +142,9 @@ type DHCPSubnetList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DHCPSubnet{}, &DHCPSubnetList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &DHCPSubnet{}, &DHCPSubnetList{})
+
+		return nil
+	})
 }

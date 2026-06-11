@@ -39,7 +39,7 @@ func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroup
 		Spec: wiringapi.SwitchGroupSpec{},
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

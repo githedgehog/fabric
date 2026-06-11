@@ -22,7 +22,7 @@ import (
 )
 
 func (s *Server) setupKube(ctx context.Context) error {
-	kube, err := kubeutil.NewClient(ctx, "", dhcpapi.SchemeBuilder, wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", dhcpapi.AddToScheme, wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}

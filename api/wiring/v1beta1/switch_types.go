@@ -26,6 +26,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -200,7 +201,11 @@ type SwitchList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Switch{}, &SwitchList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Switch{}, &SwitchList{})
+
+		return nil
+	})
 }
 
 var (

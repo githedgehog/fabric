@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -200,5 +201,9 @@ type GatewayAgentList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&GatewayAgent{}, &GatewayAgentList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &GatewayAgent{}, &GatewayAgentList{})
+
+		return nil
+	})
 }

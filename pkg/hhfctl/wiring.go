@@ -20,7 +20,7 @@ type WiringExportOptions struct {
 }
 
 func WiringExport(ctx context.Context, opts WiringExportOptions) error {
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder, vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme, vpcapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
