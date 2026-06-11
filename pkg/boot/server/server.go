@@ -68,7 +68,7 @@ func Run(ctx context.Context) error {
 	}
 
 	// TODO we probably need to cache client? only for switches and secrets in default namespace?
-	kube, err := kubeutil.NewClientWithCore(ctx, "", agentapi.SchemeBuilder, wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClientWithCore(ctx, "", agentapi.AddToScheme, wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}

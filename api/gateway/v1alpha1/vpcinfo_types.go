@@ -10,6 +10,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -61,7 +62,11 @@ type VPCInfoList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VPCInfo{}, &VPCInfoList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &VPCInfo{}, &VPCInfoList{})
+
+		return nil
+	})
 }
 
 func (vpc *VPCInfo) IsReady() bool {

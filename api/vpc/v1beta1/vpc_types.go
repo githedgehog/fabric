@@ -27,6 +27,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -219,7 +220,11 @@ type VPCList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VPC{}, &VPCList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &VPC{}, &VPCList{})
+
+		return nil
+	})
 }
 
 var (

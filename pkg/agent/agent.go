@@ -243,7 +243,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 
 	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
-	kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.AddToScheme)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create K8s client")
 	}
@@ -984,7 +984,7 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 
 	slog.Info("Applying config remotely", "switch", opts.SwitchName, "dryRun", opts.DryRun, "stats", opts.CollectStats, "autoSSH", opts.AutoSSH)
 
-	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating K8s client: %w", err)
 	}

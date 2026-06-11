@@ -36,7 +36,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	coreapi "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 	kyaml "sigs.k8s.io/yaml"
 )
 
@@ -79,14 +78,12 @@ func Run[TIn In, TOut Out[TIn]](ctx context.Context, f Func[TIn, TOut], args Arg
 	}
 
 	kube, err := kubeutil.NewClient(ctx, "",
-		wiringapi.SchemeBuilder,
-		vpcapi.SchemeBuilder,
-		agentapi.SchemeBuilder,
-		dhcpapi.SchemeBuilder,
-		&scheme.Builder{ //nolint:staticcheck
-			GroupVersion:  coreapi.SchemeGroupVersion,
-			SchemeBuilder: coreapi.SchemeBuilder,
-		})
+		wiringapi.AddToScheme,
+		vpcapi.AddToScheme,
+		agentapi.AddToScheme,
+		dhcpapi.AddToScheme,
+		coreapi.AddToScheme,
+	)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create kube client")
 	}

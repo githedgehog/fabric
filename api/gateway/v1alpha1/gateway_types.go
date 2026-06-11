@@ -17,6 +17,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -140,7 +141,11 @@ type GatewayList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Gateway{}, &GatewayList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Gateway{}, &GatewayList{})
+
+		return nil
+	})
 }
 
 func (gw *Gateway) Default() {

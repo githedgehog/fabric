@@ -57,7 +57,7 @@ func getAgent(ctx context.Context, kube kclient.Reader, name string) (*agentapi.
 }
 
 func SwitchReboot(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -81,7 +81,7 @@ func SwitchReboot(ctx context.Context, name string) error {
 }
 
 func SwitchPowerReset(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -105,7 +105,7 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 }
 
 func SwitchReinstall(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient(ctx, "", agentapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -129,7 +129,7 @@ func SwitchReinstall(ctx context.Context, name string) error {
 }
 
 func SwitchIP(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -153,7 +153,7 @@ func SwitchSSH(ctx context.Context, name, username, run string) error {
 		return fmt.Errorf("username is required") //nolint:goerr113
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -185,7 +185,7 @@ func SwitchSSH(ctx context.Context, name, username, run string) error {
 }
 
 func SwitchSerial(ctx context.Context, name string) error {
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -254,7 +254,7 @@ func GetPowerInfo(sw *wiringapi.Switch) map[string]string {
 }
 
 func SwitchRoCE(ctx context.Context, name string, value *bool) error {
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -281,7 +281,7 @@ func SwitchRoCE(ctx context.Context, name string, value *bool) error {
 }
 
 func SwitchECMPRoCEQPN(ctx context.Context, name string, value *bool) error {
-	kube, err := kubeutil.NewClient(ctx, "", wiringapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}

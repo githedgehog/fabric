@@ -62,7 +62,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 		},
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -126,7 +126,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 		},
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -193,7 +193,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		},
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -267,7 +267,7 @@ func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) e
 		},
 	}
 
-	kube, err := kubeutil.NewClient(ctx, "", gwapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", gwapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}
@@ -339,7 +339,7 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 }
 
 func VPCWipe(ctx context.Context) error {
-	kube, err := kubeutil.NewClient(ctx, "", vpcapi.SchemeBuilder, gwapi.SchemeBuilder)
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme, gwapi.AddToScheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot create kube client")
 	}

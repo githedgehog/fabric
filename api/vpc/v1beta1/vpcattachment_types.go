@@ -27,6 +27,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -81,7 +82,11 @@ type VPCAttachmentList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VPCAttachment{}, &VPCAttachmentList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &VPCAttachment{}, &VPCAttachmentList{})
+
+		return nil
+	})
 }
 
 var (
