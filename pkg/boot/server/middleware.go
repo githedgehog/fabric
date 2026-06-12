@@ -52,7 +52,7 @@ func RequestLogger(next http.Handler) http.Handler {
 				"rid", rid,
 				"method", r.Method,
 				"url", fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI),
-				"from", r.RemoteAddr,
+				"from", middleware.GetClientIP(r.Context()),
 				"status", ww.Status(),
 				"size", ww.BytesWritten(),
 				"took", time.Since(start).Milliseconds(),
