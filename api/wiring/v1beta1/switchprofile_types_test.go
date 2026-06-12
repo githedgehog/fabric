@@ -36,6 +36,8 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -108,12 +110,80 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 				"M1":     "Management0",
 			},
 		},
+		{
+			name: "cumulus",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName:   "nvidia",
+				SwitchSilicon: "spectrum",
+				NOSType:       meta.NOSTypeCumulusMlx,
+				Platform:      "x86-64-nv-sn4600",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+					"E1/1":  {NOSName: "1", Label: "1", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/2":  {NOSName: "2", Label: "2", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/3":  {NOSName: "3", Label: "3", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/4":  {NOSName: "4", Label: "4", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/5":  {NOSName: "5", Label: "5", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/6":  {NOSName: "6", Label: "6", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/7":  {NOSName: "7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/8":  {NOSName: "8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/9":  {NOSName: "9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/10": {NOSName: "10", Label: "10", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{""}},
+								"1x40G":  {Offsets: []string{""}},
+								"2x50G":  {Offsets: []string{"0", "1"}},
+								"1x50G":  {Offsets: []string{""}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{""}},
+								"1x10G":  {Offsets: []string{""}},
+							},
+						},
+					},
+				},
+			},
+			sw: &wiringapi.SwitchSpec{
+				PortBreakouts: map[string]string{
+					"E1/8": "4x25G",
+					"E1/9": "2x50G",
+				},
+			},
+			want: map[string]string{
+				"E1/1":    "swp1",
+				"E1/1/1":  "swp1",
+				"E1/2":    "swp2",
+				"E1/2/1":  "swp2",
+				"E1/3":    "swp3",
+				"E1/3/1":  "swp3",
+				"E1/4":    "swp4",
+				"E1/4/1":  "swp4",
+				"E1/5":    "swp5",
+				"E1/5/1":  "swp5",
+				"E1/6":    "swp6",
+				"E1/6/1":  "swp6",
+				"E1/7":    "swp7",
+				"E1/7/1":  "swp7",
+				"E1/8":    "swp8s0",
+				"E1/8/1":  "swp8s0",
+				"E1/8/2":  "swp8s1",
+				"E1/8/3":  "swp8s2",
+				"E1/8/4":  "swp8s3",
+				"E1/9":    "swp9s0",
+				"E1/9/1":  "swp9s0",
+				"E1/9/2":  "swp9s1",
+				"E1/10":   "swp10",
+				"E1/10/1": "swp10",
+				"M1":      "eth0",
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.sp != nil {
-				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
-				tt.sp.Platform = "vs"
-			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
@@ -150,6 +220,8 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -219,12 +291,70 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 				"Management0": "M1",
 			},
 		},
+		{
+			name: "cumulus",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName:   "nvidia",
+				SwitchSilicon: "spectrum",
+				NOSType:       meta.NOSTypeCumulusMlx,
+				Platform:      "x86-64-nv-sn4600",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+					"E1/1":  {NOSName: "1", Label: "1", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/2":  {NOSName: "2", Label: "2", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/3":  {NOSName: "3", Label: "3", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/4":  {NOSName: "4", Label: "4", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/5":  {NOSName: "5", Label: "5", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/6":  {NOSName: "6", Label: "6", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/7":  {NOSName: "7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/8":  {NOSName: "8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/9":  {NOSName: "9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/10": {NOSName: "10", Label: "10", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{""}},
+								"1x40G":  {Offsets: []string{""}},
+								"2x50G":  {Offsets: []string{"0", "1"}},
+								"1x50G":  {Offsets: []string{""}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{""}},
+								"1x10G":  {Offsets: []string{""}},
+							},
+						},
+					},
+				},
+			},
+			sw: &wiringapi.SwitchSpec{
+				PortBreakouts: map[string]string{
+					"E1/8": "4x25G",
+					"E1/9": "2x50G",
+				},
+			},
+			want: map[string]string{
+				"swp1":   "E1/1/1",
+				"swp2":   "E1/2/1",
+				"swp3":   "E1/3/1",
+				"swp4":   "E1/4/1",
+				"swp5":   "E1/5/1",
+				"swp6":   "E1/6/1",
+				"swp7":   "E1/7/1",
+				"swp8s0": "E1/8/1",
+				"swp8s1": "E1/8/2",
+				"swp8s2": "E1/8/3",
+				"swp8s3": "E1/8/4",
+				"swp9s0": "E1/9/1",
+				"swp9s1": "E1/9/2",
+				"swp10":  "E1/10/1",
+				"eth0":   "M1",
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.sp != nil {
-				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
-				tt.sp.Platform = "vs"
-			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
@@ -260,6 +390,8 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
 					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
@@ -298,6 +430,8 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"E1/7": {NOSName: "1/7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "Ethernet20"},
 					"E1/8": {NOSName: "1/8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "Ethernet24"},
@@ -325,12 +459,48 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 				"Ethernet26": true,
 			},
 		},
+		{
+			name: "cumulus",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName:   "nvidia",
+				SwitchSilicon: "spectrum",
+				NOSType:       meta.NOSTypeCumulusMlx,
+				Platform:      "x86-64-nv-sn4600",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"E1/7": {NOSName: "7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/8": {NOSName: "8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{""}},
+								"1x40G":  {Offsets: []string{""}},
+								"2x50G":  {Offsets: []string{"0", "1"}},
+								"1x50G":  {Offsets: []string{""}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{""}},
+								"1x10G":  {Offsets: []string{""}},
+							},
+						},
+					},
+				},
+			},
+			want: map[string]bool{
+				"swp7s0": true,
+				"swp7s1": true,
+				"swp7s2": true,
+				"swp7s3": true,
+				"swp8s0": true,
+				"swp8s1": true,
+				"swp8s2": true,
+				"swp8s3": true,
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.sp != nil {
-				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
-				tt.sp.Platform = "vs"
-			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
@@ -365,6 +535,8 @@ func TestSwitchProfileDefault(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1":  {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -422,12 +594,50 @@ func TestSwitchProfileDefault(t *testing.T) {
 				wiringapi.AnnotationPorts: "6xSFP28-25G, 4xQSFP28-100G",
 			},
 		},
+		{
+			name: "cumulus",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName:   "nvidia",
+				SwitchSilicon: "spectrum",
+				NOSType:       meta.NOSTypeCumulusMlx,
+				Platform:      "x86-64-nv-sn4600",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+					"E1/1":  {NOSName: "1", Label: "1", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/2":  {NOSName: "2", Label: "2", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/3":  {NOSName: "3", Label: "3", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/4":  {NOSName: "4", Label: "4", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/5":  {NOSName: "5", Label: "5", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/6":  {NOSName: "6", Label: "6", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/7":  {NOSName: "7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/8":  {NOSName: "8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/9":  {NOSName: "9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/10": {NOSName: "10", Label: "10", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{""}},
+								"1x40G":  {Offsets: []string{""}},
+								"2x50G":  {Offsets: []string{"0", "1"}},
+								"1x50G":  {Offsets: []string{""}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{""}},
+								"1x10G":  {Offsets: []string{""}},
+							},
+						},
+					},
+				},
+			},
+			want: map[string]string{
+				wiringapi.AnnotationPorts: "10xQSFP28-100G",
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.sp != nil {
-				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
-				tt.sp.Platform = "vs"
-			}
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
@@ -525,6 +735,8 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -598,6 +810,8 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 			sp: &wiringapi.SwitchProfileSpec{
 				DisplayName:   "Test",
 				SwitchSilicon: "test",
+				NOSType:       meta.NOSTypeSONiCBCMVS,
+				Platform:      "vs",
 				Ports: map[string]wiringapi.SwitchProfilePort{
 					"M1":   {NOSName: "Management0", Management: true, OniePortName: "eth0"},
 					"E1/1": {NOSName: "Ethernet0", Label: "1", Group: "1"},
@@ -657,13 +871,69 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 				"E1/9/1": true,
 			},
 		},
+		{
+			name: "cumulus",
+			sp: &wiringapi.SwitchProfileSpec{
+				DisplayName:   "nvidia",
+				SwitchSilicon: "spectrum",
+				NOSType:       meta.NOSTypeCumulusMlx,
+				Platform:      "x86-64-nv-sn4600",
+				Ports: map[string]wiringapi.SwitchProfilePort{
+					"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+					"E1/1":  {NOSName: "1", Label: "1", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/2":  {NOSName: "2", Label: "2", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/3":  {NOSName: "3", Label: "3", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/4":  {NOSName: "4", Label: "4", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/5":  {NOSName: "5", Label: "5", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/6":  {NOSName: "6", Label: "6", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/7":  {NOSName: "7", Label: "7", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/8":  {NOSName: "8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/9":  {NOSName: "9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/10": {NOSName: "10", Label: "10", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+				},
+				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"QSFP28-100G": {
+						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+							Default: "1x100G",
+							Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+								"1x100G": {Offsets: []string{""}},
+								"1x40G":  {Offsets: []string{""}},
+								"2x50G":  {Offsets: []string{"0", "1"}},
+								"1x50G":  {Offsets: []string{""}},
+								"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+								"1x25G":  {Offsets: []string{""}},
+								"1x10G":  {Offsets: []string{""}},
+							},
+						},
+					},
+				},
+			},
+			sw: &wiringapi.SwitchSpec{
+				PortBreakouts: map[string]string{
+					"E1/8": "4x25G",
+					"E1/9": "2x50G",
+				},
+			},
+			want: map[string]bool{
+				"E1/1/1":  true,
+				"E1/2/1":  true,
+				"E1/3/1":  true,
+				"E1/4/1":  true,
+				"E1/5/1":  true,
+				"E1/6/1":  true,
+				"E1/7/1":  true,
+				"E1/8/1":  true,
+				"E1/8/2":  true,
+				"E1/8/3":  true,
+				"E1/8/4":  true,
+				"E1/9/1":  true,
+				"E1/9/2":  true,
+				"E1/10/1": true,
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.sp != nil {
-				tt.sp.NOSType = meta.NOSTypeSONiCBCMVS
-				tt.sp.Platform = "vs"
-			}
-
 			_, err := (&wiringapi.SwitchProfile{
 				ObjectMeta: kmetav1.ObjectMeta{
 					Name:      "test",
