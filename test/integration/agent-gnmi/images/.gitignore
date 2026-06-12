@@ -1,0 +1,6 @@
+efi_code.fd
+efi_vars.fd
+mon.sock
+serial.log
+serial.sock
+sonic-vs.qcow2
