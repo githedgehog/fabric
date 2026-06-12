@@ -991,6 +991,24 @@ _Appears in:_
 | `trace` |  |
 
 
+#### GatewayLogRateLimit
+
+
+
+GatewayLogRateLimit configures the token-bucket rate limiter applied to log
+output. Both fields must be greater than zero when the limiter is set.
+
+
+
+_Appears in:_
+- [GatewayLogs](#gatewaylogs)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `burst` _integer_ | Burst is the maximum number of log messages allowed in a burst, i.e. the<br />token bucket capacity |  |  |
+| `replenishPerSecond` _integer_ | ReplenishPerSecond is the number of tokens (messages) replenished per second |  |  |
+
+
 #### GatewayLogs
 
 
@@ -1006,6 +1024,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `default` _[GatewayLogLevel](#gatewayloglevel)_ |  |  |  |
 | `tags` _object (keys:string, values:[GatewayLogLevel](#gatewayloglevel))_ |  |  |  |
+| `rateLimit` _[GatewayLogRateLimit](#gatewaylogratelimit)_ | RateLimit optionally throttles repeated log messages using a token<br />bucket. When unset, log output is not rate limited. |  |  |
 
 
 #### GatewayPeering

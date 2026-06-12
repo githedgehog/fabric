@@ -277,6 +277,29 @@ func TestGatewayValidate(t *testing.T) {
 			objs: base,
 			err:  v1alpha1.ErrInvalidGW,
 		},
+		{
+			name: "test-log-rate-limit-valid",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 50, ReplenishPerSecond: 5}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-log-rate-limit-zero-burst",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 0, ReplenishPerSecond: 5}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-log-rate-limit-zero-replenish",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 50, ReplenishPerSecond: 0}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
 	}
 
 	scheme := runtime.NewScheme()
