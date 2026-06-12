@@ -955,20 +955,6 @@ func TestGetReacheableFrom(t *testing.T) {
 						},
 					},
 				},
-				&vpcapi.VPCPeering{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name: "vpc-1--vpc-4",
-					},
-					Spec: vpcapi.VPCPeeringSpec{
-						Remote: "border",
-						Permit: []map[string]vpcapi.VPCPeer{
-							{
-								"vpc-1": {Subnets: []string{"subnet-1"}},
-								"vpc-4": {Subnets: []string{"subnet-1"}},
-							},
-						},
-					},
-				},
 				&wiringapi.SwitchGroup{
 					ObjectMeta: kmetav1.ObjectMeta{
 						Name: "border",

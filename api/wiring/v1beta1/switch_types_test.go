@@ -259,58 +259,6 @@ func TestHydrationValidation(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "mclagPeerAbsent",
-			objects:     []kclient.Object{},
-			dut:         mclagSwitch,
-			expectError: false,
-		},
-		{
-			name: "mclagPeerDifferentASN",
-			objects: []kclient.Object{
-				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
-					Spec: wiringapi.SwitchSpec{
-						Role: wiringapi.SwitchRoleServerLeaf,
-						Redundancy: wiringapi.SwitchRedundancy{
-							Type:  meta.RedundancyTypeMCLAG,
-							Group: "mclag-1",
-						},
-						ASN:        65102,
-						IP:         "172.30.0.9/21",
-						VTEPIP:     "172.30.12.0/32",
-						ProtocolIP: "172.30.8.3/32",
-					}},
-			},
-			dut:         mclagSwitch,
-			expectError: true,
-		},
-		{
-			name: "mclagPeerDifferentVTEP",
-			objects: []kclient.Object{
-				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
-					Spec: wiringapi.SwitchSpec{
-						Role: wiringapi.SwitchRoleServerLeaf,
-						Redundancy: wiringapi.SwitchRedundancy{
-							Type:  meta.RedundancyTypeMCLAG,
-							Group: "mclag-1",
-						},
-						ASN:        65101,
-						IP:         "172.30.0.9/21",
-						VTEPIP:     "172.30.12.3/32",
-						ProtocolIP: "172.30.8.3/32",
-					}},
-			},
-			dut:         mclagSwitch,
-			expectError: true,
-		},
-		{
 			name: "VTEPCollisionWithGateway",
 			objects: []kclient.Object{
 				&gwapi.Gateway{

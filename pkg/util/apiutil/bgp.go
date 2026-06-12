@@ -6,8 +6,6 @@ package apiutil
 import (
 	"context"
 	"fmt"
-	"net/netip"
-	"slices"
 	"strings"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -102,43 +100,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 	fabricPeers := make(map[string]bool)
 
 	for _, conn := range conns.Items {
-		if conn.Spec.MCLAGDomain != nil { //nolint:gocritic
-			switches, _, _, _, err := conn.Spec.Endpoints()
-			if err != nil {
-				return nil, fmt.Errorf("getting endpoints for %s: %w", conn.Name, err)
-			}
-			if len(switches) != 2 {
-				return nil, fmt.Errorf("MCLAG Domain connection %s has %d switches, expected 2", conn.Name, len(switches)) //nolint:goerr113
-			}
-
-			slices.Sort(switches)
-
-			mclagSessionSubnet, err := netip.ParsePrefix(fabCfg.MCLAGSessionSubnet)
-			if err != nil {
-				return nil, fmt.Errorf("parsing MCLAG session subnet %s: %w", fabCfg.MCLAGSessionSubnet, err)
-			}
-
-			curr, other := mclagSessionSubnet.Addr().String(), mclagSessionSubnet.Addr().Next().String()
-			if sw.Name == switches[1] {
-				curr, other = other, curr //nolint:ineffassign,staticcheck
-			} else if sw.Name != switches[0] {
-				continue
-			}
-
-			ip := strings.Split(other, "/")[0]
-			neigh, ok := out["default"][ip]
-			if !ok {
-				neigh = BGPNeighborStatus{}
-			}
-
-			neigh.RemoteName = switches[1]
-			neigh.Type = BGPNeighborTypeMCLAG
-			neigh.Expected = true
-			neigh.ConnectionName = conn.Name
-			neigh.ConnectionType = conn.Spec.Type()
-
-			out["default"][ip] = neigh
-		} else if conn.Spec.Fabric != nil {
+		if conn.Spec.Fabric != nil { //nolint:gocritic
 			for _, link := range conn.Spec.Fabric.Links {
 				curr, other := link.Spine, link.Leaf
 				if sw.Name == other.DeviceName() {

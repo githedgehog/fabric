@@ -164,6 +164,7 @@ func TestConnectionValidation(t *testing.T) {
 		withClient bool
 		objects    []kclient.Object
 		err        bool
+		warning    string
 	}{
 		{
 			name: "static-ext-default-route",
@@ -649,7 +650,24 @@ func TestConnectionValidation(t *testing.T) {
 					},
 				},
 			}),
-		}} {
+		},
+		{
+			name: "mclag-is-deprecated",
+			conn: withName("mclag-1", &wiringapi.Connection{
+				Spec: wiringapi.ConnectionSpec{
+					MCLAG: &wiringapi.ConnMCLAG{
+						Links: []wiringapi.ServerToSwitchLink{
+							{
+								Server: wiringapi.NewBasePortName("server-01/enp2s1"),
+								Switch: wiringapi.NewBasePortName("leaf-01/E1/1/2"),
+							},
+						},
+					},
+				},
+			}),
+			warning: "MCLAG is deprecated and no longer supported",
+		},
+	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
 				ReservedSubnets: []string{"172.30.1.0/24"},
@@ -673,8 +691,11 @@ func TestConnectionValidation(t *testing.T) {
 				require.NoError(t, profiles.Enforce(ctx, kube, cfg, false))
 			}
 
-			_, err = tt.conn.Validate(ctx, kube, cfg)
+			warn, err := tt.conn.Validate(ctx, kube, cfg)
 
+			if tt.warning != "" {
+				require.Contains(t, warn, tt.warning)
+			}
 			if tt.err {
 				require.Error(t, err)
 
