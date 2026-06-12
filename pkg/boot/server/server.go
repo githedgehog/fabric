@@ -126,9 +126,9 @@ func Run(ctx context.Context) error {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
+	r.Use(middleware.ClientIPFromRemoteAddr)
 	r.Use(RequestLogger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.RealIP)
 	r.Use(ResponseRequestID)
 	r.Use(middleware.Heartbeat("/healthz"))
 	r.Use(middleware.Timeout(300 * time.Second))
