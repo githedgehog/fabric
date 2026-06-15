@@ -8,12 +8,18 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      # Mon, Wed, Fri at 2am Pacific time
+      interval: "cron"
+      cronjob: "0 2 * * 1,3,5"
+      timezone: "America/Los_Angeles"
 
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
+      # Mon, Wed, Fri at 2am Pacific time
+      interval: "cron"
+      cronjob: "0 2 * * 1,3,5"
+      timezone: "America/Los_Angeles"
     groups:
       gox:
         patterns:
