@@ -86,7 +86,7 @@ oras := localbin / "oras" + "-" + oras_version
   [ -f {{oras}} ] || just _goinstall "oras.land/oras/cmd/oras" {{oras_version}} "oras" {{oras}}
 
 # actionlint
-actionlint_version := "v1.7.3"
+actionlint_version := "v1.7.12"
 actionlint := localbin / "actionlint" + "-" + actionlint_version
 @_actionlint: _localbin
   [ -f {{actionlint}} ] || just _goinstall "github.com/rhysd/actionlint/cmd/actionlint" {{actionlint_version}} "actionlint" {{actionlint}}
@@ -121,7 +121,7 @@ _license_headers: _addlicense
 
 # Run linter for GitHub Actions
 lint-gha: _actionlint
-   {{actionlint}} -verbose
+   {{actionlint}}
 
 # TODO add back envtest when needed:
 # KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbinpath}} -p path` go test {{go_flags}} `go list {{path}} | grep -v /e2e` -coverprofile cover.out
