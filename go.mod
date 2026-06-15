@@ -34,7 +34,7 @@ require (
 	github.com/tetratelabs/wazero v1.12.0
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vishvananda/netlink v1.3.1
-	go.githedgehog.com/fabric-bcm-ygot v0.5.2-4.5.0
+	go.githedgehog.com/fabric-bcm-ygot v0.5.3-4.5.1
 	go.githedgehog.com/libmeta v0.3.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/sync v0.21.0
