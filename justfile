@@ -13,10 +13,10 @@ _gotools: _touch_embed
   go vet {{go_flags}} ./...
 
 # Called in CI
-_lint: _license_headers _gotools
+_lint: _license_headers _gotools lint-gha
 
 # Generate, lint, test and build everything
-all: gen lint lint-gha test build kube-build && version
+all: gen lint test build kube-build && version
 
 # Run linters against code (incl. license headers)
 lint: _lint _golangci_lint
