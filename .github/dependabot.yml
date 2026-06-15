@@ -12,6 +12,8 @@ updates:
       interval: "cron"
       cronjob: "0 2 * * 1,3,5"
       timezone: "America/Los_Angeles"
+    labels:
+      - "dependencies"
 
   - package-ecosystem: "gomod"
     directory: "/"
@@ -20,6 +22,8 @@ updates:
       interval: "cron"
       cronjob: "0 2 * * 1,3,5"
       timezone: "America/Los_Angeles"
+    labels:
+      - "dependencies"
     groups:
       gox:
         patterns:
