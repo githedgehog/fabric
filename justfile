@@ -4,13 +4,13 @@ import "hack/tools.just"
 
 # Print list of available recipes
 default:
-  @just --list
+    @just --list
 
 export CGO_ENABLED := "0"
 
 _gotools: _touch_embed
-  go fmt ./...
-  go vet {{go_flags}} ./...
+    go fmt ./...
+    go vet {{ go_flags }} ./...
 
 # Called in CI
 _lint: _license_headers _gotools lint-gha
@@ -20,11 +20,11 @@ all: gen lint test build kube-build && version
 
 # Run linters against code (incl. license headers)
 lint: _lint _golangci_lint
-  {{golangci_lint}} run --show-stats ./...
+    {{ golangci_lint }} run --show-stats ./...
 
 # Run golangci-lint to attempt to fix issues
 lint-fix: _lint _golangci_lint
-  {{golangci_lint}} run --show-stats --fix ./...
+    {{ golangci_lint }} run --show-stats --fix ./...
 
 go_base_flags := "--tags containers_image_openpgp,containers_image_storage_stub"
 go_flags := go_base_flags + " -ldflags=\"-w -s -X go.githedgehog.com/fabric/pkg/version.Version=" + version + "\""
@@ -32,17 +32,17 @@ go_build := "go build " + go_flags
 go_linux_build := "GOOS=linux GOARCH=amd64 " + go_build
 
 _touch_embed:
-  @touch pkg/boot/nosinstall/bin/fabric-nos-install
+    @touch pkg/boot/nosinstall/bin/fabric-nos-install
 
 _embed: _touch_embed
-  # Build fabric-nos-install binary for embedding
-  {{go_linux_build}} -o ./pkg/boot/nosinstall/bin/fabric-nos-install ./cmd/fabric-nos-install
+    # Build fabric-nos-install binary for embedding
+    {{ go_linux_build }} -o ./pkg/boot/nosinstall/bin/fabric-nos-install ./cmd/fabric-nos-install
 
 _kube_gen:
-  # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject implementations
-  {{controller_gen}} object:headerFile="hack/boilerplate.go.txt" paths="./..."
-  # Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
-  {{controller_gen}} rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+    # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject implementations
+    {{ controller_gen }} object:headerFile="hack/boilerplate.go.txt" paths="./..."
+    # Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
+    {{ controller_gen }} rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 docs_image_name := "ghcr.io/githedgehog/hhdocs"
 docs_image_version := "20241202"
@@ -50,42 +50,42 @@ docs_image := docs_image_name + ":" + docs_image_version
 docs_test_dir := './docs/test'
 
 test-docs:
-  rm -rf "{{docs_test_dir}}" || true
-  mkdir -p "{{docs_test_dir}}/docs"
-  cp docs/api.md "{{docs_test_dir}}/docs/"
+    rm -rf "{{ docs_test_dir }}" || true
+    mkdir -p "{{ docs_test_dir }}/docs"
+    cp docs/api.md "{{ docs_test_dir }}/docs/"
 
-  # Create minimal mkdocs.yml config file; warn on broken links
-  echo 'site_name: API Reference Build Test' > "{{docs_test_dir}}/mkdocs.yml"
-  echo 'validation:'                        >> "{{docs_test_dir}}/mkdocs.yml"
-  echo '  not_found: warn'                  >> "{{docs_test_dir}}/mkdocs.yml"
-  echo '  absolute_links: warn'             >> "{{docs_test_dir}}/mkdocs.yml"
-  echo '  unrecognized_links: warn'         >> "{{docs_test_dir}}/mkdocs.yml"
-  echo '  anchors: warn'                    >> "{{docs_test_dir}}/mkdocs.yml"
+    # Create minimal mkdocs.yml config file; warn on broken links
+    echo 'site_name: API Reference Build Test' > "{{ docs_test_dir }}/mkdocs.yml"
+    echo 'validation:'                        >> "{{ docs_test_dir }}/mkdocs.yml"
+    echo '  not_found: warn'                  >> "{{ docs_test_dir }}/mkdocs.yml"
+    echo '  absolute_links: warn'             >> "{{ docs_test_dir }}/mkdocs.yml"
+    echo '  unrecognized_links: warn'         >> "{{ docs_test_dir }}/mkdocs.yml"
+    echo '  anchors: warn'                    >> "{{ docs_test_dir }}/mkdocs.yml"
 
-  # Make sure that docs/api.md builds as HTML with no warnings
-  docker run --rm \
-      --user "$(id -u):$(id -g)" \
-      -v "{{docs_test_dir}}":/docs \
-      "{{docs_image}}" \
-      mkdocs build --strict
+    # Make sure that docs/api.md builds as HTML with no warnings
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        -v "{{ docs_test_dir }}":/docs \
+        "{{ docs_image }}" \
+        mkdocs build --strict
 
 # Generate docs, code/manifests, things to embed, etc
 gen: _kube_gen _embed _crd_ref_docs && test-docs
-  {{crd_ref_docs}} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
-  go run cmd/fabric-gen/main.go profiles-ref
+    {{ crd_ref_docs }} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
+    go run cmd/fabric-gen/main.go profiles-ref
 
 # Build all artifacts
 build: _license_headers _gotools gen _embed && version
-  {{go_linux_build}} -o ./bin/fabric ./cmd
-  {{go_linux_build}} -o ./bin/agent ./cmd/agent
-  {{go_linux_build}} -o ./bin/hhfctl ./cmd/hhfctl
-  {{go_linux_build}} -o ./bin/fabric-boot ./cmd/fabric-boot
-  {{go_linux_build}} -o ./bin/fabric-dhcpd ./cmd/fabric-dhcpd
-  # Build complete
+    {{ go_linux_build }} -o ./bin/fabric ./cmd
+    {{ go_linux_build }} -o ./bin/agent ./cmd/agent
+    {{ go_linux_build }} -o ./bin/hhfctl ./cmd/hhfctl
+    {{ go_linux_build }} -o ./bin/fabric-boot ./cmd/fabric-boot
+    {{ go_linux_build }} -o ./bin/fabric-dhcpd ./cmd/fabric-dhcpd
+    # Build complete
 
 _hhfctl-build GOOS GOARCH: _license_headers _kube_gen _gotools _embed
-  GOOS={{GOOS}} GOARCH={{GOARCH}} {{go_build}} -o ./bin/hhfctl-{{GOOS}}-{{GOARCH}}/hhfctl ./cmd/hhfctl
-  cd bin && tar -czvf hhfctl-{{GOOS}}-{{GOARCH}}-{{version}}.tar.gz hhfctl-{{GOOS}}-{{GOARCH}}/hhfctl
+    GOOS={{ GOOS }} GOARCH={{ GOARCH }} {{ go_build }} -o ./bin/hhfctl-{{ GOOS }}-{{ GOARCH }}/hhfctl ./cmd/hhfctl
+    cd bin && tar -czvf hhfctl-{{ GOOS }}-{{ GOARCH }}-{{ version }}.tar.gz hhfctl-{{ GOOS }}-{{ GOARCH }}/hhfctl
 
 # Build hhfctl and other user-facing binaries for all supported OS/Arch
 build-multi: (_hhfctl-build "linux" "amd64") (_hhfctl-build "linux" "arm64") (_hhfctl-build "darwin" "amd64") (_hhfctl-build "darwin" "arm64") && version
@@ -94,43 +94,44 @@ oci_repo := "127.0.0.1:30000"
 oci_prefix := "githedgehog/fabric"
 
 _helm-fabric-api: _kustomize _helm _kube_gen
-  @rm config/helm/fabric-api-v*.tgz || true
-  {{kustomize}} build config/crd > config/helm/fabric-api/templates/crds.yaml
-  {{helm}} package config/helm/fabric-api --destination config/helm --version {{version}}
-  {{helm}} lint config/helm/fabric-api-{{version}}.tgz
+    @rm config/helm/fabric-api-v*.tgz || true
+    {{ kustomize }} build config/crd > config/helm/fabric-api/templates/crds.yaml
+    {{ helm }} package config/helm/fabric-api --destination config/helm --version {{ version }}
+    {{ helm }} lint config/helm/fabric-api-{{ version }}.tgz
 
 _helm-fabric: _kustomize _helm _helmify _kube_gen
-  @rm config/helm/fabric-v*.tgz || true
-  @rm config/helm/fabric/templates/*.yaml config/helm/fabric/values.yaml || true
-  {{kustomize}} build config/default | {{helmify}} config/helm/fabric
-  {{helm}} package config/helm/fabric --destination config/helm --version {{version}}
-  {{helm}} lint config/helm/fabric-{{version}}.tgz
+    @rm config/helm/fabric-v*.tgz || true
+    @rm config/helm/fabric/templates/*.yaml config/helm/fabric/values.yaml || true
+    {{ kustomize }} build config/default | {{ helmify }} config/helm/fabric
+    {{ helm }} package config/helm/fabric --destination config/helm --version {{ version }}
+    {{ helm }} lint config/helm/fabric-{{ version }}.tgz
 
 # Build all K8s artifacts (images and charts)
 kube-build: build (_docker-build "fabric") _helm-fabric-api _helm-fabric (_kube-build "fabric-dhcpd") (_kube-build "fabric-boot") && version
-  # Docker images and Helm charts built
+    # Docker images and Helm charts built
 
 # Push all K8s artifacts (images and charts)
 kube-push: kube-build (_helm-push "fabric-api") (_kube-push "fabric") (_kube-push "fabric-dhcpd") (_kube-push "fabric-boot") && version
-  # Docker images and Helm charts pushed
+    # Docker images and Helm charts pushed
 
 # Push all K8s artifacts (images and charts) and binaries
 push: kube-push && version
-  cd bin && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/agent:{{version}} agent
-  cd bin && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/hhfctl:{{version}} hhfctl
+    cd bin && oras push {{ oras_insecure }} {{ oci_repo }}/{{ oci_prefix }}/agent:{{ version }} agent
+    cd bin && oras push {{ oras_insecure }} {{ oci_repo }}/{{ oci_prefix }}/hhfctl:{{ version }} hhfctl
 
 _hhfctl-push GOOS GOARCH: _oras (_hhfctl-build GOOS GOARCH)
-  cd bin/hhfctl-{{GOOS}}-{{GOARCH}} && oras push {{oras_insecure}} {{oci_repo}}/{{oci_prefix}}/hhfctl-{{GOOS}}-{{GOARCH}}:{{version}} hhfctl
+    cd bin/hhfctl-{{ GOOS }}-{{ GOARCH }} && oras push {{ oras_insecure }} {{ oci_repo }}/{{ oci_prefix }}/hhfctl-{{ GOOS }}-{{ GOARCH }}:{{ version }} hhfctl
 
 # Publish hhfctl and other user-facing binaries for all supported OS/Arch
 push-multi: (_hhfctl-push "linux" "amd64") (_hhfctl-push "linux" "arm64") (_hhfctl-push "darwin" "amd64") (_hhfctl-push "darwin" "arm64") && version
 
+[private]
 _test_api_kind := "fabric-api"
 
 # Install API on a kind cluster and wait for CRDs to be ready
 test-api: _helm _helm-fabric-api
-    kind export kubeconfig --name {{_test_api_kind}}
-    {{helm}} install -n default fabric-api config/helm/fabric-api-{{version}}.tgz
+    kind export kubeconfig --name {{ _test_api_kind }}
+    {{ helm }} install -n default fabric-api config/helm/fabric-api-{{ version }}.tgz
     sleep 10
     kubectl wait --for condition=established --timeout=60s crd/connections.wiring.githedgehog.com
     kubectl wait --for condition=established --timeout=60s crd/vpcs.vpc.githedgehog.com
@@ -141,17 +142,17 @@ test-api: _helm _helm-fabric-api
 test-api-auto: _kind_prep test-api _kind_cleanup
 
 _kind_prep:
-  kind delete cluster --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}}
-  kind create cluster --name {{_test_api_kind}}
+    kind delete cluster --name {{ _test_api_kind }} || kind delete cluster --name {{ _test_api_kind }}
+    kind create cluster --name {{ _test_api_kind }}
 
 _kind_cleanup:
-  kind delete cluster --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}} || echo "Kind cluster {{_test_api_kind}} deletion failed, you may want to delete it manually"
+    kind delete cluster --name {{ _test_api_kind }} || kind delete cluster --name {{ _test_api_kind }} || echo "Kind cluster {{ _test_api_kind }} deletion failed, you may want to delete it manually"
 
 # Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
 patch: && version
-  kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"fabric":{"api":"{{version}}","agent":"{{version}}","boot":"{{version}}","controller":"{{version}}","ctl":"{{version}}","dhcpd":"{{version}}"}}}}}'
+    kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"fabric":{"api":"{{ version }}","agent":"{{ version }}","boot":"{{ version }}","controller":"{{ version }}","ctl":"{{ version }}","dhcpd":"{{ version }}"}}}}}'
 
 # Run specified command with args with minimal Go flags (no version provided)
 run cmd *args:
-  @echo "Running: {{cmd}} {{args}} (run gen manually if needed)"
-  @go run {{go_base_flags}} ./cmd/{{cmd}} {{args}}
+    @echo "Running: {{ cmd }} {{ args }} (run gen manually if needed)"
+    @go run {{ go_base_flags }} ./cmd/{{ cmd }} {{ args }}
