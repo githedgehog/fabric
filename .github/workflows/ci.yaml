@@ -61,7 +61,7 @@ jobs:
 
       - name: Lint and generate code
         run: |
-          just --timestamp lint-gha gen _lint
+          just --timestamp gen _lint
 
       - name: More Go lint
         uses: golangci/golangci-lint-action@v6
