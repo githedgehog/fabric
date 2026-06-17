@@ -93,8 +93,6 @@ const (
 	ActionWeightInterfacePortChannelSwitchedAccessUpdate
 	ActionWeightInterfacePortChannelSwitchedTrunkUpdate
 	ActionWeightInterfaceEthernetBaseUpdate
-	ActionWeightInterfaceEthernetSwitchedAccessUpdate
-	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
 	ActionWeightPortChannelConfigMACUpdate
@@ -109,6 +107,15 @@ const (
 	ActionWeightACLInterfaceDelete
 	ActionWeightVRFBGPNeighborDelete
 	ActionWeightInterfaceSubinterfaceDelete
+	// Ethernet switched VLAN ops sit between subinterface delete and subinterface create so a VLAN
+	// is never on a port's switched-vlan and on a subinterface of that port at once (SONiC rejects
+	// either op while the other holds the VLAN):
+	//   - removing hostBGP (true->false): delete the subinterface, then add the access/trunk VLAN.
+	//   - adding hostBGP (false->true): delete the access/trunk VLAN, then create the subinterface.
+	ActionWeightInterfaceEthernetSwitchedAccessDelete
+	ActionWeightInterfaceEthernetSwitchedTrunkDelete
+	ActionWeightInterfaceEthernetSwitchedAccessUpdate
+	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
 	ActionWeightInterfaceSubinterfaceUpdate
 	ActionWeightInterfaceVLANStaticARPUpdate
 	ActionWeightInterfaceSubinterfaceStaticARPUpdate
@@ -209,8 +216,6 @@ const (
 
 	ActionWeightPortChannelConfigMACDelete
 	ActionWeightPortChannelConfigFallbackDelete
-	ActionWeightInterfaceEthernetSwitchedAccessDelete
-	ActionWeightInterfaceEthernetSwitchedTrunkDelete
 	ActionWeightInterfaceEthernetBaseDelete
 	ActionWeightInterfacePortChannelSwitchedAccessDelete
 	ActionWeightInterfacePortChannelSwitchedTrunkDelete
