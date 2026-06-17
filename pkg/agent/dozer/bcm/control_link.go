@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/netip"
+	"strings"
 
 	"github.com/vishvananda/netlink"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -51,14 +52,39 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 		return fmt.Errorf("control VIP %s is not in switch IP subnet %s", controlVIP, switchIP) //nolint:goerr113
 	}
 
+	mgmtIP, err := netlink.ParseAddr(agent.Spec.Switch.IP)
+	if err != nil {
+		return fmt.Errorf("parsing switch IP %s: %w", agent.Spec.Switch.IP, err)
+	}
+
+	linkList, err := netlink.LinkList()
+	if err != nil {
+		return fmt.Errorf("getting list of links: %w", err)
+	}
+
+	for _, link := range linkList {
+		if link.Attrs().Name == mgmtPort {
+			continue
+		} else if strings.HasPrefix(link.Attrs().Name, "eth") {
+			intfAddrs, err := netlink.AddrList(link, 0)
+			if err != nil {
+				return fmt.Errorf("getting address for link %s: %w", link.Attrs().Name, err)
+			}
+			for _, val := range intfAddrs {
+				if mgmtIP.Equal(val) {
+					if err = netlink.AddrDel(link, mgmtIP); err != nil {
+						return fmt.Errorf("deleting duplicate management IP: %w", err)
+					}
+				}
+			}
+		}
+
+		continue
+	}
+
 	link, err := netlink.LinkByName(mgmtPort)
 	if err != nil {
 		return fmt.Errorf("getting link %s: %w", mgmtPort, err)
-	}
-
-	addr, err := netlink.ParseAddr(agent.Spec.Switch.IP)
-	if err != nil {
-		return fmt.Errorf("parsing switch IP %s: %w", agent.Spec.Switch.IP, err)
 	}
 
 	addrs, err := netlink.AddrList(link, 0)
@@ -68,7 +94,7 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 
 	exists := false
 	for _, a := range addrs {
-		if a.Equal(*addr) {
+		if a.Equal(*mgmtIP) {
 			exists = true
 
 			break
@@ -76,7 +102,7 @@ func (p *BroadcomProcessor) EnsureControlLink(_ context.Context, agent *agentapi
 	}
 
 	if !exists {
-		if err := netlink.AddrAdd(link, addr); err != nil {
+		if err := netlink.AddrAdd(link, mgmtIP); err != nil {
 			return fmt.Errorf("adding address %s to link %s: %w", switchIP, mgmtPort, err)
 		}
 	}
