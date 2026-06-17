@@ -524,7 +524,7 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -533,7 +533,7 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -542,7 +542,7 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -551,7 +551,7 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -560,7 +560,7 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -569,7 +569,7 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -578,35 +578,35 @@
     - config:
         index: 0
       index: 0
-  weight: 41
+  weight: 43
 - path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
-  weight: 45
+  weight: 47
 - path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.0
   type: update
@@ -617,7 +617,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.0
-  weight: 47
+  weight: 49
 - path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.2
   type: update
@@ -628,7 +628,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.2
-  weight: 47
+  weight: 49
 - path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.4
   type: update
@@ -639,7 +639,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.4
-  weight: 47
+  weight: 49
 - path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.6
   type: update
@@ -650,7 +650,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.6
-  weight: 47
+  weight: 49
 - path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.8
   type: update
@@ -661,7 +661,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.8
-  weight: 47
+  weight: 49
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.8.0
   type: update
@@ -672,7 +672,7 @@
         prefix-length: 32
         secondary: false
       ip: 172.30.8.0
-  weight: 47
+  weight: 49
 - path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.0.7
   type: update
@@ -683,7 +683,7 @@
         prefix-length: 21
         secondary: false
       ip: 172.30.0.7
-  weight: 47
+  weight: 49
 - path: /system/ntp/config
   summary: Create NTP
   type: update
@@ -691,7 +691,7 @@
     config:
       source-interface:
       - Management0
-  weight: 51
+  weight: 53
 - path: /system/ntp/servers/server[address=172.30.0.1]
   summary: Create NTP server 172.30.0.1
   type: update
@@ -701,18 +701,18 @@
       config:
         address: 172.30.0.1
         prefer: true
-  weight: 52
+  weight: 54
 - path: /network-instances/network-instance[name=default]/global-sag/config
   summary: Create VRF default SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 62
+  weight: 64
 - path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
   summary: Create VRF default EVPNMH
   type: update
-  weight: 63
+  weight: 65
 - path: /acl/acl-sets/acl-set
   summary: Create ACL no-ipns-peering--default base
   type: update
@@ -724,7 +724,7 @@
         type: ACL_IPV4
       name: no-ipns-peering--default
       type: ACL_IPV4
-  weight: 74
+  weight: 76
 - path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 1
   type: update
@@ -740,7 +740,7 @@
           destination-address: 10.0.0.0/16
           source-address: 10.0.0.0/16
       sequence-id: 1
-  weight: 76
+  weight: 78
 - path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 65535
   type: update
@@ -752,7 +752,7 @@
       config:
         sequence-id: 65535
       sequence-id: 65535
-  weight: 76
+  weight: 78
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp
   summary: Create VRF default BGP base
   type: update
@@ -772,7 +772,7 @@
           as: 65100
           network-import-check: true
           router-id: 172.30.8.0
-  weight: 78
+  weight: 80
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF default BGP L2VPN
   type: update
@@ -786,7 +786,7 @@
           advertise-all-vni: true
         route-advertise:
           route-advertise-list: []
-  weight: 79
+  weight: 81
 - path: /openconfig-bfd:bfd/openconfig-bfd-ext:bfd-profile/profile
   summary: Create BFD Profile fabric
   type: update
@@ -800,7 +800,7 @@
         profile-name: fabric
         required-minimum-receive: 300
       profile-name: fabric
-  weight: 80
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable/config
   summary: Create ErrDisable Global
   type: update
@@ -809,7 +809,7 @@
       cause:
       - LINK_FLAP
       interval: 300
-  weight: 81
+  weight: 83
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet0]/link-flap
   summary: Create ErrDisable Interface Ethernet0
   type: update
@@ -820,7 +820,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet1]/link-flap
   summary: Create ErrDisable Interface Ethernet1
   type: update
@@ -831,7 +831,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet2]/link-flap
   summary: Create ErrDisable Interface Ethernet2
   type: update
@@ -842,7 +842,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet3]/link-flap
   summary: Create ErrDisable Interface Ethernet3
   type: update
@@ -853,7 +853,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet4]/link-flap
   summary: Create ErrDisable Interface Ethernet4
   type: update
@@ -864,7 +864,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.1]
   summary: Create VRF BGP neighbor 172.30.128.1
   type: update
@@ -893,7 +893,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.1
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.3]
   summary: Create VRF BGP neighbor 172.30.128.3
   type: update
@@ -922,7 +922,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.3
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.5]
   summary: Create VRF BGP neighbor 172.30.128.5
   type: update
@@ -951,7 +951,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.5
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.7]
   summary: Create VRF BGP neighbor 172.30.128.7
   type: update
@@ -980,7 +980,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.7
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.9]
   summary: Create VRF BGP neighbor 172.30.128.9
   type: update
@@ -1013,7 +1013,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.9
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.2]
   summary: Create VRF BGP neighbor 172.30.8.2
   type: update
@@ -1050,7 +1050,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.3]
   summary: Create VRF BGP neighbor 172.30.8.3
   type: update
@@ -1087,7 +1087,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 83
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=172.30.8.0/32]
   summary: Create VRF BGP network 172.30.8.0/32
   type: update
@@ -1096,7 +1096,7 @@
     - config:
         prefix: 172.30.8.0/32
       prefix: 172.30.8.0/32
-  weight: 84
+  weight: 86
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -1109,7 +1109,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -1122,7 +1122,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 85
+  weight: 87
 - path: /loadshare/roce-attrs
   summary: Update ECMP RoCE
   type: replace
