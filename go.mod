@@ -1,6 +1,6 @@
 module go.githedgehog.com/fabric
 
-go 1.26.3
+go 1.26.4
 
 replace github.com/openconfig/ygot => github.com/githedgehog/ygot v0.32.0-hh1
 
