@@ -119,14 +119,14 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 
 		if role == "" {
-			return nil, fmt.Errorf("invalid role: %s", user.Role) //nolint:err113
+			return nil, fmt.Errorf("invalid role: %s", user.Role)
 		}
 
 		keys := []SSHKey{}
 		for _, key := range user.SSHKeys {
 			parts := strings.Split(key, " ")
 			if len(parts) < 2 {
-				return nil, fmt.Errorf("invalid SSH key: %s", key) //nolint:err113
+				return nil, fmt.Errorf("invalid SSH key: %s", key)
 			}
 
 			keys = append(keys, SSHKey{
@@ -281,7 +281,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				return nil, fmt.Errorf("parsing p2p subnet %q for vpc attachment %q: %w", p2pSubnet, attachName, err)
 			}
 			if !p2p.IsValid() || !p2p.Addr().Is4() || p2p.Bits() != 31 {
-				return nil, fmt.Errorf("p2p subnet %q for vpc attachment %q is not /31", p2pSubnet, attachName) //nolint:err113
+				return nil, fmt.Errorf("p2p subnet %q for vpc attachment %q is not /31", p2pSubnet, attachName)
 			}
 			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
 		}

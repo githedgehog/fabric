@@ -51,10 +51,10 @@ func (s *Server) watchList(
 			return nil
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
-				return fmt.Errorf("%s watch channel closed", name) //nolint:err113
+				return fmt.Errorf("%s watch channel closed", name)
 			}
 			if event.Object == nil {
-				return fmt.Errorf("received nil object from %s watch", name) //nolint:err113
+				return fmt.Errorf("received nil object from %s watch", name)
 			}
 
 			switch event.Type {
@@ -63,7 +63,7 @@ func (s *Server) watchList(
 					return fmt.Errorf("%s watch error: %w", name, err)
 				}
 
-				return fmt.Errorf("%s watch error", name) //nolint:err113
+				return fmt.Errorf("%s watch error", name)
 			case watch.Bookmark:
 				continue
 			case watch.Added, watch.Modified, watch.Deleted:
@@ -159,7 +159,7 @@ func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, m
 			}
 
 			if subnet.UID != uid {
-				return fmt.Errorf("subnet %s UID mismatch", subnetName) //nolint:err113
+				return fmt.Errorf("subnet %s UID mismatch", subnetName)
 			}
 		}
 		attempt++

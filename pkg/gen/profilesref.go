@@ -94,7 +94,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		}
 
 		if !sp.Spec.Features.ACLs {
-			return fmt.Errorf("switch profile %s does not support ACLs which makes it not suitable for any role", sp.Name) //nolint:goerr113
+			return fmt.Errorf("switch profile %s does not support ACLs which makes it not suitable for any role", sp.Name)
 		}
 
 		roles := getRolesHint(sp)

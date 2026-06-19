@@ -25,10 +25,10 @@ type BFDPeerStatus struct {
 
 func GetBFDPeers(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BFDPeerStatus, error) {
 	if sw == nil {
-		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
+		return nil, fmt.Errorf("switch is nil")
 	}
 	if fabCfg == nil {
-		return nil, fmt.Errorf("fabric config is nil") //nolint:goerr113
+		return nil, fmt.Errorf("fabric config is nil")
 	}
 
 	ag := &agentapi.Agent{}

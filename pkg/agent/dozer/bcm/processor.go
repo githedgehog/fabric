@@ -118,7 +118,7 @@ func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {
 		time.Sleep(5 * time.Second)
 	}
 
-	return fmt.Errorf("system is not ready after %f minutes", timeout.Minutes()) //nolint:err113
+	return fmt.Errorf("system is not ready after %f minutes", timeout.Minutes())
 }
 
 type SystemStatusResponse struct {
@@ -169,7 +169,7 @@ func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
 	// 	io.WriteString(stdin, "y\n")
 	// }()
 
-	return fmt.Errorf("not supported") //nolint:err113
+	return fmt.Errorf("not supported")
 }
 
 func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -371,7 +371,7 @@ func (p *BroadcomProcessor) GetRoCE(ctx context.Context) (bool, error) {
 	ocVal := &oc.SonicSwitch_SonicSwitch_SWITCH{}
 	err := p.client.Get(ctx, "/sonic-switch/SWITCH/SWITCH_LIST[switch=switch]", ocVal)
 	if err != nil {
-		return false, fmt.Errorf("reading RoCE state: %w", err) //nolint:goerr113
+		return false, fmt.Errorf("reading RoCE state: %w", err)
 	}
 
 	for key, sw := range ocVal.SWITCH_LIST {
@@ -408,7 +408,7 @@ func (p *BroadcomProcessor) SetRoCE(ctx context.Context, val bool) error {
 	if err == nil {
 		slog.Warn("RoCE set operation unexpected result", "data", string(resp), "action", action)
 
-		return fmt.Errorf("unexpected response from RoCE set operation") //nolint:goerr113
+		return fmt.Errorf("unexpected response from RoCE set operation")
 	}
 
 	return nil

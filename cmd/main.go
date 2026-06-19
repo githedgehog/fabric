@@ -118,7 +118,7 @@ func run(ctx context.Context) error {
 			return fmt.Errorf("creating gateway validator: %w", err)
 		}
 		if gwValid == nil {
-			return fmt.Errorf("gateway validator is nil") //nolint:err113
+			return fmt.Errorf("gateway validator is nil")
 		}
 		defer func() { //nolint:contextcheck
 			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

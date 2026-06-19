@@ -103,7 +103,7 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 func (svc *service) writeCumulusZTP(w http.ResponseWriter, agent *agentapi.Agent, secret *corev1.Secret) error {
 	kubeConfig, ok := secret.Data[ctrl.AgentKubeconfigKey]
 	if !ok {
-		return fmt.Errorf("kubeconfig not found") //nolint:err113
+		return fmt.Errorf("kubeconfig not found")
 	}
 
 	ztpBuf, err := cmls.BuildZTPFor(agent, kubeConfig)

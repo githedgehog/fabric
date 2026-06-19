@@ -36,7 +36,6 @@ linters:
     - gocheckcompilerdirectives
     - goconst
     - gocritic
-    - err113
     - gofmt
     - goimports
     - goprintffuncname

@@ -366,13 +366,13 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 
 		if !mgmtSubnet.Contains(swIP.Addr()) {
-			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet) //nolint:goerr113
+			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet)
 		}
 		if swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
-			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart) //nolint:goerr113
+			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart)
 		}
 		if _, exist := mgmtIPs[swIP.Addr()]; exist {
-			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP) //nolint:goerr113
+			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP)
 		}
 	}
 
@@ -382,15 +382,15 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s protocol IP %s", sw.Name, sw.Spec.ProtocolIP)
 		}
 		if swProtoIP.Bits() != 32 {
-			return errors.Errorf("switch %s protocol IP %s must be a /32", sw.Name, swProtoIP) //nolint:goerr113
+			return errors.Errorf("switch %s protocol IP %s must be a /32", sw.Name, swProtoIP)
 		}
 
 		if !protocolSubnet.Contains(swProtoIP.Addr()) {
-			return errors.Errorf("switch %s protocol IP %s is not in the protocol subnet %s", sw.Name, swProtoIP, protocolSubnet) //nolint:goerr113
+			return errors.Errorf("switch %s protocol IP %s is not in the protocol subnet %s", sw.Name, swProtoIP, protocolSubnet)
 		}
 
 		if _, exist := protocolIPs[sw.Spec.ProtocolIP]; exist {
-			return errors.Errorf("switch %s protocol IP %s is already in use", sw.Name, swProtoIP) //nolint:goerr113
+			return errors.Errorf("switch %s protocol IP %s is already in use", sw.Name, swProtoIP)
 		}
 	}
 
@@ -399,25 +399,25 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
 			if mclagPeer != nil {
 				if mclagPeer.Spec.ASN != sw.Spec.ASN {
-					return errors.Errorf("mclag peers should have same ASNs: %s and %s", sw.Name, mclagPeer.Name) //nolint:goerr113
+					return errors.Errorf("mclag peers should have same ASNs: %s and %s", sw.Name, mclagPeer.Name)
 				}
 			} else {
 				if _, exist := leafASNs[sw.Spec.ASN]; exist {
-					return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
+					return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN)
 				}
 			}
 		} else if _, exist := leafASNs[sw.Spec.ASN]; exist {
-			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
+			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN)
 		}
 		// also check if it's within the fabric leaf ASN range
 		if sw.Spec.ASN < fabricCfg.LeafASNStart || sw.Spec.ASN > fabricCfg.LeafASNEnd {
-			return errors.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabricCfg.LeafASNStart, fabricCfg.LeafASNEnd) //nolint:goerr113
+			return errors.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabricCfg.LeafASNStart, fabricCfg.LeafASNEnd)
 		}
 	}
 
 	// spine ASN consistency check
 	if sw.Spec.Role.IsSpine() && sw.Spec.ASN != fabricCfg.SpineASN {
-		return errors.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, fabricCfg.SpineASN) //nolint:goerr113
+		return errors.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, fabricCfg.SpineASN)
 	}
 
 	// leaf vtep IP uniqueness / consistency for mclag peers
@@ -427,25 +427,25 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s VTEP IP %s", sw.Name, sw.Spec.VTEPIP)
 		}
 		if swVTEPIP.Bits() != 32 {
-			return errors.Errorf("switch %s VTEP IP %s must be a /32", sw.Name, swVTEPIP) //nolint:goerr113
+			return errors.Errorf("switch %s VTEP IP %s must be a /32", sw.Name, swVTEPIP)
 		}
 
 		if !vtepSubnet.Contains(swVTEPIP.Addr()) {
-			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet) //nolint:goerr113
+			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet)
 		}
 
 		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
 			if mclagPeer != nil {
 				if mclagPeer.Spec.VTEPIP != sw.Spec.VTEPIP {
-					return errors.Errorf("mclag peers should have same VTEP IPs: %s and %s", sw.Name, mclagPeer.Name) //nolint:goerr113
+					return errors.Errorf("mclag peers should have same VTEP IPs: %s and %s", sw.Name, mclagPeer.Name)
 				}
 			} else {
 				if _, exist := VTEPs[sw.Spec.VTEPIP]; exist {
-					return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
+					return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP)
 				}
 			}
 		} else if _, exist := VTEPs[sw.Spec.VTEPIP]; exist {
-			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
+			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP)
 		}
 	}
 

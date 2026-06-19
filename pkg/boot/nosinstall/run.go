@@ -130,7 +130,7 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) { //nolint:n
 	if env.BootReason != "" && !slices.Contains(AllowedBootReasons, env.BootReason) {
 		slog.Error("Not allowed ONIE boot reason, aborting", "reason", env.BootReason, "allowed", AllowedBootReasons)
 
-		return fmt.Errorf("invalid ONIE boot reason") //nolint:goerr113
+		return fmt.Errorf("invalid ONIE boot reason")
 	}
 
 	tmpDir := os.TempDir()
@@ -240,7 +240,7 @@ func extractFiles(dest string) error {
 	}
 
 	if string(magicBytes) != Magic {
-		return fmt.Errorf("magic mismatch") //nolint:goerr113
+		return fmt.Errorf("magic mismatch")
 	}
 
 	payloadBytes := make([]byte, 8)
@@ -285,7 +285,7 @@ func extractFile(dest string, header *tar.Header, r io.Reader, mode os.FileMode)
 
 	// path traversal check: https://security.snyk.io/research/zip-slip-vulnerability
 	if !strings.HasPrefix(target, filepath.Clean(dest)+string(os.PathSeparator)) {
-		return fmt.Errorf("illegal file path %s", header.Name) //nolint:goerr113
+		return fmt.Errorf("illegal file path %s", header.Name)
 	}
 
 	f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, mode)
@@ -360,7 +360,7 @@ func EnsureONIEBootPartition(ctx context.Context) error {
 		}
 	}
 
-	return fmt.Errorf("ONIE boot partition not mounted") //nolint:goerr113
+	return fmt.Errorf("ONIE boot partition not mounted")
 }
 
 func mountPartition(origCtx context.Context, label string) (string, func(), error) {
@@ -426,7 +426,7 @@ func sonicInstallAgent(ctx context.Context, tmp string) error {
 		}
 	}
 	if !ok {
-		return fmt.Errorf("finding SONiC image dir") //nolint:goerr113
+		return fmt.Errorf("finding SONiC image dir")
 	}
 
 	return installAgentTo(tmp, sonicRoot)

@@ -310,7 +310,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			return nil, errors.Errorf("switch.ip is required")
 		}
 		if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
-			return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
+			return nil, errors.New("switch.ip is not a valid IP CIDR")
 		}
 		if attach.Spec.Neighbor.ASN == 0 {
 			return nil, errors.Errorf("neighbor.asn is required")
@@ -319,7 +319,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			return nil, errors.Errorf("neighbor.ip is required")
 		}
 		if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
-			return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
+			return nil, errors.New("neighbor.ip is not a valid IP address")
 		}
 	} else {
 		if attach.Spec.Switch.IP != "" || attach.Spec.Switch.VLAN != 0 {
@@ -333,14 +333,14 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 		_, err := netip.ParseAddr(attach.Spec.Static.RemoteIP)
 		if err != nil {
-			return nil, errors.New("static.remoteIP is not a valid IP address") //nolint: goerr113
+			return nil, errors.New("static.remoteIP is not a valid IP address")
 		}
 		if (attach.Spec.Static.IP == "" && !attach.Spec.Static.Proxy) || (attach.Spec.Static.IP != "" && attach.Spec.Static.Proxy) {
 			return nil, errors.Errorf("either static.ip or static.proxy must be set for static external attachment")
 		}
 		if attach.Spec.Static.IP != "" {
 			if _, _, err := net.ParseCIDR(attach.Spec.Static.IP); err != nil {
-				return nil, errors.New("static.ip is not a valid IP CIDR") //nolint: goerr113
+				return nil, errors.New("static.ip is not a valid IP CIDR")
 			}
 		}
 	}

@@ -77,7 +77,7 @@ type GatewayReconciler struct {
 
 func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	if cfg == nil {
-		return fmt.Errorf("gateway controller config is nil") //nolint:goerr113
+		return fmt.Errorf("gateway controller config is nil")
 	}
 
 	r := &GatewayReconciler{
@@ -198,10 +198,10 @@ var ErrRetryLater = fmt.Errorf("retry later")
 
 func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, gw *gwapi.Gateway) (*gwintapi.GatewayAgent, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("cfg is nil") //nolint:err113
+		return nil, fmt.Errorf("cfg is nil")
 	}
 	if gw == nil {
-		return nil, fmt.Errorf("gw is nil") //nolint:err113
+		return nil, fmt.Errorf("gw is nil")
 	}
 
 	inGwGroups := map[string]bool{}
@@ -307,10 +307,10 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 // BuildGatewayAgentForPeering builds a GatewayAgent for the first gateway that matches the peering gateway group.
 func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, peering *gwapi.GatewayPeering) (*gwintapi.GatewayAgent, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("cfg is nil") //nolint:err113
+		return nil, fmt.Errorf("cfg is nil")
 	}
 	if peering == nil {
-		return nil, fmt.Errorf("peering is nil") //nolint:err113
+		return nil, fmt.Errorf("peering is nil")
 	}
 
 	gws := &gwapi.GatewayList{}
@@ -337,7 +337,7 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 		}
 	}
 
-	return nil, fmt.Errorf("gateway not found for gateway group: %s", peering.Spec.GatewayGroup) //nolint:err113
+	return nil, fmt.Errorf("gateway not found for gateway group: %s", peering.Spec.GatewayGroup)
 }
 
 func entityName(gwName string, t ...string) string {
@@ -476,7 +476,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			driver = "dpdk"
 		}
 		if pcis > 0 && kernels > 0 {
-			return fmt.Errorf("cannot use mixed PCI address and kernel name interfaces") //nolint:err113
+			return fmt.Errorf("cannot use mixed PCI address and kernel name interfaces")
 		}
 		args = append(args, "--driver", driver)
 

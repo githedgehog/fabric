@@ -13,5 +13,5 @@ import (
 func (s *Server) startCoreDHCP(ctx context.Context) error {
 	_ = s.setupDHCP4Plugin(ctx)
 
-	return fmt.Errorf("only supported on linux") //nolint:err113
+	return fmt.Errorf("only supported on linux")
 }

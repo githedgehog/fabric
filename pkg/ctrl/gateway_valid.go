@@ -41,16 +41,16 @@ type GatewayValidator struct {
 
 func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca []byte, credsPath string) (*GatewayValidator, error) {
 	if fabricCfg == nil {
-		return nil, fmt.Errorf("fabricCfg is nil") //nolint:err113
+		return nil, fmt.Errorf("fabricCfg is nil")
 	}
 	if fabricCfg.DataplaneValidatorRef == "" {
-		return nil, fmt.Errorf("dataplane validator ref is empty") //nolint:err113
+		return nil, fmt.Errorf("dataplane validator ref is empty")
 	}
 	if len(ca) == 0 {
-		return nil, fmt.Errorf("ca is empty") //nolint:err113
+		return nil, fmt.Errorf("ca is empty")
 	}
 	if credsPath == "" {
-		return nil, fmt.Errorf("credsPath is empty") //nolint:err113
+		return nil, fmt.Errorf("credsPath is empty")
 	}
 
 	v := &GatewayValidator{
@@ -59,7 +59,7 @@ func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca [
 
 	colonIdx := strings.LastIndex(fabricCfg.DataplaneValidatorRef, ":")
 	if colonIdx == -1 {
-		return nil, fmt.Errorf("invalid ref format: %s", fabricCfg.DataplaneValidatorRef) //nolint:err113
+		return nil, fmt.Errorf("invalid ref format: %s", fabricCfg.DataplaneValidatorRef)
 	}
 	ref := fabricCfg.DataplaneValidatorRef[:colonIdx]
 	version := fabricCfg.DataplaneValidatorRef[colonIdx+1:]
@@ -73,7 +73,7 @@ func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca [
 
 	rootCAs := x509.NewCertPool()
 	if !rootCAs.AppendCertsFromPEM(ca) {
-		return nil, fmt.Errorf("failed to append CA cert to rootCAs") //nolint:err113
+		return nil, fmt.Errorf("failed to append CA cert to rootCAs")
 	}
 
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -155,10 +155,10 @@ func (v *GatewayValidator) Close(ctx context.Context) {
 
 func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayAgent) error {
 	if v == nil || v.compiled == nil || v.runtime == nil {
-		return fmt.Errorf("validator uninitialized") //nolint:err113
+		return fmt.Errorf("validator uninitialized")
 	}
 	if gwAg == nil {
-		return fmt.Errorf("gateway agent is nil") //nolint:err113
+		return fmt.Errorf("gateway agent is nil")
 	}
 
 	select {
@@ -214,7 +214,7 @@ func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayA
 			}
 		}
 
-		return fmt.Errorf("dp-validator: %s", strings.Join(msgs, ", ")) //nolint:err113
+		return fmt.Errorf("dp-validator: %s", strings.Join(msgs, ", "))
 	}
 
 	return nil

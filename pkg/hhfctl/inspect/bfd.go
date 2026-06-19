@@ -145,13 +145,13 @@ func BFD(ctx context.Context, kube kclient.Reader, in BFDIn) (*BFDOut, error) {
 			for vrf, vrfPeers := range peers {
 				for addr, peer := range vrfPeers {
 					if !peer.Expected {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected BFD peer %q", sw.Name, vrf, addr)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected BFD peer %q", sw.Name, vrf, addr))
 					}
 
 					if peer.SessionState == v1beta1.BFDSessionStateUnset {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: expected BFD peer %q is missing", sw.Name, vrf, addr)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: expected BFD peer %q is missing", sw.Name, vrf, addr))
 					} else if peer.SessionState != v1beta1.BFDSessionStateUp {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: BFD peer %q is not up (state: %s)", sw.Name, vrf, addr, peer.SessionState)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: BFD peer %q is not up (state: %s)", sw.Name, vrf, addr, peer.SessionState))
 					}
 				}
 			}
@@ -162,7 +162,7 @@ func BFD(ctx context.Context, kube kclient.Reader, in BFDIn) (*BFDOut, error) {
 
 	for _, sw := range in.Switches {
 		if _, ok := out.Peers[sw]; !ok {
-			return nil, fmt.Errorf("switch %s not found", sw) //nolint:goerr113
+			return nil, fmt.Errorf("switch %s not found", sw)
 		}
 	}
 

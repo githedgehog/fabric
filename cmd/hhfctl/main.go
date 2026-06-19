@@ -423,17 +423,17 @@ func main() {
 								for idx, rule := range rules {
 									rule = strings.TrimSpace(rule)
 									if rule == "" {
-										return nil, fmt.Errorf("invalid port-forward rule at index %d: should not be empty", idx) //nolint:goerr113
+										return nil, fmt.Errorf("invalid port-forward rule at index %d: should not be empty", idx)
 									}
 
 									kv := strings.Split(rule, "=")
 									if len(kv) != 2 {
-										return nil, fmt.Errorf("invalid port-forward rule %q at index %d: must be in format [proto/]port=as", rule, idx) //nolint:goerr113
+										return nil, fmt.Errorf("invalid port-forward rule %q at index %d: must be in format [proto/]port=as", rule, idx)
 									}
 									left := strings.TrimSpace(kv[0])
 									right := strings.TrimSpace(kv[1])
 									if left == "" || right == "" {
-										return nil, fmt.Errorf("invalid port-forward rule %q at index %d: port and as must be non-empty", rule, idx) //nolint:goerr113
+										return nil, fmt.Errorf("invalid port-forward rule %q at index %d: port and as must be non-empty", rule, idx)
 									}
 
 									entry := gwapi.PeeringNATPortForwardEntry{
@@ -444,12 +444,12 @@ func main() {
 									if strings.Contains(left, "/") {
 										portParts := strings.Split(left, "/")
 										if len(portParts) != 2 {
-											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: left side must be in format proto/port", rule, idx) //nolint:goerr113
+											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: left side must be in format proto/port", rule, idx)
 										}
 										proto := strings.TrimSpace(portParts[0])
 										port := strings.TrimSpace(portParts[1])
 										if proto == "" || port == "" {
-											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: proto and port must be non-empty", rule, idx) //nolint:goerr113
+											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: proto and port must be non-empty", rule, idx)
 										}
 										switch proto {
 										case string(gwapi.PeeringNATProtocolTCP):
@@ -459,7 +459,7 @@ func main() {
 										case string(gwapi.PeeringNATProtocolAny):
 											entry.Protocol = gwapi.PeeringNATProtocolAny
 										default:
-											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: unknown protocol %q (supported: tcp, udp)", rule, idx, proto) //nolint:goerr113
+											return nil, fmt.Errorf("invalid port-forward rule %q at index %d: unknown protocol %q (supported: tcp, udp)", rule, idx, proto)
 										}
 										entry.Port = port
 									} else {
@@ -470,10 +470,10 @@ func main() {
 
 									// only the most basic of validation, let's not duplicate code; alternatively, let's make the validation function in gwapi public
 									if strings.Contains(entry.Port, ",") || strings.TrimSpace(entry.Port) != entry.Port || entry.Port == "" {
-										return nil, fmt.Errorf("invalid port %q in port-forward rule %q at index %d", entry.Port, rule, idx) //nolint:goerr113
+										return nil, fmt.Errorf("invalid port %q in port-forward rule %q at index %d", entry.Port, rule, idx)
 									}
 									if strings.Contains(entry.As, ",") || strings.TrimSpace(entry.As) != entry.As || entry.As == "" {
-										return nil, fmt.Errorf("invalid as %q in port-forward rule %q at index %d", entry.As, rule, idx) //nolint:goerr113
+										return nil, fmt.Errorf("invalid as %q in port-forward rule %q at index %d", entry.As, rule, idx)
 									}
 
 									out = append(out, entry)

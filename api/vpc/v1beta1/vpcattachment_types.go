@@ -177,14 +177,14 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 	if attach.Annotations != nil {
 		if p2pStr, ok := attach.Annotations[AnnotationVPCAttachmentP2PLink]; ok {
 			if p2pStr == "" {
-				return nil, fmt.Errorf("empty p2p link annotation subnet") //nolint:err113
+				return nil, fmt.Errorf("empty p2p link annotation subnet")
 			}
 			p2p, err := netip.ParsePrefix(p2pStr)
 			if err != nil {
 				return nil, fmt.Errorf("p2p link annotation subnet should be a valid prefix, got: %q: %w", p2pStr, err)
 			}
 			if !p2p.IsValid() || !p2p.Addr().Is4() || p2p.Bits() != 31 {
-				return nil, fmt.Errorf("p2p link annotation subnet must be a valid IPv4 /31 prefix, got: %q", p2pStr) //nolint:err113
+				return nil, fmt.Errorf("p2p link annotation subnet must be a valid IPv4 /31 prefix, got: %q", p2pStr)
 			}
 		}
 	}
