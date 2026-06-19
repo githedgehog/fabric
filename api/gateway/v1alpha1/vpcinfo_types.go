@@ -81,14 +81,14 @@ func (vpc *VPCInfo) Default() {
 
 func (vpc *VPCInfo) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+		return fmt.Errorf("gateway support is not enabled")
 	}
 	if vpc.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("vpcinfo namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+		return fmt.Errorf("vpcinfo namespace must be %s", kmetav1.NamespaceDefault)
 	}
 
 	if vpc.Spec.VNI == 0 {
-		return fmt.Errorf("VPCInfo VNI must be set and non-zero") //nolint:goerr113
+		return fmt.Errorf("VPCInfo VNI must be set and non-zero")
 	}
 
 	for name, subnet := range vpc.Spec.Subnets {

@@ -31,10 +31,10 @@ type GwVPCSync struct {
 
 func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
 	if cfg == nil {
-		return fmt.Errorf("fabric config is nil") //nolint:goerr113
+		return fmt.Errorf("fabric config is nil")
 	}
 	if libMngr == nil {
-		return fmt.Errorf("librarian manager is nil") //nolint:goerr113
+		return fmt.Errorf("librarian manager is nil")
 	}
 
 	r := &GwVPCSync{
@@ -138,10 +138,10 @@ type GwExternalSync struct {
 
 func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
 	if cfg == nil {
-		return fmt.Errorf("fabric config is nil") //nolint:goerr113
+		return fmt.Errorf("fabric config is nil")
 	}
 	if libMngr == nil {
-		return fmt.Errorf("librarian manager is nil") //nolint:goerr113
+		return fmt.Errorf("librarian manager is nil")
 	}
 
 	r := &GwExternalSync{

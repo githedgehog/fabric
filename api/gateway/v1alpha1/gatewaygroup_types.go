@@ -70,10 +70,10 @@ func (gg *GatewayGroup) Default() {
 
 func (gg *GatewayGroup) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+		return fmt.Errorf("gateway support is not enabled")
 	}
 	if gg.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("gatewaygroup namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+		return fmt.Errorf("gatewaygroup namespace must be %s", kmetav1.NamespaceDefault)
 	}
 
 	return nil

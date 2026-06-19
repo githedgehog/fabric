@@ -185,18 +185,18 @@ func (p *GatewayPeering) Default() {
 
 func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+		return fmt.Errorf("gateway support is not enabled")
 	}
 	if p.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("gatewaypeering namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+		return fmt.Errorf("gatewaypeering namespace must be %s", kmetav1.NamespaceDefault)
 	}
 	if p.Spec.GatewayGroup == "" {
-		return fmt.Errorf("gateway group must be specified %s", p.Name) //nolint:err113
+		return fmt.Errorf("gateway group must be specified %s", p.Name)
 	}
 
 	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {
-		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs)) //nolint:err113
+		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs))
 	}
 	// track the NAT on each side of the peering and disallow unsupported configurations
 	vpcNAT := make(map[string]struct {
@@ -209,10 +209,10 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		}
 		for _, expose := range vpc.Expose {
 			if expose.DefaultDestination && (len(expose.IPs) > 0 || len(expose.As) > 0 || expose.NAT != nil) {
-				return fmt.Errorf("default flag should be the only thing set in expose of VPC %s", name) //nolint:err113
+				return fmt.Errorf("default flag should be the only thing set in expose of VPC %s", name)
 			}
 			if len(expose.IPs) == 0 && !expose.DefaultDestination {
-				return fmt.Errorf("at least one IP block must be specified in peering expose of VPC %s", name) //nolint:err113
+				return fmt.Errorf("at least one IP block must be specified in peering expose of VPC %s", name)
 			}
 			for _, ip := range expose.IPs {
 				nonnil := 0
@@ -230,12 +230,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				}
 				if ip.VPCSubnet != "" {
 					if extName, isExternal := strings.CutPrefix(name, v1beta1.VPCInfoExtPrefix); isExternal {
-						return fmt.Errorf("external %s cannot have an IP block with VPC Subnets specified", extName) //nolint:err113
+						return fmt.Errorf("external %s cannot have an IP block with VPC Subnets specified", extName)
 					}
 					nonnil++
 				}
 				if nonnil != 1 {
-					return fmt.Errorf("exactly one of cidr, not or vpcSubnet must be set in peering expose IPs of VPC %s", name) //nolint:err113
+					return fmt.Errorf("exactly one of cidr, not or vpcSubnet must be set in peering expose IPs of VPC %s", name)
 				}
 			}
 			for _, as := range expose.As {
@@ -253,12 +253,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					nonnil++
 				}
 				if nonnil != 1 {
-					return fmt.Errorf("exactly one of cidr or not must be set in peering expose AS of VPC %s", name) //nolint:err113
+					return fmt.Errorf("exactly one of cidr or not must be set in peering expose AS of VPC %s", name)
 				}
 			}
 
 			if (len(expose.As) == 0) != (expose.NAT == nil) {
-				return fmt.Errorf("expose.As and expose.NAT must both be set or both be empty in peering expose of VPC %s", name) //nolint:err113
+				return fmt.Errorf("expose.As and expose.NAT must both be set or both be empty in peering expose of VPC %s", name)
 			}
 
 			if expose.NAT != nil {
@@ -283,12 +283,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				}
 
 				if nonNils != 1 {
-					return fmt.Errorf("exactly one of masquerade, static, or portForward must be set in NAT section for peering expose of VPC %s", name) //nolint:err113
+					return fmt.Errorf("exactly one of masquerade, static, or portForward must be set in NAT section for peering expose of VPC %s", name)
 				}
 
 				if expose.NAT.PortForward != nil {
 					if len(expose.NAT.PortForward.Ports) == 0 {
-						return fmt.Errorf("at least one port forwarding rule must be set in NAT section for peering expose of VPC %s", name) //nolint:err113
+						return fmt.Errorf("at least one port forwarding rule must be set in NAT section for peering expose of VPC %s", name)
 					}
 
 					for idx, entry := range expose.NAT.PortForward.Ports {
@@ -301,7 +301,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 						}
 
 						if !slices.Contains(PeeringNATProtocols, entry.Protocol) {
-							return fmt.Errorf("invalid protocol %q in port forwarding rule %d in NAT section for peering expose of VPC %s", entry.Protocol, idx, name) //nolint:err113
+							return fmt.Errorf("invalid protocol %q in port forwarding rule %d in NAT section for peering expose of VPC %s", entry.Protocol, idx, name)
 						}
 					}
 				}
@@ -309,17 +309,17 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		}
 	}
 	if vpcNAT[vpcs[0]].Stateful && vpcNAT[vpcs[1]].Stateful {
-		return fmt.Errorf("unsupported configuration, only one side of a peering can use stateful NAT (i.e. masquerade or portForward)") //nolint:err113
+		return fmt.Errorf("unsupported configuration, only one side of a peering can use stateful NAT (i.e. masquerade or portForward)")
 	}
 	if (vpcNAT[vpcs[0]].Stateless && vpcNAT[vpcs[1]].Stateful) || (vpcNAT[vpcs[1]].Stateless && vpcNAT[vpcs[0]].Stateful) {
-		return fmt.Errorf("unsupported configuration, one side of a peering using static NAT cannot peer with a side using stateful NAT") //nolint:err113
+		return fmt.Errorf("unsupported configuration, one side of a peering using static NAT cannot peer with a side using stateful NAT")
 	}
 
 	if kube != nil {
 		gwGroup := &GatewayGroup{}
 		if err := kube.Get(ctx, kclient.ObjectKey{Name: p.Spec.GatewayGroup, Namespace: p.Namespace}, gwGroup); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
+				return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup)
 			}
 
 			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
@@ -370,7 +370,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 						return fmt.Errorf("failed to parse existing exposed CIDR %s: %w", otherCIDR, err)
 					}
 					if ourP.Overlaps(otherP) {
-						return fmt.Errorf("overlap between existing exposed CIDR %s and new exposed CIDR %s", otherCIDR, ourCIDR) //nolint:err113
+						return fmt.Errorf("overlap between existing exposed CIDR %s and new exposed CIDR %s", otherCIDR, ourCIDR)
 					}
 				}
 			}
@@ -387,7 +387,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				var external v1beta1.External
 				if err := kube.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: kmetav1.NamespaceDefault}, &external); err != nil {
 					if kapierrors.IsNotFound(err) {
-						return fmt.Errorf("external %s not found", extName) //nolint:err113
+						return fmt.Errorf("external %s not found", extName)
 					}
 
 					return fmt.Errorf("failed to get External %s: %w", extName, err)
@@ -401,7 +401,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			var vpc v1beta1.VPC
 			if err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, &vpc); err != nil {
 				if kapierrors.IsNotFound(err) {
-					return fmt.Errorf("VPC %s not found", vpcName) //nolint:err113
+					return fmt.Errorf("VPC %s not found", vpcName)
 				}
 
 				return fmt.Errorf("failed to get VPC %s: %w", vpcName, err)
@@ -429,12 +429,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 							}
 						}
 						if !found {
-							return fmt.Errorf("CIDR %s is not part of VPC %s", ip.CIDR, vpcName) //nolint:err113
+							return fmt.Errorf("CIDR %s is not part of VPC %s", ip.CIDR, vpcName)
 						}
 					}
 					if ip.VPCSubnet != "" {
 						if _, ok := vpc.Spec.Subnets[ip.VPCSubnet]; !ok {
-							return fmt.Errorf("VPC subnet %s referenced in peering expose does not exist in VPC %s", ip.VPCSubnet, vpcName) //nolint:err113
+							return fmt.Errorf("VPC subnet %s referenced in peering expose does not exist in VPC %s", ip.VPCSubnet, vpcName)
 						}
 					}
 				}
@@ -468,50 +468,50 @@ func collectExposedCIDRs(entry *PeeringEntry, cidrs []string) []string {
 
 func validatePort(in string) error {
 	if strings.TrimSpace(in) != in {
-		return fmt.Errorf("invalid port %q: should not contain leading or trailing whitespace", in) //nolint:err113
+		return fmt.Errorf("invalid port %q: should not contain leading or trailing whitespace", in)
 	}
 
 	if strings.Contains(in, ",") {
-		return fmt.Errorf("invalid port %q: should be a single port or range", in) //nolint:err113
+		return fmt.Errorf("invalid port %q: should be a single port or range", in)
 	}
 
 	switch {
 	case in == "":
-		return fmt.Errorf("port entry should not be empty") //nolint:err113
+		return fmt.Errorf("port entry should not be empty")
 	case !strings.Contains(in, "-"):
 		if port, err := strconv.Atoi(in); err != nil {
 			return fmt.Errorf("invalid port %q: %w", in, err)
 		} else if port < 1 || port > 65535 {
-			return fmt.Errorf("invalid port %d: port should be between 1 and 65535", port) //nolint:err113
+			return fmt.Errorf("invalid port %d: port should be between 1 and 65535", port)
 		}
 	default:
 		parts := strings.Split(in, "-")
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid port range %s: should be in format start-end", in) //nolint:err113
+			return fmt.Errorf("invalid port range %s: should be in format start-end", in)
 		}
 
 		parts[0] = strings.TrimSpace(parts[0])
 		parts[1] = strings.TrimSpace(parts[1])
 		if parts[0] == "" || parts[1] == "" {
-			return fmt.Errorf("invalid port range %s: both start and end should not be empty", in) //nolint:err113
+			return fmt.Errorf("invalid port range %s: both start and end should not be empty", in)
 		}
 
 		start, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return fmt.Errorf("invalid start port %s: %w", parts[0], err)
 		} else if start < 1 || start > 65535 {
-			return fmt.Errorf("invalid start port %d: port should be between 1 and 65535", start) //nolint:err113
+			return fmt.Errorf("invalid start port %d: port should be between 1 and 65535", start)
 		}
 
 		end, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return fmt.Errorf("invalid end port %s: %w", parts[1], err)
 		} else if end < 1 || end > 65535 {
-			return fmt.Errorf("invalid end port %d: port should be between 1 and 65535", end) //nolint:err113
+			return fmt.Errorf("invalid end port %d: port should be between 1 and 65535", end)
 		}
 
 		if start > end {
-			return fmt.Errorf("invalid port range %s: start port %d is greater than end port %d", in, start, end) //nolint:err113
+			return fmt.Errorf("invalid port range %s: start port %d is greater than end port %d", in, start, end)
 		}
 	}
 

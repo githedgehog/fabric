@@ -35,7 +35,7 @@ func (c *CelesticaPlusProcessor) Reinstall(ctx context.Context) error {
 
 // TODO
 func (c *CelesticaPlusProcessor) FactoryReset(ctx context.Context) error {
-	return fmt.Errorf("not implemented") //nolint:err113
+	return fmt.Errorf("not implemented")
 }
 
 // TODO
@@ -50,7 +50,7 @@ func (c *CelesticaPlusProcessor) GetRoCE(ctx context.Context) (bool, error) {
 
 // TODO
 func (c *CelesticaPlusProcessor) SetRoCE(ctx context.Context, enable bool) error {
-	return fmt.Errorf("not supported") //nolint:err113
+	return fmt.Errorf("not supported")
 }
 
 // TODO
@@ -95,17 +95,17 @@ func (c *CelesticaPlusProcessor) UpdateSwitchState(ctx context.Context, agent *a
 // Invalid "type"
 
 func (c *CelesticaPlusProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
-	return nil, fmt.Errorf("unsupported operation") //nolint:err113
+	return nil, fmt.Errorf("unsupported operation")
 }
 
 func (c *CelesticaPlusProcessor) PlanDesiredState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
-	return nil, fmt.Errorf("unsupported operation") //nolint:err113
+	return nil, fmt.Errorf("unsupported operation")
 }
 
 func (c *CelesticaPlusProcessor) ApplyActions(ctx context.Context, actions []dozer.Action) ([]string, error) {
-	return nil, fmt.Errorf("unsupported operation") //nolint:err113
+	return nil, fmt.Errorf("unsupported operation")
 }
 
 func (c *CelesticaPlusProcessor) CalculateActions(ctx context.Context, actual *dozer.Spec, desired *dozer.Spec) ([]dozer.Action, error) {
-	return nil, fmt.Errorf("unsupported operation") //nolint:err113
+	return nil, fmt.Errorf("unsupported operation")
 }

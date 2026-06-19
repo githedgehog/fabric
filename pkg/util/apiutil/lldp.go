@@ -39,7 +39,7 @@ type LLDPNeighborStatus struct {
 
 func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {
 	if sw == nil {
-		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
+		return nil, fmt.Errorf("switch is nil")
 	}
 
 	ag := &agentapi.Agent{}
@@ -124,7 +124,7 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				}
 				kPort = port
 			} else {
-				return nil, fmt.Errorf("switch profile not found for %s", kDevice) //nolint:goerr113
+				return nil, fmt.Errorf("switch profile not found for %s", kDevice)
 			}
 
 			if statusType == LLDPNeighborTypeFabric {
@@ -135,13 +135,13 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 					}
 					vPort = port
 				} else {
-					return nil, fmt.Errorf("switch profile not found for %s", vDevice) //nolint:goerr113
+					return nil, fmt.Errorf("switch profile not found for %s", vDevice)
 				}
 			}
 
 			status, ok := out[kPort]
 			if ok {
-				return nil, fmt.Errorf("duplicate port %s", kPort) //nolint:goerr113
+				return nil, fmt.Errorf("duplicate port %s", kPort)
 			}
 
 			status.Type = statusType
@@ -169,12 +169,12 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				if status.Expected.Name != "" {
 					status.Expected.Description = wiringapi.SwitchLLDPDescription(ag.Spec.Config.DeploymentID)
 				} else {
-					return nil, fmt.Errorf("expected neighbor name not found for %s while type if fabric", ifaceName) //nolint:goerr113
+					return nil, fmt.Errorf("expected neighbor name not found for %s while type if fabric", ifaceName)
 				}
 
 				ports, ok := swNOS2API[status.Expected.Name]
 				if !ok {
-					return nil, fmt.Errorf("NOS ports mapping for %s not found", status.Expected.Name) //nolint:goerr113
+					return nil, fmt.Errorf("NOS ports mapping for %s not found", status.Expected.Name)
 				}
 
 				if apiPort, ok := ports[port]; ok {

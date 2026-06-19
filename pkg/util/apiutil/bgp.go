@@ -38,10 +38,10 @@ const (
 
 func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
 	if sw == nil {
-		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
+		return nil, fmt.Errorf("switch is nil")
 	}
 	if fabCfg == nil {
-		return nil, fmt.Errorf("fabric config is nil") //nolint:goerr113
+		return nil, fmt.Errorf("fabric config is nil")
 	}
 
 	out := map[string]map[string]BGPNeighborStatus{}
@@ -108,7 +108,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				return nil, fmt.Errorf("getting endpoints for %s: %w", conn.Name, err)
 			}
 			if len(switches) != 2 {
-				return nil, fmt.Errorf("MCLAG Domain connection %s has %d switches, expected 2", conn.Name, len(switches)) //nolint:goerr113
+				return nil, fmt.Errorf("MCLAG Domain connection %s has %d switches, expected 2", conn.Name, len(switches))
 			}
 
 			slices.Sort(switches)
@@ -213,10 +213,10 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 	for peer := range fabricPeers {
 		peerSpec, ok := ag.Spec.Switches[peer]
 		if !ok {
-			return nil, fmt.Errorf("no switch found for peer %s", peer) //nolint:goerr113
+			return nil, fmt.Errorf("no switch found for peer %s", peer)
 		}
 		if peerSpec.ProtocolIP == "" {
-			return nil, fmt.Errorf("no protocol IP found for peer %s", peer) //nolint:goerr113
+			return nil, fmt.Errorf("no protocol IP found for peer %s", peer)
 		}
 		ip := strings.Split(peerSpec.ProtocolIP, "/")[0]
 		neigh, ok := out["default"][ip]
@@ -246,7 +246,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 
 		ext, ok := exts[extAtt.Spec.External]
 		if !ok {
-			return nil, fmt.Errorf("external %s not found", extAtt.Spec.External) //nolint:goerr113
+			return nil, fmt.Errorf("external %s not found", extAtt.Spec.External)
 		}
 
 		// TODO dedup with agent code

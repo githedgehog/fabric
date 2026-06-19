@@ -42,7 +42,7 @@ type VPCCreateOptions struct {
 
 func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
 	if !slices.Contains(vpcapi.VPCModes, options.Mode) {
-		return fmt.Errorf("invalid mode %s, must be one of %v", options.Mode, vpcapi.VPCModes) //nolint:err113
+		return fmt.Errorf("invalid mode %s, must be one of %v", options.Mode, vpcapi.VPCModes)
 	}
 	vpc := &vpcapi.VPC{
 		ObjectMeta: kmetav1.ObjectMeta{

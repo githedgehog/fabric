@@ -141,7 +141,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		cmlsProcessor := cmls.Processor()
 		svc.processor = cmlsProcessor
 	default:
-		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113
+		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType)
 	}
 
 	if !svc.DryRun {
@@ -461,7 +461,7 @@ func enforceState(ctx context.Context, processor dozer.Processor, agent *agentap
 		return cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
 	}
 
-	return fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
+	return fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType)
 }
 
 func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
@@ -676,7 +676,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 			slog.Info("Waiting for switch to reboot after RoCE change, it may take a while...")
 			time.Sleep(5 * time.Minute)
 
-			return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:goerr113
+			return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE)
 		}
 	}
 

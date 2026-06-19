@@ -159,11 +159,11 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 						found = true
 
 						if n.Expected.Port != actual.Port {
-							out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", sw.Name, name, n.Expected.Port, actual.Port)) //nolint:goerr113
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", sw.Name, name, n.Expected.Port, actual.Port))
 						}
 
 						if n.Expected.Description != "" && n.Expected.Description != actual.Description {
-							out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", sw.Name, name, n.Expected.Description, actual.Description)) //nolint:goerr113
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", sw.Name, name, n.Expected.Description, actual.Description))
 						}
 					} else {
 						unexpected = append(unexpected, actual.Name)
@@ -172,9 +172,9 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 
 				if !found {
 					if len(unexpected) == 0 {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found", sw.Name, name, n.Expected.Name)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found", sw.Name, name, n.Expected.Name))
 					} else {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found, but found: %v", sw.Name, name, n.Expected.Name, unexpected)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found, but found: %v", sw.Name, name, n.Expected.Name, unexpected))
 					}
 				}
 			}
@@ -183,7 +183,7 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 
 	for _, sw := range in.Switches {
 		if _, ok := out.Neighbors[sw]; !ok {
-			return nil, fmt.Errorf("switch %s not found", sw) //nolint:goerr113
+			return nil, fmt.Errorf("switch %s not found", sw)
 		}
 	}
 
