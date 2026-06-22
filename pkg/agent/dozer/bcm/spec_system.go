@@ -261,11 +261,13 @@ func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (ma
 	}
 
 	for _, breakoutCfg := range ocVal.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
-		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil || breakoutCfg.Status == nil {
+		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil {
 			continue
 		}
 
-		if *breakoutCfg.Status != "Completed" || breakoutCfg.BreakoutOwner != oc.SonicPortBreakout_SonicPortBreakout_BREAKOUT_CFG_BREAKOUT_CFG_LIST_BreakoutOwner_MANUAL {
+		// if there is no status we consider it as completed
+		if breakoutCfg.Status != nil && *breakoutCfg.Status != "Completed" ||
+			breakoutCfg.BreakoutOwner != oc.SonicPortBreakout_SonicPortBreakout_BREAKOUT_CFG_BREAKOUT_CFG_LIST_BreakoutOwner_MANUAL {
 			continue
 		}
 
