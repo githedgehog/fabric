@@ -69,14 +69,14 @@ func (r SwitchRole) IsLeaf() bool {
 }
 
 // SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
-// to and its type, used both for MCLAG and ESLAG connections. It defines how redundancy will be configured and handled
+// to and its type, used for ESLAG connections. It defines how redundancy will be configured and handled
 // on the switch as well as which connection types will be available. If not specified, switch will not be part of any
 // redundancy group. If name isn't empty, type must be specified as well and name should be the same as one of the
 // SwitchGroup objects.
 type SwitchRedundancy struct {
 	// Group is the name of the redundancy group switch belongs to
 	Group string `json:"group,omitempty"`
-	// Type is the type of the redundancy group, could be mclag or eslag
+	// Type is the type of the redundancy group, although only eslag is supported now
 	Type meta.RedundancyType `json:"type,omitempty"`
 }
 
@@ -98,7 +98,7 @@ type SwitchSpec struct {
 	Profile string `json:"profile,omitempty"`
 	// Groups is a list of switch groups the switch belongs to
 	Groups []string `json:"groups,omitempty"`
-	// Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used both for MCLAG and ESLAG connections
+	// Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used for ESLAG connections
 	Redundancy SwitchRedundancy `json:"redundancy,omitempty"`
 	// VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap
 	VLANNamespaces []string `json:"vlanNamespaces,omitempty"`
@@ -287,7 +287,6 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	VTEPs := map[string]bool{}
 	protocolIPs := map[string]bool{}
 	mgmtIPs := map[netip.Addr]bool{}
-	var mclagPeer *Switch
 	vtepSubnet, err := netip.ParsePrefix(fabricCfg.VTEPSubnet)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Fabric VTEP subnet %s", fabricCfg.VTEPSubnet)
@@ -327,10 +326,6 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			if ip, err := netip.ParsePrefix(other.Spec.IP); err == nil {
 				mgmtIPs[ip.Addr()] = true
 			}
-		}
-		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG && other.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG &&
-			other.Spec.Redundancy.Group == sw.Spec.Redundancy.Group {
-			mclagPeer = &other
 		}
 	}
 
@@ -394,19 +389,10 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 	}
 
-	// check leaf ASN uniqueness, with the exception of MCLAG peers which should have the same ASN
+	// check leaf ASN uniqueness
 	if sw.Spec.Role.IsLeaf() {
-		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
-			if mclagPeer != nil {
-				if mclagPeer.Spec.ASN != sw.Spec.ASN {
-					return errors.Errorf("mclag peers should have same ASNs: %s and %s", sw.Name, mclagPeer.Name) //nolint:goerr113
-				}
-			} else {
-				if _, exist := leafASNs[sw.Spec.ASN]; exist {
-					return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
-				}
-			}
-		} else if _, exist := leafASNs[sw.Spec.ASN]; exist {
+		// TODO: remove MCLAG exception once we don't need to worry about upgrading systems which still support it
+		if _, exist := leafASNs[sw.Spec.ASN]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
 			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
 		}
 		// also check if it's within the fabric leaf ASN range
@@ -420,7 +406,7 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		return errors.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, fabricCfg.SpineASN) //nolint:goerr113
 	}
 
-	// leaf vtep IP uniqueness / consistency for mclag peers
+	// leaf vtep IP uniqueness
 	if sw.Spec.Role.IsLeaf() {
 		swVTEPIP, err := netip.ParsePrefix(sw.Spec.VTEPIP)
 		if err != nil {
@@ -434,17 +420,8 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet) //nolint:goerr113
 		}
 
-		if sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
-			if mclagPeer != nil {
-				if mclagPeer.Spec.VTEPIP != sw.Spec.VTEPIP {
-					return errors.Errorf("mclag peers should have same VTEP IPs: %s and %s", sw.Name, mclagPeer.Name) //nolint:goerr113
-				}
-			} else {
-				if _, exist := VTEPs[sw.Spec.VTEPIP]; exist {
-					return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
-				}
-			}
-		} else if _, exist := VTEPs[sw.Spec.VTEPIP]; exist {
+		// TODO: remove MCLAG exception once we don't need to worry about upgrading systems which still support it
+		if _, exist := VTEPs[sw.Spec.VTEPIP]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
 			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
 		}
 	}
@@ -453,6 +430,8 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 }
 
 func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	var warnings admission.Warnings
+
 	if err := meta.ValidateObjectMetadata(sw); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -639,9 +618,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		case meta.RedundancyTypeNone:
 			// No redundancy, nothing to check
 		case meta.RedundancyTypeMCLAG:
-			if !sp.Spec.Features.MCLAG {
-				return nil, errors.Errorf("MCLAG is not supported on switch profile %s", sw.Spec.Profile)
-			}
+			warnings = append(warnings, "MCLAG is deprecated and no longer supported")
 		case meta.RedundancyTypeESLAG:
 			if !sp.Spec.Features.ESLAG {
 				return nil, errors.Errorf("ESLAG is not supported on switch profile %s", sw.Spec.Profile)
@@ -659,11 +636,11 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			ports := uint16(1)
 			if port.Group == "" {
 				if port.Profile == "" {
-					return nil, errors.Errorf("port %s has no group or profile", name)
+					return warnings, errors.Errorf("port %s has no group or profile", name)
 				}
 				profile, ok := sp.Spec.PortProfiles[port.Profile]
 				if !ok {
-					return nil, errors.Errorf("port %s has invalid profile %s", name, port.Profile)
+					return warnings, errors.Errorf("port %s has invalid profile %s", name, port.Profile)
 				}
 
 				if profile.Breakout != nil {
@@ -677,7 +654,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 					if breakout, ok := profile.Breakout.Supported[mode]; ok {
 						ports = uint16(len(breakout.Offsets)) //nolint:gosec
 					} else {
-						return nil, errors.Errorf("port %s has invalid breakout mode %s", name, mode)
+						return warnings, errors.Errorf("port %s has invalid breakout mode %s", name, mode)
 					}
 				}
 			}
@@ -694,7 +671,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 
 		if sp.Spec.MaxPorts > 0 && totalPorts > sp.Spec.MaxPorts {
-			return nil, errors.Errorf("switch %s has exceeded maximum ports: %d > %d", sp.Name, totalPorts, sp.Spec.MaxPorts)
+			return warnings, errors.Errorf("switch %s has exceeded maximum ports: %d > %d", sp.Name, totalPorts, sp.Spec.MaxPorts)
 		}
 
 		if sp.Spec.Pipelines != nil {
@@ -705,15 +682,15 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 							pipeline, strings.Join(pipelinePortNames[pipeline], ", "), ports, portPipeline.MaxPorts)
 					}
 				} else {
-					return nil, errors.Errorf("unknown port pipeline %s reference", pipeline)
+					return warnings, errors.Errorf("unknown port pipeline %s reference", pipeline)
 				}
 			}
 		}
 
 		if err := sw.HydrationValidation(ctx, kube, fabricCfg); err != nil {
-			return nil, errors.Wrapf(err, "failed hydration validation")
+			return warnings, errors.Wrapf(err, "failed hydration validation")
 		}
 	}
 
-	return nil, nil
+	return warnings, nil
 }

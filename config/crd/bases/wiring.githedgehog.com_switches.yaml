@@ -176,15 +176,15 @@ spec:
               redundancy:
                 description: Redundancy is the switch redundancy configuration including
                   name of the redundancy group switch belongs to and its type, used
-                  both for MCLAG and ESLAG connections
+                  for ESLAG connections
                 properties:
                   group:
                     description: Group is the name of the redundancy group switch
                       belongs to
                     type: string
                   type:
-                    description: Type is the type of the redundancy group, could be
-                      mclag or eslag
+                    description: Type is the type of the redundancy group, although
+                      only eslag is supported now
                     enum:
                     - mclag
                     - eslag

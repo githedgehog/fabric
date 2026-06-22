@@ -21,7 +21,7 @@ type RedundancyType string
 
 const (
 	RedundancyTypeNone  RedundancyType = ""
-	RedundancyTypeMCLAG RedundancyType = "mclag"
+	RedundancyTypeMCLAG RedundancyType = "mclag" // TODO: deprecated, remove in next releases
 	RedundancyTypeESLAG RedundancyType = "eslag"
 )
 

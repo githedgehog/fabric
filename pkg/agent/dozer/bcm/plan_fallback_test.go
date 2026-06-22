@@ -13,8 +13,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 )
 
-// TestPlanServerConnectionsFallback checks fallback placement: ESLAG on every
-// leaf, MCLAG first-only.
+// TestPlanServerConnectionsFallback checks fallback placement: ESLAG on everyleaf
 func TestPlanServerConnectionsFallback(t *testing.T) {
 	const (
 		connName = "server-01--eslag--leaf-01--leaf-02"
@@ -50,7 +49,6 @@ func TestPlanServerConnectionsFallback(t *testing.T) {
 	newSpec := func() *dozer.Spec {
 		return &dozer.Spec{
 			Interfaces:         map[string]*dozer.SpecInterface{},
-			MCLAGInterfaces:    map[string]*dozer.SpecMCLAGInterface{},
 			PortChannelConfigs: map[string]*dozer.SpecPortChannelConfig{},
 			VRFs: map[string]*dozer.SpecVRF{
 				VRFDefault: {EthernetSegments: map[string]*dozer.SpecVRFEthernetSegment{}},
@@ -92,15 +90,6 @@ func TestPlanServerConnectionsFallback(t *testing.T) {
 		}
 	}
 
-	mclagConn := func(fallback bool) wiringapi.ConnectionSpec {
-		return wiringapi.ConnectionSpec{
-			MCLAG: &wiringapi.ConnMCLAG{
-				Links:    []wiringapi.ServerToSwitchLink{link(firstLeaf), link(secondLeaf)},
-				Fallback: fallback,
-			},
-		}
-	}
-
 	t.Run("eslag fallback programmed on first leaf", func(t *testing.T) {
 		require.True(t, fallbackOf(t, planFor(t, firstLeaf, meta.RedundancyTypeESLAG, eslagConn(true))))
 	})
@@ -113,10 +102,5 @@ func TestPlanServerConnectionsFallback(t *testing.T) {
 	t.Run("eslag fallback off stays off on both leaves", func(t *testing.T) {
 		require.False(t, fallbackOf(t, planFor(t, firstLeaf, meta.RedundancyTypeESLAG, eslagConn(false))))
 		require.False(t, fallbackOf(t, planFor(t, secondLeaf, meta.RedundancyTypeESLAG, eslagConn(false))))
-	})
-
-	t.Run("mclag fallback only on first leaf", func(t *testing.T) {
-		require.True(t, fallbackOf(t, planFor(t, firstLeaf, meta.RedundancyTypeMCLAG, mclagConn(true))))
-		require.False(t, fallbackOf(t, planFor(t, secondLeaf, meta.RedundancyTypeMCLAG, mclagConn(true))))
 	})
 }
