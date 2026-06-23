@@ -111,6 +111,14 @@ func main() {
 		Destination: &anyDeviceOnMgmt,
 	}
 
+	var healthListenAddr string
+	healthListenAddrFlag := &cli.StringFlag{
+		Name:        "health-listen",
+		Usage:       "address for the liveness/readiness HTTP server (empty to disable)",
+		Value:       ":8080",
+		Destination: &healthListenAddr,
+	}
+
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
 	app := &cli.App{
 		Name:                   "hhdhcpd",
@@ -127,14 +135,16 @@ func main() {
 					verboseFlag,
 					listenInterfaceFlag,
 					anyDeviceOnMgmtFlag,
+					healthListenAddrFlag,
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
 				},
 				Action: func(_ *cli.Context) error {
 					return errors.Wrapf((&dhcp.Server{
-						ListenInterface: listenInterface,
-						AnyDeviceOnMgmt: anyDeviceOnMgmt,
+						ListenInterface:  listenInterface,
+						AnyDeviceOnMgmt:  anyDeviceOnMgmt,
+						HealthListenAddr: healthListenAddr,
 					}).Run(ctx), "failed to run dhcp server")
 				},
 			},

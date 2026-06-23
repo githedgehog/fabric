@@ -30,6 +30,11 @@ fullnameOverride: ""
 listenInterface: "eth0"
 anyDeviceOnMgmt: false
 
+# Port for the liveness/readiness HTTP server (/healthz, /readyz). Bound on the
+# node since the pod uses hostNetwork, so it must not collide with other host
+# services.
+healthPort: 8080
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
