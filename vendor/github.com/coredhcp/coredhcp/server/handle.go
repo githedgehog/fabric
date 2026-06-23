@@ -5,6 +5,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -126,6 +127,9 @@ func (l *listener4) HandleMsg4(buf []byte, oob *ipv4.ControlMessage, _peer net.A
 		tmp.UpdateOption(dhcpv4.OptMessageType(dhcpv4.MessageTypeOffer))
 	case dhcpv4.MessageTypeRequest:
 		tmp.UpdateOption(dhcpv4.OptMessageType(dhcpv4.MessageTypeAck))
+	case dhcpv4.MessageTypeRelease:
+	case dhcpv4.MessageTypeInform:
+		tmp.UpdateOption(dhcpv4.OptMessageType(dhcpv4.MessageTypeAck))
 	default:
 		log.Printf("plugins/server: Unhandled message type: %v", mt)
 		return
@@ -209,7 +213,10 @@ func (l *listener6) Serve() error {
 		b = b[:MaxDatagram] //Reslice to max capacity in case the buffer in pool was resliced smaller
 
 		n, oob, peer, err := l.ReadFrom(b)
-		if err != nil {
+		if errors.Is(err, net.ErrClosed) {
+			// Server is quitting
+			return nil
+		} else if err != nil {
 			log.Printf("Error reading from connection: %v", err)
 			return err
 		}
@@ -225,7 +232,10 @@ func (l *listener4) Serve() error {
 		b = b[:MaxDatagram] //Reslice to max capacity in case the buffer in pool was resliced smaller
 
 		n, oob, peer, err := l.ReadFrom(b)
-		if err != nil {
+		if errors.Is(err, net.ErrClosed) {
+			// Server is quitting
+			return nil
+		} else if err != nil {
 			log.Printf("Error reading from connection: %v", err)
 			return err
 		}
