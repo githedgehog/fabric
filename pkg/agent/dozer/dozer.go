@@ -79,6 +79,7 @@ type Spec struct {
 	BFDProfiles          map[string]*SpecBFDProfile        `json:"bfdProfiles,omitempty"`
 	ErrDisableGlobal     *SpecErrDisableGlobal             `json:"errDisableGlobal,omitempty"`
 	ErrDisableInterfaces map[string]*SpecErrDisable        `json:"errDisableInterfaces,omitempty"`
+	NeighborGlobal       *SpecNeighborGlobal               `json:"neighborGlobal,omitempty"`
 }
 
 type SpecLLDP struct {
@@ -346,6 +347,10 @@ type SpecErrDisable struct {
 	RecoveryInterval *uint32 `json:"recoveryInterval,omitempty"`
 }
 
+type SpecNeighborGlobal struct {
+	IPv4DropNeighborAgingTime *uint16 `json:"ipv4DropNeighborAgingTime,omitempty"`
+}
+
 type SpecDHCPRelay struct {
 	SourceInterface *string  `json:"sourceInterface,omitempty"`
 	RelayAddress    []string `json:"relayAddress,omitempty"`
@@ -590,6 +595,7 @@ var (
 	_ SpecPart = (*SpecBFDProfile)(nil)
 	_ SpecPart = (*SpecErrDisableGlobal)(nil)
 	_ SpecPart = (*SpecErrDisable)(nil)
+	_ SpecPart = (*SpecNeighborGlobal)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -773,6 +779,10 @@ func (s *SpecErrDisableGlobal) IsNil() bool {
 }
 
 func (s *SpecErrDisable) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecNeighborGlobal) IsNil() bool {
 	return s == nil
 }
 

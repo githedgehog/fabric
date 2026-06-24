@@ -170,6 +170,7 @@ const (
 	ActionWeightBFDProfileUpdate
 	ActionWeightErrDisableGlobalUpdate
 	ActionWeightErrDisablePortUpdate
+	ActionWeightNeighborGlobalUpdate
 	ActionWeightVRFBGPNeighborUpdate
 	ActionWeightVRFBGPNetworkUpdate
 	ActionWrightVRFTableConnectionUpdate
@@ -194,6 +195,7 @@ const (
 	ActionWrightVRFTableConnectionDelete
 	ActionWeightVRFBGPNetworkDelete
 	ActionWeightBFDProfileDelete
+	ActionWeightNeighborGlobalDelete
 	ActionWeightErrDisablePortDelete
 	ActionWeightErrDisableGlobalDelete
 	ActionWeightVRFSAGDelete

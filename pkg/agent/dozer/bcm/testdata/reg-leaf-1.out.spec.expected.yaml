@@ -327,6 +327,8 @@ mclags:
     peerIP: 172.30.95.1
     peerLink: PortChannel250
     sourceIP: 172.30.95.0
+neighborGlobal:
+  ipv4DropNeighborAgingTime: 60
 ntp:
   sourceInterface:
   - Management0

@@ -203,6 +203,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to plan VXLAN")
 		}
+
+		err = planNeighborGlobal(agent, spec)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to plan neighbor global")
+		}
 	}
 
 	if agent.Spec.Switch.Redundancy.Type == meta.RedundancyTypeMCLAG {
@@ -394,6 +399,14 @@ func planBFDProfiles(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:u
 		RequiredMinimumReceive:   pointer.To(uint32(300)),
 		DesiredMinimumTxInterval: pointer.To(uint32(300)),
 		DetectionMultiplier:      pointer.To(uint8(3)),
+	}
+
+	return nil
+}
+
+func planNeighborGlobal(_ *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
+	spec.NeighborGlobal = &dozer.SpecNeighborGlobal{
+		IPv4DropNeighborAgingTime: pointer.To(uint16(60)), // 60s is the lowest value allowed
 	}
 
 	return nil
