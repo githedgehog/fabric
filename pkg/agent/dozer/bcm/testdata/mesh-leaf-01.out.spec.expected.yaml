@@ -265,6 +265,8 @@ lstInterfaces:
   Ethernet6:
     groups:
     - spinelink
+neighborGlobal:
+  ipv4DropNeighborAgingTime: 60
 ntp:
   sourceInterface:
   - Management0
