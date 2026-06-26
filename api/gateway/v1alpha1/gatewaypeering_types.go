@@ -36,6 +36,8 @@ type PeeringSpec struct {
 	GatewayGroup string `json:"gatewayGroup,omitempty"`
 	// Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name)
 	Peering map[string]*PeeringEntry `json:"peering,omitempty"`
+	// ACL is an optional, peering-scoped ACL
+	ACL *PeeringACL `json:"acl,omitempty"`
 }
 
 type PeeringNATMasquerade struct {
@@ -59,6 +61,91 @@ var PeeringNATProtocols = []PeeringNATProtocol{
 	PeeringNATProtocolAny,
 	PeeringNATProtocolTCP,
 	PeeringNATProtocolUDP,
+}
+
+type ACLMatchProtocol string
+
+// +kubebuilder:validation:Enum=deny;deny-unless-exposed;""
+type ACLDefaultAction string
+
+// +kubebuilder:validation:Enum=deny;allow
+type ACLAction string
+
+// +kubebuilder:validation:Enum=flow;packet;""
+type ACLScope string
+
+const (
+	ACLMatchProtocolTCP         ACLMatchProtocol = "tcp"
+	ACLMatchProtocolUDP         ACLMatchProtocol = "udp"
+	ACLMatchProtocolAny         ACLMatchProtocol = ""
+	ACLDefaultDenyUnlessExposed ACLDefaultAction = "deny-unless-exposed"
+	ACLDefaultDeny              ACLDefaultAction = "deny"
+	ACLActionDeny               ACLAction        = "deny"
+	ACLActionAllow              ACLAction        = "allow"
+	ACLScopeFlow                ACLScope         = "flow"
+	ACLScopePacket              ACLScope         = "packet"
+)
+
+var ACLMatchProtocols = []ACLMatchProtocol{
+	ACLMatchProtocolTCP,
+	ACLMatchProtocolUDP,
+	ACLMatchProtocolAny,
+}
+
+var ACLDefaultActions = []ACLDefaultAction{
+	ACLDefaultDeny,
+	ACLDefaultDenyUnlessExposed,
+}
+
+var ACLActions = []ACLAction{
+	ACLActionAllow,
+	ACLActionDeny,
+}
+
+var ACLScopes = []ACLScope{
+	ACLScopeFlow,
+	ACLScopePacket,
+}
+
+type PeeringACLMatchEndpoint struct {
+	// CIDR to match, at most one of cidr and vpcSubnet can be set
+	CIDR string `json:"cidr,omitempty"`
+	// VPC subnet to match, at most one of cidr and vpcSubnet can be set
+	VPCSubnet string `json:"vpcSubnet,omitempty"`
+	// List of ports or port ranges to match, omit to match all ports
+	Ports []string `json:"ports,omitempty"`
+}
+
+type PeeringACLMatch struct {
+	// From-side native addresses and/or source ports
+	Source []PeeringACLMatchEndpoint `json:"src,omitempty"`
+	// To-side advertised addresses and/or destination ports
+	Destination []PeeringACLMatchEndpoint `json:"dst,omitempty"`
+	// Protocol to match ("tcp", "udp", or numeric), omit to match any protocol
+	Protocol ACLMatchProtocol `json:"proto,omitempty"`
+}
+
+type PeeringACLRule struct {
+	// Optional name for logs and diagnostics
+	Name string `json:"name,omitempty"`
+	// From has to match one of the peering's two VPCs if present, implicit from the "to" field otherwise
+	From string `json:"from,omitempty"`
+	// To has to match one of the peering's two VPCs if present, implicit from the "from" field otherwise
+	To string `json:"to,omitempty"`
+	// Action to execute if the rule matches, can be either "deny" or "allow"
+	Action ACLAction `json:"action"`
+	// What the rule should match against, omit to match everything in the rule's direction
+	Match PeeringACLMatch `json:"match,omitempty"`
+	// Scope of the rule, can be either "flow" (default if empty) or "packet"
+	Scope ACLScope `json:"scope,omitempty"`
+	Log   bool     `json:"log,omitempty"`
+}
+
+type PeeringACL struct {
+	// Default action to execute if no rules matches, can be either "deny-unless-exposed" (default if empty) or "deny"
+	Default ACLDefaultAction `json:"default"`
+	// List of rules for this particular ACL
+	Rules []PeeringACLRule `json:"rules,omitempty"`
 }
 
 type PeeringNATPortForwardEntry struct {
@@ -180,6 +267,17 @@ func (p *GatewayPeering) Default() {
 
 	if p.Spec.GatewayGroup == "" {
 		p.Spec.GatewayGroup = DefaultGatewayGroup
+	}
+
+	if acl := p.Spec.ACL; acl != nil {
+		if acl.Default == "" {
+			acl.Default = ACLDefaultDenyUnlessExposed
+		}
+		for i := range acl.Rules {
+			if acl.Rules[i].Scope == "" {
+				acl.Rules[i].Scope = ACLScopeFlow
+			}
+		}
 	}
 }
 
