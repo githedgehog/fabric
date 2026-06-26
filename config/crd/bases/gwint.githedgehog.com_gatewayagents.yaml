@@ -232,6 +232,109 @@ spec:
                 additionalProperties:
                   description: PeeringSpec defines the desired state of Peering.
                   properties:
+                    acl:
+                      description: ACL is an optional, peering-scoped ACL implemented
+                        in the gateway
+                      properties:
+                        default:
+                          description: Default action to execute if no rules matches
+                          enum:
+                          - deny
+                          - deny-unless-exposed
+                          - ""
+                          type: string
+                        rules:
+                          description: List of rules for this particular ACL
+                          items:
+                            properties:
+                              action:
+                                description: Action to execute if the rule matches,
+                                  can be either "deny" or "allow"
+                                enum:
+                                - deny
+                                - allow
+                                type: string
+                              from:
+                                description: From has to match one of the peering's
+                                  two VPCs if present, implicit from the "to" field
+                                  otherwise
+                                type: string
+                              log:
+                                type: boolean
+                              match:
+                                description: What the rule should match against, omit
+                                  to match all flows in the rule's direction
+                                properties:
+                                  dst:
+                                    description: To-side advertised addresses and/or
+                                      destination ports
+                                    items:
+                                      properties:
+                                        cidr:
+                                          description: CIDR to match, at most one
+                                            of cidr and vpcSubnet can be set
+                                          type: string
+                                        ports:
+                                          description: List of ports or port ranges
+                                            to match, omit to match all ports
+                                          items:
+                                            type: string
+                                          type: array
+                                        vpcSubnet:
+                                          description: VPC subnet to match, at most
+                                            one of cidr and vpcSubnet can be set
+                                          type: string
+                                      type: object
+                                    type: array
+                                  proto:
+                                    description: Protocol to match ("tcp", "udp",
+                                      "icmp" or numeric), omit to match any protocol
+                                    type: string
+                                  src:
+                                    description: From-side native addresses and/or
+                                      source ports
+                                    items:
+                                      properties:
+                                        cidr:
+                                          description: CIDR to match, at most one
+                                            of cidr and vpcSubnet can be set
+                                          type: string
+                                        ports:
+                                          description: List of ports or port ranges
+                                            to match, omit to match all ports
+                                          items:
+                                            type: string
+                                          type: array
+                                        vpcSubnet:
+                                          description: VPC subnet to match, at most
+                                            one of cidr and vpcSubnet can be set
+                                          type: string
+                                      type: object
+                                    type: array
+                                type: object
+                              name:
+                                description: Optional name for logs and diagnostics
+                                type: string
+                              scope:
+                                description: Scope of the rule, can be either "flow"
+                                  or "packet"
+                                enum:
+                                - flow
+                                - packet
+                                - ""
+                                type: string
+                              to:
+                                description: To has to match one of the peering's
+                                  two VPCs if present, implicit from the "from" field
+                                  otherwise
+                                type: string
+                            required:
+                            - action
+                            type: object
+                          type: array
+                      required:
+                      - default
+                      type: object
                     gatewayGroup:
                       description: GatewayGroup is the name of the gateway group that
                         should process the peering
