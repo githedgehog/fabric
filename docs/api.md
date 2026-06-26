@@ -852,6 +852,78 @@ Package v1alpha1 contains API Schema definitions for the gateway v1alpha1 API gr
 
 
 
+#### ACLAction
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [deny allow]
+
+_Appears in:_
+- [PeeringACLRule](#peeringaclrule)
+
+| Field | Description |
+| --- | --- |
+| `deny` |  |
+| `allow` |  |
+
+
+#### ACLDefaultAction
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [deny deny-unless-exposed ]
+
+_Appears in:_
+- [PeeringACL](#peeringacl)
+
+| Field | Description |
+| --- | --- |
+| `deny-unless-exposed` |  |
+| `deny` |  |
+
+
+#### ACLMatchProtocol
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description |
+| --- | --- |
+| `tcp` |  |
+| `udp` |  |
+| `` |  |
+
+
+#### ACLScope
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [flow packet ]
+
+_Appears in:_
+- [PeeringACLRule](#peeringaclrule)
+
+| Field | Description |
+| --- | --- |
+| `flow` |  |
+| `packet` |  |
+
+
 #### Gateway
 
 
@@ -1101,6 +1173,81 @@ _Appears in:_
 
 
 
+#### PeeringACL
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringSpec](#peeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _[ACLDefaultAction](#acldefaultaction)_ | Default action to execute if no rules matches, can be either "deny-unless-exposed" (default if empty) or "deny" |  | Enum: [deny deny-unless-exposed ] <br /> |
+| `rules` _[PeeringACLRule](#peeringaclrule) array_ | List of rules for this particular ACL |  |  |
+
+
+#### PeeringACLMatch
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringACLRule](#peeringaclrule)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `src` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | From-side native addresses and/or source ports |  |  |
+| `dst` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | To-side advertised addresses and/or destination ports |  |  |
+| `proto` _[ACLMatchProtocol](#aclmatchprotocol)_ | Protocol to match ("tcp", "udp", or numeric), omit to match any protocol |  |  |
+
+
+#### PeeringACLMatchEndpoint
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cidr` _string_ | CIDR to match, at most one of cidr and vpcSubnet can be set |  |  |
+| `vpcSubnet` _string_ | VPC subnet to match, at most one of cidr and vpcSubnet can be set |  |  |
+| `ports` _string array_ | List of ports or port ranges to match, omit to match all ports |  |  |
+
+
+#### PeeringACLRule
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringACL](#peeringacl)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Optional name for logs and diagnostics |  |  |
+| `from` _string_ | From has to match one of the peering's two VPCs if present, implicit from the "to" field otherwise |  |  |
+| `to` _string_ | To has to match one of the peering's two VPCs if present, implicit from the "from" field otherwise |  |  |
+| `action` _[ACLAction](#aclaction)_ | Action to execute if the rule matches, can be either "deny" or "allow" |  | Enum: [deny allow] <br /> |
+| `match` _[PeeringACLMatch](#peeringaclmatch)_ | What the rule should match against, omit to match everything in the rule's direction |  |  |
+| `scope` _[ACLScope](#aclscope)_ | Scope of the rule, can be either "flow" (default if empty) or "packet" |  | Enum: [flow packet ] <br /> |
+| `log` _boolean_ |  |  |  |
+
+
 #### PeeringEntry
 
 
@@ -1271,6 +1418,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `gatewayGroup` _string_ | GatewayGroup is the name of the gateway group that should process the peering |  |  |
 | `peering` _object (keys:string, values:[PeeringEntry](#peeringentry))_ | Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name) |  |  |
+| `acl` _[PeeringACL](#peeringacl)_ | ACL is an optional, peering-scoped ACL |  |  |
 
 
 #### PeeringStatus
