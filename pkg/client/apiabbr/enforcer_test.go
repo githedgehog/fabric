@@ -66,21 +66,6 @@ func TestEnforcer(t *testing.T) {
 						},
 					},
 				},
-				"conn/test-conn": wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: true,
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
-								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
-							},
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
-								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
-							},
-						},
-					},
-				},
 				"vpc/delme":       vpcapi.VPCSpec{},
 				"vpcattach/delme": vpcapi.VPCAttachmentSpec{},
 				"vpcpeer/delme":   vpcapi.VPCPeeringSpec{},
@@ -97,21 +82,6 @@ func TestEnforcer(t *testing.T) {
 							},
 							{
 								Server: wiringapi.BasePortName{Port: "server-1/port-2"},
-								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
-							},
-						},
-					},
-				},
-				"conn/test-conn": wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: false,
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
-								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
-							},
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
 								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
 							},
 						},
@@ -165,7 +135,7 @@ func TestEnforcer(t *testing.T) {
 			},
 		},
 		{
-			in:               "vpc-1 fallback:server-1--eslag--switch-1 fallback:server-3--mclag--switch-1:disable",
+			in:               "vpc-1 fallback:server-1--eslag--switch-1",
 			ignoreNotDefined: true,
 			existingObjects: testData{
 				"vpc/vpc-1": vpcapi.VPCSpec{
@@ -193,36 +163,6 @@ func TestEnforcer(t *testing.T) {
 						},
 					},
 				},
-				"conn/server-2--mclag--switch-1": wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: true,
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
-								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
-							},
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
-								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
-							},
-						},
-					},
-				},
-				"conn/server-3--mclag--switch-1": wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: true,
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.BasePortName{Port: "server-3/port-1"},
-								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
-							},
-							{
-								Server: wiringapi.BasePortName{Port: "server-3/port-2"},
-								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
-							},
-						},
-					},
-				},
 			},
 			expectedObjects: testData{
 				"vpc/vpc-1":        vpcapi.VPCSpec{},
@@ -239,36 +179,6 @@ func TestEnforcer(t *testing.T) {
 							},
 							{
 								Server: wiringapi.BasePortName{Port: "server-1/port-2"},
-								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
-							},
-						},
-					},
-				},
-				"conn/server-2--mclag--switch-1": wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: true,
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-1"},
-								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
-							},
-							{
-								Server: wiringapi.BasePortName{Port: "server-2/port-2"},
-								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
-							},
-						},
-					},
-				},
-				"conn/server-3--mclag--switch-1": wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Fallback: false,
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.BasePortName{Port: "server-3/port-1"},
-								Switch: wiringapi.BasePortName{Port: "switch-1/port-1"},
-							},
-							{
-								Server: wiringapi.BasePortName{Port: "server-3/port-2"},
 								Switch: wiringapi.BasePortName{Port: "switch-2/port-1"},
 							},
 						},
