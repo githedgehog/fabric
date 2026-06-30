@@ -581,6 +581,12 @@ loadshare:
     config:
       hash: hash
       qpn: false
+neighbor-globals:
+  neighbor-global:
+  - config:
+      ipv4-drop-neighbor-aging-time: 60
+      name: Values
+    name: Values
 network-instances:
   network-instance:
   - config:

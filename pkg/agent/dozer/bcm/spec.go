@@ -164,6 +164,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle errdisable interfaces")
 		}
 
+		if err := specNeighborGlobalEnforcer.Handle(basePath, "", actual.NeighborGlobal, desired.NeighborGlobal, actions); err != nil {
+			return errors.Wrap(err, "failed to handle neighbor global")
+		}
+
 		return nil
 	},
 }
@@ -282,6 +286,12 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client GNMICClie
 
 	if err := loadActualErrDisableInterfaces(ctx, client, spec); err != nil {
 		return errors.Wrapf(err, "failed to load errdisable interfaces")
+	}
+
+	if agent.Spec.Role.IsLeaf() {
+		if err := loadActualNeighborGlobal(ctx, client, spec); err != nil {
+			return errors.Wrapf(err, "failed to load neighbor global")
+		}
 	}
 
 	return nil

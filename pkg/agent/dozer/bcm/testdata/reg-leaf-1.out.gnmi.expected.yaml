@@ -516,6 +516,12 @@ mclag:
         peer-link: PortChannel250
         source-address: 172.30.95.0
       domain-id: 100
+neighbor-globals:
+  neighbor-global:
+  - config:
+      ipv4-drop-neighbor-aging-time: 60
+      name: Values
+    name: Values
 network-instances:
   network-instance:
   - config:

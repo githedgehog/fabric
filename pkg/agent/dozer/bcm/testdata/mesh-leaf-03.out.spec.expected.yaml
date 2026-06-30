@@ -276,6 +276,8 @@ lldp:
   helloTimer: 5
   systemDescription: Hedgehog Fabric
   systemName: leaf-03
+neighborGlobal:
+  ipv4DropNeighborAgingTime: 60
 ntp:
   sourceInterface:
   - Management0
