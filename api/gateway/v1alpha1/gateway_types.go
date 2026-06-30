@@ -82,14 +82,13 @@ type GatewayLogs struct {
 	RateLimit *GatewayLogRateLimit       `json:"rateLimit,omitempty"`
 }
 
-// GatewayLogRateLimit configures the token-bucket rate limiter applied to log
-// output. Both fields must be greater than zero when the limiter is set.
+// GatewayLogRateLimit configures the token-bucket rate limiter applied to logs
 type GatewayLogRateLimit struct {
-	// token bucket capacity
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
+	// token bucket capacity (default 50)
 	Burst uint32 `json:"burst,omitempty"`
-	// ReplenishPerSecond is the number of tokens (messages) replenished per second
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
+	// ReplenishPerSecond is the number of tokens (messages) replenished per second (default 5)
 	ReplenishPerSecond uint32 `json:"replenishPerSecond,omitempty"`
 }
 
@@ -178,10 +177,12 @@ func (gw *Gateway) Default() {
 			"all": GatewayLogLevelInfo,
 		}
 	}
-	if gw.Spec.Logs.RateLimit == nil {
-		gw.Spec.Logs.RateLimit = &GatewayLogRateLimit{
-			Burst:              DefaultGatewayLogRateLimitBurst,
-			ReplenishPerSecond: DefaultGatewayLogRateLimitReplenishPerSecond,
+	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		if rl.Burst == 0 {
+			rl.Burst = DefaultGatewayLogRateLimitBurst
+		}
+		if rl.ReplenishPerSecond == 0 {
+			rl.ReplenishPerSecond = DefaultGatewayLogRateLimitReplenishPerSecond
 		}
 	}
 	if gw.Spec.Workers == 0 {

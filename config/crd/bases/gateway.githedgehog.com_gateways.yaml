@@ -114,20 +114,19 @@ spec:
                   default:
                     type: string
                   rateLimit:
-                    description: |-
-                      GatewayLogRateLimit configures the token-bucket rate limiter applied to log
-                      output. Both fields must be greater than zero when the limiter is set.
+                    description: GatewayLogRateLimit configures the token-bucket rate
+                      limiter applied to logs
                     properties:
                       burst:
-                        description: token bucket capacity
+                        description: token bucket capacity (default 50)
                         format: int32
-                        minimum: 1
+                        minimum: 0
                         type: integer
                       replenishPerSecond:
                         description: ReplenishPerSecond is the number of tokens (messages)
-                          replenished per second
+                          replenished per second (default 5)
                         format: int32
-                        minimum: 1
+                        minimum: 0
                         type: integer
                     type: object
                   tags:
