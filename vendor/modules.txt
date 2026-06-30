@@ -471,7 +471,7 @@ github.com/x448/float16
 # github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1
 ## explicit; go 1.15
 github.com/xrash/smetrics
-# go.githedgehog.com/fabric-bcm-ygot v0.5.3-4.5.1
+# go.githedgehog.com/fabric-bcm-ygot v0.6.0-4.6.0
 ## explicit; go 1.24.0
 go.githedgehog.com/fabric-bcm-ygot/pkg/oc
 # go.githedgehog.com/libmeta v0.3.0
