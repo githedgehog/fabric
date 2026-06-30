@@ -95,6 +95,10 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 			return errors.Wrap(err, "failed to handle interface ethernet")
 		}
 
+		if err := specInterfaceEthernetFECEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
+			return errors.Wrap(err, "failed to handle interface FEC")
+		}
+
 		if err := specInterfaceEthernetSwitchedAccessEnforcer.Handle(basePath, name, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle interface switched access")
 		}
@@ -494,6 +498,36 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	},
 }
 
+// specInterfaceEthernetFECEnforcer manages the port FEC mode separately from the base
+// ethernet config so that a FEC change only touches /ethernet/config/port-fec instead of
+// re-applying the whole ethernet config. Only ports with an explicit FEC mode are managed
+// (planPortFECs leaves the rest nil); the Skip below ignores ports without one, so an
+// unmanaged port never diffs against whatever concrete mode the device reports. Removing an
+// override therefore leaves the port at its last applied mode rather than resetting it.
+var specInterfaceEthernetFECEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
+	Summary: "Interface %s FEC",
+	Skip: func(name string, _, desired *dozer.SpecInterface) bool {
+		return !isPhysical(name) || desired == nil || desired.FEC == nil
+	},
+	Getter: func(_ string, value *dozer.SpecInterface) any {
+		return value.FEC
+	},
+	Path:         "/ethernet/config/port-fec",
+	NoReplace:    true,
+	UpdateWeight: ActionWeightInterfaceEthernetBaseUpdate,
+	DeleteWeight: ActionWeightInterfaceEthernetBaseDelete,
+	Marshal: func(_ string, value *dozer.SpecInterface) (ygot.ValidatedGoStruct, error) {
+		fecMode, ok := MarshalPortFEC(*value.FEC)
+		if !ok {
+			return nil, errors.Errorf("invalid FEC mode %s", *value.FEC)
+		}
+
+		return &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
+			PortFec: fecMode,
+		}, nil
+	},
+}
+
 var specInterfaceEthernetSwitchedAccessEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 	Summary: "Interface %s Switched Access VLAN",
 	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
@@ -700,6 +734,20 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 		skipSpeedPorts[name] = true
 	}
 
+	// FEC is only read back for ports the fabric explicitly manages (those in PortFECs). For
+	// every other port the device reports a concrete resolved mode (e.g. disabled) that has no
+	// counterpart in the desired spec; reading it would surface a perpetual cosmetic diff.
+	api2nos, err := sp.GetAPI2NOSPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get NOS port mapping")
+	}
+	managedFEC := map[string]bool{}
+	for name := range agent.Spec.Switch.PortFECs {
+		if nosName, ok := api2nos[name]; ok {
+			managedFEC[nosName] = true
+		}
+	}
+
 	for name, ocIface := range ocVal.Interface {
 		if ocIface.Config == nil {
 			continue
@@ -865,6 +913,13 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 				}
 
 				iface.AutoNegotiate = ocIface.Ethernet.Config.AutoNegotiate
+				if managedFEC[name] {
+					// Only read FEC for fabric-managed ports; UNSET/DEFAULT (or an unmanaged
+					// port) leaves iface.FEC nil so it never shows a spurious diff.
+					if fecString, ok := UnmarshalPortFEC(ocIface.Ethernet.Config.PortFec); ok {
+						iface.FEC = &fecString
+					}
+				}
 			}
 
 			if ocIface.Ethernet.SwitchedVlan != nil && ocIface.Ethernet.SwitchedVlan.Config != nil {
