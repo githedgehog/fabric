@@ -995,8 +995,7 @@ _Appears in:_
 
 
 
-GatewayLogRateLimit configures the token-bucket rate limiter applied to log
-output. Both fields must be greater than zero when the limiter is set.
+GatewayLogRateLimit configures the token-bucket rate limiter applied to logs
 
 
 
@@ -1005,8 +1004,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `burst` _integer_ | token bucket capacity |  | Minimum: 1 <br /> |
-| `replenishPerSecond` _integer_ | ReplenishPerSecond is the number of tokens (messages) replenished per second |  | Minimum: 1 <br /> |
+| `burst` _integer_ | token bucket capacity (default 50) |  | Minimum: 0 <br /> |
+| `replenishPerSecond` _integer_ | ReplenishPerSecond is the number of tokens (messages) replenished per second (default 5) |  | Minimum: 0 <br /> |
 
 
 #### GatewayLogs

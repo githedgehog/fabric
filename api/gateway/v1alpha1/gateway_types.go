@@ -82,14 +82,13 @@ type GatewayLogs struct {
 	RateLimit *GatewayLogRateLimit       `json:"rateLimit,omitempty"`
 }
 
-// GatewayLogRateLimit configures the token-bucket rate limiter applied to log
-// output. Both fields must be greater than zero when the limiter is set.
+// GatewayLogRateLimit configures the token-bucket rate limiter applied to logs
 type GatewayLogRateLimit struct {
-	// token bucket capacity
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
+	// token bucket capacity (default 50)
 	Burst uint32 `json:"burst,omitempty"`
-	// ReplenishPerSecond is the number of tokens (messages) replenished per second
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
+	// ReplenishPerSecond is the number of tokens (messages) replenished per second (default 5)
 	ReplenishPerSecond uint32 `json:"replenishPerSecond,omitempty"`
 }
 
@@ -178,10 +177,12 @@ func (gw *Gateway) Default() {
 			"all": GatewayLogLevelInfo,
 		}
 	}
-	if gw.Spec.Logs.RateLimit == nil {
-		gw.Spec.Logs.RateLimit = &GatewayLogRateLimit{
-			Burst:              DefaultGatewayLogRateLimitBurst,
-			ReplenishPerSecond: DefaultGatewayLogRateLimitReplenishPerSecond,
+	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		if rl.Burst == 0 {
+			rl.Burst = DefaultGatewayLogRateLimitBurst
+		}
+		if rl.ReplenishPerSecond == 0 {
+			rl.ReplenishPerSecond = DefaultGatewayLogRateLimitReplenishPerSecond
 		}
 	}
 	if gw.Spec.Workers == 0 {
@@ -211,15 +212,6 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
 		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
-	}
-
-	if rl := gw.Spec.Logs.RateLimit; rl != nil {
-		if rl.Burst == 0 {
-			return fmt.Errorf("log rate limit burst must be greater than 0: %w", ErrInvalidGW)
-		}
-		if rl.ReplenishPerSecond == 0 {
-			return fmt.Errorf("log rate limit replenishPerSecond must be greater than 0: %w", ErrInvalidGW)
-		}
 	}
 
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)

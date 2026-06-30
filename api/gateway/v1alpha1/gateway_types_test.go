@@ -278,27 +278,23 @@ func TestGatewayValidate(t *testing.T) {
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
-			name: "test-log-rate-limit-valid",
+			name: "test-log-rate-limit-explicit",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
-				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 50, ReplenishPerSecond: 5}
+				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 100, ReplenishPerSecond: 10}
 			}),
 			objs: base,
 		},
 		{
-			name: "test-log-rate-limit-zero-burst",
+			name: "test-log-rate-limit-empty-defaults",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
-				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 0, ReplenishPerSecond: 5}
+				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
-			name: "test-log-rate-limit-zero-replenish",
-			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
-				gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 50, ReplenishPerSecond: 0}
-			}),
+			name: "test-log-rate-limit-absent-disabled",
+			gw:   *gwa("gw-1"),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
 		},
 	}
 
@@ -327,4 +323,32 @@ func TestGatewayValidate(t *testing.T) {
 			assert.ErrorIs(t, actual, tt.err, "validate should return expected error")
 		})
 	}
+}
+
+func TestGatewayLogRateLimitDefaulting(t *testing.T) {
+	t.Run("absent stays disabled", func(t *testing.T) {
+		gw := gwa("gw-1")
+		gw.Default()
+		assert.Nil(t, gw.Spec.Logs.RateLimit, "absent rateLimit must remain nil (disabled)")
+	})
+
+	t.Run("empty defaults to 50:5", func(t *testing.T) {
+		gw := gwa("gw-1", func(gw *v1alpha1.Gateway) {
+			gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{}
+		})
+		gw.Default()
+		require.NotNil(t, gw.Spec.Logs.RateLimit)
+		assert.Equal(t, v1alpha1.DefaultGatewayLogRateLimitBurst, gw.Spec.Logs.RateLimit.Burst)
+		assert.Equal(t, v1alpha1.DefaultGatewayLogRateLimitReplenishPerSecond, gw.Spec.Logs.RateLimit.ReplenishPerSecond)
+	})
+
+	t.Run("explicit values are kept", func(t *testing.T) {
+		gw := gwa("gw-1", func(gw *v1alpha1.Gateway) {
+			gw.Spec.Logs.RateLimit = &v1alpha1.GatewayLogRateLimit{Burst: 100, ReplenishPerSecond: 10}
+		})
+		gw.Default()
+		require.NotNil(t, gw.Spec.Logs.RateLimit)
+		assert.Equal(t, uint32(100), gw.Spec.Logs.RateLimit.Burst)
+		assert.Equal(t, uint32(10), gw.Spec.Logs.RateLimit.ReplenishPerSecond)
+	})
 }
