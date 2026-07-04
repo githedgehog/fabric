@@ -542,16 +542,16 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 	return nil
 }
 
-func enforceCelesticaState(_ context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, _ /* basedir */ string, dryRun bool) error {
+func enforceCelesticaState(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, _ /* basedir */ string, dryRun bool) error {
 	if dryRun {
 		slog.Warn("Dry run, exiting")
 
 		return nil
 	}
 
-	// temp hack to patch shadow file for admin user on Celestica SONiC+ to avoid prompt for changing password
-	slog.Info("Celestica SONiC+ configuration not supported, just enforcing admin password")
+	slog.Info("Celestica SONiC+ configuration not supported, just enforcing admin password and turning off ZTP")
 
+	// temp hack to patch shadow file for admin user on Celestica SONiC+ to avoid prompt for changing password
 	for _, user := range agent.Spec.Users {
 		name := user.Name
 
@@ -562,6 +562,17 @@ func enforceCelesticaState(_ context.Context, _ /* processor */ dozer.Processor,
 		if err := patchShadowFile(name, user.Password); err != nil {
 			return fmt.Errorf("patching shadow file: %w", err)
 		}
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "sudo", "ztp", "disable", "--yes")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "ztp-disable: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "ztp-disable: ")
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ztp-disable: %w", err)
 	}
 
 	return nil
