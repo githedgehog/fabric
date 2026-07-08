@@ -1024,6 +1024,423 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 	}
 }
 
+func TestValidateACLNoKube(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		acl  *PeeringACL
+		err  bool
+	}{
+		{
+			name: "nil ACL is valid",
+			acl:  nil,
+		},
+		{
+			name: "empty ACL defaults to deny-unless-exposed",
+			acl:  &PeeringACL{},
+		},
+		{
+			name: "explicit deny default",
+			acl:  &PeeringACL{Default: ACLDefaultDeny},
+		},
+		{
+			name: "invalid default action",
+			acl:  &PeeringACL{Default: "bogus"},
+			err:  true,
+		},
+		{
+			name: "valid rule with from only",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+		},
+		{
+			name: "valid rule with to only",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{To: "vpc-2", Action: ACLActionDeny},
+				},
+			},
+		},
+		{
+			name: "invalid action",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: "bogus"},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "neither from nor to set",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "from does not match either VPC",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-3", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "to does not match either VPC",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{To: "vpc-3", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid rule name",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Name: "web-traffic", From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+		},
+		{
+			name: "invalid rule name characters",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Name: "Web_Traffic!", From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "rule name too long",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Name: strings.Repeat("a", 65), From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "source CIDR and VPCSubnet both set",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{
+								{CIDR: "10.0.1.0/24", VPCSubnet: "sub1"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "destination CIDR and VPCSubnet both set",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Destination: []PeeringACLMatchEndpoint{
+								{CIDR: "10.0.2.0/24", VPCSubnet: "sub1"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid source CIDR",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{
+								{CIDR: "not-a-cidr"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid destination CIDR",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Destination: []PeeringACLMatchEndpoint{
+								{CIDR: "not-a-cidr"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid source and destination CIDR with ports",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						To:     "vpc-2",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:      []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24", Ports: []string{"80", "443"}}},
+							Destination: []PeeringACLMatchEndpoint{{CIDR: "10.0.2.0/24", Ports: []string{"8080-8090"}}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "invalid source port",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24", Ports: []string{"not-a-port"}}},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid destination port",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Destination: []PeeringACLMatchEndpoint{{CIDR: "10.0.2.0/24", Ports: []string{"not-a-port"}}},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid string match protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid numeric match protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "42",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "invalid string match protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "not-a-protocol",
+						},
+					},
+				},
+			},
+			err: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			peering := generatePeering("test-peering", func(p *GatewayPeering) {
+				p.Spec.ACL = tt.acl
+			})
+			peering.Default()
+			err := peering.Validate(t.Context(), nil, nil)
+			if tt.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateACLVPCSubnet(t *testing.T) {
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{})
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.1.0/24"},
+			},
+		},
+	})
+	vpc2 := withName("vpc-2", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.2.0/24"},
+			},
+		},
+	})
+	external := withName("out-1", &vpcv1beta1.External{
+		Spec: vpcv1beta1.ExternalSpec{},
+	})
+
+	tests := []struct {
+		name    string
+		peering *GatewayPeering
+		objs    []kclient.Object
+		err     bool
+	}{
+		{
+			name: "source VPCSubnet reference exists, from implicit",
+			peering: generatePeering("acl-src-implicit-from", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							To:     "vpc-2",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "destination VPCSubnet reference exists, to implicit",
+			peering: generatePeering("acl-dst-implicit-to", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "vpc-1",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Destination: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "source VPCSubnet reference not found in VPC",
+			peering: generatePeering("acl-src-invalid-subnet", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "vpc-1",
+							To:     "vpc-2",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "nonexistent"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name: "destination VPCSubnet reference not found in VPC",
+			peering: generatePeering("acl-dst-invalid-subnet", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "vpc-1",
+							To:     "vpc-2",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Destination: []PeeringACLMatchEndpoint{{VPCSubnet: "nonexistent"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name: "source VPCSubnet referencing an external peering entry",
+			peering: generateExternalPeering("acl-src-external", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "ext.out-1",
+							To:     "vpc-1",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, external},
+			err:  true,
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme))
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tt.objs...).
+				Build()
+			tt.peering.Default()
+			actual := tt.peering.Validate(ctx, kube, nil)
+			if tt.err {
+				require.Error(t, actual)
+			} else {
+				require.NoError(t, actual)
+			}
+		})
+	}
+}
+
 func TestValidatePort(t *testing.T) {
 	for _, tt := range []struct {
 		in    string
