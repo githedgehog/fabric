@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"net/netip"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -27,6 +28,9 @@ const (
 	DefaultMasqueradeIdleTimeout  = 2 * time.Minute
 	DefaultPortForwardIdleTimeout = 2 * time.Minute
 )
+
+// TODO: deduplicate and expose from fabric meta package
+var nameChecker = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -413,6 +417,70 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		return fmt.Errorf("unsupported configuration, one side of a peering using static NAT cannot peer with a side using stateful NAT") //nolint:err113
 	}
 
+	if acl := p.Spec.ACL; acl != nil {
+		if !slices.Contains(ACLDefaultActions, acl.Default) {
+			return fmt.Errorf("invalid default action %q in ACL", acl.Default) //nolint:err113
+		}
+		for i, rule := range acl.Rules {
+			ruleBlob := ""
+			if rule.Name != "" {
+				if !nameChecker.MatchString(rule.Name) {
+					return fmt.Errorf("invalid rule name %q in ACL rule %d", rule.Name, i) //nolint:err113
+				}
+				if len(rule.Name) > 64 {
+					return fmt.Errorf("rule name %q in ACL rule %d is too long, must be 64 characters or less", rule.Name, i) //nolint:err113
+				}
+				ruleBlob = fmt.Sprintf(" (%s)", rule.Name)
+			}
+			if !slices.Contains(ACLActions, rule.Action) {
+				return fmt.Errorf("invalid action %q in ACL rule %d%s", rule.Action, i, ruleBlob) //nolint:err113
+			}
+			if rule.From == "" && rule.To == "" {
+				return fmt.Errorf("at least one of from and to must be specified in ACL rule %d%s", i, ruleBlob) //nolint:err113
+			}
+			if rule.From != "" && !slices.Contains(vpcs, rule.From) {
+				return fmt.Errorf("invalid from %q in ACL rule %d%s, it has to match one of the two VPCs of the peering: %q", rule.From, i, ruleBlob, vpcs) //nolint:err113
+			}
+			if rule.To != "" && !slices.Contains(vpcs, rule.To) {
+				return fmt.Errorf("invalid to %q in ACL rule %d%s, it has to match one of the two VPCs of the peering: %q", rule.To, i, ruleBlob, vpcs) //nolint:err113
+			}
+			for _, src := range rule.Match.Source {
+				if src.CIDR != "" && src.VPCSubnet != "" {
+					return fmt.Errorf("at most one of cidr and vpcSubnet can be specified in source match for rule %d%s", i, ruleBlob) //nolint:err113
+				}
+				if src.CIDR != "" {
+					if _, err := netip.ParsePrefix(src.CIDR); err != nil {
+						return fmt.Errorf("invalid source CIDR %q in ACL rule %d%s: %w", src.CIDR, i, ruleBlob, err)
+					}
+				}
+				for _, port := range src.Ports {
+					if err := validatePort(port); err != nil {
+						return fmt.Errorf("invalid source port %q in ACL rule %d%s: %w", port, i, ruleBlob, err)
+					}
+				}
+			}
+			for _, dst := range rule.Match.Destination {
+				if dst.CIDR != "" && dst.VPCSubnet != "" {
+					return fmt.Errorf("at most one of cidr and vpcSubnet can be specified in destination match for rule %d%s", i, ruleBlob) //nolint:err113
+				}
+				if dst.CIDR != "" {
+					if _, err := netip.ParsePrefix(dst.CIDR); err != nil {
+						return fmt.Errorf("invalid destination CIDR %q in ACL rule %d%s: %w", dst.CIDR, i, ruleBlob, err)
+					}
+				}
+				for _, port := range dst.Ports {
+					if err := validatePort(port); err != nil {
+						return fmt.Errorf("invalid destination port %q in ACL rule %d%s: %w", port, i, ruleBlob, err)
+					}
+				}
+			}
+			if !slices.Contains(ACLMatchProtocols, rule.Match.Protocol) {
+				if _, err := strconv.Atoi(string(rule.Match.Protocol)); err != nil {
+					return fmt.Errorf("invalid protocol %q in ACL rule %d%s: %w", rule.Match.Protocol, i, ruleBlob, err)
+				}
+			}
+		}
+	}
 	if kube != nil {
 		gwGroup := &GatewayGroup{}
 		if err := kube.Get(ctx, kclient.ObjectKey{Name: p.Spec.GatewayGroup, Namespace: p.Namespace}, gwGroup); err != nil {
@@ -423,12 +491,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
 		// check for overlaps of exposed IPs towards either of the VPCs in the peering we are validating
-		peeringVPCs := maps.Keys(p.Spec.Peering)
+		peeringVPCs := make(map[string]*v1beta1.VPC, len(p.Spec.Peering))
 		for originVPC, ourEntry := range p.Spec.Peering {
 			ourCIDRs := []string{}
 			existingCIDRs := []string{}
 			var targetVPC string
-			for vpc := range peeringVPCs {
+			for vpc := range maps.Keys(p.Spec.Peering) {
 				if vpc == originVPC {
 					continue
 				}
@@ -504,6 +572,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 
 				return fmt.Errorf("failed to get VPC %s: %w", vpcName, err)
 			}
+			peeringVPCs[vpcName] = &vpc
 			for _, expose := range peering.Expose {
 				if expose.DefaultDestination {
 					continue
@@ -533,6 +602,46 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					if ip.VPCSubnet != "" {
 						if _, ok := vpc.Spec.Subnets[ip.VPCSubnet]; !ok {
 							return fmt.Errorf("VPC subnet %s referenced in peering expose does not exist in VPC %s", ip.VPCSubnet, vpcName) //nolint:err113
+						}
+					}
+				}
+			}
+		}
+		if acl := p.Spec.ACL; acl != nil {
+			for i, rule := range acl.Rules {
+				from := rule.From
+				to := rule.To
+				if from == "" {
+					if vpcs[0] == to {
+						from = vpcs[1]
+					} else {
+						from = vpcs[0]
+					}
+				} else if to == "" {
+					if vpcs[0] == from {
+						to = vpcs[1]
+					} else {
+						to = vpcs[0]
+					}
+				}
+
+				for _, src := range rule.Match.Source {
+					if src.VPCSubnet != "" {
+						if peeringVPCs[from] == nil {
+							return fmt.Errorf("source VPC subnet %s referenced in ACL rule %d but the corresponding peering entry %q is not a VPC", src.VPCSubnet, i, from) //nolint:err113
+						}
+						if _, ok := peeringVPCs[from].Spec.Subnets[src.VPCSubnet]; !ok {
+							return fmt.Errorf("source VPC subnet %s referenced in ACL rule %d does not exist in VPC %s", src.VPCSubnet, i, from) //nolint:err113
+						}
+					}
+				}
+				for _, dst := range rule.Match.Destination {
+					if dst.VPCSubnet != "" {
+						if peeringVPCs[to] == nil {
+							return fmt.Errorf("destination VPC subnet %s referenced in ACL rule %d but the corresponding peering entry %q is not a VPC", dst.VPCSubnet, i, to) //nolint:err113
+						}
+						if _, ok := peeringVPCs[to].Spec.Subnets[dst.VPCSubnet]; !ok {
+							return fmt.Errorf("destination VPC subnet %s referenced in ACL rule %d does not exist in VPC %s", dst.VPCSubnet, i, to) //nolint:err113
 						}
 					}
 				}
