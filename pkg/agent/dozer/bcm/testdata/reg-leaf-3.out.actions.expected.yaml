@@ -3050,137 +3050,6 @@
         address: 172.30.0.1
         prefer: true
   weight: 54
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan1005
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan1005
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan1006
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan1006
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan1007
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan1007
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3000
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3000
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3001
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3001
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3002
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3002
-      suppress: "on"
-  weight: 61
-- path: /network-instances/network-instance[name=VrfEexternal-01]/global-sag/config
-  summary: Create VRF VrfEexternal-01 SAG
-  type: update
-  value:
-    config:
-      anycast-mac: "00:00:00:11:11:11"
-  weight: 64
-- path: /network-instances/network-instance[name=VrfVvpc-01]/global-sag/config
-  summary: Create VRF VrfVvpc-01 SAG
-  type: update
-  value:
-    config:
-      anycast-mac: "00:00:00:11:11:11"
-  weight: 64
-- path: /network-instances/network-instance[name=VrfVvpc-03]/global-sag/config
-  summary: Create VRF VrfVvpc-03 SAG
-  type: update
-  value:
-    config:
-      anycast-mac: "00:00:00:11:11:11"
-  weight: 64
-- path: /network-instances/network-instance[name=VrfVvpc-04]/global-sag/config
-  summary: Create VRF VrfVvpc-04 SAG
-  type: update
-  value:
-    config:
-      anycast-mac: "00:00:00:11:11:11"
-  weight: 64
-- path: /network-instances/network-instance[name=default]/global-sag/config
-  summary: Create VRF default SAG
-  type: update
-  value:
-    config:
-      anycast-mac: "00:00:00:11:11:11"
-  weight: 64
-- path: /network-instances/network-instance[name=VrfEexternal-01]/evpn/evpn-mh/config
-  summary: Create VRF VrfEexternal-01 EVPNMH
-  type: update
-  weight: 65
-- path: /network-instances/network-instance[name=VrfVvpc-01]/evpn/evpn-mh/config
-  summary: Create VRF VrfVvpc-01 EVPNMH
-  type: update
-  weight: 65
-- path: /network-instances/network-instance[name=VrfVvpc-03]/evpn/evpn-mh/config
-  summary: Create VRF VrfVvpc-03 EVPNMH
-  type: update
-  weight: 65
-- path: /network-instances/network-instance[name=VrfVvpc-04]/evpn/evpn-mh/config
-  summary: Create VRF VrfVvpc-04 EVPNMH
-  type: update
-  weight: 65
-- path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
-  summary: Create VRF default EVPNMH
-  type: update
-  value:
-    config:
-      mac-holdtime: 60
-      startup-delay: 60
-  weight: 65
-- path: /network-instances/network-instance[name=default]/evpn/ethernet-segments/ethernet-segment[name=PortChannel1]
-  summary: Create VRF PortChannel1 EVPN ethernet segment
-  type: update
-  value:
-    ethernet-segment:
-    - config:
-        esi: 00f20000f20000000002
-        esi-type: TYPE_0_OPERATOR_CONFIGURED
-        interface: PortChannel1
-        name: PortChannel1
-      name: PortChannel1
-  weight: 66
-- path: /network-instances/network-instance[name=default]/evpn/ethernet-segments/ethernet-segment[name=PortChannel2]
-  summary: Create VRF PortChannel2 EVPN ethernet segment
-  type: update
-  value:
-    ethernet-segment:
-    - config:
-        esi: 00f20000f20000000001
-        esi-type: TYPE_0_OPERATOR_CONFIGURED
-        interface: PortChannel2
-        name: PortChannel2
-      name: PortChannel2
-  weight: 66
 - path: /lst/lst-groups/lst-group
   summary: Create LST Group spinelink
   type: update
@@ -3191,7 +3060,7 @@
         name: spinelink
         timeout: 60
       name: spinelink
-  weight: 67
+  weight: 57
 - path: /lst/interfaces/interface[id=Ethernet4]
   summary: Create LST Interface Ethernet4
   type: update
@@ -3208,7 +3077,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 68
+  weight: 58
 - path: /lst/interfaces/interface[id=Ethernet5]
   summary: Create LST Interface Ethernet5
   type: update
@@ -3225,7 +3094,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 68
+  weight: 58
 - path: /lst/interfaces/interface[id=Ethernet6]
   summary: Create LST Interface Ethernet6
   type: update
@@ -3242,7 +3111,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 68
+  weight: 58
 - path: /lst/interfaces/interface[id=Ethernet7]
   summary: Create LST Interface Ethernet7
   type: update
@@ -3259,6 +3128,137 @@
         - config:
             group-name: spinelink
           group-name: spinelink
+  weight: 58
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1005
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1005
+      suppress: "on"
+  weight: 63
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1006
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1006
+      suppress: "on"
+  weight: 63
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan1007
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan1007
+      suppress: "on"
+  weight: 63
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan3000
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan3000
+      suppress: "on"
+  weight: 63
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan3001
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan3001
+      suppress: "on"
+  weight: 63
+- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
+  summary: Create Suppress VLAN neigh Vlan3002
+  type: update
+  value:
+    SUPPRESS_VLAN_NEIGH_LIST:
+    - name: Vlan3002
+      suppress: "on"
+  weight: 63
+- path: /network-instances/network-instance[name=VrfEexternal-01]/global-sag/config
+  summary: Create VRF VrfEexternal-01 SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 66
+- path: /network-instances/network-instance[name=VrfVvpc-01]/global-sag/config
+  summary: Create VRF VrfVvpc-01 SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 66
+- path: /network-instances/network-instance[name=VrfVvpc-03]/global-sag/config
+  summary: Create VRF VrfVvpc-03 SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 66
+- path: /network-instances/network-instance[name=VrfVvpc-04]/global-sag/config
+  summary: Create VRF VrfVvpc-04 SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 66
+- path: /network-instances/network-instance[name=default]/global-sag/config
+  summary: Create VRF default SAG
+  type: update
+  value:
+    config:
+      anycast-mac: "00:00:00:11:11:11"
+  weight: 66
+- path: /network-instances/network-instance[name=VrfEexternal-01]/evpn/evpn-mh/config
+  summary: Create VRF VrfEexternal-01 EVPNMH
+  type: update
+  weight: 67
+- path: /network-instances/network-instance[name=VrfVvpc-01]/evpn/evpn-mh/config
+  summary: Create VRF VrfVvpc-01 EVPNMH
+  type: update
+  weight: 67
+- path: /network-instances/network-instance[name=VrfVvpc-03]/evpn/evpn-mh/config
+  summary: Create VRF VrfVvpc-03 EVPNMH
+  type: update
+  weight: 67
+- path: /network-instances/network-instance[name=VrfVvpc-04]/evpn/evpn-mh/config
+  summary: Create VRF VrfVvpc-04 EVPNMH
+  type: update
+  weight: 67
+- path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
+  summary: Create VRF default EVPNMH
+  type: update
+  value:
+    config:
+      mac-holdtime: 60
+      startup-delay: 60
+  weight: 67
+- path: /network-instances/network-instance[name=default]/evpn/ethernet-segments/ethernet-segment[name=PortChannel1]
+  summary: Create VRF PortChannel1 EVPN ethernet segment
+  type: update
+  value:
+    ethernet-segment:
+    - config:
+        esi: 00f20000f20000000002
+        esi-type: TYPE_0_OPERATOR_CONFIGURED
+        interface: PortChannel1
+        name: PortChannel1
+      name: PortChannel1
+  weight: 68
+- path: /network-instances/network-instance[name=default]/evpn/ethernet-segments/ethernet-segment[name=PortChannel2]
+  summary: Create VRF PortChannel2 EVPN ethernet segment
+  type: update
+  value:
+    ethernet-segment:
+    - config:
+        esi: 00f20000f20000000001
+        esi-type: TYPE_0_OPERATOR_CONFIGURED
+        interface: PortChannel2
+        name: PortChannel2
+      name: PortChannel2
   weight: 68
 - path: /sonic-vxlan/VXLAN_TUNNEL/VXLAN_TUNNEL_LIST
   summary: Create VXLAN tunnel vtepfabric

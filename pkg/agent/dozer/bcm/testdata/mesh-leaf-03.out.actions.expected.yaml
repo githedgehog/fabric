@@ -1951,7 +1951,7 @@
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan1003
       suppress: "on"
-  weight: 61
+  weight: 63
 - path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
   summary: Create Suppress VLAN neigh Vlan3001
   type: update
@@ -1959,40 +1959,40 @@
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan3001
       suppress: "on"
-  weight: 61
+  weight: 63
 - path: /network-instances/network-instance[name=VrfEext-bgp-01]/global-sag/config
   summary: Create VRF VrfEext-bgp-01 SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 64
+  weight: 66
 - path: /network-instances/network-instance[name=VrfVvpc-03]/global-sag/config
   summary: Create VRF VrfVvpc-03 SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 64
+  weight: 66
 - path: /network-instances/network-instance[name=default]/global-sag/config
   summary: Create VRF default SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 64
+  weight: 66
 - path: /network-instances/network-instance[name=VrfEext-bgp-01]/evpn/evpn-mh/config
   summary: Create VRF VrfEext-bgp-01 EVPNMH
   type: update
-  weight: 65
+  weight: 67
 - path: /network-instances/network-instance[name=VrfVvpc-03]/evpn/evpn-mh/config
   summary: Create VRF VrfVvpc-03 EVPNMH
   type: update
-  weight: 65
+  weight: 67
 - path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
   summary: Create VRF default EVPNMH
   type: update
-  weight: 65
+  weight: 67
 - path: /sonic-vxlan/VXLAN_TUNNEL/VXLAN_TUNNEL_LIST
   summary: Create VXLAN tunnel vtepfabric
   type: update

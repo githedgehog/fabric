@@ -134,6 +134,9 @@ const (
 	ActionWeightMCLAGDomainUpdate
 	ActionWeightMCLAGInterfaceUpdate
 
+	ActionWeightLSTGroupUpdate
+	ActionWeightLSTInterfaceUpdate
+
 	ActionWeightNATBaseUpdate
 	ActionWeightNATPoolUpdate
 	ActionWeightNATBindingUpdate
@@ -147,9 +150,6 @@ const (
 	ActionWeightVRFSAGUpdate
 	ActionWeightVRFEVPNMHUpdate
 	ActionWeightVRFEthernetSegmentUpdate
-
-	ActionWeightLSTGroupUpdate
-	ActionWeightLSTInterfaceUpdate
 
 	ActionWeightVRFVNIDelete
 	ActionWeightVXLANTunnelMapDelete

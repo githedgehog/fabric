@@ -708,11 +708,11 @@
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 64
+  weight: 66
 - path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
   summary: Create VRF default EVPNMH
   type: update
-  weight: 65
+  weight: 67
 - path: /acl/acl-sets/acl-set
   summary: Create ACL no-ipns-peering--default base
   type: update
