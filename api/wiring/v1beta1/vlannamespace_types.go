@@ -128,6 +128,10 @@ func (ns *VLANNamespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 		return nil, errors.Wrapf(err, "invalid ranges")
 	}
 
+	if err := meta.CheckVLANRangesOverlap(append(slices.Clone(meta.BCMReservedVLANRanges), ns.Spec.Ranges...)); err != nil {
+		return nil, errors.Wrapf(err, "ranges overlap with Broadcom reserved VLANs")
+	}
+
 	if fabricCfg != nil {
 		if err := meta.CheckVLANRangesOverlap(append(slices.Clone(fabricCfg.VPCIRBVLANRanges), ns.Spec.Ranges...)); err != nil {
 			return nil, errors.Wrapf(err, "ranges overlap with Fabric reserved VLANs")
