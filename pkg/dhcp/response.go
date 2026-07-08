@@ -25,7 +25,7 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet 
 		return fmt.Errorf("getting route: %w", err)
 	}
 	if len(routes) == 0 {
-		return fmt.Errorf("no route found") //nolint:err113
+		return fmt.Errorf("no route found")
 	}
 
 	// With l3vni VPCs, send a short lease time on the first request to trigger
@@ -137,7 +137,7 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet 
 			}
 			gateway := net.ParseIP(advertisedRoute.Gateway)
 			if gateway == nil {
-				return fmt.Errorf("parsing advertised route gateway %s", advertisedRoute.Gateway) //nolint:err113
+				return fmt.Errorf("parsing advertised route gateway %s", advertisedRoute.Gateway)
 			}
 			routes = append(routes, &dhcpv4.Route{
 				Dest:   prefix,

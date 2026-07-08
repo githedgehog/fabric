@@ -26,7 +26,7 @@ type GatewayPeeringWebhook struct {
 
 func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
 	if cfg.EnableGateway && v == nil {
-		return fmt.Errorf("validator is nil") //nolint:err113
+		return fmt.Errorf("validator is nil")
 	}
 
 	w := &GatewayPeeringWebhook{
@@ -39,7 +39,7 @@ func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(); err != nil {
-		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
+		return fmt.Errorf("creating webhook: %w", err)
 	}
 
 	return nil

@@ -33,7 +33,7 @@ func SetupGatewayGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) err
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete(); err != nil {
-		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
+		return fmt.Errorf("creating webhook: %w", err)
 	}
 
 	return nil

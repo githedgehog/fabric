@@ -167,7 +167,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		for i := range prefixes {
 			for j := i + 1; j < len(prefixes); j++ {
 				if prefixes[i].Overlaps(prefixes[j]) {
-					return nil, fmt.Errorf("static prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String()) //nolint:goerr113
+					return nil, fmt.Errorf("static prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String())
 				}
 			}
 		}

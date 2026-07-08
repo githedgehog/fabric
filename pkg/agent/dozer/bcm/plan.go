@@ -462,7 +462,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	vtepSubnet := agent.Spec.Config.VTEPSubnet
 	if vtepSubnet == "" {
-		return errors.New("VTEP subnet not set in agent config") //nolint: goerr113
+		return errors.New("VTEP subnet not set in agent config")
 	}
 
 	spec.PrefixLists[PrefixListAllVTEPPrefixes] = &dozer.SpecPrefixList{
@@ -1225,10 +1225,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
 		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
 		if irbVLAN == 0 {
-			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:goerr113
+			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName)
 		}
 		if extVNI == 0 {
-			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:goerr113
+			return fmt.Errorf("VNI for external %s not found in catalog", externalName)
 		}
 		irbIface := vlanName(irbVLAN)
 		spec.Interfaces[irbIface] = &dozer.SpecInterface{
@@ -1284,7 +1284,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			prefixLength := ipNet.Bits()
 			ip := ipNet.Addr()
 			if !ip.Is4() {
-				return fmt.Errorf("invalid external attach switch ip %s, expected IPv4", attach.Switch.IP) //nolint:err113
+				return fmt.Errorf("invalid external attach switch ip %s, expected IPv4", attach.Switch.IP)
 			}
 
 			spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = &dozer.SpecSubinterface{
@@ -1361,7 +1361,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					return errors.Wrapf(err, "failed to parse static external attach IP %s", attach.Static.IP)
 				}
 				if !fabricEdgeIP.Addr().Is4() {
-					return fmt.Errorf("invalid static external attach IP %s, expected IPv4", attach.Static.IP) //nolint:err113
+					return fmt.Errorf("invalid static external attach IP %s, expected IPv4", attach.Static.IP)
 				}
 			}
 			prefixLen := uint8(fabricEdgeIP.Bits()) //nolint:gosec
@@ -1574,7 +1574,7 @@ func planHardenedInboundACL(spec *dozer.Spec, attachName string, switchIP string
 	if userACL != nil {
 		for _, stmt := range userACL.Statements {
 			if stmt.Seq < 10 {
-				return fmt.Errorf("invalid user ACL statement with sequence number %d in the reserved range", stmt.Seq) //nolint:err113
+				return fmt.Errorf("invalid user ACL statement with sequence number %d in the reserved range", stmt.Seq)
 			}
 			entry, err := aclStatementToEntry(stmt)
 			if err != nil {

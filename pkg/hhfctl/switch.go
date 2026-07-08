@@ -68,7 +68,7 @@ func SwitchReboot(ctx context.Context, name string) error {
 	}
 
 	if agent.Status.BootID == "" {
-		return fmt.Errorf("agent is not running (missing .status.bootID)") //nolint:goerr113
+		return fmt.Errorf("agent is not running (missing .status.bootID)")
 	}
 
 	agent.Spec.Reboot = agent.Status.BootID
@@ -92,7 +92,7 @@ func SwitchPowerReset(ctx context.Context, name string) error {
 	}
 
 	if agent.Status.BootID == "" {
-		return fmt.Errorf("agent is not running (missing .status.bootID)") //nolint:goerr113
+		return fmt.Errorf("agent is not running (missing .status.bootID)")
 	}
 
 	agent.Spec.PowerReset = agent.Status.BootID
@@ -116,7 +116,7 @@ func SwitchReinstall(ctx context.Context, name string) error {
 	}
 
 	if agent.Status.InstallID == "" {
-		return fmt.Errorf("agent is not installed (missing .status.installID)") //nolint:goerr113
+		return fmt.Errorf("agent is not installed (missing .status.installID)")
 	}
 
 	agent.Spec.Reinstall = agent.Status.InstallID
@@ -140,7 +140,7 @@ func SwitchIP(ctx context.Context, name string) error {
 	}
 
 	if sw.Spec.IP == "" {
-		return fmt.Errorf("switch %q has no management IP address", name) //nolint:goerr113
+		return fmt.Errorf("switch %q has no management IP address", name)
 	}
 
 	fmt.Println(sw.Spec.IP)
@@ -150,7 +150,7 @@ func SwitchIP(ctx context.Context, name string) error {
 
 func SwitchSSH(ctx context.Context, name, username, run string) error {
 	if username == "" {
-		return fmt.Errorf("username is required") //nolint:goerr113
+		return fmt.Errorf("username is required")
 	}
 
 	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
@@ -164,7 +164,7 @@ func SwitchSSH(ctx context.Context, name, username, run string) error {
 	}
 
 	if sw.Spec.IP == "" {
-		return fmt.Errorf("switch %q has no management IP address", name) //nolint:goerr113
+		return fmt.Errorf("switch %q has no management IP address", name)
 	}
 
 	ip, err := netip.ParsePrefix(sw.Spec.IP)
@@ -197,12 +197,12 @@ func SwitchSerial(ctx context.Context, name string) error {
 
 	serial := GetSerialInfo(sw)
 	if serial == "" {
-		return fmt.Errorf("switch %q has no serial connection information", name) //nolint:goerr113
+		return fmt.Errorf("switch %q has no serial connection information", name)
 	}
 
 	parts := strings.SplitN(serial, ":", 2)
 	if len(parts) != 2 {
-		return fmt.Errorf("invalid remote serial (expected host:port): %s", serial) //nolint:goerr113
+		return fmt.Errorf("invalid remote serial (expected host:port): %s", serial)
 	}
 
 	cmd := exec.CommandContext(ctx, "ssh", append(SSHQuietFlags, "-p", parts[1], parts[0])...) //nolint:gosec

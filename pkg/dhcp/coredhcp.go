@@ -39,12 +39,12 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 	cfgFile := "/etc/coredhcp.conf"
 
 	if err := os.WriteFile(cfgFile, fmt.Appendf(nil, cfgTmpl, "%"+s.ListenInterface), 0o600); err != nil {
-		return fmt.Errorf("writing config") //nolint:err113
+		return fmt.Errorf("writing config")
 	}
 
 	config, err := config.Load(cfgFile)
 	if err != nil {
-		return fmt.Errorf("loading configuration") //nolint:err113
+		return fmt.Errorf("loading configuration")
 	}
 
 	desiredPlugins := []*plugins.Plugin{
@@ -56,7 +56,7 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 	}
 	for _, plugin := range desiredPlugins {
 		if err := plugins.RegisterPlugin(plugin); err != nil {
-			return fmt.Errorf("registering plugin: %s", plugin.Name) //nolint:err113
+			return fmt.Errorf("registering plugin: %s", plugin.Name)
 		}
 	}
 
@@ -64,11 +64,11 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 
 	srv, err := server.Start(config)
 	if err != nil {
-		return fmt.Errorf("starting coredhcp") //nolint:err113
+		return fmt.Errorf("starting coredhcp")
 	}
 	if err := srv.Wait(); err != nil {
-		return fmt.Errorf("waiting for coredhcp") //nolint:err113
+		return fmt.Errorf("waiting for coredhcp")
 	}
 
-	return fmt.Errorf("coredhcp finished unexpectedly") //nolint:err113
+	return fmt.Errorf("coredhcp finished unexpectedly")
 }

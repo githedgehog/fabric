@@ -398,7 +398,7 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 	for _, commStr := range cfg.GatewayCommunities {
 		parts := strings.Split(commStr, ":")
 		if len(parts) != 2 {
-			return nil, fmt.Errorf("config: gatewayCommunity community %s format is invalid", commStr) //nolint:err113
+			return nil, fmt.Errorf("config: gatewayCommunity community %s format is invalid", commStr)
 		}
 		if _, err := strconv.ParseUint(parts[0], 10, 16); err != nil {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)

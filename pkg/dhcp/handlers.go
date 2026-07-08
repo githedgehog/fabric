@@ -87,7 +87,7 @@ func (s *Server) checkRelayedRequest(giaddr net.IP) error {
 	_, known := s.relayAllowlist[str]
 	s.m.RUnlock()
 	if !known {
-		return fmt.Errorf("unknown GIADDR %s", str) //nolint:goerr113
+		return fmt.Errorf("unknown GIADDR %s", str)
 	}
 
 	return nil
@@ -223,7 +223,7 @@ func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, re
 
 		// TODO update response? wasn't done in a previous implementation
 	default:
-		return fmt.Errorf("unsupported DHCP request type") //nolint:err113
+		return fmt.Errorf("unsupported DHCP request type")
 	}
 
 	return nil

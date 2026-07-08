@@ -49,7 +49,7 @@ func (svc *service) preCacheBackground(ctx context.Context) error {
 	for nosType, nosVersion := range svc.cfg.NOSVersions {
 		repo, ok := svc.cfg.NOSRepos[nosType]
 		if !ok {
-			return fmt.Errorf("NOS repo not found: %s", nosType) //nolint:goerr113
+			return fmt.Errorf("NOS repo not found: %s", nosType)
 		}
 
 		if _, err := svc.getCachedOrDownload(ctx, repo, nosVersion, true); err != nil {
@@ -62,7 +62,7 @@ func (svc *service) preCacheBackground(ctx context.Context) error {
 	for platform, version := range svc.cfg.ONIEPlatformVersions {
 		repo, ok := svc.cfg.ONIERepos[platform]
 		if !ok {
-			return fmt.Errorf("ONIE repo not found: %s", platform) //nolint:goerr113
+			return fmt.Errorf("ONIE repo not found: %s", platform)
 		}
 
 		if _, err := svc.getCachedOrDownload(ctx, repo, version, true); err != nil {
@@ -255,26 +255,26 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 
 	kubeConfig, ok := secret.Data[ctrl.AgentKubeconfigKey]
 	if !ok {
-		return fmt.Errorf("kubeconfig not found") //nolint:goerr113
+		return fmt.Errorf("kubeconfig not found")
 	}
 
 	if agent.Spec.SwitchProfile == nil {
-		return fmt.Errorf("switch profile is missing") //nolint:goerr113
+		return fmt.Errorf("switch profile is missing")
 	}
 
 	nosType := agent.Spec.SwitchProfile.NOSType
 	if nosType == "" || !slices.Contains(meta.NOSTypes, nosType) {
-		return fmt.Errorf("invalid NOS type") //nolint:goerr113
+		return fmt.Errorf("invalid NOS type")
 	}
 
 	nosRepo, ok := svc.cfg.NOSRepos[nosType]
 	if !ok {
-		return fmt.Errorf("NOS repo not found") //nolint:goerr113
+		return fmt.Errorf("NOS repo not found")
 	}
 
 	nosVersion, ok := svc.cfg.NOSVersions[nosType]
 	if !ok {
-		return fmt.Errorf("NOS version not found") //nolint:goerr113
+		return fmt.Errorf("NOS version not found")
 	}
 
 	nosPath, err := svc.getCachedOrDownload(ctx, nosRepo, nosVersion, false)
@@ -306,12 +306,12 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 func (svc *service) streamONIEUpdater(ctx context.Context, platform string, w io.Writer) error {
 	repo, ok := svc.cfg.ONIERepos[platform]
 	if !ok {
-		return fmt.Errorf("onie-updater repo not found") //nolint:goerr113
+		return fmt.Errorf("onie-updater repo not found")
 	}
 
 	version, ok := svc.cfg.ONIEPlatformVersions[platform]
 	if !ok {
-		return fmt.Errorf("onie-updater version not found") //nolint:goerr113
+		return fmt.Errorf("onie-updater version not found")
 	}
 
 	oniePath, err := svc.getCachedOrDownload(ctx, repo, version, false)
