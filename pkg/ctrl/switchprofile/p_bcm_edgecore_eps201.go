@@ -9,12 +9,12 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var EdgecoreEPS202 = wiringapi.SwitchProfile{
+var EdgecoreEPS201 = wiringapi.SwitchProfile{
 	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "edgecore-eps202",
+		Name: "edgecore-eps201",
 	},
 	Spec: wiringapi.SwitchProfileSpec{
-		DisplayName:   "Edgecore EPS202",
+		DisplayName:   "Edgecore EPS201",
 		OtherNames:    []string{"Edgecore AS4630-54PE"},
 		SwitchSilicon: SiliconBroadcomTD3_X3,
 		Features: wiringapi.SwitchProfileFeatures{

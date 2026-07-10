@@ -19,7 +19,7 @@ features and port naming scheme.
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
 | [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | **spine**, **leaf** | Broadcom TD4 | 32xQSFP56DD-400G, 2xSFP28-10G |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | **spine** | Broadcom TH | 32xQSFP28-100G |
-| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | **spine**, **leaf (limited)** | Broadcom TD3-X3 | 48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G |
+| [Edgecore EPS201 (AS4630-54PE)](#edgecore-eps201) | **spine**, **leaf (limited)** | Broadcom TD3-X3 | 48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **leaf (limited)** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
 
@@ -46,7 +46,7 @@ The following table shows which features are supported by each switch profile:
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
 | [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
-| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: |
+| [Edgecore EPS201 (AS4630-54PE)](#edgecore-eps201) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
 | [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
@@ -1048,9 +1048,9 @@ Label column is a port label on a physical switch.
 | E1/32 | 32 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 
 
-## Edgecore EPS202
+## Edgecore EPS201
 
-Profile Name (to use in switch object `.spec.profile`): **edgecore-eps202**
+Profile Name (to use in switch object `.spec.profile`): **edgecore-eps201**
 
 Other names: Edgecore AS4630-54PE
 

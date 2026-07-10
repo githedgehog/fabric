@@ -42,7 +42,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	EdgecoreDCS204,
 	EdgecoreDCS240,
 	EdgecoreDCS501,
-	EdgecoreEPS202,
+	EdgecoreEPS201,
 	EdgecoreEPS203,
 	SupermicroSSEC4632SB,
 	VS,
