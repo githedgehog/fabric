@@ -1220,8 +1220,8 @@ Label column is a port label on a physical switch.
 | E1/50 | 50 | Direct |  | 25G | 1G, 10G, 25G |
 | E1/51 | 51 | Direct |  | 25G | 1G, 10G, 25G |
 | E1/52 | 52 | Direct |  | 25G | 1G, 10G, 25G |
-| E1/53 | 53 | Direct |  | 100G | 40G, 100G |
-| E1/54 | 54 | Direct |  | 100G | 40G, 100G |
+| E1/53 | 53 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
+| E1/54 | 54 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 
 
 ## Supermicro SSE-C4632SB

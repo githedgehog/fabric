@@ -87,8 +87,8 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 			"E1/50": {NOSName: "Ethernet49", Label: "50", Profile: "SFP28-25G"},
 			"E1/51": {NOSName: "Ethernet50", Label: "51", Profile: "SFP28-25G"},
 			"E1/52": {NOSName: "Ethernet51", Label: "52", Profile: "SFP28-25G"}, // 4x SFP28 25G
-			"E1/53": {NOSName: "Ethernet52", Label: "53", Profile: "QSFP28-100G"},
-			"E1/54": {NOSName: "Ethernet56", Label: "54", Profile: "QSFP28-100G"}, // No breakouts but name is still adjusted by 4. 2x QSFP28 100G
+			"E1/53": {NOSName: "1/53", BaseNOSName: "Ethernet52", Label: "53", Profile: "QSFP28-100G"},
+			"E1/54": {NOSName: "1/54", BaseNOSName: "Ethernet56", Label: "54", Profile: "QSFP28-100G"}, // 2x QSFP28 100G
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"RJ45-2.5G": {
@@ -114,9 +114,14 @@ var EdgecoreEPS203 = wiringapi.SwitchProfile{
 				},
 			},
 			"QSFP28-100G": {
-				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
-					Default:   "100G",
-					Supported: []string{"40G", "100G"},
+				Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+					Default: "1x100G",
+					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+						"1x40G":  {Offsets: []string{"0"}},
+						"1x100G": {Offsets: []string{"0"}},
+						"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
+						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
+					},
 				},
 			},
 		},
