@@ -42,7 +42,7 @@ func setupLogger(verbose bool) error {
 	logConsole := os.Stdout
 
 	handlers := []slog.Handler{
-		tint.NewHandler(logConsole, &tint.Options{
+		tint.NewTextHandler(logConsole, &tint.Options{
 			Level:      logLevel,
 			TimeFormat: time.DateTime,
 			NoColor:    !isatty.IsTerminal(logConsole.Fd()),
