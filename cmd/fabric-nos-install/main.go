@@ -60,7 +60,7 @@ func setupLogger(verbose, brief bool, env nosinstall.Env) (*timberjack.Logger, e
 	}
 
 	handlers := []slog.Handler{
-		tint.NewHandler(logConsole, &tint.Options{
+		tint.NewTextHandler(logConsole, &tint.Options{
 			Level:      logLevel,
 			TimeFormat: time.DateTime,
 			NoColor:    !isatty.IsTerminal(logConsole.Fd()),

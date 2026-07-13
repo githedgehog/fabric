@@ -58,14 +58,14 @@ func setupLogger(verbose bool, logToFile bool, printMotd bool) (*timberjack.Logg
 	logW := os.Stdout
 
 	handlers := []slog.Handler{
-		tint.NewHandler(logW, &tint.Options{
+		tint.NewTextHandler(logW, &tint.Options{
 			Level:      logLevel,
 			TimeFormat: time.DateTime,
 			NoColor:    !isatty.IsTerminal(logW.Fd()),
 		}),
 	}
 	kubeHandlers := []slog.Handler{
-		tint.NewHandler(logW, &tint.Options{
+		tint.NewTextHandler(logW, &tint.Options{
 			Level:      slog.LevelInfo,
 			TimeFormat: time.DateTime,
 			NoColor:    !isatty.IsTerminal(logW.Fd()),

@@ -62,13 +62,13 @@ func main() {
 
 	logW := os.Stderr
 
-	slog.SetDefault(slog.New(tint.NewHandler(logW, &tint.Options{
+	slog.SetDefault(slog.New(tint.NewTextHandler(logW, &tint.Options{
 		Level:      logLevel,
 		TimeFormat: time.StampMilli,
 		NoColor:    !isatty.IsTerminal(logW.Fd()),
 	})))
 
-	kubeHandler := tint.NewHandler(logW, &tint.Options{
+	kubeHandler := tint.NewTextHandler(logW, &tint.Options{
 		Level:      slog.LevelInfo,
 		TimeFormat: time.StampMilli,
 		NoColor:    !isatty.IsTerminal(logW.Fd()),
