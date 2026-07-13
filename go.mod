@@ -16,7 +16,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/insomniacslk/dhcp v0.0.0-20231206064809-8c70d406f6d2
-	github.com/lmittmann/tint v1.1.3
+	github.com/lmittmann/tint v1.2.0
 	github.com/maruel/natural v1.3.0
 	github.com/mattn/go-isatty v0.0.22
 	github.com/olekukonko/tablewriter v1.1.4
