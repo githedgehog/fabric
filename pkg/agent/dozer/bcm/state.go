@@ -794,6 +794,9 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 		}
 
 		vrfSt := map[string]agentapi.SwitchStateBGPNeighbor{}
+		// The device reports these timers as a delta in seconds relative to now (i.e. "N seconds ago")
+		now := time.Now()
+
 		for neighborAddress, neighbor := range neighs.Neighbor {
 			if neighbor.State == nil {
 				continue
@@ -821,13 +824,13 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if ocSt.LastEstablished != nil {
 				if *ocSt.LastEstablished != 0 {
-					st.LastEstablished = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastEstablished), 0)} //nolint:gosec
+					st.LastEstablished = kmetav1.Time{Time: bgpTimerToTime(now, *ocSt.LastEstablished)}
 				}
 			}
 
 			if ocSt.LastRead != nil {
 				if *ocSt.LastRead != 0 {
-					st.LastRead = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastRead), 0)} //nolint:gosec
+					st.LastRead = kmetav1.Time{Time: bgpTimerToTime(now, *ocSt.LastRead)}
 				}
 			}
 
@@ -837,13 +840,13 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if ocSt.LastResetTime != nil {
 				if *ocSt.LastResetTime != 0 {
-					st.LastResetTime = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastResetTime), 0)} //nolint:gosec
+					st.LastResetTime = kmetav1.Time{Time: bgpTimerToTime(now, *ocSt.LastResetTime)}
 				}
 			}
 
 			if ocSt.LastWrite != nil {
 				if *ocSt.LastWrite != 0 {
-					st.LastWrite = kmetav1.Time{Time: time.Unix(int64(*ocSt.LastWrite), 0)} //nolint:gosec
+					st.LastWrite = kmetav1.Time{Time: bgpTimerToTime(now, *ocSt.LastWrite)}
 				}
 			}
 
@@ -1596,6 +1599,21 @@ func boolToFloat64(b *bool) float64 {
 	}
 
 	return 0
+}
+
+// bgpTimerToTime converts a BGP neighbor timer, reported by the device as a
+// delta in seconds relative to now ("N seconds ago"), into an absolute time.
+// The seconds value is clamped so that converting it into a time.Duration (an
+// int64 nanosecond count, i.e. ~292 years max) can never overflow.
+func bgpTimerToTime(now time.Time, secondsAgo uint64) time.Time {
+	const maxSeconds = math.MaxInt64 / int64(time.Second)
+
+	seconds := maxSeconds
+	if secondsAgo < uint64(maxSeconds) {
+		seconds = int64(secondsAgo)
+	}
+
+	return now.Add(-time.Duration(seconds) * time.Second)
 }
 
 func unptrUint64(u *uint64) uint64 {
