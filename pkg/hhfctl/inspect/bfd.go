@@ -70,9 +70,9 @@ func (out *BFDOut) MarshalText(_ BFDIn, now time.Time) (string, error) {
 					s = red(s)
 				}
 
-				uptime := "-"
+				last := "-"
 				if !p.LastUpTime.IsZero() {
-					uptime = HumanizeTime(now, p.LastUpTime.Time)
+					last = HumanizeTime(now, p.LastUpTime.Time)
 				}
 
 				data = append(data, []string{
@@ -83,14 +83,14 @@ func (out *BFDOut) MarshalText(_ BFDIn, now time.Time) (string, error) {
 					p.RemoteName,
 					p.ConnectionName,
 					s,
+					last,
 					fmt.Sprintf("%d", p.FailureTransitions),
-					uptime,
 				})
 			}
 		}
 
 		str.WriteString(RenderTable(
-			[]string{"Type", "Port", "VRF", "Peer", "RemoteName", "Connection", "Status", "Fails", "Uptime"},
+			[]string{"Type", "Port", "VRF", "Peer", "RemoteName", "Connection", "State", "LastUp", "Trans"},
 			data,
 		))
 	}
