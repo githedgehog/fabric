@@ -3520,7 +3520,7 @@ _Appears in:_
 | `portSpeeds` _object (keys:string, values:string)_ | PortSpeeds is a map of port speeds, key is the port name, value is the speed |  |  |
 | `portBreakouts` _object (keys:string, values:string)_ | PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G" |  |  |
 | `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
-| `portFECs` _object (keys:string, values:[PortFECMode](#portfecmode))_ | PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).<br />Only ports with an entry are managed; ports without one are left untouched at the NOS default. |  |  |
+| `portFECs` _object (keys:string, values:[PortFECMode](#portfecmode))_ | PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).<br />Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,<br />instead that value persists on the device until a full config reset or a new explicit config |  |  |
 | `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
 | `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
