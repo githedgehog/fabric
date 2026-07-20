@@ -130,7 +130,8 @@ type SwitchSpec struct {
 	// PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false
 	PortAutoNegs map[string]bool `json:"portAutoNegs,omitempty"`
 	// PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).
-	// Only ports with an entry are managed; ports without one are left untouched at the NOS default.
+	// Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
+	// instead that value persists on the device until a full config reset or a new explicit config
 	PortFECs map[string]PortFECMode `json:"portFECs,omitempty"`
 	// Boot is the boot/provisioning information of the switch
 	Boot SwitchBoot `json:"boot,omitempty"`
