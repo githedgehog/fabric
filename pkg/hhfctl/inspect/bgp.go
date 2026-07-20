@@ -68,6 +68,11 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 					s = red(s)
 				}
 
+				last := "-"
+				if !n.LastEstablished.IsZero() {
+					last = HumanizeTime(now, n.LastEstablished.Time)
+				}
+
 				data = append(data, []string{
 					t,
 					n.Port,
@@ -76,7 +81,8 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 					n.RemoteName,
 					n.ConnectionName,
 					s,
-					HumanizeTime(now, n.LastEstablished.Time),
+					last,
+					fmt.Sprintf("%d", n.EstablishedTransitions),
 				})
 			}
 		}
@@ -94,7 +100,7 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 		})
 
 		str.WriteString(RenderTable(
-			[]string{"Type", "Port", "VRF", "Neighbor", "RemoteName", "Connection", "State", "LastEstablished"},
+			[]string{"Type", "Port", "VRF", "Neighbor", "RemoteName", "Connection", "State", "LastEstab", "Trans"},
 			data,
 		))
 	}
