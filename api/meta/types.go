@@ -74,6 +74,8 @@ type UserCreds struct {
 	SSHKeys  []string `json:"sshKeys,omitempty"`
 }
 
+var BCMReservedVLANRanges = []VLANRange{{From: 3097, To: 4094}}
+
 type FabricConfig struct {
 	DeploymentID             string            `json:"deploymentID,omitempty"`
 	ControlVIP               string            `json:"controlVIP,omitempty"`
@@ -260,6 +262,9 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		if len(r) == 0 {
 			return nil, errors.Errorf("config: vpcIRBVLANRange is required")
 		}
+		if err := CheckVLANRangesOverlap(append(slices.Clone(r), BCMReservedVLANRanges...)); err != nil {
+			return nil, errors.Wrapf(err, "config: vpcIRBVLANRange overlaps with Broadcom reserved VLAN range")
+		}
 		cfg.VPCIRBVLANRanges = r
 		// TODO check total ranges size and expose as limit for API validation
 	}
@@ -270,6 +275,9 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		if len(r) == 0 {
 			return nil, errors.Errorf("config: vpcPeeringVLANRange is required")
 		}
+		if err := CheckVLANRangesOverlap(append(slices.Clone(r), BCMReservedVLANRanges...)); err != nil {
+			return nil, errors.Wrapf(err, "config: vpcPeeringVLANRange overlaps with Broadcom reserved VLAN range")
+		}
 		cfg.VPCPeeringVLANRanges = r
 		// TODO check total ranges size and expose as limit for API validation
 	}
@@ -279,6 +287,9 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 	} else { //nolint:revive
 		if len(r) == 0 {
 			return nil, errors.Errorf("config: th5WorkaroundVLANRange is required")
+		}
+		if err := CheckVLANRangesOverlap(append(slices.Clone(r), BCMReservedVLANRanges...)); err != nil {
+			return nil, errors.Wrapf(err, "config: th5WorkaroundVLANRange overlaps with Broadcom reserved VLAN range")
 		}
 		cfg.TH5WorkaroundVLANRange = r
 	}
