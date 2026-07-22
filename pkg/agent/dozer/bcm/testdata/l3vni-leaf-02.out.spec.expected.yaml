@@ -265,22 +265,6 @@ prefixLists:
           le: 32
           prefix: 172.30.8.3/32
   static-ext-subnets: {}
-  vips-only--vpc-01--default:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          ge: 32
-          le: 32
-          prefix: 10.0.1.0/24
-  vips-only--vpc-02--default:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          ge: 32
-          le: 32
-          prefix: 10.0.2.0/24
   vpc-ext-prefixes--vpc-01: {}
   vpc-ext-prefixes--vpc-02: {}
   vpc-ext-prefixes--vpc-03: {}
@@ -522,18 +506,6 @@ routeMaps:
         conditions:
           matchPrefixLists: protocol-loopback-prefix
         result: accept
-  vips-only--vpc-01--default:
-    statements:
-      "10":
-        conditions:
-          matchPrefixLists: vips-only--vpc-01--default
-        result: accept
-  vips-only--vpc-02--default:
-    statements:
-      "10":
-        conditions:
-          matchPrefixLists: vips-only--vpc-02--default
-        result: accept
   vpc-redistribute-connected--vpc-01:
     statements:
       "1":
@@ -679,8 +651,6 @@ vrfs:
           extendedNexthop: true
           ipv4ASOverride: true
           ipv4Unicast: true
-          ipv4UnicastImportPolicies:
-          - vips-only--vpc-01--default
           peerType: external
         Ethernet2.1001:
           description: HostBGP unnumbered Ethernet2.1001
@@ -688,8 +658,6 @@ vrfs:
           extendedNexthop: true
           ipv4ASOverride: true
           ipv4Unicast: true
-          ipv4UnicastImportPolicies:
-          - vips-only--vpc-01--default
           peerType: external
       networkImportCheck: true
       routerID: 172.30.8.3
@@ -725,8 +693,6 @@ vrfs:
           extendedNexthop: true
           ipv4ASOverride: true
           ipv4Unicast: true
-          ipv4UnicastImportPolicies:
-          - vips-only--vpc-02--default
           peerType: external
         Ethernet2.1002:
           description: HostBGP unnumbered Ethernet2.1002
@@ -734,8 +700,6 @@ vrfs:
           extendedNexthop: true
           ipv4ASOverride: true
           ipv4Unicast: true
-          ipv4UnicastImportPolicies:
-          - vips-only--vpc-02--default
           peerType: external
       networkImportCheck: true
       routerID: 172.30.8.3
