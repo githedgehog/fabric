@@ -72,3 +72,8 @@ func (c *CumulusProcessor) ApplyActions(ctx context.Context, actions []dozer.Act
 func (c *CumulusProcessor) CalculateActions(ctx context.Context, actual *dozer.Spec, desired *dozer.Spec) ([]dozer.Action, error) {
 	return nil, fmt.Errorf("unsupported operation") //nolint:err113
 }
+
+// TODO
+func (c *CumulusProcessor) SaveConfig(ctx context.Context) error {
+	return fmt.Errorf("unsupported operation") //nolint:err113
+}
