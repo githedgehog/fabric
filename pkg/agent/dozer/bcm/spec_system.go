@@ -261,11 +261,19 @@ func unmarshalOCPortBreakouts(ocVal *oc.SonicPortBreakout_SonicPortBreakout) (ma
 	}
 
 	for _, breakoutCfg := range ocVal.BREAKOUT_CFG.BREAKOUT_CFG_LIST {
-		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil || breakoutCfg.Status == nil {
+		if breakoutCfg.Port == nil || breakoutCfg.BrkoutMode == nil {
 			continue
 		}
 
-		if *breakoutCfg.Status != "Completed" || breakoutCfg.BreakoutOwner != oc.SonicPortBreakout_SonicPortBreakout_BREAKOUT_CFG_BREAKOUT_CFG_LIST_BreakoutOwner_MANUAL {
+		if breakoutCfg.BreakoutOwner != oc.SonicPortBreakout_SonicPortBreakout_BREAKOUT_CFG_BREAKOUT_CFG_LIST_BreakoutOwner_MANUAL {
+			continue
+		}
+
+		// `status` is an operational field written by the dynamic-breakout operation.
+		// It (and lanes/*_lanes) is absent when the breakout is rehydrated from saved
+		// config after a reboot, since no operation runs — treat "absent" as applied.
+		// Only skip while an operation is actively in progress.
+		if breakoutCfg.Status != nil && *breakoutCfg.Status != "Completed" {
 			continue
 		}
 
