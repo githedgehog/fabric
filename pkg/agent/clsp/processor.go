@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
@@ -33,9 +34,16 @@ func (c *CelesticaPlusProcessor) Reinstall(ctx context.Context) error {
 	return bcm.Processor().Reinstall(ctx) //nolint:wrapcheck
 }
 
-// TODO
 func (c *CelesticaPlusProcessor) FactoryReset(ctx context.Context) error {
-	return fmt.Errorf("not implemented") //nolint:err113
+	cmd := exec.CommandContext(ctx, "sonic-cli", "-c", "\"write erase\"")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to reset config: %w", err)
+	}
+
+	return c.Reboot(ctx, true)
 }
 
 // TODO
@@ -108,4 +116,16 @@ func (c *CelesticaPlusProcessor) ApplyActions(ctx context.Context, actions []doz
 
 func (c *CelesticaPlusProcessor) CalculateActions(ctx context.Context, actual *dozer.Spec, desired *dozer.Spec) ([]dozer.Action, error) {
 	return nil, fmt.Errorf("unsupported operation") //nolint:err113
+}
+
+func (c *CelesticaPlusProcessor) SaveConfig(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "sonic-cli", "-c", "\"copy running-config startup-config\"")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	return nil
 }
