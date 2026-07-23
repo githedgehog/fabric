@@ -2757,32 +2757,6 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 		return errors.Wrapf(err, "failed to parse hostBGP subnet %s for VPC %s", subnet.Subnet, vpcName)
 	}
 
-	// create prefix list matching /32s in this subnet prefix
-	plName := vpcSubnetVIPsOnlyPrefixListName(vpcName, subnetName)
-	spec.PrefixLists[plName] = &dozer.SpecPrefixList{
-		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
-			10: {
-				Prefix: dozer.SpecPrefixListPrefix{
-					Prefix: subnet.Subnet,
-					Ge:     32,
-					Le:     32,
-				},
-				Action: dozer.SpecPrefixListActionPermit,
-			},
-		},
-	}
-
-	// create routemap filtering anything that is not the prefix list above
-	rmName := vpcSubnetVIPsOnlyRouteMapName(vpcName, subnetName)
-	spec.RouteMaps[rmName] = &dozer.SpecRouteMap{
-		Statements: map[string]*dozer.SpecRouteMapStatement{
-			"10": {
-				Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: pointer.To(plName)},
-				Result:     dozer.SpecRouteMapResultAccept,
-			},
-		},
-	}
-
 	vpcFilteringACL := vpcFilteringAccessListName(vpcName, subnetName)
 	spec.ACLs[vpcFilteringACL], err = buildVNIVPCFilteringACL(agent, vpcName, vpc, subnetName, subnet)
 	if err != nil {
@@ -2824,13 +2798,12 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 			spec.VRFs[vrfName].BGP.Neighbors = map[string]*dozer.SpecVRFBGPNeighbor{}
 		}
 		spec.VRFs[vrfName].BGP.Neighbors[targetIface] = &dozer.SpecVRFBGPNeighbor{
-			Enabled:                   pointer.To(true),
-			Description:               pointer.To(fmt.Sprintf("HostBGP unnumbered %s", targetIface)),
-			PeerType:                  pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
-			ExtendedNexthop:           pointer.To(true),
-			IPv4Unicast:               pointer.To(true),
-			IPv4UnicastImportPolicies: []string{rmName},
-			IPv4ASOverride:            pointer.To(true),
+			Enabled:         pointer.To(true),
+			Description:     pointer.To(fmt.Sprintf("HostBGP unnumbered %s", targetIface)),
+			PeerType:        pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			ExtendedNexthop: pointer.To(true),
+			IPv4Unicast:     pointer.To(true),
+			IPv4ASOverride:  pointer.To(true),
 		}
 
 		spec.ACLInterfaces[targetIface] = &dozer.SpecACLInterface{
@@ -3633,14 +3606,6 @@ func ipnsSubnetsRouteMapName(ipns string) string {
 
 func vpcFilteringAccessListName(vpc string, subnet string) string {
 	return fmt.Sprintf("vpc-filtering--%s--%s", vpc, subnet)
-}
-
-func vpcSubnetVIPsOnlyPrefixListName(vpc string, subnet string) string {
-	return fmt.Sprintf("vips-only--%s--%s", vpc, subnet)
-}
-
-func vpcSubnetVIPsOnlyRouteMapName(vpc string, subnet string) string {
-	return fmt.Sprintf("vips-only--%s--%s", vpc, subnet)
 }
 
 func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {

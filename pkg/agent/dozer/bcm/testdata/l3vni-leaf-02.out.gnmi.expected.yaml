@@ -392,10 +392,6 @@ network-instances:
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - vips-only--vpc-01--default
                   config:
                     afi-safi-name: IPV4_UNICAST
                     as-override: true
@@ -413,10 +409,6 @@ network-instances:
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - vips-only--vpc-01--default
                   config:
                     afi-safi-name: IPV4_UNICAST
                     as-override: true
@@ -512,10 +504,6 @@ network-instances:
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - vips-only--vpc-02--default
                   config:
                     afi-safi-name: IPV4_UNICAST
                     as-override: true
@@ -533,10 +521,6 @@ network-instances:
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - vips-only--vpc-02--default
                   config:
                     afi-safi-name: IPV4_UNICAST
                     as-override: true
@@ -1080,34 +1064,6 @@ routing-policy:
           mode: IPV4
           name: static-ext-subnets
         name: static-ext-subnets
-      - config:
-          mode: IPV4
-          name: vips-only--vpc-01--default
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 10.0.1.0/24
-              masklength-range: 32..32
-              sequence-number: 10
-            ip-prefix: 10.0.1.0/24
-            masklength-range: 32..32
-            sequence-number: 10
-        name: vips-only--vpc-01--default
-      - config:
-          mode: IPV4
-          name: vips-only--vpc-02--default
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 10.0.2.0/24
-              masklength-range: 32..32
-              sequence-number: 10
-            ip-prefix: 10.0.2.0/24
-            masklength-range: 32..32
-            sequence-number: 10
-        name: vips-only--vpc-02--default
       - config:
           mode: IPV4
           name: vpc-ext-prefixes--vpc-01
@@ -1672,36 +1628,6 @@ routing-policy:
             match-prefix-set:
               config:
                 prefix-set: protocol-loopback-prefix
-          config:
-            name: "10"
-          name: "10"
-    - config:
-        name: vips-only--vpc-01--default
-      name: vips-only--vpc-01--default
-      statements:
-        statement:
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vips-only--vpc-01--default
-          config:
-            name: "10"
-          name: "10"
-    - config:
-        name: vips-only--vpc-02--default
-      name: vips-only--vpc-02--default
-      statements:
-        statement:
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vips-only--vpc-02--default
           config:
             name: "10"
           name: "10"

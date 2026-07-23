@@ -134,26 +134,6 @@
         name: static-ext-subnets
       name: static-ext-subnets
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-01--default]
-  summary: Create Prefix List Base vips-only--vpc-01--default
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vips-only--vpc-01--default
-      name: vips-only--vpc-01--default
-  weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-02--default]
-  summary: Create Prefix List Base vips-only--vpc-02--default
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vips-only--vpc-02--default
-      name: vips-only--vpc-02--default
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-01]
   summary: Create Prefix List Base vpc-ext-prefixes--vpc-01
   type: update
@@ -395,34 +375,6 @@
         masklength-range: 32..32
         sequence-number: 10
       ip-prefix: 172.30.8.2/32
-      masklength-range: 32..32
-      sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-01--default]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=10.0.1.0/24][masklength-range=32..32]
-  summary: Create Prefix Lists Entry 10
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 10.0.1.0/24
-        masklength-range: 32..32
-        sequence-number: 10
-      ip-prefix: 10.0.1.0/24
-      masklength-range: 32..32
-      sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-02--default]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=10.0.2.0/24][masklength-range=32..32]
-  summary: Create Prefix Lists Entry 10
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 10.0.2.0/24
-        masklength-range: 32..32
-        sequence-number: 10
-      ip-prefix: 10.0.2.0/24
       masklength-range: 32..32
       sequence-number: 10
   weight: 10
@@ -1214,24 +1166,6 @@
         name: protocol-loopback-only
       name: protocol-loopback-only
   weight: 19
-- path: /routing-policy/policy-definitions/policy-definition[name=vips-only--vpc-01--default]
-  summary: Create Route Maps Base vips-only--vpc-01--default
-  type: update
-  value:
-    policy-definition:
-    - config:
-        name: vips-only--vpc-01--default
-      name: vips-only--vpc-01--default
-  weight: 19
-- path: /routing-policy/policy-definitions/policy-definition[name=vips-only--vpc-02--default]
-  summary: Create Route Maps Base vips-only--vpc-02--default
-  type: update
-  value:
-    policy-definition:
-    - config:
-        name: vips-only--vpc-02--default
-      name: vips-only--vpc-02--default
-  weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-01]
   summary: Create Route Maps Base vpc-redistribute-connected--vpc-01
   type: update
@@ -1891,38 +1825,6 @@
         match-prefix-set:
           config:
             prefix-set: protocol-loopback-prefix
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vips-only--vpc-01--default]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vips-only--vpc-01--default
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vips-only--vpc-02--default]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vips-only--vpc-02--default
       config:
         name: "10"
       name: "10"
@@ -3740,10 +3642,6 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              import-policy:
-              - vips-only--vpc-01--default
           config:
             afi-safi-name: IPV4_UNICAST
             as-override: true
@@ -3767,10 +3665,6 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              import-policy:
-              - vips-only--vpc-01--default
           config:
             afi-safi-name: IPV4_UNICAST
             as-override: true
@@ -3794,10 +3688,6 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              import-policy:
-              - vips-only--vpc-02--default
           config:
             afi-safi-name: IPV4_UNICAST
             as-override: true
@@ -3821,10 +3711,6 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              import-policy:
-              - vips-only--vpc-02--default
           config:
             afi-safi-name: IPV4_UNICAST
             as-override: true
