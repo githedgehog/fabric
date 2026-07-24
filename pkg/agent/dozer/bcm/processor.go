@@ -177,7 +177,7 @@ func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi
 		return nil, errors.New("gnmi client is not set")
 	}
 
-	spec := &dozer.Spec{}
+	spec := &dozer.Spec{RoCE: agent.Status.State.RoCE}
 
 	if err := loadActualSpec(ctx, agent, p.client, spec); err != nil {
 		return nil, errors.Wrapf(err, "failed to load actual state")

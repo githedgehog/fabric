@@ -308,7 +308,8 @@ func planNTP(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 func planBreakouts(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
 	// it depends on the actual switch status, not on the intended state
-	if agent.Status.State.RoCE {
+	spec.RoCE = agent.Status.State.RoCE
+	if spec.RoCE {
 		return nil // no breakouts config when RoCE is enabled
 	}
 

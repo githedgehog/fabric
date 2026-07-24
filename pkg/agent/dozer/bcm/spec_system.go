@@ -240,6 +240,11 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 }
 
 func loadActualPortBreakouts(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
+	if spec.RoCE {
+		spec.PortBreakouts = map[string]*dozer.SpecPortBreakout{}
+
+		return nil
+	}
 	ocVal := &oc.SonicPortBreakout_SonicPortBreakout{}
 	err := client.Get(ctx, "/sonic-port-breakout/BREAKOUT_CFG", ocVal)
 	if err != nil {

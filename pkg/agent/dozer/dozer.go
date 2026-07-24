@@ -78,6 +78,7 @@ type Spec struct {
 	ErrDisableGlobal     *SpecErrDisableGlobal             `json:"errDisableGlobal,omitempty"`
 	ErrDisableInterfaces map[string]*SpecErrDisable        `json:"errDisableInterfaces,omitempty"`
 	NeighborGlobal       *SpecNeighborGlobal               `json:"neighborGlobal,omitempty"`
+	RoCE                 bool                              `json:"-"`
 }
 
 type SpecLLDP struct {
