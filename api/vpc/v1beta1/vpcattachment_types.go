@@ -215,8 +215,13 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		if conn.Spec.ESLAG != nil && vpc.Spec.Mode != VPCModeL2VNI {
 			return nil, errors.Errorf("vpc mode %s is not supported for ESLAG connections", vpc.Spec.Mode)
 		}
-		if subnetSpec.HostBGP && conn.Spec.Unbundled == nil {
-			return nil, errors.Errorf("only unbundled links can be used to attach to a hostBGP subnet")
+		if subnetSpec.HostBGP {
+			if conn.Spec.Unbundled == nil {
+				return nil, errors.Errorf("only unbundled links can be used to attach to a hostBGP subnet")
+			}
+			if attach.Spec.NativeVLAN {
+				return nil, errors.Errorf("native VLAN is not supported for hostBGP subnets, use vlan=0 in the VPC subnet spec instead")
+			}
 		}
 
 		var switchNames []string
