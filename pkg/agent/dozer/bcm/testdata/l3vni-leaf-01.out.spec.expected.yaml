@@ -378,6 +378,14 @@ prefixLists:
           ge: 32
           le: 32
           prefix: 10.0.1.0/24
+      "15":
+        action: permit
+        prefix:
+          prefix: 10.100.1.0/24
+      "20":
+        action: permit
+        prefix:
+          prefix: 10.100.11.0/28
   vips-only--vpc-02--default:
     prefixes:
       "10":
@@ -386,6 +394,10 @@ prefixLists:
           ge: 32
           le: 32
           prefix: 10.0.2.0/24
+      "15":
+        action: permit
+        prefix:
+          prefix: 10.100.2.0/24
   vpc-ext-prefixes--vpc-01: {}
   vpc-ext-prefixes--vpc-02:
     prefixes:

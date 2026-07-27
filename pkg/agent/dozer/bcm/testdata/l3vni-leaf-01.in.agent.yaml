@@ -623,6 +623,9 @@ spec:
         default:
           dhcp: {}
           hostBGP: true
+          hostBGPPrefixes:
+            - 10.100.1.0/24
+            - 10.100.11.0/28
           subnet: 10.0.1.0/24
           vlan: 1001
       vlanNamespace: default
@@ -633,6 +636,8 @@ spec:
         default:
           dhcp: {}
           hostBGP: true
+          hostBGPPrefixes:
+            - 10.100.2.0/24
           subnet: 10.0.2.0/24
           vlan: 1002
       vlanNamespace: default
