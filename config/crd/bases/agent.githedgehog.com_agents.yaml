@@ -2021,6 +2021,12 @@ spec:
                               dedicated to BGP speaking hosts advertising their VIPs
                               within the subnet's IP range
                             type: boolean
+                          hostBGPPrefixes:
+                            description: HostBGPPrefixes is a list of additional IP
+                              prefixes to accept from the host over its BGP sessions
+                            items:
+                              type: string
+                            type: array
                           isolated:
                             description: Isolated is the flag to enable isolated mode
                               for the subnet which means no access to and from the

@@ -95,6 +95,8 @@ type VPCSubnet struct {
 	Restricted *bool `json:"restricted,omitempty"`
 	// HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range
 	HostBGP bool `json:"hostBGP,omitempty"`
+	// HostBGPPrefixes is a list of additional IP prefixes to accept from the host over its BGP sessions
+	HostBGPPrefixes []string `json:"hostBGPPrefixes,omitempty"`
 }
 
 // VPCDHCP defines the on-demand DHCP configuration for the subnet
@@ -422,7 +424,34 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			if subnetCfg.DHCP.Enable {
 				return nil, errors.Errorf("subnet %s: dhcp should not be enabled for hostBGP subnets", subnetName)
 			}
+			if len(subnetCfg.HostBGPPrefixes) > 100 {
+				return nil, errors.Errorf("subnet %s: too many hostBGP prefixes (%d), maximum is 100", subnetName, len(subnetCfg.HostBGPPrefixes))
+			}
+			for idx, prefixStr := range subnetCfg.HostBGPPrefixes {
+				p, err := netip.ParsePrefix(prefixStr)
+				if err != nil {
+					return nil, errors.Wrapf(err, "subnet %s: invalid hostBGP prefix %s at index %d", subnetName, prefixStr, idx)
+				}
+				if !p.Addr().Is4() {
+					return nil, errors.Errorf("subnet %s: invalid hostBGP prefix %s at index %d: prefix is not a valid IPv4 prefix", subnetName, prefixStr, idx)
+				}
+				if p.Addr() != p.Masked().Addr() {
+					return nil, errors.Errorf("subnet %s: invalid hostBGP prefix %s at index %d: prefix is not in canonical form", subnetName, prefixStr, idx)
+				}
+				if fabricCfg != nil {
+					for _, reserved := range fabricCfg.ParsedReservedSubnets() {
+						if reserved.Overlaps(p) {
+							return nil, errors.Errorf("subnet %s: hostBGP prefix %s is reserved", subnetName, prefixStr)
+						}
+					}
+				}
+
+				subnets = append(subnets, p)
+			}
 		} else {
+			if len(subnetCfg.HostBGPPrefixes) > 0 {
+				return nil, errors.Errorf("subnet %s: cannot specify hostBGP prefixes on non-hostBGP subnet", subnetName)
+			}
 			if subnetCfg.Gateway == "" {
 				return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
 			}
@@ -698,22 +727,26 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, errors.Wrapf(err, "failed to parse vpc subnet %s", subnetCfg.Subnet)
 			}
 
-			ok := false
-			for _, ipNsSubnetCfg := range ipNs.Spec.Subnets {
-				ipNsSubnet, err := netip.ParsePrefix(ipNsSubnetCfg)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to parse IPv4Namespace %s subnet %s", vpc.Spec.IPv4Namespace, ipNsSubnetCfg)
-				}
-
-				if iputil.IsSubset(vpcSubnet, ipNsSubnet) {
-					ok = true
-
-					break
-				}
+			ok, err := isInIPv4Namespace(vpcSubnet, ipNs)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to check if vpc subnet %s (%s) belongs to IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
+			}
+			if !ok {
+				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
 			}
 
-			if !ok {
-				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to the IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
+			for _, hbgpPrefixStr := range subnetCfg.HostBGPPrefixes {
+				hbgpPrefix, err := netip.ParsePrefix(hbgpPrefixStr)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to parse hostBGP prefix %s in vpc subnet %s (%s)", hbgpPrefixStr, subnetName, subnetCfg.Subnet)
+				}
+				ok, err := isInIPv4Namespace(hbgpPrefix, ipNs)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to check if hostBGP prefix %s in vpc subnet %s (%s) belongs to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
+				}
+				if !ok {
+					return nil, errors.Errorf("hostBGP prefix %s in vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
+				}
 			}
 
 			if !subnetCfg.HostBGP && !vlanNs.Spec.Contains(subnetCfg.VLAN) {
@@ -759,6 +792,15 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 					if subnet.Overlaps(otherNet) {
 						return nil, errors.Errorf("subnet %s overlaps with subnet %s of VPC %s", subnet.String(), otherSubnet.Subnet, other.Name)
 					}
+					for _, otherHBGPPrefixStr := range otherSubnet.HostBGPPrefixes {
+						op, err := netip.ParsePrefix(otherHBGPPrefixStr)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to parse hostBGP prefix %s", otherHBGPPrefixStr)
+						}
+						if subnet.Overlaps(op) {
+							return nil, errors.Errorf("subnet %s overlaps with hostBGP prefix %s of VPC %s", subnet.String(), otherHBGPPrefixStr, other.Name)
+						}
+					}
 				}
 			}
 		}
@@ -795,4 +837,19 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	}
 
 	return nil, nil
+}
+
+func isInIPv4Namespace(vpcSubnet netip.Prefix, ipNs *IPv4Namespace) (bool, error) {
+	for _, ipNsSubnetCfg := range ipNs.Spec.Subnets {
+		ipNsSubnet, err := netip.ParsePrefix(ipNsSubnetCfg)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to parse IPv4Namespace %s subnet %s", ipNs.Name, ipNsSubnetCfg)
+		}
+
+		if iputil.IsSubset(vpcSubnet, ipNsSubnet) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

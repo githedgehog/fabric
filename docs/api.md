@@ -2570,6 +2570,7 @@ _Appears in:_
 | `isolated` _boolean_ | Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC |  |  |
 | `restricted` _boolean_ | Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself |  |  |
 | `hostBGP` _boolean_ | HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range |  |  |
+| `hostBGPPrefixes` _string array_ | HostBGPPrefixes is a list of additional IP prefixes to accept from the host over its BGP sessions |  |  |
 
 
 
