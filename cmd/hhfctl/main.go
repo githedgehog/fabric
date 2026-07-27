@@ -212,6 +212,10 @@ func main() {
 								Name:  "host-bgp",
 								Usage: "mark the subnet as dedicated to BGP speakers",
 							},
+							&cli.StringSliceFlag{
+								Name:  "host-bgp-prefixes",
+								Usage: "additional prefixes to accept from the BGP speakers in the subnet, e.g. 10.100.1.0/24",
+							},
 							printYamlFlag,
 						},
 						Before: func(_ *cli.Context) error {
@@ -248,8 +252,9 @@ func main() {
 										AdvertisedRoutes:    advertisedRoutes,
 									},
 								},
-								Mode:    vpcapi.VPCMode(cCtx.String("vpc-mode")),
-								HostBGP: cCtx.Bool("host-bgp"),
+								Mode:            vpcapi.VPCMode(cCtx.String("vpc-mode")),
+								HostBGP:         cCtx.Bool("host-bgp"),
+								HostBGPPrefixes: cCtx.StringSlice("host-bgp-prefixes"),
 							}), "failed to create vpc")
 						},
 					},

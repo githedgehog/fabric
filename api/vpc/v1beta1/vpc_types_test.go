@@ -41,9 +41,56 @@ func vpcGen(name string, f ...func(*v1beta1.VPC)) *v1beta1.VPC {
 	return base
 }
 
+// hostBGPSubnetCIDR is the subnet of the hostBGP subnet added by hostBGPSubnet
+const hostBGPSubnetCIDR = "10.0.2.0/24"
+
+// hostBGPSubnet adds a hostBGP subnet named "bgp" with the given prefixes to the VPC
+func hostBGPSubnet(prefixes ...string) func(*v1beta1.VPC) {
+	return func(vpc *v1beta1.VPC) {
+		vpc.Spec.Subnets["bgp"] = &v1beta1.VPCSubnet{
+			Subnet:          hostBGPSubnetCIDR,
+			HostBGP:         true,
+			HostBGPPrefixes: prefixes,
+		}
+	}
+}
+
+// otherVPCGen returns a VPC in the default IPv4/VLAN namespaces, as it would be
+// stored in the API, to check the new VPC against
+func otherVPCGen(subnets map[string]*v1beta1.VPCSubnet) *v1beta1.VPC {
+	return &v1beta1.VPC{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Name:      "other-vpc",
+			Namespace: kmetav1.NamespaceDefault,
+			Labels: map[string]string{
+				v1beta1.LabelIPv4NS: "default",
+				v1beta1.LabelVLANNS: "default",
+			},
+		},
+		Spec: v1beta1.VPCSpec{
+			IPv4Namespace: "default",
+			VLANNamespace: "default",
+			Subnets:       subnets,
+		},
+	}
+}
+
+func hostBGPPrefixes(count int) []string {
+	prefixes := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		prefixes = append(prefixes, fmt.Sprintf("10.100.%d.0/24", i))
+	}
+
+	return prefixes
+}
+
 func TestVPCValidation(t *testing.T) {
 	reservedCfg := &meta.FabricConfig{ReservedSubnets: []string{"10.0.0.0/8"}}
 	require.NoError(t, reservedCfg.WithReservedSubnets())
+
+	// reserves a range that doesn't collide with the subnets used by vpcGen
+	reservedRailCfg := &meta.FabricConfig{ReservedSubnets: []string{"192.168.0.0/16"}}
+	require.NoError(t, reservedRailCfg.WithReservedSubnets())
 
 	baseKubeObjs := []kclient.Object{
 		&v1beta1.IPv4Namespace{
@@ -249,6 +296,151 @@ func TestVPCValidation(t *testing.T) {
 				}
 			}),
 			err: true,
+		},
+		{
+			name: "host bgp subnet with prefixes",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24", "10.100.11.0/28")),
+			err:  false,
+		},
+		{
+			name:    "host bgp subnet with prefixes and kube",
+			vpc:     vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24", "10.100.11.0/28")),
+			objects: baseKubeObjs,
+			err:     false,
+		},
+		{
+			name: "host bgp prefixes on non host bgp subnet",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].HostBGPPrefixes = []string{"10.100.1.0/24"}
+			}),
+			err: true,
+		},
+		{
+			name: "host bgp prefix is not a cidr",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("not-a-cidr")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefix is a bare ip",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefix is ipv6",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("2001:db8::/64")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefix is ipv4 mapped ipv6",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("::ffff:10.100.1.0/120")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefix is not in canonical form",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.5/24")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefixes at the limit",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet(hostBGPPrefixes(100)...)),
+			err:  false,
+		},
+		{
+			name: "too many host bgp prefixes",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet(hostBGPPrefixes(101)...)),
+			err:  true,
+		},
+		{
+			name: "host bgp prefix overlaps its own subnet",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.2.128/25")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefix overlaps another subnet of the same vpc",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.1.0/24")),
+			err:  true,
+		},
+		{
+			name: "duplicate host bgp prefixes",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24", "10.100.1.0/24")),
+			err:  true,
+		},
+		{
+			name: "host bgp prefixes overlap across subnets of the same vpc",
+			vpc: vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24"), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp-2"] = &v1beta1.VPCSubnet{
+					Subnet:          "10.0.4.0/24",
+					HostBGP:         true,
+					HostBGPPrefixes: []string{"10.100.1.128/25"},
+				}
+			}),
+			err: true,
+		},
+		{
+			name:      "host bgp prefix is reserved",
+			vpc:       vpcGen("vpc-01", hostBGPSubnet("192.168.5.0/24")),
+			fabricCfg: reservedRailCfg,
+			err:       true,
+		},
+		{
+			name:      "host bgp prefix outside of the reserved subnets",
+			vpc:       vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24")),
+			fabricCfg: reservedRailCfg,
+			err:       false,
+		},
+		{
+			name:    "host bgp prefix not in ipv4namespace",
+			vpc:     vpcGen("vpc-01", hostBGPSubnet("172.16.5.0/24")),
+			objects: baseKubeObjs,
+			err:     true,
+		},
+		{
+			name: "host bgp prefix overlaps other vpc subnet",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.9.0/24")),
+			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
+				"default": {
+					Subnet:  "10.0.9.0/24",
+					Gateway: "10.0.9.1",
+					VLAN:    200,
+				},
+			})),
+			err: true,
+		},
+		{
+			name: "subnet overlaps other vpc host bgp prefix",
+			vpc:  vpcGen("vpc-01"),
+			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
+				"bgp": {
+					Subnet:          "10.0.9.0/24",
+					HostBGP:         true,
+					HostBGPPrefixes: []string{"10.0.1.0/24"},
+				},
+			})),
+			err: true,
+		},
+		{
+			name: "host bgp prefix overlaps other vpc host bgp prefix",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.128/25")),
+			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
+				"bgp": {
+					Subnet:          "10.0.9.0/24",
+					HostBGP:         true,
+					HostBGPPrefixes: []string{"10.100.1.0/24"},
+				},
+			})),
+			err: true,
+		},
+		{
+			name: "host bgp prefixes not overlapping other vpc host bgp prefixes",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24")),
+			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
+				"bgp": {
+					Subnet:          "10.0.9.0/24",
+					HostBGP:         true,
+					HostBGPPrefixes: []string{"10.100.2.0/24"},
+				},
+			})),
+			err: false,
 		},
 		{
 			name: "static ip is broadcast address",
