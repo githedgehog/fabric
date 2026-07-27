@@ -356,8 +356,13 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 		if err := specInterfaceSubinterfaceBaseEnforcer.Handle(basePath, idx, actual, desired, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface base")
 		}
+		// compare just the IPv6 part so that dropping it from a subinterface that otherwise stays
+		// (e.g. subinterface 0 of a hostBGP attachment with VLAN 0) is handled as a delete instead
+		// of an update with an empty config, which would leave the L3 config on the interface
 		ipv6Path := basePath + "/ipv6/config/enabled"
-		if err := specInterfaceSubinterfaceIPv6Enforcer.Handle(ipv6Path, idx, actual, desired, actions); err != nil {
+		actualV6, desiredV6 := ValueOrNil(actual, desired,
+			func(value *dozer.SpecSubinterface) *dozer.SpecInterfaceIPv6 { return value.IPv6 })
+		if err := specInterfaceSubinterfaceIPv6Enforcer.Handle(ipv6Path, idx, actualV6, desiredV6, actions); err != nil {
 			return errors.Wrap(err, "failed to handle subinterface ipv6")
 		}
 
@@ -381,15 +386,15 @@ var specInterfaceSubinterfaceEnforcer = &DefaultValueEnforcer[uint32, *dozer.Spe
 	},
 }
 
-var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecSubinterface]{
+var specInterfaceSubinterfaceIPv6Enforcer = &DefaultValueEnforcer[uint32, *dozer.SpecInterfaceIPv6]{
 	Summary:      "Subinterface %d IPv6 Enable",
 	NoReplace:    true,
 	UpdateWeight: ActionWeightInterfaceSubinterfaceIPv6Update,
 	DeleteWeight: ActionWeightInterfaceSubinterfaceIPv6Delete,
-	Marshal: func(idx uint32, value *dozer.SpecSubinterface) (ygot.ValidatedGoStruct, error) {
+	Marshal: func(_ uint32, value *dozer.SpecInterfaceIPv6) (ygot.ValidatedGoStruct, error) {
 		cfg := &oc.OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv6_Config{}
-		if value != nil && value.IPv6 != nil && value.IPv6.Enabled != nil {
-			cfg.Enabled = value.IPv6.Enabled
+		if value != nil && value.Enabled != nil {
+			cfg.Enabled = value.Enabled
 		}
 
 		return cfg, nil

@@ -1775,58 +1775,6 @@
         id: Vlan3001
       id: Vlan3001
   weight: 46
-- path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=10]/ipv6/config/enabled
-  summary: Create Subinterface 10 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Loopback2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=PortChannel1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
 - path: /network-instances/network-instance[name=VrfVvpc-03]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1003]
   summary: Create VRF attached host
   type: update

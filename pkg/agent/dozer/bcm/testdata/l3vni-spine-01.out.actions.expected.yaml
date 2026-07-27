@@ -579,34 +579,6 @@
         index: 0
       index: 0
   weight: 43
-- path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
-- path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
-  summary: Create Subinterface 0 IPv6 Enable
-  type: update
-  weight: 47
 - path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.0
   type: update
