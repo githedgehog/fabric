@@ -412,7 +412,7 @@
       masklength-range: 32..32
       sequence-number: 10
   weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-01--default]/extended-prefixes/extended-prefix[sequence-number=15][ip-prefix=10.100.1.0/24][masklength-range=exact]
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-01--default]/extended-prefixes/extended-prefix[sequence-number=15][ip-prefix=10.100.1.0/24][masklength-range=32..32]
   summary: Create Prefix Lists Entry 15
   type: update
   value:
@@ -420,13 +420,13 @@
     - config:
         action: PERMIT
         ip-prefix: 10.100.1.0/24
-        masklength-range: exact
+        masklength-range: 32..32
         sequence-number: 15
       ip-prefix: 10.100.1.0/24
-      masklength-range: exact
+      masklength-range: 32..32
       sequence-number: 15
   weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-01--default]/extended-prefixes/extended-prefix[sequence-number=20][ip-prefix=10.100.11.0/28][masklength-range=exact]
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-01--default]/extended-prefixes/extended-prefix[sequence-number=20][ip-prefix=10.100.11.0/28][masklength-range=28..32]
   summary: Create Prefix Lists Entry 20
   type: update
   value:
@@ -434,13 +434,13 @@
     - config:
         action: PERMIT
         ip-prefix: 10.100.11.0/28
-        masklength-range: exact
+        masklength-range: 28..32
         sequence-number: 20
       ip-prefix: 10.100.11.0/28
-      masklength-range: exact
+      masklength-range: 28..32
       sequence-number: 20
   weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-02--default]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=10.0.2.0/24][masklength-range=32..32]
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-02--default]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=10.0.2.0/24][masklength-range=24..32]
   summary: Create Prefix Lists Entry 10
   type: update
   value:
@@ -448,13 +448,13 @@
     - config:
         action: PERMIT
         ip-prefix: 10.0.2.0/24
-        masklength-range: 32..32
+        masklength-range: 24..32
         sequence-number: 10
       ip-prefix: 10.0.2.0/24
-      masklength-range: 32..32
+      masklength-range: 24..32
       sequence-number: 10
   weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-02--default]/extended-prefixes/extended-prefix[sequence-number=15][ip-prefix=10.100.2.0/24][masklength-range=exact]
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vips-only--vpc-02--default]/extended-prefixes/extended-prefix[sequence-number=15][ip-prefix=10.100.2.0/24][masklength-range=24..32]
   summary: Create Prefix Lists Entry 15
   type: update
   value:
@@ -462,10 +462,10 @@
     - config:
         action: PERMIT
         ip-prefix: 10.100.2.0/24
-        masklength-range: exact
+        masklength-range: 24..32
         sequence-number: 15
       ip-prefix: 10.100.2.0/24
-      masklength-range: exact
+      masklength-range: 24..32
       sequence-number: 15
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-02]/extended-prefixes/extended-prefix[sequence-number=103][ip-prefix=0.0.0.0/0][masklength-range=0..32]

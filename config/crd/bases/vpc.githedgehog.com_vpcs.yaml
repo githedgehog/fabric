@@ -219,12 +219,44 @@ spec:
                         to BGP speaking hosts advertising their VIPs within the subnet's
                         IP range
                       type: boolean
-                    hostBGPPrefixes:
-                      description: HostBGPPrefixes is a list of additional IP prefixes
-                        to accept from the host over its BGP sessions
-                      items:
-                        type: string
-                      type: array
+                    hostBGPExtraPrefixes:
+                      additionalProperties:
+                        description: VPCSubnetHostBGPPrefix defines the prefix lengths
+                          accepted from the host within an extra hostBGP prefix
+                        properties:
+                          maxPrefixLen:
+                            description: MaxPrefixLen is the longest prefix length
+                              accepted within the prefix, defaults to the subnet's
+                              hostBGPMaxPrefixLen
+                            maximum: 32
+                            minimum: 1
+                            type: integer
+                          minPrefixLen:
+                            description: MinPrefixLen is the shortest prefix length
+                              accepted within the prefix, defaults to the subnet's
+                              hostBGPMinPrefixLen
+                            maximum: 32
+                            minimum: 1
+                            type: integer
+                        type: object
+                      description: |-
+                        HostBGPExtraPrefixes is the set of extra IP prefixes, on top of the subnet's own IP range, to accept from the
+                        host over its BGP sessions, keyed by prefix
+                      type: object
+                    hostBGPMaxPrefixLen:
+                      description: HostBGPMaxPrefixLen is the longest prefix length
+                        accepted from the host within the subnet's IP range, 32 by
+                        default
+                      maximum: 32
+                      minimum: 1
+                      type: integer
+                    hostBGPMinPrefixLen:
+                      description: HostBGPMinPrefixLen is the shortest prefix length
+                        accepted from the host within the subnet's IP range, 32 by
+                        default
+                      maximum: 32
+                      minimum: 1
+                      type: integer
                     isolated:
                       description: Isolated is the flag to enable isolated mode for
                         the subnet which means no access to and from the other subnets

@@ -2751,34 +2751,52 @@ func addL3FlatVPCFilteringACLEntryiesForVPC(agent *agentapi.Agent, spec *dozer.S
 	return nil
 }
 
+// prefixListGe returns the Ge to use in a prefix list entry for the given shortest accepted prefix
+// length. A Ge equal to the prefix's own length is expressed as 0, which is how the prefix list
+// marshalling spells it and therefore how we read it back from the switch: emitting the length
+// itself instead would leave a permanent diff between the actual and the desired state.
+func prefixListGe(prefix netip.Prefix, minLen uint8) uint8 {
+	if int(minLen) == prefix.Bits() {
+		return 0
+	}
+
+	return minLen
+}
+
 func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpcapi.VPCSpec, subnetName string, subnet *vpcapi.VPCSubnet, ifaceNames []string) error {
 	vrfName := vpcVrfName(vpcName)
-	_, err := iputil.ParseCIDR(subnet.Subnet)
+	subnetCIDR, err := iputil.ParseCIDR(subnet.Subnet)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse hostBGP subnet %s for VPC %s", subnet.Subnet, vpcName)
 	}
 
-	// create prefix list matching /32s in this subnet prefix plus any extra prefix specified
-	// in the HostBGPPrefixes field of the subnet. TODO: rename prefix-list?
+	// create prefix list matching the accepted prefix lengths within this subnet prefix, plus any
+	// extra prefix specified in the HostBGPExtraPrefixes field of the subnet. TODO: rename prefix-list?
 	plName := vpcSubnetVIPsOnlyPrefixListName(vpcName, subnetName)
+	minLen, maxLen := subnet.HostBGPPrefixLens()
 	prefixes := map[uint32]*dozer.SpecPrefixListEntry{
 		10: {
 			Prefix: dozer.SpecPrefixListPrefix{
 				Prefix: subnet.Subnet,
-				Ge:     32,
-				Le:     32,
+				Ge:     prefixListGe(subnetCIDR.Subnet, minLen),
+				Le:     maxLen,
 			},
 			Action: dozer.SpecPrefixListActionPermit,
 		},
 	}
-	for idx, extraPrefix := range subnet.HostBGPPrefixes {
-		if _, err := iputil.ParseCIDR(extraPrefix); err != nil {
-			return errors.Wrapf(err, "failed to parse hostBGP prefix %s for subnet %s of VPC %s", extraPrefix, subnet.Subnet, vpcName)
+	// sorted so that the sequence numbers we assign don't depend on map iteration order
+	for idx, extraPrefix := range slices.Sorted(maps.Keys(subnet.HostBGPExtraPrefixes)) {
+		extraCIDR, err := iputil.ParseCIDR(extraPrefix)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse hostBGP extra prefix %s for subnet %s of VPC %s", extraPrefix, subnet.Subnet, vpcName)
 		}
+		extraMinLen, extraMaxLen := subnet.HostBGPExtraPrefixLens(subnet.HostBGPExtraPrefixes[extraPrefix])
 		pIdx := uint32(15 + 5*idx) //nolint:gosec
 		prefixes[pIdx] = &dozer.SpecPrefixListEntry{
 			Prefix: dozer.SpecPrefixListPrefix{
 				Prefix: extraPrefix,
+				Ge:     prefixListGe(extraCIDR.Subnet, extraMinLen),
+				Le:     extraMaxLen,
 			},
 			Action: dozer.SpecPrefixListActionPermit,
 		}

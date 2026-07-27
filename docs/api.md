@@ -2570,7 +2570,26 @@ _Appears in:_
 | `isolated` _boolean_ | Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC |  |  |
 | `restricted` _boolean_ | Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself |  |  |
 | `hostBGP` _boolean_ | HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range |  |  |
-| `hostBGPPrefixes` _string array_ | HostBGPPrefixes is a list of additional IP prefixes to accept from the host over its BGP sessions |  |  |
+| `hostBGPMinPrefixLen` _integer_ | HostBGPMinPrefixLen is the shortest prefix length accepted from the host within the subnet's IP range, 32 by default |  | Maximum: 32 <br />Minimum: 1 <br /> |
+| `hostBGPMaxPrefixLen` _integer_ | HostBGPMaxPrefixLen is the longest prefix length accepted from the host within the subnet's IP range, 32 by default |  | Maximum: 32 <br />Minimum: 1 <br /> |
+| `hostBGPExtraPrefixes` _object (keys:string, values:[VPCSubnetHostBGPPrefix](#vpcsubnethostbgpprefix))_ | HostBGPExtraPrefixes is the set of extra IP prefixes, on top of the subnet's own IP range, to accept from the<br />host over its BGP sessions, keyed by prefix |  |  |
+
+
+#### VPCSubnetHostBGPPrefix
+
+
+
+VPCSubnetHostBGPPrefix defines the prefix lengths accepted from the host within an extra hostBGP prefix
+
+
+
+_Appears in:_
+- [VPCSubnet](#vpcsubnet)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minPrefixLen` _integer_ | MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to the subnet's hostBGPMinPrefixLen |  | Maximum: 32 <br />Minimum: 1 <br /> |
+| `maxPrefixLen` _integer_ | MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to the subnet's hostBGPMaxPrefixLen |  | Maximum: 32 <br />Minimum: 1 <br /> |
 
 
 

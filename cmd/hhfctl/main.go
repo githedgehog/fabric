@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -212,9 +213,19 @@ func main() {
 								Name:  "host-bgp",
 								Usage: "mark the subnet as dedicated to BGP speakers",
 							},
+							&cli.UintFlag{
+								Name:  "host-bgp-min-prefix-len",
+								Usage: "shortest prefix length accepted from the BGP speakers within the subnet",
+								Value: 32,
+							},
+							&cli.UintFlag{
+								Name:  "host-bgp-max-prefix-len",
+								Usage: "longest prefix length accepted from the BGP speakers within the subnet",
+								Value: 32,
+							},
 							&cli.StringSliceFlag{
-								Name:  "host-bgp-prefixes",
-								Usage: "additional prefixes to accept from the BGP speakers in the subnet, e.g. 10.100.1.0/24",
+								Name:  "host-bgp-extra-prefixes",
+								Usage: "extra prefixes to accept from the BGP speakers in the subnet, as prefix[=min-max], e.g. 10.100.1.0/24 or 10.100.1.0/24=28-32",
 							},
 							printYamlFlag,
 						},
@@ -235,6 +246,60 @@ func main() {
 								})
 							}
 
+							var extraPrefixes map[string]vpcapi.VPCSubnetHostBGPPrefix
+							for _, extraPrefix := range cCtx.StringSlice("host-bgp-extra-prefixes") {
+								prefix, prefixLens, hasLens := strings.Cut(extraPrefix, "=")
+								prefixCfg := vpcapi.VPCSubnetHostBGPPrefix{}
+								if hasLens {
+									minLen, maxLen, ok := strings.Cut(prefixLens, "-")
+									if !ok {
+										return cli.Exit(fmt.Sprintf("invalid host-bgp-extra-prefixes format: %s, expected prefix[=min-max]", extraPrefix), 1)
+									}
+
+									parsedMinLen, err := strconv.ParseUint(minLen, 10, 8)
+									if err != nil {
+										return cli.Exit(fmt.Sprintf("invalid min prefix length in host-bgp-extra-prefixes %s: %v", extraPrefix, err), 1)
+									}
+									parsedMaxLen, err := strconv.ParseUint(maxLen, 10, 8)
+									if err != nil {
+										return cli.Exit(fmt.Sprintf("invalid max prefix length in host-bgp-extra-prefixes %s: %v", extraPrefix, err), 1)
+									}
+
+									if parsedMinLen == 0 || parsedMaxLen == 0 || parsedMinLen > 32 || parsedMaxLen > 32 || parsedMinLen > parsedMaxLen {
+										return cli.Exit(fmt.Sprintf("invalid prefix length range in host-bgp-extra-prefixes %s: expected 1-32 and min<=max", extraPrefix), 1)
+									}
+									prefixCfg.MinPrefixLen = uint8(parsedMinLen)
+									prefixCfg.MaxPrefixLen = uint8(parsedMaxLen)
+								}
+
+								if extraPrefixes == nil {
+									extraPrefixes = map[string]vpcapi.VPCSubnetHostBGPPrefix{}
+								}
+								extraPrefixes[prefix] = prefixCfg
+							}
+
+							hbgpMinPLen := cCtx.Uint("host-bgp-min-prefix-len")
+							if hbgpMinPLen < 1 || hbgpMinPLen > 32 {
+								return cli.Exit(fmt.Sprintf("invalid host-bgp-min-prefix-len %d: expected 1-32", hbgpMinPLen), 1)
+							}
+							hbgpMaxPLen := cCtx.Uint("host-bgp-max-prefix-len")
+							if hbgpMaxPLen < 1 || hbgpMaxPLen > 32 {
+								return cli.Exit(fmt.Sprintf("invalid host-bgp-max-prefix-len %d: expected 1-32", hbgpMaxPLen), 1)
+							}
+							if hbgpMinPLen > hbgpMaxPLen {
+								return cli.Exit(fmt.Sprintf("host-bgp-min-prefix-len %d is greater than host-bgp-max-prefix-len %d", hbgpMinPLen, hbgpMaxPLen), 1)
+							}
+							hbgp := cCtx.Bool("host-bgp")
+							if !hbgp && (hbgpMinPLen != 32 || hbgpMaxPLen != 32) {
+								return cli.Exit("cannot specify host-bgp-min-prefix-len or host-bgp-max-prefix-len for non host-bgp subnets", 1)
+							}
+							// the flags default to 32, so only pass them on for hostBGP subnets: the API
+							// rejects them on any other subnet, defaults and all
+							var minPLen, maxPLen uint8
+							if hbgp {
+								minPLen, maxPLen = uint8(hbgpMinPLen), uint8(hbgpMaxPLen)
+							}
+
 							return errors.Wrapf(hhfctl.VPCCreate(ctx, printYaml, &hhfctl.VPCCreateOptions{
 								Name:   name,
 								Subnet: cCtx.String("subnet"),
@@ -252,9 +317,11 @@ func main() {
 										AdvertisedRoutes:    advertisedRoutes,
 									},
 								},
-								Mode:            vpcapi.VPCMode(cCtx.String("vpc-mode")),
-								HostBGP:         cCtx.Bool("host-bgp"),
-								HostBGPPrefixes: cCtx.StringSlice("host-bgp-prefixes"),
+								Mode:                 vpcapi.VPCMode(cCtx.String("vpc-mode")),
+								HostBGP:              hbgp,
+								HostBGPMinPrefixLen:  minPLen,
+								HostBGPMaxPrefixLen:  maxPLen,
+								HostBGPExtraPrefixes: extraPrefixes,
 							}), "failed to create vpc")
 						},
 					},
