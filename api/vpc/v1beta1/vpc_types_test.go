@@ -44,13 +44,27 @@ func vpcGen(name string, f ...func(*v1beta1.VPC)) *v1beta1.VPC {
 // hostBGPSubnetCIDR is the subnet of the hostBGP subnet added by hostBGPSubnet
 const hostBGPSubnetCIDR = "10.0.2.0/24"
 
-// hostBGPSubnet adds a hostBGP subnet named "bgp" with the given prefixes to the VPC
+// hostBGPSubnet adds a hostBGP subnet named "bgp" to the VPC, accepting the given extra
+// prefixes with the default prefix lengths
 func hostBGPSubnet(prefixes ...string) func(*v1beta1.VPC) {
+	var extraPrefixes map[string]v1beta1.VPCSubnetHostBGPPrefix
+	for _, prefix := range prefixes {
+		if extraPrefixes == nil {
+			extraPrefixes = map[string]v1beta1.VPCSubnetHostBGPPrefix{}
+		}
+		extraPrefixes[prefix] = v1beta1.VPCSubnetHostBGPPrefix{}
+	}
+
+	return hostBGPSubnetWith(extraPrefixes)
+}
+
+// hostBGPSubnetWith adds a hostBGP subnet named "bgp" to the VPC with the given extra prefix config
+func hostBGPSubnetWith(extraPrefixes map[string]v1beta1.VPCSubnetHostBGPPrefix) func(*v1beta1.VPC) {
 	return func(vpc *v1beta1.VPC) {
 		vpc.Spec.Subnets["bgp"] = &v1beta1.VPCSubnet{
-			Subnet:          hostBGPSubnetCIDR,
-			HostBGP:         true,
-			HostBGPPrefixes: prefixes,
+			Subnet:               hostBGPSubnetCIDR,
+			HostBGP:              true,
+			HostBGPExtraPrefixes: extraPrefixes,
 		}
 	}
 }
@@ -298,104 +312,109 @@ func TestVPCValidation(t *testing.T) {
 			err: true,
 		},
 		{
-			name: "host bgp subnet with prefixes",
+			name: "host bgp subnet with extra prefixes",
 			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24", "10.100.11.0/28")),
 			err:  false,
 		},
 		{
-			name:    "host bgp subnet with prefixes and kube",
+			name:    "host bgp subnet with extra prefixes and kube",
 			vpc:     vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24", "10.100.11.0/28")),
 			objects: baseKubeObjs,
 			err:     false,
 		},
 		{
-			name: "host bgp prefixes on non host bgp subnet",
+			name: "host bgp extra prefixes on non host bgp subnet",
 			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
-				vpc.Spec.Subnets["default"].HostBGPPrefixes = []string{"10.100.1.0/24"}
-			}),
-			err: true,
-		},
-		{
-			name: "host bgp prefix is not a cidr",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("not-a-cidr")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefix is a bare ip",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefix is ipv6",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("2001:db8::/64")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefix is ipv4 mapped ipv6",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("::ffff:10.100.1.0/120")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefix is not in canonical form",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.5/24")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefixes at the limit",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet(hostBGPPrefixes(100)...)),
-			err:  false,
-		},
-		{
-			name: "too many host bgp prefixes",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet(hostBGPPrefixes(101)...)),
-			err:  true,
-		},
-		{
-			name: "host bgp prefix overlaps its own subnet",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.2.128/25")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefix overlaps another subnet of the same vpc",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.1.0/24")),
-			err:  true,
-		},
-		{
-			name: "duplicate host bgp prefixes",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24", "10.100.1.0/24")),
-			err:  true,
-		},
-		{
-			name: "host bgp prefixes overlap across subnets of the same vpc",
-			vpc: vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24"), func(vpc *v1beta1.VPC) {
-				vpc.Spec.Subnets["bgp-2"] = &v1beta1.VPCSubnet{
-					Subnet:          "10.0.4.0/24",
-					HostBGP:         true,
-					HostBGPPrefixes: []string{"10.100.1.128/25"},
+				vpc.Spec.Subnets["default"].HostBGPExtraPrefixes = map[string]v1beta1.VPCSubnetHostBGPPrefix{
+					"10.100.1.0/24": {},
 				}
 			}),
 			err: true,
 		},
 		{
-			name:      "host bgp prefix is reserved",
+			name: "host bgp prefix lengths on non host bgp subnet",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].HostBGPMinPrefixLen = 24
+				vpc.Spec.Subnets["default"].HostBGPMaxPrefixLen = 32
+			}),
+			err: true,
+		},
+		{
+			name: "host bgp extra prefix is not a cidr",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("not-a-cidr")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefix is a bare ip",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefix is ipv6",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("2001:db8::/64")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefix is ipv4 mapped ipv6",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("::ffff:10.100.1.0/120")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefix is not in canonical form",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.5/24")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefixes at the limit",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet(hostBGPPrefixes(100)...)),
+			err:  false,
+		},
+		{
+			name: "too many host bgp extra prefixes",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet(hostBGPPrefixes(101)...)),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefix overlaps its own subnet",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.2.128/25")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefix overlaps another subnet of the same vpc",
+			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.1.0/24")),
+			err:  true,
+		},
+		{
+			name: "host bgp extra prefixes overlap across subnets of the same vpc",
+			vpc: vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24"), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp-2"] = &v1beta1.VPCSubnet{
+					Subnet:               "10.0.4.0/24",
+					HostBGP:              true,
+					HostBGPExtraPrefixes: map[string]v1beta1.VPCSubnetHostBGPPrefix{"10.100.1.128/25": {}},
+				}
+			}),
+			err: true,
+		},
+		{
+			name:      "host bgp extra prefix is reserved",
 			vpc:       vpcGen("vpc-01", hostBGPSubnet("192.168.5.0/24")),
 			fabricCfg: reservedRailCfg,
 			err:       true,
 		},
 		{
-			name:      "host bgp prefix outside of the reserved subnets",
+			name:      "host bgp extra prefix outside of the reserved subnets",
 			vpc:       vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24")),
 			fabricCfg: reservedRailCfg,
 			err:       false,
 		},
 		{
-			name:    "host bgp prefix not in ipv4namespace",
+			name:    "host bgp extra prefix not in ipv4namespace",
 			vpc:     vpcGen("vpc-01", hostBGPSubnet("172.16.5.0/24")),
 			objects: baseKubeObjs,
 			err:     true,
 		},
 		{
-			name: "host bgp prefix overlaps other vpc subnet",
+			name: "host bgp extra prefix overlaps other vpc subnet",
 			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.0.9.0/24")),
 			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
 				"default": {
@@ -407,39 +426,116 @@ func TestVPCValidation(t *testing.T) {
 			err: true,
 		},
 		{
-			name: "subnet overlaps other vpc host bgp prefix",
+			name: "subnet overlaps other vpc host bgp extra prefix",
 			vpc:  vpcGen("vpc-01"),
 			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
 				"bgp": {
-					Subnet:          "10.0.9.0/24",
-					HostBGP:         true,
-					HostBGPPrefixes: []string{"10.0.1.0/24"},
+					Subnet:               "10.0.9.0/24",
+					HostBGP:              true,
+					HostBGPExtraPrefixes: map[string]v1beta1.VPCSubnetHostBGPPrefix{"10.0.1.0/24": {}},
 				},
 			})),
 			err: true,
 		},
 		{
-			name: "host bgp prefix overlaps other vpc host bgp prefix",
+			name: "host bgp extra prefix overlaps other vpc host bgp extra prefix",
 			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.128/25")),
 			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
 				"bgp": {
-					Subnet:          "10.0.9.0/24",
-					HostBGP:         true,
-					HostBGPPrefixes: []string{"10.100.1.0/24"},
+					Subnet:               "10.0.9.0/24",
+					HostBGP:              true,
+					HostBGPExtraPrefixes: map[string]v1beta1.VPCSubnetHostBGPPrefix{"10.100.1.0/24": {}},
 				},
 			})),
 			err: true,
 		},
 		{
-			name: "host bgp prefixes not overlapping other vpc host bgp prefixes",
+			name: "host bgp extra prefixes not overlapping other vpc host bgp extra prefixes",
 			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.0/24")),
 			objects: append(baseKubeObjs, otherVPCGen(map[string]*v1beta1.VPCSubnet{
 				"bgp": {
-					Subnet:          "10.0.9.0/24",
-					HostBGP:         true,
-					HostBGPPrefixes: []string{"10.100.2.0/24"},
+					Subnet:               "10.0.9.0/24",
+					HostBGP:              true,
+					HostBGPExtraPrefixes: map[string]v1beta1.VPCSubnetHostBGPPrefix{"10.100.2.0/24": {}},
 				},
 			})),
+			err: false,
+		},
+		{
+			name: "host bgp subnet prefix lengths widening the subnet range",
+			vpc: vpcGen("vpc-01", hostBGPSubnet(), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp"].HostBGPMinPrefixLen = 24
+				vpc.Spec.Subnets["bgp"].HostBGPMaxPrefixLen = 32
+			}),
+			err: false,
+		},
+		{
+			name: "host bgp subnet min prefix length greater than max",
+			vpc: vpcGen("vpc-01", hostBGPSubnet(), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp"].HostBGPMinPrefixLen = 32
+				vpc.Spec.Subnets["bgp"].HostBGPMaxPrefixLen = 28
+			}),
+			err: true,
+		},
+		{
+			name: "host bgp subnet max prefix length above 32",
+			vpc: vpcGen("vpc-01", hostBGPSubnet(), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp"].HostBGPMaxPrefixLen = 33
+			}),
+			err: true,
+		},
+		{
+			name: "host bgp subnet min prefix length shorter than the subnet",
+			vpc: vpcGen("vpc-01", hostBGPSubnet(), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp"].HostBGPMinPrefixLen = 16
+			}),
+			err: true,
+		},
+		{
+			name: "host bgp extra prefix with its own prefix lengths",
+			vpc: vpcGen("vpc-01", hostBGPSubnetWith(map[string]v1beta1.VPCSubnetHostBGPPrefix{
+				"10.100.1.0/24":  {},
+				"10.100.11.0/28": {MinPrefixLen: 28, MaxPrefixLen: 32},
+			})),
+			err: false,
+		},
+		{
+			name: "host bgp extra prefix min prefix length greater than max",
+			vpc: vpcGen("vpc-01", hostBGPSubnetWith(map[string]v1beta1.VPCSubnetHostBGPPrefix{
+				"10.100.1.0/24": {MinPrefixLen: 32, MaxPrefixLen: 28},
+			})),
+			err: true,
+		},
+		{
+			name: "host bgp extra prefix max prefix length above 32",
+			vpc: vpcGen("vpc-01", hostBGPSubnetWith(map[string]v1beta1.VPCSubnetHostBGPPrefix{
+				"10.100.1.0/24": {MaxPrefixLen: 33},
+			})),
+			err: true,
+		},
+		{
+			name: "host bgp extra prefix min prefix length shorter than the prefix",
+			vpc: vpcGen("vpc-01", hostBGPSubnetWith(map[string]v1beta1.VPCSubnetHostBGPPrefix{
+				"10.100.1.0/24": {MinPrefixLen: 16},
+			})),
+			err: true,
+		},
+		{
+			name: "host bgp extra prefix inherits an unusable subnet min prefix length",
+			vpc: vpcGen("vpc-01", hostBGPSubnetWith(map[string]v1beta1.VPCSubnetHostBGPPrefix{
+				"10.100.11.0/28": {},
+			}), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp"].HostBGPMinPrefixLen = 24
+			}),
+			err: true,
+		},
+		{
+			name: "host bgp extra prefix overrides an unusable subnet min prefix length",
+			vpc: vpcGen("vpc-01", hostBGPSubnetWith(map[string]v1beta1.VPCSubnetHostBGPPrefix{
+				"10.100.11.0/28": {MinPrefixLen: 28},
+			}), func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["bgp"].HostBGPMinPrefixLen = 24
+			}),
 			err: false,
 		},
 		{
@@ -602,6 +698,69 @@ func TestVPCValidation(t *testing.T) {
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}
+		})
+	}
+}
+
+func TestVPCSubnetHostBGPPrefixLens(t *testing.T) {
+	tests := []struct {
+		name      string
+		subnet    v1beta1.VPCSubnet
+		prefixCfg v1beta1.VPCSubnetHostBGPPrefix
+		// expected for the subnet's own IP range
+		subnetMin, subnetMax uint8
+		// expected for an extra prefix configured with prefixCfg
+		extraMin, extraMax uint8
+	}{
+		{
+			name:      "nothing set defaults to 32",
+			subnetMin: 32, subnetMax: 32,
+			extraMin: 32, extraMax: 32,
+		},
+		{
+			name:      "extra prefix inherits the subnet lengths",
+			subnet:    v1beta1.VPCSubnet{HostBGPMinPrefixLen: 24, HostBGPMaxPrefixLen: 30},
+			subnetMin: 24, subnetMax: 30,
+			extraMin: 24, extraMax: 30,
+		},
+		{
+			name:      "extra prefix overrides both subnet lengths",
+			subnet:    v1beta1.VPCSubnet{HostBGPMinPrefixLen: 24, HostBGPMaxPrefixLen: 30},
+			prefixCfg: v1beta1.VPCSubnetHostBGPPrefix{MinPrefixLen: 28, MaxPrefixLen: 32},
+			subnetMin: 24, subnetMax: 30,
+			extraMin: 28, extraMax: 32,
+		},
+		{
+			name:      "extra prefix overrides only the min length",
+			subnet:    v1beta1.VPCSubnet{HostBGPMinPrefixLen: 24, HostBGPMaxPrefixLen: 30},
+			prefixCfg: v1beta1.VPCSubnetHostBGPPrefix{MinPrefixLen: 28},
+			subnetMin: 24, subnetMax: 30,
+			extraMin: 28, extraMax: 30,
+		},
+		{
+			name:      "extra prefix overrides only the max length",
+			subnet:    v1beta1.VPCSubnet{HostBGPMinPrefixLen: 24, HostBGPMaxPrefixLen: 30},
+			prefixCfg: v1beta1.VPCSubnetHostBGPPrefix{MaxPrefixLen: 32},
+			subnetMin: 24, subnetMax: 30,
+			extraMin: 24, extraMax: 32,
+		},
+		{
+			name:      "extra prefix overrides the unset subnet lengths",
+			prefixCfg: v1beta1.VPCSubnetHostBGPPrefix{MinPrefixLen: 28, MaxPrefixLen: 30},
+			subnetMin: 32, subnetMax: 32,
+			extraMin: 28, extraMax: 30,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			minLen, maxLen := test.subnet.HostBGPPrefixLens()
+			require.Equal(t, test.subnetMin, minLen, "subnet min prefix length")
+			require.Equal(t, test.subnetMax, maxLen, "subnet max prefix length")
+
+			minLen, maxLen = test.subnet.HostBGPExtraPrefixLens(test.prefixCfg)
+			require.Equal(t, test.extraMin, minLen, "extra prefix min prefix length")
+			require.Equal(t, test.extraMax, maxLen, "extra prefix max prefix length")
 		})
 	}
 }

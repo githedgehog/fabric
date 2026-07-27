@@ -32,13 +32,15 @@ import (
 )
 
 type VPCCreateOptions struct {
-	Name            string
-	Subnet          string
-	VLAN            uint16
-	DHCP            vpcapi.VPCDHCP
-	Mode            vpcapi.VPCMode
-	HostBGP         bool
-	HostBGPPrefixes []string
+	Name                 string
+	Subnet               string
+	VLAN                 uint16
+	DHCP                 vpcapi.VPCDHCP
+	Mode                 vpcapi.VPCMode
+	HostBGP              bool
+	HostBGPMinPrefixLen  uint8
+	HostBGPMaxPrefixLen  uint8
+	HostBGPExtraPrefixes map[string]vpcapi.VPCSubnetHostBGPPrefix
 }
 
 func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
@@ -53,11 +55,13 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 		Spec: vpcapi.VPCSpec{
 			Subnets: map[string]*vpcapi.VPCSubnet{
 				"default": {
-					Subnet:          options.Subnet,
-					VLAN:            options.VLAN,
-					DHCP:            options.DHCP,
-					HostBGP:         options.HostBGP,
-					HostBGPPrefixes: options.HostBGPPrefixes,
+					Subnet:               options.Subnet,
+					VLAN:                 options.VLAN,
+					DHCP:                 options.DHCP,
+					HostBGP:              options.HostBGP,
+					HostBGPMinPrefixLen:  options.HostBGPMinPrefixLen,
+					HostBGPMaxPrefixLen:  options.HostBGPMaxPrefixLen,
+					HostBGPExtraPrefixes: options.HostBGPExtraPrefixes,
 				},
 			},
 			Mode: options.Mode,

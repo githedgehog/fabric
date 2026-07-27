@@ -79,6 +79,13 @@ var VPCModes = []VPCMode{
 	VPCModeL3Flat,
 }
 
+const (
+	// DefaultHostBGPPrefixLen is the only prefix length accepted from hostBGP speakers unless configured otherwise
+	DefaultHostBGPPrefixLen uint8 = 32
+	// MaxHostBGPExtraPrefixes is the maximum number of extra prefixes allowed on a single hostBGP subnet
+	MaxHostBGPExtraPrefixes = 100
+)
+
 // VPCSubnet defines the VPC subnet configuration
 type VPCSubnet struct {
 	// Subnet is the subnet CIDR block, such as "10.0.0.0/24", should belong to the IPv4Namespace and be unique within the namespace
@@ -95,8 +102,57 @@ type VPCSubnet struct {
 	Restricted *bool `json:"restricted,omitempty"`
 	// HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range
 	HostBGP bool `json:"hostBGP,omitempty"`
-	// HostBGPPrefixes is a list of additional IP prefixes to accept from the host over its BGP sessions
-	HostBGPPrefixes []string `json:"hostBGPPrefixes,omitempty"`
+	// HostBGPMinPrefixLen is the shortest prefix length accepted from the host within the subnet's IP range, 32 by default
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=32
+	HostBGPMinPrefixLen uint8 `json:"hostBGPMinPrefixLen,omitempty"`
+	// HostBGPMaxPrefixLen is the longest prefix length accepted from the host within the subnet's IP range, 32 by default
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=32
+	HostBGPMaxPrefixLen uint8 `json:"hostBGPMaxPrefixLen,omitempty"`
+	// HostBGPExtraPrefixes is the set of extra IP prefixes, on top of the subnet's own IP range, to accept from the
+	// host over its BGP sessions, keyed by prefix
+	HostBGPExtraPrefixes map[string]VPCSubnetHostBGPPrefix `json:"hostBGPExtraPrefixes,omitempty"`
+}
+
+// VPCSubnetHostBGPPrefix defines the prefix lengths accepted from the host within an extra hostBGP prefix
+type VPCSubnetHostBGPPrefix struct {
+	// MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to the subnet's hostBGPMinPrefixLen
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=32
+	MinPrefixLen uint8 `json:"minPrefixLen,omitempty"`
+	// MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to the subnet's hostBGPMaxPrefixLen
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=32
+	MaxPrefixLen uint8 `json:"maxPrefixLen,omitempty"`
+}
+
+// HostBGPPrefixLens returns the shortest and longest prefix length accepted from the host within
+// the subnet's own IP range
+func (subnet *VPCSubnet) HostBGPPrefixLens() (uint8, uint8) {
+	minLen, maxLen := subnet.HostBGPMinPrefixLen, subnet.HostBGPMaxPrefixLen
+	if minLen == 0 {
+		minLen = DefaultHostBGPPrefixLen
+	}
+	if maxLen == 0 {
+		maxLen = DefaultHostBGPPrefixLen
+	}
+
+	return minLen, maxLen
+}
+
+// HostBGPExtraPrefixLens returns the shortest and longest prefix length accepted from the host within
+// the given extra prefix, falling back to the subnet-level configuration when unset
+func (subnet *VPCSubnet) HostBGPExtraPrefixLens(prefixCfg VPCSubnetHostBGPPrefix) (uint8, uint8) {
+	minLen, maxLen := subnet.HostBGPPrefixLens()
+	if prefixCfg.MinPrefixLen != 0 {
+		minLen = prefixCfg.MinPrefixLen
+	}
+	if prefixCfg.MaxPrefixLen != 0 {
+		maxLen = prefixCfg.MaxPrefixLen
+	}
+
+	return minLen, maxLen
 }
 
 // VPCDHCP defines the on-demand DHCP configuration for the subnet
@@ -424,24 +480,35 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			if subnetCfg.DHCP.Enable {
 				return nil, errors.Errorf("subnet %s: dhcp should not be enabled for hostBGP subnets", subnetName)
 			}
-			if len(subnetCfg.HostBGPPrefixes) > 100 {
-				return nil, errors.Errorf("subnet %s: too many hostBGP prefixes (%d), maximum is 100", subnetName, len(subnetCfg.HostBGPPrefixes))
+			minLen, maxLen := subnetCfg.HostBGPPrefixLens()
+			if err := validateHostBGPPrefixLens(ipNet, minLen, maxLen); err != nil {
+				return nil, errors.Wrapf(err, "subnet %s", subnetName)
 			}
-			for idx, prefixStr := range subnetCfg.HostBGPPrefixes {
+
+			if len(subnetCfg.HostBGPExtraPrefixes) > MaxHostBGPExtraPrefixes {
+				return nil, errors.Errorf("subnet %s: too many hostBGP extra prefixes (%d), maximum is %d", subnetName, len(subnetCfg.HostBGPExtraPrefixes), MaxHostBGPExtraPrefixes)
+			}
+			for prefixStr, prefixCfg := range subnetCfg.HostBGPExtraPrefixes {
 				p, err := netip.ParsePrefix(prefixStr)
 				if err != nil {
-					return nil, errors.Wrapf(err, "subnet %s: invalid hostBGP prefix %s at index %d", subnetName, prefixStr, idx)
+					return nil, errors.Wrapf(err, "subnet %s: invalid hostBGP extra prefix %s", subnetName, prefixStr)
 				}
 				if !p.Addr().Is4() {
-					return nil, errors.Errorf("subnet %s: invalid hostBGP prefix %s at index %d: prefix is not a valid IPv4 prefix", subnetName, prefixStr, idx)
+					return nil, errors.Errorf("subnet %s: invalid hostBGP extra prefix %s: prefix is not a valid IPv4 prefix", subnetName, prefixStr)
 				}
 				if p.Addr() != p.Masked().Addr() {
-					return nil, errors.Errorf("subnet %s: invalid hostBGP prefix %s at index %d: prefix is not in canonical form", subnetName, prefixStr, idx)
+					return nil, errors.Errorf("subnet %s: invalid hostBGP extra prefix %s: prefix is not in canonical form", subnetName, prefixStr)
 				}
+
+				extraMinLen, extraMaxLen := subnetCfg.HostBGPExtraPrefixLens(prefixCfg)
+				if err := validateHostBGPPrefixLens(p, extraMinLen, extraMaxLen); err != nil {
+					return nil, errors.Wrapf(err, "subnet %s: hostBGP extra prefix %s", subnetName, prefixStr)
+				}
+
 				if fabricCfg != nil {
 					for _, reserved := range fabricCfg.ParsedReservedSubnets() {
 						if reserved.Overlaps(p) {
-							return nil, errors.Errorf("subnet %s: hostBGP prefix %s is reserved", subnetName, prefixStr)
+							return nil, errors.Errorf("subnet %s: hostBGP extra prefix %s is reserved", subnetName, prefixStr)
 						}
 					}
 				}
@@ -449,8 +516,11 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				subnets = append(subnets, p)
 			}
 		} else {
-			if len(subnetCfg.HostBGPPrefixes) > 0 {
-				return nil, errors.Errorf("subnet %s: cannot specify hostBGP prefixes on non-hostBGP subnet", subnetName)
+			if len(subnetCfg.HostBGPExtraPrefixes) > 0 {
+				return nil, errors.Errorf("subnet %s: cannot specify hostBGP extra prefixes on non-hostBGP subnet", subnetName)
+			}
+			if subnetCfg.HostBGPMinPrefixLen != 0 || subnetCfg.HostBGPMaxPrefixLen != 0 {
+				return nil, errors.Errorf("subnet %s: cannot specify hostBGP prefix lengths on non-hostBGP subnet", subnetName)
 			}
 			if subnetCfg.Gateway == "" {
 				return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
@@ -735,17 +805,17 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
 			}
 
-			for _, hbgpPrefixStr := range subnetCfg.HostBGPPrefixes {
+			for hbgpPrefixStr := range subnetCfg.HostBGPExtraPrefixes {
 				hbgpPrefix, err := netip.ParsePrefix(hbgpPrefixStr)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to parse hostBGP prefix %s in vpc subnet %s (%s)", hbgpPrefixStr, subnetName, subnetCfg.Subnet)
+					return nil, errors.Wrapf(err, "failed to parse hostBGP extra prefix %s in vpc subnet %s (%s)", hbgpPrefixStr, subnetName, subnetCfg.Subnet)
 				}
 				ok, err := isInIPv4Namespace(hbgpPrefix, ipNs)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to check if hostBGP prefix %s in vpc subnet %s (%s) belongs to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
+					return nil, errors.Wrapf(err, "failed to check if hostBGP extra prefix %s in vpc subnet %s (%s) belongs to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
 				}
 				if !ok {
-					return nil, errors.Errorf("hostBGP prefix %s in vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
+					return nil, errors.Errorf("hostBGP extra prefix %s in vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
 				}
 			}
 
@@ -792,13 +862,13 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 					if subnet.Overlaps(otherNet) {
 						return nil, errors.Errorf("subnet %s overlaps with subnet %s of VPC %s", subnet.String(), otherSubnet.Subnet, other.Name)
 					}
-					for _, otherHBGPPrefixStr := range otherSubnet.HostBGPPrefixes {
+					for otherHBGPPrefixStr := range otherSubnet.HostBGPExtraPrefixes {
 						op, err := netip.ParsePrefix(otherHBGPPrefixStr)
 						if err != nil {
-							return nil, errors.Wrapf(err, "failed to parse hostBGP prefix %s", otherHBGPPrefixStr)
+							return nil, errors.Wrapf(err, "failed to parse hostBGP extra prefix %s", otherHBGPPrefixStr)
 						}
 						if subnet.Overlaps(op) {
-							return nil, errors.Errorf("subnet %s overlaps with hostBGP prefix %s of VPC %s", subnet.String(), otherHBGPPrefixStr, other.Name)
+							return nil, errors.Errorf("subnet %s overlaps with hostBGP extra prefix %s of VPC %s", subnet.String(), otherHBGPPrefixStr, other.Name)
 						}
 					}
 				}
@@ -852,4 +922,20 @@ func isInIPv4Namespace(vpcSubnet netip.Prefix, ipNs *IPv4Namespace) (bool, error
 	}
 
 	return false, nil
+}
+
+// validateHostBGPPrefixLens checks that the range of prefix lengths accepted from the host is
+// consistent and that it falls within the prefix the host is expected to advertise from
+func validateHostBGPPrefixLens(prefix netip.Prefix, minLen, maxLen uint8) error {
+	if minLen > maxLen {
+		return errors.Errorf("hostBGP min prefix length %d is greater than max prefix length %d", minLen, maxLen)
+	}
+	if maxLen > DefaultHostBGPPrefixLen {
+		return errors.Errorf("hostBGP max prefix length %d is greater than %d", maxLen, DefaultHostBGPPrefixLen)
+	}
+	if int(minLen) < prefix.Bits() {
+		return errors.Errorf("hostBGP min prefix length %d is shorter than the prefix length of %s", minLen, prefix)
+	}
+
+	return nil
 }
