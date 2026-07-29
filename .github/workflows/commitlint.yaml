@@ -25,7 +25,7 @@ jobs:
           persist-credentials: "false"
 
       - name: Run commitlint on Pull Request's commits
-        uses: opensource-nepal/commitlint@v1
+        uses: opensource-nepal/commitlint@v2
         with:
           verbose: true
 
