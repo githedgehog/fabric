@@ -1073,6 +1073,15 @@ func TestValidateACLNoKube(t *testing.T) {
 			err: true,
 		},
 		{
+			name: "invalid scope",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: ACLActionDeny, Scope: "bogus"},
+				},
+			},
+			err: true,
+		},
+		{
 			name: "neither from nor to set",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
