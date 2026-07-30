@@ -435,6 +435,9 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			if !slices.Contains(ACLActions, rule.Action) {
 				return fmt.Errorf("invalid action %q in ACL rule %d%s", rule.Action, i, ruleBlob) //nolint:err113
 			}
+			if !slices.Contains(ACLScopes, rule.Scope) {
+				return fmt.Errorf("invalid scope %q in ACL rule %d%s", rule.Scope, i, ruleBlob) //nolint:err113
+			}
 			if rule.From == "" && rule.To == "" {
 				return fmt.Errorf("at least one of from and to must be specified in ACL rule %d%s", i, ruleBlob) //nolint:err113
 			}
