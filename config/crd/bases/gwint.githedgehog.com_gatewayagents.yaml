@@ -317,11 +317,10 @@ spec:
                                 type: string
                               scope:
                                 description: Scope of the rule, can be either "flow"
-                                  (default if empty) or "packet"
+                                  or "packet"
                                 enum:
                                 - flow
                                 - packet
-                                - ""
                                 type: string
                               to:
                                 description: To has to match one of the peering's
@@ -330,6 +329,7 @@ spec:
                                 type: string
                             required:
                             - action
+                            - scope
                             type: object
                           type: array
                       required:

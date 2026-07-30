@@ -1051,7 +1051,7 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "valid rule with from only",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{From: "vpc-1", Action: ACLActionAllow},
+					{From: "vpc-1", Action: ACLActionAllow, Scope: ACLScopeFlow},
 				},
 			},
 		},
@@ -1059,7 +1059,7 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "valid rule with to only",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{To: "vpc-2", Action: ACLActionDeny},
+					{To: "vpc-2", Action: ACLActionDeny, Scope: ACLScopeFlow},
 				},
 			},
 		},
@@ -1067,7 +1067,16 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "invalid action",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{From: "vpc-1", Action: "bogus"},
+					{From: "vpc-1", Action: "bogus", Scope: ACLScopeFlow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "missing scope",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: ACLActionDeny},
 				},
 			},
 			err: true,
@@ -1085,7 +1094,7 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "neither from nor to set",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{Action: ACLActionAllow},
+					{Action: ACLActionAllow, Scope: ACLScopeFlow},
 				},
 			},
 			err: true,
@@ -1094,7 +1103,7 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "from does not match either VPC",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{From: "vpc-3", Action: ACLActionAllow},
+					{From: "vpc-3", Action: ACLActionAllow, Scope: ACLScopeFlow},
 				},
 			},
 			err: true,
@@ -1103,7 +1112,7 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "to does not match either VPC",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{To: "vpc-3", Action: ACLActionAllow},
+					{To: "vpc-3", Action: ACLActionAllow, Scope: ACLScopeFlow},
 				},
 			},
 			err: true,
@@ -1112,7 +1121,12 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "valid rule name",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{Name: "web-traffic", From: "vpc-1", Action: ACLActionAllow},
+					{
+						Name:   "web-traffic",
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopeFlow,
+					},
 				},
 			},
 		},
@@ -1120,7 +1134,12 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "invalid rule name characters",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{Name: "Web_Traffic!", From: "vpc-1", Action: ACLActionAllow},
+					{
+						Name:   "Web_Traffic!",
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopeFlow,
+					},
 				},
 			},
 			err: true,
@@ -1129,7 +1148,12 @@ func TestValidateACLNoKube(t *testing.T) {
 			name: "rule name too long",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{
-					{Name: strings.Repeat("a", 65), From: "vpc-1", Action: ACLActionAllow},
+					{
+						Name:   strings.Repeat("a", 65),
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopeFlow,
+					},
 				},
 			},
 			err: true,
@@ -1146,6 +1170,7 @@ func TestValidateACLNoKube(t *testing.T) {
 								{CIDR: "10.0.1.0/24", VPCSubnet: "sub1"},
 							},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1163,6 +1188,7 @@ func TestValidateACLNoKube(t *testing.T) {
 								{CIDR: "10.0.2.0/24", VPCSubnet: "sub1"},
 							},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1180,6 +1206,7 @@ func TestValidateACLNoKube(t *testing.T) {
 								{CIDR: "not-a-cidr"},
 							},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1197,6 +1224,7 @@ func TestValidateACLNoKube(t *testing.T) {
 								{CIDR: "not-a-cidr"},
 							},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1214,6 +1242,7 @@ func TestValidateACLNoKube(t *testing.T) {
 							Source:      []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24", Ports: []string{"80", "443"}}},
 							Destination: []PeeringACLMatchEndpoint{{CIDR: "10.0.2.0/24", Ports: []string{"8080-8090"}}},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1228,6 +1257,7 @@ func TestValidateACLNoKube(t *testing.T) {
 						Match: PeeringACLMatch{
 							Source: []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24", Ports: []string{"not-a-port"}}},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1243,6 +1273,7 @@ func TestValidateACLNoKube(t *testing.T) {
 						Match: PeeringACLMatch{
 							Destination: []PeeringACLMatchEndpoint{{CIDR: "10.0.2.0/24", Ports: []string{"not-a-port"}}},
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1259,6 +1290,7 @@ func TestValidateACLNoKube(t *testing.T) {
 							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
 							Protocol: ACLMatchProtocolTCP,
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1274,6 +1306,7 @@ func TestValidateACLNoKube(t *testing.T) {
 							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
 							Protocol: "42",
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1289,6 +1322,7 @@ func TestValidateACLNoKube(t *testing.T) {
 							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
 							Protocol: "not-a-protocol",
 						},
+						Scope: ACLScopeFlow,
 					},
 				},
 			},
@@ -1347,6 +1381,7 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 							Match: PeeringACLMatch{
 								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
 							},
+							Scope: ACLScopeFlow,
 						},
 					},
 				}
@@ -1364,6 +1399,7 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 							Match: PeeringACLMatch{
 								Destination: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
 							},
+							Scope: ACLScopeFlow,
 						},
 					},
 				}
@@ -1382,6 +1418,7 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 							Match: PeeringACLMatch{
 								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "nonexistent"}},
 							},
+							Scope: ACLScopeFlow,
 						},
 					},
 				}
@@ -1401,6 +1438,7 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 							Match: PeeringACLMatch{
 								Destination: []PeeringACLMatchEndpoint{{VPCSubnet: "nonexistent"}},
 							},
+							Scope: ACLScopeFlow,
 						},
 					},
 				}
@@ -1420,6 +1458,7 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 							Match: PeeringACLMatch{
 								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
 							},
+							Scope: ACLScopeFlow,
 						},
 					},
 				}

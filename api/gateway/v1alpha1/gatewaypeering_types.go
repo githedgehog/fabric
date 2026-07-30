@@ -75,7 +75,7 @@ type ACLDefaultAction string
 // +kubebuilder:validation:Enum=deny;allow
 type ACLAction string
 
-// +kubebuilder:validation:Enum=flow;packet;""
+// +kubebuilder:validation:Enum=flow;packet
 type ACLScope string
 
 const (
@@ -140,8 +140,8 @@ type PeeringACLRule struct {
 	Action ACLAction `json:"action"`
 	// What the rule should match against, omit to match everything in the rule's direction
 	Match PeeringACLMatch `json:"match,omitempty"`
-	// Scope of the rule, can be either "flow" (default if empty) or "packet"
-	Scope ACLScope `json:"scope,omitempty"`
+	// Scope of the rule, can be either "flow" or "packet"
+	Scope ACLScope `json:"scope"`
 	Log   bool     `json:"log,omitempty"`
 }
 
@@ -276,11 +276,6 @@ func (p *GatewayPeering) Default() {
 	if acl := p.Spec.ACL; acl != nil {
 		if acl.Default == "" {
 			acl.Default = ACLDefaultDenyUnlessExposed
-		}
-		for i := range acl.Rules {
-			if acl.Rules[i].Scope == "" {
-				acl.Rules[i].Scope = ACLScopeFlow
-			}
 		}
 	}
 }

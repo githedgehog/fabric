@@ -913,7 +913,7 @@ _Underlying type:_ _string_
 
 
 _Validation:_
-- Enum: [flow packet ]
+- Enum: [flow packet]
 
 _Appears in:_
 - [PeeringACLRule](#peeringaclrule)
@@ -1244,7 +1244,7 @@ _Appears in:_
 | `to` _string_ | To has to match one of the peering's two VPCs if present, implicit from the "from" field otherwise |  |  |
 | `action` _[ACLAction](#aclaction)_ | Action to execute if the rule matches, can be either "deny" or "allow" |  | Enum: [deny allow] <br /> |
 | `match` _[PeeringACLMatch](#peeringaclmatch)_ | What the rule should match against, omit to match everything in the rule's direction |  |  |
-| `scope` _[ACLScope](#aclscope)_ | Scope of the rule, can be either "flow" (default if empty) or "packet" |  | Enum: [flow packet ] <br /> |
+| `scope` _[ACLScope](#aclscope)_ | Scope of the rule, can be either "flow" or "packet" |  | Enum: [flow packet] <br /> |
 | `log` _boolean_ |  |  |  |
 
 

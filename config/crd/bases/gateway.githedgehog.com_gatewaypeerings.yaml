@@ -134,12 +134,11 @@ spec:
                           description: Optional name for logs and diagnostics
                           type: string
                         scope:
-                          description: Scope of the rule, can be either "flow" (default
-                            if empty) or "packet"
+                          description: Scope of the rule, can be either "flow" or
+                            "packet"
                           enum:
                           - flow
                           - packet
-                          - ""
                           type: string
                         to:
                           description: To has to match one of the peering's two VPCs
@@ -147,6 +146,7 @@ spec:
                           type: string
                       required:
                       - action
+                      - scope
                       type: object
                     type: array
                 required:
