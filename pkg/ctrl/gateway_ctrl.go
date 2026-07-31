@@ -88,6 +88,7 @@ func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("Gateway").
 		For(&gwapi.Gateway{}).
+		Watches(&gwapi.Gateway{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
 		Watches(&gwapi.GatewayPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
 		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
 		Complete(r); err != nil {
