@@ -20,6 +20,7 @@ import (
 	"maps"
 	"net"
 	"net/netip"
+	"slices"
 	"strings"
 
 	"github.com/fatih/color"
@@ -286,6 +287,8 @@ type ConnectionStatus struct{}
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=conn
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/connection-type`,priority=0
+// +kubebuilder:printcolumn:name="Switches",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/switches`,priority=1
+// +kubebuilder:printcolumn:name="Servers",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/servers`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Connection object represents a logical and physical connections between any devices in the Fabric (Switch, Server
 // and External objects). It's needed to define all physical and logical connections between the devices in the Wiring
@@ -457,8 +460,9 @@ func (connSpec *ConnectionSpec) Type() string {
 	return INVALID
 }
 
-func (connSpec *ConnectionSpec) ConnectionLabels() map[string]string {
+func (connSpec *ConnectionSpec) ConnectionLabelsAnnotations() (map[string]string, map[string]string) {
 	labels := map[string]string{}
+	anns := map[string]string{}
 
 	labels[LabelConnectionType] = connSpec.Type()
 
@@ -469,7 +473,7 @@ func (connSpec *ConnectionSpec) ConnectionLabels() map[string]string {
 	switches, servers, _, _, err := connSpec.Endpoints()
 	// if error, we don't need to set labels
 	if err != nil {
-		return labels
+		return labels, anns
 	}
 
 	for _, switchName := range switches {
@@ -479,7 +483,13 @@ func (connSpec *ConnectionSpec) ConnectionLabels() map[string]string {
 		labels[ListLabelServer(serverName)] = ListLabelValue
 	}
 
-	return labels
+	slices.Sort(switches)
+	slices.Sort(servers)
+
+	anns[LabelSwitches] = strings.Join(switches, ",")
+	anns[LabelServers] = strings.Join(servers, ",")
+
+	return labels, anns
 }
 
 func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[string]string, error) {
@@ -713,13 +723,16 @@ func (conn *Connection) Default() {
 	if conn.Labels == nil {
 		conn.Labels = map[string]string{}
 	}
-
-	CleanupFabricLabels(conn.Labels)
-	if conn.Spec.MCLAG != nil || conn.Spec.MCLAGDomain != nil {
-		return
+	if conn.Annotations == nil {
+		conn.Annotations = map[string]string{}
 	}
 
-	maps.Copy(conn.Labels, conn.Spec.ConnectionLabels())
+	CleanupFabricLabels(conn.Labels)
+	CleanupFabricLabels(conn.Annotations)
+
+	labels, anns := conn.Spec.ConnectionLabelsAnnotations()
+	maps.Copy(conn.Labels, labels)
+	maps.Copy(conn.Annotations, anns)
 }
 
 func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {

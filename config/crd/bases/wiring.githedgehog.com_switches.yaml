@@ -30,19 +30,23 @@ spec:
     - jsonPath: .spec.description
       name: Descr
       type: string
-    - jsonPath: .spec.groups
-      name: Groups
+    - jsonPath: .spec.boot
+      name: Boot
       type: string
-    - jsonPath: .spec.redundancy
+    - jsonPath: .spec.vtepIP
+      name: VTEPIP
+      type: string
+    - jsonPath: .spec.redundancy.type
       name: Redundancy
       priority: 1
       type: string
-    - jsonPath: .spec.boot
-      name: Boot
+    - jsonPath: .spec.groups
+      name: Groups
       priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
+      priority: 10
       type: date
     name: v1beta1
     schema:

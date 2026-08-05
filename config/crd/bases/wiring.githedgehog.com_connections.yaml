@@ -24,6 +24,14 @@ spec:
     - jsonPath: .metadata.labels.fabric\.githedgehog\.com/connection-type
       name: Type
       type: string
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/switches
+      name: Switches
+      priority: 1
+      type: string
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/servers
+      name: Servers
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

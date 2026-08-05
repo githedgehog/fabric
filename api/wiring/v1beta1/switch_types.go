@@ -189,10 +189,11 @@ type SwitchStatus struct {
 // +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.profile`,priority=0
 // +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
-// +kubebuilder:printcolumn:name="Groups",type=string,JSONPath=`.spec.groups`,priority=0
-// +kubebuilder:printcolumn:name="Redundancy",type=string,JSONPath=`.spec.redundancy`,priority=1
-// +kubebuilder:printcolumn:name="Boot",type=string,JSONPath=`.spec.boot`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Boot",type=string,JSONPath=`.spec.boot`,priority=0
+// +kubebuilder:printcolumn:name="VTEPIP",type=string,JSONPath=`.spec.vtepIP`,priority=0
+// +kubebuilder:printcolumn:name="Redundancy",type=string,JSONPath=`.spec.redundancy.type`,priority=1
+// +kubebuilder:printcolumn:name="Groups",type=string,JSONPath=`.spec.groups`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Switch is the Schema for the switches API
 type Switch struct {
 	kmetav1.TypeMeta   `json:",inline"`
