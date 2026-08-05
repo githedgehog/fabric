@@ -20,18 +20,23 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.protocolIP
-      name: ProtoIP
-      type: string
     - jsonPath: .spec.vtepIP
       name: VTEPIP
       type: string
     - jsonPath: .spec.groups
       name: Groups
+      type: string
+    - jsonPath: .spec.workers
+      name: Workers
+      priority: 1
+      type: integer
+    - jsonPath: .spec.protocolIP
+      name: ProtoIP
       priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
+      priority: 10
       type: date
     name: v1alpha1
     schema:

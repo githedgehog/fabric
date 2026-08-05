@@ -172,13 +172,14 @@ type BGPNeighborPrefixes struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=gwag
+// +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=0
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
 // +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0
 // +kubebuilder:printcolumn:name="CurrentG",type=integer,JSONPath=`.metadata.generation`,priority=0
-// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.agentVersion`,priority=0
-// +kubebuilder:printcolumn:name="ProtoIP",type=string,JSONPath=`.spec.gateway.protocolIP`,priority=1
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.state.dataplane.version`,priority=0
 // +kubebuilder:printcolumn:name="VTEPIP",type=string,JSONPath=`.spec.gateway.vtepIP`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="ProtoIP",type=string,JSONPath=`.spec.gateway.protocolIP`,priority=2
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // GatewayAgent is the Schema for the gatewayagents API.
 type GatewayAgent struct {
 	kmetav1.TypeMeta   `json:",inline"`

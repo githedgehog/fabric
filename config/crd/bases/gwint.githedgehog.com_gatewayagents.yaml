@@ -20,6 +20,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.lastHeartbeat
+      name: Heartbeat
+      type: date
     - jsonPath: .status.lastAppliedTime
       name: Applied
       type: date
@@ -29,19 +32,20 @@ spec:
     - jsonPath: .metadata.generation
       name: CurrentG
       type: integer
-    - jsonPath: .status.agentVersion
+    - jsonPath: .status.state.dataplane.version
       name: Version
-      type: string
-    - jsonPath: .spec.gateway.protocolIP
-      name: ProtoIP
-      priority: 1
       type: string
     - jsonPath: .spec.gateway.vtepIP
       name: VTEPIP
       priority: 1
       type: string
+    - jsonPath: .spec.gateway.protocolIP
+      name: ProtoIP
+      priority: 2
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
+      priority: 10
       type: date
     name: v1alpha1
     schema:

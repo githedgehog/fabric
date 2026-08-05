@@ -19,11 +19,15 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.switch.profile
+      name: Profile
+      type: string
     - jsonPath: .spec.role
       name: Role
       type: string
     - jsonPath: .spec.description
       name: Descr
+      priority: 1
       type: string
     - jsonPath: .status.state.nos.hwskuVersion
       name: HWSKU
@@ -31,7 +35,6 @@ spec:
       type: string
     - jsonPath: .status.lastHeartbeat
       name: Heartbeat
-      priority: 1
       type: date
     - jsonPath: .status.lastAppliedTime
       name: Applied
@@ -47,7 +50,8 @@ spec:
       type: string
     - jsonPath: .status.rebootRequired
       name: RebootReq
-      type: string
+      priority: 1
+      type: boolean
     - jsonPath: .status.state.nos.softwareVersion
       name: Software
       priority: 1
