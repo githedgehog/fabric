@@ -183,7 +183,8 @@ spec:
                   type: string
                 description: |-
                   PortLocators is a map of port locator LED expire times which could be specified as 10m for 10 minutes (between 1 and 20 minutes),
-                  empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format
+                  empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format, key is the port name or
+                  "*" to apply to all ports of the switch (in which case any per-port entries are dropped)
                 type: object
               portSpeeds:
                 additionalProperties:

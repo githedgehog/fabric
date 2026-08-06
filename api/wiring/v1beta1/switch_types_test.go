@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
@@ -394,6 +395,65 @@ func TestNormalizePortLocator(t *testing.T) {
 			parsed, err := time.ParseInLocation(time.DateTime, expire, time.UTC)
 			require.NoError(t, err)
 			require.WithinDuration(t, now.Add(test.expectExpire), parsed, 5*time.Second)
+		})
+	}
+}
+
+func TestSwitchDefaultPortLocators(t *testing.T) {
+	now := time.Now().UTC()
+	past := now.Add(-1 * time.Hour).Format(time.DateTime)
+
+	for _, test := range []struct {
+		name string
+		in   map[string]string
+		want []string // expected port names, values are checked to be within the allowed range
+	}{
+		{
+			name: "perPort",
+			in:   map[string]string{"E1/1": "10m", "E1/2": ""},
+			want: []string{"E1/1", "E1/2"},
+		},
+		{
+			name: "allPortsSupersedesPerPort",
+			in:   map[string]string{"*": "10m", "E1/1": "10m", "E1/2": ""},
+			want: []string{"*"},
+		},
+		{
+			name: "allPortsExpired",
+			in:   map[string]string{"*": past, "E1/1": "10m"},
+			want: []string{},
+		},
+		{
+			name: "expiredPerPortDropped",
+			in:   map[string]string{"E1/1": past, "E1/2": "10m"},
+			want: []string{"E1/2"},
+		},
+		{
+			name: "unparseableKept",
+			in:   map[string]string{"E1/1": "whenever"},
+			want: []string{"E1/1"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			sw := &wiringapi.Switch{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf1", Namespace: "default"},
+				Spec:       wiringapi.SwitchSpec{PortLocators: test.in},
+			}
+			sw.Default()
+
+			require.ElementsMatch(t, test.want, lo.Keys(sw.Spec.PortLocators))
+
+			for name, value := range sw.Spec.PortLocators {
+				if test.in[name] == "whenever" {
+					require.Equal(t, "whenever", value, "unparseable value should be left as-is")
+
+					continue
+				}
+
+				expire, err := time.ParseInLocation(time.DateTime, value, time.UTC)
+				require.NoError(t, err, "defaulted value should be an exact time")
+				require.WithinRange(t, expire, now, now.Add(wiringapi.PortLocatorMaxExpire+5*time.Second))
+			}
 		})
 	}
 }
