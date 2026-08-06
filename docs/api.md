@@ -3301,6 +3301,7 @@ _Appears in:_
 | `mclag` _boolean_ | MCLAG defines if switch supports MCLAG (with VXLAN) |  |  |
 | `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
 | `ecmpRoCEQPN` _boolean_ | ECMPRoCEQPN defines if switch supports ECMP QPN hashing |  |  |
+| `portLocator` _boolean_ | PortLocator defines if switch supports port locator LED control |  |  |
 
 
 #### SwitchProfilePipeline
@@ -3541,6 +3542,7 @@ _Appears in:_
 | `portBreakouts` _object (keys:string, values:string)_ | PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G" |  |  |
 | `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
 | `portFECs` _object (keys:string, values:[PortFECMode](#portfecmode))_ | PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).<br />Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,<br />instead that value persists on the device until a full config reset or a new explicit config |  |  |
+| `portLocators` _object (keys:string, values:string)_ | PortLocators is a map of port locator LED expire times which could be specified as 10m for 10 minutes (between 1 and 20 minutes),<br />empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format |  |  |
 | `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
 | `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
 | `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |

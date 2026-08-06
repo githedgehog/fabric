@@ -160,6 +160,10 @@ var specEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 			return errors.Wrap(err, "failed to handle neighbor global")
 		}
 
+		if err := specPortLocatorsEnforcer.Handle(basePath, actual.PortLocators, desired.PortLocators, actions); err != nil {
+			return errors.Wrap(err, "failed to handle port locators")
+		}
+
 		return nil
 	},
 }
@@ -279,6 +283,12 @@ func loadActualSpec(ctx context.Context, agent *agentapi.Agent, client GNMICClie
 	if agent.Spec.Role.IsLeaf() {
 		if err := loadActualNeighborGlobal(ctx, client, spec); err != nil {
 			return errors.Wrapf(err, "failed to load neighbor global")
+		}
+	}
+
+	if agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.Features.PortLocator {
+		if err := loadActualPortLocators(ctx, client, spec); err != nil {
+			return errors.Wrapf(err, "failed to load port locators")
 		}
 	}
 

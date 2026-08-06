@@ -79,6 +79,7 @@ type Spec struct {
 	ErrDisableInterfaces map[string]*SpecErrDisable        `json:"errDisableInterfaces,omitempty"`
 	NeighborGlobal       *SpecNeighborGlobal               `json:"neighborGlobal,omitempty"`
 	RoCE                 bool                              `json:"-"`
+	PortLocators         map[string]*SpecPortLocator       `json:"portLocators,omitempty"`
 }
 
 type SpecLLDP struct {
@@ -447,6 +448,11 @@ type SpecLSTInterface struct {
 	Groups []string `json:"groups,omitempty"`
 }
 
+type SpecPortLocator struct {
+	Enabled *bool   `json:"enabled,omitempty"`
+	Expire  *string `json:"expire,omitempty"`
+}
+
 func (s *Spec) Normalize() {
 	for _, user := range s.Users {
 		if user.AuthorizedKeys == nil {
@@ -584,6 +590,7 @@ var (
 	_ SpecPart = (*SpecErrDisableGlobal)(nil)
 	_ SpecPart = (*SpecErrDisable)(nil)
 	_ SpecPart = (*SpecNeighborGlobal)(nil)
+	_ SpecPart = (*SpecPortLocator)(nil)
 )
 
 func (s *Spec) IsNil() bool {
@@ -767,5 +774,9 @@ func (s *SpecNeighborGlobal) IsNil() bool {
 }
 
 func (s *SpecInterfaceIPv6) IsNil() bool {
+	return s == nil
+}
+
+func (s *SpecPortLocator) IsNil() bool {
 	return s == nil
 }

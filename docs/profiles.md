@@ -32,24 +32,24 @@ features and port naming scheme.
 
 The following table shows which features are supported by each switch profile:
 
-| Switch Profile | Subinterfaces | ACLs | L2VNI | L3VNI | RoCE | MCLAG | ESLAG | QPN |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| [Celestica DS2000 (Questone 2a)](#celestica-ds2000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: |
-| [Celestica DS3000 (Seastone2)](#celestica-ds3000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
-| [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: |
-| [Celestica DS4101 (Greystone)](#celestica-ds4101) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: |
-| [Celestica DS5000 (Moonstone)](#celestica-ds5000) | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: |
-| [Dell S5232F-ON](#dell-s5232f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
-| [Dell S5248F-ON](#dell-s5248f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
-| [Dell Z9332F-ON](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: |
-| [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
-| [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
-| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: |
-| [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
-| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: |
-| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: |
-| [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
-| [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: |
+| Switch Profile | Subinterfaces | ACLs | L2VNI | L3VNI | RoCE | MCLAG | ESLAG | QPN | PortLocator |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| [Celestica DS2000 (Questone 2a)](#celestica-ds2000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Celestica DS3000 (Seastone2)](#celestica-ds3000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: |
+| [Celestica DS4101 (Greystone)](#celestica-ds4101) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: |
+| [Celestica DS5000 (Moonstone)](#celestica-ds5000) | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-check: |
+| [Dell S5232F-ON](#dell-s5232f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Dell S5248F-ON](#dell-s5248f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Dell Z9332F-ON](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: |
+| [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-close: |
+| [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
+| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: |
+| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
 
 
 

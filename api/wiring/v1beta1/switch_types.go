@@ -16,10 +16,12 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"net/netip"
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -40,6 +42,11 @@ const (
 	DefaultLinkFlapThreshold        = 3
 	DefaultLinkFlapSamplingInterval = 30
 	DefaultLinkFlapRecoveryInterval = 300
+
+	// PortLocatorDefaultExpire is the port locator LED expire time used if it's not specified
+	PortLocatorDefaultExpire = 5 * time.Minute
+	// PortLocatorMaxExpire is the maximum port locator LED expire time, longer ones are clamped to it
+	PortLocatorMaxExpire = 20 * time.Minute
 )
 
 // +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf;virtual-edge
@@ -133,6 +140,9 @@ type SwitchSpec struct {
 	// Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
 	// instead that value persists on the device until a full config reset or a new explicit config
 	PortFECs map[string]PortFECMode `json:"portFECs,omitempty"`
+	// PortLocators is a map of port locator LED expire times which could be specified as 10m for 10 minutes (between 1 and 20 minutes),
+	// empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format
+	PortLocators map[string]string `json:"portLocators,omitempty"`
 	// Boot is the boot/provisioning information of the switch
 	Boot SwitchBoot `json:"boot,omitempty"`
 	// EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not
@@ -252,6 +262,22 @@ func (sw *Switch) Default() {
 
 	for name, value := range sw.Spec.PortSpeeds {
 		sw.Spec.PortSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
+	}
+
+	for name, value := range sw.Spec.PortLocators {
+		ok, expire, err := NormalizePortLocator(value)
+		if err != nil {
+			// leave unparseable values as-is, validation will reject them
+			continue
+		}
+
+		if !ok {
+			delete(sw.Spec.PortLocators, name)
+
+			continue
+		}
+
+		sw.Spec.PortLocators[name] = expire
 	}
 
 	if len(sw.Spec.VLANNamespaces) == 0 {
@@ -633,6 +659,25 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
+		apiPorts, err := sp.Spec.GetAvailableAPIPorts(&sw.Spec)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get available API ports")
+		}
+
+		if len(sw.Spec.PortLocators) > 0 && !sp.Spec.Features.PortLocator {
+			return nil, errors.Errorf("port locators are not supported on switch profile %s", sw.Spec.Profile)
+		}
+
+		for name, expire := range sw.Spec.PortLocators {
+			if !apiPorts[name] {
+				return nil, errors.Errorf("port %s is not a valid port for port locators", name)
+			}
+
+			if _, _, err := NormalizePortLocator(expire); err != nil {
+				return nil, errors.Wrapf(err, "invalid port locator expire %q for port %s", expire, name)
+			}
+		}
+
 		if sw.Spec.RoCE && !sp.Spec.Features.RoCE {
 			return nil, errors.Errorf("RoCEv2 is not supported on switch profile %s", sw.Spec.Profile)
 		}
@@ -720,4 +765,33 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	}
 
 	return warnings, nil
+}
+
+// NormalizePortLocator interprets a port locator expire value which could be an empty string (meaning the default
+// expire), a duration relative to now such as "10m" or an exact UTC time in the time.DateTime format. It returns
+// false if the resulting expire time is already in the past, otherwise it returns the expire time clamped to the
+// [now, now+PortLocatorMaxExpire] range and formatted as an exact UTC time.
+func NormalizePortLocator(in string) (bool, string, error) {
+	now := time.Now().UTC()
+
+	var expire time.Time
+	if in == "" {
+		expire = now.Add(PortLocatorDefaultExpire)
+	} else if dur, err := time.ParseDuration(in); err == nil {
+		expire = now.Add(dur)
+	} else if exact, err := time.ParseInLocation(time.DateTime, in, time.UTC); err == nil {
+		expire = exact.UTC()
+	} else {
+		return false, "", fmt.Errorf("expected an empty value, a duration such as 10m or an exact UTC time in the %q format: %w", time.DateTime, err)
+	}
+
+	if expire.Before(now.Add(1 * time.Second)) {
+		return false, "", nil
+	}
+
+	if latest := now.Add(PortLocatorMaxExpire); expire.After(latest) {
+		expire = latest
+	}
+
+	return true, expire.Format(time.DateTime), nil
 }

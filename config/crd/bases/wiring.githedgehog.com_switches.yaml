@@ -174,6 +174,13 @@ spec:
                 description: 'PortGroupSpeeds is a map of port group speeds, key is
                   the port group name, value is the speed, such as ''"2": 10G'''
                 type: object
+              portLocators:
+                additionalProperties:
+                  type: string
+                description: |-
+                  PortLocators is a map of port locator LED expire times which could be specified as 10m for 10 minutes (between 1 and 20 minutes),
+                  empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format
+                type: object
               portSpeeds:
                 additionalProperties:
                   type: string

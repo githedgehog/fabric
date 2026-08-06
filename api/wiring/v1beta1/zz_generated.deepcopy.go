@@ -1372,6 +1372,13 @@ func (in *SwitchSpec) DeepCopyInto(out *SwitchSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.PortLocators != nil {
+		in, out := &in.PortLocators, &out.PortLocators
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	out.Boot = in.Boot
 	out.ECMP = in.ECMP
 	if in.LinkFlapErrDisable != nil {
