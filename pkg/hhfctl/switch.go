@@ -280,6 +280,89 @@ func SwitchRoCE(ctx context.Context, name string, value *bool) error {
 	return nil
 }
 
+func SwitchLocator(ctx context.Context, name, port, expire string, off bool) error {
+	if name == "" {
+		return fmt.Errorf("switch name is required, use --name/-n to specify it") //nolint:goerr113
+	}
+	if off && expire != "" {
+		return fmt.Errorf("expire time can't be used together with turning the locator off") //nolint:goerr113
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
+	if err != nil {
+		return fmt.Errorf("creating kube client: %w", err)
+	}
+
+	sw := &wiringapi.Switch{}
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
+		return fmt.Errorf("getting switch %q: %w", name, err)
+	}
+
+	if port == "" {
+		port = wiringapi.PortLocatorAllPorts
+	}
+
+	allPorts := port == wiringapi.PortLocatorAllPorts
+	_, allPortsSet := sw.Spec.PortLocators[wiringapi.PortLocatorAllPorts]
+
+	if off {
+		if allPorts {
+			if len(sw.Spec.PortLocators) == 0 {
+				slog.Info("No port locators enabled, nothing to do", "switch", name)
+
+				return nil
+			}
+
+			sw.Spec.PortLocators = nil
+		} else {
+			// a single port can't be excluded from the all-ports locator
+			if allPortsSet {
+				return fmt.Errorf("all-ports locator is enabled, turn it off for all ports instead of port %q", port) //nolint:goerr113
+			}
+
+			if _, exists := sw.Spec.PortLocators[port]; !exists {
+				slog.Info("Port locator is not enabled, nothing to do", "switch", name, "port", port)
+
+				return nil
+			}
+
+			delete(sw.Spec.PortLocators, port)
+		}
+	} else {
+		if sw.Spec.PortLocators == nil {
+			sw.Spec.PortLocators = map[string]string{}
+		}
+
+		// the all-ports entry supersedes the per-port ones, so keeping it would silently discard the
+		// port the user just asked for
+		if !allPorts && allPortsSet {
+			slog.Info("Replacing the all-ports locator, other ports will be turned off", "switch", name)
+			delete(sw.Spec.PortLocators, wiringapi.PortLocatorAllPorts)
+		}
+
+		sw.Spec.PortLocators[port] = expire
+	}
+
+	if err := kube.Update(ctx, sw); err != nil {
+		return fmt.Errorf("updating switch object: %w", err)
+	}
+
+	if off {
+		slog.Info("Port locator disabled", "switch", name, "port", port)
+
+		return nil
+	}
+
+	// the value is normalized to an exact UTC expire time by the defaulting webhook
+	if expire, exists := sw.Spec.PortLocators[port]; exists {
+		slog.Info("Port locator enabled", "switch", name, "port", port, "expire", expire)
+	} else {
+		slog.Warn("Port locator expire time is already in the past, nothing enabled", "switch", name, "port", port)
+	}
+
+	return nil
+}
+
 func SwitchECMPRoCEQPN(ctx context.Context, name string, value *bool) error {
 	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {

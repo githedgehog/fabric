@@ -890,6 +890,47 @@ func main() {
 						},
 					},
 					{
+						Name:      "locate",
+						Usage:     "Turn the port locator LED on the switch on or off",
+						UsageText: "hhfctl switch locate --name <switch> [--port <port>] [--expiry <duration|time>] [--off]",
+						Description: `Turns the port locator (beacon) LED on for a single port or for all ports of the switch.
+The LED is turned off by the switch itself once the expire time is reached.
+
+Only supported on switches whose profile enables port locators.
+
+Examples:
+   hhfctl switch locate -n leaf-01                              # all ports for the default 5 minutes
+   hhfctl switch locate -n leaf-01 -p E1/1 -e 15m               # a single port for 15 minutes
+   hhfctl switch locate -n leaf-01 -p E1/53/1                   # a breakout sub-port
+   hhfctl switch locate -n leaf-01 -e "2026-08-05 19:30:00"     # all ports until an exact UTC time
+   hhfctl switch locate -n leaf-01 -p E1/1 --off                # turn a single port off
+   hhfctl switch locate -n leaf-01 --off                        # turn every locator on the switch off`,
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							&cli.StringFlag{
+								Name:    "port",
+								Aliases: []string{"p"},
+								Usage:   "port `name` such as E1/1 or a breakout sub-port such as E1/53/1, defaults to all ports of the switch (setting a single port replaces the all-ports locator and turns the other ports off)",
+							},
+							&cli.StringFlag{
+								Name:    "expiry",
+								Aliases: []string{"e"},
+								Usage:   "when to turn the LED off: a `duration` relative to now such as 30s, 10m or 1h, or an exact UTC time in the \"2006-01-02 15:04:05\" format, defaults to 5m (longer than 20m is clamped to 20m, a time in the past turns the locator off)",
+							},
+							&cli.BoolFlag{
+								Name:  "off",
+								Usage: "turn the port locator off instead of on, without --port turns off every locator on the switch (a single port can't be turned off while the all-ports locator is on)",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchLocator(ctx, name, cCtx.String("port"), cCtx.String("expiry"), cCtx.Bool("off")), "failed to set port locator"))
+						},
+					},
+					{
 						Name:  "ecmp-roce-qpn",
 						Usage: "Set ECMP RoCE QPN hashing",
 						Flags: []cli.Flag{
