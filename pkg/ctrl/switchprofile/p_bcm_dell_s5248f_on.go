@@ -25,6 +25,7 @@ var DellS5248FON = wiringapi.SwitchProfile{
 			MCLAG:         true,
 			ESLAG:         true,
 			ECMPRoCEQPN:   false,
+			PortLocator:   true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-dellemc_s5248f_c3538-r0",

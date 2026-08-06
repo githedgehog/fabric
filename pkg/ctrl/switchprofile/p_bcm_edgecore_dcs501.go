@@ -26,6 +26,7 @@ var EdgecoreDCS501 = wiringapi.SwitchProfile{
 			MCLAG:         false,
 			ESLAG:         false,
 			ECMPRoCEQPN:   false,
+			PortLocator:   false,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-accton_as7712_32x-r0",

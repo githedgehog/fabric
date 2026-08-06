@@ -26,6 +26,7 @@ var EdgecoreDCS203 = wiringapi.SwitchProfile{
 			MCLAG:         true,
 			ESLAG:         true,
 			ECMPRoCEQPN:   false,
+			PortLocator:   true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-accton_as7326_56x-r0",
