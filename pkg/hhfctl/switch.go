@@ -353,6 +353,10 @@ func SwitchLocator(ctx context.Context, name, port, expire string, off bool) err
 		return nil
 	}
 
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, sw); err != nil {
+		return fmt.Errorf("getting updated switch %q: %w", name, err)
+	}
+
 	// the value is normalized to an exact UTC expire time by the defaulting webhook
 	if expire, exists := sw.Spec.PortLocators[port]; exists {
 		slog.Info("Port locator enabled", "switch", name, "port", port, "expire", expire)
