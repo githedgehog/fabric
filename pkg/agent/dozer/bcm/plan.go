@@ -3796,12 +3796,13 @@ func planPortFECs(agent *agentapi.Agent, spec *dozer.Spec) error {
 }
 
 // planPortLocators plans the port locator LEDs keyed by hedgehog port names, translatePortNames
-// translates them to the NOS ones afterwards.
+// translates them to the NOS ones afterwards. The "*" port name applies to every available API port
+// and, per defaulting, is the only entry present when used.
 //
 // Expire times are absolute (normalized at admission), so an entry whose time has already passed is
 // dropped here instead of being re-applied on every reconcile: the device turns the LED off on its
 // own once the expire time is reached and we'd otherwise keep switching it back on.
-func planPortLocators(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
+func planPortLocators(agent *agentapi.Agent, spec *dozer.Spec) error {
 	if agent.Spec.SwitchProfile == nil || !agent.Spec.SwitchProfile.Features.PortLocator {
 		return nil
 	}
@@ -3812,9 +3813,24 @@ func planPortLocators(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:
 			continue // invalid values are rejected at admission, expired ones are no longer wanted
 		}
 
+		if name == wiringapi.PortLocatorAllPorts {
+			allAPIPorts, err := agent.Spec.SwitchProfile.GetAvailableAPIPorts(&agent.Spec.Switch)
+			if err != nil {
+				return errors.Wrapf(err, "failed to get available API ports for port locators")
+			}
+			for portName := range allAPIPorts {
+				spec.PortLocators[portName] = &dozer.SpecPortLocator{
+					Enabled: pointer.To(true),
+					Expire:  pointer.To(expire),
+				}
+			}
+
+			break
+		}
+
 		spec.PortLocators[name] = &dozer.SpecPortLocator{
-			Enabled: new(true),
-			Expire:  new(expire),
+			Enabled: pointer.To(true),
+			Expire:  pointer.To(expire),
 		}
 	}
 

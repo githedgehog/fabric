@@ -47,6 +47,8 @@ const (
 	PortLocatorDefaultExpire = 5 * time.Minute
 	// PortLocatorMaxExpire is the maximum port locator LED expire time, longer ones are clamped to it
 	PortLocatorMaxExpire = 20 * time.Minute
+	// PortLocatorAllPorts is the port locator name applying to all ports of the switch, it supersedes any per-port entries
+	PortLocatorAllPorts = "*"
 )
 
 // +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf;virtual-edge
@@ -141,7 +143,8 @@ type SwitchSpec struct {
 	// instead that value persists on the device until a full config reset or a new explicit config
 	PortFECs map[string]PortFECMode `json:"portFECs,omitempty"`
 	// PortLocators is a map of port locator LED expire times which could be specified as 10m for 10 minutes (between 1 and 20 minutes),
-	// empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format
+	// empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format, key is the port name or
+	// "*" to apply to all ports of the switch (in which case any per-port entries are dropped)
 	PortLocators map[string]string `json:"portLocators,omitempty"`
 	// Boot is the boot/provisioning information of the switch
 	Boot SwitchBoot `json:"boot,omitempty"`
@@ -262,6 +265,15 @@ func (sw *Switch) Default() {
 
 	for name, value := range sw.Spec.PortSpeeds {
 		sw.Spec.PortSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
+	}
+
+	if _, exists := sw.Spec.PortLocators[PortLocatorAllPorts]; exists {
+		// the all-ports entry supersedes the per-port ones
+		for name := range sw.Spec.PortLocators {
+			if name != PortLocatorAllPorts {
+				delete(sw.Spec.PortLocators, name)
+			}
+		}
 	}
 
 	for name, value := range sw.Spec.PortLocators {
@@ -669,7 +681,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 
 		for name, expire := range sw.Spec.PortLocators {
-			if !apiPorts[name] {
+			if name != PortLocatorAllPorts && !apiPorts[name] {
 				return nil, errors.Errorf("port %s is not a valid port for port locators", name)
 			}
 
