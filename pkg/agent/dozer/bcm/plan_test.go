@@ -122,6 +122,10 @@ func TestTranslatePortNames(t *testing.T) {
 					"E1/1":   {Groups: []string{"group1"}},
 					"E1/8/3": {Groups: []string{"group1"}},
 				},
+				PortLocators: map[string]*dozer.SpecPortLocator{
+					"E1/1":   {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
+					"E1/8/3": {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
+				},
 			},
 			want: &dozer.Spec{
 				LLDPInterfaces: map[string]*dozer.SpecLLDPInterface{
@@ -148,6 +152,10 @@ func TestTranslatePortNames(t *testing.T) {
 					"Ethernet26": {Groups: []string{"group1"}},
 				},
 				ErrDisableInterfaces: map[string]*dozer.SpecErrDisable{},
+				PortLocators: map[string]*dozer.SpecPortLocator{
+					"Ethernet0":  {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
+					"Ethernet26": {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
+				},
 			},
 		},
 	} {

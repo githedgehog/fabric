@@ -109,6 +109,7 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		LSTInterfaces:        map[string]*dozer.SpecLSTInterface{},
 		BFDProfiles:          map[string]*dozer.SpecBFDProfile{},
 		ErrDisableInterfaces: map[string]*dozer.SpecErrDisable{},
+		PortLocators:         map[string]*dozer.SpecPortLocator{},
 	}
 
 	for name, speed := range agent.Spec.Switch.PortGroupSpeeds {
@@ -233,6 +234,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 	err = planPortAutoNegs(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan port auto negs")
+	}
+
+	err = planPortLocators(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan port locators")
 	}
 
 	err = translatePortNames(agent, spec)
@@ -3789,6 +3795,32 @@ func planPortFECs(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+// planPortLocators plans the port locator LEDs keyed by hedgehog port names, translatePortNames
+// translates them to the NOS ones afterwards.
+//
+// Expire times are absolute (normalized at admission), so an entry whose time has already passed is
+// dropped here instead of being re-applied on every reconcile: the device turns the LED off on its
+// own once the expire time is reached and we'd otherwise keep switching it back on.
+func planPortLocators(agent *agentapi.Agent, spec *dozer.Spec) error { //nolint:unparam
+	if agent.Spec.SwitchProfile == nil || !agent.Spec.SwitchProfile.Features.PortLocator {
+		return nil
+	}
+
+	for name, value := range agent.Spec.Switch.PortLocators {
+		active, expire, err := wiringapi.NormalizePortLocator(value)
+		if err != nil || !active {
+			continue // invalid values are rejected at admission, expired ones are no longer wanted
+		}
+
+		spec.PortLocators[name] = &dozer.SpecPortLocator{
+			Enabled: new(true),
+			Expire:  new(expire),
+		}
+	}
+
+	return nil
+}
+
 func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 	sp := agent.Spec.SwitchProfile
 
@@ -3894,6 +3926,20 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 		newErrDisableIfaces[portName] = iface
 	}
 	spec.ErrDisableInterfaces = newErrDisableIfaces
+
+	newPortLocators := map[string]*dozer.SpecPortLocator{}
+	for name, portLocator := range spec.PortLocators {
+		portName := name
+		if isHedgehogPortName(name) {
+			portName, err = getNOSPortName(ports, name)
+			if err != nil {
+				return errors.Wrapf(err, "failed to translate port name for port locators %s", name)
+			}
+		}
+
+		newPortLocators[portName] = portLocator
+	}
+	spec.PortLocators = newPortLocators
 
 	for vrfName, vrf := range spec.VRFs {
 		newIfaces := map[string]*dozer.SpecVRFInterface{}

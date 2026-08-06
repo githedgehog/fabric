@@ -63,6 +63,8 @@ type SwitchProfileFeatures struct {
 	ESLAG bool `json:"eslag,omitempty"`
 	// ECMPRoCEQPN defines if switch supports ECMP QPN hashing
 	ECMPRoCEQPN bool `json:"ecmpRoCEQPN,omitempty"`
+	// PortLocator defines if switch supports port locator LED control
+	PortLocator bool `json:"portLocator,omitempty"`
 }
 
 // Defines switch-specific configuration options

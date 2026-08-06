@@ -1166,7 +1166,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.1
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.11]
   summary: Create VRF BGP neighbor 172.30.128.11
   type: update
@@ -1195,7 +1195,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.11
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.13]
   summary: Create VRF BGP neighbor 172.30.128.13
   type: update
@@ -1224,7 +1224,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.13
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.15]
   summary: Create VRF BGP neighbor 172.30.128.15
   type: update
@@ -1253,7 +1253,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.15
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.17]
   summary: Create VRF BGP neighbor 172.30.128.17
   type: update
@@ -1282,7 +1282,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.17
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.19]
   summary: Create VRF BGP neighbor 172.30.128.19
   type: update
@@ -1311,7 +1311,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.19
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.21]
   summary: Create VRF BGP neighbor 172.30.128.21
   type: update
@@ -1340,7 +1340,7 @@
         neighbor-address: 172.30.128.21
         peer-as: 65534
       neighbor-address: 172.30.128.21
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.3]
   summary: Create VRF BGP neighbor 172.30.128.3
   type: update
@@ -1369,7 +1369,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.3
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.5]
   summary: Create VRF BGP neighbor 172.30.128.5
   type: update
@@ -1398,7 +1398,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.5
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.7]
   summary: Create VRF BGP neighbor 172.30.128.7
   type: update
@@ -1427,7 +1427,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.7
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.9]
   summary: Create VRF BGP neighbor 172.30.128.9
   type: update
@@ -1456,7 +1456,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.9
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.2]
   summary: Create VRF BGP neighbor 172.30.8.2
   type: update
@@ -1490,7 +1490,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.3]
   summary: Create VRF BGP neighbor 172.30.8.3
   type: update
@@ -1524,7 +1524,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.4]
   summary: Create VRF BGP neighbor 172.30.8.4
   type: update
@@ -1558,7 +1558,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.5]
   summary: Create VRF BGP neighbor 172.30.8.5
   type: update
@@ -1592,7 +1592,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.6]
   summary: Create VRF BGP neighbor 172.30.8.6
   type: update
@@ -1626,7 +1626,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 84
+  weight: 85
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=172.30.8.0/32]
   summary: Create VRF BGP network 172.30.8.0/32
   type: update
@@ -1635,7 +1635,7 @@
     - config:
         prefix: 172.30.8.0/32
       prefix: 172.30.8.0/32
-  weight: 85
+  weight: 86
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -1648,7 +1648,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 86
+  weight: 87
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -1661,7 +1661,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 86
+  weight: 87
 - path: /loadshare/roce-attrs
   summary: Update ECMP RoCE
   type: replace
@@ -1670,4 +1670,4 @@
       config:
         hash: hash
         qpn: false
-  weight: 128
+  weight: 130

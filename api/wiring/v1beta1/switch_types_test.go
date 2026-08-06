@@ -5,6 +5,7 @@ package v1beta1_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
@@ -345,6 +346,54 @@ func TestHydrationValidation(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestNormalizePortLocator(t *testing.T) {
+	now := time.Now().UTC()
+
+	for _, test := range []struct {
+		name        string
+		in          string
+		expectError bool
+		// expectExpire is the expected expire time as an offset from now, ignored if expectExpired is true
+		expectExpire  time.Duration
+		expectExpired bool
+	}{
+		{name: "empty", in: "", expectExpire: wiringapi.PortLocatorDefaultExpire},
+		{name: "duration", in: "10m", expectExpire: 10 * time.Minute},
+		{name: "durationSeconds", in: "90s", expectExpire: 90 * time.Second},
+		{name: "durationZero", in: "0s", expectExpired: true},
+		{name: "durationTooLong", in: "1h", expectExpire: wiringapi.PortLocatorMaxExpire},
+		{name: "durationExactlyMax", in: "20m", expectExpire: wiringapi.PortLocatorMaxExpire},
+		{name: "durationNegative", in: "-1m", expectExpired: true},
+		{name: "time", in: now.Add(7 * time.Minute).Format(time.DateTime), expectExpire: 7 * time.Minute},
+		{name: "timeTooLate", in: now.Add(3 * time.Hour).Format(time.DateTime), expectExpire: wiringapi.PortLocatorMaxExpire},
+		{name: "timeInPast", in: now.Add(-7 * time.Minute).Format(time.DateTime), expectExpired: true},
+		{name: "garbage", in: "whenever", expectError: true},
+		{name: "timeWrongFormat", in: now.Format(time.RFC3339), expectError: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ok, expire, err := wiringapi.NormalizePortLocator(test.in)
+			if test.expectError {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
+
+			if test.expectExpired {
+				require.False(t, ok)
+				require.Empty(t, expire)
+
+				return
+			}
+			require.True(t, ok)
+
+			parsed, err := time.ParseInLocation(time.DateTime, expire, time.UTC)
+			require.NoError(t, err)
+			require.WithinDuration(t, now.Add(test.expectExpire), parsed, 5*time.Second)
 		})
 	}
 }
