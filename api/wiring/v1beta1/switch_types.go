@@ -142,9 +142,11 @@ type SwitchSpec struct {
 	// Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
 	// instead that value persists on the device until a full config reset or a new explicit config
 	PortFECs map[string]PortFECMode `json:"portFECs,omitempty"`
-	// PortLocators is a map of port locator LED expire times which could be specified as 10m for 10 minutes (between 1 and 20 minutes),
-	// empty for default 5 minutes or exact expiry time in "2026-08-05 18:45:47" (UTC) format, key is the port name or
-	// "*" to apply to all ports of the switch (in which case any per-port entries are dropped)
+	// PortLocators is a map of port locator LED expire times, key is the port name such as E1/1 (incl. breakout
+	// sub-ports such as E1/53/1) or "*" to apply to all ports of the switch, value is a duration relative to now
+	// such as 10m, an exact expire time in the "2026-08-05 18:45:47" (UTC) format or empty for the default 5 minutes.
+	// Values are normalized to the exact expire time and clamped to at most 20 minutes from now, already expired
+	// entries are removed as well as all per-port ones if "*" is present
 	PortLocators map[string]string `json:"portLocators,omitempty"`
 	// Boot is the boot/provisioning information of the switch
 	Boot SwitchBoot `json:"boot,omitempty"`
