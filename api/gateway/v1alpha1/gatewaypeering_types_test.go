@@ -24,6 +24,7 @@ func TestPeeringDefaultEmpty(t *testing.T) {
 		},
 	}
 	ref.Labels = map[string]string{}
+	ref.Annotations = map[string]string{}
 
 	peering := &GatewayPeering{}
 	peering.Default()
@@ -62,6 +63,9 @@ func TestPeeringWithVpcsNoNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 
@@ -199,6 +203,10 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "static",
+	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 
 	peering := common.DeepCopy()
@@ -253,6 +261,10 @@ func TestPeeringWithDoubleMasqueradeNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "masquerade",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	ref.Spec.Peering["vpc1"].Expose[0].NAT = &PeeringNAT{
@@ -313,6 +325,10 @@ func TestPeeringWithMasqueradeAndStaticNAT(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "masquerade,static",
+	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	peering := common.DeepCopy()
 	peering.Default()
@@ -363,6 +379,10 @@ func TestPeeringWithPortForwardNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "port-forward",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	ref.Spec.Peering["vpc1"].Expose[0].NAT.PortForward.IdleTimeout.Duration = DefaultPortForwardIdleTimeout
@@ -432,6 +452,10 @@ func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "masquerade,port-forward",
+	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	peering := common.DeepCopy()
 	peering.Default()
@@ -491,6 +515,10 @@ func TestPeeringWithPortForwardAndMasqueradeNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "masquerade,port-forward",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	peering := common.DeepCopy()

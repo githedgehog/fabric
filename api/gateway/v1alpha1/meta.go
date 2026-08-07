@@ -3,9 +3,11 @@
 
 package v1alpha1
 
-var (
+const (
 	LabelPrefix    = "gateway.githedgehog.com/"
 	ListLabelValue = "true"
+	LabelVPCs      = LabelPrefix + "vpcs"
+	LabelNAT       = LabelPrefix + "nat"
 )
 
 func ListLabelPrefix(listType string) string {
