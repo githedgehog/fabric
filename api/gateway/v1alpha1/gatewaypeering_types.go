@@ -205,8 +205,10 @@ type PeeringStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=gwpeer
-// +kubebuilder:printcolumn:name="GatewayGroup",type=string,JSONPath=`.spec.gatewayGroup`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Group",type=string,JSONPath=`.spec.gatewayGroup`,priority=0
+// +kubebuilder:printcolumn:name="VPCs",type=string,JSONPath=`.metadata.annotations.gateway\.githedgehog\.com/vpcs`,priority=0
+// +kubebuilder:printcolumn:name="NAT",type=string,JSONPath=`.metadata.annotations.gateway\.githedgehog\.com/nat`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // GatewayPeering is the Schema for the peerings API.
 type GatewayPeering struct {
 	kmetav1.TypeMeta   `json:",inline"`
@@ -240,15 +242,20 @@ func (p *GatewayPeering) Default() {
 	if p.Labels == nil {
 		p.Labels = map[string]string{}
 	}
+	if p.Annotations == nil {
+		p.Annotations = map[string]string{}
+	}
 
-	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
+	vpcs := slices.Sorted(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {
 		return
 	}
 
 	p.Labels[ListLabelVPC(vpcs[0])] = ListLabelValue
 	p.Labels[ListLabelVPC(vpcs[1])] = ListLabelValue
+	p.Annotations[LabelVPCs] = strings.Join(vpcs, ",")
 
+	nats := []string{}
 	for _, peering := range p.Spec.Peering {
 		for idx := range peering.Expose {
 			expose := &peering.Expose[idx]
@@ -258,15 +265,28 @@ func (p *GatewayPeering) Default() {
 					if nat.Masquerade.IdleTimeout.Duration == 0 {
 						nat.Masquerade.IdleTimeout.Duration = DefaultMasqueradeIdleTimeout
 					}
+					nats = append(nats, "masquerade")
 				}
 
 				if nat.PortForward != nil {
 					if nat.PortForward.IdleTimeout.Duration == 0 {
 						nat.PortForward.IdleTimeout.Duration = DefaultPortForwardIdleTimeout
 					}
+
+					nats = append(nats, "port-forward")
+				}
+
+				if nat.Static != nil {
+					nats = append(nats, "static")
 				}
 			}
 		}
+	}
+	slices.Sort(nats)
+	if len(nats) > 0 {
+		p.Annotations[LabelNAT] = strings.Join(slices.Compact(nats), ",")
+	} else {
+		delete(p.Annotations, LabelNAT)
 	}
 
 	if p.Spec.GatewayGroup == "" {
