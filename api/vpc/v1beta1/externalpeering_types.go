@@ -146,7 +146,7 @@ func (peering *ExternalPeering) Default() {
 	})
 }
 
-func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -176,6 +176,12 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 	}
 
 	if kube != nil {
+		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
+			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, peering); err != nil {
+				return nil, err //nolint:wrapcheck
+			}
+		}
+
 		vpc := &VPC{}
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: peering.Spec.Permit.VPC.Name, Namespace: peering.Namespace}, vpc); err != nil {
 			if kapierrors.IsNotFound(err) {
