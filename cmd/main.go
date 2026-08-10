@@ -34,6 +34,7 @@ import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
+	"go.githedgehog.com/fabric/api/valid"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl"
@@ -86,7 +87,9 @@ func run(ctx context.Context) error {
 	slog.Info("Starting fabric-ctrl", "version", version.Version)
 
 	cfgBasedir := "/etc/hedgehog/fabric"
-	cfg, err := meta.LoadFabricConfig(cfgBasedir)
+	cfg, err := meta.LoadFabricConfig(cfgBasedir, meta.ExtraValidators{
+		Peering: valid.Peering,
+	})
 	if err != nil {
 		return fmt.Errorf("loading fabric config: %w", err)
 	}

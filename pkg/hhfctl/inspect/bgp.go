@@ -16,6 +16,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
+	"go.githedgehog.com/fabric/api/valid"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	coreapi "k8s.io/api/core/v1"
@@ -132,7 +133,9 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 		return nil, fmt.Errorf("unmarshalling fabric config: %w", err)
 	}
 
-	if _, err := fabCfg.Init(); err != nil {
+	if _, err := fabCfg.Init(meta.ExtraValidators{
+		Peering: valid.Peering,
+	}); err != nil {
 		return nil, fmt.Errorf("initializing fabric config: %w", err)
 	}
 

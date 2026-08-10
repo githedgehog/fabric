@@ -131,6 +131,8 @@ type FabricConfig struct {
 	FRRMetricsPort        uint16              `json:"frrMetricsPort,omitempty"`
 	DataplaneValidatorRef string              `json:"dataplaneValidatorRef,omitempty"`
 
+	ExtraValidators ExtraValidators `json:"-"`
+
 	reservedSubnets []netip.Prefix
 }
 
@@ -208,13 +210,19 @@ type ObservabilityUnix struct {
 	Syslog            bool                      `json:"syslog,omitempty"`
 }
 
+type ExtraValidators struct {
+	Peering PeeringValidator
+}
+
+type PeeringValidator func(ctx context.Context, kube kclient.Reader, peering kclient.Object) error
+
 func (cfg *FabricConfig) ParsedReservedSubnets() []netip.Prefix {
 	return cfg.reservedSubnets
 }
 
 var idChecker = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]?$`)
 
-func LoadFabricConfig(basedir string) (*FabricConfig, error) {
+func LoadFabricConfig(basedir string, extraValidators ExtraValidators) (*FabricConfig, error) {
 	path := filepath.Join(basedir, "config.yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -227,10 +235,10 @@ func LoadFabricConfig(basedir string) (*FabricConfig, error) {
 		return nil, errors.Wrapf(err, "error unmarshalling config %s", path)
 	}
 
-	return cfg.Init()
+	return cfg.Init(extraValidators)
 }
 
-func (cfg *FabricConfig) Init() (*FabricConfig, error) {
+func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, error) {
 	if cfg.DeploymentID != "" {
 		if len(cfg.DeploymentID) > 16 {
 			return nil, errors.Errorf("config: deploymentID must be <= 16 characters")
@@ -402,6 +410,11 @@ func (cfg *FabricConfig) Init() (*FabricConfig, error) {
 		if _, err := strconv.ParseUint(parts[1], 10, 16); err != nil {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)
 		}
+	}
+
+	cfg.ExtraValidators = extraValidators
+	if cfg.ExtraValidators.Peering == nil {
+		return nil, errors.Errorf("config: ExtraValidators.Peering is required")
 	}
 
 	// TODO enable in future releases

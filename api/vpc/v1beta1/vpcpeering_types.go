@@ -177,13 +177,10 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 	}
 
 	if kube != nil {
-		other := &VPCPeeringList{}
-		err := kube.List(ctx, other, kclient.MatchingLabels{
-			ListLabelVPC(vpc1Name): ListLabelValue,
-			ListLabelVPC(vpc2Name): ListLabelValue,
-		})
-		if err != nil && !kapierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to list VPC peerings") // TODO replace with some internal error to not expose to the user
+		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
+			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, peering); err != nil {
+				return nil, err //nolint:wrapcheck
+			}
 		}
 
 		ipv4Namespaces := []string{}

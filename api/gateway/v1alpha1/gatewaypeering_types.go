@@ -513,6 +513,13 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 
 			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
+
+		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
+			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, p); err != nil {
+				return err //nolint:wrapcheck
+			}
+		}
+
 		// check for overlaps of exposed IPs towards either of the VPCs in the peering we are validating
 		peeringVPCs := make(map[string]*v1beta1.VPC, len(p.Spec.Peering))
 		for originVPC, ourEntry := range p.Spec.Peering {
