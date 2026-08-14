@@ -334,6 +334,9 @@ jobs:
           body: |
             This is an automated Pull Request created by GitHub Actions workflow,
             in the fabric repository.
+          labels: |
+            ci:+release
+            ci:+hlab
 
       # Bump fabric docs in the docs repository
 
