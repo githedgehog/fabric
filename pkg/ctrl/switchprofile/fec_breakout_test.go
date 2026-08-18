@@ -28,7 +28,7 @@ import (
 // configurable.
 func TestDellFECConfigurablePorts(t *testing.T) {
 	t.Run("not broken out: base and first sub-port both valid", func(t *testing.T) {
-		ports, err := DellS5232FON.Spec.GetFECConfigurablePorts(&wiringapi.SwitchSpec{})
+		ports, err := DellS5232FON.Spec.GetAPIPortsPostBreakouts(&wiringapi.SwitchSpec{})
 		require.NoError(t, err)
 
 		require.True(t, ports["E1/1"], "base name of a non-broken-out QSFP port must be configurable")
@@ -37,7 +37,7 @@ func TestDellFECConfigurablePorts(t *testing.T) {
 	})
 
 	t.Run("broken out: only sub-ports valid, base rejected", func(t *testing.T) {
-		ports, err := DellS5232FON.Spec.GetFECConfigurablePorts(&wiringapi.SwitchSpec{
+		ports, err := DellS5232FON.Spec.GetAPIPortsPostBreakouts(&wiringapi.SwitchSpec{
 			PortBreakouts: map[string]string{"E1/1": "4x25G"},
 		})
 		require.NoError(t, err)
