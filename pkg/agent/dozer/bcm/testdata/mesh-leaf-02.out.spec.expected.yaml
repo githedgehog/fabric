@@ -120,6 +120,7 @@ interfaces:
     autoNegotiate: false
     description: PC2 ESLAG server-01 server-01--eslag--leaf-01--leaf-02
     enabled: true
+    linkTraining: false
     mtu: 9036
     portChannel: PortChannel2
     subinterfaces:
@@ -128,6 +129,7 @@ interfaces:
     autoNegotiate: false
     description: PC1 ESLAG server-02 server-02--eslag--leaf-01--leaf-02
     enabled: true
+    linkTraining: false
     mtu: 9036
     portChannel: PortChannel1
     subinterfaces:
@@ -136,6 +138,7 @@ interfaces:
     autoNegotiate: false
     description: PC3 Bundled server-04 server-04--bundled--leaf-02
     enabled: true
+    linkTraining: false
     mtu: 9036
     portChannel: PortChannel3
     subinterfaces:
@@ -144,6 +147,7 @@ interfaces:
     autoNegotiate: false
     description: PC3 Bundled server-04 server-04--bundled--leaf-02
     enabled: true
+    linkTraining: false
     mtu: 9036
     portChannel: PortChannel3
     subinterfaces:
@@ -152,6 +156,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-01/E1/4 leaf-01--mesh--leaf-02
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -161,6 +166,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-01/E1/5 leaf-01--mesh--leaf-02
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -170,6 +176,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-03/E1/7 leaf-02--mesh--leaf-03
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -179,6 +186,7 @@ interfaces:
     autoNegotiate: false
     description: Mesh leaf-03/E1/8 leaf-02--mesh--leaf-03
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -188,6 +196,7 @@ interfaces:
     autoNegotiate: false
     description: Gateway gateway-1/enp2s2 leaf-02--gateway--gateway-1
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:

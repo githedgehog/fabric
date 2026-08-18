@@ -129,6 +129,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet0
     subinterfaces:
       subinterface:
@@ -150,6 +151,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet1
     subinterfaces:
       subinterface:
@@ -171,6 +173,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet10
     subinterfaces:
       subinterface:
@@ -192,6 +195,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet2
     subinterfaces:
       subinterface:
@@ -213,6 +217,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet3
     subinterfaces:
       subinterface:
@@ -234,6 +239,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet4
     subinterfaces:
       subinterface:
@@ -255,6 +261,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet5
     subinterfaces:
       subinterface:
@@ -276,6 +283,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet6
     subinterfaces:
       subinterface:
@@ -297,6 +305,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet7
     subinterfaces:
       subinterface:
@@ -318,6 +327,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet8
     subinterfaces:
       subinterface:
@@ -339,6 +349,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet9
     subinterfaces:
       subinterface:
