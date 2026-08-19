@@ -91,6 +91,48 @@ type Service struct {
 	lastStatus    *agentapi.AgentStatus
 }
 
+func selectProcessor(agent *agentapi.Agent) (dozer.Processor, error) {
+	if agent.Spec.SwitchProfile == nil {
+		return nil, errors.New("switch profile is not set in the agent config")
+	}
+
+	nosType := agent.Spec.SwitchProfile.NOSType
+
+	switch {
+	case slices.Contains(fmeta.NOSTypesSONiCBCM, nosType):
+		return bcm.Processor(), nil
+	case slices.Contains(fmeta.NOSTypesSONiCCLSPlus, nosType):
+		return clsp.Processor(), nil
+	case slices.Contains(fmeta.NOSTypesCumulus, nosType):
+		return cmls.Processor(), nil
+	default:
+		return nil, fmt.Errorf("unsupported nos type: %s", nosType) //nolint:err113
+	}
+}
+
+// FactoryReset erases the switch startup config and reboots without going through the Agent
+// object, for when the switch can't be reached from the control node. The agent re-applies the
+// config from the local file on the next boot.
+func (svc *Service) FactoryReset(ctx context.Context) error {
+	if svc.Basedir == "" {
+		return errors.New("basedir is required")
+	}
+
+	agent, err := svc.loadConfigFromFile()
+	if err != nil {
+		return errors.Wrap(err, "failed to load config")
+	}
+
+	processor, err := selectProcessor(agent)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Factory resetting switch, config will be erased and switch will reboot", "name", agent.Name)
+
+	return errors.Wrap(processor.FactoryReset(ctx), "failed to factory reset")
+}
+
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
 	svc.reg.AgentMetrics.Version.WithLabelValues(version.Version).Set(1)
@@ -126,22 +168,17 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
 
+	svc.processor, err = selectProcessor(agent)
+	if err != nil {
+		return err
+	}
+
 	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
 	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
 	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
 
-	switch {
-	case isBCM:
-		bcmProcessor := bcm.Processor()
-		svc.processor = bcmProcessor
-	case isClsP:
-		svc.processor = clsp.Processor()
-	case isCumulus:
+	if isCumulus {
 		svc.SkipControlLink = true
-		cmlsProcessor := cmls.Processor()
-		svc.processor = cmlsProcessor
-	default:
-		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 	}
 
 	if !svc.DryRun {
@@ -660,8 +697,15 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 		return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
 	}
 
-	if err := svc.processActions(ctx, agent); err != nil {
+	skipEnforce, err := svc.processActions(ctx, agent)
+	if err != nil {
 		return errors.Wrap(err, "failed to process agent actions from k8s")
+	}
+	if skipEnforce {
+		slog.Info("Skipping config enforcement after actions")
+		*currentGen = agent.Generation
+
+		return nil
 	}
 
 	if err := svc.processAgent(ctx, agent, false); err != nil {
@@ -763,7 +807,10 @@ func (svc *Service) updateStatus(ctx context.Context, kube kclient.Client, agOri
 	return nil
 }
 
-func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) error {
+// processActions reports whether the caller must skip enforcement: a reboot takes a while to
+// actually take the switch down, and enforcing in that window is pointless at best and, after a
+// factory reset, would save the running config back over the erase.
+func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) (bool, error) {
 	if agent.Spec.PowerReset != "" && agent.Spec.PowerReset == svc.bootID {
 		slog.Info("Power reset requested, executing in 5 seconds", "bootID", agent.Spec.PowerReset)
 		time.Sleep(5 * time.Second)
@@ -772,35 +819,55 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 
 			file, err := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0o200)
 			if err != nil {
-				return errors.Wrapf(err, "error opening /proc/sysrq-trigger")
+				return false, errors.Wrapf(err, "error opening /proc/sysrq-trigger")
 			}
 			defer file.Close()
 
 			if _, err := file.WriteString("b"); err != nil {
 				if !os.IsExist(err) {
-					return errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
+					return false, errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
 				}
 			}
 		}
 	}
 
 	reboot := false
-	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
+	reinstall := agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID
+	if reinstall {
 		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)
 		if !svc.SkipActions {
 			slog.Info("Making ONIE next boot entry")
 
 			if err := uefiutil.MakeONIEDefaultBootEntryAndCleanup(); err != nil {
-				return fmt.Errorf("failed to make ONIE default boot entry: %w", err)
+				return false, fmt.Errorf("failed to make ONIE default boot entry: %w", err)
 			}
 
 			slog.Info("Make ONIE grub NOS Install entry default")
 
 			if err := svc.setONIENOSInstall(ctx); err != nil {
-				return fmt.Errorf("failed to set ONIE to install: %w", err)
+				return false, fmt.Errorf("failed to set ONIE to install: %w", err)
 			}
 
 			reboot = true
+		}
+	}
+
+	if agent.Spec.FactoryReset != "" && agent.Spec.FactoryReset == svc.bootID {
+		if reinstall {
+			// a reinstall wipes the whole NOS, so erasing the config first would be pointless
+			slog.Info("Factory reset requested, but skipping it as a reinstall is already pending")
+		} else {
+			slog.Info("Factory reset requested, erasing config and rebooting", "bootID", agent.Spec.FactoryReset)
+			if !svc.SkipActions {
+				// the request stays armed either way, as the bootID doesn't change without a
+				// reboot, so failing here would only cost us an agent restart to end up in the
+				// same place, and skipping enforcement would consume the generation for nothing
+				if err := svc.processor.FactoryReset(ctx); err != nil {
+					slog.Warn("Failed to factory reset switch, continuing", "error", err)
+				} else {
+					return true, nil
+				}
+			}
 		}
 	}
 
@@ -813,8 +880,10 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 
 	if reboot {
 		if err := doRebootNow(ctx); err != nil {
-			return err
+			return false, err
 		}
+
+		return true, nil
 	}
 
 	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true", "--basedir=" + svc.Basedir})
@@ -823,7 +892,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 			// TODO properly retry it without restarting the agent
 			slog.Warn("Failed to download new agent version, restarting agent to retry", "err", err)
 
-			return errors.New("failed to download new agent version")
+			return false, errors.New("failed to download new agent version")
 		} else if errors.Is(err, common.ErrAgentUpgradeCheckFailed) {
 			// TODO properly report it in the Agent object status
 			slog.Warn("Failed to check new agent version, skipping upgrade", "err", err)
@@ -832,7 +901,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		} else {
 			slog.Warn("Failed to upgrade agent", "err", err)
 
-			return errors.Wrap(err, "failed to upgrade agent")
+			return false, errors.Wrap(err, "failed to upgrade agent")
 		}
 	} else if upgraded {
 		slog.Info("Agent upgraded, restarting")
@@ -840,7 +909,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		os.Exit(0) //nolint:gocritic // TODO graceful agent restart
 	}
 
-	return nil
+	return false, nil
 }
 
 func doRebootNow(ctx context.Context) error {
