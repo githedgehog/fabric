@@ -539,6 +539,14 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 		slog.Warn("Action warning: " + warning)
 	}
 
+	// only when something changed: enforcement runs every EnforcePeriod, and an unconditional
+	// save would rewrite the startup config on flash every couple of minutes for nothing
+	if len(actions) > 0 {
+		if err := processor.SaveConfig(ctx); err != nil {
+			slog.Warn("Failed to save config to switch after enforcing", "error", err)
+		}
+	}
+
 	return nil
 }
 
