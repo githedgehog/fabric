@@ -12,6 +12,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,7 +32,27 @@ const (
 	BGPNeighborTypeFabric   BGPNeighborType = "fabric"
 	BGPNeighborTypeExternal BGPNeighborType = "external"
 	BGPNeighborTypeGateway  BGPNeighborType = "gateway"
+	BGPUnnumberedNeighbor                   = "unnum"
 )
+
+func fabricNeighborKey(ag *agentapi.Agent, local, remote wiringapi.ConnFabricLinkSwitch) (string, error) {
+	if remote.IP != "" {
+		return strings.Split(remote.IP, "/")[0], nil
+	}
+
+	if ag.Spec.SwitchProfile == nil {
+		return "", fmt.Errorf("switch profile is not set for %s", ag.Name) //nolint:goerr113
+	}
+
+	if ag.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
+		port := local.LocalPortName()
+		if vlan, ok := ag.Spec.Catalog.TH5WorkaroundVLANs[port]; ok {
+			return fmt.Sprintf("%s.%d", BGPUnnumberedNeighbor, vlan), nil
+		}
+	}
+
+	return BGPUnnumberedNeighbor, nil
+}
 
 func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
 	if sw == nil {
@@ -109,8 +130,12 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				}
 				fabricPeers[other.DeviceName()] = true
 
-				ip := strings.Split(other.IP, "/")[0]
-				neigh, ok := out["default"][ip]
+				key, err := fabricNeighborKey(ag, curr, other)
+				if err != nil {
+					return nil, fmt.Errorf("fabric connection %s: %w", conn.Name, err)
+				}
+
+				neigh, ok := out["default"][key]
 				if !ok {
 					neigh = BGPNeighborStatus{}
 				}
@@ -122,7 +147,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				neigh.ConnectionType = conn.Spec.Type()
 				neigh.Port = curr.LocalPortName()
 
-				out["default"][ip] = neigh
+				out["default"][key] = neigh
 			}
 		} else if conn.Spec.Mesh != nil {
 			for _, link := range conn.Spec.Mesh.Links {
@@ -134,8 +159,12 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				}
 				fabricPeers[other.DeviceName()] = true
 
-				ip := strings.Split(other.IP, "/")[0]
-				neigh, ok := out["default"][ip]
+				key, err := fabricNeighborKey(ag, curr, other)
+				if err != nil {
+					return nil, fmt.Errorf("mesh connection %s: %w", conn.Name, err)
+				}
+
+				neigh, ok := out["default"][key]
 				if !ok {
 					neigh = BGPNeighborStatus{}
 				}
@@ -147,7 +176,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				neigh.ConnectionType = conn.Spec.Type()
 				neigh.Port = curr.LocalPortName()
 
-				out["default"][ip] = neigh
+				out["default"][key] = neigh
 			}
 		} else if conn.Spec.External != nil {
 			extConns[conn.Name] = &conn

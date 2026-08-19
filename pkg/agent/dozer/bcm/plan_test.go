@@ -199,6 +199,12 @@ func TestPlan(t *testing.T) {
 		{name: "mesh-leaf-01"}, // eslag, gateway connected to it
 		{name: "mesh-leaf-02"}, // same as above
 		{name: "mesh-leaf-03"}, // standalone, bgp externals connected to it
+		// group: unnum
+		// the reg and mesh groups above with the fabric/mesh link IPs dropped, so those links run
+		// BGP unnumbered. Gateway links keep their IPs, the gateway does not support unnumbered yet
+		{name: "unnum-reg-spine-1"},  // spine side of unnumbered fabric links
+		{name: "unnum-reg-leaf-3"},   // leaf side of unnumbered fabric links
+		{name: "unnum-mesh-leaf-01"}, // unnumbered mesh links next to a numbered gateway link
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			updateGoldens := os.Getenv("UPDATE") == "true"

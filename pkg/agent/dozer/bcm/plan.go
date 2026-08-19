@@ -549,39 +549,50 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			peers[peer] = true
 
-			if ipStr == "" {
-				return errors.Errorf("no IP found for fabric conn %s", connName)
+			// no IPs on either side means BGP unnumbered; a single missing IP is a broken link
+			if (ipStr == "") != (peerIP == "") {
+				return errors.Errorf("fabric conn %s has an IP on only one side of the %s link", connName, port)
 			}
+			unnumbered := ipStr == ""
 
-			ip, ipNet, err := net.ParseCIDR(ipStr)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse fabric conn ip %s", ipStr)
-			}
-			ipPrefixLen, _ := ipNet.Mask.Size()
-
-			spec.Interfaces[port] = &dozer.SpecInterface{
+			iface := &dozer.SpecInterface{
 				Enabled:     pointer.To(true),
 				Description: pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
 				Speed:       getPortSpeed(agent, port),
 				Subinterfaces: map[uint32]*dozer.SpecSubinterface{
-					0: {
-						IPs: map[string]*dozer.SpecInterfaceIP{
-							ip.String(): {
-								PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
-							},
-						},
-					},
+					0: {},
 				},
 			}
+
+			// for unnumbered the neighbor is keyed by the interface instead of the peer IP
+			neighborKey := port
+			if unnumbered {
+				iface.Subinterfaces[0].IPv6 = &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}
+			} else {
+				ip, ipNet, err := net.ParseCIDR(ipStr)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse fabric conn ip %s", ipStr)
+				}
+				ipPrefixLen, _ := ipNet.Mask.Size()
+
+				iface.Subinterfaces[0].IPs = map[string]*dozer.SpecInterfaceIP{
+					ip.String(): {
+						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+					},
+				}
+
+				peerAddr, _, err := net.ParseCIDR(peerIP)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse fabric conn peer ip %s", peerIP)
+				}
+				neighborKey = peerAddr.String()
+			}
+
+			spec.Interfaces[port] = iface
 
 			peerSw, ok := agent.Spec.Switches[peer]
 			if !ok {
 				return errors.Errorf("no switch found for peer %s (fabric conn %s)", peer, connName)
-			}
-
-			ip, _, err = net.ParseCIDR(peerIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse fabric conn peer ip %s", peerIP)
 			}
 
 			var bfdProfile *string
@@ -589,13 +600,21 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				bfdProfile = pointer.To(FabricBFDProfile)
 			}
 
-			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+			// leave it unset for numbered links so we don't touch existing neighbors
+			var extendedNexthop *bool
+			if unnumbered {
+				extendedNexthop = pointer.To(true)
+			}
+
+			// RemoteAS is set even for unnumbered so a miscabled link can't bring the session up
+			spec.VRFs[VRFDefault].BGP.Neighbors[neighborKey] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
 				RemoteAS:                  pointer.To(peerSw.ASN),
 				IPv4Unicast:               pointer.To(true),
 				IPv4UnicastExportPolicies: []string{RouteMapProtocolLoopbackOnly},
 				BFDProfile:                bfdProfile,
+				ExtendedNexthop:           extendedNexthop,
 			}
 		}
 	}
@@ -665,15 +684,23 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			peers[peer] = true
 
-			if ipStr == "" {
-				return errors.Errorf("no IP found for mesh conn %s", connName)
+			// no IPs on either side means BGP unnumbered; a single missing IP is a broken link
+			if (ipStr == "") != (peerIP == "") {
+				return errors.Errorf("mesh conn %s has an IP on only one side of the %s link", connName, port)
 			}
+			unnumbered := ipStr == ""
 
-			ip, ipNet, err := net.ParseCIDR(ipStr)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse mesh conn ip %s", ipStr)
+			var ip net.IP
+			var ipPrefixLen int
+			if !unnumbered {
+				var ipNet *net.IPNet
+				var err error
+				ip, ipNet, err = net.ParseCIDR(ipStr)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse mesh conn ip %s", ipStr)
+				}
+				ipPrefixLen, _ = ipNet.Mask.Size()
 			}
-			ipPrefixLen, _ := ipNet.Mask.Size()
 
 			meshBaseIface := &dozer.SpecInterface{
 				Enabled:     pointer.To(true),
@@ -684,25 +711,38 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 
+			// for unnumbered the neighbor is keyed by the interface instead of the peer IP; on TH5
+			// that interface is the workaround SVI below rather than the port
+			neighborKey := port
+
 			// For TH5 switches, use the workaround suggested by Broadcom: configure an Access VLAN that we previously
 			// allocated for this link and configure the IP address on the VLAN rather than the switch interface
-			if agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
+			switch {
+			case agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5:
 				workaroundVLAN, ok := agent.Spec.Catalog.TH5WorkaroundVLANs[port]
 				if !ok {
 					return errors.Errorf("no TH5 workaround VLAN found for port %s of mesh connection %s", port, connName)
 				}
 				meshBaseIface.AccessVLAN = pointer.To(workaroundVLAN)
 				vlanIface := vlanName(workaroundVLAN)
-				spec.Interfaces[vlanIface] = &dozer.SpecInterface{
+				workaroundIface := &dozer.SpecInterface{
 					Enabled:     pointer.To(true),
 					Description: pointer.To(fmt.Sprintf("TH5 Workaround Mesh Port %s", port)),
-					VLANIPs: map[string]*dozer.SpecInterfaceIP{
+				}
+				if unnumbered {
+					workaroundIface.VLANIPv6 = &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}
+					neighborKey = vlanIface
+				} else {
+					workaroundIface.VLANIPs = map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
 							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 						},
-					},
+					}
 				}
-			} else {
+				spec.Interfaces[vlanIface] = workaroundIface
+			case unnumbered:
+				meshBaseIface.Subinterfaces[0].IPv6 = &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}
+			default:
 				meshBaseIface.Subinterfaces[0].IPs = map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
 						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
@@ -717,9 +757,12 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				return errors.Errorf("no switch found for peer %s (mesh conn %s)", peer, connName)
 			}
 
-			ip, _, err = net.ParseCIDR(peerIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse mesh conn peer ip %s", peerIP)
+			if !unnumbered {
+				peerAddr, _, err := net.ParseCIDR(peerIP)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse mesh conn peer ip %s", peerIP)
+				}
+				neighborKey = peerAddr.String()
 			}
 
 			var bfdProfile *string
@@ -727,13 +770,21 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				bfdProfile = pointer.To(FabricBFDProfile)
 			}
 
-			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+			// leave it unset for numbered links so we don't touch existing neighbors
+			var extendedNexthop *bool
+			if unnumbered {
+				extendedNexthop = pointer.To(true)
+			}
+
+			// RemoteAS is set even for unnumbered so a miscabled link can't bring the session up
+			spec.VRFs[VRFDefault].BGP.Neighbors[neighborKey] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("Fabric %s %s", remote, connName)),
 				RemoteAS:                  pointer.To(peerSw.ASN),
 				IPv4Unicast:               pointer.To(true),
 				IPv4UnicastExportPolicies: []string{RouteMapProtocolLoopbackOnly},
 				BFDProfile:                bfdProfile,
+				ExtendedNexthop:           extendedNexthop,
 			}
 		}
 	}
@@ -3981,8 +4032,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 					if err != nil {
 						return errors.Wrapf(err, "failed to translate port name %s for BGP neighbor in vrf %s", name, vrfName)
 					}
-					if neighbor.Description != nil {
-						neighbor.Description = pointer.To(strings.ReplaceAll(*neighbor.Description, name, newName))
+					// only a trailing port name refers to this neighbor's own interface (hostBGP);
+					// a fabric/mesh description names the *remote* port, which must be left alone
+					if neighbor.Description != nil && strings.HasSuffix(*neighbor.Description, name) {
+						neighbor.Description = pointer.To(strings.TrimSuffix(*neighbor.Description, name) + newName)
 					}
 				}
 
