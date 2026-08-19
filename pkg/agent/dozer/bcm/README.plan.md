@@ -324,6 +324,41 @@ neighbor 172.30.8.3
 !
 ```
 
+#### Unnumbered links
+
+A fabric link whose `Connection` has no IP on either side runs BGP unnumbered instead. This
+is decided per link, so a fabric can mix numbered and unnumbered links; a link with an IP on
+only one side is rejected by the webhook. The interface gets `ipv6 enable` and no address:
+```
+interface Ethernet3
+ description "Fabric spine-01/E1/1 spine-01--fabric--leaf-01"
+ [...]
+ ipv6 enable
+!
+```
+and the session is keyed by the interface rather than by the peer IP:
+```
+neighbor interface Ethernet3
+ description "Fabric spine-01/E1/1 spine-01--fabric--leaf-01"
+ remote-as 65100
+ bfd
+ bfd profile fabric
+ capability extended-nexthop
+ !
+ address-family ipv4 unicast
+  activate
+  route-map protocol-loopback-only out
+ !
+ address-family l2vpn evpn
+!
+```
+A deliberate differences from the [host-BGP](#host-bgp-subnets) sessions, which are also
+unnumbered: `remote-as` stays explicit rather than `remote-as external`. The peer ASN is
+what keeps a miscabled link from establishing and forming a topology we never intended.
+
+The per-node session over the protocol loopbacks is unaffected — it is IPv4-addressed and
+multihop either way.
+
 ### Mesh Connections (i.e. leaf-leaf)
 
 Mesh connections are very much similar to fabric ones, with the main difference being
@@ -359,6 +394,8 @@ loopback, e.g.:
      address-family l2vpn evpn
     !
     ```
+
+Mesh links support [unnumbered](#unnumbered-links) exactly as fabric links do.
 
 Additionally, once per neighboring node (no matter the number of mesh links to it)
 we create a BGP session with its protocol IP, for which we have learned a route over
@@ -405,7 +442,21 @@ to 3999) and configure it as an access VLAN on the interface of the connection:
      ip address 172.30.128.2/31
     ```
 
-The BGP configuration is unchanged.
+For a numbered link the BGP configuration is unchanged. For an
+[unnumbered](#unnumbered-links) one the VLAN interface gets `ipv6 enable` instead of an
+address, and the session is keyed by that interface rather than by the port:
+```
+interface Vlan3901
+ description "TH5 Workaround Mesh Port leaf-02/E1/5"
+ ipv6 enable
+!
+neighbor interface Vlan3901
+ [...]
+```
+The workaround is still needed, because the limitation is about the ingress interface being
+an SVI rather than a port-based routing interface, which has nothing to do with addressing.
+Each link gets its own dedicated VLAN, so the SVI has exactly one member port and the
+unnumbered peering over it stays one-to-one with the physical link.
 
 ### Gateway Connections
 
@@ -444,6 +495,8 @@ that the correct gateway route will be picked based on priorities/communities.
       allowas-in
       route-map l2vpn-neighbors in
     ```
+
+Gateway links are always numbered; the gateway does not support unnumbered yet.
 
 #### Workaround for TH5-based platforms
 

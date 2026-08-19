@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
@@ -179,6 +180,15 @@ func TestSpecInterfaceVLANIPv6Enforcer(t *testing.T) {
 					continue
 				}
 				ipv6Actions = append(ipv6Actions, Action{Weight: act.Weight, Type: act.Type, Path: act.Path})
+
+				// the routed-vlan IPv6 container has no golden coverage (every plan fixture is vs
+				// silicon, so the TH5 branch that sets VLANIPv6 is never planned), so check the
+				// marshalled payload here instead
+				if act.Type == ActionTypeUpdate {
+					val, err := gnmi.Marshal(act.Value)
+					require.NoError(t, err)
+					require.Equal(t, map[string]any{"enabled": true}, val)
+				}
 			}
 
 			require.Len(t, ipv6Actions, len(tt.wantActions))
