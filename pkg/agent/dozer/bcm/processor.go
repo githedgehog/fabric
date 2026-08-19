@@ -155,17 +155,8 @@ func (p *BroadcomProcessor) Reinstall(ctx context.Context) error {
 }
 
 func (p *BroadcomProcessor) FactoryReset(ctx context.Context) error {
-	// "write erase boot" prompts for confirmation ("...continue? [y/N]:") and
-	// reads the answer from the controlling TTY, not stdin, so a plain stdin
-	// pipe is ignored and the command defaults to N. Wrap it in `script`, which
-	// allocates a pty; `script` forwards its own stdin into the pty, so feeding
-	// "y\n" here reaches the prompt.
-	cmd := exec.CommandContext(ctx, "script", "-qec", `sonic-cli -c "write erase boot"`, "/dev/null")
-	cmd.Stdin = strings.NewReader("y\n")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
+	// "write erase boot" prompts for confirmation ("...continue? [y/N]:")
+	if err := SonicCLIConfirm(ctx, "write erase boot", "y\n"); err != nil {
 		return fmt.Errorf("failed to reset config: %w", err)
 	}
 
@@ -416,9 +407,6 @@ func (p *BroadcomProcessor) SetRoCE(ctx context.Context, val bool) error {
 
 func (p *BroadcomProcessor) SaveConfig(ctx context.Context) error {
 	slog.Info("Saving config...")
-	cmd := exec.CommandContext(ctx, "sonic-cli", "-c", "\"write memory\"")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	return errors.Wrap(cmd.Run(), "failed to save config")
+	return errors.Wrap(SonicCLI(ctx, "write memory"), "failed to save config")
 }
