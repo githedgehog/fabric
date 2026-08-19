@@ -91,6 +91,44 @@ type Service struct {
 	lastStatus    *agentapi.AgentStatus
 }
 
+func selectProcessor(agent *agentapi.Agent) (dozer.Processor, error) {
+	nosType := agent.Spec.SwitchProfile.NOSType
+
+	switch {
+	case slices.Contains(fmeta.NOSTypesSONiCBCM, nosType):
+		return bcm.Processor(), nil
+	case slices.Contains(fmeta.NOSTypesSONiCCLSPlus, nosType):
+		return clsp.Processor(), nil
+	case slices.Contains(fmeta.NOSTypesCumulus, nosType):
+		return cmls.Processor(), nil
+	default:
+		return nil, fmt.Errorf("unsupported nos type: %s", nosType) //nolint:err113
+	}
+}
+
+// FactoryReset erases the switch startup config and reboots without going through the Agent
+// object, for when the switch can't be reached from the control node. The agent re-applies the
+// config from the local file on the next boot.
+func (svc *Service) FactoryReset(ctx context.Context) error {
+	if svc.Basedir == "" {
+		return errors.New("basedir is required")
+	}
+
+	agent, err := svc.loadConfigFromFile()
+	if err != nil {
+		return errors.Wrap(err, "failed to load config")
+	}
+
+	processor, err := selectProcessor(agent)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Factory resetting switch, config will be erased and switch will reboot", "name", agent.Name)
+
+	return errors.Wrap(processor.FactoryReset(ctx), "failed to factory reset")
+}
+
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
 	svc.reg = switchstate.NewRegistry()
 	svc.reg.AgentMetrics.Version.WithLabelValues(version.Version).Set(1)
@@ -130,18 +168,13 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
 	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
 
-	switch {
-	case isBCM:
-		bcmProcessor := bcm.Processor()
-		svc.processor = bcmProcessor
-	case isClsP:
-		svc.processor = clsp.Processor()
-	case isCumulus:
+	svc.processor, err = selectProcessor(agent)
+	if err != nil {
+		return err
+	}
+
+	if isCumulus {
 		svc.SkipControlLink = true
-		cmlsProcessor := cmls.Processor()
-		svc.processor = cmlsProcessor
-	default:
-		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 	}
 
 	if !svc.DryRun {
@@ -781,7 +814,8 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	}
 
 	reboot := false
-	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
+	reinstall := agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID
+	if reinstall {
 		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)
 		if !svc.SkipActions {
 			slog.Info("Making ONIE next boot entry")
@@ -797,6 +831,23 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 			}
 
 			reboot = true
+		}
+	}
+
+	if agent.Spec.FactoryReset != "" && agent.Spec.FactoryReset == svc.bootID {
+		if reinstall {
+			// a reinstall wipes the whole NOS, so erasing the config first would be pointless
+			slog.Info("Factory reset requested, but skipping it as a reinstall is already pending")
+		} else {
+			slog.Info("Factory reset requested, erasing config and rebooting", "bootID", agent.Spec.FactoryReset)
+			if !svc.SkipActions {
+				// FactoryReset reboots on success, so we only ever return from it on failure. Failing
+				// the whole apply here would leave the request armed (the bootID doesn't change
+				// without a reboot) and re-fire it on every generation change, so only warn.
+				if err := svc.processor.FactoryReset(ctx); err != nil {
+					slog.Warn("Failed to factory reset switch, continuing", "error", err)
+				}
+			}
 		}
 	}
 

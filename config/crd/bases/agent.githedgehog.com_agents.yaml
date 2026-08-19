@@ -1167,6 +1167,8 @@ spec:
                       type: object
                   type: object
                 type: object
+              factoryReset:
+                type: string
               ipv4Namespaces:
                 additionalProperties:
                   description: IPv4NamespaceSpec defines the desired state of IPv4Namespace
