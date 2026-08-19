@@ -136,6 +136,7 @@ type SpecInterface struct {
 	AutoNegotiate      *bool                        `json:"autoNegotiate,omitempty"`
 	FEC                *string                      `json:"fec,omitempty"`
 	VLANIPs            map[string]*SpecInterfaceIP  `json:"vlanIPs,omitempty"`
+	VLANIPv6           *SpecInterfaceIPv6           `json:"vlanIPv6,omitempty"`
 	VLANAnycastGateway []string                     `json:"vlanAnycastGateway,omitempty"`
 	Subinterfaces      map[uint32]*SpecSubinterface `json:"subinterfaces,omitempty"`
 	ProxyARP           *SpecProxyARP                `json:"proxyARP,omitempty"`

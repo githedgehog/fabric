@@ -85,6 +85,15 @@ var specInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInterface]{
 			return errors.Wrap(err, "failed to handle interface IPs")
 		}
 
+		// same as for subinterfaces, diff just the IPv6 leaf so that dropping it from a VLAN
+		// interface that otherwise stays is a delete rather than an update with an empty config
+		vlanIPv6Path := basePath + "/routed-vlan/ipv6/config/enabled"
+		actualVLANV6, desiredVLANV6 := ValueOrNil(actual, desired,
+			func(value *dozer.SpecInterface) *dozer.SpecInterfaceIPv6 { return value.VLANIPv6 })
+		if err := specInterfaceVLANIPv6Enforcer.Handle(vlanIPv6Path, name, actualVLANV6, desiredVLANV6, actions); err != nil {
+			return errors.Wrap(err, "failed to handle interface VLAN ipv6")
+		}
+
 		actualStaticARPs, desiredStaticARPs := ValueOrNil(actual, desired,
 			func(value *dozer.SpecInterface) map[string]*dozer.SpecStaticARP { return value.StaticARPs })
 		if err := specInterfaceVLANStaticARPsEnforcer.Handle(basePath, actualStaticARPs, desiredStaticARPs, actions); err != nil {
@@ -234,6 +243,21 @@ var specInterfaceVLANIPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecInter
 				},
 			},
 		}, nil
+	},
+}
+
+var specInterfaceVLANIPv6Enforcer = &DefaultValueEnforcer[string, *dozer.SpecInterfaceIPv6]{
+	Summary:      "Interface %s VLAN IPv6 Enable",
+	NoReplace:    true,
+	UpdateWeight: ActionWeightInterfaceVLANIPv6Update,
+	DeleteWeight: ActionWeightInterfaceVLANIPv6Delete,
+	Marshal: func(_ string, value *dozer.SpecInterfaceIPv6) (ygot.ValidatedGoStruct, error) {
+		cfg := &oc.OpenconfigInterfaces_Interfaces_Interface_RoutedVlan_Ipv6_Config{}
+		if value != nil && value.Enabled != nil {
+			cfg.Enabled = value.Enabled
+		}
+
+		return cfg, nil
 	},
 }
 
@@ -901,6 +925,17 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 							IP:  *n.Config.Ip,
 							MAC: *n.Config.LinkLayerAddress,
 						}
+					}
+				}
+			}
+
+			// only set v6 enable if it exists and is true, and check the state flag too, same
+			// config-flag issue as on subinterfaces
+			if ocIface.RoutedVlan.Ipv6 != nil {
+				if (ocIface.RoutedVlan.Ipv6.Config != nil && ocIface.RoutedVlan.Ipv6.Config.Enabled != nil && *ocIface.RoutedVlan.Ipv6.Config.Enabled) ||
+					(ocIface.RoutedVlan.Ipv6.State != nil && ocIface.RoutedVlan.Ipv6.State.Enabled != nil && *ocIface.RoutedVlan.Ipv6.State.Enabled) {
+					iface.VLANIPv6 = &dozer.SpecInterfaceIPv6{
+						Enabled: pointer.To(true),
 					}
 				}
 			}
