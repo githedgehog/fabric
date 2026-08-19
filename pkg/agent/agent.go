@@ -539,6 +539,10 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 		slog.Warn("Action warning: " + warning)
 	}
 
+	if err := processor.SaveConfig(ctx); err != nil {
+		slog.Warn("Failed to save config to switch after enforcing", "error", err)
+	}
+
 	return nil
 }
 
