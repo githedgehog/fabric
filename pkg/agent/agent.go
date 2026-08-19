@@ -539,6 +539,15 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 		slog.Warn("Action warning: " + warning)
 	}
 
+	// Only save when something changed: enforcement runs every EnforcePeriod and a save writes to flash.
+	// Not len(actions): the user actions are always generated since passwords can't be read back, but
+	// the diff is taken after sensitive fields are stripped.
+	if len(diff) > 0 {
+		if err := processor.SaveConfig(ctx); err != nil {
+			slog.Warn("Failed to save config to switch after enforcing", "error", err)
+		}
+	}
+
 	return nil
 }
 
