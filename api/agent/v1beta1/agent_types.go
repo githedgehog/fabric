@@ -327,18 +327,29 @@ type SwitchStateBreakout struct {
 }
 
 type SwitchStateLLDPNeighbor struct {
-	Name              string `json:"name,omitempty"`
 	ChassisID         string `json:"chassis,omitempty"`
 	SystemName        string `json:"sysName,omitempty"`
 	SystemDescription string `json:"sysDescr,omitempty"`
 	PortID            string `json:"portID,omitempty"`
 	PortDescription   string `json:"portDescr,omitempty"`
 
+	// TTL advertised by the neighbor, seconds
+	TTL uint16 `json:"ttl,omitempty"`
+	// When the neighbor entry was last updated
+	LastUpdate *kmetav1.Time `json:"updated,omitempty"`
+
 	// LLDP-MED inventory
 
 	Manufacturer string `json:"manuf,omitempty"`
 	Model        string `json:"model,omitempty"`
 	SerialNumber string `json:"serial,omitempty"`
+
+	// Derived (best-effort) values
+
+	// MAC of the neighbor port: the LLDP source MAC, or the port ID if it's a MAC address
+	MAC string `json:"mac,omitempty"`
+	// Human-readable neighbor port name: the port ID, or the port description if the port ID is a MAC address
+	Port string `json:"port,omitempty"`
 }
 
 type SwitchStateBGPNeighbor struct {

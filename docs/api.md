@@ -527,15 +527,18 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ |  |  |  |
 | `chassis` _string_ |  |  |  |
 | `sysName` _string_ |  |  |  |
 | `sysDescr` _string_ |  |  |  |
 | `portID` _string_ |  |  |  |
 | `portDescr` _string_ |  |  |  |
+| `ttl` _integer_ | TTL advertised by the neighbor, seconds |  |  |
+| `updated` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | When the neighbor entry was last updated |  |  |
 | `manuf` _string_ |  |  |  |
 | `model` _string_ |  |  |  |
 | `serial` _string_ |  |  |  |
+| `mac` _string_ | MAC of the neighbor port: the LLDP source MAC, or the port ID if it's a MAC address |  |  |
+| `port` _string_ | Human-readable neighbor port name: the port ID, or the port description if the port ID is a MAC address |  |  |
 
 
 #### SwitchStateNOS

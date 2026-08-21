@@ -2686,11 +2686,18 @@ spec:
                             properties:
                               chassis:
                                 type: string
+                              mac:
+                                description: 'MAC of the neighbor port: the LLDP source
+                                  MAC, or the port ID if it''s a MAC address'
+                                type: string
                               manuf:
                                 type: string
                               model:
                                 type: string
-                              name:
+                              port:
+                                description: 'Human-readable neighbor port name: the
+                                  port ID, or the port description if the port ID
+                                  is a MAC address'
                                 type: string
                               portDescr:
                                 type: string
@@ -2701,6 +2708,13 @@ spec:
                               sysDescr:
                                 type: string
                               sysName:
+                                type: string
+                              ttl:
+                                description: TTL advertised by the neighbor, seconds
+                                type: integer
+                              updated:
+                                description: When the neighbor entry was last updated
+                                format: date-time
                                 type: string
                             type: object
                           type: array
