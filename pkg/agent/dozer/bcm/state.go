@@ -15,10 +15,13 @@
 package bcm
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
 	"math"
+	"net"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -642,73 +645,29 @@ func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, ag *agentapi.
 
 func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
 	lldp := &oc.OpenconfigLldp_Lldp{}
-	err := p.client.Get(ctx, "/lldp/interfaces", lldp)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get lldp interfaces")
+	if err := p.client.Get(ctx, "/lldp/interfaces", lldp); err != nil {
+		return fmt.Errorf("getting lldp interfaces: %w", err)
 	}
 
 	if lldp.Interfaces == nil {
 		return nil
 	}
 
+	now := time.Now()
+
 	for ifaceName, iface := range lldp.Interfaces.Interface {
-		if iface.Neighbors == nil {
+		// skip the switch own management interface as all switches and their IPMIs would show here
+		if isManagement(ifaceName) {
 			continue
 		}
 
-		neighbours := []agentapi.SwitchStateLLDPNeighbor{}
+		if iface == nil || iface.Neighbors == nil {
+			continue
+		}
 
-		for neighbourName, neighbour := range iface.Neighbors.Neighbor {
-			if neighbour.State == nil {
-				continue
-			}
-
-			nSt := neighbour.State
-			st := agentapi.SwitchStateLLDPNeighbor{
-				Name: neighbourName,
-			}
-
-			if nSt.ChassisId != nil {
-				st.ChassisID = *nSt.ChassisId
-			}
-
-			if nSt.SystemName != nil {
-				st.SystemName = *nSt.SystemName
-			}
-
-			if nSt.SystemDescription != nil {
-				st.SystemDescription = *nSt.SystemDescription
-			}
-
-			if nSt.PortId != nil {
-				st.PortID = *nSt.PortId
-			}
-
-			if nSt.PortDescription != nil {
-				st.PortDescription = *nSt.PortDescription
-			}
-
-			if neighbour.Med != nil {
-				nMed := neighbour.Med
-
-				if nMed.State != nil && nMed.State.Inventory != nil {
-					nInt := nMed.State.Inventory
-
-					if nInt.Manufacturer != nil {
-						st.Manufacturer = *nInt.Manufacturer
-					}
-
-					if nInt.Model != nil {
-						st.Model = *nInt.Model
-					}
-
-					if nInt.SerialNumber != nil {
-						st.SerialNumber = *nInt.SerialNumber
-					}
-				}
-			}
-
-			neighbours = append(neighbours, st)
+		neighbors := lldpNeighbors(iface.Neighbors.Neighbor, now)
+		if len(neighbors) == 0 {
+			continue
 		}
 
 		ifaceNameTr, exists := portMap[ifaceName]
@@ -719,11 +678,151 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *ag
 		}
 
 		intSt := swState.Interfaces[ifaceNameTr]
-		intSt.LLDPNeighbors = neighbours
+		intSt.LLDPNeighbors = neighbors
 		swState.Interfaces[ifaceNameTr] = intSt
 	}
 
 	return nil
+}
+
+func lldpNeighbors(ocNeighbors map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor, now time.Time) []agentapi.SwitchStateLLDPNeighbor {
+	neighbors := make([]agentapi.SwitchStateLLDPNeighbor, 0, len(ocNeighbors))
+
+	for id, neighbor := range ocNeighbors {
+		st, ok := lldpNeighbor(id, neighbor, now)
+		if !ok {
+			continue
+		}
+
+		neighbors = append(neighbors, st)
+	}
+
+	if len(neighbors) == 0 {
+		return nil
+	}
+
+	slices.SortFunc(neighbors, compareLLDPNeighbors)
+
+	return neighbors
+}
+
+func lldpNeighbor(id string, neighbor *oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor, now time.Time) (agentapi.SwitchStateLLDPNeighbor, bool) {
+	if neighbor == nil || neighbor.State == nil {
+		return agentapi.SwitchStateLLDPNeighbor{}, false
+	}
+
+	nSt := neighbor.State
+	st := agentapi.SwitchStateLLDPNeighbor{}
+
+	if nSt.ChassisId != nil {
+		st.ChassisID = *nSt.ChassisId
+	}
+
+	if nSt.SystemName != nil {
+		st.SystemName = *nSt.SystemName
+	}
+
+	if nSt.SystemDescription != nil {
+		st.SystemDescription = *nSt.SystemDescription
+	}
+
+	if nSt.PortId != nil {
+		st.PortID = *nSt.PortId
+	}
+
+	if nSt.PortDescription != nil {
+		st.PortDescription = *nSt.PortDescription
+	}
+
+	if nSt.Ttl != nil {
+		st.TTL = *nSt.Ttl
+	}
+
+	st.LastUpdate = lldpLastUpdate(nSt, now)
+
+	// port-id-type isn't always reported, so fall back to just checking the value
+	portIDIsMAC := nSt.PortIdType == oc.OpenconfigLldp_PortIdType_MAC_ADDRESS || isMACAddress(st.PortID)
+
+	st.MAC = strings.ToLower(id)
+	if portIDIsMAC {
+		st.MAC = strings.ToLower(st.PortID)
+	}
+	if !isMACAddress(st.MAC) {
+		slog.Warn("Invalid MAC address in LLDP neighbor, ignoring", "mac", st.MAC,
+			"portID", st.PortID, "portDescription", st.PortDescription, "chassisID", st.ChassisID, "systemName", st.SystemName)
+		st.MAC = ""
+	}
+
+	st.Port = st.PortID
+	if portIDIsMAC && st.PortDescription != "" {
+		st.Port = st.PortDescription
+	}
+
+	if neighbor.Med != nil {
+		nMed := neighbor.Med
+
+		if nMed.State != nil && nMed.State.Inventory != nil {
+			nInv := nMed.State.Inventory
+
+			if nInv.Manufacturer != nil {
+				st.Manufacturer = *nInv.Manufacturer
+			}
+
+			if nInv.Model != nil {
+				st.Model = *nInv.Model
+			}
+
+			if nInv.SerialNumber != nil {
+				st.SerialNumber = *nInv.SerialNumber
+			}
+		}
+	}
+
+	return st, true
+}
+
+// lldpLastUpdate converts the LLDP neighbor last-update into a timestamp, it's reported as seconds since the update.
+func lldpLastUpdate(nSt *oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State, now time.Time) *kmetav1.Time {
+	if nSt.LastUpdate == nil {
+		return nil
+	}
+
+	return &kmetav1.Time{Time: now.Add(-time.Duration(*nSt.LastUpdate) * time.Second)}
+}
+
+// isMACAddress reports whether s is a 6-octet colon-separated MAC address
+func isMACAddress(s string) bool {
+	hw, err := net.ParseMAC(s)
+
+	// ParseMAC also accepts dash/dot separated, bare hex and longer EUI-64 forms
+	return err == nil && len(hw) == 6 && strings.Count(s, ":") == 5
+}
+
+// compareLLDPNeighbors orders neighbors by (system name, port, MAC), the remaining fields are only tie breakers to
+// keep the order stable as it comes from a map and the sort isn't stable either
+func compareLLDPNeighbors(a, b agentapi.SwitchStateLLDPNeighbor) int {
+	return cmp.Or(
+		strings.Compare(a.SystemName, b.SystemName),
+		strings.Compare(a.Port, b.Port),
+		strings.Compare(a.MAC, b.MAC),
+		strings.Compare(a.ChassisID, b.ChassisID),
+		strings.Compare(a.PortID, b.PortID),
+		strings.Compare(a.PortDescription, b.PortDescription),
+		strings.Compare(a.SystemDescription, b.SystemDescription),
+		strings.Compare(a.Manufacturer, b.Manufacturer),
+		strings.Compare(a.Model, b.Model),
+		strings.Compare(a.SerialNumber, b.SerialNumber),
+		cmp.Compare(a.TTL, b.TTL),
+		lldpLastUpdateTime(a.LastUpdate).Compare(lldpLastUpdateTime(b.LastUpdate)),
+	)
+}
+
+func lldpLastUpdateTime(t *kmetav1.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+
+	return t.Time
 }
 
 func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
