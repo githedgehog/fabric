@@ -201,7 +201,6 @@ type SwitchStateInterface struct {
 	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
 	LLDPNeighbors []SwitchStateLLDPNeighbor     `json:"lldpNeighbors,omitempty"`
 	ErrDisabled   bool                          `json:"errDisabled,omitempty"`
-	LinkFlapCount *uint32                       `json:"linkFlapCount,omitempty"`
 }
 
 type SwitchStateInterfaceCounters struct {

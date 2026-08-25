@@ -458,7 +458,6 @@ _Appears in:_
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
 | `errDisabled` _boolean_ |  |  |  |
-| `linkFlapCount` _integer_ |  |  |  |
 
 
 #### SwitchStateInterfaceCounters

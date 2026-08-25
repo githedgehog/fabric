@@ -36,14 +36,15 @@ import (
 )
 
 const (
-	fanIgnore                    = ""
-	psuIgnore                    = "None"
-	temperatureIgnore            = "N/A"
-	errDisablePortStatusDisabled = "disabled"
-	errDisableLinkFlapCause      = "link-flap"
-	transceiverPresent           = "PRESENT"
-	transceiverOperActive        = "active"
-	transceiverCMISReady         = "Ready"
+	fanIgnore             = ""
+	psuIgnore             = "None"
+	temperatureIgnore     = "N/A"
+	transceiverPresent    = "PRESENT"
+	transceiverOperActive = "active"
+	transceiverCMISReady  = "Ready"
+	// Reported in link-flap/state/status once a port has been shut down for flapping.
+	// While the protection is armed but not tripped the switch reports "on" instead.
+	errDisablePortStatusErrDisabled = "err-disabled"
 	// gRPC NotFound is returned when a YANG path has no data yet (e.g. errdisable on a fresh switch).
 	// TODO: rework gnmi client to surface this as a typed sentinel instead of string matching.
 	errGRPCNotFound = "rpc error: code = NotFound"
@@ -923,28 +924,8 @@ func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *
 		}
 
 		intSt := swState.Interfaces[ifaceName]
-		intSt.ErrDisabled = *port.LinkFlap.State.Status == errDisablePortStatusDisabled
+		intSt.ErrDisabled = strings.EqualFold(*port.LinkFlap.State.Status, errDisablePortStatusErrDisabled)
 		swState.Interfaces[ifaceName] = intSt
-	}
-
-	// The link-flap counter is not in the OpenConfig state model; read it from the SONiC
-	// native table as a best-effort secondary source.
-	ocPortErrTable := &oc.SonicErrdisable_SonicErrdisable_PORT_ERR_DISABLE_TABLE{}
-	if err := p.client.Get(ctx, "/sonic-errdisable/sonic-errdisable/PORT_ERR_DISABLE_TABLE", ocPortErrTable); err == nil {
-		for nosName, entry := range ocPortErrTable.PORT_ERR_DISABLE_TABLE_LIST {
-			if entry.ErrorDisable == nil || *entry.ErrorDisable != errDisableLinkFlapCause || entry.LinkFlaps == nil {
-				continue
-			}
-
-			ifaceName, exists := portMap[nosName]
-			if !exists {
-				continue
-			}
-
-			intSt := swState.Interfaces[ifaceName]
-			intSt.LinkFlapCount = entry.LinkFlaps
-			swState.Interfaces[ifaceName] = intSt
-		}
 	}
 
 	return nil
