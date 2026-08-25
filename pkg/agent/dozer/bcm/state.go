@@ -102,7 +102,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update breakout metrics")
 	}
 
-	if err := p.updateLLDPNeighbors(ctx, swState, portMap); err != nil {
+	if err := p.updateLLDPNeighbors(ctx, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update lldp neighbors")
 	}
 
@@ -643,43 +643,76 @@ func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, ag *agentapi.
 	return nil
 }
 
-func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
+func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
 	lldp := &oc.OpenconfigLldp_Lldp{}
 	if err := p.client.Get(ctx, "/lldp/interfaces", lldp); err != nil {
 		return fmt.Errorf("getting lldp interfaces: %w", err)
 	}
 
-	if lldp.Interfaces == nil {
-		return nil
-	}
+	// neighbors are labeled by their own identity, so the series of the ones that are gone have to go with them
+	reg.LLDPMetrics.LastUpdate.Reset()
+	reg.LLDPMetrics.TTL.Reset()
+	reg.LLDPMetrics.Info.Reset()
 
 	now := time.Now()
 
-	for ifaceName, iface := range lldp.Interfaces.Interface {
-		// skip the switch own management interface as all switches and their IPMIs would show here
-		if isManagement(ifaceName) {
+	if lldp.Interfaces != nil {
+		for ifaceName, iface := range lldp.Interfaces.Interface {
+			// skip the switch own management interface as all switches and their IPMIs would show here
+			if isManagement(ifaceName) {
+				continue
+			}
+
+			if iface == nil || iface.Neighbors == nil {
+				continue
+			}
+
+			neighbors := lldpNeighbors(iface.Neighbors.Neighbor, now)
+			if len(neighbors) == 0 {
+				continue
+			}
+
+			ifaceNameTr, exists := portMap[ifaceName]
+			if !exists {
+				slog.Warn("Port mapping not found, ignoring for metrics", "lldpInterface", ifaceName)
+
+				continue
+			}
+
+			intSt := swState.Interfaces[ifaceNameTr]
+			intSt.LLDPNeighbors = neighbors
+			swState.Interfaces[ifaceNameTr] = intSt
+		}
+	}
+
+	// iterating the ports and not the collected neighbors: a port without neighbors has to report zero of them,
+	// otherwise it would keep reporting the last count it had as nothing ever resets it
+	for nosName, apiName := range portMap {
+		if isManagement(nosName) {
 			continue
 		}
 
-		if iface == nil || iface.Neighbors == nil {
-			continue
+		neighbors := swState.Interfaces[apiName].LLDPNeighbors
+		reg.LLDPMetrics.Neighbors.WithLabelValues(apiName).Set(float64(len(neighbors)))
+
+		for _, neighbor := range neighbors {
+			reg.LLDPMetrics.Info.WithLabelValues(
+				apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, neighbor.ChassisID,
+				neighbor.SystemDescription, neighbor.Manufacturer, neighbor.Model, neighbor.SerialNumber,
+			).Set(1)
+
+			if neighbor.LastUpdate != nil && !neighbor.LastUpdate.IsZero() {
+				reg.LLDPMetrics.LastUpdate.
+					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC).
+					Set(float64(neighbor.LastUpdate.Unix()))
+			}
+
+			if neighbor.TTL > 0 {
+				reg.LLDPMetrics.TTL.
+					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC).
+					Set(float64(neighbor.TTL))
+			}
 		}
-
-		neighbors := lldpNeighbors(iface.Neighbors.Neighbor, now)
-		if len(neighbors) == 0 {
-			continue
-		}
-
-		ifaceNameTr, exists := portMap[ifaceName]
-		if !exists {
-			slog.Warn("Port mapping not found, ignoring for metrics", "lldpInterface", ifaceName)
-
-			continue
-		}
-
-		intSt := swState.Interfaces[ifaceNameTr]
-		intSt.LLDPNeighbors = neighbors
-		swState.Interfaces[ifaceNameTr] = intSt
 	}
 
 	return nil

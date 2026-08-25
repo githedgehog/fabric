@@ -17,12 +17,14 @@ package bcm
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -462,7 +464,7 @@ func TestUpdateLLDPNeighbors(t *testing.T) {
 	swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
 	portMap := map[string]string{"Ethernet0": "E1/1", "Management0": "M1"}
 
-	require.NoError(t, p.updateLLDPNeighbors(context.Background(), swState, portMap))
+	require.NoError(t, p.updateLLDPNeighbors(context.Background(), switchstate.NewRegistry(), swState, portMap))
 
 	require.Equal(t, map[string]agentapi.SwitchStateInterface{
 		"E1/1": {
@@ -477,4 +479,229 @@ func TestUpdateLLDPNeighbors(t *testing.T) {
 			},
 		},
 	}, swState.Interfaces)
+}
+
+// lldpMetricSeries returns the reported values of a metric keyed by its labels, so that the tests can assert on the
+// series that exist as well as on their values.
+func lldpMetricSeries(t *testing.T, reg *switchstate.Registry, name string) map[string]float64 {
+	t.Helper()
+
+	families, err := reg.Gather()
+	require.NoError(t, err)
+
+	res := map[string]float64{}
+
+	for _, family := range families {
+		if family.GetName() != "fabric_agent_"+name {
+			continue
+		}
+
+		for _, metric := range family.GetMetric() {
+			key := []string{}
+			for _, label := range metric.GetLabel() {
+				key = append(key, label.GetName()+"="+label.GetValue())
+			}
+
+			res[strings.Join(key, ",")] = metric.GetGauge().GetValue()
+		}
+	}
+
+	return res
+}
+
+func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
+	t.Parallel()
+
+	iface := func(name string, neighbors ...ocNeighborOpts) *oc.OpenconfigLldp_Lldp_Interfaces_Interface {
+		return &oc.OpenconfigLldp_Lldp_Interfaces_Interface{
+			Name:      pointer.To(name),
+			Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{Neighbor: ocNeighbors(neighbors...)},
+		}
+	}
+
+	// the real server-5 neighbor of ds5000-02/E1/5/1 next to the nameless one that shares the port with it, both
+	// reporting no age so that their last update is the collection time
+	wired := ocNeighborOpts{
+		id: "00:00:00:0b:bb:11", sysName: "server-5", portID: "enp2s1",
+		ttl: pointer.To(uint16(120)), lastUpdate: pointer.To(int64(0)),
+	}
+	extra := ocNeighborOpts{
+		id: "00:00:00:0b:bb:19", portID: "00:00:00:0b:bb:19",
+		ttl: pointer.To(uint16(120)), lastUpdate: pointer.To(int64(0)),
+	}
+
+	client := newGNMIMock()
+	client.root = &oc.Device{
+		Lldp: &oc.OpenconfigLldp_Lldp{
+			Interfaces: &oc.OpenconfigLldp_Lldp_Interfaces{
+				Interface: map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface{
+					"Ethernet0": iface("Ethernet0", wired, extra),
+				},
+			},
+		},
+	}
+
+	reg := switchstate.NewRegistry()
+	p := &BroadcomProcessor{client: client}
+	// Ethernet1 has no neighbors at all and Management0 is never reported
+	portMap := map[string]string{"Ethernet0": "E1/1", "Ethernet1": "E1/2", "Management0": "M1"}
+
+	collect := func() {
+		t.Helper()
+		swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
+		require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState, portMap))
+	}
+
+	collect()
+
+	// a port without neighbors reports zero of them, the management port isn't reported at all
+	require.Equal(t, map[string]float64{"interface=E1/1": 2, "interface=E1/2": 0}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+
+	// both neighbors of the port get their own series, identified by name, port and MAC
+	require.Equal(t, map[string]float64{
+		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5":    120,
+		"interface=E1/1,mac=00:00:00:0b:bb:19,port=00:00:00:0b:bb:19,sys_name=": 120,
+	}, lldpMetricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
+
+	lastUpdate := lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds")
+	require.Len(t, lastUpdate, 2)
+	for series, ts := range lastUpdate {
+		require.InDelta(t, float64(time.Now().Unix()), ts, 60, series)
+	}
+
+	// the neighbor that's gone has to take its series with it, otherwise it looks alive forever
+	client.root.Lldp.Interfaces.Interface["Ethernet0"] = iface("Ethernet0", wired)
+
+	collect()
+
+	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 0}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+	require.Equal(t, map[string]float64{
+		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5": 120,
+	}, lldpMetricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
+	require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
+
+	// a neighbor that doesn't report its update time is still counted, but has nothing to say about freshness
+	client.root.Lldp.Interfaces.Interface["Ethernet1"] = iface("Ethernet1", ocNeighborOpts{
+		id: "00:00:00:0b:bb:21", sysName: "server-6", portID: "enp2s1",
+	})
+
+	collect()
+
+	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 1}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+	require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
+
+	// unlike the freshness metrics, info covers every neighbor there is, including the one without an update time
+	require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_info"), 2)
+}
+
+// TestUpdateLLDPNeighborsFreshness covers that the TTL and the last update are reported independently: a neighbor that
+// only says one of them still gets that one, and neither is invented when the neighbor says nothing. A zero TTL means
+// shutdown in LLDP rather than unknown, so reporting it would make every staleness check trip on a healthy port.
+func TestUpdateLLDPNeighborsFreshness(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name       string
+		neighbor   ocNeighborOpts
+		wantTTL    int
+		wantUpdate int
+	}{
+		{
+			name:       "ttl and last update",
+			neighbor:   ocNeighborOpts{ttl: pointer.To(uint16(120)), lastUpdate: pointer.To(int64(5))},
+			wantTTL:    1,
+			wantUpdate: 1,
+		},
+		{
+			// the switch doesn't always report the last update, the advertised TTL is still worth having
+			name:     "ttl only",
+			neighbor: ocNeighborOpts{ttl: pointer.To(uint16(120))},
+			wantTTL:  1,
+		},
+		{
+			name:       "last update only",
+			neighbor:   ocNeighborOpts{lastUpdate: pointer.To(int64(5))},
+			wantUpdate: 1,
+		},
+		{
+			name:     "neither",
+			neighbor: ocNeighborOpts{},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.neighbor.id = "00:00:00:0b:bb:11"
+			tt.neighbor.sysName = "server-5"
+			tt.neighbor.portID = "enp2s1"
+
+			client := newGNMIMock()
+			client.root = &oc.Device{
+				Lldp: &oc.OpenconfigLldp_Lldp{
+					Interfaces: &oc.OpenconfigLldp_Lldp_Interfaces{
+						Interface: map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface{
+							"Ethernet0": {
+								Name:      pointer.To("Ethernet0"),
+								Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{Neighbor: ocNeighbors(tt.neighbor)},
+							},
+						},
+					},
+				},
+			}
+
+			reg := switchstate.NewRegistry()
+			p := &BroadcomProcessor{client: client}
+			swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
+
+			require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState,
+				map[string]string{"Ethernet0": "E1/1"}))
+
+			require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_ttl_seconds"), tt.wantTTL)
+			require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), tt.wantUpdate)
+
+			// whatever the neighbor says about freshness, it's still there and still counted
+			require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_info"), 1)
+			require.Equal(t, map[string]float64{"interface=E1/1": 1}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+		})
+	}
+}
+
+func TestUpdateLLDPNeighborsInfo(t *testing.T) {
+	t.Parallel()
+
+	client := newGNMIMock()
+	client.root = &oc.Device{
+		Lldp: &oc.OpenconfigLldp_Lldp{
+			Interfaces: &oc.OpenconfigLldp_Lldp_Interfaces{
+				Interface: map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface{
+					// a fabric peer reports the LLDP-MED inventory, everything else leaves it empty
+					"Ethernet0": {
+						Name: pointer.To("Ethernet0"),
+						Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{
+							Neighbor: ocNeighbors(ocNeighborOpts{
+								id:        "b4:db:91:9b:60:27",
+								chassisID: "b4:db:91:9b:60:24",
+								sysName:   "ds5000-03",
+								sysDescr:  "Hedgehog Fabric",
+								portID:    "Ethernet496",
+								manuf:     "Celestica",
+							}),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	reg := switchstate.NewRegistry()
+	p := &BroadcomProcessor{client: client}
+	swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
+
+	require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState,
+		map[string]string{"Ethernet0": "E1/1"}))
+
+	require.Equal(t, map[string]float64{
+		"chassis=b4:db:91:9b:60:24,interface=E1/1,mac=b4:db:91:9b:60:27,manuf=Celestica,model=," +
+			"port=Ethernet496,serial=,sys_descr=Hedgehog Fabric,sys_name=ds5000-03": 1,
+	}, lldpMetricSeries(t, reg, "lldp_neighbor_info"))
 }
