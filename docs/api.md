@@ -458,6 +458,7 @@ _Appears in:_
 | `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
 | `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
 | `errDisabled` _boolean_ |  |  |  |
+| `transitions` _[SwitchStateInterfaceTransitions](#switchstateinterfacetransitions)_ |  |  |  |
 
 
 #### SwitchStateInterfaceCounters
@@ -511,6 +512,25 @@ _Appears in:_
 | `p` _integer_ |  |  |  |
 | `pps` _integer_ |  |  |  |
 | `wreddp` _integer_ |  |  |  |
+
+
+#### SwitchStateInterfaceTransitions
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `reasons` _object (keys:string, values:integer)_ | Times the link went down over the lifetime of the switch, partitioned by the reason<br />the switch gave, e.g. PHY_LINK_DOWN for a cabling fault against ADMIN_DOWN for a<br />config loop. Sum the values for the overall count.<br />Keyed by reason rather than by event because an admin shutdown drops the PHY too,<br />and so reports the same phy-link-down event as a pulled cable. A down whose cause<br />could not be established is counted under "UNKNOWN".<br />Counts carry across agent restarts and are a lower bound: downs while nothing was<br />subscribed are only detectable, not countable, so each such gap contributes one.<br />Only downs are counted, since every up is preceded by one and the current<br />OperStatus already says whether the link came back. |  |  |
+| `lastEvent` _string_ | The most recent down: the event the switch recorded, the reason it left the<br />interface in, and when. Unlike OperStatus these survive the link coming back, so<br />they still say why it last failed. |  |  |
+| `lastReason` _string_ |  |  |  |
+| `lastEventAt` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ |  |  |  |
 
 
 #### SwitchStateLLDPNeighbor

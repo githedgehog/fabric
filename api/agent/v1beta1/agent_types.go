@@ -190,17 +190,40 @@ type SwitchState struct {
 }
 
 type SwitchStateInterface struct {
-	Enabled       bool                          `json:"enabled,omitempty"`
-	AdminStatus   AdminStatus                   `json:"admin,omitempty"`
-	OperStatus    OperStatus                    `json:"oper,omitempty"`
-	MAC           string                        `json:"mac,omitempty"`
-	LastChange    kmetav1.Time                  `json:"change,omitempty"`
-	Speed         string                        `json:"speed,omitempty"`
-	AutoNegotiate bool                          `json:"auto,omitempty"`
-	FEC           string                        `json:"fec,omitempty"`
-	Counters      *SwitchStateInterfaceCounters `json:"counters,omitempty"`
-	LLDPNeighbors []SwitchStateLLDPNeighbor     `json:"lldpNeighbors,omitempty"`
-	ErrDisabled   bool                          `json:"errDisabled,omitempty"`
+	Enabled       bool                             `json:"enabled,omitempty"`
+	AdminStatus   AdminStatus                      `json:"admin,omitempty"`
+	OperStatus    OperStatus                       `json:"oper,omitempty"`
+	MAC           string                           `json:"mac,omitempty"`
+	LastChange    kmetav1.Time                     `json:"change,omitempty"`
+	Speed         string                           `json:"speed,omitempty"`
+	AutoNegotiate bool                             `json:"auto,omitempty"`
+	FEC           string                           `json:"fec,omitempty"`
+	Counters      *SwitchStateInterfaceCounters    `json:"counters,omitempty"`
+	LLDPNeighbors []SwitchStateLLDPNeighbor        `json:"lldpNeighbors,omitempty"`
+	ErrDisabled   bool                             `json:"errDisabled,omitempty"`
+	Transitions   *SwitchStateInterfaceTransitions `json:"transitions,omitempty"`
+}
+
+type SwitchStateInterfaceTransitions struct {
+	// Times the link went down over the lifetime of the switch, partitioned by the reason
+	// the switch gave, e.g. PHY_LINK_DOWN for a cabling fault against ADMIN_DOWN for a
+	// config loop. Sum the values for the overall count.
+	//
+	// Keyed by reason rather than by event because an admin shutdown drops the PHY too,
+	// and so reports the same phy-link-down event as a pulled cable. A down whose cause
+	// could not be established is counted under "UNKNOWN".
+	//
+	// Counts carry across agent restarts and are a lower bound: downs while nothing was
+	// subscribed are only detectable, not countable, so each such gap contributes one.
+	// Only downs are counted, since every up is preceded by one and the current
+	// OperStatus already says whether the link came back.
+	Reasons map[string]uint64 `json:"reasons,omitempty"`
+	// The most recent down: the event the switch recorded, the reason it left the
+	// interface in, and when. Unlike OperStatus these survive the link coming back, so
+	// they still say why it last failed.
+	LastEvent   string       `json:"lastEvent,omitempty"`
+	LastReason  string       `json:"lastReason,omitempty"`
+	LastEventAt kmetav1.Time `json:"lastEventAt,omitempty"`
 }
 
 type SwitchStateInterfaceCounters struct {

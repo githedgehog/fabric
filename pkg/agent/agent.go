@@ -271,6 +271,12 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.Conditions = []kmetav1.Condition{}
 	}
 
+	if isBCM {
+		if err := svc.processor.(*bcm.BroadcomProcessor).StartLinkEventWatcher(ctx, agent); err != nil {
+			slog.Error("Failed to start link event watcher, transition counts unavailable", "err", err)
+		}
+	}
+
 	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 		return errors.Wrapf(err, "failed to update switch state")
 	}

@@ -39,6 +39,19 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
+// subscriptionName identifies this client's only subscription to gnmic.
+const subscriptionName = "hh-link-events"
+
+const (
+	// SubscribeRetryTimer paces gnmic's internal resubscribe loop.
+	SubscribeRetryTimer = 5 * time.Second
+	// SubscribeSyncTimeout bounds how long we wait for the initial sync-response.
+	// SONiC answers a subscription for a path that is not on-change capable with
+	// silence rather than an error, so a missing sync-response is the only signal
+	// that a path is unsupported.
+	SubscribeSyncTimeout = 30 * time.Second
+)
+
 const (
 	JSONIETFEncoding  = "json_ietf"
 	Target            = "sonic"
@@ -211,12 +224,92 @@ func createGNMIClient(ctx context.Context, address, username, password string) (
 		return nil, errors.Wrapf(err, "cannot create target for %s@%s", username, address)
 	}
 
+	tg.Config.RetryTimer = SubscribeRetryTimer
+
 	err = tg.CreateGNMIClient(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create gnmi client for %s@%s", username, address)
 	}
 
 	return tg, nil
+}
+
+// SubscribeOnChange opens a STREAM/ON_CHANGE subscription for paths and calls onResponse
+// for every response received, until ctx is done. It does not return on stream errors:
+// the underlying client resubscribes, which makes the server resend its initial dump
+// followed by a fresh sync-response, so onResponse sees every reconnect as another sync.
+//
+// Only a subset of paths is on-change capable (oper-status, admin-status and last-change
+// are, counters and the whole interface state subtree are not) and an unsupported path is
+// answered with silence, not an error, so a missing first sync-response within
+// SubscribeSyncTimeout is reported as a failure rather than an idle stream.
+func (c *Client) SubscribeOnChange(ctx context.Context, paths []string, onResponse func(*gnmi.SubscribeResponse) error) error {
+	opts := make([]api.GNMIOption, 0, len(paths)+2)
+	opts = append(opts, api.Encoding(JSONIETFEncoding), api.SubscriptionListModeSTREAM())
+	for _, path := range paths {
+		opts = append(opts, api.Subscription(api.Path(path), api.SubscriptionModeON_CHANGE()))
+	}
+
+	req, err := api.NewSubscribeRequest(opts...)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create subscribe request for %v", paths)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	// One stable name: gnmic keys its subscription and cancel-func maps by it and never
+	// removes entries, so a fresh name per attempt would grow them without bound on a
+	// target that keeps refusing the subscription.
+	respCh, errCh := c.tg.SubscribeStreamChan(ctx, req, subscriptionName)
+
+	// The goroutine gnmic spawns writes to unbuffered channels without selecting on ctx,
+	// so cancelling alone leaves it blocked on a send forever, holding the stream and its
+	// entry in the target's subscription map. Keep reading until it has observed the
+	// cancellation and returned, which takes at most one retry interval.
+	defer func() {
+		cancel()
+
+		go func() {
+			drain := time.NewTimer(2 * SubscribeRetryTimer)
+			defer drain.Stop()
+
+			for {
+				select {
+				case <-respCh:
+				case <-errCh:
+				case <-drain.C:
+					return
+				}
+			}
+		}()
+	}()
+
+	synced := false
+	syncDeadline := time.NewTimer(SubscribeSyncTimeout)
+	defer syncDeadline.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-syncDeadline.C:
+			if !synced {
+				return errors.Errorf("no sync-response within %s for %v, paths are likely not on-change capable", SubscribeSyncTimeout, paths)
+			}
+		case err := <-errCh:
+			// gnmic resubscribes on its own, so this is a warning and not the end of the
+			// stream. Events lost across the gap are the caller's problem to account for
+			// when the next sync-response arrives.
+			slog.Warn("GNMI subscription interrupted, resubscribing", "paths", paths, "err", err)
+		case resp := <-respCh:
+			if resp.GetSyncResponse() {
+				synced = true
+			}
+			if err := onResponse(resp); err != nil {
+				return errors.Wrapf(err, "handling subscribe response")
+			}
+		}
+	}
 }
 
 func (c *Client) Set(ctx context.Context, req *gnmi.SetRequest) error {
@@ -239,7 +332,11 @@ func (c *Client) Get(ctx context.Context, path string, dest ygot.ValidatedGoStru
 		return errors.Wrapf(err, "get request failed for: %s", path)
 	}
 
-	val := getResp.Notification[0].Update[0].Val.GetJsonIetfVal()
+	if len(getResp.GetNotification()) == 0 || len(getResp.GetNotification()[0].GetUpdate()) == 0 {
+		return errors.Errorf("empty get response for: %s", path)
+	}
+
+	val := getResp.GetNotification()[0].GetUpdate()[0].GetVal().GetJsonIetfVal()
 	if err := Unmarshal(val, dest); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal response for: %s", path)
 	}

@@ -38,6 +38,7 @@ import (
 type BroadcomProcessor struct {
 	client          GNMICClient
 	skipCustomFuncs bool
+	linkEvents      *linkEventWatcher
 }
 
 var _ dozer.Processor = &BroadcomProcessor{}
@@ -52,6 +53,53 @@ func (p *BroadcomProcessor) SetClient(client GNMICClient) {
 
 func (p *BroadcomProcessor) SetSkipCustomFuncs(skip bool) {
 	p.skipCustomFuncs = skip
+}
+
+// StartLinkEventWatcher subscribes to interface state changes for as long as ctx lives,
+// so that UpdateSwitchState can report transition counts. It is separate from the state
+// polling because transitions cannot be counted by polling: the switch keeps no such
+// counter, and every flap that starts and ends between two polls would be lost.
+//
+// Lifetime totals are seeded from the agent status written by the previous run.
+func (p *BroadcomProcessor) StartLinkEventWatcher(ctx context.Context, agent *agentapi.Agent) error {
+	if p.client == nil {
+		return errors.Errorf("gnmi client is not set")
+	}
+
+	sub, ok := p.client.(gnmiSubscriber)
+	if !ok {
+		return errors.Errorf("gnmi client does not support subscriptions")
+	}
+
+	if agent.Spec.SwitchProfile == nil {
+		return errors.Errorf("switch profile not found")
+	}
+
+	portMap, err := agent.Spec.SwitchProfile.GetNOS2APIPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get port mapping")
+	}
+
+	seed := buildLinkEventSeed(portMap, agent.Status.State.Interfaces)
+
+	watcher := newLinkEventWatcher(p.client)
+	watcher.seed(seed)
+	p.linkEvents = watcher
+
+	go func() {
+		for ctx.Err() == nil {
+			if err := watcher.run(ctx, sub.SubscribeOnChange); err != nil {
+				slog.Error("Link event subscription failed, retrying", "err", err)
+			}
+
+			select {
+			case <-ctx.Done():
+			case <-time.After(gnmi.SubscribeRetryTimer):
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (p *BroadcomProcessor) WaitReady(ctx context.Context) error {

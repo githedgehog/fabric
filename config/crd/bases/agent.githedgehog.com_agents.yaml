@@ -2727,6 +2727,38 @@ spec:
                           type: string
                         speed:
                           type: string
+                        transitions:
+                          properties:
+                            lastEvent:
+                              description: |-
+                                The most recent down: the event the switch recorded, the reason it left the
+                                interface in, and when. Unlike OperStatus these survive the link coming back, so
+                                they still say why it last failed.
+                              type: string
+                            lastEventAt:
+                              format: date-time
+                              type: string
+                            lastReason:
+                              type: string
+                            reasons:
+                              additionalProperties:
+                                format: int64
+                                type: integer
+                              description: |-
+                                Times the link went down over the lifetime of the switch, partitioned by the reason
+                                the switch gave, e.g. PHY_LINK_DOWN for a cabling fault against ADMIN_DOWN for a
+                                config loop. Sum the values for the overall count.
+
+                                Keyed by reason rather than by event because an admin shutdown drops the PHY too,
+                                and so reports the same phy-link-down event as a pulled cable. A down whose cause
+                                could not be established is counted under "UNKNOWN".
+
+                                Counts carry across agent restarts and are a lower bound: downs while nothing was
+                                subscribed are only detectable, not countable, so each such gap contributes one.
+                                Only downs are counted, since every up is preceded by one and the current
+                                OperStatus already says whether the link came back.
+                              type: object
+                          type: object
                       type: object
                     description: Switch interfaces state (incl. physical, management
                       and port channels)
