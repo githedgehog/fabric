@@ -11,6 +11,7 @@ import (
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,6 +19,12 @@ type LLDPNeighbor struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Port        string `json:"port,omitempty"`
+
+	// Only reported for the actual neighbors, there is nothing to expect them from in the wiring
+
+	MAC        string        `json:"mac,omitempty"`
+	TTL        uint16        `json:"ttl,omitempty"`
+	LastUpdate *kmetav1.Time `json:"updated,omitempty"`
 }
 
 type LLDPNeighborType string
@@ -156,6 +163,7 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 		}
 	}
 
+	// agents no longer report neighbors of their own management interface, but older ones still do
 	for ifaceName, iface := range ag.Status.State.Interfaces {
 		if strings.HasPrefix(ifaceName, wiringapi.ManagementPortPrefix) {
 			continue
@@ -164,7 +172,12 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 		for _, neighbor := range iface.LLDPNeighbors {
 			status := out[ifaceName]
 
-			port := neighbor.PortID
+			// port is derived by the agent, fall back to the raw port ID for the agents that don't report it yet
+			port := neighbor.Port
+			if port == "" {
+				port = neighbor.PortID
+			}
+
 			if status.Type == LLDPNeighborTypeFabric {
 				if status.Expected.Name != "" {
 					status.Expected.Description = wiringapi.SwitchLLDPDescription(ag.Spec.Config.DeploymentID)
@@ -177,10 +190,11 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 					return nil, fmt.Errorf("NOS ports mapping for %s not found", status.Expected.Name) //nolint:goerr113
 				}
 
-				if apiPort, ok := ports[port]; ok {
+				// mapping is keyed by the NOS interface names, so it's only the raw port ID that can match it
+				if apiPort, ok := ports[neighbor.PortID]; ok {
 					port = apiPort
 				} else {
-					slog.Warn("Port mapping not found", "switch", status.Expected.Name, "port", port)
+					slog.Warn("Port mapping not found", "switch", status.Expected.Name, "portID", neighbor.PortID, "port", port)
 				}
 			}
 
@@ -188,6 +202,9 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				Name:        neighbor.SystemName,
 				Description: neighbor.SystemDescription,
 				Port:        port,
+				MAC:         neighbor.MAC,
+				TTL:         neighbor.TTL,
+				LastUpdate:  neighbor.LastUpdate,
 			})
 
 			out[ifaceName] = status
