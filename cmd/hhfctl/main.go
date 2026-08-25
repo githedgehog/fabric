@@ -1406,7 +1406,7 @@ Examples:
 							},
 							&cli.BoolFlag{
 								Name:  "fabric",
-								Usage: "include fabric neighbors (fabric, mclag-domain and vpcloopback connections)",
+								Usage: "include fabric neighbors (fabric connections)",
 								Value: true,
 							},
 							&cli.BoolFlag{
@@ -1417,6 +1417,24 @@ Examples:
 							&cli.BoolFlag{
 								Name:  "server",
 								Usage: "include server neighbors (unbundled, bundled, eslag and mclag connections)",
+								Value: true,
+							},
+							&cli.BoolFlag{
+								Name:  "gateway",
+								Usage: "include gateway neighbors (gateway connections)",
+								Value: true,
+							},
+							&cli.BoolFlag{
+								Name:  "show-all",
+								Usage: "show all neighbors of a port instead of only the one matching the wiring (text output only)",
+							},
+							&cli.BoolFlag{
+								Name:  "description",
+								Usage: "show the neighbor description column, it's long enough to make the table hard to read",
+							},
+							&cli.BoolFlag{
+								Name:  "ttl",
+								Usage: "show the TTL advertised by the neighbor next to the age",
 								Value: true,
 							},
 						},
@@ -1433,6 +1451,11 @@ Examples:
 								Fabric:   cCtx.Bool("fabric"),
 								External: cCtx.Bool("external"),
 								Server:   cCtx.Bool("server"),
+								Gateway:  cCtx.Bool("gateway"),
+								ShowAll:  cCtx.Bool("show-all"),
+
+								Description: cCtx.Bool("description"),
+								TTL:         cCtx.Bool("ttl"),
 							}, os.Stdout), "failed to inspect LLDP")
 						},
 					},
