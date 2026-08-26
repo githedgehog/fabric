@@ -140,7 +140,7 @@ func TestGetLLDPNeighbors(t *testing.T) {
 
 	neighbors, err := apiutil.GetLLDPNeighbors(context.Background(), kube, &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-	})
+	}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
 
 	// server: derived port is compared to the wiring, so it matches instead of showing a MAC
@@ -238,7 +238,7 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 
 	neighbors, err := apiutil.GetLLDPNeighbors(context.Background(), kube, &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-	})
+	}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
 
 	// the description is reported as is, it's never mapped, and it doesn't accidentally match the expected port

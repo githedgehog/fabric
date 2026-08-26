@@ -134,6 +134,45 @@ func TestLLDPNeighborRows(t *testing.T) {
 	}
 }
 
+// TestLLDPIgnoredNameParts covers a neighbor that only matches the wiring once the ignored parts of its name are taken
+// out: it still reports the name it advertises, and it isn't treated as a mismatch.
+func TestLLDPIgnoredNameParts(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 8, 21, 12, 0, 0, 0, time.UTC)
+
+	// what apiutil reports for a host calling itself spark-1.lan wired as spark-1
+	neighbor := apiutil.LLDPNeighbor{
+		Name: "spark-1.lan", Port: "p2", MAC: "4c:bb:47:e8:ef:fb", IgnoredSuffix: ".lan",
+	}
+	status := apiutil.LLDPNeighborStatus{
+		ConnectionName: "ds5000-02--spark-1-2",
+		ConnectionType: "unbundled",
+		Type:           apiutil.LLDPNeighborTypeServer,
+		Expected:       apiutil.LLDPNeighbor{Name: "spark-1", Port: "p2"},
+		Actual:         []apiutil.LLDPNeighbor{neighbor},
+	}
+
+	require.Equal(t, "spark-1", neighbor.MatchedName())
+
+	// the ignored parts are what makes it the wired neighbor, so it's neither a mismatch nor an error
+	matching, ok := lldpMatchingNeighbor(status)
+	require.True(t, ok)
+	require.Equal(t, neighbor, matching)
+	require.Empty(t, lldpStrictErrs("ds5000-02", "E1/1/1", status))
+
+	out := &LLDPOut{Neighbors: map[string]map[string]apiutil.LLDPNeighborStatus{
+		"ds5000-02": {"E1/1/1": status},
+	}}
+
+	res, err := out.MarshalText(LLDPIn{}, now)
+	require.NoError(t, err)
+
+	// the name is rendered as the neighbor advertises it, not cut down to what matched
+	require.Contains(t, res, "spark-1.lan")
+	require.NotContains(t, res, "(want")
+}
+
 func TestLLDPStrictErrs(t *testing.T) {
 	t.Parallel()
 

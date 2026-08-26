@@ -33,6 +33,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
+	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
@@ -1437,6 +1438,16 @@ Examples:
 								Usage: "show the TTL advertised by the neighbor next to the age",
 								Value: true,
 							},
+							&cli.StringSliceFlag{
+								Name:  "ignore-suffix",
+								Usage: "neighbor system name suffixes to ignore when matching against the wiring",
+								Value: cli.NewStringSlice(apiutil.DefaultLLDPIgnoreSuffixes...),
+							},
+							&cli.StringSliceFlag{
+								Name:  "ignore-prefix",
+								Usage: "neighbor system name prefixes to ignore when matching against the wiring",
+								Value: cli.NewStringSlice(apiutil.DefaultLLDPIgnorePrefixes...),
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
@@ -1456,6 +1467,9 @@ Examples:
 
 								Description: cCtx.Bool("description"),
 								TTL:         cCtx.Bool("ttl"),
+
+								IgnoreSuffixes: cCtx.StringSlice("ignore-suffix"),
+								IgnorePrefixes: cCtx.StringSlice("ignore-prefix"),
 							}, os.Stdout), "failed to inspect LLDP")
 						},
 					},

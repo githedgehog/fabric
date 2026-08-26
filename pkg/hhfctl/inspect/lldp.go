@@ -30,6 +30,11 @@ type LLDPIn struct {
 	ShowAll     bool
 	Description bool
 	TTL         bool
+
+	// Parts of the neighbor system names to ignore, unset means nothing is ignored, see the
+	// apiutil.DefaultLLDPIgnorePrefixes and apiutil.DefaultLLDPIgnoreSuffixes for the usual ones
+	IgnorePrefixes []string
+	IgnoreSuffixes []string
 }
 
 type LLDPOut struct {
@@ -55,7 +60,7 @@ func lldpMatchingNeighbor(n apiutil.LLDPNeighborStatus) (apiutil.LLDPNeighbor, b
 	}
 
 	for _, actual := range n.Actual {
-		if actual.Name != n.Expected.Name || actual.Port != n.Expected.Port {
+		if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) || actual.Port != n.Expected.Port {
 			continue
 		}
 
@@ -119,7 +124,7 @@ func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
 	unexpected := []string{}
 
 	for _, actual := range n.Actual {
-		if actual.Name != n.Expected.Name {
+		if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) {
 			// a neighbor that doesn't advertise a name is only identifiable by its MAC or port
 			unexpected = append(unexpected, cmp.Or(actual.Name, actual.MAC, actual.Port))
 
@@ -174,8 +179,10 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
 
 	red := color.New(color.FgRed).SprintFunc()
+	dim := color.New(color.Faint).SprintFunc()
 	if noColor {
 		red = fmt.Sprint
+		dim = fmt.Sprint
 	}
 
 	str := &strings.Builder{}
@@ -270,7 +277,15 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 					continue
 				}
 
-				sn := diff(actual.Name, n.Expected.Name)
+				// the name is reported as the neighbor advertises it, with the parts that were ignored to make it
+				// match dimmed, so that it's visible why a name that isn't literally the expected one is fine
+				sn := actual.Name
+				if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) {
+					sn = diff(actual.Name, n.Expected.Name)
+				} else if actual.IgnoredPrefix != "" || actual.IgnoredSuffix != "" {
+					sn = dim(actual.IgnoredPrefix) + actual.MatchedName() + dim(actual.IgnoredSuffix)
+				}
+
 				sp := diff(actual.Port, n.Expected.Port)
 				sd := diff(actual.Description, n.Expected.Description)
 
@@ -319,7 +334,10 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 			continue
 		}
 
-		neighbors, err := apiutil.GetLLDPNeighbors(ctx, kube, &sw)
+		neighbors, err := apiutil.GetLLDPNeighbors(ctx, kube, &sw, apiutil.LLDPNeighborsOpts{
+			IgnorePrefixes: in.IgnorePrefixes,
+			IgnoreSuffixes: in.IgnoreSuffixes,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("getting lldp neighbors for %s: %w", sw.Name, err)
 		}
