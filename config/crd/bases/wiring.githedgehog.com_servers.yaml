@@ -58,6 +58,16 @@ spec:
               description:
                 description: Description is a description of the server
                 type: string
+              inspect:
+                description: Inspect is the expectations used to check the server
+                  against what's observed in the Fabric
+                properties:
+                  expectedSysName:
+                    description: |-
+                      ExpectedSystemName is the LLDP system name the server advertises, usually its hostname, if it isn't the
+                      name of this object, e.g. a server-1 running as server-1.example.com
+                    type: string
+                type: object
               profile:
                 description: Profile is the profile of the server, name of the ServerProfile
                   object to be used for this server, currently not used by the Fabric

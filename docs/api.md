@@ -3082,6 +3082,22 @@ _Appears in:_
 | `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
 
 
+#### ServerInspect
+
+
+
+ServerInspect defines the expectations used to check the server against what's observed in the Fabric
+
+
+
+_Appears in:_
+- [ServerSpec](#serverspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `expectedSysName` _string_ | ExpectedSystemName is the LLDP system name the server advertises, usually its hostname, if it isn't the<br />name of this object, e.g. a server-1 running as server-1.example.com |  |  |
+
+
 #### ServerSpec
 
 
@@ -3097,6 +3113,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `description` _string_ | Description is a description of the server |  |  |
 | `profile` _string_ | Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric |  |  |
+| `inspect` _[ServerInspect](#serverinspect)_ | Inspect is the expectations used to check the server against what's observed in the Fabric |  |  |
 
 
 #### ServerStatus

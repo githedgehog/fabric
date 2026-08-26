@@ -184,6 +184,113 @@ func TestGetLLDPNeighbors(t *testing.T) {
 	}
 }
 
+// TestGetLLDPNeighborsServerExpectedSystemName covers the server system name override: the wiring expects whatever the
+// server object says it advertises, falling back to the object name.
+func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+
+	profile := switchprofile.VS.DeepCopy()
+	profile.Namespace = kmetav1.NamespaceDefault
+
+	srv := func(name, expectedSysName string) *wiringapi.Server {
+		return &wiringapi.Server{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Spec: wiringapi.ServerSpec{
+				Inspect: wiringapi.ServerInspect{ExpectedSystemName: expectedSysName},
+			},
+		}
+	}
+
+	conn := func(server, swPort string) *wiringapi.Connection {
+		c := &wiringapi.Connection{
+			ObjectMeta: kmetav1.ObjectMeta{
+				Name:      server + "--unbundled--leaf-1",
+				Namespace: kmetav1.NamespaceDefault,
+			},
+			Spec: wiringapi.ConnectionSpec{
+				Unbundled: &wiringapi.ConnUnbundled{
+					Link: wiringapi.ServerToSwitchLink{
+						Server: wiringapi.NewBasePortName(server + "/enp2s1"),
+						Switch: wiringapi.NewBasePortName("leaf-1/" + swPort),
+					},
+				},
+			},
+		}
+		c.Default()
+
+		return c
+	}
+
+	neighbor := func(sysName string) agentapi.SwitchStateInterface {
+		return agentapi.SwitchStateInterface{
+			LLDPNeighbors: []agentapi.SwitchStateLLDPNeighbor{{
+				SystemName: sysName,
+				PortID:     "0a:00:00:00:1a:01",
+				Port:       "enp2s1",
+			}},
+		}
+	}
+
+	agent := &agentapi.Agent{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+		Status: agentapi.AgentStatus{
+			State: agentapi.SwitchState{
+				Interfaces: map[string]agentapi.SwitchStateInterface{
+					"E1/1": neighbor("hh-server-1"),
+					"E1/2": neighbor("server-2"),
+					"E1/3": neighbor("server-3"),
+					"E1/4": neighbor("hh-server-4.lan"),
+				},
+			},
+		},
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		profile,
+		&wiringapi.Switch{
+			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+			Spec:       wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+		},
+		agent,
+		srv("server-1", "hh-server-1"),
+		srv("server-2", ""),
+		// server-3 has no object at all, which is what the wiring looked like before the field existed
+		srv("server-4", "hh-server-4"),
+		conn("server-1", "E1/1"),
+		conn("server-2", "E1/2"),
+		conn("server-3", "E1/3"),
+		conn("server-4", "E1/4"),
+	).Build()
+
+	neighbors, err := apiutil.GetLLDPNeighbors(context.Background(), kube, &wiringapi.Switch{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+	}, apiutil.LLDPNeighborsOpts{IgnoreSuffixes: apiutil.DefaultLLDPIgnoreSuffixes})
+	require.NoError(t, err)
+
+	for _, tt := range []struct {
+		port     string
+		expected string
+	}{
+		{port: "E1/1", expected: "hh-server-1"},
+		// no override and no object at all both fall back to the object name
+		{port: "E1/2", expected: "server-2"},
+		{port: "E1/3", expected: "server-3"},
+		// the override is what the ignored suffixes are cut down to
+		{port: "E1/4", expected: "hh-server-4"},
+	} {
+		status := neighbors[tt.port]
+		require.Equal(t, tt.expected, status.Expected.Name, tt.port)
+		require.Len(t, status.Actual, 1, tt.port)
+		require.True(t, status.Actual[0].Matches(status.Expected), tt.port)
+	}
+
+	require.Equal(t, ".lan", neighbors["E1/4"].Actual[0].IgnoredSuffix)
+}
+
 // TestGetLLDPNeighborsFabricMACPortID covers a fabric port whose neighbor reports a MAC port ID: the derived port is
 // then the port description, which must not be looked up in the NOS ports mapping as it isn't a NOS port name.
 func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {

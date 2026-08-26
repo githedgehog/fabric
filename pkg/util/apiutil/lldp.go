@@ -165,6 +165,17 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 		swNOS2API[sw.Name] = ports
 	}
 
+	srvExpectedName := map[string]string{}
+	srvList := &wiringapi.ServerList{}
+	if err := kube.List(ctx, srvList); err != nil {
+		return nil, fmt.Errorf("listing servers: %w", err)
+	}
+	for _, srv := range srvList.Items {
+		if name := srv.Spec.Inspect.ExpectedSystemName; name != "" {
+			srvExpectedName[srv.Name] = name
+		}
+	}
+
 	conns := &wiringapi.ConnectionList{}
 	if err := kube.List(ctx, conns, wiringapi.MatchingLabelsForListLabelSwitch(sw.Name)); err != nil {
 		return nil, fmt.Errorf("listing connections: %w", err)
@@ -233,11 +244,19 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				return nil, fmt.Errorf("duplicate port %s", kPort) //nolint:goerr113
 			}
 
+			expectedName := vDevice
+			// a server may advertise a system name that isn't its object name, only it knows so
+			if statusType == LLDPNeighborTypeServer {
+				if name, ok := srvExpectedName[vDevice]; ok {
+					expectedName = name
+				}
+			}
+
 			status.Type = statusType
 			status.ConnectionName = conn.Name
 			status.ConnectionType = conn.Spec.Type()
 			status.Expected = LLDPNeighbor{
-				Name: vDevice,
+				Name: expectedName,
 				Port: vPort,
 			}
 
