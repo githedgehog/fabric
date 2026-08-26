@@ -49,17 +49,27 @@ type lldpNeighborRow struct {
 	extra    bool
 }
 
-// lldpMatchingNeighbor returns the neighbor of the port that's exactly what the wiring expects, if there is one.
-func lldpMatchingNeighbor(n apiutil.LLDPNeighborStatus) (apiutil.LLDPNeighbor, bool) {
+// lldpMatchingNeighborIdx returns the index of the neighbor that's exactly what the wiring expects, or -1. It's the
+// index and not the neighbor itself so that the caller can tell two identically reported neighbors apart.
+func lldpMatchingNeighborIdx(n apiutil.LLDPNeighborStatus) int {
 	// nothing is expected on the external connections and on the ports not in the wiring
 	if n.Expected.Name == "" {
-		return apiutil.LLDPNeighbor{}, false
+		return -1
 	}
 
-	for _, actual := range n.Actual {
+	for i, actual := range n.Actual {
 		if actual.Matches(n.Expected) {
-			return actual, true
+			return i
 		}
+	}
+
+	return -1
+}
+
+// lldpMatchingNeighbor returns the neighbor of the port that's exactly what the wiring expects, if there is one.
+func lldpMatchingNeighbor(n apiutil.LLDPNeighborStatus) (apiutil.LLDPNeighbor, bool) {
+	if idx := lldpMatchingNeighborIdx(n); idx >= 0 {
+		return n.Actual[idx], true
 	}
 
 	return apiutil.LLDPNeighbor{}, false
@@ -70,11 +80,8 @@ func lldpMatchingNeighbor(n apiutil.LLDPNeighborStatus) (apiutil.LLDPNeighbor, b
 func lldpNeighborRows(n apiutil.LLDPNeighborStatus, showAll bool) ([]lldpNeighborRow, int) {
 	rows := make([]lldpNeighborRow, 0, len(n.Actual))
 
-	if matching, ok := lldpMatchingNeighbor(n); ok {
-		rows = append(rows, lldpNeighborRow{neighbor: matching})
-	}
-
-	if len(rows) == 0 {
+	match := lldpMatchingNeighborIdx(n)
+	if match < 0 {
 		for _, actual := range n.Actual {
 			rows = append(rows, lldpNeighborRow{neighbor: actual})
 		}
@@ -82,12 +89,14 @@ func lldpNeighborRows(n apiutil.LLDPNeighborStatus, showAll bool) ([]lldpNeighbo
 		return rows, 0
 	}
 
+	rows = append(rows, lldpNeighborRow{neighbor: n.Actual[match]})
+
 	if !showAll {
 		return rows, len(n.Actual) - 1
 	}
 
-	for _, actual := range n.Actual {
-		if actual != rows[0].neighbor {
+	for idx, actual := range n.Actual {
+		if idx != match {
 			rows = append(rows, lldpNeighborRow{neighbor: actual, extra: true})
 		}
 	}
