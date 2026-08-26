@@ -175,9 +175,9 @@ type SwitchState struct {
 	Breakouts map[string]SwitchStateBreakout `json:"breakouts,omitempty"`
 	// Transceivers state (port -> transceiver state)
 	Transceivers map[string]SwitchStateTransceiver `json:"transceivers,omitempty"`
-	// State of all BGP neighbors (VRF -> neighbor address -> state)
+	// State of all BGP neighbors (VRF -> neighbor address, or port (with .VLAN for TH5) for an unnumbered session -> state)
 	BGPNeighbors map[string]map[string]SwitchStateBGPNeighbor `json:"bgpNeighbors,omitempty"`
-	// State of all BFD peers (VRF -> peer address -> state)
+	// State of all BFD peers (VRF -> peer address, or port for an unnumbered session -> state)
 	BFDPeers map[string]map[string]SwitchStateBFDPeer `json:"bfdPeers,omitempty"`
 	// State of the switch platform (fans, PSUs, sensors)
 	Platform SwitchStatePlatform `json:"platform,omitempty"`

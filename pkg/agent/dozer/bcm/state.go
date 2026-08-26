@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"math"
 	"net"
+	"net/netip"
 	"slices"
 	"strconv"
 	"strings"
@@ -113,11 +114,11 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update errdisable state")
 	}
 
-	if err := p.updateBGPNeighborMetrics(ctx, reg, swState); err != nil {
+	if err := p.updateBGPNeighborMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update bgp neighbor metrics")
 	}
 
-	if err := p.updateBFDPeerMetrics(ctx, reg, swState); err != nil {
+	if err := p.updateBFDPeerMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update bfd peer metrics")
 	}
 
@@ -950,7 +951,45 @@ func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *
 	return nil
 }
 
-func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+// apiIfaceName translates the NOS interface an unnumbered BGP session or BFD session runs over
+// into the port name used by the API: Ethernet0 -> E1/1, Ethernet0.1001 -> E1/1.1001 and, for the
+// TH5 workaround SVI, Vlan3123 -> E1/5.3123. Names we cannot map are returned as they are, so an
+// unexpected one shows up in the state instead of being dropped.
+func apiIfaceName(name string, portMap map[string]string, th5VLANs map[string]uint16) string {
+	if isVLAN(name) {
+		vlan, err := strconv.ParseUint(strings.TrimPrefix(name, IfacePrefixVLAN), 10, 16)
+		if err != nil {
+			return name
+		}
+
+		for port, workaroundVLAN := range th5VLANs {
+			if uint64(workaroundVLAN) == vlan {
+				return fmt.Sprintf("%s.%d", port, workaroundVLAN)
+			}
+		}
+
+		return name
+	}
+
+	if !isPhysical(name) {
+		return name
+	}
+
+	base, sub, hasSub := strings.Cut(name, ".")
+	apiName, exists := portMap[base]
+	if !exists {
+		slog.Warn("Port mapping not found for interface-keyed peer", "interface", name)
+
+		return name
+	}
+	if hasSub {
+		return apiName + "." + sub
+	}
+
+	return apiName
+}
+
+func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	sonicVRFs := &oc.SonicVrf_SonicVrf_VRF{}
 	if err := p.client.Get(ctx, "/sonic-vrf/VRF/VRF_LIST", sonicVRFs, api.DataTypeCONFIG()); err != nil {
 		return errors.Wrapf(err, "failed to get vrfs list")
@@ -973,10 +1012,14 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 		// The device reports these timers as a delta in seconds relative to now (i.e. "N seconds ago")
 		now := time.Now()
 
-		for neighborAddress, neighbor := range neighs.Neighbor {
+		for neighborAddressRaw, neighbor := range neighs.Neighbor {
 			if neighbor.State == nil {
 				continue
 			}
+
+			// an unnumbered neighbor is keyed by the interface it runs over, which the device
+			// reports under its NOS name
+			neighborAddress := apiIfaceName(neighborAddressRaw, portMap, ag.Spec.Catalog.TH5WorkaroundVLANs)
 
 			ocSt := neighbor.State
 			st := agentapi.SwitchStateBGPNeighbor{
@@ -1968,7 +2011,7 @@ func cleanupFloat(val float64) float64 {
 	return val
 }
 
-func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	ocBFD := &oc.OpenconfigBfd_Bfd{}
 	if err := p.client.Get(ctx, "/openconfig-bfd:bfd/openconfig-bfd-ext:bfd-shop-sessions", ocBFD); err != nil {
 		if !strings.Contains(err.Error(), errGRPCNotFound) {
@@ -1991,10 +2034,16 @@ func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switc
 
 		ocSt := session.State
 		vrf := key.Vrf
-		remoteAddress := key.RemoteAddress
+		peer := key.RemoteAddress
 
 		if vrf == "" {
 			vrf = VRFDefault
+		}
+
+		// an unnumbered session runs over an IPv6 link-local address, which is of no use to
+		// anyone: key it by the interface instead, the way the BGP neighbor is reported
+		if addr, err := netip.ParseAddr(peer); err == nil && addr.Is6() && addr.IsLinkLocalUnicast() && key.Interface != "" {
+			peer = apiIfaceName(key.Interface, portMap, ag.Spec.Catalog.TH5WorkaroundVLANs)
 		}
 
 		st := agentapi.SwitchStateBFDPeer{}
@@ -2009,7 +2058,7 @@ func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switc
 		if err != nil {
 			return errors.Wrapf(err, "failed to get bfd session state ID")
 		}
-		reg.BFDPeerMetrics.SessionState.WithLabelValues(vrf, remoteAddress).Set(float64(sessionStateID))
+		reg.BFDPeerMetrics.SessionState.WithLabelValues(vrf, peer).Set(float64(sessionStateID))
 
 		if ocSt.ActiveProfile != nil {
 			st.Profile = *ocSt.ActiveProfile
@@ -2021,13 +2070,13 @@ func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switc
 
 		if ocSt.FailureTransitions != nil {
 			st.FailureTransitions = *ocSt.FailureTransitions
-			reg.BFDPeerMetrics.FailureTransitions.WithLabelValues(vrf, remoteAddress).Set(float64(*ocSt.FailureTransitions))
+			reg.BFDPeerMetrics.FailureTransitions.WithLabelValues(vrf, peer).Set(float64(*ocSt.FailureTransitions))
 		}
 
 		if swState.BFDPeers[vrf] == nil {
 			swState.BFDPeers[vrf] = map[string]agentapi.SwitchStateBFDPeer{}
 		}
-		swState.BFDPeers[vrf][remoteAddress] = st
+		swState.BFDPeers[vrf][peer] = st
 	}
 
 	return nil

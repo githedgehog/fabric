@@ -227,8 +227,8 @@ _Appears in:_
 | `interfaces` _object (keys:string, values:[SwitchStateInterface](#switchstateinterface))_ | Switch interfaces state (incl. physical, management and port channels) |  |  |
 | `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
 | `transceivers` _object (keys:string, values:[SwitchStateTransceiver](#switchstatetransceiver))_ | Transceivers state (port -> transceiver state) |  |  |
-| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
-| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address -> state) |  |  |
+| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address, or port (with .VLAN for TH5) for an unnumbered session -> state) |  |  |
+| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address, or port for an unnumbered session -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
 | `roce` _boolean_ | State of the roce configuration |  |  |

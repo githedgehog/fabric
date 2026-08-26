@@ -19,6 +19,7 @@ import (
 type BGPNeighborStatus struct {
 	RemoteName                      string          `json:"remoteName,omitempty"`
 	Type                            BGPNeighborType `json:"type,omitempty"`
+	Unnumbered                      bool            `json:"unnumbered,omitempty"`
 	Expected                        bool            `json:"expected,omitempty"`
 	ConnectionName                  string          `json:"connectionName,omitempty"`
 	ConnectionType                  string          `json:"connectionType,omitempty"`
@@ -32,26 +33,29 @@ const (
 	BGPNeighborTypeFabric   BGPNeighborType = "fabric"
 	BGPNeighborTypeExternal BGPNeighborType = "external"
 	BGPNeighborTypeGateway  BGPNeighborType = "gateway"
-	BGPUnnumberedNeighbor                   = "unnum"
 )
 
-func fabricNeighborKey(ag *agentapi.Agent, local, remote wiringapi.ConnFabricLinkSwitch) (string, error) {
-	if remote.IP != "" {
-		return strings.Split(remote.IP, "/")[0], nil
+// bgpNeighborKey returns the key the agent reports the session over the given link under: the peer
+// IP for a numbered link, the local port for an unnumbered one, since that is what the session is
+// keyed by. On TH5 the peering runs over the workaround SVI, reported as port.vlan.
+func bgpNeighborKey(ag *agentapi.Agent, local wiringapi.ConnFabricLinkSwitch, remoteIP string) (string, error) {
+	if remoteIP != "" {
+		return strings.Split(remoteIP, "/")[0], nil
 	}
 
 	if ag.Spec.SwitchProfile == nil {
 		return "", fmt.Errorf("switch profile is not set for %s", ag.Name) //nolint:goerr113
 	}
 
+	port := local.LocalPortName()
+
 	if ag.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
-		port := local.LocalPortName()
 		if vlan, ok := ag.Spec.Catalog.TH5WorkaroundVLANs[port]; ok {
-			return fmt.Sprintf("%s.%d", BGPUnnumberedNeighbor, vlan), nil
+			return fmt.Sprintf("%s.%d", port, vlan), nil
 		}
 	}
 
-	return BGPUnnumberedNeighbor, nil
+	return port, nil
 }
 
 func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
@@ -130,7 +134,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				}
 				fabricPeers[other.DeviceName()] = true
 
-				key, err := fabricNeighborKey(ag, curr, other)
+				key, err := bgpNeighborKey(ag, curr, other.IP)
 				if err != nil {
 					return nil, fmt.Errorf("fabric connection %s: %w", conn.Name, err)
 				}
@@ -142,6 +146,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 
 				neigh.RemoteName = other.Port
 				neigh.Type = BGPNeighborTypeFabric
+				neigh.Unnumbered = other.IP == ""
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
@@ -159,7 +164,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				}
 				fabricPeers[other.DeviceName()] = true
 
-				key, err := fabricNeighborKey(ag, curr, other)
+				key, err := bgpNeighborKey(ag, curr, other.IP)
 				if err != nil {
 					return nil, fmt.Errorf("mesh connection %s: %w", conn.Name, err)
 				}
@@ -171,6 +176,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 
 				neigh.RemoteName = other.Port
 				neigh.Type = BGPNeighborTypeFabric
+				neigh.Unnumbered = other.IP == ""
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
@@ -182,20 +188,25 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 			extConns[conn.Name] = &conn
 		} else if conn.Spec.Gateway != nil {
 			for _, link := range conn.Spec.Gateway.Links {
-				ip := strings.Split(link.Gateway.IP, "/")[0]
-				neigh, ok := out["default"][ip]
+				key, err := bgpNeighborKey(ag, link.Switch, link.Gateway.IP)
+				if err != nil {
+					return nil, fmt.Errorf("gateway connection %s: %w", conn.Name, err)
+				}
+
+				neigh, ok := out["default"][key]
 				if !ok {
 					neigh = BGPNeighborStatus{}
 				}
 
 				neigh.RemoteName = link.Gateway.Port
 				neigh.Type = BGPNeighborTypeGateway
+				neigh.Unnumbered = link.Gateway.IP == ""
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
 				neigh.Port = link.Switch.LocalPortName()
 
-				out["default"][ip] = neigh
+				out["default"][key] = neigh
 			}
 		}
 	}

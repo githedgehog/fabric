@@ -359,6 +359,11 @@ what keeps a miscabled link from establishing and forming a topology we never in
 The per-node session over the protocol loopbacks is unaffected — it is IPv4-addressed and
 multihop either way.
 
+The session has no peer IP to be reported under, so the agent keys its state (and the BFD
+session under it) by the port instead — `E1/1`, or `E1/1.3123` for the TH5 workaround SVI
+below. The NOS interface name the device actually uses (`Ethernet3`, `Vlan3123`) is
+translated away in `state.go`, so it never reaches the API.
+
 ### Mesh Connections (i.e. leaf-leaf)
 
 Mesh connections are very much similar to fabric ones, with the main difference being
