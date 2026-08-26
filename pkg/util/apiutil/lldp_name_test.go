@@ -21,6 +21,56 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLLDPNeighborMatches(t *testing.T) {
+	t.Parallel()
+
+	expected := LLDPNeighbor{Name: "spark-1", Port: "p2"}
+	fabric := LLDPNeighbor{Name: "ds5000-03", Port: "E1/61/1", Description: "Hedgehog Fabric"}
+
+	for _, tt := range []struct {
+		name     string
+		actual   LLDPNeighbor
+		expected LLDPNeighbor
+		want     bool
+	}{
+		{name: "exact", actual: LLDPNeighbor{Name: "spark-1", Port: "p2"}, expected: expected, want: true},
+		// host and port names are case insensitive, the expected ones are spelled however the wiring spells them
+		{name: "name case", actual: LLDPNeighbor{Name: "SPARK-1", Port: "p2"}, expected: expected, want: true},
+		{name: "port case", actual: LLDPNeighbor{Name: "spark-1", Port: "P2"}, expected: expected, want: true},
+		{
+			name:     "ignored suffix and case",
+			actual:   LLDPNeighbor{Name: "SPARK-1.LAN", Port: "p2", IgnoredSuffix: ".LAN"},
+			expected: expected, want: true,
+		},
+		{name: "wrong name", actual: LLDPNeighbor{Name: "spark-2", Port: "p2"}, expected: expected},
+		{name: "wrong port", actual: LLDPNeighbor{Name: "spark-1", Port: "p1"}, expected: expected},
+		// only the fabric connections expect a description, and it's compared ignoring case too
+		{
+			name:     "description case",
+			actual:   LLDPNeighbor{Name: "ds5000-03", Port: "E1/61/1", Description: "HEDGEHOG FABRIC"},
+			expected: fabric, want: true,
+		},
+		{
+			name:     "wrong description",
+			actual:   LLDPNeighbor{Name: "ds5000-03", Port: "E1/61/1", Description: "Hedgehog Fabric 5835"},
+			expected: fabric,
+		},
+		{
+			name:     "no description expected",
+			actual:   LLDPNeighbor{Name: "spark-1", Port: "p2", Description: "Ubuntu 24.04"},
+			expected: expected, want: true,
+		},
+		// a port with nothing expected on it can't be right
+		{name: "nothing expected", actual: LLDPNeighbor{Name: "spark-1", Port: "p2"}},
+		{name: "both empty", actual: LLDPNeighbor{}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, tt.actual.Matches(tt.expected))
+		})
+	}
+}
+
 func TestLLDPNeighborNameCut(t *testing.T) {
 	t.Parallel()
 

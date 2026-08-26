@@ -16,27 +16,39 @@ import (
 )
 
 type LLDPNeighbor struct {
-	// Name is reported as the neighbor advertises it, see IgnoredPrefix and IgnoredSuffix for the parts of it that
-	// were ignored to match it against the wiring
+	// Name is reported as the neighbor advertises it, see IgnoredPrefix/IgnoredSuffix
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Port        string `json:"port,omitempty"`
 
-	// Only reported for the actual neighbors, there is nothing to expect them from in the wiring
+	// Only reported for the actual neighbors, the wiring has nothing to expect them from
 
 	MAC        string        `json:"mac,omitempty"`
 	TTL        uint16        `json:"ttl,omitempty"`
 	LastUpdate *kmetav1.Time `json:"updated,omitempty"`
 
-	// Parts of the Name that were ignored to make it the name the wiring expects, only set when they made it match
+	// Parts of the Name ignored to match the wiring, only set when they made it match
 	IgnoredPrefix string `json:"ignoredPrefix,omitempty"`
 	IgnoredSuffix string `json:"ignoredSuffix,omitempty"`
 }
 
-// MatchedName returns the neighbor name that was compared against the wiring: the reported one without the parts that
-// were ignored. It's only ever different from Name when ignoring those parts is what made the neighbor match.
+// MatchedName is the Name without the ignored parts, the one compared against the wiring.
 func (n LLDPNeighbor) MatchedName() string {
 	return strings.TrimSuffix(strings.TrimPrefix(n.Name, n.IgnoredPrefix), n.IgnoredSuffix)
+}
+
+// Matches reports whether the neighbor is the one the wiring expects, ignoring case as host and port names do.
+// A port with nothing expected on it never matches, there is nothing to be right about.
+func (n LLDPNeighbor) Matches(expected LLDPNeighbor) bool {
+	if expected.Name == "" {
+		return false
+	}
+
+	if !strings.EqualFold(n.MatchedName(), expected.Name) || !strings.EqualFold(n.Port, expected.Port) {
+		return false
+	}
+
+	return expected.Description == "" || strings.EqualFold(n.Description, expected.Description)
 }
 
 type LLDPNeighborType string
@@ -56,33 +68,27 @@ type LLDPNeighborStatus struct {
 	Actual         []LLDPNeighbor   `json:"actual,omitempty"`
 }
 
-// Neighbors don't always name themselves the way the wiring does: DPUs name themselves after the host they're in, and
-// hosts report their FQDN while the wiring only knows the short name. These are the parts to ignore by default.
+// DPUs name themselves after their host and hosts report their FQDN, while the wiring knows neither.
 var (
 	DefaultLLDPIgnoreSuffixes = []string{"-dpu", ".lan", ".maas"}
 	DefaultLLDPIgnorePrefixes = []string{}
 )
 
 type LLDPNeighborsOpts struct {
-	// Prefixes and suffixes to ignore in the neighbor system names, unset means nothing is ignored, see the
-	// DefaultLLDPIgnorePrefixes and DefaultLLDPIgnoreSuffixes for the usual ones
+	// Ignored in the neighbor system names, unset means nothing is ignored, see the defaults above
 	IgnorePrefixes []string
 	IgnoreSuffixes []string
 }
 
-// lldpNeighborNameCut returns the parts of a neighbor system name that have to be ignored for it to be the name the
-// wiring expects, so that a host calling itself server-1.lan matches the server-1 in the wiring. Nothing is ignored
-// unless it produces the expected name: the wiring is free to call the neighbor ash033-dpu, and a name that already
-// matches is never cut further. Nothing is ever cut down to an empty name either, as that can't be expected.
-//
-// Matching is case insensitive as host names are, which also covers the expected name always being lower case: it
-// comes from a Kubernetes object name, while a neighbor reports whatever case it likes.
+// lldpNeighborNameCut returns the parts of a neighbor name to ignore for it to be the expected one, e.g. the .lan of
+// a server-1.lan wired as server-1. Nothing is cut unless it produces the expected name, so the wiring is free to call
+// the neighbor ash033-dpu, and never down to an empty name.
 func lldpNeighborNameCut(name, expected string, opts LLDPNeighborsOpts) (string, string) {
 	if expected == "" {
 		return "", ""
 	}
 
-	// what's left of the name, as offsets into it, so that the ignored parts stay available for reporting
+	// offsets into the name, so that the ignored parts stay available for reporting
 	type cut struct{ start, end int }
 
 	full := cut{0, len(name)}
