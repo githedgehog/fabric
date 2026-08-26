@@ -123,6 +123,22 @@ func TestLLDPNeighborRows(t *testing.T) {
 			},
 			wantHidden: 1,
 		},
+		{
+			// two neighbors the switch reports identically: the second one is still an extra, not the match again
+			name:    "duplicate of the wired neighbor",
+			showAll: true,
+			status: apiutil.LLDPNeighborStatus{
+				Expected: apiutil.LLDPNeighbor{Name: "server-5", Port: "enp2s1"},
+				Actual: []apiutil.LLDPNeighbor{
+					{Name: "server-5", Port: "enp2s1"},
+					{Name: "server-5", Port: "enp2s1"},
+				},
+			},
+			wantRows: []lldpNeighborRow{
+				{neighbor: apiutil.LLDPNeighbor{Name: "server-5", Port: "enp2s1"}},
+				{neighbor: apiutil.LLDPNeighbor{Name: "server-5", Port: "enp2s1"}, extra: true},
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
