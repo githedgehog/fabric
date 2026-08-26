@@ -2237,7 +2237,8 @@ spec:
                             type: string
                         type: object
                       type: object
-                    description: State of all BFD peers (VRF -> peer address -> state)
+                    description: State of all BFD peers (VRF -> peer address, or port
+                      for an unnumbered session -> state)
                     type: object
                   bgpNeighbors:
                     additionalProperties:
@@ -2344,8 +2345,8 @@ spec:
                             type: string
                         type: object
                       type: object
-                    description: State of all BGP neighbors (VRF -> neighbor address
-                      -> state)
+                    description: State of all BGP neighbors (VRF -> neighbor address,
+                      or port (with .VLAN for TH5) for an unnumbered session -> state)
                     type: object
                   breakouts:
                     additionalProperties:
