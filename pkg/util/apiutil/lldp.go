@@ -16,6 +16,8 @@ import (
 )
 
 type LLDPNeighbor struct {
+	// Name is reported as the neighbor advertises it, see IgnoredPrefix and IgnoredSuffix for the parts of it that
+	// were ignored to match it against the wiring
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Port        string `json:"port,omitempty"`
@@ -25,6 +27,16 @@ type LLDPNeighbor struct {
 	MAC        string        `json:"mac,omitempty"`
 	TTL        uint16        `json:"ttl,omitempty"`
 	LastUpdate *kmetav1.Time `json:"updated,omitempty"`
+
+	// Parts of the Name that were ignored to make it the name the wiring expects, only set when they made it match
+	IgnoredPrefix string `json:"ignoredPrefix,omitempty"`
+	IgnoredSuffix string `json:"ignoredSuffix,omitempty"`
+}
+
+// MatchedName returns the neighbor name that was compared against the wiring: the reported one without the parts that
+// were ignored. It's only ever different from Name when ignoring those parts is what made the neighbor match.
+func (n LLDPNeighbor) MatchedName() string {
+	return strings.TrimSuffix(strings.TrimPrefix(n.Name, n.IgnoredPrefix), n.IgnoredSuffix)
 }
 
 type LLDPNeighborType string
@@ -44,7 +56,71 @@ type LLDPNeighborStatus struct {
 	Actual         []LLDPNeighbor   `json:"actual,omitempty"`
 }
 
-func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {
+// Neighbors don't always name themselves the way the wiring does: DPUs name themselves after the host they're in, and
+// hosts report their FQDN while the wiring only knows the short name. These are the parts to ignore by default.
+var (
+	DefaultLLDPIgnoreSuffixes = []string{"-dpu", ".lan", ".maas"}
+	DefaultLLDPIgnorePrefixes = []string{}
+)
+
+type LLDPNeighborsOpts struct {
+	// Prefixes and suffixes to ignore in the neighbor system names, unset means nothing is ignored, see the
+	// DefaultLLDPIgnorePrefixes and DefaultLLDPIgnoreSuffixes for the usual ones
+	IgnorePrefixes []string
+	IgnoreSuffixes []string
+}
+
+// lldpNeighborNameCut returns the parts of a neighbor system name that have to be ignored for it to be the name the
+// wiring expects, so that a host calling itself server-1.lan matches the server-1 in the wiring. Nothing is ignored
+// unless it produces the expected name: the wiring is free to call the neighbor ash033-dpu, and a name that already
+// matches is never cut further. Nothing is ever cut down to an empty name either, as that can't be expected.
+//
+// Matching is case insensitive as host names are, which also covers the expected name always being lower case: it
+// comes from a Kubernetes object name, while a neighbor reports whatever case it likes.
+func lldpNeighborNameCut(name, expected string, opts LLDPNeighborsOpts) (string, string) {
+	if expected == "" {
+		return "", ""
+	}
+
+	// what's left of the name, as offsets into it, so that the ignored parts stay available for reporting
+	type cut struct{ start, end int }
+
+	full := cut{0, len(name)}
+	seen := map[cut]bool{full: true}
+
+	for queue := []cut{full}; len(queue) > 0; {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if strings.EqualFold(name[cur.start:cur.end], expected) {
+			return name[:cur.start], name[cur.end:]
+		}
+
+		// each step strictly shortens what's left, so this terminates
+		next := []cut{}
+		for _, prefix := range opts.IgnorePrefixes {
+			if prefix != "" && cur.end-cur.start > len(prefix) && strings.EqualFold(name[cur.start:cur.start+len(prefix)], prefix) {
+				next = append(next, cut{cur.start + len(prefix), cur.end})
+			}
+		}
+		for _, suffix := range opts.IgnoreSuffixes {
+			if suffix != "" && cur.end-cur.start > len(suffix) && strings.EqualFold(name[cur.end-len(suffix):cur.end], suffix) {
+				next = append(next, cut{cur.start, cur.end - len(suffix)})
+			}
+		}
+
+		for _, candidate := range next {
+			if !seen[candidate] {
+				seen[candidate] = true
+				queue = append(queue, candidate)
+			}
+		}
+	}
+
+	return "", ""
+}
+
+func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch, opts LLDPNeighborsOpts) (map[string]LLDPNeighborStatus, error) {
 	if sw == nil {
 		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
 	}
@@ -198,13 +274,17 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				}
 			}
 
+			ignoredPrefix, ignoredSuffix := lldpNeighborNameCut(neighbor.SystemName, status.Expected.Name, opts)
+
 			status.Actual = append(status.Actual, LLDPNeighbor{
-				Name:        neighbor.SystemName,
-				Description: neighbor.SystemDescription,
-				Port:        port,
-				MAC:         neighbor.MAC,
-				TTL:         neighbor.TTL,
-				LastUpdate:  neighbor.LastUpdate,
+				Name:          neighbor.SystemName,
+				Description:   neighbor.SystemDescription,
+				Port:          port,
+				MAC:           neighbor.MAC,
+				TTL:           neighbor.TTL,
+				LastUpdate:    neighbor.LastUpdate,
+				IgnoredPrefix: ignoredPrefix,
+				IgnoredSuffix: ignoredSuffix,
 			})
 
 			out[ifaceName] = status
