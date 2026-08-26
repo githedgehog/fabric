@@ -167,14 +167,9 @@ interfaces:
       - config:
           index: 0
         index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.20
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.20
+        ipv6:
+          config:
+            enabled: true
   - config:
       description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
       enabled: true
@@ -394,29 +389,6 @@ network-instances:
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  allow-own-as:
-                    config:
-                      enabled: true
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - l2vpn-neighbors
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-                    enabled: true
-              config:
-                description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
-                enabled: true
-                neighbor-address: 172.30.128.21
-                peer-as: 65534
-              neighbor-address: 172.30.128.21
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
                   apply-policy:
                     config:
                       export-policy:
@@ -602,6 +574,30 @@ network-instances:
                   bfd-profile: fabric
                   enabled: true
               neighbor-address: Ethernet1
+            - afi-safis:
+                afi-safi:
+                - afi-safi-name: IPV4_UNICAST
+                  config:
+                    afi-safi-name: IPV4_UNICAST
+                    enabled: true
+                - afi-safi-name: L2VPN_EVPN
+                  allow-own-as:
+                    config:
+                      enabled: true
+                  apply-policy:
+                    config:
+                      import-policy:
+                      - l2vpn-neighbors
+                  config:
+                    afi-safi-name: L2VPN_EVPN
+                    enabled: true
+              config:
+                capability-extended-nexthop: true
+                description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+                enabled: true
+                neighbor-address: Ethernet10
+                peer-as: 65534
+              neighbor-address: Ethernet10
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST

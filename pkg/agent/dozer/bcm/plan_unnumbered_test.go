@@ -13,17 +13,19 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 )
 
-// A fabric or mesh link with no IPs on either side runs BGP unnumbered: IPv6 is enabled on the link
-// and the neighbor is keyed by the interface instead of the peer IP, but the peer ASN stays explicit
-// so a miscabled link cannot bring the session up. On TH5 the link lives on the workaround SVI
-// (see planMeshConnections), so that is the interface the peering runs over.
-func TestPlanUnnumberedFabricMeshLinks(t *testing.T) {
+// A fabric, mesh or gateway link with no IPs on either side runs BGP unnumbered: IPv6 is enabled on
+// the link and the neighbor is keyed by the interface instead of the peer IP, but the peer ASN stays
+// explicit so a miscabled link cannot bring the session up. On TH5 the link lives on the workaround
+// SVI (see planMeshConnections), so that is the interface the peering runs over.
+func TestPlanUnnumberedLinks(t *testing.T) {
 	const (
 		self     = "leaf-01"
 		peer     = "leaf-02"
 		spine    = "spine-01"
+		gw       = "gateway-1"
 		selfPort = "E1/1"
 		peerASN  = uint32(65102)
+		gwASN    = uint32(65534)
 		wVLAN    = uint16(3001)
 	)
 
@@ -80,6 +82,23 @@ func TestPlanUnnumberedFabricMeshLinks(t *testing.T) {
 		ag.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		ag.Spec.Config.VTEPSubnet = "172.30.12.0/24"
 		ag.Spec.Config.ProtocolSubnet = "172.30.11.0/24"
+
+		return ag
+	}
+
+	// planGatewayConnections only runs in spine-leaf mode and needs the gateway ASN from the config
+	gwAgent := func(silicon, ip1, ip2 string) *agentapi.Agent {
+		ag := newAgent(silicon, wiringapi.ConnectionSpec{
+			Gateway: &wiringapi.ConnGateway{
+				Links: []wiringapi.GatewayLink{{
+					Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: self + "/" + selfPort}, IP: ip1},
+					Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: gw + "/enp2s1"}, IP: ip2},
+				}},
+			},
+		})
+		ag.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+		ag.Spec.Config.GatewayASN = gwASN
+		ag.Spec.Config.GatewayBFD = true
 
 		return ag
 	}
@@ -155,10 +174,71 @@ func TestPlanUnnumberedFabricMeshLinks(t *testing.T) {
 		require.True(t, *neigh.ExtendedNexthop)
 	})
 
+	t.Run("gateway unnumbered", func(t *testing.T) {
+		spec := newSpec()
+		require.NoError(t, planGatewayConnections(gwAgent(switchprofile.SiliconVS, "", ""), spec))
+
+		sub := spec.Interfaces[selfPort].Subinterfaces[0]
+		require.NotNil(t, sub.IPv6)
+		require.True(t, *sub.IPv6.Enabled)
+		require.Empty(t, sub.IPs)
+
+		neigh, ok := spec.VRFs[VRFDefault].BGP.Neighbors[selfPort]
+		require.True(t, ok, "neighbor must be keyed by the port")
+		require.Equal(t, gwASN, *neigh.RemoteAS)
+		require.True(t, *neigh.ExtendedNexthop)
+		require.True(t, *neigh.L2VPNEVPN)
+		require.Equal(t, FabricBFDProfile, *neigh.BFDProfile)
+	})
+
+	t.Run("gateway numbered", func(t *testing.T) {
+		spec := newSpec()
+		require.NoError(t, planGatewayConnections(gwAgent(switchprofile.SiliconVS, "172.30.128.20/31", "172.30.128.21/31"), spec))
+
+		sub := spec.Interfaces[selfPort].Subinterfaces[0]
+		require.Nil(t, sub.IPv6)
+		require.Contains(t, sub.IPs, "172.30.128.20")
+
+		neigh, ok := spec.VRFs[VRFDefault].BGP.Neighbors["172.30.128.21"]
+		require.True(t, ok, "neighbor must be keyed by the peer IP")
+		require.Nil(t, neigh.ExtendedNexthop)
+	})
+
+	t.Run("gateway unnumbered on TH5", func(t *testing.T) {
+		spec := newSpec()
+		require.NoError(t, planGatewayConnections(gwAgent(switchprofile.SiliconBroadcomTH5, "", ""), spec))
+
+		require.Equal(t, wVLAN, *spec.Interfaces[selfPort].AccessVLAN)
+		require.Nil(t, spec.Interfaces[selfPort].Subinterfaces[0].IPv6, "the port itself stays L2 on TH5")
+
+		svi := spec.Interfaces[vlanName(wVLAN)]
+		require.NotNil(t, svi.VLANIPv6)
+		require.True(t, *svi.VLANIPv6.Enabled)
+		require.Empty(t, svi.VLANIPs)
+
+		_, ok := spec.VRFs[VRFDefault].BGP.Neighbors[vlanName(wVLAN)]
+		require.True(t, ok, "neighbor must be keyed by the workaround SVI")
+	})
+
+	t.Run("gateway numbered on TH5", func(t *testing.T) {
+		spec := newSpec()
+		require.NoError(t, planGatewayConnections(gwAgent(switchprofile.SiliconBroadcomTH5, "172.30.128.20/31", "172.30.128.21/31"), spec))
+
+		svi := spec.Interfaces[vlanName(wVLAN)]
+		require.Nil(t, svi.VLANIPv6)
+		require.Contains(t, svi.VLANIPs, "172.30.128.20")
+
+		_, ok := spec.VRFs[VRFDefault].BGP.Neighbors["172.30.128.21"]
+		require.True(t, ok)
+	})
+
 	t.Run("half numbered links are rejected", func(t *testing.T) {
 		require.Error(t, planMeshConnections(newAgent(switchprofile.SiliconVS, meshConn("172.30.128.0/31", "")), newSpec()))
 		require.Error(t, planMeshConnections(newAgent(switchprofile.SiliconVS, meshConn("", "172.30.128.1/31")), newSpec()))
 
 		require.Error(t, planFabricConnections(fabricAgent("172.30.128.0/31", ""), newSpec()))
+
+		require.Error(t, planGatewayConnections(gwAgent(switchprofile.SiliconVS, "172.30.128.20/31", ""), newSpec()))
+		require.Error(t, planGatewayConnections(gwAgent(switchprofile.SiliconVS, "", "172.30.128.21/31"), newSpec()))
 	})
 }

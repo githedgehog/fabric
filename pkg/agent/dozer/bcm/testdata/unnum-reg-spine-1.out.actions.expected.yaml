@@ -760,6 +760,12 @@
   value:
     enabled: true
   weight: 48
+- path: /interfaces/interface[name=Ethernet10]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
+  summary: Create Subinterface 0 IPv6 Enable
+  type: update
+  value:
+    enabled: true
+  weight: 48
 - path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]/ipv6/config/enabled
   summary: Create Subinterface 0 IPv6 Enable
   type: update
@@ -808,17 +814,6 @@
   value:
     enabled: true
   weight: 48
-- path: /interfaces/interface[name=Ethernet10]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
-  summary: Create Subinterface IP 172.30.128.20
-  type: update
-  value:
-    address:
-    - config:
-        ip: 172.30.128.20
-        prefix-length: 31
-        secondary: false
-      ip: 172.30.128.20
-  weight: 51
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.8.0
   type: update
@@ -1088,35 +1083,6 @@
         recovery-interval: 300
         sampling-interval: 30
   weight: 84
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.21]
-  summary: Create VRF BGP neighbor 172.30.128.21
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          allow-own-as:
-            config:
-              enabled: true
-          apply-policy:
-            config:
-              import-policy:
-              - l2vpn-neighbors
-          config:
-            afi-safi-name: L2VPN_EVPN
-            enabled: true
-      config:
-        description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
-        enabled: true
-        neighbor-address: 172.30.128.21
-        peer-as: 65534
-      neighbor-address: 172.30.128.21
-  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.2]
   summary: Create VRF BGP neighbor 172.30.8.2
   type: update
@@ -1346,6 +1312,36 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: Ethernet1
+  weight: 87
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=Ethernet10]
+  summary: Create VRF BGP neighbor Ethernet10
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          allow-own-as:
+            config:
+              enabled: true
+          apply-policy:
+            config:
+              import-policy:
+              - l2vpn-neighbors
+          config:
+            afi-safi-name: L2VPN_EVPN
+            enabled: true
+      config:
+        capability-extended-nexthop: true
+        description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+        enabled: true
+        neighbor-address: Ethernet10
+        peer-as: 65534
+      neighbor-address: Ethernet10
   weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=Ethernet2]
   summary: Create VRF BGP neighbor Ethernet2
