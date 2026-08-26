@@ -131,6 +131,15 @@ type TransceiverMetrics struct {
 	WarningTxPowerLo *prometheus.GaugeVec
 	WarningVoltHi    *prometheus.GaugeVec
 	WarningVoltLo    *prometheus.GaugeVec
+
+	// Always reported, so that an empty port is visible as such
+	Present *prometheus.GaugeVec
+	// Per present transceiver, the ones that are gone or swapped are dropped on the next collection
+	Active *prometheus.GaugeVec
+	// Only for the transceivers reporting a CMIS status at all, the rest have nothing to be ready for
+	CMISReady *prometheus.GaugeVec
+	// Per present transceiver, what it reports about itself that isn't a measurement, always 1
+	Info *prometheus.GaugeVec
 }
 
 type BGPNeighborMetrics struct {
@@ -305,6 +314,19 @@ func NewRegistry() *Registry {
 		}, []string{"transceiver", "lane"})
 	}
 
+	newTransceiverInfoGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{
+			"transceiver", "descr", "vendor", "vendor_part", "serial", "vendor_rev", "vendor_oui",
+			"firmware", "form_factor", "conn_type", "cable_class", "length", "cmis_rev",
+		})
+	}
+
 	newBGPNeighborGaugeVec := func(name string, help string) *prometheus.GaugeVec {
 		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace:   MetricNamespace,
@@ -464,6 +486,11 @@ func NewRegistry() *Registry {
 			WarningTxPowerLo: newTransceiverGaugeVec("transceiver_warning_tx_power_lo", "Warning tx power lo"),
 			WarningVoltHi:    newTransceiverGaugeVec("transceiver_warning_volt_hi", "Warning volt hi"),
 			WarningVoltLo:    newTransceiverGaugeVec("transceiver_warning_volt_lo", "Warning volt lo"),
+			Present:          newTransceiverGaugeVec("transceiver_present", "Whether a transceiver is present in the port"),
+			Active:           newTransceiverGaugeVec("transceiver_active", "Whether the present transceiver is active"),
+			CMISReady:        newTransceiverGaugeVec("transceiver_cmis_ready", "Whether the CMIS state of the transceiver is ready"),
+			Info: newTransceiverInfoGaugeVec("transceiver_info",
+				"Transceiver vendor, part, serial and other identifying information, always 1"),
 		},
 		BGPNeighborMetrics: BGPNeighborMetrics{
 			ConnectionsDropped:     newBGPNeighborGaugeVec("bgp_neighbor_connections_dropped", "Number of dropped BGP connections"),
