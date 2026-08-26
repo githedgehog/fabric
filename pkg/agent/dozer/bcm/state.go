@@ -41,6 +41,9 @@ const (
 	temperatureIgnore            = "N/A"
 	errDisablePortStatusDisabled = "disabled"
 	errDisableLinkFlapCause      = "link-flap"
+	transceiverPresent           = "PRESENT"
+	transceiverOperActive        = "active"
+	transceiverCMISReady         = "Ready"
 	// gRPC NotFound is returned when a YANG path has no data yet (e.g. errdisable on a fresh switch).
 	// TODO: rework gnmi client to surface this as a typed sentinel instead of string matching.
 	errGRPCNotFound = "rpc error: code = NotFound"
@@ -129,6 +132,9 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	if err := p.updateCRMMetrics(ctx, reg, swState); err != nil {
 		return errors.Wrapf(err, "failed to update crm metrics")
 	}
+
+	// after everything that contributes to the transceiver state has run, it's collected from a few different paths
+	updateTransceiverInfoMetrics(reg, swState)
 
 	reg.SaveSwitchState(swState)
 
@@ -643,6 +649,40 @@ func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, ag *agentapi.
 	return nil
 }
 
+func updateTransceiverInfoMetrics(reg *switchstate.Registry, swState *agentapi.SwitchState) {
+	// transceivers get swapped, the ones that are gone have to take their series with them
+	reg.TransceiverMetrics.Active.Reset()
+	reg.TransceiverMetrics.CMISReady.Reset()
+	reg.TransceiverMetrics.Info.Reset()
+
+	for name, st := range swState.Transceivers {
+		present := st.Present == transceiverPresent
+		reg.TransceiverMetrics.Present.WithLabelValues(name).Set(boolToFloat64(&present))
+
+		if !present {
+			continue
+		}
+
+		active := st.OperStatus == transceiverOperActive
+		reg.TransceiverMetrics.Active.WithLabelValues(name).Set(boolToFloat64(&active))
+
+		if st.CMISStatus != "" {
+			ready := st.CMISStatus == transceiverCMISReady
+			reg.TransceiverMetrics.CMISReady.WithLabelValues(name).Set(boolToFloat64(&ready))
+		}
+
+		length := ""
+		if st.CableLength > 0 {
+			length = strconv.FormatFloat(st.CableLength, 'f', -1, 64)
+		}
+
+		reg.TransceiverMetrics.Info.WithLabelValues(
+			name, st.Description, st.Vendor, st.VendorPart, st.SerialNumber, st.VendorRev, st.VendorOUI,
+			st.Firmware, st.FormFactor, st.ConnectorType, st.CableClass, length, st.CMISRev,
+		).Set(1)
+	}
+}
+
 func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
 	lldp := &oc.OpenconfigLldp_Lldp{}
 	if err := p.client.Get(ctx, "/lldp/interfaces", lldp); err != nil {
@@ -706,7 +746,6 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switch
 					Set(float64(neighbor.LastUpdate.Unix()))
 			}
 
-			// a zero TTL is the LLDP shutdown value and not "unknown", reporting it would trip any staleness check
 			if neighbor.TTL > 0 {
 				reg.LLDPMetrics.TTL.
 					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC).

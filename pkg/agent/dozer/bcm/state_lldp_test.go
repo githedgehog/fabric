@@ -481,9 +481,9 @@ func TestUpdateLLDPNeighbors(t *testing.T) {
 	}, swState.Interfaces)
 }
 
-// lldpMetricSeries returns the reported values of a metric keyed by its labels, so that the tests can assert on the
+// metricSeries returns the reported values of a metric keyed by its labels, so that the tests can assert on the
 // series that exist as well as on their values.
-func lldpMetricSeries(t *testing.T, reg *switchstate.Registry, name string) map[string]float64 {
+func metricSeries(t *testing.T, reg *switchstate.Registry, name string) map[string]float64 {
 	t.Helper()
 
 	families, err := reg.Gather()
@@ -555,15 +555,15 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 	collect()
 
 	// a port without neighbors reports zero of them, the management port isn't reported at all
-	require.Equal(t, map[string]float64{"interface=E1/1": 2, "interface=E1/2": 0}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+	require.Equal(t, map[string]float64{"interface=E1/1": 2, "interface=E1/2": 0}, metricSeries(t, reg, "lldp_neighbors"))
 
 	// both neighbors of the port get their own series, identified by name, port and MAC
 	require.Equal(t, map[string]float64{
 		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5":    120,
 		"interface=E1/1,mac=00:00:00:0b:bb:19,port=00:00:00:0b:bb:19,sys_name=": 120,
-	}, lldpMetricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
+	}, metricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
 
-	lastUpdate := lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds")
+	lastUpdate := metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds")
 	require.Len(t, lastUpdate, 2)
 	for series, ts := range lastUpdate {
 		require.InDelta(t, float64(time.Now().Unix()), ts, 60, series)
@@ -574,11 +574,11 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 
 	collect()
 
-	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 0}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 0}, metricSeries(t, reg, "lldp_neighbors"))
 	require.Equal(t, map[string]float64{
 		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5": 120,
-	}, lldpMetricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
-	require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
+	}, metricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
+	require.Len(t, metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
 
 	// a neighbor that doesn't report its update time is still counted, but has nothing to say about freshness
 	client.root.Lldp.Interfaces.Interface["Ethernet1"] = iface("Ethernet1", ocNeighborOpts{
@@ -587,11 +587,11 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 
 	collect()
 
-	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 1}, lldpMetricSeries(t, reg, "lldp_neighbors"))
-	require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
+	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 1}, metricSeries(t, reg, "lldp_neighbors"))
+	require.Len(t, metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
 
 	// unlike the freshness metrics, info covers every neighbor there is, including the one without an update time
-	require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_info"), 2)
+	require.Len(t, metricSeries(t, reg, "lldp_neighbor_info"), 2)
 }
 
 // TestUpdateLLDPNeighborsFreshness covers that the TTL and the last update are reported independently: a neighbor that
@@ -656,12 +656,12 @@ func TestUpdateLLDPNeighborsFreshness(t *testing.T) {
 			require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState,
 				map[string]string{"Ethernet0": "E1/1"}))
 
-			require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_ttl_seconds"), tt.wantTTL)
-			require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), tt.wantUpdate)
+			require.Len(t, metricSeries(t, reg, "lldp_neighbor_ttl_seconds"), tt.wantTTL)
+			require.Len(t, metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), tt.wantUpdate)
 
 			// whatever the neighbor says about freshness, it's still there and still counted
-			require.Len(t, lldpMetricSeries(t, reg, "lldp_neighbor_info"), 1)
-			require.Equal(t, map[string]float64{"interface=E1/1": 1}, lldpMetricSeries(t, reg, "lldp_neighbors"))
+			require.Len(t, metricSeries(t, reg, "lldp_neighbor_info"), 1)
+			require.Equal(t, map[string]float64{"interface=E1/1": 1}, metricSeries(t, reg, "lldp_neighbors"))
 		})
 	}
 }
@@ -703,5 +703,5 @@ func TestUpdateLLDPNeighborsInfo(t *testing.T) {
 	require.Equal(t, map[string]float64{
 		"chassis=b4:db:91:9b:60:24,interface=E1/1,mac=b4:db:91:9b:60:27,manuf=Celestica,model=," +
 			"port=Ethernet496,serial=,sys_descr=Hedgehog Fabric,sys_name=ds5000-03": 1,
-	}, lldpMetricSeries(t, reg, "lldp_neighbor_info"))
+	}, metricSeries(t, reg, "lldp_neighbor_info"))
 }
