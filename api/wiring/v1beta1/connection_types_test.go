@@ -520,15 +520,13 @@ func TestConnectionValidation(t *testing.T) {
 			err:        true,
 		},
 		{
-			// the gateway can't do unnumbered yet, so both sides are required
-			name: "unnumbered-gateway-rejected",
+			name: "unnumbered-gateway",
 			conn: gwConnGen("gw-1", func(conn *wiringapi.Connection) {
 				conn.Spec.Gateway.Links[0].Switch.IP = ""
 				conn.Spec.Gateway.Links[0].Gateway.IP = ""
 			}),
 			withClient: true,
 			objects:    base,
-			err:        true,
 		},
 		{
 			name: "half-numbered-gateway",

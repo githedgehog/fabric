@@ -352,7 +352,8 @@ path, or long enough to lose bestpath selection against the direct ones.
 
 A fabric link whose `Connection` has no IP on either side runs BGP unnumbered instead. This
 is decided per link, so a fabric can mix numbered and unnumbered links; a link with an IP on
-only one side is rejected by the webhook. The interface gets `ipv6 enable` and no address:
+only one side is rejected by the webhook. The same applies to mesh and gateway links. The
+interface gets `ipv6 enable` and no address:
 ```
 interface Ethernet3
  description "Fabric spine-01/E1/1 spine-01--fabric--leaf-01"
@@ -528,13 +529,20 @@ that the correct gateway route will be picked based on priorities/communities.
       route-map l2vpn-neighbors in
     ```
 
-Gateway links are always numbered; the gateway does not support unnumbered yet.
+Gateway links support [unnumbered](#unnumbered-links) as well: the switch port gets `ipv6
+enable` and no address, and the session is keyed by the interface with
+`capability extended-nexthop`, which is what lets the gateway's VTEP and protocol IPs
+resolve over an IPv6 link-local next hop. `remote-as` still comes from the config, so as
+with fabric links a miscabled port cannot bring the session up. The gateway side has to be
+configured to match, which is a `Gateway` object concern rather than a fabric one.
 
 #### Workaround for TH5-based platforms
 
 The same exact workaround steps described for Mesh connections also apply to the
 gateway case, i.e. an Access VLAN from the dedicated range is configured on the switch
-interface and the hydration IP address is configured on that VLAN instead.
+interface and the hydration IP address is configured on that VLAN instead. For an
+unnumbered gateway link the VLAN interface gets `ipv6 enable` instead of an address and the
+peering runs over it, exactly as for mesh.
 
 ### ESLAG Connections
 

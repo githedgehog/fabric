@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/netip"
 	"regexp"
@@ -278,6 +279,10 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)
 	}
 	pcis, kernels := 0, 0
+	// an interface with no IPs carries an unnumbered peering, so it has to be claimed by
+	// an unnumbered neighbor below rather than left dangling
+	unnumberedIfaces := map[string]bool{}
+	kernelNames := map[string]bool{}
 	for name, iface := range gw.Spec.Interfaces {
 		if len(name) > 15 {
 			return fmt.Errorf("interface name %s is too long: %w", name, ErrInvalidGW)
@@ -287,7 +292,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		}
 
 		if len(iface.IPs) == 0 {
-			return fmt.Errorf("interface %s must have at least one IP address: %w", name, ErrInvalidGW)
+			unnumberedIfaces[name] = true
 		}
 		for _, ifaceIP := range iface.IPs {
 			ifaceIP, err := netip.ParsePrefix(ifaceIP)
@@ -358,6 +363,12 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 			if name == iface.Kernel {
 				return fmt.Errorf("interface name %s cannot be the same as kernel interface name: %w", name, ErrInvalidGW)
 			}
+
+			// an unnumbered neighbor may name its interface by the kernel name, so it has to resolve to exactly one
+			if kernelNames[iface.Kernel] {
+				return fmt.Errorf("kernel interface name %s is used by more than one interface: %w", iface.Kernel, ErrInvalidGW)
+			}
+			kernelNames[iface.Kernel] = true
 		}
 	}
 	// TODO enable after migrating dataplane to a new interface format
@@ -369,9 +380,45 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		return fmt.Errorf("at least one BGP neighbor must be defined: %w", ErrInvalidGW)
 	}
 	for _, neigh := range gw.Spec.Neighbors {
+		// no peer IP means the session is unnumbered and keyed by the source interface,
+		// the same encoding fabric and mesh links use
 		if neigh.IP == "" {
-			return fmt.Errorf("BGP neighbor must have an IP address: %w", ErrInvalidGW)
+			if neigh.Source == "" {
+				return fmt.Errorf("BGP neighbor must have an IP address or a source interface: %w", ErrInvalidGW)
+			}
+
+			// Source names the interface either by its key or by its kernel name
+			name := neigh.Source
+			iface, exist := gw.Spec.Interfaces[name]
+			if !exist {
+				for ifaceName, candidate := range gw.Spec.Interfaces {
+					if candidate.Kernel == neigh.Source {
+						name, iface, exist = ifaceName, candidate, true
+
+						break
+					}
+				}
+			}
+			if !exist {
+				return fmt.Errorf("BGP neighbor source interface %s is not defined: %w", neigh.Source, ErrInvalidGW)
+			}
+			if len(iface.IPs) > 0 {
+				return fmt.Errorf("BGP neighbor on interface %s has no IP address but the interface is numbered: %w", neigh.Source, ErrInvalidGW)
+			}
+			if neigh.ASN == 0 {
+				return fmt.Errorf("BGP neighbor on interface %s must have an ASN: %w", neigh.Source, ErrInvalidGW)
+			}
+			// numbered interfaces are rejected above, so a missing entry means another neighbor
+			// already claimed this interface and FRR could only keep one of the two sessions
+			if !unnumberedIfaces[name] {
+				return fmt.Errorf("interface %s has more than one unnumbered BGP neighbor: %w", name, ErrInvalidGW)
+			}
+
+			delete(unnumberedIfaces, name)
+
+			continue
 		}
+
 		neighIP, err := netip.ParseAddr(neigh.IP)
 		if err != nil {
 			return fmt.Errorf("invalid neighbor IP %s: %w", neigh.IP, errors.Join(err, ErrInvalidGW))
@@ -386,6 +433,10 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		if neigh.ASN == 0 {
 			return fmt.Errorf("BGP neighbor %s must have an ASN: %w", neigh.IP, ErrInvalidGW)
 		}
+	}
+
+	if len(unnumberedIfaces) > 0 {
+		return fmt.Errorf("interfaces %v must have at least one IP address or an unnumbered BGP neighbor: %w", slices.Sorted(maps.Keys(unnumberedIfaces)), ErrInvalidGW)
 	}
 
 	if len(gw.Spec.Groups) == 0 {
