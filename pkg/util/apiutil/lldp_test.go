@@ -15,7 +15,6 @@
 package apiutil_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -138,7 +137,7 @@ func TestGetLLDPNeighbors(t *testing.T) {
 		}),
 	).Build()
 
-	neighbors, err := apiutil.GetLLDPNeighbors(context.Background(), kube, &wiringapi.Switch{
+	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
 	}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
@@ -266,7 +265,7 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 		conn("server-4", "E1/4"),
 	).Build()
 
-	neighbors, err := apiutil.GetLLDPNeighbors(context.Background(), kube, &wiringapi.Switch{
+	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
 	}, apiutil.LLDPNeighborsOpts{IgnoreSuffixes: apiutil.DefaultLLDPIgnoreSuffixes})
 	require.NoError(t, err)
@@ -343,7 +342,7 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 	kube := fake.NewClientBuilder().WithScheme(scheme).
 		WithObjects(profile, sw("leaf-1"), sw("spine-1"), agent, conn).Build()
 
-	neighbors, err := apiutil.GetLLDPNeighbors(context.Background(), kube, &wiringapi.Switch{
+	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
 	}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)

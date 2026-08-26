@@ -15,7 +15,6 @@
 package bcm
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -464,7 +463,7 @@ func TestUpdateLLDPNeighbors(t *testing.T) {
 	swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
 	portMap := map[string]string{"Ethernet0": "E1/1", "Management0": "M1"}
 
-	require.NoError(t, p.updateLLDPNeighbors(context.Background(), switchstate.NewRegistry(), swState, portMap))
+	require.NoError(t, p.updateLLDPNeighbors(t.Context(), switchstate.NewRegistry(), swState, portMap))
 
 	require.Equal(t, map[string]agentapi.SwitchStateInterface{
 		"E1/1": {
@@ -549,7 +548,7 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 	collect := func() {
 		t.Helper()
 		swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
-		require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState, portMap))
+		require.NoError(t, p.updateLLDPNeighbors(t.Context(), reg, swState, portMap))
 	}
 
 	collect()
@@ -653,7 +652,7 @@ func TestUpdateLLDPNeighborsFreshness(t *testing.T) {
 			p := &BroadcomProcessor{client: client}
 			swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
 
-			require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState,
+			require.NoError(t, p.updateLLDPNeighbors(t.Context(), reg, swState,
 				map[string]string{"Ethernet0": "E1/1"}))
 
 			require.Len(t, metricSeries(t, reg, "lldp_neighbor_ttl_seconds"), tt.wantTTL)
@@ -698,7 +697,7 @@ func TestUpdateLLDPNeighborsInfo(t *testing.T) {
 	swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
 
 	// a breakout port: the metrics are labeled by the lane, but the transceiver is the cage it's broken out of
-	require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState,
+	require.NoError(t, p.updateLLDPNeighbors(t.Context(), reg, swState,
 		map[string]string{"Ethernet0": "E1/1/1"}))
 
 	require.Equal(t, map[string]float64{
