@@ -174,6 +174,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			}
 		}
 
+		transceiverName := transceiverForPort(ifaceName)
 		st := iface.State
 
 		adminStatus, err := mapAdminStatus(st.AdminStatus)
@@ -194,12 +195,12 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			return errors.Wrapf(err, "failed to get oper status ID")
 		}
 
-		reg.InterfaceMetrics.Enabled.WithLabelValues(ifaceName).Set(boolToFloat64(st.Enabled))
-		reg.InterfaceMetrics.AdminStatus.WithLabelValues(ifaceName).Set(float64(adminStatusID))
-		reg.InterfaceMetrics.OperStatus.WithLabelValues(ifaceName).Set(float64(operStatusID))
+		reg.InterfaceMetrics.Enabled.WithLabelValues(ifaceName, transceiverName).Set(boolToFloat64(st.Enabled))
+		reg.InterfaceMetrics.AdminStatus.WithLabelValues(ifaceName, transceiverName).Set(float64(adminStatusID))
+		reg.InterfaceMetrics.OperStatus.WithLabelValues(ifaceName, transceiverName).Set(float64(operStatusID))
 
 		if st.RateInterval != nil {
-			reg.InterfaceMetrics.RateInterval.WithLabelValues(ifaceName).Set(float64(*st.RateInterval))
+			reg.InterfaceMetrics.RateInterval.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.RateInterval))
 		}
 
 		ifState := agentapi.SwitchStateInterface{}
@@ -212,7 +213,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			ifState.MAC = *st.MacAddress
 		}
 		if st.LastChange != nil {
-			reg.InterfaceMetrics.LastChange.WithLabelValues(ifaceName).Set(float64(*st.LastChange))
+			reg.InterfaceMetrics.LastChange.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.LastChange))
 			if *st.LastChange != 0 {
 				ifState.LastChange = kmetav1.Time{Time: time.Unix(int64(*st.LastChange), 0)} //nolint:gosec
 			}
@@ -221,100 +222,100 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 		if ifState.Enabled && st.Counters != nil {
 			ifState.Counters = &agentapi.SwitchStateInterfaceCounters{}
 
-			reg.InterfaceCounters.InBitsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InBitsPerSecond))
+			reg.InterfaceCounters.InBitsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.InBitsPerSecond))
 			ifState.Counters.InBitsPerSecond = unptrFloat64(st.Counters.InBitsPerSecond)
 
 			if st.Counters.InBroadcastPkts != nil {
-				reg.InterfaceCounters.InBroadcastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InBroadcastPkts))
+				reg.InterfaceCounters.InBroadcastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InBroadcastPkts))
 			}
 
 			if st.Counters.InDiscards != nil {
-				reg.InterfaceCounters.InDiscards.WithLabelValues(ifaceName).Set(float64(*st.Counters.InDiscards))
+				reg.InterfaceCounters.InDiscards.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InDiscards))
 				ifState.Counters.InDiscards = *st.Counters.InDiscards
 			}
 
 			if st.Counters.InErrors != nil {
-				reg.InterfaceCounters.InErrors.WithLabelValues(ifaceName).Set(float64(*st.Counters.InErrors))
+				reg.InterfaceCounters.InErrors.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InErrors))
 				ifState.Counters.InErrors = *st.Counters.InErrors
 			}
 
 			if st.Counters.InMulticastPkts != nil {
-				reg.InterfaceCounters.InMulticastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InMulticastPkts))
+				reg.InterfaceCounters.InMulticastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InMulticastPkts))
 			}
 
 			if st.Counters.InOctets != nil {
-				reg.InterfaceCounters.InOctets.WithLabelValues(ifaceName).Set(float64(*st.Counters.InOctets))
-				reg.InterfaceCounters.InBits.WithLabelValues(ifaceName).Set(float64(*st.Counters.InOctets * 8))
+				reg.InterfaceCounters.InOctets.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InOctets))
+				reg.InterfaceCounters.InBits.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InOctets * 8))
 				ifState.Counters.InBits = *st.Counters.InOctets * 8
 			}
 
-			reg.InterfaceCounters.InOctetsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InOctetsPerSecond))
+			reg.InterfaceCounters.InOctetsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.InOctetsPerSecond))
 
 			if st.Counters.InPkts != nil {
-				reg.InterfaceCounters.InPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InPkts))
+				reg.InterfaceCounters.InPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InPkts))
 			}
 
-			reg.InterfaceCounters.InPktsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InPktsPerSecond))
+			reg.InterfaceCounters.InPktsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.InPktsPerSecond))
 			ifState.Counters.InPktsPerSecond = unptrFloat64(st.Counters.InPktsPerSecond)
 
 			if st.Counters.InUnicastPkts != nil {
-				reg.InterfaceCounters.InUnicastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InUnicastPkts))
+				reg.InterfaceCounters.InUnicastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InUnicastPkts))
 			}
 
 			if st.Counters.InUtilization != nil {
-				reg.InterfaceCounters.InUtilization.WithLabelValues(ifaceName).Set(float64(*st.Counters.InUtilization))
+				reg.InterfaceCounters.InUtilization.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InUtilization))
 				ifState.Counters.InUtilization = *st.Counters.InUtilization
 			}
 
 			if st.Counters.LastClear != nil {
-				reg.InterfaceCounters.LastClear.WithLabelValues(ifaceName).Set(float64(*st.Counters.LastClear))
+				reg.InterfaceCounters.LastClear.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.LastClear))
 				if *st.Counters.LastClear != 0 {
 					ifState.Counters.LastClear = kmetav1.Time{Time: time.Unix(int64(*st.Counters.LastClear), 0)} //nolint:gosec
 				}
 			}
 
-			reg.InterfaceCounters.OutBitsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutBitsPerSecond))
+			reg.InterfaceCounters.OutBitsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.OutBitsPerSecond))
 			ifState.Counters.OutBitsPerSecond = unptrFloat64(st.Counters.OutBitsPerSecond)
 
 			if st.Counters.OutBroadcastPkts != nil {
-				reg.InterfaceCounters.OutBroadcastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutBroadcastPkts))
+				reg.InterfaceCounters.OutBroadcastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutBroadcastPkts))
 			}
 
 			if st.Counters.OutDiscards != nil {
-				reg.InterfaceCounters.OutDiscards.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutDiscards))
+				reg.InterfaceCounters.OutDiscards.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutDiscards))
 				ifState.Counters.OutDiscards = *st.Counters.OutDiscards
 			}
 
 			if st.Counters.OutErrors != nil {
-				reg.InterfaceCounters.OutErrors.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutErrors))
+				reg.InterfaceCounters.OutErrors.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutErrors))
 				ifState.Counters.OutErrors = *st.Counters.OutErrors
 			}
 
 			if st.Counters.OutMulticastPkts != nil {
-				reg.InterfaceCounters.OutMulticastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutMulticastPkts))
+				reg.InterfaceCounters.OutMulticastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutMulticastPkts))
 			}
 
 			if st.Counters.OutOctets != nil {
-				reg.InterfaceCounters.OutOctets.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutOctets))
-				reg.InterfaceCounters.OutBits.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutOctets * 8))
+				reg.InterfaceCounters.OutOctets.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutOctets))
+				reg.InterfaceCounters.OutBits.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutOctets * 8))
 				ifState.Counters.OutBits = *st.Counters.OutOctets * 8
 			}
 
-			reg.InterfaceCounters.OutOctetsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutOctetsPerSecond))
+			reg.InterfaceCounters.OutOctetsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.OutOctetsPerSecond))
 
 			if st.Counters.OutPkts != nil {
-				reg.InterfaceCounters.OutPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutPkts))
+				reg.InterfaceCounters.OutPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutPkts))
 			}
 
-			reg.InterfaceCounters.OutPktsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutPktsPerSecond))
+			reg.InterfaceCounters.OutPktsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.OutPktsPerSecond))
 			ifState.Counters.OutPktsPerSecond = unptrFloat64(st.Counters.OutPktsPerSecond)
 
 			if st.Counters.OutUnicastPkts != nil {
-				reg.InterfaceCounters.OutUnicastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutUnicastPkts))
+				reg.InterfaceCounters.OutUnicastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutUnicastPkts))
 			}
 
 			if st.Counters.OutUtilization != nil {
-				reg.InterfaceCounters.OutUtilization.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutUtilization))
+				reg.InterfaceCounters.OutUtilization.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutUtilization))
 				ifState.Counters.OutUtilization = *st.Counters.OutUtilization
 			}
 		}
@@ -394,6 +395,8 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 			ifaceName = "CPU"
 		}
 
+		transceiverName := transceiverForPort(ifaceName)
+
 		ifaceSt, found := swState.Interfaces[ifaceName]
 		if isCPU(ifaceNameRaw) {
 			ifaceSt = agentapi.SwitchStateInterface{
@@ -433,90 +436,90 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 			if queue.State.DroppedOctets != nil {
 				val := *queue.State.DroppedOctets
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueDroppedBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
-				reg.InterfaceCounters.QueueDroppedOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueDroppedBits.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueDroppedOctets.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.DroppedBits = val * 8
 			}
 
 			if queue.State.DroppedPkts != nil {
 				val := *queue.State.DroppedPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueDroppedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueDroppedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.DroppedPkts = val
 			}
 
 			if queue.State.EcnMarkedOctets != nil {
 				val := *queue.State.EcnMarkedOctets
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueECNMarkedBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
-				reg.InterfaceCounters.QueueECNMarkedOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueECNMarkedBits.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueECNMarkedOctets.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.ECNMarkedBits = val * 8
 			}
 
 			if queue.State.EcnMarkedPkts != nil {
 				val := *queue.State.EcnMarkedPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueECNMarkedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueECNMarkedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.ECNMarkedPkts = val
 			}
 
 			if queue.State.PeriodicWatermark != nil {
 				val := *queue.State.PeriodicWatermark
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueuePeriodicWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueuePeriodicWatermark.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.PersistentWatermark != nil {
 				val := *queue.State.PersistentWatermark
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueuePersistentWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueuePersistentWatermark.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.TransmitBitsPerSecond != nil {
 				val := *queue.State.TransmitBitsPerSecond
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitBitsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitBitsPerSecond.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.TransmitBitsPerSecond = val
 			}
 
 			if queue.State.TransmitOctets != nil {
 				val := *queue.State.TransmitOctets
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
-				reg.InterfaceCounters.QueueTransmitBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueTransmitOctets.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitBits.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val * 8))
 				qCounters.TransmitBits = val * 8
 			}
 
 			if queue.State.TransmitOctetsPerSecond != nil {
 				val := *queue.State.TransmitOctetsPerSecond
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitOctetsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitOctetsPerSecond.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.TransmitPkts != nil {
 				val := *queue.State.TransmitPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.TransmitPkts = val
 			}
 
 			if queue.State.TransmitPktsPerSecond != nil {
 				val := *queue.State.TransmitPktsPerSecond
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitPktsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitPktsPerSecond.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.TransmitPktsPerSecond = val
 			}
 
 			if queue.State.Watermark != nil {
 				val := *queue.State.Watermark
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueWatermark.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.WredDroppedPkts != nil {
 				val := *queue.State.WredDroppedPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueWREDDroppedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueWREDDroppedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.WREDDroppedPkts = val
 			}
 
@@ -731,24 +734,26 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switch
 			continue
 		}
 
+		transceiverName := transceiverForPort(apiName)
 		neighbors := swState.Interfaces[apiName].LLDPNeighbors
-		reg.LLDPMetrics.Neighbors.WithLabelValues(apiName).Set(float64(len(neighbors)))
+		reg.LLDPMetrics.Neighbors.WithLabelValues(apiName, transceiverName).Set(float64(len(neighbors)))
 
 		for _, neighbor := range neighbors {
 			reg.LLDPMetrics.Info.WithLabelValues(
 				apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, neighbor.ChassisID,
 				neighbor.SystemDescription, neighbor.Manufacturer, neighbor.Model, neighbor.SerialNumber,
+				transceiverName,
 			).Set(1)
 
 			if neighbor.LastUpdate != nil && !neighbor.LastUpdate.IsZero() {
 				reg.LLDPMetrics.LastUpdate.
-					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC).
+					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, transceiverName).
 					Set(float64(neighbor.LastUpdate.Unix()))
 			}
 
 			if neighbor.TTL > 0 {
 				reg.LLDPMetrics.TTL.
-					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC).
+					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, transceiverName).
 					Set(float64(neighbor.TTL))
 			}
 		}
@@ -1928,6 +1933,19 @@ func normBias(bias *float64) float64 {
 	}
 
 	return *bias
+}
+
+// transceiverForPort returns the transceiver cage an interface lives in, e.g. E1/1 for both E1/1/1 and E1/1/2, and
+// nothing for the interfaces that have no cage at all, such as the management port, the port channels and the CPU.
+func transceiverForPort(port string) string {
+	switch strings.Count(port, "/") {
+	case 1:
+		return port
+	case 2:
+		return port[:strings.LastIndex(port, "/")]
+	default:
+		return ""
+	}
 }
 
 func normBreakoutName(transceiverName string) (string, bool) {

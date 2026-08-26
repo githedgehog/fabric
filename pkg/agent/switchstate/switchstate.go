@@ -281,7 +281,7 @@ func NewRegistry() *Registry {
 			Name:        name,
 			Help:        help,
 			ConstLabels: labels,
-		}, []string{"interface"})
+		}, []string{"interface", "transceiver"})
 	}
 
 	newInterfaceQueueGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -291,7 +291,7 @@ func NewRegistry() *Registry {
 			Name:        name,
 			Help:        help,
 			ConstLabels: labels,
-		}, []string{"interface", "queue"})
+		}, []string{"interface", "queue", "transceiver"})
 	}
 
 	newTransceiverGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -364,7 +364,7 @@ func NewRegistry() *Registry {
 			Name:        name,
 			Help:        help,
 			ConstLabels: labels,
-		}, []string{"interface", "sys_name", "port", "mac"})
+		}, []string{"interface", "sys_name", "port", "mac", "transceiver"})
 	}
 
 	newLLDPNeighborInfoGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -374,7 +374,7 @@ func NewRegistry() *Registry {
 			Name:        name,
 			Help:        help,
 			ConstLabels: labels,
-		}, []string{"interface", "sys_name", "port", "mac", "chassis", "sys_descr", "manuf", "model", "serial"})
+		}, []string{"interface", "sys_name", "port", "mac", "chassis", "sys_descr", "manuf", "model", "serial", "transceiver"})
 	}
 
 	newPlatformGaugeVec := func(name string, help string) *prometheus.GaugeVec {

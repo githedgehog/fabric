@@ -67,6 +67,34 @@ const (
 		"vendor_part=1AT-3Q3Q9211-01A,vendor_rev=01"
 )
 
+func TestTransceiverForPort(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		port string
+		want string
+	}{
+		// every lane of a breakout shares the cage it's broken out of
+		{port: "E1/1/1", want: "E1/1"},
+		{port: "E1/1/2", want: "E1/1"},
+		{port: "E1/1/4", want: "E1/1"},
+		{port: "E1/61/1", want: "E1/61"},
+		// a port that isn't broken out is its own cage
+		{port: "E1/65", want: "E1/65"},
+		{port: "E1/66", want: "E1/66"},
+		// and these have no cage at all
+		{port: "M1", want: ""},
+		{port: "CPU", want: ""},
+		{port: "PortChannel1", want: ""},
+		{port: "", want: ""},
+	} {
+		t.Run(tt.port, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, transceiverForPort(tt.port))
+		})
+	}
+}
+
 func TestUpdateTransceiverInfoMetrics(t *testing.T) {
 	t.Parallel()
 

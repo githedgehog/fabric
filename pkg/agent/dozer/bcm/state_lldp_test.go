@@ -555,12 +555,12 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 	collect()
 
 	// a port without neighbors reports zero of them, the management port isn't reported at all
-	require.Equal(t, map[string]float64{"interface=E1/1": 2, "interface=E1/2": 0}, metricSeries(t, reg, "lldp_neighbors"))
+	require.Equal(t, map[string]float64{"interface=E1/1,transceiver=E1/1": 2, "interface=E1/2,transceiver=E1/2": 0}, metricSeries(t, reg, "lldp_neighbors"))
 
 	// both neighbors of the port get their own series, identified by name, port and MAC
 	require.Equal(t, map[string]float64{
-		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5":    120,
-		"interface=E1/1,mac=00:00:00:0b:bb:19,port=00:00:00:0b:bb:19,sys_name=": 120,
+		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5,transceiver=E1/1":    120,
+		"interface=E1/1,mac=00:00:00:0b:bb:19,port=00:00:00:0b:bb:19,sys_name=,transceiver=E1/1": 120,
 	}, metricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
 
 	lastUpdate := metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds")
@@ -574,9 +574,9 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 
 	collect()
 
-	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 0}, metricSeries(t, reg, "lldp_neighbors"))
+	require.Equal(t, map[string]float64{"interface=E1/1,transceiver=E1/1": 1, "interface=E1/2,transceiver=E1/2": 0}, metricSeries(t, reg, "lldp_neighbors"))
 	require.Equal(t, map[string]float64{
-		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5": 120,
+		"interface=E1/1,mac=00:00:00:0b:bb:11,port=enp2s1,sys_name=server-5,transceiver=E1/1": 120,
 	}, metricSeries(t, reg, "lldp_neighbor_ttl_seconds"))
 	require.Len(t, metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
 
@@ -587,7 +587,7 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 
 	collect()
 
-	require.Equal(t, map[string]float64{"interface=E1/1": 1, "interface=E1/2": 1}, metricSeries(t, reg, "lldp_neighbors"))
+	require.Equal(t, map[string]float64{"interface=E1/1,transceiver=E1/1": 1, "interface=E1/2,transceiver=E1/2": 1}, metricSeries(t, reg, "lldp_neighbors"))
 	require.Len(t, metricSeries(t, reg, "lldp_neighbor_last_update_timestamp_seconds"), 1)
 
 	// unlike the freshness metrics, info covers every neighbor there is, including the one without an update time
@@ -661,7 +661,7 @@ func TestUpdateLLDPNeighborsFreshness(t *testing.T) {
 
 			// whatever the neighbor says about freshness, it's still there and still counted
 			require.Len(t, metricSeries(t, reg, "lldp_neighbor_info"), 1)
-			require.Equal(t, map[string]float64{"interface=E1/1": 1}, metricSeries(t, reg, "lldp_neighbors"))
+			require.Equal(t, map[string]float64{"interface=E1/1,transceiver=E1/1": 1}, metricSeries(t, reg, "lldp_neighbors"))
 		})
 	}
 }
@@ -697,11 +697,15 @@ func TestUpdateLLDPNeighborsInfo(t *testing.T) {
 	p := &BroadcomProcessor{client: client}
 	swState := &agentapi.SwitchState{Interfaces: map[string]agentapi.SwitchStateInterface{}}
 
+	// a breakout port: the metrics are labeled by the lane, but the transceiver is the cage it's broken out of
 	require.NoError(t, p.updateLLDPNeighbors(context.Background(), reg, swState,
-		map[string]string{"Ethernet0": "E1/1"}))
+		map[string]string{"Ethernet0": "E1/1/1"}))
 
 	require.Equal(t, map[string]float64{
-		"chassis=b4:db:91:9b:60:24,interface=E1/1,mac=b4:db:91:9b:60:27,manuf=Celestica,model=," +
-			"port=Ethernet496,serial=,sys_descr=Hedgehog Fabric,sys_name=ds5000-03": 1,
+		"chassis=b4:db:91:9b:60:24,interface=E1/1/1,mac=b4:db:91:9b:60:27,manuf=Celestica,model=," +
+			"port=Ethernet496,serial=,sys_descr=Hedgehog Fabric,sys_name=ds5000-03,transceiver=E1/1": 1,
 	}, metricSeries(t, reg, "lldp_neighbor_info"))
+
+	require.Equal(t, map[string]float64{"interface=E1/1/1,transceiver=E1/1": 1},
+		metricSeries(t, reg, "lldp_neighbors"))
 }
