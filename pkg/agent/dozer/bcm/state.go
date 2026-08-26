@@ -649,7 +649,7 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switch
 		return fmt.Errorf("getting lldp interfaces: %w", err)
 	}
 
-	// neighbors are labeled by their own identity, so the series of the ones that are gone have to go with them
+	// neighbors are labeled by their own identity, the ones that are gone have to take their series with them
 	reg.LLDPMetrics.LastUpdate.Reset()
 	reg.LLDPMetrics.TTL.Reset()
 	reg.LLDPMetrics.Info.Reset()
@@ -658,7 +658,7 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switch
 
 	if lldp.Interfaces != nil {
 		for ifaceName, iface := range lldp.Interfaces.Interface {
-			// skip the switch own management interface as all switches and their IPMIs would show here
+			// every switch and IPMI would show up on the management interface
 			if isManagement(ifaceName) {
 				continue
 			}
@@ -685,8 +685,7 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switch
 		}
 	}
 
-	// iterating the ports and not the collected neighbors: a port without neighbors has to report zero of them,
-	// otherwise it would keep reporting the last count it had as nothing ever resets it
+	// iterating the ports and not the neighbors: a port without any has to report zero, nothing ever resets it
 	for nosName, apiName := range portMap {
 		if isManagement(nosName) {
 			continue
@@ -707,6 +706,7 @@ func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switch
 					Set(float64(neighbor.LastUpdate.Unix()))
 			}
 
+			// a zero TTL is the LLDP shutdown value and not "unknown", reporting it would trip any staleness check
 			if neighbor.TTL > 0 {
 				reg.LLDPMetrics.TTL.
 					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC).
@@ -814,7 +814,7 @@ func lldpNeighbor(id string, neighbor *oc.OpenconfigLldp_Lldp_Interfaces_Interfa
 	return st, true
 }
 
-// lldpLastUpdate converts the LLDP neighbor last-update into a timestamp, it's reported as seconds since the update.
+// lldpLastUpdate converts the last-update, reported as seconds since it happened, into a timestamp.
 func lldpLastUpdate(nSt *oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State, now time.Time) *kmetav1.Time {
 	if nSt.LastUpdate == nil {
 		return nil
@@ -827,7 +827,7 @@ func lldpLastUpdate(nSt *oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_N
 func isMACAddress(s string) bool {
 	hw, err := net.ParseMAC(s)
 
-	// ParseMAC also accepts dash/dot separated, bare hex and longer EUI-64 forms
+	// ParseMAC also takes dash/dot separated, bare hex and longer EUI-64 forms
 	return err == nil && len(hw) == 6 && strings.Count(s, ":") == 5
 }
 

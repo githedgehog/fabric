@@ -31,8 +31,7 @@ type LLDPIn struct {
 	Description bool
 	TTL         bool
 
-	// Parts of the neighbor system names to ignore, unset means nothing is ignored, see the
-	// apiutil.DefaultLLDPIgnorePrefixes and apiutil.DefaultLLDPIgnoreSuffixes for the usual ones
+	// Unset means nothing is ignored, see the apiutil.DefaultLLDPIgnore* for the usual ones
 	IgnorePrefixes []string
 	IgnoreSuffixes []string
 }
@@ -44,41 +43,30 @@ type LLDPOut struct {
 
 const lldpExtraNeighbor = "<extra>"
 
-// lldpNeighborRow is a single LLDP neighbor to render, extra means it isn't the neighbor the wiring expects on that
-// port while some other neighbor on the same port is.
+// extra means another neighbor on the same port is the wired one.
 type lldpNeighborRow struct {
 	neighbor apiutil.LLDPNeighbor
 	extra    bool
 }
 
-// lldpMatchingNeighbor returns the neighbor of the port that's exactly what the wiring expects, if there is one. Every
-// expected value has to match: a neighbor with the right name on a wrong port doesn't make the port correct.
+// lldpMatchingNeighbor returns the neighbor of the port that's exactly what the wiring expects, if there is one.
 func lldpMatchingNeighbor(n apiutil.LLDPNeighborStatus) (apiutil.LLDPNeighbor, bool) {
-	// nothing is expected on the external connections and on the ports that aren't in the wiring at all
+	// nothing is expected on the external connections and on the ports not in the wiring
 	if n.Expected.Name == "" {
 		return apiutil.LLDPNeighbor{}, false
 	}
 
 	for _, actual := range n.Actual {
-		if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) || actual.Port != n.Expected.Port {
-			continue
+		if actual.Matches(n.Expected) {
+			return actual, true
 		}
-
-		// only the fabric connections advertise an expected description
-		if n.Expected.Description != "" && n.Expected.Description != actual.Description {
-			continue
-		}
-
-		return actual, true
 	}
 
 	return apiutil.LLDPNeighbor{}, false
 }
 
-// lldpNeighborRows orders the neighbors of a port for rendering and reports how many of them are left out: if one of
-// them is exactly what the wiring expects it goes first and the rest are just noise on an otherwise correct port, so
-// they are only rendered with showAll. Without a match nothing is known to be right, so all of them are rendered as
-// candidates.
+// lldpNeighborRows orders the neighbors of a port for rendering and reports how many are left out: the wired one wins
+// and the rest are only rendered with showAll, without a match they're all candidates.
 func lldpNeighborRows(n apiutil.LLDPNeighborStatus, showAll bool) ([]lldpNeighborRow, int) {
 	rows := make([]lldpNeighborRow, 0, len(n.Actual))
 
@@ -107,9 +95,8 @@ func lldpNeighborRows(n apiutil.LLDPNeighborStatus, showAll bool) ([]lldpNeighbo
 	return rows, 0
 }
 
-// lldpStrictErrs reports everything that doesn't match the wiring on a single port. Nothing is reported when there is
-// nothing to compare against: the external connections don't expect a neighbor and neither do the ports the wiring
-// doesn't mention. A port that has exactly the neighbor it's wired to is fine no matter what else shows up on it.
+// lldpStrictErrs reports what doesn't match the wiring on a port. A port that has the neighbor it's wired to is fine
+// no matter what else shows up on it, and one with nothing expected has nothing to be wrong about.
 func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
 	if n.Type == apiutil.LLDPNeighborTypeExternal || n.Expected.Name == "" {
 		return nil
@@ -133,11 +120,11 @@ func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
 
 		found = true
 
-		if n.Expected.Port != actual.Port {
+		if !strings.EqualFold(n.Expected.Port, actual.Port) {
 			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", swName, port, n.Expected.Port, actual.Port)) //nolint:goerr113
 		}
 
-		if n.Expected.Description != "" && n.Expected.Description != actual.Description {
+		if n.Expected.Description != "" && !strings.EqualFold(n.Expected.Description, actual.Description) {
 			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", swName, port, n.Expected.Description, actual.Description)) //nolint:goerr113
 		}
 	}
@@ -153,16 +140,15 @@ func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
 	return errs
 }
 
-// lldpNeighborAge renders how long ago the neighbor was last updated and, if asked for, the TTL it advertises. Always
-// in seconds so both are directly comparable, an age above the TTL means the neighbor is about to expire. A negative
-// age means the switch clock is ahead of ours, it's reported as is instead of being clamped.
+// lldpNeighborAge renders how long ago the neighbor was updated and optionally its TTL, both in seconds so that they
+// are comparable. A negative age means the switch clock is ahead of ours and is reported as is.
 func lldpNeighborAge(now time.Time, neighbor apiutil.LLDPNeighbor, withTTL bool) string {
 	age := "-"
 	if neighbor.LastUpdate != nil && !neighbor.LastUpdate.IsZero() {
 		age = fmt.Sprintf("%d", int(now.Sub(neighbor.LastUpdate.Time).Seconds()))
 	}
 
-	// both are seconds, so a single unit suffix covers the pair
+	// both are seconds, so one unit suffix covers the pair
 	if withTTL && neighbor.TTL > 0 {
 		return fmt.Sprintf("%s/%ds", age, neighbor.TTL)
 	}
@@ -194,12 +180,12 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 
 	headers := []string{"Port", "Connection", "Type", "Neighbor", "Port", "MAC", age}
 
-	// descriptions are long enough to make the table unreadable, so they're only rendered on demand
+	// descriptions are long enough to make the table unreadable
 	if in.Description {
 		headers = append(headers, "Description")
 	}
 
-	// appendRow adds the optional description cell to a row before storing it
+	// appendRow adds the optional description cell
 	appendRow := func(data [][]string, row []string, descr string) [][]string {
 		if in.Description {
 			row = append(row, descr)
@@ -224,17 +210,16 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 
 			n := out.Neighbors[swName][port]
 
-			// values the wiring doesn't define are reported as is, there is nothing to compare them to: the
-			// external connections don't expect a neighbor at all and only the fabric ones expect a description
+			// values the wiring doesn't define are reported as is, there is nothing to compare them to
 			diff := func(actual, expected string) string {
-				if expected == "" || expected == actual {
+				if expected == "" || strings.EqualFold(expected, actual) {
 					return actual
 				}
 
 				want := "(want " + expected + ")"
 				external := n.Type == apiutil.LLDPNeighborTypeExternal
 
-				// nothing is reported, so the expectation itself has to carry the highlight
+				// nothing is reported, so the expectation carries the highlight
 				if actual == "" {
 					if external {
 						return want
@@ -243,7 +228,7 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 					return red(want)
 				}
 
-				// the expectation isn't what's wrong here, only the actual value is highlighted
+				// the expectation isn't what's wrong, only the actual value
 				if !external {
 					actual = red(actual)
 				}
@@ -251,7 +236,7 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 				return actual + " " + want
 			}
 
-			// nothing is on the port, but the wiring still says what should have been
+			// nothing on the port, but the wiring still says what should have been
 			if len(n.Actual) == 0 {
 				data = appendRow(data, []string{
 					port, n.ConnectionName, n.ConnectionType,
@@ -261,13 +246,13 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 				continue
 			}
 
-			// a port can have more than one neighbor, each of the rendered ones gets its own row
+			// a port can have more than one neighbor, each rendered one gets its own row
 			rows, hidden := lldpNeighborRows(n, in.ShowAll)
 
 			for _, row := range rows {
 				actual := row.neighbor
 
-				// extras aren't the wired neighbor, so there is nothing to compare them to
+				// extras aren't the wired neighbor, nothing to compare them to
 				if row.extra {
 					data = appendRow(data, []string{
 						port, n.ConnectionName, lldpExtraNeighbor,
@@ -277,8 +262,7 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 					continue
 				}
 
-				// the name is reported as the neighbor advertises it, with the parts that were ignored to make it
-				// match dimmed, so that it's visible why a name that isn't literally the expected one is fine
+				// reported as advertised, with the ignored parts dimmed so it's visible why it still matches
 				sn := actual.Name
 				if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) {
 					sn = diff(actual.Name, n.Expected.Name)
@@ -289,13 +273,13 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 				sp := diff(actual.Port, n.Expected.Port)
 				sd := diff(actual.Description, n.Expected.Description)
 
-				// only happens on a full match, so sn is never a red diff at this point
+				// only happens on a full match, so sn is never a red diff here
 				if hidden > 0 {
 					sn += fmt.Sprintf(" +%d", hidden)
 					anyHidden = true
 				}
 
-				// MAC and age are only reported by the neighbor, so there is nothing to compare them to
+				// MAC and age are only reported by the neighbor, nothing to compare them to
 				data = appendRow(data, []string{port, n.ConnectionName, n.ConnectionType, sn, sp, actual.MAC, lldpNeighborAge(now, actual, in.TTL)}, sd)
 			}
 		}

@@ -169,14 +169,14 @@ type BFDPeerMetrics struct {
 }
 
 type LLDPMetrics struct {
-	// Per port, always reported so that a port without neighbors is visible as such
+	// Always reported, so that a port without neighbors is visible as such
 	Neighbors *prometheus.GaugeVec
 
-	// Per neighbor, the neighbors that are gone are dropped on the next collection
+	// Per neighbor, the ones that are gone are dropped on the next collection
 	LastUpdate *prometheus.GaugeVec
 	TTL        *prometheus.GaugeVec
 
-	// Per neighbor, everything the neighbor reports about itself that isn't a measurement, always 1
+	// Per neighbor, what it reports about itself that isn't a measurement, always 1
 	Info *prometheus.GaugeVec
 }
 
@@ -615,7 +615,7 @@ func NewRegistry() *Registry {
 	return r
 }
 
-// Gather returns the currently collected metrics, the same ones ServeMetrics would report
+// Gather returns the currently collected metrics, the same ones ServeMetrics reports
 func (r *Registry) Gather() ([]*dto.MetricFamily, error) {
 	res, err := r.reg.Gather()
 	if err != nil {
