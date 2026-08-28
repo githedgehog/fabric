@@ -279,8 +279,8 @@ github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 h1:gEOO8jv9F4OT7lGC
 github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1/go.mod h1:Ohn+xnUBiLI6FVj/9LpzZWtj1/D6lUovWYBkxHVV3aM=
 go.githedgehog.com/fabric-bcm-ygot v0.6.0-4.6.0 h1:RfknO2if5cfkd0AHay9J1zFMldgf1MhYmAd/jzZFT/I=
 go.githedgehog.com/fabric-bcm-ygot v0.6.0-4.6.0/go.mod h1:XWCdFbSbGP6nlg90c/922VblpHOTw07TCwx1yUHPkzc=
-go.githedgehog.com/libmeta v0.3.0 h1:x1yisQG0iNmCqhO83WSdsB1ybbOVwTkQ5mwGptHY9Yc=
-go.githedgehog.com/libmeta v0.3.0/go.mod h1:cULf4CObrT2p9CSiAQqkS89InQFgx1Gb+a6A+4dQORY=
+go.githedgehog.com/libmeta v0.4.0 h1:JHwmt3SJwauPO3CqSyGe73bTpZ1CJaDovMw71Hd738w=
+go.githedgehog.com/libmeta v0.4.0/go.mod h1:gS8lXwHatQnQZY17EHW++p4IWodfJgQeW7Gbo7E1htk=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 h1:7iP2uCb7sGddAr30RRS6xjKy7AZ2JtTOPA3oolgVSw8=

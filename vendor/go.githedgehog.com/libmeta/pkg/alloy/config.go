@@ -32,9 +32,11 @@ type Config struct {
 type Scrape struct {
 	IntervalSeconds uint `json:"intervalSeconds,omitempty"`
 
-	Address string     `json:"address,omitempty"`
-	Self    ScrapeSelf `json:"self,omitempty"`
-	Unix    ScrapeUnix `json:"unix,omitempty"`
+	Address     string            `json:"address,omitempty"`
+	Self        ScrapeSelf        `json:"self,omitempty"`
+	Unix        ScrapeUnix        `json:"unix,omitempty"`
+	HTTPHeaders map[string]string `json:"httpheaders,omitempty"`
+	ProxyURL    string            `json:"proxyURL,omitempty"`
 
 	Relabel []ScrapeRelabelRule `json:"relabel,omitempty"`
 }
