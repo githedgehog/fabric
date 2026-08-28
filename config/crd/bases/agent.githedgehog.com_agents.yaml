@@ -318,8 +318,14 @@ spec:
                           properties:
                             address:
                               type: string
+                            httpheaders:
+                              additionalProperties:
+                                type: string
+                              type: object
                             intervalSeconds:
                               type: integer
+                            proxyURL:
+                              type: string
                             relabel:
                               items:
                                 properties:
