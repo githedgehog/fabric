@@ -23,8 +23,8 @@ github.com/0x5a17ed/uefi/efi/efivars
 # github.com/AlekSi/pointer v1.2.0
 ## explicit; go 1.18
 github.com/AlekSi/pointer
-# github.com/DeRuina/timberjack v1.4.6
-## explicit; go 1.21
+# github.com/DeRuina/timberjack v1.4.7
+## explicit; go 1.24.0
 github.com/DeRuina/timberjack
 # github.com/Masterminds/goutils v1.1.1
 ## explicit
