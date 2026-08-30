@@ -1334,6 +1334,12 @@ spec:
                     description: 'PortGroupSpeeds is a map of port group speeds, key
                       is the port group name, value is the speed, such as ''"2": 10G'''
                     type: object
+                  portLinkTrainings:
+                    additionalProperties:
+                      type: boolean
+                    description: PortLinkTrainings is a map of port link training,
+                      key is the port name, value is true or false
+                    type: object
                   portLocators:
                     additionalProperties:
                       type: string
@@ -1709,6 +1715,12 @@ spec:
                       description: 'PortGroupSpeeds is a map of port group speeds,
                         key is the port group name, value is the speed, such as ''"2":
                         10G'''
+                      type: object
+                    portLinkTrainings:
+                      additionalProperties:
+                        type: boolean
+                      description: PortLinkTrainings is a map of port link training,
+                        key is the port name, value is true or false
                       type: object
                     portLocators:
                       additionalProperties:

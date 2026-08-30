@@ -252,6 +252,12 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to plan port FECs")
 	}
 
+	// same for link training
+	err = planPortLinkTrainings(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan port link trainings")
+	}
+
 	spec.Normalize()
 
 	return spec, nil
@@ -3807,6 +3813,36 @@ func planPortAutoNegs(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 		if iface, exists := spec.Interfaces[name]; exists {
 			iface.AutoNegotiate = pointer.To(autoNeg)
+		}
+	}
+
+	return nil
+}
+
+func planPortLinkTrainings(agent *agentapi.Agent, spec *dozer.Spec) error {
+	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get NOS port mapping for link training")
+	}
+
+	for name, iface := range spec.Interfaces {
+		if isPhysical(name) {
+			iface.LinkTraining = new(false)
+		}
+	}
+
+	for name, linkTrain := range agent.Spec.Switch.PortLinkTrainings {
+		if strings.HasPrefix(name, wiringapi.ManagementPortPrefix) {
+			continue
+		}
+
+		nosName, ok := api2nos[name]
+		if !ok {
+			continue // validated at admission
+		}
+
+		if iface, exists := spec.Interfaces[nosName]; exists {
+			iface.LinkTraining = new(linkTrain)
 		}
 	}
 
