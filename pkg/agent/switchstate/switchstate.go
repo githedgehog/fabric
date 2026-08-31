@@ -59,6 +59,10 @@ type InterfaceMetrics struct {
 	OperStatus   *prometheus.GaugeVec
 	LastChange   *prometheus.GaugeVec
 	RateInterval *prometheus.GaugeVec
+	// Lifetime link down counts, by attributed cause and in total. Only causes that have
+	// actually fired are reported, to keep the series count down.
+	DownReasons *prometheus.GaugeVec
+	Downs       *prometheus.GaugeVec
 }
 
 type InterfaceCounters struct {
@@ -294,6 +298,16 @@ func NewRegistry() *Registry {
 		}, []string{"interface", "queue", "transceiver"})
 	}
 
+	newInterfaceReasonGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"interface", "reason", "transceiver"})
+	}
+
 	newTransceiverGaugeVec := func(name string, help string) *prometheus.GaugeVec {
 		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace:   MetricNamespace,
@@ -416,6 +430,10 @@ func NewRegistry() *Registry {
 			OperStatus:   newInterfaceGaugeVec("interface_oper_status", "Operational status of the interface"),
 			LastChange:   newInterfaceGaugeVec("interface_last_change", "Time of last change in interface status"),
 			RateInterval: newInterfaceGaugeVec("interface_rate_interval", "Rate interval for interface counters"),
+			DownReasons: newInterfaceReasonGaugeVec("interface_down_reasons",
+				"Times the link went down over the lifetime of the switch, by the reason the switch gave"),
+			Downs: newInterfaceGaugeVec("interface_downs",
+				"Times the link went down over the lifetime of the switch, the sum of interface_down_reasons"),
 		},
 		InterfaceCounters: InterfaceCounters{
 			InBits:                       newInterfaceGaugeVec("interface_in_bits", "Incoming bits"),

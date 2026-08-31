@@ -36,14 +36,15 @@ import (
 )
 
 const (
-	fanIgnore                    = ""
-	psuIgnore                    = "None"
-	temperatureIgnore            = "N/A"
-	errDisablePortStatusDisabled = "disabled"
-	errDisableLinkFlapCause      = "link-flap"
-	transceiverPresent           = "PRESENT"
-	transceiverOperActive        = "active"
-	transceiverCMISReady         = "Ready"
+	fanIgnore             = ""
+	psuIgnore             = "None"
+	temperatureIgnore     = "N/A"
+	transceiverPresent    = "PRESENT"
+	transceiverOperActive = "active"
+	transceiverCMISReady  = "Ready"
+	// Reported in link-flap/state/status once a port has been shut down for flapping.
+	// While the protection is armed but not tripped the switch reports "on" instead.
+	errDisablePortStatusErrDisabled = "err-disabled"
 	// gRPC NotFound is returned when a YANG path has no data yet (e.g. errdisable on a fresh switch).
 	// TODO: rework gnmi client to surface this as a typed sentinel instead of string matching.
 	errGRPCNotFound = "rpc error: code = NotFound"
@@ -112,6 +113,8 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	if err := p.updateErrDisableState(ctx, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update errdisable state")
 	}
+
+	p.updateLinkTransitions(reg, swState, agent, portMap)
 
 	if err := p.updateBGPNeighborMetrics(ctx, reg, swState); err != nil {
 		return errors.Wrapf(err, "failed to update bgp neighbor metrics")
@@ -923,31 +926,91 @@ func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *
 		}
 
 		intSt := swState.Interfaces[ifaceName]
-		intSt.ErrDisabled = *port.LinkFlap.State.Status == errDisablePortStatusDisabled
+		intSt.ErrDisabled = strings.EqualFold(*port.LinkFlap.State.Status, errDisablePortStatusErrDisabled)
 		swState.Interfaces[ifaceName] = intSt
 	}
 
-	// The link-flap counter is not in the OpenConfig state model; read it from the SONiC
-	// native table as a best-effort secondary source.
-	ocPortErrTable := &oc.SonicErrdisable_SonicErrdisable_PORT_ERR_DISABLE_TABLE{}
-	if err := p.client.Get(ctx, "/sonic-errdisable/sonic-errdisable/PORT_ERR_DISABLE_TABLE", ocPortErrTable); err == nil {
-		for nosName, entry := range ocPortErrTable.PORT_ERR_DISABLE_TABLE_LIST {
-			if entry.ErrorDisable == nil || *entry.ErrorDisable != errDisableLinkFlapCause || entry.LinkFlaps == nil {
-				continue
-			}
+	return nil
+}
 
-			ifaceName, exists := portMap[nosName]
-			if !exists {
-				continue
-			}
-
-			intSt := swState.Interfaces[ifaceName]
-			intSt.LinkFlapCount = entry.LinkFlaps
-			swState.Interfaces[ifaceName] = intSt
-		}
+// updateLinkTransitions copies the counts the link event watcher has accumulated into the
+// state being published. It reports nothing while the watcher has no subscription, so that
+// an interface with unknown transition counts is not published as one with zero.
+func (p *BroadcomProcessor) updateLinkTransitions(reg *switchstate.Registry, swState *agentapi.SwitchState, agent *agentapi.Agent, portMap map[string]string) {
+	var snapshot map[string]agentapi.SwitchStateInterfaceTransitions
+	if p.linkEvents != nil {
+		snapshot = p.linkEvents.snapshot()
 	}
 
-	return nil
+	for nosName, transitions := range snapshot {
+		// PortChannel and Vlan interfaces are subscribed and reported under their own
+		// names, and so are absent from the physical port mapping.
+		ifaceName, exists := portMap[nosName]
+		if !exists {
+			ifaceName = nosName
+		}
+
+		intSt, exists := swState.Interfaces[ifaceName]
+		if !exists {
+			continue
+		}
+
+		if len(transitions.Reasons) == 0 {
+			continue
+		}
+
+		intSt.Transitions = &transitions
+		swState.Interfaces[ifaceName] = intSt
+
+		publishTransitionMetrics(reg, ifaceName, transitions)
+	}
+
+	// The counts are history, and the watcher seeds itself from the status it finds at
+	// startup, so publishing a state without them would destroy them: one poll while the
+	// subscription is down would be enough. Carry forward what the previous poll
+	// published.
+	prev := reg.GetSwitchState()
+	if prev == nil {
+		// First poll of a fresh process, before anything has been saved: the totals to
+		// preserve are the ones the previous run left in the API object. Without this the
+		// very first status write of every restart erases them.
+		prev = &agent.Status.State
+	}
+
+	for ifaceName, prevSt := range prev.Interfaces {
+		if prevSt.Transitions == nil {
+			continue
+		}
+
+		intSt, exists := swState.Interfaces[ifaceName]
+		if !exists || intSt.Transitions != nil {
+			continue
+		}
+
+		if len(prevSt.Transitions.Reasons) == 0 {
+			continue
+		}
+
+		carried := prevSt.Transitions.DeepCopy()
+		intSt.Transitions = carried
+		swState.Interfaces[ifaceName] = intSt
+
+		publishTransitionMetrics(reg, ifaceName, *carried)
+	}
+}
+
+func publishTransitionMetrics(reg *switchstate.Registry, ifaceName string, transitions agentapi.SwitchStateInterfaceTransitions) {
+	transceiverName := transceiverForPort(ifaceName)
+
+	var downs uint64
+	for reason, count := range transitions.Reasons {
+		reg.InterfaceMetrics.DownReasons.WithLabelValues(ifaceName, reason, transceiverName).Set(float64(count))
+		downs += count
+	}
+
+	// Derived rather than stored: the status only carries the breakdown, and summing it
+	// in every dashboard and alert would be tedious.
+	reg.InterfaceMetrics.Downs.WithLabelValues(ifaceName, transceiverName).Set(float64(downs))
 }
 
 func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {

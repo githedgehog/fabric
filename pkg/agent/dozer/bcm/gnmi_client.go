@@ -32,3 +32,12 @@ type GNMICClient interface {
 }
 
 var _ GNMICClient = (*gnmi.Client)(nil)
+
+// gnmiSubscriber is the part of *gnmi.Client only the link event watcher needs. It is
+// kept separate from GNMICClient so the in-memory test mock does not have to fake a
+// streaming RPC: a client that cannot subscribe simply reports no transition counts.
+type gnmiSubscriber interface {
+	SubscribeOnChange(ctx context.Context, paths []string, onResponse func(*gnmiproto.SubscribeResponse) error) error
+}
+
+var _ gnmiSubscriber = (*gnmi.Client)(nil)
