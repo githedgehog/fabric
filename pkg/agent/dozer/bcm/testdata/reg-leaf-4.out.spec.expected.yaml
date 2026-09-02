@@ -117,6 +117,10 @@ errDisableInterfaces:
     flapThreshold: 3
     recoveryInterval: 300
     samplingInterval: 30
+  Ethernet8:
+    flapThreshold: 3
+    recoveryInterval: 300
+    samplingInterval: 30
 hostname: leaf-04
 interfaces:
   Ethernet0:
@@ -186,6 +190,15 @@ interfaces:
       "0":
         ips:
           172.30.128.37:
+            prefixLen: 31
+  Ethernet8:
+    autoNegotiate: false
+    description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.22:
             prefixLen: 31
   Loopback1:
     description: Protocol loopback
@@ -767,6 +780,15 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65100
+        172.30.128.23:
+          description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
+          enabled: true
+          ipv4Unicast: true
+          l2vpnEvpn: true
+          l2vpnEvpnAllowOwnAS: true
+          l2vpnEvpnImportPolicies:
+          - l2vpn-neighbors
+          remoteAS: 65534
         172.30.128.34:
           bfdProfile: fabric
           description: Fabric spine-02/E1/7 spine-02--fabric--leaf-04

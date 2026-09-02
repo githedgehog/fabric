@@ -1082,7 +1082,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - loopback-all-vteps
+                      - loopback-vtep
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
@@ -1110,7 +1110,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - loopback-all-vteps
+                      - loopback-vtep
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
@@ -1699,6 +1699,20 @@ routing-policy:
             masklength-range: 24..32
             sequence-number: 2
         name: vpc-subnets--vpc-04
+      - config:
+          mode: IPV4
+          name: vtep-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.12.1/32
+              masklength-range: 32..32
+              sequence-number: 10
+            ip-prefix: 172.30.12.1/32
+            masklength-range: 32..32
+            sequence-number: 10
+        name: vtep-prefix
   policy-definitions:
     policy-definition:
     - config:
@@ -2216,6 +2230,31 @@ routing-policy:
             match-prefix-set:
               config:
                 prefix-set: all-vtep-prefixes
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: static-ext-subnets
+          config:
+            name: "100"
+          name: "100"
+    - config:
+        name: loopback-vtep
+      name: loopback-vtep
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vtep-prefix
           config:
             name: "10"
           name: "10"

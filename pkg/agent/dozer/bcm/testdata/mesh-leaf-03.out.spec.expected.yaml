@@ -366,6 +366,13 @@ prefixLists:
         prefix:
           le: 32
           prefix: 10.0.3.0/24
+  vtep-prefix:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 172.30.12.2/32
 routeMaps:
   ext-import--ext-bgp-01:
     statements:
@@ -511,6 +518,16 @@ routeMaps:
       "10":
         conditions:
           matchPrefixLists: all-vtep-prefixes
+        result: accept
+      "100":
+        conditions:
+          matchPrefixLists: static-ext-subnets
+        result: accept
+  loopback-vtep:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: vtep-prefix
         result: accept
       "100":
         conditions:

@@ -827,6 +827,17 @@
         name: Ethernet7
       name: Ethernet7
   weight: 16
+- path: /interfaces/interface[name=Ethernet8]
+  summary: Create Interface Ethernet8 Base
+  type: update
+  value:
+    interface:
+    - config:
+        description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
+        enabled: true
+        name: Ethernet8
+      name: Ethernet8
+  weight: 16
 - path: /interfaces/interface[name=Loopback1]
   summary: Create Interface Loopback1 Base
   type: update
@@ -1857,6 +1868,14 @@
       config:
         auto-negotiate: false
   weight: 25
+- path: /interfaces/interface[name=Ethernet8]/ethernet
+  summary: Create Interface Ethernet8 Ethernet Base
+  type: update
+  value:
+    ethernet:
+      config:
+        auto-negotiate: false
+  weight: 25
 - path: /interfaces/interface[name=Vlan1005]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
   summary: Create Interface Vlan1005 VLAN Anycast Gateway
   type: update
@@ -1980,6 +1999,15 @@
       index: 0
   weight: 44
 - path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]
+  summary: Create Subinterface Base 0
+  type: update
+  value:
+    subinterface:
+    - config:
+        index: 0
+      index: 0
+  weight: 44
+- path: /interfaces/interface[name=Ethernet8]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
   value:
@@ -2163,6 +2191,17 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.37
+  weight: 51
+- path: /interfaces/interface[name=Ethernet8]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
+  summary: Create Subinterface IP 172.30.128.22
+  type: update
+  value:
+    address:
+    - config:
+        ip: 172.30.128.22
+        prefix-length: 31
+        secondary: false
+      ip: 172.30.128.22
   weight: 51
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.8.5
@@ -2677,6 +2716,17 @@
         recovery-interval: 300
         sampling-interval: 30
   weight: 84
+- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet8]/link-flap
+  summary: Create ErrDisable Interface Ethernet8
+  type: update
+  value:
+    link-flap:
+      config:
+        error-disable: "on"
+        flap-threshold: 3
+        recovery-interval: 300
+        sampling-interval: 30
+  weight: 84
 - path: /openconfig-neighbor:neighbor-globals/neighbor-global
   summary: Create Neighbor Global
   type: update
@@ -2744,6 +2794,35 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.14
+  weight: 87
+- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.23]
+  summary: Create VRF BGP neighbor 172.30.128.23
+  type: update
+  value:
+    neighbor:
+    - afi-safis:
+        afi-safi:
+        - afi-safi-name: IPV4_UNICAST
+          config:
+            afi-safi-name: IPV4_UNICAST
+            enabled: true
+        - afi-safi-name: L2VPN_EVPN
+          allow-own-as:
+            config:
+              enabled: true
+          apply-policy:
+            config:
+              import-policy:
+              - l2vpn-neighbors
+          config:
+            afi-safi-name: L2VPN_EVPN
+            enabled: true
+      config:
+        description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
+        enabled: true
+        neighbor-address: 172.30.128.23
+        peer-as: 65534
+      neighbor-address: 172.30.128.23
   weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.34]
   summary: Create VRF BGP neighbor 172.30.128.34
