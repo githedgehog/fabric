@@ -284,6 +284,16 @@
         name: vpc-subnets--vpc-03
       name: vpc-subnets--vpc-03
   weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vtep-prefix]
+  summary: Create Prefix List Base vtep-prefix
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: vtep-prefix
+      name: vtep-prefix
+  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=all-vtep-prefixes]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.12.0/22][masklength-range=22..32]
   summary: Create Prefix Lists Entry 10
   type: update
@@ -577,6 +587,20 @@
       ip-prefix: 10.0.3.0/24
       masklength-range: 24..32
       sequence-number: 1
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vtep-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.12.1/32][masklength-range=32..32]
+  summary: Create Prefix Lists Entry 10
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 172.30.12.1/32
+        masklength-range: 32..32
+        sequence-number: 10
+      ip-prefix: 172.30.12.1/32
+      masklength-range: 32..32
+      sequence-number: 10
   weight: 10
 - path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=all-externals]
   summary: Create Community Lists all-externals
@@ -1089,6 +1113,15 @@
     - config:
         name: loopback-all-vteps
       name: loopback-all-vteps
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-vtep]
+  summary: Create Route Maps Base loopback-vtep
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: loopback-vtep
+      name: loopback-vtep
   weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=protocol-loopback-only]
   summary: Create Route Maps Base protocol-loopback-only
@@ -1679,6 +1712,38 @@
       name: "10"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=loopback-all-vteps]/statements/statement[name=100]
+  summary: Create Route Map Statement 100
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: static-ext-subnets
+      config:
+        name: "100"
+      name: "100"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-vtep]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: vtep-prefix
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-vtep]/statements/statement[name=100]
   summary: Create Route Map Statement 100
   type: update
   value:
@@ -3129,7 +3194,7 @@
           apply-policy:
             config:
               export-policy:
-              - loopback-all-vteps
+              - loopback-vtep
           config:
             afi-safi-name: IPV4_UNICAST
             enabled: true
@@ -3163,7 +3228,7 @@
           apply-policy:
             config:
               export-policy:
-              - loopback-all-vteps
+              - loopback-vtep
           config:
             afi-safi-name: IPV4_UNICAST
             enabled: true

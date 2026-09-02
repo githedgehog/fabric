@@ -148,14 +148,27 @@ This route-map serves multiple purposes:
     ip prefix-list all-vtep-prefixes seq 10 permit 172.30.12.0/22 le 32
     ```
     i.e. `172.30.12.0/22` above is the VTEP Subnet as defined in the Fabric config
-1. We create the following route-map, used on both spines and mesh leaves to filter
-which routes are redistributed, as we will see:
+1. We create the following route-map, used to filter which routes are redistributed on
+spines, on mesh leaves and on leaves with a gateway attached, as we will see:
     ```
     route-map loopback-all-vteps permit 10
      match ip address prefix-list all-vtep-prefixes
     !
     route-map loopback-all-vteps permit 100
      match ip address prefix-list static-ext-subnets
+    ```
+1. On a leaf with no gateway connection we create the narrower pair below, matching only
+that leaf's own VTEP. A leaf in a spine-leaf topology uses it towards the spines so that
+it does not re-advertise the VTEPs it learned from them (see
+[Fabric Connections](#fabric-connections-ie-spine-leaf)):
+    ```
+    ip prefix-list vtep-prefix seq 10 permit 172.30.12.0/32 le 32
+    route-map loopback-vtep permit 10
+     match ip address prefix-list vtep-prefix
+    !
+    route-map loopback-vtep permit 100
+     match ip address prefix-list static-ext-subnets
+    !
     ```
 1. We create the following prefix list and corresponding route-map to only advertise
 the protocol loopback on the fabric point-to-point links between switches:
@@ -282,10 +295,14 @@ loopback, e.g.:
 Additionally, once per neighboring node (no matter the number of fabric links to it)
 we create a BGP session with its protocol IP, for which we have learned a route over
 the point-to-point BGP sessions described above. We will use this session for both IPv4
-unicast, where we will advertise all the VTEPs we know of, and for EVPN, where we will
-exchange overlay routes. This session will go down if all of the point-to-point sessions
+unicast, where we will advertise the VTEPs, and for EVPN, where we will exchange overlay
+routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this switch is no longer able to reach this
 particular neighbor.
+
+A spine advertises every VTEP it knows about, since that is how the leaves learn of each
+other. A leaf only advertises its own, so that the VTEPs it learned from one spine are not
+sent back into the fabric via another one.
 
 Here's an example config for a leaf:
 ```
@@ -297,7 +314,7 @@ neighbor 172.30.8.0
  !
  address-family ipv4 unicast
   activate
-  route-map loopback-all-vteps out
+  route-map loopback-vtep out
  !
  address-family l2vpn evpn
   activate
@@ -323,6 +340,13 @@ neighbor 172.30.8.3
   route-map evpn-default-remote-block in
 !
 ```
+
+The exception is a leaf with a [gateway connection](#gateway-connections), which uses
+`loopback-all-vteps` like a spine: the gateway VTEP has to reach the rest of the fabric,
+and we cannot match it explicitly because it lives on the `Gateway` object rather than on
+the connection. The cost is that such a leaf also re-advertises the VTEPs it learned from
+the spines, on paths that are either rejected by the peer for having its own AS in the
+path, or long enough to lose bestpath selection against the direct ones.
 
 #### Unnumbered links
 
@@ -405,7 +429,8 @@ Mesh links support [unnumbered](#unnumbered-links) exactly as fabric links do.
 Additionally, once per neighboring node (no matter the number of mesh links to it)
 we create a BGP session with its protocol IP, for which we have learned a route over
 the point-to-point BGP sessions described above. We will use this session for both IPv4
-unicast, where we will advertise all VTEPs we know about, and for EVPN, where we will
+unicast, where we will advertise all VTEPs we know about (a mesh leaf has to transit for
+its peers, so it never uses the narrower `loopback-vtep`), and for EVPN, where we will
 exchange overlay routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this leaf is no longer able to reach this particular
 neighbor.
@@ -467,7 +492,9 @@ unnumbered peering over it stays one-to-one with the physical link.
 
 Gateway connections represent a connection between a Fabric switch and a Gateway.
 For spine-leaf topologies the switch is typically a spine, while for mesh topologies
-it will necessarily be a leaf.
+it will necessarily be a leaf. A leaf with a gateway connection in a spine-leaf topology
+advertises all the VTEPs it knows about towards the spines, see
+[Fabric Connections](#fabric-connections-ie-spine-leaf).
 
 For each link in a gateway connection, we:
 1. configure the corresponding interface on the switch, setting it to admin-up

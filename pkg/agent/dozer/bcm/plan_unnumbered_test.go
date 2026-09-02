@@ -76,6 +76,7 @@ func TestPlanUnnumberedFabricMeshLinks(t *testing.T) {
 			},
 		})
 		ag.Spec.Switch.Role = wiringapi.SwitchRoleServerLeaf
+		ag.Spec.Switch.VTEPIP = "172.30.12.1/32"
 		ag.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		ag.Spec.Config.VTEPSubnet = "172.30.12.0/24"
 		ag.Spec.Config.ProtocolSubnet = "172.30.11.0/24"

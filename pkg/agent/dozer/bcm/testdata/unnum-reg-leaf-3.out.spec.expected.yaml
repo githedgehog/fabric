@@ -542,6 +542,13 @@ prefixLists:
         prefix:
           le: 32
           prefix: 10.0.8.0/24
+  vtep-prefix:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 172.30.12.1/32
 routeMaps:
   ext-import--external-01:
     statements:
@@ -744,6 +751,16 @@ routeMaps:
       "10":
         conditions:
           matchPrefixLists: all-vtep-prefixes
+        result: accept
+      "100":
+        conditions:
+          matchPrefixLists: static-ext-subnets
+        result: accept
+  loopback-vtep:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: vtep-prefix
         result: accept
       "100":
         conditions:
@@ -1032,7 +1049,7 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - loopback-all-vteps
+          - loopback-vtep
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
@@ -1044,7 +1061,7 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - loopback-all-vteps
+          - loopback-vtep
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors

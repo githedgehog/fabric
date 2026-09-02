@@ -51,10 +51,12 @@ const (
 	RouteMapL2VPNNeighbors       = "l2vpn-neighbors"
 	RouteMapFilterAttachedHost   = "filter-attached-hosts"
 	RouteMapLoopbackAllVTEPs     = "loopback-all-vteps"
+	RouteMapLoopbackVTEP         = "loopback-vtep"
 	RouteMapProtocolLoopbackOnly = "protocol-loopback-only"
 	PrefixListAny                = "any-prefix"
 	PrefixListVPCLoopback        = "vpc-loopback-prefix"
 	PrefixListAllVTEPPrefixes    = "all-vtep-prefixes"
+	PrefixListVTEPPrefix         = "vtep-prefix"
 	PrefixListProtocolLoopback   = "protocol-loopback-prefix"
 	PrefixListStaticExternals    = "static-ext-subnets"
 	NoCommunity                  = "no-community"
@@ -496,6 +498,59 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
+	// a fabric leaf only needs to re-advertise the VTEPs of others if it is attached to a gateway, so that
+	// the gateway VTEP is propagated into the fabric; we can't match that VTEP explicitly, as it
+	// lives on the Gateway object and not on the connection
+	advertiseAllVTEPs := !agent.Spec.Switch.Role.IsLeaf()
+	if !advertiseAllVTEPs {
+		for _, conn := range agent.Spec.Connections {
+			if conn.Gateway == nil {
+				continue
+			}
+			advertiseAllVTEPs = true
+
+			break
+		}
+	}
+
+	loopbackRouteMap := RouteMapLoopbackAllVTEPs
+	if !advertiseAllVTEPs {
+		loopbackRouteMap = RouteMapLoopbackVTEP
+
+		if agent.Spec.Switch.VTEPIP == "" {
+			return errors.New("VTEP IP not set in leaf switch spec")
+		}
+
+		spec.PrefixLists[PrefixListVTEPPrefix] = &dozer.SpecPrefixList{
+			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
+				10: {
+					Prefix: dozer.SpecPrefixListPrefix{
+						Prefix: agent.Spec.Switch.VTEPIP,
+						Le:     32,
+					},
+					Action: dozer.SpecPrefixListActionPermit,
+				},
+			},
+		}
+
+		spec.RouteMaps[RouteMapLoopbackVTEP] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(PrefixListVTEPPrefix),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+				"100": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(PrefixListStaticExternals),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+	}
+
 	spec.PrefixLists[PrefixListProtocolLoopback] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
 			10: {
@@ -642,7 +697,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Description:               pointer.To(fmt.Sprintf("Fabric %s loopback (spine-link)", peer)),
 			RemoteAS:                  pointer.To(peerSpec.ASN),
 			IPv4Unicast:               pointer.To(true),
-			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
+			IPv4UnicastExportPolicies: []string{loopbackRouteMap},
 			L2VPNEVPN:                 pointer.To(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
 			DisableConnectedCheck:     pointer.To(true),
