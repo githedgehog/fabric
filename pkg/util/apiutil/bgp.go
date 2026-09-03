@@ -35,27 +35,36 @@ const (
 	BGPNeighborTypeGateway  BGPNeighborType = "gateway"
 )
 
-// bgpNeighborKey returns the key the agent reports the session over the given link under: the peer
-// IP for a numbered link, the local port for an unnumbered one, since that is what the session is
-// keyed by. On TH5 the peering runs over the workaround SVI, reported as port.vlan.
-func bgpNeighborKey(ag *agentapi.Agent, local wiringapi.ConnFabricLinkSwitch, remoteIP string) (string, error) {
-	if remoteIP != "" {
-		return strings.Split(remoteIP, "/")[0], nil
-	}
-
+// bgpNeighborKey returns the local port as the agent names it and the key the agent reports the
+// session over the given link under: the peer IP for a numbered link, the local port for an
+// unnumbered one, since that is what the session is keyed by. On TH5 the peering runs over the
+// workaround SVI, reported as port.vlan.
+func bgpNeighborKey(ag *agentapi.Agent, local wiringapi.ConnFabricLinkSwitch, remoteIP string) (string, string, error) {
 	if ag.Spec.SwitchProfile == nil {
-		return "", fmt.Errorf("switch profile is not set for %s", ag.Name) //nolint:goerr113
+		return "", "", fmt.Errorf("switch profile is not set for %s", ag.Name) //nolint:goerr113
 	}
 
-	port := local.LocalPortName()
+	// a breakout-capable port is E1/53 in the wiring but E1/53/1 to the agent, which resolves
+	// interfaces through the NOS port mapping
+	wiringPort := local.LocalPortName()
+	port, err := ag.Spec.SwitchProfile.NormalizePortName(wiringPort)
+	if err != nil {
+		return "", "", fmt.Errorf("normalizing port name %s: %w", wiringPort, err)
+	}
+
+	if remoteIP != "" {
+		return port, strings.Split(remoteIP, "/")[0], nil
+	}
 
 	if ag.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
-		if vlan, ok := ag.Spec.Catalog.TH5WorkaroundVLANs[port]; ok {
-			return fmt.Sprintf("%s.%d", port, vlan), nil
+		// the catalog keys the workaround VLANs by the port name as the wiring spells it, and the
+		// agent reports the SVI under that same name
+		if vlan, ok := ag.Spec.Catalog.TH5WorkaroundVLANs[wiringPort]; ok {
+			return port, fmt.Sprintf("%s.%d", wiringPort, vlan), nil
 		}
 	}
 
-	return port, nil
+	return port, port, nil
 }
 
 func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricConfig, sw *wiringapi.Switch) (map[string]map[string]BGPNeighborStatus, error) {
@@ -134,7 +143,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				}
 				fabricPeers[other.DeviceName()] = true
 
-				key, err := bgpNeighborKey(ag, curr, other.IP)
+				port, key, err := bgpNeighborKey(ag, curr, other.IP)
 				if err != nil {
 					return nil, fmt.Errorf("fabric connection %s: %w", conn.Name, err)
 				}
@@ -150,7 +159,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
-				neigh.Port = curr.LocalPortName()
+				neigh.Port = port
 
 				out["default"][key] = neigh
 			}
@@ -164,7 +173,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				}
 				fabricPeers[other.DeviceName()] = true
 
-				key, err := bgpNeighborKey(ag, curr, other.IP)
+				port, key, err := bgpNeighborKey(ag, curr, other.IP)
 				if err != nil {
 					return nil, fmt.Errorf("mesh connection %s: %w", conn.Name, err)
 				}
@@ -180,7 +189,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
-				neigh.Port = curr.LocalPortName()
+				neigh.Port = port
 
 				out["default"][key] = neigh
 			}
@@ -188,7 +197,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 			extConns[conn.Name] = &conn
 		} else if conn.Spec.Gateway != nil {
 			for _, link := range conn.Spec.Gateway.Links {
-				key, err := bgpNeighborKey(ag, link.Switch, link.Gateway.IP)
+				port, key, err := bgpNeighborKey(ag, link.Switch, link.Gateway.IP)
 				if err != nil {
 					return nil, fmt.Errorf("gateway connection %s: %w", conn.Name, err)
 				}
@@ -204,7 +213,7 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 				neigh.Expected = true
 				neigh.ConnectionName = conn.Name
 				neigh.ConnectionType = conn.Spec.Type()
-				neigh.Port = link.Switch.LocalPortName()
+				neigh.Port = port
 
 				out["default"][key] = neigh
 			}
@@ -260,10 +269,15 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 			out[vrf][extAtt.Spec.Neighbor.IP] = BGPNeighborStatus{}
 		}
 
+		port, err := ag.Spec.SwitchProfile.NormalizePortName(conn.Spec.External.Link.Switch.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("external connection %s: %w", conn.Name, err)
+		}
+
 		neigh.RemoteName = ext.Name
 		neigh.Expected = true
 		neigh.Type = BGPNeighborTypeExternal
-		neigh.Port = conn.Spec.External.Link.Switch.LocalPortName()
+		neigh.Port = port
 		neigh.ConnectionName = conn.Name
 		neigh.ConnectionType = conn.Spec.Type()
 
