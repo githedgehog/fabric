@@ -120,7 +120,9 @@ func TestExternalAttachmentValidation(t *testing.T) {
 		name    string
 		extAtt  *v1beta1.ExternalAttachment
 		objects []kclient.Object
+		cfg     *meta.FabricConfig
 		err     bool
+		warns   bool
 	}{
 		{
 			name:    "valid BGP external attachment",
@@ -147,10 +149,19 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			// migrating a static uplink to BGP goes through a window where both kinds of
+			// attachment point at the same external
 			name:    "l3 attach with static external",
 			extAtt:  l3ExtAttGen("ext-att-05", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-02" }),
 			objects: baseObjs,
-			err:     true,
+			err:     false,
+		},
+		{
+			name:   "static and l3 attach on the same external",
+			extAtt: l3ExtAttGen("ext-att-05b", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-02" }),
+			objects: withObjs(baseObjs,
+				staticExtAttGen("static-sibling")),
+			err: false,
 		},
 		{
 			name:    "static attach with l3 external",
@@ -227,6 +238,62 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			objects: baseObjs,
 			err:     true,
 		},
+		{
+			name: "valid BFD with default timers",
+			extAtt: l3ExtAttGen("ext-att-12", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "valid BFD with custom timers",
+			extAtt: l3ExtAttGen("ext-att-13", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{MinRX: 1000, MinTX: 500, Multiplier: 5, Passive: true}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "BFD minRX below minimum",
+			extAtt: l3ExtAttGen("ext-att-14", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{MinRX: 5}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BFD minTX above maximum",
+			extAtt: l3ExtAttGen("ext-att-15", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{MinTX: 60001}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BFD multiplier below minimum",
+			extAtt: l3ExtAttGen("ext-att-16", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{Multiplier: 1}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			// disableBFD wins, but silently: the warning is the only thing that says so
+			name: "BFD with disableBFD set fabric-wide",
+			extAtt: l3ExtAttGen("ext-att-18", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+			cfg:     &meta.FabricConfig{DisableBFD: true},
+			warns:   true,
+		},
+		{
+			name: "BFD on static attachment",
+			extAtt: staticExtAttGen("ext-att-17", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
 	}
 
 	scheme := runtime.NewScheme()
@@ -239,11 +306,20 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				WithScheme(scheme).
 				WithObjects(test.objects...).
 				Build()
-			_, err := test.extAtt.Validate(t.Context(), kube, &meta.FabricConfig{})
+			cfg := test.cfg
+			if cfg == nil {
+				cfg = &meta.FabricConfig{}
+			}
+			warns, err := test.extAtt.Validate(t.Context(), kube, cfg)
 			if test.err {
 				require.Error(t, err, "expected error but got none")
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
+			}
+			if test.warns {
+				require.NotEmpty(t, warns, "expected a warning but got none")
+			} else {
+				require.Empty(t, warns, "unexpected warning during validation")
 			}
 		})
 	}
