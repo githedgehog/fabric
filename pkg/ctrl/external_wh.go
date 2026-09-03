@@ -67,7 +67,7 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 	return warns, nil
 }
 
-func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
+func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
 	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {
 	// 	return nil, errors.Errorf("external spec is immutable")
 	// }
@@ -75,6 +75,22 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.External
 	warns, err := newExt.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating external")
+	}
+
+	// static attachments install one route per spec.static.prefixes, so dropping the prefixes
+	// while they exist would leave them with nothing to point at
+	if oldExt.Spec.Static != nil && newExt.Spec.Static == nil {
+		extAttachments := &vpcapi.ExternalAttachmentList{}
+		if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
+			vpcapi.LabelExternal: newExt.Name,
+		}); err != nil {
+			return warns, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+		}
+		for _, attach := range extAttachments.Items {
+			if attach.Spec.Static != nil {
+				return warns, errors.Errorf("external attachment %s is still static, convert it to BGP before removing static from the external", attach.Name)
+			}
+		}
 	}
 
 	return warns, nil

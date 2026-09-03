@@ -966,6 +966,37 @@ spec:
                   description: ExternalAttachmentSpec defines the desired state of
                     ExternalAttachment
                   properties:
+                    bfd:
+                      description: |-
+                        BFD (optional) enables BFD for the BGP session of this external attachment, an empty object
+                        uses the fabric defaults
+                      properties:
+                        minRX:
+                          description: MinRX is the minimum interval in ms at which
+                            we accept BFD control packets from the peer (default 300)
+                          format: int32
+                          maximum: 60000
+                          minimum: 10
+                          type: integer
+                        minTX:
+                          description: MinTX is the desired interval in ms at which
+                            we send BFD control packets (default 300)
+                          format: int32
+                          maximum: 60000
+                          minimum: 10
+                          type: integer
+                        multiplier:
+                          description: Multiplier is how many missed packets bring
+                            the session down (default 3)
+                          maximum: 255
+                          minimum: 2
+                          type: integer
+                        passive:
+                          description: |-
+                            Passive makes us wait for the peer to initiate the session instead of initiating it
+                            ourselves, for the rare ISP that requires it. Both ends passive means no session at all.
+                          type: boolean
+                      type: object
                     connection:
                       description: Connection is the name of the Connection object
                         this attachment belongs to (essentially the name of the switch/port)

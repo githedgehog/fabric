@@ -102,11 +102,10 @@ func GetBGPNeighbors(ctx context.Context, kube kclient.Reader, fabCfg *meta.Fabr
 		return nil, fmt.Errorf("listing externals: %w", err)
 	}
 
+	// keyed by every external, including ones with static prefixes: those may still have BGP
+	// attachments. Whether a session is expected is decided per attachment below.
 	exts := map[string]*vpcapi.External{}
 	for _, ext := range extList.Items {
-		if ext.Spec.Static != nil {
-			continue
-		}
 		exts[ext.Name] = &ext
 	}
 
