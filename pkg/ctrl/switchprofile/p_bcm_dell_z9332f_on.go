@@ -25,6 +25,7 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 			MCLAG:         false,
 			ESLAG:         false,
 			ECMPRoCEQPN:   false,
+			PortLocator:   true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-dellemc_z9332f_d1508-r0",
