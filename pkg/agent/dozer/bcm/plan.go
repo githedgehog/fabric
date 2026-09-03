@@ -15,9 +15,11 @@
 package bcm
 
 import (
+	"cmp"
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net"
 	"net/netip"
@@ -66,6 +68,8 @@ const (
 	BGPCommListAllGwPrios        = "all-gw-prios"
 	MgmtIface                    = "Management0"
 	FabricBFDProfile             = "fabric"
+	ExternalBFDIntervalMS        = uint32(300)
+	ExternalBFDMultiplier        = uint8(3)
 	MaxGWPrioLevels              = 100
 	GwPrioPreferenceBase         = 200
 	ExternalPreference           = 150
@@ -1160,9 +1164,19 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
+	// An external may hold both kinds of attachment at once while a static uplink is being
+	// migrated to BGP, so what config it needs is a property of the attachments this switch owns,
+	// not of the external itself.
 	attachedExternals := map[string]bool{}
+	extHasStatic := map[string]bool{}
+	extHasBGP := map[string]bool{}
 	for _, attach := range agent.Spec.ExternalAttachments {
 		attachedExternals[attach.External] = true
+		if attach.Static != nil {
+			extHasStatic[attach.External] = true
+		} else {
+			extHasBGP[attach.External] = true
+		}
 	}
 
 	if agent.IsSpineLeaf() {
@@ -1256,9 +1270,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 				},
 			}
-			if external.Static == nil {
+			if extHasBGP[externalName] {
 				vrfSpec.BGP.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = []string{extInboundRouteMapName(externalName)}
-			} else {
+			}
+			if extHasStatic[externalName] {
 				vrfSpec.TableConnections = map[string]*dozer.SpecVRFTableConnection{
 					string(dozer.SpecVRFBGPTableConnectionStatic): {},
 				}
@@ -1266,7 +1281,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[extVrfName] = vrfSpec
 		}
 
-		if external.Static == nil {
+		if extHasBGP[externalName] {
 			locPrefStatement := &dozer.SpecRouteMapStatement{
 				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
 				Result:             dozer.SpecRouteMapResultAccept,
@@ -1404,6 +1419,20 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 
+			// external sessions run on the FRR default timers 60/180, so without BFD a peer that
+			// dies with the link up takes up to three minutes to detect
+			var bfdProfile *string
+			if attach.BFD != nil && !agent.Spec.Config.DisableBFD {
+				profileName := extBFDProfileName(name)
+				spec.BFDProfiles[profileName] = &dozer.SpecBFDProfile{
+					PassiveMode:              pointer.To(attach.BFD.Passive),
+					RequiredMinimumReceive:   pointer.To(cmp.Or(attach.BFD.MinRX, ExternalBFDIntervalMS)),
+					DesiredMinimumTxInterval: pointer.To(cmp.Or(attach.BFD.MinTX, ExternalBFDIntervalMS)),
+					DetectionMultiplier:      pointer.To(cmp.Or(attach.BFD.Multiplier, ExternalBFDMultiplier)),
+				}
+				bfdProfile = pointer.To(profileName)
+			}
+
 			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
@@ -1411,6 +1440,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4Unicast:               pointer.To(true),
 				IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
+				BFDProfile:                bfdProfile,
 			}
 
 			if err := planHardenedInboundACL(spec, name, ip.String(), attach.InboundACL); err != nil {
@@ -1489,14 +1519,23 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 
-			for _, p := range external.Static.Prefixes {
-				spec.VRFs[extVrfName].StaticRoutes[p] = &dozer.SpecVRFStaticRoute{
-					NextHops: []dozer.SpecVRFStaticRouteNextHop{
-						{
-							IP:        attach.Static.RemoteIP,
-							Interface: pointer.To(ifaceName),
+			// spec.static can be removed from the external concurrently with this attachment being
+			// created: admission validates both sides but cannot make the two requests atomic. Set
+			// the link up with no routes rather than failing the whole switch's config generation,
+			// so the next reconcile recovers once the external is corrected.
+			if external.Static == nil {
+				slog.Warn("Static external attachment whose external has no static prefixes, skipping its routes",
+					"attach", name, "external", externalName)
+			} else {
+				for _, p := range external.Static.Prefixes {
+					spec.VRFs[extVrfName].StaticRoutes[p] = &dozer.SpecVRFStaticRoute{
+						NextHops: []dozer.SpecVRFStaticRouteNextHop{
+							{
+								IP:        attach.Static.RemoteIP,
+								Interface: pointer.To(ifaceName),
+							},
 						},
-					},
+					}
 				}
 			}
 
@@ -3692,6 +3731,10 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 
 func gwPrioCommListName(prioIdx string) string {
 	return fmt.Sprintf("gw-prio-%s", prioIdx)
+}
+
+func extBFDProfileName(attach string) string {
+	return fmt.Sprintf("ext--%s", attach)
 }
 
 func extInboundCommListName(external string) string {

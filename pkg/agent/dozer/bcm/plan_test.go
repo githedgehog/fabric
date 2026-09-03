@@ -194,6 +194,12 @@ func TestPlan(t *testing.T) {
 		{name: "l3vni-leaf-01"},  // standalone, static externals connected to it
 		{name: "l3vni-leaf-02"},  // standalone, no externals
 		{name: "l3vni-spine-01"}, // spine
+		// group: mixedext
+		// the l3vni group with ext-sp-01, a static external, part way through a migration to BGP:
+		// leaf-01 holds the original static attachment plus a BGP one, leaf-02 holds a BGP
+		// attachment only. Covers both combinations of static/BGP attachments on one switch.
+		{name: "mixedext-leaf-01"}, // static and BGP attachments to the same external; BFD with the default timers
+		{name: "mixedext-leaf-02"}, // BGP attachment only, to an external that still has static prefixes; BFD with custom timers
 		// group: mesh
 		// vs lab with 2 eslag leaves and 1 orphan connected via mesh, 3 vpcs with 2 servers each
 		{name: "mesh-leaf-01"}, // eslag, gateway connected to it
