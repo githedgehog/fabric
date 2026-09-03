@@ -48,18 +48,25 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 						Spine: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(spine + "/E1/2")},
 						Leaf:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(self + "/E1/2")},
 					},
+					// a breakout-capable port, which the agent reports as E1/53/1
+					{
+						Spine: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(spine + "/E1/53")},
+						Leaf:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(self + "/E1/53")},
+					},
 				},
 			},
 		},
 	}
 
+	// E1/1 and E1/2 are plain SFP28 ports on the S5248F, E1/53 a breakout-capable QSFP28
 	newAgent := func(silicon string) *agentapi.Agent {
 		ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
-		ag.Spec.SwitchProfile = &wiringapi.SwitchProfileSpec{SwitchSilicon: silicon}
+		ag.Spec.SwitchProfile = switchprofile.DellS5248FON.Spec.DeepCopy()
+		ag.Spec.SwitchProfile.SwitchSilicon = silicon
 		ag.Spec.Switches = map[string]wiringapi.SwitchSpec{
 			spine: {ASN: spineASN, ProtocolIP: "172.30.11.2/32"},
 		}
-		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1}
+		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1, "E1/53": wVLAN + 2}
 
 		return ag
 	}
@@ -74,31 +81,39 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 		return map[string]map[string]agentapi.SwitchStateBGPNeighbor{"default": neighs}
 	}
 
+	type neighbor struct {
+		conn string
+		port string
+	}
+
 	for _, tt := range []struct {
 		name     string
 		silicon  string
 		reported []string
-		expected map[string]string // neighbor key -> connection it belongs to
+		expected map[string]neighbor // neighbor key -> connection and port it belongs to
 	}{
 		{
 			name:     "fabric links",
 			silicon:  switchprofile.SiliconVS,
-			reported: []string{"E1/1", "E1/2", "172.30.11.2"},
-			expected: map[string]string{
-				"E1/1":        fabricConn.Name,
-				"E1/2":        fabricConn.Name,
-				"172.30.11.2": "",
+			reported: []string{"E1/1", "E1/2", "E1/53/1", "172.30.11.2"},
+			expected: map[string]neighbor{
+				"E1/1":        {conn: fabricConn.Name, port: "E1/1"},
+				"E1/2":        {conn: fabricConn.Name, port: "E1/2"},
+				"E1/53/1":     {conn: fabricConn.Name, port: "E1/53/1"},
+				"172.30.11.2": {port: "Lo"},
 			},
 		},
 		{
-			// the peering runs over the workaround SVI, one per link
+			// the peering runs over the workaround SVI, one per link, named after the port the
+			// VLAN was allocated for
 			name:     "on TH5",
 			silicon:  switchprofile.SiliconBroadcomTH5,
-			reported: []string{"E1/1.3123", "E1/2.3124", "172.30.11.2"},
-			expected: map[string]string{
-				"E1/1.3123":   fabricConn.Name,
-				"E1/2.3124":   fabricConn.Name,
-				"172.30.11.2": "",
+			reported: []string{"E1/1.3123", "E1/2.3124", "E1/53.3125", "172.30.11.2"},
+			expected: map[string]neighbor{
+				"E1/1.3123":   {conn: fabricConn.Name, port: "E1/1"},
+				"E1/2.3124":   {conn: fabricConn.Name, port: "E1/2"},
+				"E1/53.3125":  {conn: fabricConn.Name, port: "E1/53/1"},
+				"172.30.11.2": {port: "Lo"},
 			},
 		},
 	} {
@@ -129,11 +144,12 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			// entry, which is what keying every unnumbered session by "unnum" used to do
 			require.Len(t, neighs["default"], len(tt.expected))
 
-			for key, conn := range tt.expected {
+			for key, want := range tt.expected {
 				neigh, ok := neighs["default"][key]
 				require.True(t, ok, "neighbor %s must be present", key)
 				require.True(t, neigh.Expected, "neighbor %s must be expected", key)
-				require.Equal(t, conn, neigh.ConnectionName)
+				require.Equal(t, want.conn, neigh.ConnectionName)
+				require.Equal(t, want.port, neigh.Port)
 				require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neigh.SessionState,
 					"neighbor %s must join the state the agent reports", key)
 			}
