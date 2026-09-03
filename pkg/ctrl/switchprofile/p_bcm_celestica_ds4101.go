@@ -26,6 +26,7 @@ var CelesticaDS4101 = wiringapi.SwitchProfile{
 			MCLAG:         false,
 			ESLAG:         false,
 			ECMPRoCEQPN:   true,
+			PortLocator:   true,
 		},
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-cel_ds4101-r0",

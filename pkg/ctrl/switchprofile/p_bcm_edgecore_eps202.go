@@ -26,6 +26,7 @@ var EdgecoreEPS202 = wiringapi.SwitchProfile{
 			MCLAG:         false,
 			ESLAG:         true,
 			ECMPRoCEQPN:   false,
+			PortLocator:   true,
 		},
 		Notes:    "Doesn't support StaticExternals and ExternalAttachments with VLANs due to the lack of subinterfaces support.",
 		NOSType:  meta.NOSTypeSONiCBCMCampus,
