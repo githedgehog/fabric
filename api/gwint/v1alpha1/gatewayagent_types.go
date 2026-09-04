@@ -36,7 +36,12 @@ type GatewayAgentSpec struct {
 	Peerings     map[string]gwapi.PeeringSpec `json:"peerings,omitempty"`
 	Groups       map[string]GatewayGroupInfo  `json:"groups,omitempty"`
 	Communities  map[string]string            `json:"communities,omitempty"`
-	Config       GatewayAgentSpecConfig       `json:"config,omitempty"`
+	// UplinkCommunities maps a community stamped by a border leaf on routes learned from an
+	// external system to the local preference the gateway should give them, so that two copies of
+	// one external prefix from two border leaves are ranked the way the fabric asked rather than
+	// load-balanced. Applied on the gateway's inbound EVPN sessions.
+	UplinkCommunities map[string]uint32      `json:"uplinkCommunities,omitempty"`
+	Config            GatewayAgentSpecConfig `json:"config,omitempty"`
 }
 
 type GatewayAgentSpecConfig struct {

@@ -48,10 +48,34 @@ spec:
                 description: ConnectionSystemIDs stores connection name -> ID, globally
                   unique for the fabric
                 type: object
+              externalAttachmentCommIDs:
+                additionalProperties:
+                  type: integer
+                description: |-
+                  ExternalAttachmentCommIDs stores external attachment name -> ID, globally unique for the
+                  fabric. Used as the low half of the fabric-owned attachment identity community, which lets a
+                  border leaf tell its own routes apart from those it learned from another border leaf.
+                type: object
+              externalCommIDs:
+                additionalProperties:
+                  type: integer
+                description: |-
+                  ExternalCommIDs stores external name -> ID, globally unique for the fabric. Used as the low
+                  half of the fabric-owned External identity community, so it must mean the same thing on every
+                  switch (unlike ExternalIDs below, which is a per-switch route-map sequence number).
+                type: object
               externalIDs:
                 additionalProperties:
                   type: integer
                 description: ExternalIDs stores external name -> ID, unique per switch
+                type: object
+              externalLeakIDs:
+                additionalProperties:
+                  type: integer
+                description: |-
+                  ExternalLeakIDs stores the sequence number of a leak statement in import-vrf--<vpc>, unique
+                  per switch and keyed by extattach@<attachment>: each attachment is leaked by its own
+                  statement, matching its own identity community and at its own rank.
                 type: object
               irbVLANs:
                 additionalProperties:

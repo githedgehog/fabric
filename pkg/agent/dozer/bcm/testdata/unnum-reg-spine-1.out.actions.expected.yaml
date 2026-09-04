@@ -193,7 +193,7 @@
       config:
         action: PERMIT
         community-member:
-        - 65102:1000
+        - "50003:4"
         community-set-name: all-externals
         match-set-options: ANY
   weight: 11

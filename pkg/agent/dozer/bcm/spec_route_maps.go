@@ -199,10 +199,15 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
 			}
 
+			options := oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD
+			if statement.ReplaceCommunities {
+				options = oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_REPLACE
+			}
+
 			bgpActions.SetCommunity = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity{
 				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config{
 					Method:  oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config_Method_INLINE,
-					Options: oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD,
+					Options: options,
 				},
 				Inline: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline{
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config{
@@ -320,6 +325,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			}
 
 			var setComms []string
+			var replaceComms bool
 			var setLocalPref *uint32
 			if statement.Actions.BgpActions != nil {
 				if statement.Actions.BgpActions.SetCommunity != nil {
@@ -331,7 +337,11 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 
 							continue
 						}
-						if setComm.Config.Options != oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD {
+						switch setComm.Config.Options { //nolint:exhaustive
+						case oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD:
+						case oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_REPLACE:
+							replaceComms = true
+						default:
 							slog.Warn("unsupported community set options", "route map", name, "options", setComm.Config.Options)
 
 							continue
@@ -354,6 +364,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			statements[*statement.Name] = &dozer.SpecRouteMapStatement{
 				Conditions:         conditions,
 				SetCommunities:     setComms,
+				ReplaceCommunities: replaceComms,
 				SetLocalPreference: setLocalPref,
 				Result:             result,
 			}

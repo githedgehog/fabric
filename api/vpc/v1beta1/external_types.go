@@ -56,6 +56,12 @@ type ExternalSpec struct {
 	// Static contains parameters specific to static externals
 	// +optional
 	Static *ExternalStaticSpec `json:"static,omitempty"`
+	// Priority is the default preference class for routes learned from this External, used by any
+	// ExternalPeering that does not override it. Lower is preferred; equal priorities load-balance.
+	// 0 (the default) preserves the existing behaviour. Not valid for static externals.
+	// +kubebuilder:validation:Maximum=3
+	// +optional
+	Priority uint8 `json:"priority,omitempty"`
 }
 
 // ExternalStatus defines the observed state of External
@@ -67,6 +73,7 @@ type ExternalStatus struct{}
 // +kubebuilder:printcolumn:name="IPv4NS",type=string,JSONPath=`.spec.ipv4Namespace`,priority=0
 // +kubebuilder:printcolumn:name="InComm",type=string,JSONPath=`.spec.inboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="OutComm",type=string,JSONPath=`.spec.outboundCommunity`,priority=0
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
 // Users can do external peering with the external system by specifying the name of the External Object without need to
@@ -140,24 +147,23 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		return nil, errors.Errorf("IPv4Namespace is required")
 	}
 
-	if external.Spec.Static == nil {
-		if external.Spec.InboundCommunity != "" && !communityCheck.MatchString(external.Spec.InboundCommunity) {
-			return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 50000:50001", external.Spec.InboundCommunity)
-		}
+	if external.Spec.InboundCommunity != "" && !communityCheck.MatchString(external.Spec.InboundCommunity) {
+		return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 50000:50001", external.Spec.InboundCommunity)
+	}
 
-		if external.Spec.OutboundCommunity != "" && !communityCheck.MatchString(external.Spec.OutboundCommunity) {
-			return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
-		}
-	} else {
-		// While static prefixes are present the external may also have BGP attachments, and a
-		// static route carries no community. Any route-map that matches on the inbound community
-		// would then drop the static route outright rather than merely rank it lower: on a switch
-		// holding both kinds ext-inbound--<ext> is also the EVPN advertise policy, so the static
-		// route would never be re-originated as a type-5, and the same applies to the leak into a
-		// VPC VRF. Both stay untagged until the last static attachment is gone; tagging them too
-		// needs a fabric-owned identity community.
-		if external.Spec.InboundCommunity != "" || external.Spec.OutboundCommunity != "" {
-			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when static configuration is present")
+	if external.Spec.OutboundCommunity != "" && !communityCheck.MatchString(external.Spec.OutboundCommunity) {
+		return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
+	}
+
+	if external.Spec.Priority >= meta.MaxExtPrioLevels {
+		return nil, errors.Errorf("priority must be less than %d", meta.MaxExtPrioLevels)
+	}
+
+	if external.Spec.Static != nil {
+		// a static external has no BGP session and so no liveness signal: a "primary" that dies
+		// would keep attracting traffic
+		if external.Spec.Priority != 0 {
+			return nil, errors.Errorf("priority must not be set for static externals")
 		}
 
 		if len(external.Spec.Static.Prefixes) == 0 {

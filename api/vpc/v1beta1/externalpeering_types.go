@@ -59,6 +59,12 @@ type ExternalPeeringSpecExternal struct {
 	Name string `json:"name,omitempty"`
 	// Prefixes is the list of prefixes to permit from the External to the VPC
 	Prefixes []ExternalPeeringSpecPrefix `json:"prefixes,omitempty"`
+	// Priority overrides External.spec.priority for this VPC only. Lower is preferred; peerings of
+	// the same VPC with equal priority load-balance across both Externals. nil inherits from the
+	// External.
+	// +kubebuilder:validation:Maximum=3
+	// +optional
+	Priority *uint8 `json:"priority,omitempty"`
 }
 
 // ExternalPeeringSpecPrefix defines the prefix to permit from the External to the VPC
@@ -82,6 +88,7 @@ type ExternalPeeringStatus struct{}
 // +kubebuilder:printcolumn:name="VPC",type=string,JSONPath=`.spec.permit.vpc.name`,priority=0
 // +kubebuilder:printcolumn:name="VPCSubnets",type=string,JSONPath=`.spec.permit.vpc.subnets`,priority=1
 // +kubebuilder:printcolumn:name="External",type=string,JSONPath=`.spec.permit.external.name`,priority=0
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.permit.external.priority`,priority=0
 // +kubebuilder:printcolumn:name="ExtPrefixes",type=string,JSONPath=`.spec.permit.external.prefixes`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // ExternalPeering is the Schema for the externalpeerings API
@@ -158,6 +165,10 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 		return nil, errors.Errorf("external.name is required")
 	}
 
+	if prio := peering.Spec.Permit.External.Priority; prio != nil && *prio >= meta.MaxExtPrioLevels {
+		return nil, errors.Errorf("priority must be less than %d", meta.MaxExtPrioLevels)
+	}
+
 	for _, permit := range peering.Spec.Permit.External.Prefixes {
 		if permit.Prefix == "" {
 			return nil, errors.Errorf("external.prefixes.prefix is required")
@@ -198,6 +209,12 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 			}
 
 			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
+		}
+
+		// see External.Validate: a static external has no liveness signal, so ranking it is a
+		// promise the fabric cannot keep, per VPC no less than fabric-wide
+		if ext.Spec.Static != nil && peering.Spec.Permit.External.Priority != nil && *peering.Spec.Permit.External.Priority != 0 {
+			return nil, errors.Errorf("priority must not be set for a peering with static external %s", ext.Name)
 		}
 
 		if vpc.Spec.IPv4Namespace != ext.Spec.IPv4Namespace {

@@ -200,11 +200,35 @@ spec:
                     description: ConnectionSystemIDs stores connection name -> ID,
                       globally unique for the fabric
                     type: object
+                  externalAttachmentCommIDs:
+                    additionalProperties:
+                      type: integer
+                    description: |-
+                      ExternalAttachmentCommIDs stores external attachment name -> ID, globally unique for the
+                      fabric. Used as the low half of the fabric-owned attachment identity community, which lets a
+                      border leaf tell its own routes apart from those it learned from another border leaf.
+                    type: object
+                  externalCommIDs:
+                    additionalProperties:
+                      type: integer
+                    description: |-
+                      ExternalCommIDs stores external name -> ID, globally unique for the fabric. Used as the low
+                      half of the fabric-owned External identity community, so it must mean the same thing on every
+                      switch (unlike ExternalIDs below, which is a per-switch route-map sequence number).
+                    type: object
                   externalIDs:
                     additionalProperties:
                       type: integer
                     description: ExternalIDs stores external name -> ID, unique per
                       switch
+                    type: object
+                  externalLeakIDs:
+                    additionalProperties:
+                      type: integer
+                    description: |-
+                      ExternalLeakIDs stores the sequence number of a leak statement in import-vrf--<vpc>, unique
+                      per switch and keyed by extattach@<attachment>: each attachment is leaked by its own
+                      statement, matching its own identity community and at its own rank.
                     type: object
                   irbVLANs:
                     additionalProperties:
@@ -1081,6 +1105,13 @@ spec:
                             peer with (without prefix length)
                           type: string
                       type: object
+                    priority:
+                      description: |-
+                        Priority ranks this attachment against the other attachments of the same External. Lower is
+                        preferred; equal priorities load-balance across border leaves, which is the existing behaviour
+                        and the default. Fabric-wide: it is not overridable per VPC. Not valid for static attachments.
+                      maximum: 3
+                      type: integer
                     static:
                       description: Static contains parameters specific to a static
                         external attachment
@@ -1156,6 +1187,13 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            priority:
+                              description: |-
+                                Priority overrides External.spec.priority for this VPC only. Lower is preferred; peerings of
+                                the same VPC with equal priority load-balance across both Externals. nil inherits from the
+                                External.
+                              maximum: 3
+                              type: integer
                           type: object
                         vpc:
                           description: VPC is the VPC-side of the configuration to
@@ -1192,6 +1230,13 @@ spec:
                       description: OutboundCommunity is the optional outbound community
                         that all outbound routes will be stamped with (e.g. 50000:50001)
                       type: string
+                    priority:
+                      description: |-
+                        Priority is the default preference class for routes learned from this External, used by any
+                        ExternalPeering that does not override it. Lower is preferred; equal priorities load-balance.
+                        0 (the default) preserves the existing behaviour. Not valid for static externals.
+                      maximum: 3
+                      type: integer
                     static:
                       description: Static contains parameters specific to static externals
                       properties:

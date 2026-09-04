@@ -72,7 +72,21 @@ const (
 	ExternalBFDMultiplier        = uint8(3)
 	MaxGWPrioLevels              = 100
 	GwPrioPreferenceBase         = 200
-	ExternalPreference           = 150
+	ExternalPreference           = meta.ExternalPreference
+
+	// The uplink axis is resolved in VrfE<ext> and keeps a preference of its own. It does not
+	// survive the leak, though: import vrf offers every path in the source VRF and not just its
+	// bestpath, so a backup border leaf leaks its own route however badly it ranks. The leak
+	// therefore has to carry both axes, packed into one rank per (External, attachment) pair.
+	MaxExtPrioLevels    = meta.MaxExtPrioLevels
+	MaxUplinkPrioLevels = meta.MaxUplinkPrioLevels
+	MaxExtRanks         = MaxExtPrioLevels * MaxUplinkPrioLevels
+
+	// Sequence numbers for the two translation blocks in l2vpn-neighbors. They sit after the
+	// gw-prio block, so gateways still win, and before the all-externals catch-all.
+	AllExternalsStatement   = RouteMapMaxStatement - 10
+	UplinkPrioStatementBase = RouteMapMaxStatement - 30
+	ExtRankStatementBase    = UplinkPrioStatementBase + MaxUplinkPrioLevels
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -461,6 +475,43 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
 				SetLocalPreference: pointer.To(GwPrioPreferenceBase + uint32(numPrios-idx)), //nolint: gosec
 				Result:             dozer.SpecRouteMapResultAccept,
+			}
+		}
+
+		// The same trick for external routes: the eBGP overlay between leaves discards local
+		// preference, so the border leaf tags the route and every leaf translates the tag back.
+		// Two blocks, because a route carries one tag or the other depending on which table it is
+		// being compared in: uplink-prio in VrfE<ext>, where border leaves and the Gateway rank
+		// each other's sessions, and ext-rank in VrfV<vpc> after the leak has packed both axes.
+		if ExtRankStatementBase+MaxExtRanks > AllExternalsStatement {
+			return errors.Errorf("too many external priority levels (%d x %d): the translation block would collide with %s",
+				MaxExtPrioLevels, MaxUplinkPrioLevels, BGPCommListAllExternals)
+		}
+
+		for prio := uint8(0); prio < MaxUplinkPrioLevels; prio++ {
+			commName := uplinkPrioCommListName(prio)
+			spec.CommunityLists[commName] = &dozer.SpecCommunityList{
+				Members: []string{extComm(meta.UplinkPrioCommBase, prio)},
+			}
+			l2vpnNeighRMap.Statements[fmt.Sprintf("%d", UplinkPrioStatementBase+uint32(prio))] = &dozer.SpecRouteMapStatement{
+				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
+				SetLocalPreference: pointer.To(uint32(ExternalPreference) - uint32(prio)),
+				Result:             dozer.SpecRouteMapResultAccept,
+			}
+		}
+
+		for extPrio := uint8(0); extPrio < MaxExtPrioLevels; extPrio++ {
+			for uplinkPrio := uint8(0); uplinkPrio < MaxUplinkPrioLevels; uplinkPrio++ {
+				rank := extRank(extPrio, uplinkPrio)
+				commName := extRankCommListName(extRankCode(extPrio, uplinkPrio))
+				spec.CommunityLists[commName] = &dozer.SpecCommunityList{
+					Members: []string{extComm(meta.ExtRankCommBase, extRankCode(extPrio, uplinkPrio))},
+				}
+				l2vpnNeighRMap.Statements[fmt.Sprintf("%d", ExtRankStatementBase+uint32(rank))] = &dozer.SpecRouteMapStatement{
+					Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
+					SetLocalPreference: pointer.To(uint32(ExternalPreference) - uint32(rank)),
+					Result:             dozer.SpecRouteMapResultAccept,
+				}
 			}
 		}
 	}
@@ -1170,12 +1221,41 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	attachedExternals := map[string]bool{}
 	extHasStatic := map[string]bool{}
 	extHasBGP := map[string]bool{}
-	for _, attach := range agent.Spec.ExternalAttachments {
+	// A static route carries no community of its own, so the identity tags a BGP route is given at
+	// ingress have to be stamped where the static route enters BGP instead. That is one route-map
+	// per external, covering every static attachment this switch owns to it.
+	extStaticAttachComms := map[string][]string{}
+	attachComms := map[string]string{}
+	// An agent config written before identity communities existed carries none of the IDs they are
+	// built from, and the upgrade check runs the new binary against exactly that config: the last
+	// one the old controller applied. Plan the pre-identity external config until the controller
+	// has reconciled once and filled the catalog in.
+	// TODO drop the legacy branches once no supported version can be upgraded from.
+	legacyComms := len(agent.Spec.Catalog.ExternalCommIDs) == 0
+	for _, name := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
+		attach := agent.Spec.ExternalAttachments[name]
 		attachedExternals[attach.External] = true
-		if attach.Static != nil {
-			extHasStatic[attach.External] = true
-		} else {
+
+		if !legacyComms {
+			attachCommID := agent.Spec.Catalog.ExternalAttachmentCommIDs[name]
+			if attachCommID == 0 {
+				return errors.Errorf("no community ID for external attachment %s", name)
+			}
+			// One list per attachment, matched at leak time. It keeps a border leaf from leaking
+			// routes it learned from another one (which would hairpin the fabric through it once
+			// its own session dropped), and it is what lets each attachment be leaked at its own
+			// rank.
+			attachComms[name] = extComm(meta.ExtAttachIDCommBase, attachCommID)
+			spec.CommunityLists[attachCommListName(attachCommID)] = &dozer.SpecCommunityList{
+				Members: []string{attachComms[name]},
+			}
+		}
+
+		if attach.Static == nil {
 			extHasBGP[attach.External] = true
+		} else {
+			extHasStatic[attach.External] = true
+			extStaticAttachComms[attach.External] = append(extStaticAttachComms[attach.External], attachComms[name])
 		}
 	}
 
@@ -1184,7 +1264,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Members: []string{},
 		}
 
-		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", RouteMapMaxStatement-10)] = &dozer.SpecRouteMapStatement{
+		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", AllExternalsStatement)] = &dozer.SpecRouteMapStatement{
 			Conditions: dozer.SpecRouteMapConditions{
 				MatchCommunityList: pointer.To(BGPCommListAllExternals),
 			},
@@ -1196,10 +1276,32 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for externalName, external := range agent.Spec.Externals {
 		extVrfName := extVrfName(externalName)
 
-		if external.Static == nil && external.InboundCommunity != "" {
-			if agent.IsSpineLeaf() && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity) {
-				spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity)
+		// all-externals is a list of fabric-owned identities rather than of ISP communities now:
+		// we no longer depend on the external tagging anything, and an ISP community can no longer
+		// collide with one the fabric gives meaning to. It is only a safety net at this point -
+		// every external route also carries an uplink-prio or an ext-rank tag, both of which are
+		// matched earlier in l2vpn-neighbors.
+		extIDComm := ""
+		allExtComm := ""
+		if legacyComms {
+			if external.Static == nil {
+				allExtComm = external.InboundCommunity
 			}
+		} else if extCommID := agent.Spec.Catalog.ExternalCommIDs[externalName]; extCommID != 0 {
+			extIDComm = extComm(meta.ExtIDCommBase, extCommID)
+			allExtComm = extIDComm
+		} else if attachedExternals[externalName] {
+			return errors.Errorf("no community ID for external %s", externalName)
+		} else {
+			// agent.Spec.Externals covers the whole fabric while the catalog is read separately,
+			// so an external deleted between the two reads can still be listed here. Leaving it
+			// out of the all-externals catch-all costs nothing - every external route also
+			// carries a rank tag, matched earlier - and beats failing the whole switch's config
+			// over an external this switch is not attached to.
+			slog.Warn("No community ID for unattached external, leaving it out of all-externals", "external", externalName)
+		}
+		if agent.IsSpineLeaf() && allExtComm != "" && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, allExtComm) {
+			spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, allExtComm)
 		}
 		if !attachedExternals[externalName] {
 			continue
@@ -1274,24 +1376,63 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				vrfSpec.BGP.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = []string{extInboundRouteMapName(externalName)}
 			}
 			if extHasStatic[externalName] {
+				tableConn := &dozer.SpecVRFTableConnection{}
+				if !legacyComms {
+					tableConn.ImportPolicies = []string{extStaticTagRouteMapName(externalName)}
+				}
 				vrfSpec.TableConnections = map[string]*dozer.SpecVRFTableConnection{
-					string(dozer.SpecVRFBGPTableConnectionStatic): {},
+					string(dozer.SpecVRFBGPTableConnectionStatic): tableConn,
 				}
 			}
 			spec.VRFs[extVrfName] = vrfSpec
 		}
 
-		if extHasBGP[externalName] {
-			locPrefStatement := &dozer.SpecRouteMapStatement{
-				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
-				Result:             dozer.SpecRouteMapResultAccept,
+		if extHasStatic[externalName] && !legacyComms {
+			// Uplink priority 0, always: a static route has no liveness signal, so it is never
+			// ranked. Plain add rather than replace, since there is nothing on it to replace.
+			comms := []string{extIDComm, extComm(meta.UplinkPrioCommBase, uint8(0))}
+			spec.RouteMaps[extStaticTagRouteMapName(externalName)] = &dozer.SpecRouteMap{
+				Statements: map[string]*dozer.SpecRouteMapStatement{
+					"10": {
+						SetCommunities: append(comms, extStaticAttachComms[externalName]...),
+						Result:         dozer.SpecRouteMapResultAccept,
+					},
+				},
 			}
+		}
+
+		if extHasBGP[externalName] {
 			if external.InboundCommunity != "" {
-				commList := extInboundCommListName(externalName)
-				spec.CommunityLists[commList] = &dozer.SpecCommunityList{
+				spec.CommunityLists[extInboundCommListName(externalName)] = &dozer.SpecCommunityList{
 					Members: []string{external.InboundCommunity},
 				}
-				locPrefStatement.Conditions = dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commList)}
+			}
+
+			// This route-map is only the EVPN advertise policy for the External VRF now - the
+			// per-attachment route-maps below do the filtering and the tagging on the sessions
+			// themselves. It matches our own identity tag so that only routes we learned or
+			// installed for this external are re-originated as type-5, and sets no preference:
+			// that is per attachment.
+			advertiseStatement := &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchCommunityList: pointer.To(extIDCommListName(externalName)),
+				},
+				Result: dozer.SpecRouteMapResultAccept,
+			}
+			if legacyComms {
+				advertiseStatement = &dozer.SpecRouteMapStatement{
+					SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+					Result:             dozer.SpecRouteMapResultAccept,
+				}
+				if external.InboundCommunity != "" {
+					advertiseStatement.Conditions = dozer.SpecRouteMapConditions{
+						MatchCommunityList: pointer.To(extInboundCommListName(externalName)),
+					}
+				}
+			} else {
+				spec.CommunityLists[extIDCommListName(externalName)] = &dozer.SpecCommunityList{
+					Members: []string{extIDComm},
+				}
 			}
 
 			inboundStatements := map[string]*dozer.SpecRouteMapStatement{
@@ -1301,7 +1442,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 					Result: dozer.SpecRouteMapResultReject,
 				},
-				"15": locPrefStatement,
+				"15": advertiseStatement,
 			}
 			if _, ok := spec.AsPathLists[AsPathListFabricGW]; ok {
 				inboundStatements["5"] = &dozer.SpecRouteMapStatement{
@@ -1332,8 +1473,13 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 			if external.OutboundCommunity != "" {
-				outboundRMap.Statements["10"].SetCommunities = []string{external.OutboundCommunity}
-				outboundRMap.Statements["20"].SetCommunities = []string{external.OutboundCommunity}
+				for _, seq := range []string{"10", "20"} {
+					outboundRMap.Statements[seq].SetCommunities = []string{external.OutboundCommunity}
+					// non-additive: this is what strips the fabric-internal tags on the way out.
+					// With no outboundCommunity configured there is nothing to replace them with,
+					// so they still reach the external system - see the branch notes.
+					outboundRMap.Statements[seq].ReplaceCommunities = true
+				}
 			}
 			spec.RouteMaps[extOutboundRouteMapName(externalName)] = outboundRMap
 		}
@@ -1419,6 +1565,61 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 
+			// Before identity communities the session shared the External's route-map, which set
+			// the preference itself and could not tell one attachment from another.
+			importPolicy := extInboundRouteMapName(externalName)
+			if !legacyComms {
+				extCommID := agent.Spec.Catalog.ExternalCommIDs[externalName]
+				if extCommID == 0 {
+					return errors.Errorf("no community ID for external %s", externalName)
+				}
+				if attach.Priority >= MaxUplinkPrioLevels {
+					return errors.Errorf("priority %d of external attachment %s is out of range", attach.Priority, name)
+				}
+
+				// Ingress: settle the uplink question locally with a local preference, and stamp
+				// the tags every other switch needs to reach the same answer. The set is
+				// non-additive, so whatever the external system sent is discarded here rather than
+				// riding into the fabric, where 50000-50005 mean something to us.
+				tagStatement := &dozer.SpecRouteMapStatement{
+					SetLocalPreference: pointer.To(uint32(ExternalPreference) - uint32(attach.Priority)),
+					SetCommunities: []string{
+						extComm(meta.ExtIDCommBase, extCommID),
+						extComm(meta.UplinkPrioCommBase, attach.Priority),
+						attachComms[name],
+					},
+					ReplaceCommunities: true,
+					Result:             dozer.SpecRouteMapResultAccept,
+				}
+				if external.InboundCommunity != "" {
+					tagStatement.Conditions = dozer.SpecRouteMapConditions{
+						MatchCommunityList: pointer.To(extInboundCommListName(externalName)),
+					}
+				}
+
+				attachInStatements := map[string]*dozer.SpecRouteMapStatement{
+					"10": {
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(ipns)),
+						},
+						Result: dozer.SpecRouteMapResultReject,
+					},
+					"15": tagStatement,
+				}
+				if _, ok := spec.AsPathLists[AsPathListFabricGW]; ok {
+					attachInStatements["5"] = &dozer.SpecRouteMapStatement{
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchAsPathList: pointer.To(AsPathListFabricGW),
+						},
+						Result: dozer.SpecRouteMapResultReject,
+					}
+				}
+				spec.RouteMaps[extAttachInboundRouteMapName(name)] = &dozer.SpecRouteMap{
+					Statements: attachInStatements,
+				}
+				importPolicy = extAttachInboundRouteMapName(name)
+			}
+
 			// external sessions run on the FRR default timers 60/180, so without BFD a peer that
 			// dies with the link up takes up to three minutes to detect
 			var bfdProfile *string
@@ -1438,7 +1639,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
 				RemoteAS:                  pointer.To(attach.Neighbor.ASN),
 				IPv4Unicast:               pointer.To(true),
-				IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
+				IPv4UnicastImportPolicies: []string{importPolicy},
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 				BFDProfile:                bfdProfile,
 			}
@@ -3403,6 +3604,8 @@ func buildL3FlatVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcap
 }
 
 func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
+	legacyComms := len(agent.Spec.Catalog.ExternalCommIDs) == 0 // see planExternals
+
 	attachedVPCs := map[string]bool{}
 	for _, attach := range agent.Spec.VPCAttachments {
 		vpcName := attach.VPCName()
@@ -3520,18 +3723,75 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 				Result: dozer.SpecRouteMapResultReject,
 			}
-			// do not use the external community list if this is a static external or if there is no inbound community
-			var commListMatch *string
-			if external.Static == nil && external.InboundCommunity != "" {
-				commListMatch = pointer.To(extInboundCommListName(externalName))
-			}
-			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchCommunityList: commListMatch,
-					MatchPrefixList:    pointer.To(importVrfPrefixList),
-				},
-				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
-				Result:             dozer.SpecRouteMapResultAccept,
+			if legacyComms {
+				// no identity to match on, so one statement per (VPC, External) and no ranking
+				var commListMatch *string
+				if external.Static == nil && external.InboundCommunity != "" {
+					commListMatch = pointer.To(extInboundCommListName(externalName))
+				}
+				spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchCommunityList: commListMatch,
+						MatchPrefixList:    pointer.To(importVrfPrefixList),
+					},
+					SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+					Result:             dozer.SpecRouteMapResultAccept,
+				}
+			} else {
+				// The External axis: which of this VPC's Externals this tenant prefers.
+				extPrio := external.Priority
+				if peering.Permit.External.Priority != nil {
+					extPrio = *peering.Permit.External.Priority
+				}
+				if extPrio >= MaxExtPrioLevels {
+					return errors.Errorf("priority %d of external peering %s is out of range", extPrio, name)
+				}
+				extCommID := agent.Spec.Catalog.ExternalCommIDs[externalName]
+				if extCommID == 0 {
+					return errors.Errorf("no community ID for external %s", externalName)
+				}
+				extIDComm := extComm(meta.ExtIDCommBase, extCommID)
+
+				// One statement per attachment this switch owns to the External, each leaking that
+				// attachment's routes at a rank carrying both axes. It has to be per attachment
+				// because import vrf offers every path in the source VRF and not just its
+				// bestpath, so the uplink question is still open here and a single statement could
+				// not tell the candidates apart.
+				for attachName, attach := range agent.Spec.ExternalAttachments {
+					if attach.External != externalName {
+						continue
+					}
+					leakID, exists := agent.Spec.Catalog.ExternalLeakIDs[librarian.ReqForExtAttach(attachName)]
+					if !exists {
+						return errors.Errorf("no leak statement ID for external attachment %s", attachName)
+					}
+					if leakID < 10 { // first 10 reserved for static statements
+						return errors.Errorf("external leak seq %d for attachment %s is too small", leakID, attachName)
+					}
+					if leakID >= 15000 {
+						return errors.Errorf("external leak seq %d for attachment %s is too large", leakID, attachName)
+					}
+					attachCommID := agent.Spec.Catalog.ExternalAttachmentCommIDs[attachName]
+					if attachCommID == 0 {
+						return errors.Errorf("no community ID for external attachment %s", attachName)
+					}
+					if attach.Priority >= MaxUplinkPrioLevels {
+						return errors.Errorf("priority %d of external attachment %s is out of range", attach.Priority, attachName)
+					}
+
+					rank := extRank(extPrio, attach.Priority)
+					spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+leakID)] = &dozer.SpecRouteMapStatement{
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchCommunityList: pointer.To(attachCommListName(attachCommID)),
+							MatchPrefixList:    pointer.To(importVrfPrefixList),
+						},
+						SetLocalPreference: pointer.To(uint32(ExternalPreference) - uint32(rank)),
+						// replaces the ingress tags: past this point the two axes are one rank
+						SetCommunities:     []string{extIDComm, extComm(meta.ExtRankCommBase, extRankCode(extPrio, attach.Priority))},
+						ReplaceCommunities: true,
+						Result:             dozer.SpecRouteMapResultAccept,
+					}
+				}
 			}
 
 			spec.VRFs[extVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
@@ -3739,6 +3999,53 @@ func extBFDProfileName(attach string) string {
 
 func extInboundCommListName(external string) string {
 	return fmt.Sprintf("ext-inbound--%s", external)
+}
+
+func uplinkPrioCommListName(prio uint8) string {
+	return fmt.Sprintf("uplink-prio-%d", prio)
+}
+
+func extRankCommListName(code uint8) string {
+	return fmt.Sprintf("ext-rank-%02d", code)
+}
+
+// community list holding the fabric-owned identity of a single External
+func extIDCommListName(external string) string {
+	return fmt.Sprintf("ext-id--%s", external)
+}
+
+// community list holding the identity of one attachment this switch owns
+func attachCommListName(attachID uint16) string {
+	return fmt.Sprintf("attach--%d", attachID)
+}
+
+// per-attachment inbound route-map: both the uplink priority and the attachment identity are
+// per-session values, so this cannot be shared across the attachments of one External
+func extAttachInboundRouteMapName(attachName string) string {
+	return fmt.Sprintf("ext-in--%s", attachName)
+}
+
+// route-map on the static table connection, which is what gives a static route the identity tags
+// a BGP one gets at ingress
+func extStaticTagRouteMapName(external string) string {
+	return fmt.Sprintf("ext-static--%s", external)
+}
+
+// a fabric-owned community: one of the namespace bases in api/meta, and what it carries there
+func extComm[T uint8 | uint16](base uint32, val T) string {
+	return fmt.Sprintf("%d:%d", base, val)
+}
+
+// extRank packs the two axes into the single number the leaked route carries. The External axis
+// is the more significant digit, so a better ISP always beats a better link to a worse one.
+func extRank(extPrio, uplinkPrio uint8) uint8 {
+	return extPrio*MaxUplinkPrioLevels + uplinkPrio
+}
+
+// extRankCode is the same pair in the community, kept as two decimal digits so that 50002:12
+// reads as "External priority 1, uplink priority 2" rather than as an opaque index.
+func extRankCode(extPrio, uplinkPrio uint8) uint8 {
+	return extPrio*10 + uplinkPrio
 }
 
 func extInboundRouteMapName(external string) string {

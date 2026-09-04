@@ -12,7 +12,9 @@ metadata:
   uid: b5034c95-327c-41bb-93e9-71839c8d326e
 spec:
   alloy: {}
-  catalog: {}
+  catalog:
+    externalCommIDs:
+      external-01: 4
   config:
     alloy:
       hostname: spine-01

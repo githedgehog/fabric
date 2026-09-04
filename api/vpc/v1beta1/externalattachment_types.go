@@ -203,6 +203,12 @@ type ExternalAttachmentSpec struct {
 	// uses the fabric defaults
 	// +optional
 	BFD *ExternalAttachmentBFD `json:"bfd,omitempty"`
+	// Priority ranks this attachment against the other attachments of the same External. Lower is
+	// preferred; equal priorities load-balance across border leaves, which is the existing behaviour
+	// and the default. Fabric-wide: it is not overridable per VPC. Not valid for static attachments.
+	// +kubebuilder:validation:Maximum=3
+	// +optional
+	Priority uint8 `json:"priority,omitempty"`
 }
 
 // ExternalAttachmentBFD configures BFD for the BGP session of an external attachment.
@@ -265,6 +271,7 @@ type ExternalAttachmentStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;fabric;external,shortName=extattach
 // +kubebuilder:printcolumn:name="External",type=string,JSONPath=`.spec.external`,priority=0
 // +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=0
 // +kubebuilder:printcolumn:name="SwVLAN",type=string,JSONPath=`.spec.switch.vlan`,priority=1
 // +kubebuilder:printcolumn:name="SwIP",type=string,JSONPath=`.spec.switch.ip`,priority=1
 // +kubebuilder:printcolumn:name="NeighASN",type=string,JSONPath=`.spec.neighbor.asn`,priority=1
@@ -379,6 +386,14 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.BFD != nil {
 			return nil, errors.Errorf("bfd must not be set for static external attachment")
 		}
+		// see External.Validate: without BFD there is no liveness signal to fail over on
+		if attach.Spec.Priority != 0 {
+			return nil, errors.Errorf("priority must not be set for static external attachments")
+		}
+	}
+
+	if attach.Spec.Priority >= meta.MaxUplinkPrioLevels {
+		return nil, errors.Errorf("priority must be less than %d", meta.MaxUplinkPrioLevels)
 	}
 
 	var warns admission.Warnings
