@@ -24,7 +24,7 @@ bfdProfiles:
 communityLists:
   all-externals:
     members:
-    - 65102:1000
+    - "50003:4"
   no-community:
     members:
     - REGEX:^$

@@ -100,9 +100,29 @@ func TestExternalValidation(t *testing.T) {
 			}),
 		},
 		{
-			name: "l2 with inbound community",
-			external: extGen("invalid-st", func(ext *v1beta1.External) {
+			// static routes carry the fabric-owned identity community too now, so a mixed
+			// external can filter what its BGP attachments accept
+			name: "static with inbound community",
+			external: extGen("st-in-comm", func(ext *v1beta1.External) {
 				ext.Spec.InboundCommunity = InboundCommunity
+				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
+					Prefixes: []string{"0.0.0.0/0"},
+				}
+			}),
+		},
+		{
+			name: "static with outbound community",
+			external: extGen("st-out-comm", func(ext *v1beta1.External) {
+				ext.Spec.OutboundCommunity = OutboundCommunity
+				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
+					Prefixes: []string{"0.0.0.0/0"},
+				}
+			}),
+		},
+		{
+			name: "static with invalid inbound community",
+			external: extGen("st-bad-comm", func(ext *v1beta1.External) {
+				ext.Spec.InboundCommunity = "not-a-community"
 				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
 					Prefixes: []string{"0.0.0.0/0"},
 				}
@@ -110,9 +130,23 @@ func TestExternalValidation(t *testing.T) {
 			err: true,
 		},
 		{
-			name: "l2 with outbound community",
-			external: extGen("invalid-st", func(ext *v1beta1.External) {
-				ext.Spec.OutboundCommunity = OutboundCommunity
+			name: "bgp with priority",
+			external: extGen("bgp-prio", func(ext *v1beta1.External) {
+				ext.Spec.InboundCommunity = InboundCommunity
+				ext.Spec.Priority = 3
+			}),
+		},
+		{
+			name: "priority above the maximum",
+			external: extGen("bgp-prio-max", func(ext *v1beta1.External) {
+				ext.Spec.Priority = 4
+			}),
+			err: true,
+		},
+		{
+			name: "static with priority",
+			external: extGen("st-prio", func(ext *v1beta1.External) {
+				ext.Spec.Priority = 1
 				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
 					Prefixes: []string{"0.0.0.0/0"},
 				}

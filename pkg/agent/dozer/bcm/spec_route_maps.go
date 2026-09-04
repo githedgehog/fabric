@@ -194,15 +194,27 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 			for _, comm := range statement.SetCommunities {
 				comms = append(comms, oc.UnionString(comm))
 			}
+			if !statement.ReplaceCommunities {
+				// SONiC ignores set-community/config/options entirely and always reports it back
+				// as ADD, so a set is a replace unless this sentinel rides in the community list
+				// itself - which is what it stores as the literal "additive" member of
+				// set_community_inline and passes to FRR as "set community <x> additive".
+				comms = append(comms, oc.OpenconfigBgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_ADDITIVE)
+			}
 
 			if bgpActions == nil {
 				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
 			}
 
+			options := oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD
+			if statement.ReplaceCommunities {
+				options = oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_REPLACE
+			}
+
 			bgpActions.SetCommunity = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity{
 				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config{
 					Method:  oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config_Method_INLINE,
-					Options: oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD,
+					Options: options,
 				},
 				Inline: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline{
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config{
@@ -252,19 +264,17 @@ func loadActualRouteMaps(ctx context.Context, client GNMICClient, spec *dozer.Sp
 	if err != nil {
 		return errors.Wrapf(err, "failed to read route maps")
 	}
-	spec.RouteMaps, err = unmarshalOCRouteMaps(ocRouteMaps)
-	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshal route maps")
-	}
+	spec.RouteMaps = unmarshalOCRouteMaps(ocRouteMaps)
 
 	return nil
 }
 
-func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[string]*dozer.SpecRouteMap, error) {
+// Nothing here is fatal on purpose - see the community member default below.
+func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) map[string]*dozer.SpecRouteMap {
 	routeMaps := map[string]*dozer.SpecRouteMap{}
 
 	if ocVal == nil || ocVal.PolicyDefinitions == nil {
-		return routeMaps, nil
+		return routeMaps
 	}
 
 	for name, ocRouteMap := range ocVal.PolicyDefinitions.PolicyDefinition {
@@ -320,6 +330,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			}
 
 			var setComms []string
+			var replaceComms bool
 			var setLocalPref *uint32
 			if statement.Actions.BgpActions != nil {
 				if statement.Actions.BgpActions.SetCommunity != nil {
@@ -331,17 +342,28 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 
 							continue
 						}
-						if setComm.Config.Options != oc.OpenconfigBgpPolicy_BgpSetCommunityOptionType_ADD {
-							slog.Warn("unsupported community set options", "route map", name, "options", setComm.Config.Options)
-
-							continue
-						}
+						// setComm.Config.Options is deliberately not read: SONiC answers ADD
+						// whatever we asked for, so the additive sentinel below is the only
+						// honest source. Reading Options rewrote every statement each pass.
+						replaceComms = true
 
 						for _, comm := range setComm.Inline.Config.Communities {
-							if str, ok := comm.(oc.UnionString); ok {
-								setComms = append(setComms, string(str))
-							} else {
-								return nil, errors.Errorf("unexpected community member type: %T", comm)
+							switch val := comm.(type) {
+							case oc.UnionString:
+								setComms = append(setComms, string(val))
+							case oc.E_OpenconfigBgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY:
+								if val == oc.OpenconfigBgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_ADDITIVE {
+									replaceComms = false
+								} else {
+									slog.Warn("unsupported well-known community", "route map", name, "community", val)
+								}
+							default:
+								// never fatal: loading the actual state runs before the agent can
+								// do anything at all, including upgrade itself, so one community
+								// it cannot parse - on a route-map it may not even own - would
+								// wedge it with no way out but hand-editing the switch
+								slog.Warn("unsupported community member", "route map", name,
+									"community", comm, "type", fmt.Sprintf("%T", comm))
 							}
 						}
 					}
@@ -354,6 +376,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			statements[*statement.Name] = &dozer.SpecRouteMapStatement{
 				Conditions:         conditions,
 				SetCommunities:     setComms,
+				ReplaceCommunities: replaceComms,
 				SetLocalPreference: setLocalPref,
 				Result:             result,
 			}
@@ -364,5 +387,5 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 		}
 	}
 
-	return routeMaps, nil
+	return routeMaps
 }

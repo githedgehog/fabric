@@ -599,7 +599,20 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, errors.Wrapf(err, "error updating VNIs catalog")
 	}
 
+	err = r.libr.UpdateExternals(ctx, r.Client)
+	if err != nil {
+		return kctrl.Result{}, errors.Wrapf(err, "error updating externals catalog")
+	}
+
 	cat := &agentapi.CatalogSpec{}
+
+	extAttachReq := map[string]bool{}
+	for name := range externalAttaches {
+		extAttachReq[name] = true
+	}
+	if err := r.libr.CatalogForExternals(ctx, r.Client, cat, extAttachReq); err != nil {
+		return kctrl.Result{}, errors.Wrapf(err, "error getting externals catalog")
+	}
 
 	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns, externalsReq)
 	if err != nil {
@@ -708,7 +721,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
+	// every attachment this switch owns is leaked by its own statement, matching its own identity
+	extLeakReqs := map[string]bool{}
+	for name := range externalAttaches {
+		extLeakReqs[librarian.ReqForExtAttach(name)] = true
+	}
+
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, extLeakReqs, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
