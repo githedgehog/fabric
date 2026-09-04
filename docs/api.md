@@ -1946,6 +1946,26 @@ Effectively it represents BGP peering between the switch and external system inc
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
 
 
+#### ExternalAttachmentBFD
+
+
+
+ExternalAttachmentBFD configures BFD for the BGP session of an external attachment.
+Unset values fall back to the fabric defaults.
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minRX` _integer_ | MinRX is the minimum interval in ms at which we accept BFD control packets from the peer (default 300) |  | Maximum: 60000 <br />Minimum: 10 <br /> |
+| `minTX` _integer_ | MinTX is the desired interval in ms at which we send BFD control packets (default 300) |  | Maximum: 60000 <br />Minimum: 10 <br /> |
+| `multiplier` _integer_ | Multiplier is how many missed packets bring the session down (default 3) |  | Maximum: 255 <br />Minimum: 2 <br /> |
+| `passive` _boolean_ | Passive makes us wait for the peer to initiate the session instead of initiating it<br />ourselves, for the rare ISP that requires it. Both ends passive means no session at all. |  |  |
+
+
 #### ExternalAttachmentNeighbor
 
 
@@ -1982,6 +2002,7 @@ _Appears in:_
 | `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external |  |  |
 | `static` _[ExternalAttachmentStatic](#externalattachmentstatic)_ | Static contains parameters specific to a static external attachment |  |  |
 | `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL defines the ACL statements to apply to inbound traffic on this external attachment |  |  |
+| `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the BGP session of this external attachment, an empty object<br />uses the fabric defaults |  |  |
 
 
 #### ExternalAttachmentStatic

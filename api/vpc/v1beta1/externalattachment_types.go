@@ -49,6 +49,10 @@ const (
 	// ACLUserMinSeq is the minimum sequence number allowed for user-defined ACL rules.
 	// Sequence numbers below this are reserved for hardcoded security rules.
 	ACLUserMinSeq = 10
+	// BFD interval and detection multiplier bounds accepted by FRR
+	BFDMinIntervalMS = 10
+	BFDMaxIntervalMS = 60000
+	BFDMinMultiplier = 2
 )
 
 var ACLProtocols = []ACLProtocol{
@@ -195,6 +199,34 @@ type ExternalAttachmentSpec struct {
 	// InboundACL defines the ACL statements to apply to inbound traffic on this external attachment
 	// +optional
 	InboundACL *ACLSpec `json:"inboundACL,omitempty"`
+	// BFD (optional) enables BFD for the BGP session of this external attachment, an empty object
+	// uses the fabric defaults
+	// +optional
+	BFD *ExternalAttachmentBFD `json:"bfd,omitempty"`
+}
+
+// ExternalAttachmentBFD configures BFD for the BGP session of an external attachment.
+// Unset values fall back to the fabric defaults.
+type ExternalAttachmentBFD struct {
+	// MinRX is the minimum interval in ms at which we accept BFD control packets from the peer (default 300)
+	// +kubebuilder:validation:Minimum=10
+	// +kubebuilder:validation:Maximum=60000
+	// +optional
+	MinRX uint32 `json:"minRX,omitempty"`
+	// MinTX is the desired interval in ms at which we send BFD control packets (default 300)
+	// +kubebuilder:validation:Minimum=10
+	// +kubebuilder:validation:Maximum=60000
+	// +optional
+	MinTX uint32 `json:"minTX,omitempty"`
+	// Multiplier is how many missed packets bring the session down (default 3)
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=255
+	// +optional
+	Multiplier uint8 `json:"multiplier,omitempty"`
+	// Passive makes us wait for the peer to initiate the session instead of initiating it
+	// ourselves, for the rare ISP that requires it. Both ends passive means no session at all.
+	// +optional
+	Passive bool `json:"passive,omitempty"`
 }
 
 // ExternalAttachmentSwitch defines the switch port configuration for the external attachment
@@ -294,7 +326,7 @@ func (attach *ExternalAttachment) Default() {
 	attach.Labels[LabelExternal] = attach.Spec.External
 }
 
-func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -343,6 +375,28 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 				return nil, errors.New("static.ip is not a valid IP CIDR") //nolint: goerr113
 			}
 		}
+		// SONiC's FRR cannot attach BFD to a static route, only to a BGP session
+		if attach.Spec.BFD != nil {
+			return nil, errors.Errorf("bfd must not be set for static external attachment")
+		}
+	}
+
+	var warns admission.Warnings
+	if bfd := attach.Spec.BFD; bfd != nil {
+		// disableBFD wins, and nothing downstream reports that it did: without this the session
+		// silently runs on the FRR defaults of 60/180 instead of the sub-second detection asked for
+		if fabricCfg != nil && fabricCfg.DisableBFD {
+			warns = append(warns, "bfd is ignored because disableBFD is set for the whole fabric")
+		}
+		if bfd.MinRX != 0 && (bfd.MinRX < BFDMinIntervalMS || bfd.MinRX > BFDMaxIntervalMS) {
+			return nil, errors.Errorf("bfd.minRX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
+		}
+		if bfd.MinTX != 0 && (bfd.MinTX < BFDMinIntervalMS || bfd.MinTX > BFDMaxIntervalMS) {
+			return nil, errors.Errorf("bfd.minTX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
+		}
+		if bfd.Multiplier != 0 && bfd.Multiplier < BFDMinMultiplier {
+			return nil, errors.Errorf("bfd.multiplier must be at least %d", BFDMinMultiplier)
+		}
 	}
 
 	if _, err := attach.Spec.InboundACL.Validate(); err != nil {
@@ -358,11 +412,10 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 
 			return nil, errors.Wrapf(err, "failed to read external %s", attach.Spec.External) // TODO replace with some internal error to not expose to the user
 		}
+		// the reverse is allowed: an external with static prefixes may also have BGP attachments,
+		// which is how a static uplink is migrated to BGP without an outage
 		if attach.Spec.Static != nil && ext.Spec.Static == nil {
-			return nil, errors.Errorf("external attachment is static but external %s is not", attach.Spec.External)
-		}
-		if attach.Spec.Static == nil && ext.Spec.Static != nil {
-			return nil, errors.Errorf("external attachment is not static but external %s is", attach.Spec.External)
+			return nil, errors.Errorf("external attachment is static but external %s has no static prefixes", attach.Spec.External)
 		}
 
 		conn := &wiringapi.Connection{}
@@ -401,5 +454,5 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 	}
 
-	return nil, nil
+	return warns, nil
 }
