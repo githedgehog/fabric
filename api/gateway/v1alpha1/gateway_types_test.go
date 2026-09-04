@@ -221,6 +221,93 @@ func TestGatewayValidate(t *testing.T) {
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
+			// an unnumbered link: no IP on the interface, none on the neighbor, the
+			// source interface is what identifies the peer
+			name: "test-neighbor-unnumbered",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+			}),
+			objs: base,
+		},
+		{
+			name: "test-neighbor-unnumbered-by-iface-key",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+				gw.Spec.Neighbors[0].Source = "port0"
+			}),
+			objs: base,
+		},
+		{
+			name: "test-neighbor-unnumbered-no-source",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+				gw.Spec.Neighbors[0].Source = ""
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-neighbor-unnumbered-unknown-source",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+				gw.Spec.Neighbors[0].Source = "nope"
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			// an unnumbered neighbor on a numbered interface is the one genuinely
+			// broken combination
+			name: "test-neighbor-unnumbered-on-numbered-iface",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Neighbors[0].IP = "" }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-neighbor-unnumbered-no-asn",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+				gw.Spec.Neighbors[0].ASN = 0
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-neighbor-unnumbered-duplicate-source",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+				gw.Spec.Neighbors = append(gw.Spec.Neighbors, v1alpha1.GatewayBGPNeighbor{Source: "port0", ASN: 65200})
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			// the kernel name is how an unnumbered neighbor finds its interface, so it can't be ambiguous
+			name: "test-iface-duplicate-kernel-name",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+				gw.Spec.Interfaces["port1"] = v1alpha1.GatewayInterface{Kernel: "eth0", IPs: []string{"172.30.128.5/31"}, MTU: 1500}
+				gw.Spec.Neighbors[0].IP = ""
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			// an interface with no IPs that no unnumbered neighbor claims
+			name: "test-iface-no-ips-no-unnumbered-neighbor",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "eth0", MTU: 1500}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
 			name: "test-too-many-gws-in-group",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
 				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 0}}

@@ -20,13 +20,15 @@ import (
 )
 
 // Unnumbered sessions are keyed by the port they run over, so the expected neighbors have to line
-// up with what the agent reports for them: one entry per link, rather than every unnumbered link
-// on the switch sharing a single key that matches nothing.
+// up with what the agent reports for them: one entry per link, and a gateway link on the same
+// switch as unnumbered fabric links no longer shares a key with them.
 func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	const (
 		self     = "leaf-01"
 		spine    = "spine-01"
+		gw       = "gateway-1"
 		spineASN = uint32(65100)
+		gwASN    = uint32(65534)
 		wVLAN    = uint16(3123)
 	)
 
@@ -53,13 +55,25 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 		},
 	}
 
+	gwConn := &wiringapi.Connection{
+		ObjectMeta: kmetav1.ObjectMeta{Name: self + "--gateway--" + gw, Namespace: kmetav1.NamespaceDefault},
+		Spec: wiringapi.ConnectionSpec{
+			Gateway: &wiringapi.ConnGateway{
+				Links: []wiringapi.GatewayLink{{
+					Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(self + "/E1/3")},
+					Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.NewBasePortName(gw + "/enp2s1")},
+				}},
+			},
+		},
+	}
+
 	newAgent := func(silicon string) *agentapi.Agent {
 		ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
 		ag.Spec.SwitchProfile = &wiringapi.SwitchProfileSpec{SwitchSilicon: silicon}
 		ag.Spec.Switches = map[string]wiringapi.SwitchSpec{
 			spine: {ASN: spineASN, ProtocolIP: "172.30.11.2/32"},
 		}
-		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1}
+		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1, "E1/3": wVLAN + 2}
 
 		return ag
 	}
@@ -81,12 +95,13 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 		expected map[string]string // neighbor key -> connection it belongs to
 	}{
 		{
-			name:     "fabric links",
+			name:     "fabric and gateway links",
 			silicon:  switchprofile.SiliconVS,
-			reported: []string{"E1/1", "E1/2", "172.30.11.2"},
+			reported: []string{"E1/1", "E1/2", "E1/3", "172.30.11.2"},
 			expected: map[string]string{
 				"E1/1":        fabricConn.Name,
 				"E1/2":        fabricConn.Name,
+				"E1/3":        gwConn.Name,
 				"172.30.11.2": "",
 			},
 		},
@@ -94,10 +109,11 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			// the peering runs over the workaround SVI, one per link
 			name:     "on TH5",
 			silicon:  switchprofile.SiliconBroadcomTH5,
-			reported: []string{"E1/1.3123", "E1/2.3124", "172.30.11.2"},
+			reported: []string{"E1/1.3123", "E1/2.3124", "E1/3.3125", "172.30.11.2"},
 			expected: map[string]string{
 				"E1/1.3123":   fabricConn.Name,
 				"E1/2.3124":   fabricConn.Name,
+				"E1/3.3125":   gwConn.Name,
 				"172.30.11.2": "",
 			},
 		},
@@ -112,7 +128,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			ag.Status.State.BGPNeighbors = reported(tt.reported...)
 
 			objs := []kclient.Object{sw, ag}
-			for _, conn := range []*wiringapi.Connection{fabricConn} {
+			for _, conn := range []*wiringapi.Connection{fabricConn, gwConn} {
 				conn := conn.DeepCopy()
 				conn.Default()
 				objs = append(objs, conn)

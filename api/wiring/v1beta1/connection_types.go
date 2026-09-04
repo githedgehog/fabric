@@ -1090,9 +1090,12 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		} else if conn.Spec.Gateway != nil {
 			cg := conn.Spec.Gateway
 			for idx, link := range cg.Links {
-				// unlike fabric and mesh links, gateway links can't be unnumbered yet, so both IPs are required
-				if link.Switch.IP == "" || link.Gateway.IP == "" {
-					return nil, errors.Errorf("gateway connection %s link %d is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet", conn.Name, idx) //nolint:goerr113
+				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
+				if (link.Switch.IP == "") != (link.Gateway.IP == "") {
+					return nil, errors.Errorf("gateway connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx) //nolint:goerr113
+				}
+				if link.Switch.IP == "" {
+					continue
 				}
 
 				switchPrefix, err := netip.ParsePrefix(link.Switch.IP)

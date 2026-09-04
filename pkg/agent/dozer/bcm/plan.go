@@ -910,15 +910,23 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				continue
 			}
 
-			if ipStr == "" {
-				return errors.Errorf("no IP found for gateway conn %s", connName)
+			// no IPs on either side means BGP unnumbered; a single missing IP is a broken link
+			if (ipStr == "") != (peerIP == "") {
+				return errors.Errorf("gateway conn %s has an IP on only one side of the %s link", connName, port)
 			}
+			unnumbered := ipStr == ""
 
-			ip, ipNet, err := net.ParseCIDR(ipStr)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse gateway conn ip %s", ipStr)
+			var ip net.IP
+			var ipPrefixLen int
+			if !unnumbered {
+				var ipNet *net.IPNet
+				var err error
+				ip, ipNet, err = net.ParseCIDR(ipStr)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse gateway conn ip %s", ipStr)
+				}
+				ipPrefixLen, _ = ipNet.Mask.Size()
 			}
-			ipPrefixLen, _ := ipNet.Mask.Size()
 
 			gwBaseIface := &dozer.SpecInterface{
 				Enabled:     pointer.To(true),
@@ -929,25 +937,38 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			}
 
+			// for unnumbered the neighbor is keyed by the interface instead of the peer IP; on TH5
+			// that interface is the workaround SVI below rather than the port
+			neighborKey := port
+
 			// For TH5 switches, use the workaround suggested by Broadcom: configure an Access VLAN that we previously
 			// allocated for this link and configure the IP address on the VLAN rather than the switch interface
-			if agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5 {
+			switch {
+			case agent.Spec.SwitchProfile != nil && agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconBroadcomTH5:
 				workaroundVLAN, ok := agent.Spec.Catalog.TH5WorkaroundVLANs[port]
 				if !ok {
 					return errors.Errorf("no TH5 workaround VLAN found for port %s of gateway connection %s", port, connName)
 				}
 				gwBaseIface.AccessVLAN = pointer.To(workaroundVLAN)
 				vlanIface := vlanName(workaroundVLAN)
-				spec.Interfaces[vlanIface] = &dozer.SpecInterface{
+				workaroundIface := &dozer.SpecInterface{
 					Enabled:     pointer.To(true),
 					Description: pointer.To(fmt.Sprintf("TH5 Workaround Gateway %s %s", remote, connName)),
-					VLANIPs: map[string]*dozer.SpecInterfaceIP{
+				}
+				if unnumbered {
+					workaroundIface.VLANIPv6 = &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}
+					neighborKey = vlanIface
+				} else {
+					workaroundIface.VLANIPs = map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
 							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
 						},
-					},
+					}
 				}
-			} else {
+				spec.Interfaces[vlanIface] = workaroundIface
+			case unnumbered:
+				gwBaseIface.Subinterfaces[0].IPv6 = &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}
+			default:
 				gwBaseIface.Subinterfaces[0].IPs = map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
 						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
@@ -957,9 +978,12 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 			spec.Interfaces[port] = gwBaseIface
 
-			ip, _, err = net.ParseCIDR(peerIP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse gateway conn peer ip %s", peerIP)
+			if !unnumbered {
+				peerAddr, _, err := net.ParseCIDR(peerIP)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse gateway conn peer ip %s", peerIP)
+				}
+				neighborKey = peerAddr.String()
 			}
 
 			var bfdProfile *string
@@ -967,7 +991,13 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				bfdProfile = pointer.To(FabricBFDProfile)
 			}
 
-			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
+			// leave it unset for numbered links so we don't touch existing neighbors
+			var extendedNexthop *bool
+			if unnumbered {
+				extendedNexthop = pointer.To(true)
+			}
+
+			spec.VRFs[VRFDefault].BGP.Neighbors[neighborKey] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                 pointer.To(true),
 				Description:             pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
 				RemoteAS:                pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
@@ -976,6 +1006,7 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				L2VPNEVPNAllowOwnAS:     pointer.To(true), // TODO: is this still needed?
 				L2VPNEVPNImportPolicies: []string{RouteMapL2VPNNeighbors},
 				BFDProfile:              bfdProfile,
+				ExtendedNexthop:         extendedNexthop,
 			}
 		}
 	}

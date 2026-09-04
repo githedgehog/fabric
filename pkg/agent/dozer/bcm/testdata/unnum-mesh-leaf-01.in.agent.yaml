@@ -103,10 +103,8 @@ spec:
       gateway:
         links:
         - gateway:
-            ip: 172.30.128.1/31
             port: gateway-1/enp2s1
           switch:
-            ip: 172.30.128.0/31
             port: leaf-01/E1/8
     leaf-01--mesh--leaf-02:
       mesh:

@@ -164,9 +164,8 @@ interfaces:
     enabled: true
     subinterfaces:
       "0":
-        ips:
-          172.30.128.20:
-            prefixLen: 31
+        ipv6:
+          ipv6Enabled: true
   Loopback1:
     description: Protocol loopback
     enabled: true
@@ -361,15 +360,6 @@ vrfs:
           - l2vpn-neighbors
           remoteAS: 65104
           updateSource: 172.30.8.0
-        172.30.128.21:
-          description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
-          enabled: true
-          ipv4Unicast: true
-          l2vpnEvpn: true
-          l2vpnEvpnAllowOwnAS: true
-          l2vpnEvpnImportPolicies:
-          - l2vpn-neighbors
-          remoteAS: 65534
         Ethernet0:
           bfdProfile: fabric
           description: Fabric leaf-01/E1/8 spine-01--fabric--leaf-01
@@ -460,6 +450,16 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65104
+        Ethernet10:
+          description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+          enabled: true
+          extendedNexthop: true
+          ipv4Unicast: true
+          l2vpnEvpn: true
+          l2vpnEvpnAllowOwnAS: true
+          l2vpnEvpnImportPolicies:
+          - l2vpn-neighbors
+          remoteAS: 65534
       networkImportCheck: true
       routerID: 172.30.8.0
     enabled: true

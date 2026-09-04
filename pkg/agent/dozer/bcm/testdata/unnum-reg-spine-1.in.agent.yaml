@@ -139,10 +139,8 @@ spec:
       gateway:
         links:
           - gateway:
-              ip: 172.30.128.21/31
               port: gateway-1/enp2s1
             switch:
-              ip: 172.30.128.20/31
               port: spine-01/E1/11
   description: VS-06
   externals:
