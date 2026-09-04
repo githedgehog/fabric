@@ -32,6 +32,9 @@ spec:
     - jsonPath: .spec.permit.external.name
       name: External
       type: string
+    - jsonPath: .spec.permit.external.priority
+      name: Priority
+      type: string
     - jsonPath: .spec.permit.external.prefixes
       name: ExtPrefixes
       priority: 1
@@ -89,6 +92,13 @@ spec:
                               type: string
                           type: object
                         type: array
+                      priority:
+                        description: |-
+                          Priority overrides External.spec.priority for this VPC only. Lower is preferred; peerings of
+                          the same VPC with equal priority load-balance across both Externals. nil inherits from the
+                          External.
+                        maximum: 3
+                        type: integer
                     type: object
                   vpc:
                     description: VPC is the VPC-side of the configuration to peer

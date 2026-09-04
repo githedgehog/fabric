@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,6 +74,16 @@ func TestExternalPeeringValidation(t *testing.T) {
 		},
 		&v1beta1.External{
 			ObjectMeta: kmetav1.ObjectMeta{
+				Name:      "external-st",
+				Namespace: kmetav1.NamespaceDefault,
+			},
+			Spec: v1beta1.ExternalSpec{
+				IPv4Namespace: "default",
+				Static:        &v1beta1.ExternalStaticSpec{Prefixes: []string{"0.0.0.0/0"}},
+			},
+		},
+		&v1beta1.External{
+			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "external-other-ns",
 				Namespace: kmetav1.NamespaceDefault,
 			},
@@ -107,6 +118,23 @@ func TestExternalPeeringValidation(t *testing.T) {
 			}),
 			objects: baseObjs,
 			err:     false,
+		},
+		{
+			name: "external peering with priority",
+			peering: extPeeringGen("ext-peer-prio", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Priority = pointer.To(uint8(2))
+			}),
+			objects: baseObjs,
+			err:     false,
+		},
+		{
+			name: "priority on a static external",
+			peering: extPeeringGen("ext-peer-st-prio", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Name = "external-st"
+				peering.Spec.Permit.External.Priority = pointer.To(uint8(1))
+			}),
+			objects: baseObjs,
+			err:     true,
 		},
 		{
 			name: "vpc name is required",

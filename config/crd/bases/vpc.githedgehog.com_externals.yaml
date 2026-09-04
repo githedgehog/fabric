@@ -30,6 +30,10 @@ spec:
     - jsonPath: .spec.outboundCommunity
       name: OutComm
       type: string
+    - jsonPath: .spec.priority
+      name: Priority
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -73,6 +77,13 @@ spec:
                 description: OutboundCommunity is the optional outbound community
                   that all outbound routes will be stamped with (e.g. 50000:50001)
                 type: string
+              priority:
+                description: |-
+                  Priority is the default preference class for routes learned from this External, used by any
+                  ExternalPeering that does not override it. Lower is preferred; equal priorities load-balance.
+                  0 (the default) preserves the existing behaviour. Not valid for static externals.
+                maximum: 3
+                type: integer
               static:
                 description: Static contains parameters specific to static externals
                 properties:

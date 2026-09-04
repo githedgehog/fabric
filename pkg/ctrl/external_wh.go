@@ -77,6 +77,23 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.Ext
 		return warns, errors.Wrapf(err, "error validating external")
 	}
 
+	// a static external must not be ranked on either axis, and External.Validate only sees its own
+	// spec.priority - the per-VPC override lives on the peering, which was admitted while this
+	// external was still BGP
+	if oldExt.Spec.Static == nil && newExt.Spec.Static != nil {
+		peerings := &vpcapi.ExternalPeeringList{}
+		if err := w.Client.List(ctx, peerings, kclient.MatchingLabels{
+			vpcapi.LabelExternal: newExt.Name,
+		}); err != nil {
+			return warns, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error
+		}
+		for _, peering := range peerings.Items {
+			if prio := peering.Spec.Permit.External.Priority; prio != nil && *prio != 0 {
+				return warns, errors.Errorf("external peering %s sets a priority, clear it before making external %s static", peering.Name, newExt.Name)
+			}
+		}
+	}
+
 	// static attachments install one route per spec.static.prefixes, so dropping the prefixes
 	// while they exist would leave them with nothing to point at
 	if oldExt.Spec.Static != nil && newExt.Spec.Static == nil {

@@ -27,6 +27,9 @@ spec:
     - jsonPath: .spec.connection
       name: Connection
       type: string
+    - jsonPath: .spec.priority
+      name: Priority
+      type: string
     - jsonPath: .spec.switch.vlan
       name: SwVLAN
       priority: 1
@@ -188,6 +191,13 @@ spec:
                       with (without prefix length)
                     type: string
                 type: object
+              priority:
+                description: |-
+                  Priority ranks this attachment against the other attachments of the same External. Lower is
+                  preferred; equal priorities load-balance across border leaves, which is the existing behaviour
+                  and the default. Fabric-wide: it is not overridable per VPC. Not valid for static attachments.
+                maximum: 3
+                type: integer
               static:
                 description: Static contains parameters specific to a static external
                   attachment

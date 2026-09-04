@@ -426,6 +426,16 @@ spec:
                       type: object
                   type: object
                 type: object
+              uplinkCommunities:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                description: |-
+                  UplinkCommunities maps a community stamped by a border leaf on routes learned from an
+                  external system to the local preference the gateway should give them, so that two copies of
+                  one external prefix from two border leaves are ranked the way the fabric asked rather than
+                  load-balanced. Applied on the gateway's inbound EVPN sessions.
+                type: object
               vpcs:
                 additionalProperties:
                   properties:

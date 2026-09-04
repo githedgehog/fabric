@@ -2003,6 +2003,7 @@ _Appears in:_
 | `static` _[ExternalAttachmentStatic](#externalattachmentstatic)_ | Static contains parameters specific to a static external attachment |  |  |
 | `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL defines the ACL statements to apply to inbound traffic on this external attachment |  |  |
 | `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the BGP session of this external attachment, an empty object<br />uses the fabric defaults |  |  |
+| `priority` _integer_ | Priority ranks this attachment against the other attachments of the same External. Lower is<br />preferred; equal priorities load-balance across border leaves, which is the existing behaviour<br />and the default. Fabric-wide: it is not overridable per VPC. Not valid for static attachments. |  | Maximum: 3 <br /> |
 
 
 #### ExternalAttachmentStatic
@@ -2104,6 +2105,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ | Name is the name of the External to peer with |  |  |
 | `prefixes` _[ExternalPeeringSpecPrefix](#externalpeeringspecprefix) array_ | Prefixes is the list of prefixes to permit from the External to the VPC |  |  |
+| `priority` _integer_ | Priority overrides External.spec.priority for this VPC only. Lower is preferred; peerings of<br />the same VPC with equal priority load-balance across both Externals. nil inherits from the<br />External. |  | Maximum: 3 <br /> |
 
 
 #### ExternalPeeringSpecPermit
@@ -2187,6 +2189,7 @@ _Appears in:_
 | `inboundCommunity` _string_ | InboundCommunity is the optional inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
 | `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
 | `static` _[ExternalStaticSpec](#externalstaticspec)_ | Static contains parameters specific to static externals |  |  |
+| `priority` _integer_ | Priority is the default preference class for routes learned from this External, used by any<br />ExternalPeering that does not override it. Lower is preferred; equal priorities load-balance.<br />0 (the default) preserves the existing behaviour. Not valid for static externals. |  | Maximum: 3 <br /> |
 
 
 #### ExternalStaticSpec

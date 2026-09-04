@@ -287,15 +287,21 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		comms[strconv.FormatUint(uint64(id), 10)] = comm
 	}
 
+	uplinkComms := map[string]uint32{}
+	for prio := uint8(0); prio < meta.MaxUplinkPrioLevels; prio++ {
+		uplinkComms[fmt.Sprintf("%d:%d", meta.UplinkPrioCommBase, prio)] = uint32(meta.ExternalPreference) - uint32(prio)
+	}
+
 	gwAg := &gwintapi.GatewayAgent{
 		ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name},
 		Spec: gwintapi.GatewayAgentSpec{
-			AgentVersion: "",
-			Gateway:      gw.Spec,
-			VPCs:         vpcs,
-			Peerings:     peerings,
-			Groups:       gwGroups,
-			Communities:  comms,
+			AgentVersion:      "",
+			Gateway:           gw.Spec,
+			VPCs:              vpcs,
+			Peerings:          peerings,
+			Groups:            gwGroups,
+			Communities:       comms,
+			UplinkCommunities: uplinkComms,
 			Config: gwintapi.GatewayAgentSpecConfig{
 				FabricBFD: !cfg.DisableBFD,
 			},

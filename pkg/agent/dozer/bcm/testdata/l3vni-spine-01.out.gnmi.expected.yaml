@@ -483,6 +483,9 @@ routing-policy:
         - community-set-name: all-externals
           config:
             action: PERMIT
+            community-member:
+            - "50003:2"
+            - "50003:3"
             community-set-name: all-externals
             match-set-options: ANY
         - community-set-name: no-community

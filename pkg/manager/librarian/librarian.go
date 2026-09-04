@@ -33,18 +33,20 @@ import (
 )
 
 const (
-	Namespace         = kmetav1.NamespaceDefault
-	CatConns          = "connections"
-	CatVNIs           = "vpcs" // contains both VPC and External VNIs
-	CatVPCInfos       = "vpcinfos"
-	CatSwitchPrefix   = "switch."
-	CatRedGroupPrefix = "redundancy."
-	VPCVNIOffset      = 100
-	VPCVNIMax         = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
-	PortChannelMin    = 1
-	PortChannelMax    = 249
-	ReqPrefixVPC      = "vpc@"
-	ReqPrefixExt      = "ext@"
+	Namespace          = kmetav1.NamespaceDefault
+	CatConns           = "connections"
+	CatVNIs            = "vpcs" // contains both VPC and External VNIs
+	CatVPCInfos        = "vpcinfos"
+	CatExternals       = "externals"
+	CatSwitchPrefix    = "switch."
+	CatRedGroupPrefix  = "redundancy."
+	VPCVNIOffset       = 100
+	VPCVNIMax          = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+	PortChannelMin     = 1
+	PortChannelMax     = 249
+	ReqPrefixVPC       = "vpc@"
+	ReqPrefixExt       = "ext@"
+	ReqPrefixExtAttach = "extattach@"
 )
 
 type Manager struct {
@@ -85,6 +87,15 @@ func (m *Manager) getCatalog(ctx context.Context, kube kclient.Client, key strin
 	}
 	if cat.Spec.VPCInfoIDs == nil {
 		cat.Spec.VPCInfoIDs = map[string]uint32{}
+	}
+	if cat.Spec.ExternalCommIDs == nil {
+		cat.Spec.ExternalCommIDs = map[string]uint16{}
+	}
+	if cat.Spec.ExternalAttachmentCommIDs == nil {
+		cat.Spec.ExternalAttachmentCommIDs = map[string]uint16{}
+	}
+	if cat.Spec.ExternalLeakIDs == nil {
+		cat.Spec.ExternalLeakIDs = map[string]uint16{}
 	}
 
 	return cat, nil
@@ -189,6 +200,85 @@ func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
 	}
 
 	return m.saveCatalog(ctx, kube, CatVNIs, cat)
+}
+
+// UpdateExternals allocates the fabric-wide identity IDs that back the External and attachment
+// identity communities. They have to be globally unique: a border leaf matches the other leaf's
+// tags, not just its own.
+func (m *Manager) UpdateExternals(ctx context.Context, kube kclient.Client) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	cat, err := m.getCatalog(ctx, kube, CatExternals)
+	if err != nil {
+		return err
+	}
+
+	externalList := &vpcapi.ExternalList{}
+	if err := kube.List(ctx, externalList); err != nil {
+		return errors.Wrapf(err, "error listing externals")
+	}
+
+	attachList := &vpcapi.ExternalAttachmentList{}
+	if err := kube.List(ctx, attachList); err != nil {
+		return errors.Wrapf(err, "error listing external attachments")
+	}
+
+	extReqs := map[string]bool{}
+	for _, ext := range externalList.Items {
+		extReqs[ext.Name] = true
+	}
+	attachReqs := map[string]bool{}
+	for _, attach := range attachList.Items {
+		attachReqs[attach.Name] = true
+	}
+
+	{
+		a := &Allocator[uint16]{
+			Values: NewNextFreeValueFromRanges([][2]uint16{{1, math.MaxUint16}}, 1),
+		}
+		cat.Spec.ExternalCommIDs, err = a.Allocate(cat.Spec.ExternalCommIDs, extReqs)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate external community IDs")
+		}
+	}
+
+	{
+		a := &Allocator[uint16]{
+			Values: NewNextFreeValueFromRanges([][2]uint16{{1, math.MaxUint16}}, 1),
+		}
+		cat.Spec.ExternalAttachmentCommIDs, err = a.Allocate(cat.Spec.ExternalAttachmentCommIDs, attachReqs)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate external attachment community IDs")
+		}
+	}
+
+	return m.saveCatalog(ctx, kube, CatExternals, cat)
+}
+
+// CatalogForExternals copies the fabric-wide external identity IDs into a switch catalog. Every
+// External is copied, because all-externals lists them all; only the switch's own attachments are.
+func (m *Manager) CatalogForExternals(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, extAttachments map[string]bool) error {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	cat, err := m.getCatalog(ctx, kube, CatExternals)
+	if err != nil {
+		return errors.Errorf("failed to get externals catalog %s", CatExternals)
+	}
+
+	ret.ExternalCommIDs = cat.Spec.ExternalCommIDs
+
+	ret.ExternalAttachmentCommIDs = map[string]uint16{}
+	for name := range extAttachments {
+		id, exists := cat.Spec.ExternalAttachmentCommIDs[name]
+		if !exists {
+			return errors.Errorf("failed to find community ID for external attachment %s", name)
+		}
+		ret.ExternalAttachmentCommIDs[name] = id
+	}
+
+	return nil
 }
 
 func (m *Manager) getRedundancyGroupKey(swName string, redundancy wiringapi.SwitchRedundancy) string {
@@ -307,7 +397,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, extLeaks, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -345,6 +435,17 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		cat.Spec.ExternalIDs, err = a.Allocate(cat.Spec.ExternalIDs, externals)
 		if err != nil {
 			return errors.Wrapf(err, "failed to allocate external IDs for %s", key)
+		}
+	}
+
+	{
+		// from 10 up: 50000..50009 are taken by the static statements of import-vrf--<vpc>
+		a := Allocator[uint16]{
+			Values: NewNextFreeValueFromRanges([][2]uint16{{10, 15000}}, 1),
+		}
+		cat.Spec.ExternalLeakIDs, err = a.Allocate(cat.Spec.ExternalLeakIDs, extLeaks)
+		if err != nil {
+			return errors.Wrapf(err, "failed to allocate external leak IDs for %s", key)
 		}
 	}
 
@@ -397,6 +498,13 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 	}
 
+	ret.ExternalLeakIDs = cat.Spec.ExternalLeakIDs
+	for req := range extLeaks {
+		if _, exists := ret.ExternalLeakIDs[req]; !exists {
+			return errors.Errorf("failed to find external leak ID for %s", req)
+		}
+	}
+
 	ret.StaticExternalSubnetOffsets = cat.Spec.StaticExternalSubnetOffsets
 	for attach := range proxyStaticExtAttachments {
 		if _, exists := ret.StaticExternalSubnetOffsets[attach]; !exists {
@@ -428,6 +536,10 @@ func LoWReqForVPC(vpcPeeringName string) string {
 
 func ReqForExt(extPeeringName string) string {
 	return ReqPrefixExt + extPeeringName
+}
+
+func ReqForExtAttach(attachName string) string {
+	return ReqPrefixExtAttach + attachName
 }
 
 func (m *Manager) GetVPCVNI(ctx context.Context, kube kclient.Client, vpc string) (uint32, error) {

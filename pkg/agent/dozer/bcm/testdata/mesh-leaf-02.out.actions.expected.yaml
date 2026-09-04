@@ -405,7 +405,7 @@
       config:
         action: PERMIT
         community-member:
-        - 65102:1000
+        - "50003:1"
         community-set-name: all-externals
         match-set-options: ANY
   weight: 11
@@ -429,6 +429,214 @@
         - "50001:8"
         - "50001:9"
         community-set-name: all-gw-prios
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-00]
+  summary: Create Community Lists ext-rank-00
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-00
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:0"
+        community-set-name: ext-rank-00
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-01]
+  summary: Create Community Lists ext-rank-01
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-01
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:1"
+        community-set-name: ext-rank-01
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-02]
+  summary: Create Community Lists ext-rank-02
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-02
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:2"
+        community-set-name: ext-rank-02
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-03]
+  summary: Create Community Lists ext-rank-03
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-03
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:3"
+        community-set-name: ext-rank-03
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-10]
+  summary: Create Community Lists ext-rank-10
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-10
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:10"
+        community-set-name: ext-rank-10
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-11]
+  summary: Create Community Lists ext-rank-11
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-11
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:11"
+        community-set-name: ext-rank-11
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-12]
+  summary: Create Community Lists ext-rank-12
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-12
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:12"
+        community-set-name: ext-rank-12
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-13]
+  summary: Create Community Lists ext-rank-13
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-13
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:13"
+        community-set-name: ext-rank-13
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-20]
+  summary: Create Community Lists ext-rank-20
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-20
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:20"
+        community-set-name: ext-rank-20
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-21]
+  summary: Create Community Lists ext-rank-21
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-21
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:21"
+        community-set-name: ext-rank-21
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-22]
+  summary: Create Community Lists ext-rank-22
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-22
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:22"
+        community-set-name: ext-rank-22
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-23]
+  summary: Create Community Lists ext-rank-23
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-23
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:23"
+        community-set-name: ext-rank-23
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-30]
+  summary: Create Community Lists ext-rank-30
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-30
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:30"
+        community-set-name: ext-rank-30
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-31]
+  summary: Create Community Lists ext-rank-31
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-31
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:31"
+        community-set-name: ext-rank-31
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-32]
+  summary: Create Community Lists ext-rank-32
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-32
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:32"
+        community-set-name: ext-rank-32
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=ext-rank-33]
+  summary: Create Community Lists ext-rank-33
+  type: update
+  value:
+    community-set:
+    - community-set-name: ext-rank-33
+      config:
+        action: PERMIT
+        community-member:
+        - "50002:33"
+        community-set-name: ext-rank-33
         match-set-options: ANY
   weight: 11
 - path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-0]
@@ -572,6 +780,58 @@
         community-member:
         - REGEX:^$
         community-set-name: no-community
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=uplink-prio-0]
+  summary: Create Community Lists uplink-prio-0
+  type: update
+  value:
+    community-set:
+    - community-set-name: uplink-prio-0
+      config:
+        action: PERMIT
+        community-member:
+        - "50004:0"
+        community-set-name: uplink-prio-0
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=uplink-prio-1]
+  summary: Create Community Lists uplink-prio-1
+  type: update
+  value:
+    community-set:
+    - community-set-name: uplink-prio-1
+      config:
+        action: PERMIT
+        community-member:
+        - "50004:1"
+        community-set-name: uplink-prio-1
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=uplink-prio-2]
+  summary: Create Community Lists uplink-prio-2
+  type: update
+  value:
+    community-set:
+    - community-set-name: uplink-prio-2
+      config:
+        action: PERMIT
+        community-member:
+        - "50004:2"
+        community-set-name: uplink-prio-2
+        match-set-options: ANY
+  weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=uplink-prio-3]
+  summary: Create Community Lists uplink-prio-3
+  type: update
+  value:
+    community-set:
+    - community-set-name: uplink-prio-3
+      config:
+        action: PERMIT
+        community-member:
+        - "50004:3"
+        community-set-name: uplink-prio-3
         match-set-options: ANY
   weight: 11
 - path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=vpc-peers--vpc-01]
@@ -1312,6 +1572,386 @@
       config:
         name: "6"
       name: "6"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65505]
+  summary: Create Route Map Statement 65505
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 150
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: uplink-prio-0
+      config:
+        name: "65505"
+      name: "65505"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65506]
+  summary: Create Route Map Statement 65506
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 149
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: uplink-prio-1
+      config:
+        name: "65506"
+      name: "65506"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65507]
+  summary: Create Route Map Statement 65507
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 148
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: uplink-prio-2
+      config:
+        name: "65507"
+      name: "65507"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65508]
+  summary: Create Route Map Statement 65508
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 147
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: uplink-prio-3
+      config:
+        name: "65508"
+      name: "65508"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65509]
+  summary: Create Route Map Statement 65509
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 150
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-00
+      config:
+        name: "65509"
+      name: "65509"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65510]
+  summary: Create Route Map Statement 65510
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 149
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-01
+      config:
+        name: "65510"
+      name: "65510"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65511]
+  summary: Create Route Map Statement 65511
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 148
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-02
+      config:
+        name: "65511"
+      name: "65511"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65512]
+  summary: Create Route Map Statement 65512
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 147
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-03
+      config:
+        name: "65512"
+      name: "65512"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65513]
+  summary: Create Route Map Statement 65513
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 146
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-10
+      config:
+        name: "65513"
+      name: "65513"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65514]
+  summary: Create Route Map Statement 65514
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 145
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-11
+      config:
+        name: "65514"
+      name: "65514"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65515]
+  summary: Create Route Map Statement 65515
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 144
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-12
+      config:
+        name: "65515"
+      name: "65515"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65516]
+  summary: Create Route Map Statement 65516
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 143
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-13
+      config:
+        name: "65516"
+      name: "65516"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65517]
+  summary: Create Route Map Statement 65517
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 142
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-20
+      config:
+        name: "65517"
+      name: "65517"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65518]
+  summary: Create Route Map Statement 65518
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 141
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-21
+      config:
+        name: "65518"
+      name: "65518"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65519]
+  summary: Create Route Map Statement 65519
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 140
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-22
+      config:
+        name: "65519"
+      name: "65519"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65520]
+  summary: Create Route Map Statement 65520
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 139
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-23
+      config:
+        name: "65520"
+      name: "65520"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65521]
+  summary: Create Route Map Statement 65521
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 138
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-30
+      config:
+        name: "65521"
+      name: "65521"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65522]
+  summary: Create Route Map Statement 65522
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 137
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-31
+      config:
+        name: "65522"
+      name: "65522"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65523]
+  summary: Create Route Map Statement 65523
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 136
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-32
+      config:
+        name: "65523"
+      name: "65523"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65524]
+  summary: Create Route Map Statement 65524
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-local-pref: 135
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: ext-rank-33
+      config:
+        name: "65524"
+      name: "65524"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]/statements/statement[name=65525]
   summary: Create Route Map Statement 65525
