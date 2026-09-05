@@ -481,17 +481,17 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 		args = append(args, "--driver", driver)
 
-		// Under DPDK the NIC is driven from userspace, and the kernel netdev left beside it is
-		// only a hazard: it answers ARP and accepts connections without the dataplane knowing.
+		// The kernel netdev beside a dataplane-driven NIC is a hazard rather than a spare: it
+		// answers ARP, accepts connections and routes, all without the dataplane knowing.
 		// dataplane-init moves it into a network namespace of its own making, out of reach, and
 		// the dataplane puts a tap carrying the same name where it was -- which is what FRR and
 		// the interface manager find in its place.
 		//
-		// DPDK only. The kernel driver's AF_PACKET sockets are opened on the real interfaces, so
-		// those have to stay where they are.
-		if driver == "dpdk" {
-			args = append(args, "--datapath-netns")
-		}
+		// Both drivers. Under DPDK it is forced (on vfio-pci there is no netdev at all); under the
+		// kernel driver it is a choice, and it is the one that makes the netfilter rules keeping
+		// VXLAN away from the host stack unnecessary. The dataplane's own AF_PACKET sockets follow
+		// the interfaces, because its workers enter that namespace before opening anything.
+		args = append(args, "--datapath-netns")
 
 		// tmp hack to make dp work
 		var initContainers []corev1.Container
