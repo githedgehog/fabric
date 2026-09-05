@@ -481,6 +481,18 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 		args = append(args, "--driver", driver)
 
+		// Under DPDK the NIC is driven from userspace, and the kernel netdev left beside it is
+		// only a hazard: it answers ARP and accepts connections without the dataplane knowing.
+		// dataplane-init moves it into a network namespace of its own making, out of reach, and
+		// the dataplane puts a tap carrying the same name where it was -- which is what FRR and
+		// the interface manager find in its place.
+		//
+		// DPDK only. The kernel driver's AF_PACKET sockets are opened on the real interfaces, so
+		// those have to stay where they are.
+		if driver == "dpdk" {
+			args = append(args, "--datapath-netns")
+		}
+
 		// tmp hack to make dp work
 		var initContainers []corev1.Container
 		if driver == "kernel" {
@@ -537,7 +549,17 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 							{
 								Name:  "dataplane",
 								Image: r.cfg.DataplaneRef,
-								Args:  args,
+								// Command, not just Args. The image's entrypoint is /bin/dataplane,
+								// so dataplane-init has shipped in it and never run: everything it
+								// does -- mounting hugetlbfs, binding NICs to vfio-pci or leaving a
+								// bifurcated one alone, moving the netdev into the datapath
+								// namespace -- was either done by an init container in shell or not
+								// done at all. Naming it here is what puts it in the path.
+								//
+								// It takes the same arguments as the dataplane and execs it, so
+								// under the kernel driver this is a no-op beyond one extra fork.
+								Command: []string{"/bin/dataplane-init"},
+								Args:    args,
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
