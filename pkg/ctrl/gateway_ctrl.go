@@ -493,6 +493,21 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		// the interfaces, because its workers enter that namespace before opening anything.
 		args = append(args, "--datapath-netns")
 
+		// FRR is this process's to start, not a container of its own. That buys three things
+		// nothing outside the pod can express: a startup order (zebra's dplane module connects to
+		// the dataplane's control-plane socket as it loads, and a zebra that starts first finds
+		// nothing there), shared fate (when one of them dies they all do, rather than the
+		// dataplane forwarding on a FIB whose author has gone), and a control network namespace
+		// that FRR and the dataplane share while the outward-facing work -- the k8s client, the
+		// metrics endpoint -- stays in the host's.
+		//
+		// It also retires the three init containers that used to precede FRR. The nexthop sweep
+		// and the VTEP address flush were both cleanup after a *previous* FRR in a namespace that
+		// outlived it; the namespace is created per start now and dies with the process tree, so
+		// there is nothing left to meet. The chown-and-sweep of the state directory is
+		// dataplane-init's, which is the only thing here that knows when FRR is about to start.
+		args = append(args, "--supervise-frr")
+
 		// tmp hack to make dp work
 		var initContainers []corev1.Container
 		if driver == "kernel" {
@@ -583,12 +598,51 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 										Name:      "dataplane-tmp",
 										MountPath: "/tmp",
 									},
+									{
+										Name:      frrTmpVolumeName,
+										MountPath: "/var/tmp/frr",
+									},
+								},
+							},
+							{
+								// Not under the supervisor, deliberately. It reads FRR's vty
+								// sockets, which are files, so it does not care which network
+								// namespace FRR ends up in -- and a metrics endpoint should not
+								// be able to take the gateway down with it, which is exactly what
+								// being supervised would mean.
+								//
+								// From the dataplane image, which now carries FRR and everything
+								// beside it.
+								Name:    "frr-exporter",
+								Image:   r.cfg.DataplaneRef,
+								Command: []string{"/bin/frr_exporter"},
+								Args: []string{
+									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
+									"--frr.socket.dir-path", frrRunMountPath,
+									"--no-collector.ospf",
+								},
+								SecurityContext: &corev1.SecurityContext{
+									Privileged: ptr.To(true),
+									RunAsUser:  ptr.To(int64(0)),
+								},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      frrRunVolumeName,
+										MountPath: frrRunMountPath,
+									},
 								},
 							},
 						},
 						Volumes: []corev1.Volume{
 							dataplaneSocketVolume,
 							frrSocketVolume,
+							{
+								Name: frrTmpVolumeName,
+								VolumeSource: corev1.VolumeSource{
+									// TODO consider memory medium
+									EmptyDir: &corev1.EmptyDirVolumeSource{},
+								},
+							},
 
 							{
 								Name: "dataplane-tmp",
@@ -609,153 +663,17 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 	}
 
-	frrVolumeMounts := []corev1.VolumeMount{
-		{
-			Name:      frrRunVolumeName,
-			MountPath: frrRunMountPath,
-		},
-		{
-			Name:      frrTmpVolumeName,
-			MountPath: "/var/tmp/frr",
-		},
-		{
-			Name:      frrRootRunVolumeName,
-			MountPath: frrRootRunMountPath,
-		},
-	}
-
-	{
-		frrDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: r.cfg.GatewayNamespace,
-			Name:      entityName(gw.Name, "frr"),
-		}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
-			labels := map[string]string{
-				"app.kubernetes.io/name": frrDS.Name, // TODO
-			}
-
-			frrDS.Spec = appv1.DaemonSetSpec{
-				Selector: &kmetav1.LabelSelector{
-					MatchLabels: labels,
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Labels: labels,
-					},
-					Spec: corev1.PodSpec{
-						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
-						HostNetwork:                   true,
-						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-						TerminationGracePeriodSeconds: ptr.To(int64(10)),
-						Tolerations:                   r.cfg.GatewayTolerations,
-						InitContainers: []corev1.Container{
-							// TODO remove it after frr container will take care of this
-							{
-								Name:    "init-frr",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										"chown -R frr:frr /run/frr/ && chmod -R 760 /run/frr && " +
-										"mkdir -p /var/run/frr/hh && chown -R frr:frr /var/run/frr/ && chmod -R 766 /var/run/frr &&" +
-										"rm -f /var/run/frr/*.pid /var/run/frr/*.sock /var/run/frr/*.vty /var/run/frr/*.api /var/run/frr/*.started",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-							// it's needed to avoid issues with leftover routes in the kernel being loaded by FRR on startup
-							{
-								Name:    "flush-zebra-nexthops",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										"ip -j -d nexthop show | jq '.[]|select(.protocol=\"zebra\")|.id' | while read -r id ; do ip nexthop del id $id ; done",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-							},
-							// it's needed to avoid issues with leftover routes on the physical interface learned from BGP
-							{
-								Name:    "flush-vtepip",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										fmt.Sprintf("ip addr del %s dev lo || true", gw.Spec.VTEPIP),
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-							},
-						},
-						Containers: []corev1.Container{
-							{
-								Name:    "frr",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/tini", "--"},
-								Args: []string{
-									"/libexec/frr/docker-start",
-									"--sock-path", filepath.Join(frrRunMountPath, frrAgentSocket),
-									"--reloader", "/libexec/frr/frr-reload.py",
-									"--bindir", "/bin",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-							{
-								Name:    "frr-exporter",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/frr_exporter"},
-								Args: []string{
-									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
-									"--frr.socket.dir-path", frrRootRunMountPath,
-									"--no-collector.ospf",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-						},
-						Volumes: []corev1.Volume{
-							frrSocketVolume,
-							{
-								Name: frrTmpVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									// TODO consider memory medium
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
-							},
-							{
-								Name: frrRootRunVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									HostPath: &corev1.HostPathVolumeSource{
-										Path: "/run/hedgehog/frr-root",
-										Type: ptr.To(corev1.HostPathDirectoryOrCreate),
-									},
-								},
-							},
-						},
-					},
-				},
-				UpdateStrategy: replaceUpdateStrategy,
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating or updating gateway frr daemonset: %w", err)
-		}
+	// The FRR DaemonSet is gone: FRR runs under `dataplane-init` in the dataplane pod, which is
+	// what lets the two share a network namespace, a startup order and a fate. `CreateOrUpdate`
+	// cannot express a removal, so the old object has to be deleted by name -- left behind it
+	// would keep running a second FRR against the same sockets, which is a worse failure than
+	// either arrangement alone.
+	frrDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
+		Namespace: r.cfg.GatewayNamespace,
+		Name:      entityName(gw.Name, "frr"),
+	}}
+	if err := r.Client.Delete(ctx, frrDS); err != nil && !kapierrors.IsNotFound(err) {
+		return fmt.Errorf("deleting the standalone gateway frr daemonset: %w", err)
 	}
 
 	return nil
