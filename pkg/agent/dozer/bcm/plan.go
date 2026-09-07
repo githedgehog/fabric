@@ -86,6 +86,10 @@ const (
 	_ = uint8(10 - MaxExtPrioLevels)
 	_ = uint8(10 - MaxUplinkPrioLevels)
 
+	// The External and the attachment each cap their prepend at 10 and the two add up, so this
+	// is the effective bound on what we write out - and what keeps the sum inside a uint8.
+	MaxASPathPrepend = 20
+
 	// Sequence numbers for the two translation blocks in l2vpn-neighbors. They sit after the
 	// gw-prio block, so gateways still win, and before the all-externals catch-all.
 	AllExternalsStatement   = RouteMapMaxStatement - 10
@@ -1460,32 +1464,52 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Statements: inboundStatements,
 			}
 
-			outboundRMap := &dozer.SpecRouteMap{
-				Statements: map[string]*dozer.SpecRouteMapStatement{
-					"10": {
-						Conditions: dozer.SpecRouteMapConditions{
-							MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+			// MED and prepending are per-session values, so on the identity-community path the
+			// egress policy is built per attachment below. Only the legacy path still shares one.
+			if legacyComms {
+				outboundRMap := &dozer.SpecRouteMap{
+					Statements: map[string]*dozer.SpecRouteMapStatement{
+						"10": {
+							Conditions: dozer.SpecRouteMapConditions{
+								MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+							},
+							Result: dozer.SpecRouteMapResultAccept,
 						},
-						Result: dozer.SpecRouteMapResultAccept,
-					},
-					"20": {
-						Conditions: dozer.SpecRouteMapConditions{
-							MatchCommunityList: pointer.To(string(BGPCommListAllGwPrios)),
+						"20": {
+							Conditions: dozer.SpecRouteMapConditions{
+								MatchCommunityList: pointer.To(string(BGPCommListAllGwPrios)),
+							},
+							Result: dozer.SpecRouteMapResultAccept,
 						},
-						Result: dozer.SpecRouteMapResultAccept,
 					},
-				},
+				}
+				if external.OutboundCommunity != "" {
+					for _, seq := range []string{"10", "20"} {
+						outboundRMap.Statements[seq].SetCommunities = []string{external.OutboundCommunity}
+						// non-additive: this is what strips the fabric-internal tags on the way out.
+						// With no outboundCommunity configured there is nothing to replace them with,
+						// so they still reach the external system - see the branch notes.
+						outboundRMap.Statements[seq].ReplaceCommunities = true
+					}
+				}
+				spec.RouteMaps[extOutboundRouteMapName(externalName)] = outboundRMap
 			}
-			if external.OutboundCommunity != "" {
-				for _, seq := range []string{"10", "20"} {
-					outboundRMap.Statements[seq].SetCommunities = []string{external.OutboundCommunity}
-					// non-additive: this is what strips the fabric-internal tags on the way out.
-					// With no outboundCommunity configured there is nothing to replace them with,
-					// so they still reach the external system - see the branch notes.
-					outboundRMap.Statements[seq].ReplaceCommunities = true
+
+			if external.Advertise != nil && len(external.Advertise.Prefixes) > 0 {
+				prefixes := map[uint32]*dozer.SpecPrefixListEntry{}
+				for idx, prefix := range external.Advertise.Prefixes {
+					prefixes[uint32(idx+1)] = &dozer.SpecPrefixListEntry{ //nolint:gosec
+						Prefix: dozer.SpecPrefixListPrefix{
+							Prefix: prefix,
+							Le:     32,
+						},
+						Action: dozer.SpecPrefixListActionPermit,
+					}
+				}
+				spec.PrefixLists[extAdvertisePrefixListName(externalName)] = &dozer.SpecPrefixList{
+					Prefixes: prefixes,
 				}
 			}
-			spec.RouteMaps[extOutboundRouteMapName(externalName)] = outboundRMap
 		}
 
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
@@ -1610,6 +1634,17 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 					"15": tagStatement,
 				}
+				if external.Advertise != nil && len(external.Advertise.Prefixes) > 0 {
+					// never take our own announced space back from anyone. AS-path loop detection
+					// does not catch this: only the advertising leaf's ASN is in the path, and
+					// with localASN it is the shared one, so the check is not fabric-wide either.
+					attachInStatements["12"] = &dozer.SpecRouteMapStatement{
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchPrefixList: pointer.To(extAdvertisePrefixListName(externalName)),
+						},
+						Result: dozer.SpecRouteMapResultReject,
+					}
+				}
 				if _, ok := spec.AsPathLists[AsPathListFabricGW]; ok {
 					attachInStatements["5"] = &dozer.SpecRouteMapStatement{
 						Conditions: dozer.SpecRouteMapConditions{
@@ -1622,6 +1657,104 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Statements: attachInStatements,
 				}
 				importPolicy = extAttachInboundRouteMapName(name)
+			}
+
+			// Egress: how attractive we make this link to the external system, which is all the
+			// say we have in which link it sends traffic back on. The two axes add up, so a link
+			// that is backup on both prepends twice.
+			extPrepend := external.Priority
+			if external.Advertise != nil && external.Advertise.Prepend != nil {
+				extPrepend = *external.Advertise.Prepend
+			}
+			attachPrepend := attach.Priority
+			if attach.Advertise != nil && attach.Advertise.Prepend != nil {
+				attachPrepend = *attach.Advertise.Prepend
+			}
+			// with local-as replacing our ASN on the wire, prepending the real one would give the
+			// difference away
+			prependASN := cmp.Or(external.LocalASN, agent.Spec.Switch.ASN)
+
+			// A MED only means anything to a peer that sees both sessions as the same neighbouring
+			// AS, which is what localASN is for; without it the API rejects an explicit MED and we
+			// do not invent one. A MED of 0 is written out rather than left implicit: a peer
+			// running "bestpath med missing-as-worst" would otherwise read the primary's silence
+			// as the worst possible metric and invert the ranking.
+			var med *uint32
+			if external.LocalASN != 0 {
+				med = pointer.To(uint32(attach.Priority) * 10)
+				if attach.Advertise != nil && attach.Advertise.MED != nil {
+					med = attach.Advertise.MED
+				}
+			}
+
+			var outComms []string
+			if external.OutboundCommunity != "" {
+				outComms = append(outComms, external.OutboundCommunity)
+			}
+			if external.Advertise != nil {
+				outComms = append(outComms, external.Advertise.Communities...)
+			}
+			if attach.Advertise != nil {
+				outComms = append(outComms, attach.Advertise.Communities...)
+			}
+
+			exportPolicy := extOutboundRouteMapName(externalName)
+			if !legacyComms {
+				exportPolicy = extAttachOutboundRouteMapName(name)
+
+				outStatements := map[string]*dozer.SpecRouteMapStatement{
+					"10": {
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchPrefixList: pointer.To(ipnsSubnetsPrefixListName(ipns)),
+						},
+						Result: dozer.SpecRouteMapResultAccept,
+					},
+					// Gateway-originated routes, the NAT pool among them. The External axis is
+					// left off here on purpose: the Gateway knows the per-VPC priority and the
+					// proposal has it prepend for that axis itself, so a per-External prepend
+					// here would either duplicate or fight with it.
+					"20": {
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchCommunityList: pointer.To(string(BGPCommListAllGwPrios)),
+						},
+						Result: dozer.SpecRouteMapResultAccept,
+					},
+				}
+				if external.Advertise != nil && len(external.Advertise.Prefixes) > 0 {
+					outStatements["30"] = &dozer.SpecRouteMapStatement{
+						Conditions: dozer.SpecRouteMapConditions{
+							MatchPrefixList: pointer.To(extAdvertisePrefixListName(externalName)),
+						},
+						Result: dozer.SpecRouteMapResultAccept,
+					}
+				}
+
+				for seq, statement := range outStatements {
+					prepend := attachPrepend
+					// statement 20 carries the uplink axis only, see above
+					if seq != "20" {
+						prepend += extPrepend
+					}
+					prepend = min(prepend, MaxASPathPrepend)
+					if prepend > 0 {
+						statement.SetASPathPrepend = &dozer.SpecRouteMapASPathPrepend{
+							ASN:     prependASN,
+							RepeatN: prepend,
+						}
+					}
+					statement.SetMetric = med
+					if len(outComms) > 0 {
+						statement.SetCommunities = outComms
+						// non-additive: this is what strips the fabric-internal tags on the way
+						// out. With nothing configured to replace them with they still reach the
+						// external system - see the branch notes.
+						statement.ReplaceCommunities = true
+					}
+				}
+
+				spec.RouteMaps[exportPolicy] = &dozer.SpecRouteMap{
+					Statements: outStatements,
+				}
 			}
 
 			// external sessions run on the FRR default timers 60/180, so without BFD a peer that
@@ -1638,15 +1771,23 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				bfdProfile = pointer.To(profileName)
 			}
 
-			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
+			neigh := &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
 				RemoteAS:                  pointer.To(attach.Neighbor.ASN),
 				IPv4Unicast:               pointer.To(true),
 				IPv4UnicastImportPolicies: []string{importPolicy},
-				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
+				IPv4UnicastExportPolicies: []string{exportPolicy},
 				BFDProfile:                bfdProfile,
 			}
+			if external.LocalASN != 0 {
+				// no-prepend and replace-as together, always: plain local-as prepends our real
+				// ASN after the local one, which would change the AS-path lengths we rank with
+				neigh.LocalAS = pointer.To(external.LocalASN)
+				neigh.LocalASNoPrepend = pointer.To(true)
+				neigh.LocalASReplaceAs = pointer.To(true)
+			}
+			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = neigh
 
 			if err := planHardenedInboundACL(spec, name, ip.String(), attach.InboundACL); err != nil {
 				return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
@@ -4072,6 +4213,17 @@ func extImportPrefixListName(external string) string {
 
 func extOutboundRouteMapName(external string) string {
 	return fmt.Sprintf("ext-outbound--%s", external)
+}
+
+// per-attachment egress policy: the MED and the uplink-axis prepend are per-session values, so
+// this cannot be shared across the attachments of one External
+func extAttachOutboundRouteMapName(attachName string) string {
+	return fmt.Sprintf("ext-out--%s", attachName)
+}
+
+// prefix list with the address space we announce to an External ourselves, and never accept back
+func extAdvertisePrefixListName(external string) string {
+	return fmt.Sprintf("ext-advertise--%s", external)
 }
 
 func ipNsNoExtPeeringACLName(ipns string) string {

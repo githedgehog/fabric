@@ -34,6 +34,10 @@ spec:
       name: Priority
       priority: 1
       type: string
+    - jsonPath: .spec.localASN
+      name: LocalASN
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -65,6 +69,35 @@ spec:
           spec:
             description: Spec is the desired state of the External
             properties:
+              advertise:
+                description: Advertise controls what we announce to this External
+                  and how attractive we make it
+                properties:
+                  communities:
+                    description: |-
+                      Communities are optionally attached to everything we advertise to this External, carrying
+                      provider policy rather than our preference ranking
+                    items:
+                      type: string
+                    type: array
+                  prefixes:
+                    description: |-
+                      Prefixes is our own address space to announce to this External, for instance the pool a
+                      Gateway NATs VPC traffic into. The fabric never accepts these prefixes back.
+                    items:
+                      type: string
+                    type: array
+                  prepend:
+                    description: |-
+                      Prepend is how many times to prepend our own ASN to the routes advertised to this External,
+                      making it less attractive to the world by that many AS hops. Defaults to spec.priority, so a
+                      backup External is de-preferred in both directions. Unlike MED, this is visible to the whole
+                      internet, not just to this External. This and the attachment's own prepend add up, to at
+                      most 20 in total.
+                    maximum: 10
+                    minimum: 0
+                    type: integer
+                type: object
               inboundCommunity:
                 description: InboundCommunity is the optional inbound community to
                   filter routes from the external system (e.g. 65102:5000)
@@ -73,6 +106,15 @@ spec:
                 description: IPv4Namespace is the name of the IPv4Namespace this External
                   belongs to
                 type: string
+              localASN:
+                description: |-
+                  LocalASN makes every attachment to this External present the same ASN to the external system
+                  instead of each border leaf's own. Without it the external system sees two neighbouring
+                  ASNs and never compares the MEDs we send, so this is what makes advertise.med work. Opt-in
+                  and never defaulted: changing it resets the sessions and the external system has to change
+                  its remote-as to match. Not valid for static externals.
+                format: int32
+                type: integer
               outboundCommunity:
                 description: OutboundCommunity is the optional outbound community
                   that all outbound routes will be stamped with (e.g. 50000:50001)

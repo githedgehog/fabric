@@ -1599,14 +1599,14 @@
         name: ext-inbound--external-01
       name: ext-inbound--external-01
   weight: 19
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-outbound--external-01]
-  summary: Create Route Maps Base ext-outbound--external-01
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01]
+  summary: Create Route Maps Base ext-out--leaf-03--external-01
   type: update
   value:
     policy-definition:
     - config:
-        name: ext-outbound--external-01
-      name: ext-outbound--external-01
+        name: ext-out--leaf-03--external-01
+      name: ext-out--leaf-03--external-01
   weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=filter-attached-hosts]
   summary: Create Route Maps Base filter-attached-hosts
@@ -1872,7 +1872,7 @@
         name: "5"
       name: "5"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-outbound--external-01]/statements/statement[name=10]
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01]/statements/statement[name=10]
   summary: Create Route Map Statement 10
   type: update
   value:
@@ -1897,7 +1897,7 @@
         name: "10"
       name: "10"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-outbound--external-01]/statements/statement[name=20]
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01]/statements/statement[name=20]
   summary: Create Route Map Statement 20
   type: update
   value:
@@ -4633,7 +4633,7 @@
           apply-policy:
             config:
               export-policy:
-              - ext-outbound--external-01
+              - ext-out--leaf-03--external-01
               import-policy:
               - ext-in--leaf-03--external-01
           config:

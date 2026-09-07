@@ -927,7 +927,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - ext-outbound--external-01
+                      - ext-out--leaf-03--external-01
                       import-policy:
                       - ext-in--leaf-03--external-01
                   config:
@@ -948,7 +948,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - ext-outbound--external-01
+                      - ext-out--leaf-03--external-01-b
                       import-policy:
                       - ext-in--leaf-03--external-01-b
                   config:
@@ -1021,7 +1021,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - ext-outbound--external-02
+                      - ext-out--leaf-03--external-02
                       import-policy:
                       - ext-in--leaf-03--external-02
                   config:
@@ -2551,8 +2551,8 @@ routing-policy:
             name: "5"
           name: "5"
     - config:
-        name: ext-outbound--external-01
-      name: ext-outbound--external-01
+        name: ext-out--leaf-03--external-01
+      name: ext-out--leaf-03--external-01
       statements:
         statement:
         - actions:
@@ -2594,12 +2594,67 @@ routing-policy:
             name: "20"
           name: "20"
     - config:
-        name: ext-outbound--external-02
-      name: ext-outbound--external-02
+        name: ext-out--leaf-03--external-01-b
+      name: ext-out--leaf-03--external-01-b
       statements:
         statement:
         - actions:
             bgp-actions:
+              set-as-path-prepend:
+                config:
+                  asn: 65102
+                  repeat-n: 1
+              set-community:
+                config:
+                  method: INLINE
+                  options: REPLACE
+                inline:
+                  config:
+                    communities:
+                    - 64102:1000
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: ipns-subnets--default
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            bgp-actions:
+              set-as-path-prepend:
+                config:
+                  asn: 65102
+                  repeat-n: 1
+              set-community:
+                config:
+                  method: INLINE
+                  options: REPLACE
+                inline:
+                  config:
+                    communities:
+                    - 64102:1000
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: all-gw-prios
+          config:
+            name: "20"
+          name: "20"
+    - config:
+        name: ext-out--leaf-03--external-02
+      name: ext-out--leaf-03--external-02
+      statements:
+        statement:
+        - actions:
+            bgp-actions:
+              set-as-path-prepend:
+                config:
+                  asn: 65102
+                  repeat-n: 1
               set-community:
                 config:
                   method: INLINE

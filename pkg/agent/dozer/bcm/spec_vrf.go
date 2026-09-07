@@ -417,6 +417,11 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			remoteAS = oc.UnionUint32(*value.RemoteAS)
 		}
 
+		var localAS oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config_LocalAs_Union
+		if value.LocalAS != nil {
+			localAS = oc.UnionUint32(*value.LocalAS)
+		}
+
 		var bfd *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd
 		if value.BFDProfile != nil {
 			bfd = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd{
@@ -436,6 +441,9 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						Enabled:                        value.Enabled,
 						Description:                    value.Description,
 						PeerAs:                         remoteAS,
+						LocalAs:                        localAS,
+						LocalAsNoPrepend:               value.LocalASNoPrepend,
+						LocalAsReplaceAs:               value.LocalASReplaceAs,
 						PeerType:                       peerType,
 						DisableEbgpConnectedRouteCheck: value.DisableConnectedCheck,
 						CapabilityExtendedNexthop:      value.ExtendedNexthop,
@@ -878,10 +886,19 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
 						var remoteAS *uint32
 						if neighbor.Config.PeerAs != nil {
-							if val, ok := neighbor.Config.PeerAs.(oc.UnionUint32); ok {
-								remoteAS = pointer.To(uint32(val))
+							if val, ok := unionUint32(neighbor.Config.PeerAs); ok {
+								remoteAS = pointer.To(val)
 							} else {
-								return nil, errors.Errorf("failed to unmarshal Peer AS %v (only uint32 is supported)", neighbor.Config.PeerAs)
+								return nil, errors.Errorf("failed to unmarshal Peer AS %v (expected a uint32 or a decimal string)", neighbor.Config.PeerAs)
+							}
+						}
+
+						var localAS *uint32
+						if neighbor.Config.LocalAs != nil {
+							if val, ok := unionUint32(neighbor.Config.LocalAs); ok {
+								localAS = pointer.To(val)
+							} else {
+								return nil, errors.Errorf("failed to unmarshal Local AS %v (expected a uint32 or a decimal string)", neighbor.Config.LocalAs)
 							}
 						}
 
@@ -896,6 +913,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							Enabled:                   neighbor.Config.Enabled,
 							Description:               neighbor.Config.Description,
 							RemoteAS:                  remoteAS,
+							LocalAS:                   localAS,
+							LocalASNoPrepend:          neighbor.Config.LocalAsNoPrepend,
+							LocalASReplaceAs:          neighbor.Config.LocalAsReplaceAs,
 							PeerType:                  peerType,
 							IPv4Unicast:               ipv4Unicast,
 							IPv4UnicastImportPolicies: ipv4ImportPolicies,

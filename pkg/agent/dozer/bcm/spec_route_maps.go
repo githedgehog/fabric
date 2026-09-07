@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/openconfig/gnmic/pkg/api"
 	"github.com/openconfig/ygot/ygot"
@@ -233,6 +234,28 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 
 			bgpActions.Config.SetLocalPref = statement.SetLocalPreference
 		}
+		if statement.SetMetric != nil {
+			if bgpActions == nil {
+				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
+			}
+			if bgpActions.Config == nil {
+				bgpActions.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_Config{}
+			}
+
+			bgpActions.Config.SetMed = oc.UnionUint32(*statement.SetMetric)
+		}
+		if statement.SetASPathPrepend != nil {
+			if bgpActions == nil {
+				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
+			}
+
+			bgpActions.SetAsPathPrepend = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetAsPathPrepend{
+				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetAsPathPrepend_Config{
+					Asn:     oc.UnionUint32(statement.SetASPathPrepend.ASN),
+					RepeatN: pointer.To(statement.SetASPathPrepend.RepeatN),
+				},
+			}
+		}
 
 		statements := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{}
 		err := statements.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
@@ -256,6 +279,26 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 			Statement: statements,
 		}, nil
 	},
+}
+
+// SONiC answers these unions with a JSON string on the OpenConfig paths even where its own model
+// stores a number - confirmed for set-med on 4.5.2, where /sonic-route-map reports set_med: 10 and
+// the OpenConfig read-back reports "10". Reading only the numeric member silently dropped the
+// value, so the statement was recreated on every enforce pass.
+func unionUint32(val any) (uint32, bool) {
+	switch v := val.(type) {
+	case oc.UnionUint32:
+		return uint32(v), true
+	case oc.UnionString:
+		parsed, err := strconv.ParseUint(string(v), 10, 32)
+		if err != nil {
+			return 0, false
+		}
+
+		return uint32(parsed), true
+	}
+
+	return 0, false
 }
 
 func loadActualRouteMaps(ctx context.Context, client GNMICClient, spec *dozer.Spec) error {
@@ -332,6 +375,8 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) map[s
 			var setComms []string
 			var replaceComms bool
 			var setLocalPref *uint32
+			var setMetric *uint32
+			var setASPathPrepend *dozer.SpecRouteMapASPathPrepend
 			if statement.Actions.BgpActions != nil {
 				if statement.Actions.BgpActions.SetCommunity != nil {
 					setComm := statement.Actions.BgpActions.SetCommunity
@@ -371,6 +416,27 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) map[s
 				if statement.Actions.BgpActions.Config != nil && statement.Actions.BgpActions.Config.SetLocalPref != nil {
 					setLocalPref = statement.Actions.BgpActions.Config.SetLocalPref
 				}
+				if statement.Actions.BgpActions.Config != nil && statement.Actions.BgpActions.Config.SetMed != nil {
+					if val, ok := unionUint32(statement.Actions.BgpActions.Config.SetMed); ok {
+						setMetric = pointer.To(val)
+					} else {
+						slog.Warn("unsupported set-med value", "route map", name, "value", statement.Actions.BgpActions.Config.SetMed)
+					}
+				}
+				if prepend := statement.Actions.BgpActions.SetAsPathPrepend; prepend != nil && prepend.Config != nil && prepend.Config.Asn != nil {
+					if val, ok := unionUint32(prepend.Config.Asn); ok {
+						repeatN := uint8(1)
+						if prepend.Config.RepeatN != nil {
+							repeatN = *prepend.Config.RepeatN
+						}
+						setASPathPrepend = &dozer.SpecRouteMapASPathPrepend{
+							ASN:     val,
+							RepeatN: repeatN,
+						}
+					} else {
+						slog.Warn("unsupported set-as-path-prepend asn", "route map", name, "value", prepend.Config.Asn)
+					}
+				}
 			}
 
 			statements[*statement.Name] = &dozer.SpecRouteMapStatement{
@@ -378,6 +444,8 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) map[s
 				SetCommunities:     setComms,
 				ReplaceCommunities: replaceComms,
 				SetLocalPreference: setLocalPref,
+				SetMetric:          setMetric,
+				SetASPathPrepend:   setASPathPrepend,
 				Result:             result,
 			}
 		}
