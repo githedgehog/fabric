@@ -349,6 +349,49 @@ func entityName(gwName string, t ...string) string {
 	return fmt.Sprintf("gw--%s--%s", gwName, strings.Join(t, "-"))
 }
 
+// benchmarkPCI is the hand-wired device for each gateway in the benchmark lab.
+//
+// EXPERIMENT ONLY -- this branch exists to get a DPDK number out of the benchmark lab and must
+// never merge.
+//
+// Both gateways name the same address because they are separate VMs, each with its own PCI space.
+var benchmarkPCI = map[string]string{
+	"gateway-1": "0000:02:01.0",
+	"gateway-2": "0000:02:01.0",
+}
+
+// benchmarkInterfaceOverride forces the DPDK device for a gateway in the benchmark lab.
+//
+// The lab's gateways are hand-wired, so the device the dataplane should drive is not the one
+// hydration inferred from the topology. Only the PCI address is forced: the interface *name* is
+// left exactly as the spec has it, because that name is the key the IPs and MTU hang off and the
+// one hydrate.go insists on finding. Renaming here would silently detach the addresses from the
+// interface they belong to.
+//
+// Returns the input untouched for any gateway not in the table, so this is inert everywhere else.
+func benchmarkInterfaceOverride(gwName string, in map[string]gwapi.GatewayInterface) (map[string]gwapi.GatewayInterface, error) {
+	pci, hardcoded := benchmarkPCI[gwName]
+	if !hardcoded {
+		return in, nil
+	}
+	// One address cannot describe two ports. Rather than hand both the same device -- which
+	// surfaces later as an opaque EAL complaint about a duplicate -- say so here.
+	if len(in) != 1 {
+		return nil, fmt.Errorf("benchmark override for %s expects exactly one interface, found %d", gwName, len(in)) //nolint:err113
+	}
+	out := map[string]gwapi.GatewayInterface{}
+	for name, iface := range in {
+		iface.PCI = pci
+		// PCI and Kernel are mutually exclusive; a spec hydrated for the kernel driver still
+		// carries the latter, and leaving it would describe two different devices.
+		iface.Kernel = ""
+		out[name] = iface
+		slog.Info("benchmark lab: forcing DPDK device", "gateway", gwName, "interface", name, "pci", pci)
+	}
+
+	return out, nil
+}
+
 func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway) error {
 	saName := entityName(gw.Name)
 
@@ -454,9 +497,15 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			args = append(args, "--pyroscope-url", "http://localhost:4040")
 		}
 
+		// EXPERIMENT ONLY -- see benchmarkInterfaceOverride. Must never merge.
+		ifaces, err := benchmarkInterfaceOverride(gw.Name, gw.Spec.Interfaces)
+		if err != nil {
+			return err
+		}
+
 		pcis, kernels := 0, 0
-		for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-			iface := gw.Spec.Interfaces[ifaceName]
+		for _, ifaceName := range slices.Sorted(maps.Keys(ifaces)) {
+			iface := ifaces[ifaceName]
 			val := ifaceName
 			switch {
 			case iface.PCI != "":
@@ -512,8 +561,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		var initContainers []corev1.Container
 		if driver == "kernel" {
 			iArgs := "set -ex && "
-			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-				iface := gw.Spec.Interfaces[ifaceName]
+			for _, ifaceName := range slices.Sorted(maps.Keys(ifaces)) {
+				iface := ifaces[ifaceName]
 				iArgs += fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
 				iArgs += fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
 				iArgs += fmt.Sprintf("([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
