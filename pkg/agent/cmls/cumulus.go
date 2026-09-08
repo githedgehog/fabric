@@ -160,6 +160,9 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				}
 
 				leafName = link.Leaf.DeviceName()
+				if link.Leaf.IP == "" || link.Spine.IP == "" {
+					return nil, fmt.Errorf("conn %s: unnumbered fabric links are not supported on Cumulus yet", connName) //nolint:goerr113
+				}
 				leafIP, err := netip.ParsePrefix(link.Leaf.IP)
 				if err != nil {
 					return nil, fmt.Errorf("parsing conn %s leaf IP %s: %w", connName, link.Leaf.IP, err)
@@ -193,6 +196,9 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				}
 
 				spineName = link.Spine.DeviceName()
+				if link.Spine.IP == "" || link.Leaf.IP == "" {
+					return nil, fmt.Errorf("conn %s: unnumbered fabric links are not supported on Cumulus yet", connName) //nolint:goerr113
+				}
 				spineIP, err := netip.ParsePrefix(link.Spine.IP)
 				if err != nil {
 					return nil, fmt.Errorf("parsing conn %s spine IP %s: %w", connName, link.Spine.IP, err)

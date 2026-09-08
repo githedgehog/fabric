@@ -970,6 +970,7 @@ type RunRemotelyOpts struct {
 	Basedir      string
 	DryRun       bool
 	CollectStats bool
+	PrintStatus  bool
 	AutoSSH      string
 }
 
@@ -993,7 +994,7 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 
 	start := time.Now()
 
-	slog.Info("Applying config remotely", "switch", opts.SwitchName, "dryRun", opts.DryRun, "stats", opts.CollectStats, "autoSSH", opts.AutoSSH)
+	slog.Info("Applying config remotely", "switch", opts.SwitchName, "dryRun", opts.DryRun, "stats", opts.CollectStats, "printStatus", opts.PrintStatus, "autoSSH", opts.AutoSSH)
 
 	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
 	if err != nil {
@@ -1057,7 +1058,7 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 	if opts.CollectStats {
 		reg := switchstate.NewRegistry()
 		if err := processor.UpdateSwitchState(ctx, agent, reg); err != nil {
-			return errors.Wrapf(err, "failed to update switch state")
+			return fmt.Errorf("updating switch state: %w", err)
 		}
 		if st := reg.GetSwitchState(); st != nil {
 			agent.Status.State = *st
@@ -1074,6 +1075,18 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 	}
 
 	slog.Info("See last-* files for the last state & agent data")
+
+	if opts.PrintStatus {
+		statusData, err := kyaml.Marshal(agent.Status)
+		if err != nil {
+			return fmt.Errorf("marshaling agent status: %w", err)
+		}
+
+		slog.Info("Agent status:")
+		if _, err := os.Stdout.Write(statusData); err != nil {
+			return fmt.Errorf("writing agent status: %w", err)
+		}
+	}
 
 	return nil
 }

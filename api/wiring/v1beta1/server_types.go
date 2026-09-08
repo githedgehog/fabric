@@ -33,6 +33,15 @@ type ServerSpec struct {
 	Description string `json:"description,omitempty"`
 	// Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric
 	Profile string `json:"profile,omitempty"`
+	// Inspect is the expectations used to check the server against what's observed in the Fabric
+	Inspect ServerInspect `json:"inspect,omitempty"`
+}
+
+// ServerInspect defines the expectations used to check the server against what's observed in the Fabric
+type ServerInspect struct {
+	// ExpectedSystemName is the LLDP system name the server advertises, usually its hostname, if it isn't the
+	// name of this object, e.g. a server-1 running as server-1.example.com
+	ExpectedSystemName string `json:"expectedSysName,omitempty"`
 }
 
 // ServerStatus defines the observed state of Server

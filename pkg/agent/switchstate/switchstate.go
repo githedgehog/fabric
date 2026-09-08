@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 )
 
@@ -45,6 +46,7 @@ type Registry struct {
 	TransceiverMetrics TransceiverMetrics
 	BGPNeighborMetrics BGPNeighborMetrics
 	BFDPeerMetrics     BFDPeerMetrics
+	LLDPMetrics        LLDPMetrics
 	PlatformMetrics    PlatformMetrics
 	CriticalResources  CRMMetrics
 
@@ -129,6 +131,15 @@ type TransceiverMetrics struct {
 	WarningTxPowerLo *prometheus.GaugeVec
 	WarningVoltHi    *prometheus.GaugeVec
 	WarningVoltLo    *prometheus.GaugeVec
+
+	// Always reported, so that an empty port is visible as such
+	Present *prometheus.GaugeVec
+	// Per present transceiver, the ones that are gone or swapped are dropped on the next collection
+	Active *prometheus.GaugeVec
+	// Only for the transceivers reporting a CMIS status at all, the rest have nothing to be ready for
+	CMISReady *prometheus.GaugeVec
+	// Per present transceiver, what it reports about itself that isn't a measurement, always 1
+	Info *prometheus.GaugeVec
 }
 
 type BGPNeighborMetrics struct {
@@ -164,6 +175,18 @@ type BGPNeighborMetricsMessagesCounters struct {
 type BFDPeerMetrics struct {
 	SessionState       *prometheus.GaugeVec
 	FailureTransitions *prometheus.GaugeVec
+}
+
+type LLDPMetrics struct {
+	// Always reported, so that a port without neighbors is visible as such
+	Neighbors *prometheus.GaugeVec
+
+	// Per neighbor, the ones that are gone are dropped on the next collection
+	LastUpdate *prometheus.GaugeVec
+	TTL        *prometheus.GaugeVec
+
+	// Per neighbor, what it reports about itself that isn't a measurement, always 1
+	Info *prometheus.GaugeVec
 }
 
 type PlatformMetrics struct {
@@ -258,7 +281,7 @@ func NewRegistry() *Registry {
 			Name:        name,
 			Help:        help,
 			ConstLabels: labels,
-		}, []string{"interface"})
+		}, []string{"interface", "transceiver"})
 	}
 
 	newInterfaceQueueGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -268,7 +291,7 @@ func NewRegistry() *Registry {
 			Name:        name,
 			Help:        help,
 			ConstLabels: labels,
-		}, []string{"interface", "queue"})
+		}, []string{"interface", "queue", "transceiver"})
 	}
 
 	newTransceiverGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -289,6 +312,19 @@ func NewRegistry() *Registry {
 			Help:        help,
 			ConstLabels: labels,
 		}, []string{"transceiver", "lane"})
+	}
+
+	newTransceiverInfoGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{
+			"transceiver", "descr", "vendor", "vendor_part", "serial", "vendor_rev", "vendor_oui",
+			"firmware", "form_factor", "conn_type", "cable_class", "length", "cmis_rev",
+		})
 	}
 
 	newBGPNeighborGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -319,6 +355,26 @@ func NewRegistry() *Registry {
 			Help:        help,
 			ConstLabels: labels,
 		}, []string{"vrf", "peer"})
+	}
+
+	newLLDPNeighborGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"interface", "sys_name", "port", "mac", "transceiver"})
+	}
+
+	newLLDPNeighborInfoGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"interface", "sys_name", "port", "mac", "chassis", "sys_descr", "manuf", "model", "serial", "transceiver"})
 	}
 
 	newPlatformGaugeVec := func(name string, help string) *prometheus.GaugeVec {
@@ -430,6 +486,11 @@ func NewRegistry() *Registry {
 			WarningTxPowerLo: newTransceiverGaugeVec("transceiver_warning_tx_power_lo", "Warning tx power lo"),
 			WarningVoltHi:    newTransceiverGaugeVec("transceiver_warning_volt_hi", "Warning volt hi"),
 			WarningVoltLo:    newTransceiverGaugeVec("transceiver_warning_volt_lo", "Warning volt lo"),
+			Present:          newTransceiverGaugeVec("transceiver_present", "Whether a transceiver is present in the port"),
+			Active:           newTransceiverGaugeVec("transceiver_active", "Whether the present transceiver is active"),
+			CMISReady:        newTransceiverGaugeVec("transceiver_cmis_ready", "Whether the CMIS state of the transceiver is ready"),
+			Info: newTransceiverInfoGaugeVec("transceiver_info",
+				"Transceiver vendor, part, serial and other identifying information, always 1"),
 		},
 		BGPNeighborMetrics: BGPNeighborMetrics{
 			ConnectionsDropped:     newBGPNeighborGaugeVec("bgp_neighbor_connections_dropped", "Number of dropped BGP connections"),
@@ -464,6 +525,12 @@ func NewRegistry() *Registry {
 		BFDPeerMetrics: BFDPeerMetrics{
 			SessionState:       newBFDPeerGaugeVec("bfd_peer_session_state", "State of BFD peer session"),
 			FailureTransitions: newBFDPeerGaugeVec("bfd_peer_failure_transitions", "Number of BFD peer failure transitions"),
+		},
+		LLDPMetrics: LLDPMetrics{
+			Neighbors:  newInterfaceGaugeVec("lldp_neighbors", "Number of LLDP neighbors seen on the interface"),
+			LastUpdate: newLLDPNeighborGaugeVec("lldp_neighbor_last_update_timestamp_seconds", "Time the LLDP neighbor was last updated"),
+			TTL:        newLLDPNeighborGaugeVec("lldp_neighbor_ttl_seconds", "TTL advertised by the LLDP neighbor"),
+			Info:       newLLDPNeighborInfoGaugeVec("lldp_neighbor_info", "What the LLDP neighbor reports about itself, always 1"),
 		},
 		PlatformMetrics: PlatformMetrics{
 			Fan: PlatformFanMetrics{
@@ -573,6 +640,16 @@ func NewRegistry() *Registry {
 	}
 
 	return r
+}
+
+// Gather returns the currently collected metrics, the same ones ServeMetrics reports
+func (r *Registry) Gather() ([]*dto.MetricFamily, error) {
+	res, err := r.reg.Gather()
+	if err != nil {
+		return nil, fmt.Errorf("gathering metrics: %w", err)
+	}
+
+	return res, nil
 }
 
 func (r *Registry) GetSwitchState() *agentapi.SwitchState {

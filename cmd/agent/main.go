@@ -270,6 +270,12 @@ func main() {
 						Aliases: []string{"c"},
 						Value:   false,
 					},
+					&cli.BoolFlag{
+						Name:    "print-status",
+						Aliases: []string{"w"},
+						Usage:   "print agent status as YAML after config application, use with --collect-stats/-c to get the actual switch state",
+						Value:   false,
+					},
 					&cli.StringFlag{
 						Name:    "auto-ssh",
 						Aliases: []string{"a"},
@@ -327,6 +333,7 @@ func main() {
 							SwitchName:   cCtx.String("switch-name"),
 							DryRun:       cCtx.Bool("dry-run"),
 							CollectStats: cCtx.Bool("collect-stats"),
+							PrintStatus:  cCtx.Bool("print-status"),
 							AutoSSH:      cCtx.String("auto-ssh"),
 							Basedir:      basedir,
 						}), "failed to apply config")

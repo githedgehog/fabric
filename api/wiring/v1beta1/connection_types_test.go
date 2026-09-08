@@ -492,6 +492,63 @@ func TestConnectionValidation(t *testing.T) {
 			})),
 		},
 		{
+			// no IPs at all means BGP unnumbered
+			name: "unnumbered-fabric",
+			conn: fabricConnGen("fabric-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Fabric.Links[0].Spine.IP = ""
+				conn.Spec.Fabric.Links[0].Leaf.IP = ""
+			}),
+			withClient: true,
+			objects:    base,
+		},
+		{
+			name: "unnumbered-mesh",
+			conn: meshConnGen("mesh-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Mesh.Links[0].Leaf1.IP = ""
+				conn.Spec.Mesh.Links[0].Leaf2.IP = ""
+			}),
+			withClient: true,
+			objects:    base,
+		},
+		{
+			name: "half-numbered-fabric",
+			conn: fabricConnGen("fabric-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Fabric.Links[0].Leaf.IP = ""
+			}),
+			withClient: true,
+			objects:    base,
+			err:        true,
+		},
+		{
+			// the gateway can't do unnumbered yet, so both sides are required
+			name: "unnumbered-gateway-rejected",
+			conn: gwConnGen("gw-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Gateway.Links[0].Switch.IP = ""
+				conn.Spec.Gateway.Links[0].Gateway.IP = ""
+			}),
+			withClient: true,
+			objects:    base,
+			err:        true,
+		},
+		{
+			name: "half-numbered-gateway",
+			conn: gwConnGen("gw-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Gateway.Links[0].Gateway.IP = ""
+			}),
+			withClient: true,
+			objects:    base,
+			err:        true,
+		},
+		{
+			name: "half-numbered-mesh",
+			conn: meshConnGen("mesh-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Mesh.Links[0].Leaf1.IP = ""
+			}),
+			withClient: true,
+			objects:    base,
+			err:        true,
+		},
+		{
 			name:       "collision-gateway-with-fabric-IP",
 			conn:       gwConnGen("gw-1"),
 			withClient: true,

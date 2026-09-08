@@ -113,6 +113,15 @@ spec:
     vpc-03/subnet-02: true
     vpc-04/subnet-02: true
   connections:
+    leaf-04--gateway--gateway-1:
+      gateway:
+        links:
+          - gateway:
+              ip: 172.30.128.23/31
+              port: gateway-1/enp2s2
+            switch:
+              ip: 172.30.128.22/31
+              port: leaf-04/E1/9
     server-05--eslag--leaf-03--leaf-04:
       eslag:
         links:

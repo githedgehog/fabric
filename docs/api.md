@@ -227,8 +227,8 @@ _Appears in:_
 | `interfaces` _object (keys:string, values:[SwitchStateInterface](#switchstateinterface))_ | Switch interfaces state (incl. physical, management and port channels) |  |  |
 | `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
 | `transceivers` _object (keys:string, values:[SwitchStateTransceiver](#switchstatetransceiver))_ | Transceivers state (port -> transceiver state) |  |  |
-| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address -> state) |  |  |
-| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address -> state) |  |  |
+| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address, or port (with .VLAN for TH5) for an unnumbered session -> state) |  |  |
+| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address, or port for an unnumbered session -> state) |  |  |
 | `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
 | `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
 | `roce` _boolean_ | State of the roce configuration |  |  |
@@ -527,15 +527,18 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ |  |  |  |
 | `chassis` _string_ |  |  |  |
 | `sysName` _string_ |  |  |  |
 | `sysDescr` _string_ |  |  |  |
 | `portID` _string_ |  |  |  |
 | `portDescr` _string_ |  |  |  |
+| `ttl` _integer_ | TTL advertised by the neighbor, seconds |  |  |
+| `updated` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | When the neighbor entry was last updated |  |  |
 | `manuf` _string_ |  |  |  |
 | `model` _string_ |  |  |  |
 | `serial` _string_ |  |  |  |
+| `mac` _string_ | MAC of the neighbor port: the LLDP source MAC, or the port ID if it's a MAC address |  |  |
+| `port` _string_ | Human-readable neighbor port name: the port ID, or the port description if the port ID is a MAC address |  |  |
 
 
 #### SwitchStateNOS
@@ -1943,6 +1946,26 @@ Effectively it represents BGP peering between the switch and external system inc
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
 
 
+#### ExternalAttachmentBFD
+
+
+
+ExternalAttachmentBFD configures BFD for the BGP session of an external attachment.
+Unset values fall back to the fabric defaults.
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minRX` _integer_ | MinRX is the minimum interval in ms at which we accept BFD control packets from the peer (default 300) |  | Maximum: 60000 <br />Minimum: 10 <br /> |
+| `minTX` _integer_ | MinTX is the desired interval in ms at which we send BFD control packets (default 300) |  | Maximum: 60000 <br />Minimum: 10 <br /> |
+| `multiplier` _integer_ | Multiplier is how many missed packets bring the session down (default 3) |  | Maximum: 255 <br />Minimum: 2 <br /> |
+| `passive` _boolean_ | Passive makes us wait for the peer to initiate the session instead of initiating it<br />ourselves, for the rare ISP that requires it. Both ends passive means no session at all. |  |  |
+
+
 #### ExternalAttachmentNeighbor
 
 
@@ -1979,6 +2002,7 @@ _Appears in:_
 | `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external |  |  |
 | `static` _[ExternalAttachmentStatic](#externalattachmentstatic)_ | Static contains parameters specific to a static external attachment |  |  |
 | `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL defines the ACL statements to apply to inbound traffic on this external attachment |  |  |
+| `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the BGP session of this external attachment, an empty object<br />uses the fabric defaults |  |  |
 
 
 #### ExternalAttachmentStatic
@@ -3079,6 +3103,22 @@ _Appears in:_
 | `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
 
 
+#### ServerInspect
+
+
+
+ServerInspect defines the expectations used to check the server against what's observed in the Fabric
+
+
+
+_Appears in:_
+- [ServerSpec](#serverspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `expectedSysName` _string_ | ExpectedSystemName is the LLDP system name the server advertises, usually its hostname, if it isn't the<br />name of this object, e.g. a server-1 running as server-1.example.com |  |  |
+
+
 #### ServerSpec
 
 
@@ -3094,6 +3134,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `description` _string_ | Description is a description of the server |  |  |
 | `profile` _string_ | Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric |  |  |
+| `inspect` _[ServerInspect](#serverinspect)_ | Inspect is the expectations used to check the server against what's observed in the Fabric |  |  |
 
 
 #### ServerStatus

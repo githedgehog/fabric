@@ -1791,7 +1791,7 @@
   value:
     trunk-vlans:
     - 1002
-  weight: 42
+  weight: 43
 - path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1800,7 +1800,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet1]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1809,7 +1809,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet2]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1818,7 +1818,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1827,7 +1827,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1836,7 +1836,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1845,7 +1845,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1854,7 +1854,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1863,7 +1863,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1872,7 +1872,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Loopback2]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1881,7 +1881,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1890,7 +1890,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=PortChannel1]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1899,7 +1899,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /interfaces/interface[name=PortChannel2]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
@@ -1908,7 +1908,7 @@
     - config:
         index: 0
       index: 0
-  weight: 43
+  weight: 44
 - path: /network-instances/network-instance[name=VrfVvpc-01]/interfaces/interface[id=Vlan1001]
   summary: Create VRF interface Vlan1001
   type: update
@@ -1917,7 +1917,7 @@
     - config:
         id: Vlan1001
       id: Vlan1001
-  weight: 46
+  weight: 47
 - path: /network-instances/network-instance[name=VrfVvpc-01]/interfaces/interface[id=Vlan3000]
   summary: Create VRF interface Vlan3000
   type: update
@@ -1926,7 +1926,7 @@
     - config:
         id: Vlan3000
       id: Vlan3000
-  weight: 46
+  weight: 47
 - path: /network-instances/network-instance[name=VrfVvpc-02]/interfaces/interface[id=Vlan1002]
   summary: Create VRF interface Vlan1002
   type: update
@@ -1935,7 +1935,7 @@
     - config:
         id: Vlan1002
       id: Vlan1002
-  weight: 46
+  weight: 47
 - path: /network-instances/network-instance[name=VrfVvpc-02]/interfaces/interface[id=Vlan3001]
   summary: Create VRF interface Vlan3001
   type: update
@@ -1944,7 +1944,7 @@
     - config:
         id: Vlan3001
       id: Vlan3001
-  weight: 46
+  weight: 47
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1001]
   summary: Create VRF attached host
   type: update
@@ -1955,7 +1955,7 @@
         address-family: IPV4
         interface-id: Vlan1001
       interface-id: Vlan1001
-  weight: 48
+  weight: 50
 - path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=ATTACHED_HOST][name=attached-host]/attached-host/interfaces/interface[address-family=IPV4][interface-id=Vlan1002]
   summary: Create VRF attached host
   type: update
@@ -1966,7 +1966,7 @@
         address-family: IPV4
         interface-id: Vlan1002
       interface-id: Vlan1002
-  weight: 48
+  weight: 50
 - path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.2
   type: update
@@ -1977,7 +1977,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.2
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.4
   type: update
@@ -1988,7 +1988,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.4
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.6
   type: update
@@ -1999,7 +1999,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.6
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.8
   type: update
@@ -2010,7 +2010,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.8
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.0
   type: update
@@ -2021,7 +2021,7 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.0
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Loopback1]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.8.0
   type: update
@@ -2032,7 +2032,7 @@
         prefix-length: 32
         secondary: false
       ip: 172.30.8.0
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Loopback2]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.12.0
   type: update
@@ -2043,7 +2043,7 @@
         prefix-length: 32
         secondary: false
       ip: 172.30.12.0
-  weight: 49
+  weight: 51
 - path: /interfaces/interface[name=Management0]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.0.7
   type: update
@@ -2054,7 +2054,7 @@
         prefix-length: 21
         secondary: false
       ip: 172.30.0.7
-  weight: 49
+  weight: 51
 - path: /system/ntp/config
   summary: Create NTP
   type: update
@@ -2062,7 +2062,7 @@
     config:
       source-interface:
       - Management0
-  weight: 53
+  weight: 55
 - path: /system/ntp/servers/server[address=172.30.0.1]
   summary: Create NTP server 172.30.0.1
   type: update
@@ -2072,7 +2072,7 @@
       config:
         address: 172.30.0.1
         prefer: true
-  weight: 54
+  weight: 56
 - path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
   summary: Create Suppress VLAN neigh Vlan1001
   type: update
@@ -2080,7 +2080,7 @@
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan1001
       suppress: "on"
-  weight: 59
+  weight: 61
 - path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
   summary: Create Suppress VLAN neigh Vlan1002
   type: update
@@ -2088,7 +2088,7 @@
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan1002
       suppress: "on"
-  weight: 59
+  weight: 61
 - path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
   summary: Create Suppress VLAN neigh Vlan3000
   type: update
@@ -2096,7 +2096,7 @@
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan3000
       suppress: "on"
-  weight: 59
+  weight: 61
 - path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
   summary: Create Suppress VLAN neigh Vlan3001
   type: update
@@ -2104,36 +2104,36 @@
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan3001
       suppress: "on"
-  weight: 59
+  weight: 61
 - path: /network-instances/network-instance[name=VrfVvpc-01]/global-sag/config
   summary: Create VRF VrfVvpc-01 SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 62
+  weight: 64
 - path: /network-instances/network-instance[name=VrfVvpc-02]/global-sag/config
   summary: Create VRF VrfVvpc-02 SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 62
+  weight: 64
 - path: /network-instances/network-instance[name=default]/global-sag/config
   summary: Create VRF default SAG
   type: update
   value:
     config:
       anycast-mac: "00:00:00:11:11:11"
-  weight: 62
+  weight: 64
 - path: /network-instances/network-instance[name=VrfVvpc-01]/evpn/evpn-mh/config
   summary: Create VRF VrfVvpc-01 EVPNMH
   type: update
-  weight: 63
+  weight: 65
 - path: /network-instances/network-instance[name=VrfVvpc-02]/evpn/evpn-mh/config
   summary: Create VRF VrfVvpc-02 EVPNMH
   type: update
-  weight: 63
+  weight: 65
 - path: /network-instances/network-instance[name=default]/evpn/evpn-mh/config
   summary: Create VRF default EVPNMH
   type: update
@@ -2141,7 +2141,7 @@
     config:
       mac-holdtime: 60
       startup-delay: 60
-  weight: 63
+  weight: 65
 - path: /network-instances/network-instance[name=default]/evpn/ethernet-segments/ethernet-segment[name=PortChannel1]
   summary: Create VRF PortChannel1 EVPN ethernet segment
   type: update
@@ -2153,7 +2153,7 @@
         interface: PortChannel1
         name: PortChannel1
       name: PortChannel1
-  weight: 64
+  weight: 66
 - path: /network-instances/network-instance[name=default]/evpn/ethernet-segments/ethernet-segment[name=PortChannel2]
   summary: Create VRF PortChannel2 EVPN ethernet segment
   type: update
@@ -2165,7 +2165,7 @@
         interface: PortChannel2
         name: PortChannel2
       name: PortChannel2
-  weight: 64
+  weight: 66
 - path: /lst/lst-groups/lst-group
   summary: Create LST Group spinelink
   type: update
@@ -2176,7 +2176,7 @@
         name: spinelink
         timeout: 60
       name: spinelink
-  weight: 65
+  weight: 67
 - path: /lst/interfaces/interface[id=Ethernet3]
   summary: Create LST Interface Ethernet3
   type: update
@@ -2193,7 +2193,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 66
+  weight: 68
 - path: /lst/interfaces/interface[id=Ethernet4]
   summary: Create LST Interface Ethernet4
   type: update
@@ -2210,7 +2210,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 66
+  weight: 68
 - path: /lst/interfaces/interface[id=Ethernet5]
   summary: Create LST Interface Ethernet5
   type: update
@@ -2227,7 +2227,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 66
+  weight: 68
 - path: /lst/interfaces/interface[id=Ethernet6]
   summary: Create LST Interface Ethernet6
   type: update
@@ -2244,7 +2244,7 @@
         - config:
             group-name: spinelink
           group-name: spinelink
-  weight: 66
+  weight: 68
 - path: /sonic-vxlan/VXLAN_TUNNEL/VXLAN_TUNNEL_LIST
   summary: Create VXLAN tunnel vtepfabric
   type: update
@@ -2253,7 +2253,7 @@
     - name: vtepfabric
       src_intf: Loopback2
       src_ip: 172.30.12.0
-  weight: 69
+  weight: 71
 - path: /sonic-vxlan/VXLAN_EVPN_NVO/VXLAN_EVPN_NVO_LIST
   summary: Create VXLAN EVPN NVO nvo1
   type: update
@@ -2261,7 +2261,7 @@
     VXLAN_EVPN_NVO_LIST:
     - name: nvo1
       source_vtep: vtepfabric
-  weight: 71
+  weight: 73
 - path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
   summary: Create VXLAN tunnel map map_200_Vlan3000
   type: update
@@ -2271,7 +2271,7 @@
       name: vtepfabric
       vlan: Vlan3000
       vni: 200
-  weight: 73
+  weight: 75
 - path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
   summary: Create VXLAN tunnel map map_201_Vlan1001
   type: update
@@ -2281,7 +2281,7 @@
       name: vtepfabric
       vlan: Vlan1001
       vni: 201
-  weight: 73
+  weight: 75
 - path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
   summary: Create VXLAN tunnel map map_300_Vlan3001
   type: update
@@ -2291,7 +2291,7 @@
       name: vtepfabric
       vlan: Vlan3001
       vni: 300
-  weight: 73
+  weight: 75
 - path: /sonic-vxlan/VXLAN_TUNNEL_MAP/VXLAN_TUNNEL_MAP_LIST
   summary: Create VXLAN tunnel map map_301_Vlan1002
   type: update
@@ -2301,7 +2301,7 @@
       name: vtepfabric
       vlan: Vlan1002
       vni: 301
-  weight: 73
+  weight: 75
 - path: /acl/acl-sets/acl-set
   summary: Create ACL no-ipns-peering--default base
   type: update
@@ -2313,7 +2313,7 @@
         type: ACL_IPV4
       name: no-ipns-peering--default
       type: ACL_IPV4
-  weight: 74
+  weight: 76
 - path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 1
   type: update
@@ -2329,7 +2329,7 @@
           destination-address: 10.0.0.0/16
           source-address: 10.0.0.0/16
       sequence-id: 1
-  weight: 76
+  weight: 78
 - path: /acl/acl-sets/acl-set[name=no-ipns-peering--default][type=ACL_IPV4]/acl-entries/acl-entry
   summary: Create ACL entry 65535
   type: update
@@ -2341,7 +2341,7 @@
       config:
         sequence-id: 65535
       sequence-id: 65535
-  weight: 76
+  weight: 78
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp
   summary: Create VRF VrfVvpc-01 BGP base
   type: update
@@ -2361,7 +2361,7 @@
           as: 65101
           network-import-check: true
           router-id: 172.30.8.0
-  weight: 78
+  weight: 80
 - path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp
   summary: Create VRF VrfVvpc-02 BGP base
   type: update
@@ -2381,7 +2381,7 @@
           as: 65101
           network-import-check: true
           router-id: 172.30.8.0
-  weight: 78
+  weight: 80
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp
   summary: Create VRF default BGP base
   type: update
@@ -2401,7 +2401,7 @@
           as: 65101
           network-import-check: true
           router-id: 172.30.8.0
-  weight: 78
+  weight: 80
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF VrfVvpc-01 BGP L2VPN
   type: update
@@ -2418,7 +2418,7 @@
               advertise-afi-safi: IPV4_UNICAST
               route-map:
               - filter-attached-hosts
-  weight: 79
+  weight: 81
 - path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF VrfVvpc-02 BGP L2VPN
   type: update
@@ -2435,7 +2435,7 @@
               advertise-afi-safi: IPV4_UNICAST
               route-map:
               - filter-attached-hosts
-  weight: 79
+  weight: 81
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF default BGP L2VPN
   type: update
@@ -2449,7 +2449,7 @@
           advertise-all-vni: true
         route-advertise:
           route-advertise-list: []
-  weight: 79
+  weight: 81
 - path: /openconfig-bfd:bfd/openconfig-bfd-ext:bfd-profile/profile
   summary: Create BFD Profile fabric
   type: update
@@ -2463,7 +2463,7 @@
         profile-name: fabric
         required-minimum-receive: 300
       profile-name: fabric
-  weight: 80
+  weight: 82
 - path: /openconfig-errdisable-ext:errdisable/config
   summary: Create ErrDisable Global
   type: update
@@ -2472,7 +2472,7 @@
       cause:
       - LINK_FLAP
       interval: 300
-  weight: 81
+  weight: 83
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet3]/link-flap
   summary: Create ErrDisable Interface Ethernet3
   type: update
@@ -2483,7 +2483,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet4]/link-flap
   summary: Create ErrDisable Interface Ethernet4
   type: update
@@ -2494,7 +2494,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet5]/link-flap
   summary: Create ErrDisable Interface Ethernet5
   type: update
@@ -2505,7 +2505,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet6]/link-flap
   summary: Create ErrDisable Interface Ethernet6
   type: update
@@ -2516,7 +2516,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet7]/link-flap
   summary: Create ErrDisable Interface Ethernet7
   type: update
@@ -2527,7 +2527,7 @@
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-  weight: 82
+  weight: 84
 - path: /openconfig-neighbor:neighbor-globals/neighbor-global
   summary: Create Neighbor Global
   type: update
@@ -2537,7 +2537,7 @@
         ipv4-drop-neighbor-aging-time: 60
         name: Values
       name: Values
-  weight: 84
+  weight: 86
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.1]
   summary: Create VRF BGP neighbor 172.30.128.1
   type: update
@@ -2570,7 +2570,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.1
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.3]
   summary: Create VRF BGP neighbor 172.30.128.3
   type: update
@@ -2599,7 +2599,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.3
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.5]
   summary: Create VRF BGP neighbor 172.30.128.5
   type: update
@@ -2628,7 +2628,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.5
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.7]
   summary: Create VRF BGP neighbor 172.30.128.7
   type: update
@@ -2657,7 +2657,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.7
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.9]
   summary: Create VRF BGP neighbor 172.30.128.9
   type: update
@@ -2686,7 +2686,7 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.9
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.1]
   summary: Create VRF BGP neighbor 172.30.8.1
   type: update
@@ -2720,7 +2720,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.2]
   summary: Create VRF BGP neighbor 172.30.8.2
   type: update
@@ -2754,7 +2754,7 @@
       transport:
         config:
           local-address: 172.30.8.0
-  weight: 85
+  weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/network-config/network[prefix=172.30.8.0/32]
   summary: Create VRF BGP network 172.30.8.0/32
   type: update
@@ -2763,7 +2763,7 @@
     - config:
         prefix: 172.30.8.0/32
       prefix: 172.30.8.0/32
-  weight: 86
+  weight: 88
 - path: /network-instances/network-instance[name=VrfVvpc-01]/table-connections/table-connection
   summary: Create VRF table connection attachedhost
   type: update
@@ -2776,7 +2776,7 @@
         src-protocol: ATTACHED_HOST
       dst-protocol: BGP
       src-protocol: ATTACHED_HOST
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=VrfVvpc-01]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -2791,7 +2791,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=VrfVvpc-01]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -2806,7 +2806,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=VrfVvpc-02]/table-connections/table-connection
   summary: Create VRF table connection attachedhost
   type: update
@@ -2819,7 +2819,7 @@
         src-protocol: ATTACHED_HOST
       dst-protocol: BGP
       src-protocol: ATTACHED_HOST
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=VrfVvpc-02]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -2834,7 +2834,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=VrfVvpc-02]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -2849,7 +2849,7 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection connected
   type: update
@@ -2862,7 +2862,7 @@
         src-protocol: DIRECTLY_CONNECTED
       dst-protocol: BGP
       src-protocol: DIRECTLY_CONNECTED
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=default]/table-connections/table-connection
   summary: Create VRF table connection static
   type: update
@@ -2875,33 +2875,33 @@
         src-protocol: STATIC
       dst-protocol: BGP
       src-protocol: STATIC
-  weight: 87
+  weight: 89
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name
   summary: Create VRF BGP import policy VrfVvpc-01
   type: update
   value:
     policy-name: import-vrf--vpc-01
-  weight: 88
+  weight: 90
 - path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/policy-name
   summary: Create VRF BGP import policy VrfVvpc-02
   type: update
   value:
     policy-name: import-vrf--vpc-02
-  weight: 88
+  weight: 90
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name
   summary: Create VRF BGP import VRF VrfVvpc-01
   type: update
   value:
     name:
     - VrfVvpc-02
-  weight: 89
+  weight: 91
 - path: /network-instances/network-instance[name=VrfVvpc-02]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/import-network-instance/config/name
   summary: Create VRF BGP import VRF VrfVvpc-02
   type: update
   value:
     name:
     - VrfVvpc-01
-  weight: 89
+  weight: 91
 - path: relay-agent/dhcp/interfaces/interface[id=Vlan1001]
   summary: Create DHCP relay Vlan1001
   type: update
@@ -2916,7 +2916,7 @@
         - 172.30.0.1
         src-intf: Management0
       id: Vlan1001
-  weight: 90
+  weight: 92
 - path: relay-agent/dhcp/interfaces/interface[id=Vlan1002]
   summary: Create DHCP relay Vlan1002
   type: update
@@ -2931,7 +2931,7 @@
         - 172.30.0.1
         src-intf: Management0
       id: Vlan1002
-  weight: 90
+  weight: 92
 - path: /loadshare/roce-attrs
   summary: Update ECMP RoCE
   type: replace
@@ -2940,4 +2940,4 @@
       config:
         hash: hash
         qpn: false
-  weight: 130
+  weight: 132

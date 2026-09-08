@@ -257,6 +257,9 @@ func (p *GatewayPeering) Default() {
 
 	nats := []string{}
 	for _, peering := range p.Spec.Peering {
+		if peering == nil {
+			continue
+		}
 		for idx := range peering.Expose {
 			expose := &peering.Expose[idx]
 			nat := expose.NAT
@@ -320,11 +323,6 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 	if len(vpcs) != 2 {
 		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs)) //nolint:err113
 	}
-	// track the NAT on each side of the peering and disallow unsupported configurations
-	vpcNAT := make(map[string]struct {
-		Stateful  bool
-		Stateless bool
-	}, 2)
 	for name, vpc := range p.Spec.Peering {
 		if vpc == nil {
 			continue
@@ -332,9 +330,6 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		for _, expose := range vpc.Expose {
 			if expose.DefaultDestination && (len(expose.IPs) > 0 || len(expose.As) > 0 || expose.NAT != nil) {
 				return fmt.Errorf("default flag should be the only thing set in expose of VPC %s", name) //nolint:err113
-			}
-			if len(expose.IPs) == 0 && !expose.DefaultDestination {
-				return fmt.Errorf("at least one IP block must be specified in peering expose of VPC %s", name) //nolint:err113
 			}
 			for _, ip := range expose.IPs {
 				nonnil := 0
@@ -387,21 +382,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				nonNils := 0
 				if expose.NAT.Static != nil {
 					nonNils++
-					vpcEntry := vpcNAT[name]
-					vpcEntry.Stateless = true
-					vpcNAT[name] = vpcEntry
 				}
 				if expose.NAT.Masquerade != nil {
 					nonNils++
-					vpcEntry := vpcNAT[name]
-					vpcEntry.Stateful = true
-					vpcNAT[name] = vpcEntry
 				}
 				if expose.NAT.PortForward != nil {
 					nonNils++
-					vpcEntry := vpcNAT[name]
-					vpcEntry.Stateful = true
-					vpcNAT[name] = vpcEntry
 				}
 
 				if nonNils != 1 {
@@ -429,12 +415,6 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				}
 			}
 		}
-	}
-	if vpcNAT[vpcs[0]].Stateful && vpcNAT[vpcs[1]].Stateful {
-		return fmt.Errorf("unsupported configuration, only one side of a peering can use stateful NAT (i.e. masquerade or portForward)") //nolint:err113
-	}
-	if (vpcNAT[vpcs[0]].Stateless && vpcNAT[vpcs[1]].Stateful) || (vpcNAT[vpcs[1]].Stateless && vpcNAT[vpcs[0]].Stateful) {
-		return fmt.Errorf("unsupported configuration, one side of a peering using static NAT cannot peer with a side using stateful NAT") //nolint:err113
 	}
 
 	if acl := p.Spec.ACL; acl != nil {
@@ -520,58 +500,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			}
 		}
 
-		// check for overlaps of exposed IPs towards either of the VPCs in the peering we are validating
 		peeringVPCs := make(map[string]*v1beta1.VPC, len(p.Spec.Peering))
-		for originVPC, ourEntry := range p.Spec.Peering {
-			ourCIDRs := []string{}
-			existingCIDRs := []string{}
-			var targetVPC string
-			for vpc := range maps.Keys(p.Spec.Peering) {
-				if vpc == originVPC {
-					continue
-				}
-				targetVPC = vpc
-			}
-
-			ourCIDRs = collectExposedCIDRs(ourEntry, ourCIDRs)
-			if len(ourCIDRs) == 0 {
-				continue
-			}
-			peeringList := &GatewayPeeringList{}
-			if err := kube.List(ctx, peeringList, kclient.MatchingLabels{ListLabelVPC(targetVPC): ListLabelValue}); err != nil {
-				return fmt.Errorf("failed to list peerings for VPC %s: %w", targetVPC, err)
-			}
-			for _, other := range peeringList.Items {
-				if other.Name == p.Name {
-					continue
-				}
-				for otherOriginVPC, otherEntry := range other.Spec.Peering {
-					if otherOriginVPC == targetVPC {
-						continue
-					}
-					existingCIDRs = collectExposedCIDRs(otherEntry, existingCIDRs)
-				}
-			}
-			if len(existingCIDRs) == 0 {
-				continue
-			}
-			for _, ourCIDR := range ourCIDRs {
-				ourP, err := netip.ParsePrefix(ourCIDR)
-				if err != nil {
-					return fmt.Errorf("failed to parse exposed CIDR %s: %w", ourCIDR, err)
-				}
-				for _, otherCIDR := range existingCIDRs {
-					otherP, err := netip.ParsePrefix(otherCIDR)
-					if err != nil {
-						return fmt.Errorf("failed to parse existing exposed CIDR %s: %w", otherCIDR, err)
-					}
-					if ourP.Overlaps(otherP) {
-						return fmt.Errorf("overlap between existing exposed CIDR %s and new exposed CIDR %s", otherCIDR, ourCIDR) //nolint:err113
-					}
-				}
-			}
-		}
-
 		// check that the exposed CIDRs actually belong to the VPCs the peering is for
 		for vpcName, peering := range p.Spec.Peering {
 			if peering == nil {
@@ -680,27 +609,6 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 	}
 
 	return nil
-}
-
-func collectExposedCIDRs(entry *PeeringEntry, cidrs []string) []string {
-	for _, expose := range entry.Expose {
-		if expose.DefaultDestination {
-			continue
-		}
-		if len(expose.As) == 0 {
-			for _, ip := range expose.IPs {
-				// TODO: account for NOTs?
-				cidrs = append(cidrs, ip.CIDR)
-			}
-		} else {
-			for _, as := range expose.As {
-				// TODO: account for NOTs?
-				cidrs = append(cidrs, as.CIDR)
-			}
-		}
-	}
-
-	return cidrs
 }
 
 func validatePort(in string) error {

@@ -16,6 +16,7 @@ import (
 type BFDPeerStatus struct {
 	RemoteName                  string          `json:"remoteName,omitempty"`
 	Type                        BGPNeighborType `json:"type,omitempty"`
+	Unnumbered                  bool            `json:"unnumbered,omitempty"`
 	Expected                    bool            `json:"expected,omitempty"`
 	ConnectionName              string          `json:"connectionName,omitempty"`
 	ConnectionType              string          `json:"connectionType,omitempty"`
@@ -67,6 +68,7 @@ func GetBFDPeers(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricCo
 			peer := out[vrf][addr]
 			peer.RemoteName = bgpNeighbor.RemoteName
 			peer.Type = bgpNeighbor.Type
+			peer.Unnumbered = bgpNeighbor.Unnumbered
 			peer.Expected = bgpNeighbor.Expected
 			peer.ConnectionName = bgpNeighbor.ConnectionName
 			peer.ConnectionType = bgpNeighbor.ConnectionType

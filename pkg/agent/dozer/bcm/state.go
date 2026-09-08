@@ -15,10 +15,14 @@
 package bcm
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
 	"math"
+	"net"
+	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +42,9 @@ const (
 	temperatureIgnore            = "N/A"
 	errDisablePortStatusDisabled = "disabled"
 	errDisableLinkFlapCause      = "link-flap"
+	transceiverPresent           = "PRESENT"
+	transceiverOperActive        = "active"
+	transceiverCMISReady         = "Ready"
 	// gRPC NotFound is returned when a YANG path has no data yet (e.g. errdisable on a fresh switch).
 	// TODO: rework gnmi client to surface this as a typed sentinel instead of string matching.
 	errGRPCNotFound = "rpc error: code = NotFound"
@@ -99,7 +106,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update breakout metrics")
 	}
 
-	if err := p.updateLLDPNeighbors(ctx, swState, portMap); err != nil {
+	if err := p.updateLLDPNeighbors(ctx, reg, swState, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update lldp neighbors")
 	}
 
@@ -107,11 +114,11 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update errdisable state")
 	}
 
-	if err := p.updateBGPNeighborMetrics(ctx, reg, swState); err != nil {
+	if err := p.updateBGPNeighborMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update bgp neighbor metrics")
 	}
 
-	if err := p.updateBFDPeerMetrics(ctx, reg, swState); err != nil {
+	if err := p.updateBFDPeerMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update bfd peer metrics")
 	}
 
@@ -126,6 +133,9 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 	if err := p.updateCRMMetrics(ctx, reg, swState); err != nil {
 		return errors.Wrapf(err, "failed to update crm metrics")
 	}
+
+	// after everything that contributes to the transceiver state has run, it's collected from a few different paths
+	updateTransceiverInfoMetrics(reg, swState)
 
 	reg.SaveSwitchState(swState)
 
@@ -165,6 +175,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			}
 		}
 
+		transceiverName := transceiverForPort(ifaceName)
 		st := iface.State
 
 		adminStatus, err := mapAdminStatus(st.AdminStatus)
@@ -185,12 +196,12 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			return errors.Wrapf(err, "failed to get oper status ID")
 		}
 
-		reg.InterfaceMetrics.Enabled.WithLabelValues(ifaceName).Set(boolToFloat64(st.Enabled))
-		reg.InterfaceMetrics.AdminStatus.WithLabelValues(ifaceName).Set(float64(adminStatusID))
-		reg.InterfaceMetrics.OperStatus.WithLabelValues(ifaceName).Set(float64(operStatusID))
+		reg.InterfaceMetrics.Enabled.WithLabelValues(ifaceName, transceiverName).Set(boolToFloat64(st.Enabled))
+		reg.InterfaceMetrics.AdminStatus.WithLabelValues(ifaceName, transceiverName).Set(float64(adminStatusID))
+		reg.InterfaceMetrics.OperStatus.WithLabelValues(ifaceName, transceiverName).Set(float64(operStatusID))
 
 		if st.RateInterval != nil {
-			reg.InterfaceMetrics.RateInterval.WithLabelValues(ifaceName).Set(float64(*st.RateInterval))
+			reg.InterfaceMetrics.RateInterval.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.RateInterval))
 		}
 
 		ifState := agentapi.SwitchStateInterface{}
@@ -203,7 +214,7 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 			ifState.MAC = *st.MacAddress
 		}
 		if st.LastChange != nil {
-			reg.InterfaceMetrics.LastChange.WithLabelValues(ifaceName).Set(float64(*st.LastChange))
+			reg.InterfaceMetrics.LastChange.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.LastChange))
 			if *st.LastChange != 0 {
 				ifState.LastChange = kmetav1.Time{Time: time.Unix(int64(*st.LastChange), 0)} //nolint:gosec
 			}
@@ -212,100 +223,100 @@ func (p *BroadcomProcessor) updateInterfaceMetrics(ctx context.Context, reg *swi
 		if ifState.Enabled && st.Counters != nil {
 			ifState.Counters = &agentapi.SwitchStateInterfaceCounters{}
 
-			reg.InterfaceCounters.InBitsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InBitsPerSecond))
+			reg.InterfaceCounters.InBitsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.InBitsPerSecond))
 			ifState.Counters.InBitsPerSecond = unptrFloat64(st.Counters.InBitsPerSecond)
 
 			if st.Counters.InBroadcastPkts != nil {
-				reg.InterfaceCounters.InBroadcastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InBroadcastPkts))
+				reg.InterfaceCounters.InBroadcastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InBroadcastPkts))
 			}
 
 			if st.Counters.InDiscards != nil {
-				reg.InterfaceCounters.InDiscards.WithLabelValues(ifaceName).Set(float64(*st.Counters.InDiscards))
+				reg.InterfaceCounters.InDiscards.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InDiscards))
 				ifState.Counters.InDiscards = *st.Counters.InDiscards
 			}
 
 			if st.Counters.InErrors != nil {
-				reg.InterfaceCounters.InErrors.WithLabelValues(ifaceName).Set(float64(*st.Counters.InErrors))
+				reg.InterfaceCounters.InErrors.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InErrors))
 				ifState.Counters.InErrors = *st.Counters.InErrors
 			}
 
 			if st.Counters.InMulticastPkts != nil {
-				reg.InterfaceCounters.InMulticastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InMulticastPkts))
+				reg.InterfaceCounters.InMulticastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InMulticastPkts))
 			}
 
 			if st.Counters.InOctets != nil {
-				reg.InterfaceCounters.InOctets.WithLabelValues(ifaceName).Set(float64(*st.Counters.InOctets))
-				reg.InterfaceCounters.InBits.WithLabelValues(ifaceName).Set(float64(*st.Counters.InOctets * 8))
+				reg.InterfaceCounters.InOctets.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InOctets))
+				reg.InterfaceCounters.InBits.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InOctets * 8))
 				ifState.Counters.InBits = *st.Counters.InOctets * 8
 			}
 
-			reg.InterfaceCounters.InOctetsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InOctetsPerSecond))
+			reg.InterfaceCounters.InOctetsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.InOctetsPerSecond))
 
 			if st.Counters.InPkts != nil {
-				reg.InterfaceCounters.InPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InPkts))
+				reg.InterfaceCounters.InPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InPkts))
 			}
 
-			reg.InterfaceCounters.InPktsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.InPktsPerSecond))
+			reg.InterfaceCounters.InPktsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.InPktsPerSecond))
 			ifState.Counters.InPktsPerSecond = unptrFloat64(st.Counters.InPktsPerSecond)
 
 			if st.Counters.InUnicastPkts != nil {
-				reg.InterfaceCounters.InUnicastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.InUnicastPkts))
+				reg.InterfaceCounters.InUnicastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InUnicastPkts))
 			}
 
 			if st.Counters.InUtilization != nil {
-				reg.InterfaceCounters.InUtilization.WithLabelValues(ifaceName).Set(float64(*st.Counters.InUtilization))
+				reg.InterfaceCounters.InUtilization.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.InUtilization))
 				ifState.Counters.InUtilization = *st.Counters.InUtilization
 			}
 
 			if st.Counters.LastClear != nil {
-				reg.InterfaceCounters.LastClear.WithLabelValues(ifaceName).Set(float64(*st.Counters.LastClear))
+				reg.InterfaceCounters.LastClear.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.LastClear))
 				if *st.Counters.LastClear != 0 {
 					ifState.Counters.LastClear = kmetav1.Time{Time: time.Unix(int64(*st.Counters.LastClear), 0)} //nolint:gosec
 				}
 			}
 
-			reg.InterfaceCounters.OutBitsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutBitsPerSecond))
+			reg.InterfaceCounters.OutBitsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.OutBitsPerSecond))
 			ifState.Counters.OutBitsPerSecond = unptrFloat64(st.Counters.OutBitsPerSecond)
 
 			if st.Counters.OutBroadcastPkts != nil {
-				reg.InterfaceCounters.OutBroadcastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutBroadcastPkts))
+				reg.InterfaceCounters.OutBroadcastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutBroadcastPkts))
 			}
 
 			if st.Counters.OutDiscards != nil {
-				reg.InterfaceCounters.OutDiscards.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutDiscards))
+				reg.InterfaceCounters.OutDiscards.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutDiscards))
 				ifState.Counters.OutDiscards = *st.Counters.OutDiscards
 			}
 
 			if st.Counters.OutErrors != nil {
-				reg.InterfaceCounters.OutErrors.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutErrors))
+				reg.InterfaceCounters.OutErrors.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutErrors))
 				ifState.Counters.OutErrors = *st.Counters.OutErrors
 			}
 
 			if st.Counters.OutMulticastPkts != nil {
-				reg.InterfaceCounters.OutMulticastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutMulticastPkts))
+				reg.InterfaceCounters.OutMulticastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutMulticastPkts))
 			}
 
 			if st.Counters.OutOctets != nil {
-				reg.InterfaceCounters.OutOctets.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutOctets))
-				reg.InterfaceCounters.OutBits.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutOctets * 8))
+				reg.InterfaceCounters.OutOctets.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutOctets))
+				reg.InterfaceCounters.OutBits.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutOctets * 8))
 				ifState.Counters.OutBits = *st.Counters.OutOctets * 8
 			}
 
-			reg.InterfaceCounters.OutOctetsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutOctetsPerSecond))
+			reg.InterfaceCounters.OutOctetsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.OutOctetsPerSecond))
 
 			if st.Counters.OutPkts != nil {
-				reg.InterfaceCounters.OutPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutPkts))
+				reg.InterfaceCounters.OutPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutPkts))
 			}
 
-			reg.InterfaceCounters.OutPktsPerSecond.WithLabelValues(ifaceName).Set(unptrFloat64(st.Counters.OutPktsPerSecond))
+			reg.InterfaceCounters.OutPktsPerSecond.WithLabelValues(ifaceName, transceiverName).Set(unptrFloat64(st.Counters.OutPktsPerSecond))
 			ifState.Counters.OutPktsPerSecond = unptrFloat64(st.Counters.OutPktsPerSecond)
 
 			if st.Counters.OutUnicastPkts != nil {
-				reg.InterfaceCounters.OutUnicastPkts.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutUnicastPkts))
+				reg.InterfaceCounters.OutUnicastPkts.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutUnicastPkts))
 			}
 
 			if st.Counters.OutUtilization != nil {
-				reg.InterfaceCounters.OutUtilization.WithLabelValues(ifaceName).Set(float64(*st.Counters.OutUtilization))
+				reg.InterfaceCounters.OutUtilization.WithLabelValues(ifaceName, transceiverName).Set(float64(*st.Counters.OutUtilization))
 				ifState.Counters.OutUtilization = *st.Counters.OutUtilization
 			}
 		}
@@ -385,6 +396,8 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 			ifaceName = "CPU"
 		}
 
+		transceiverName := transceiverForPort(ifaceName)
+
 		ifaceSt, found := swState.Interfaces[ifaceName]
 		if isCPU(ifaceNameRaw) {
 			ifaceSt = agentapi.SwitchStateInterface{
@@ -424,90 +437,90 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 			if queue.State.DroppedOctets != nil {
 				val := *queue.State.DroppedOctets
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueDroppedBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
-				reg.InterfaceCounters.QueueDroppedOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueDroppedBits.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueDroppedOctets.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.DroppedBits = val * 8
 			}
 
 			if queue.State.DroppedPkts != nil {
 				val := *queue.State.DroppedPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueDroppedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueDroppedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.DroppedPkts = val
 			}
 
 			if queue.State.EcnMarkedOctets != nil {
 				val := *queue.State.EcnMarkedOctets
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueECNMarkedBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
-				reg.InterfaceCounters.QueueECNMarkedOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueECNMarkedBits.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueECNMarkedOctets.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.ECNMarkedBits = val * 8
 			}
 
 			if queue.State.EcnMarkedPkts != nil {
 				val := *queue.State.EcnMarkedPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueECNMarkedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueECNMarkedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.ECNMarkedPkts = val
 			}
 
 			if queue.State.PeriodicWatermark != nil {
 				val := *queue.State.PeriodicWatermark
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueuePeriodicWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueuePeriodicWatermark.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.PersistentWatermark != nil {
 				val := *queue.State.PersistentWatermark
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueuePersistentWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueuePersistentWatermark.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.TransmitBitsPerSecond != nil {
 				val := *queue.State.TransmitBitsPerSecond
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitBitsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitBitsPerSecond.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.TransmitBitsPerSecond = val
 			}
 
 			if queue.State.TransmitOctets != nil {
 				val := *queue.State.TransmitOctets
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitOctets.WithLabelValues(ifaceName, qName).Set(float64(val))
-				reg.InterfaceCounters.QueueTransmitBits.WithLabelValues(ifaceName, qName).Set(float64(val * 8))
+				reg.InterfaceCounters.QueueTransmitOctets.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitBits.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val * 8))
 				qCounters.TransmitBits = val * 8
 			}
 
 			if queue.State.TransmitOctetsPerSecond != nil {
 				val := *queue.State.TransmitOctetsPerSecond
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitOctetsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitOctetsPerSecond.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.TransmitPkts != nil {
 				val := *queue.State.TransmitPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.TransmitPkts = val
 			}
 
 			if queue.State.TransmitPktsPerSecond != nil {
 				val := *queue.State.TransmitPktsPerSecond
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueTransmitPktsPerSecond.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueTransmitPktsPerSecond.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.TransmitPktsPerSecond = val
 			}
 
 			if queue.State.Watermark != nil {
 				val := *queue.State.Watermark
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueWatermark.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueWatermark.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 			}
 
 			if queue.State.WredDroppedPkts != nil {
 				val := *queue.State.WredDroppedPkts
 				nonZero = nonZero || val != 0
-				reg.InterfaceCounters.QueueWREDDroppedPkts.WithLabelValues(ifaceName, qName).Set(float64(val))
+				reg.InterfaceCounters.QueueWREDDroppedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(val))
 				qCounters.WREDDroppedPkts = val
 			}
 
@@ -640,90 +653,254 @@ func (p *BroadcomProcessor) updateCMISMetrics(ctx context.Context, ag *agentapi.
 	return nil
 }
 
-func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
-	lldp := &oc.OpenconfigLldp_Lldp{}
-	err := p.client.Get(ctx, "/lldp/interfaces", lldp)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get lldp interfaces")
-	}
+func updateTransceiverInfoMetrics(reg *switchstate.Registry, swState *agentapi.SwitchState) {
+	// transceivers get swapped, the ones that are gone have to take their series with them
+	reg.TransceiverMetrics.Active.Reset()
+	reg.TransceiverMetrics.CMISReady.Reset()
+	reg.TransceiverMetrics.Info.Reset()
 
-	if lldp.Interfaces == nil {
-		return nil
-	}
+	for name, st := range swState.Transceivers {
+		present := st.Present == transceiverPresent
+		reg.TransceiverMetrics.Present.WithLabelValues(name).Set(boolToFloat64(&present))
 
-	for ifaceName, iface := range lldp.Interfaces.Interface {
-		if iface.Neighbors == nil {
+		if !present {
 			continue
 		}
 
-		neighbours := []agentapi.SwitchStateLLDPNeighbor{}
+		active := st.OperStatus == transceiverOperActive
+		reg.TransceiverMetrics.Active.WithLabelValues(name).Set(boolToFloat64(&active))
 
-		for neighbourName, neighbour := range iface.Neighbors.Neighbor {
-			if neighbour.State == nil {
+		if st.CMISStatus != "" {
+			ready := st.CMISStatus == transceiverCMISReady
+			reg.TransceiverMetrics.CMISReady.WithLabelValues(name).Set(boolToFloat64(&ready))
+		}
+
+		length := ""
+		if st.CableLength > 0 {
+			length = strconv.FormatFloat(st.CableLength, 'f', -1, 64)
+		}
+
+		reg.TransceiverMetrics.Info.WithLabelValues(
+			name, st.Description, st.Vendor, st.VendorPart, st.SerialNumber, st.VendorRev, st.VendorOUI,
+			st.Firmware, st.FormFactor, st.ConnectorType, st.CableClass, length, st.CMISRev,
+		).Set(1)
+	}
+}
+
+func (p *BroadcomProcessor) updateLLDPNeighbors(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
+	lldp := &oc.OpenconfigLldp_Lldp{}
+	if err := p.client.Get(ctx, "/lldp/interfaces", lldp); err != nil {
+		return fmt.Errorf("getting lldp interfaces: %w", err)
+	}
+
+	// neighbors are labeled by their own identity, the ones that are gone have to take their series with them
+	reg.LLDPMetrics.LastUpdate.Reset()
+	reg.LLDPMetrics.TTL.Reset()
+	reg.LLDPMetrics.Info.Reset()
+
+	now := time.Now()
+
+	if lldp.Interfaces != nil {
+		for ifaceName, iface := range lldp.Interfaces.Interface {
+			// every switch and IPMI would show up on the management interface
+			if isManagement(ifaceName) {
 				continue
 			}
 
-			nSt := neighbour.State
-			st := agentapi.SwitchStateLLDPNeighbor{
-				Name: neighbourName,
+			if iface == nil || iface.Neighbors == nil {
+				continue
 			}
 
-			if nSt.ChassisId != nil {
-				st.ChassisID = *nSt.ChassisId
+			neighbors := lldpNeighbors(iface.Neighbors.Neighbor, now)
+			if len(neighbors) == 0 {
+				continue
 			}
 
-			if nSt.SystemName != nil {
-				st.SystemName = *nSt.SystemName
+			ifaceNameTr, exists := portMap[ifaceName]
+			if !exists {
+				slog.Warn("Port mapping not found, ignoring for metrics", "lldpInterface", ifaceName)
+
+				continue
 			}
 
-			if nSt.SystemDescription != nil {
-				st.SystemDescription = *nSt.SystemDescription
-			}
-
-			if nSt.PortId != nil {
-				st.PortID = *nSt.PortId
-			}
-
-			if nSt.PortDescription != nil {
-				st.PortDescription = *nSt.PortDescription
-			}
-
-			if neighbour.Med != nil {
-				nMed := neighbour.Med
-
-				if nMed.State != nil && nMed.State.Inventory != nil {
-					nInt := nMed.State.Inventory
-
-					if nInt.Manufacturer != nil {
-						st.Manufacturer = *nInt.Manufacturer
-					}
-
-					if nInt.Model != nil {
-						st.Model = *nInt.Model
-					}
-
-					if nInt.SerialNumber != nil {
-						st.SerialNumber = *nInt.SerialNumber
-					}
-				}
-			}
-
-			neighbours = append(neighbours, st)
+			intSt := swState.Interfaces[ifaceNameTr]
+			intSt.LLDPNeighbors = neighbors
+			swState.Interfaces[ifaceNameTr] = intSt
 		}
+	}
 
-		ifaceNameTr, exists := portMap[ifaceName]
-		if !exists {
-			slog.Warn("Port mapping not found, ignoring for metrics", "lldpInterface", ifaceName)
-
+	// iterating the ports and not the neighbors: a port without any has to report zero, nothing ever resets it
+	for nosName, apiName := range portMap {
+		if isManagement(nosName) {
 			continue
 		}
 
-		intSt := swState.Interfaces[ifaceNameTr]
-		intSt.LLDPNeighbors = neighbours
-		swState.Interfaces[ifaceNameTr] = intSt
+		transceiverName := transceiverForPort(apiName)
+		neighbors := swState.Interfaces[apiName].LLDPNeighbors
+		reg.LLDPMetrics.Neighbors.WithLabelValues(apiName, transceiverName).Set(float64(len(neighbors)))
+
+		for _, neighbor := range neighbors {
+			reg.LLDPMetrics.Info.WithLabelValues(
+				apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, neighbor.ChassisID,
+				neighbor.SystemDescription, neighbor.Manufacturer, neighbor.Model, neighbor.SerialNumber,
+				transceiverName,
+			).Set(1)
+
+			if neighbor.LastUpdate != nil && !neighbor.LastUpdate.IsZero() {
+				reg.LLDPMetrics.LastUpdate.
+					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, transceiverName).
+					Set(float64(neighbor.LastUpdate.Unix()))
+			}
+
+			if neighbor.TTL > 0 {
+				reg.LLDPMetrics.TTL.
+					WithLabelValues(apiName, neighbor.SystemName, neighbor.Port, neighbor.MAC, transceiverName).
+					Set(float64(neighbor.TTL))
+			}
+		}
 	}
 
 	return nil
+}
+
+func lldpNeighbors(ocNeighbors map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor, now time.Time) []agentapi.SwitchStateLLDPNeighbor {
+	neighbors := make([]agentapi.SwitchStateLLDPNeighbor, 0, len(ocNeighbors))
+
+	for id, neighbor := range ocNeighbors {
+		st, ok := lldpNeighbor(id, neighbor, now)
+		if !ok {
+			continue
+		}
+
+		neighbors = append(neighbors, st)
+	}
+
+	if len(neighbors) == 0 {
+		return nil
+	}
+
+	slices.SortFunc(neighbors, compareLLDPNeighbors)
+
+	return neighbors
+}
+
+func lldpNeighbor(id string, neighbor *oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor, now time.Time) (agentapi.SwitchStateLLDPNeighbor, bool) {
+	if neighbor == nil || neighbor.State == nil {
+		return agentapi.SwitchStateLLDPNeighbor{}, false
+	}
+
+	nSt := neighbor.State
+	st := agentapi.SwitchStateLLDPNeighbor{}
+
+	if nSt.ChassisId != nil {
+		st.ChassisID = *nSt.ChassisId
+	}
+
+	if nSt.SystemName != nil {
+		st.SystemName = *nSt.SystemName
+	}
+
+	if nSt.SystemDescription != nil {
+		st.SystemDescription = *nSt.SystemDescription
+	}
+
+	if nSt.PortId != nil {
+		st.PortID = *nSt.PortId
+	}
+
+	if nSt.PortDescription != nil {
+		st.PortDescription = *nSt.PortDescription
+	}
+
+	if nSt.Ttl != nil {
+		st.TTL = *nSt.Ttl
+	}
+
+	st.LastUpdate = lldpLastUpdate(nSt, now)
+
+	// port-id-type isn't always reported, so fall back to just checking the value
+	portIDIsMAC := nSt.PortIdType == oc.OpenconfigLldp_PortIdType_MAC_ADDRESS || isMACAddress(st.PortID)
+
+	st.MAC = strings.ToLower(id)
+	if portIDIsMAC {
+		st.MAC = strings.ToLower(st.PortID)
+	}
+	if !isMACAddress(st.MAC) {
+		slog.Warn("Invalid MAC address in LLDP neighbor, ignoring", "mac", st.MAC,
+			"portID", st.PortID, "portDescription", st.PortDescription, "chassisID", st.ChassisID, "systemName", st.SystemName)
+		st.MAC = ""
+	}
+
+	st.Port = st.PortID
+	if portIDIsMAC && st.PortDescription != "" {
+		st.Port = st.PortDescription
+	}
+
+	if neighbor.Med != nil {
+		nMed := neighbor.Med
+
+		if nMed.State != nil && nMed.State.Inventory != nil {
+			nInv := nMed.State.Inventory
+
+			if nInv.Manufacturer != nil {
+				st.Manufacturer = *nInv.Manufacturer
+			}
+
+			if nInv.Model != nil {
+				st.Model = *nInv.Model
+			}
+
+			if nInv.SerialNumber != nil {
+				st.SerialNumber = *nInv.SerialNumber
+			}
+		}
+	}
+
+	return st, true
+}
+
+// lldpLastUpdate converts the last-update, reported as seconds since it happened, into a timestamp.
+func lldpLastUpdate(nSt *oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State, now time.Time) *kmetav1.Time {
+	if nSt.LastUpdate == nil {
+		return nil
+	}
+
+	return &kmetav1.Time{Time: now.Add(-time.Duration(*nSt.LastUpdate) * time.Second)}
+}
+
+// isMACAddress reports whether s is a 6-octet colon-separated MAC address
+func isMACAddress(s string) bool {
+	hw, err := net.ParseMAC(s)
+
+	// ParseMAC also takes dash/dot separated, bare hex and longer EUI-64 forms
+	return err == nil && len(hw) == 6 && strings.Count(s, ":") == 5
+}
+
+// compareLLDPNeighbors orders neighbors by (system name, port, MAC), the remaining fields are only tie breakers to
+// keep the order stable as it comes from a map and the sort isn't stable either
+func compareLLDPNeighbors(a, b agentapi.SwitchStateLLDPNeighbor) int {
+	return cmp.Or(
+		strings.Compare(a.SystemName, b.SystemName),
+		strings.Compare(a.Port, b.Port),
+		strings.Compare(a.MAC, b.MAC),
+		strings.Compare(a.ChassisID, b.ChassisID),
+		strings.Compare(a.PortID, b.PortID),
+		strings.Compare(a.PortDescription, b.PortDescription),
+		strings.Compare(a.SystemDescription, b.SystemDescription),
+		strings.Compare(a.Manufacturer, b.Manufacturer),
+		strings.Compare(a.Model, b.Model),
+		strings.Compare(a.SerialNumber, b.SerialNumber),
+		cmp.Compare(a.TTL, b.TTL),
+		lldpLastUpdateTime(a.LastUpdate).Compare(lldpLastUpdateTime(b.LastUpdate)),
+	)
+}
+
+func lldpLastUpdateTime(t *kmetav1.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+
+	return t.Time
 }
 
 func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *agentapi.SwitchState, portMap map[string]string) error {
@@ -774,7 +951,45 @@ func (p *BroadcomProcessor) updateErrDisableState(ctx context.Context, swState *
 	return nil
 }
 
-func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+// apiIfaceName translates the NOS interface an unnumbered BGP session or BFD session runs over
+// into the port name used by the API: Ethernet0 -> E1/1, Ethernet0.1001 -> E1/1.1001 and, for the
+// TH5 workaround SVI, Vlan3123 -> E1/5.3123. Names we cannot map are returned as they are, so an
+// unexpected one shows up in the state instead of being dropped.
+func apiIfaceName(name string, portMap map[string]string, th5VLANs map[string]uint16) string {
+	if isVLAN(name) {
+		vlan, err := strconv.ParseUint(strings.TrimPrefix(name, IfacePrefixVLAN), 10, 16)
+		if err != nil {
+			return name
+		}
+
+		for port, workaroundVLAN := range th5VLANs {
+			if uint64(workaroundVLAN) == vlan {
+				return fmt.Sprintf("%s.%d", port, workaroundVLAN)
+			}
+		}
+
+		return name
+	}
+
+	if !isPhysical(name) {
+		return name
+	}
+
+	base, sub, hasSub := strings.Cut(name, ".")
+	apiName, exists := portMap[base]
+	if !exists {
+		slog.Warn("Port mapping not found for interface-keyed peer", "interface", name)
+
+		return name
+	}
+	if hasSub {
+		return apiName + "." + sub
+	}
+
+	return apiName
+}
+
+func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	sonicVRFs := &oc.SonicVrf_SonicVrf_VRF{}
 	if err := p.client.Get(ctx, "/sonic-vrf/VRF/VRF_LIST", sonicVRFs, api.DataTypeCONFIG()); err != nil {
 		return errors.Wrapf(err, "failed to get vrfs list")
@@ -797,10 +1012,14 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 		// The device reports these timers as a delta in seconds relative to now (i.e. "N seconds ago")
 		now := time.Now()
 
-		for neighborAddress, neighbor := range neighs.Neighbor {
+		for neighborAddressRaw, neighbor := range neighs.Neighbor {
 			if neighbor.State == nil {
 				continue
 			}
+
+			// an unnumbered neighbor is keyed by the interface it runs over, which the device
+			// reports under its NOS name
+			neighborAddress := apiIfaceName(neighborAddressRaw, portMap, ag.Spec.Catalog.TH5WorkaroundVLANs)
 
 			ocSt := neighbor.State
 			st := agentapi.SwitchStateBGPNeighbor{
@@ -1759,6 +1978,19 @@ func normBias(bias *float64) float64 {
 	return *bias
 }
 
+// transceiverForPort returns the transceiver cage an interface lives in, e.g. E1/1 for both E1/1/1 and E1/1/2, and
+// nothing for the interfaces that have no cage at all, such as the management port, the port channels and the CPU.
+func transceiverForPort(port string) string {
+	switch strings.Count(port, "/") {
+	case 1:
+		return port
+	case 2:
+		return port[:strings.LastIndex(port, "/")]
+	default:
+		return ""
+	}
+}
+
 func normBreakoutName(transceiverName string) (string, bool) {
 	if strings.Count(transceiverName, "/") == 2 {
 		if strings.HasSuffix(transceiverName, "/1") {
@@ -1779,7 +2011,7 @@ func cleanupFloat(val float64) float64 {
 	return val
 }
 
-func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState) error {
+func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	ocBFD := &oc.OpenconfigBfd_Bfd{}
 	if err := p.client.Get(ctx, "/openconfig-bfd:bfd/openconfig-bfd-ext:bfd-shop-sessions", ocBFD); err != nil {
 		if !strings.Contains(err.Error(), errGRPCNotFound) {
@@ -1802,10 +2034,16 @@ func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switc
 
 		ocSt := session.State
 		vrf := key.Vrf
-		remoteAddress := key.RemoteAddress
+		peer := key.RemoteAddress
 
 		if vrf == "" {
 			vrf = VRFDefault
+		}
+
+		// an unnumbered session runs over an IPv6 link-local address, which is of no use to
+		// anyone: key it by the interface instead, the way the BGP neighbor is reported
+		if addr, err := netip.ParseAddr(peer); err == nil && addr.Is6() && addr.IsLinkLocalUnicast() && key.Interface != "" {
+			peer = apiIfaceName(key.Interface, portMap, ag.Spec.Catalog.TH5WorkaroundVLANs)
 		}
 
 		st := agentapi.SwitchStateBFDPeer{}
@@ -1820,7 +2058,7 @@ func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switc
 		if err != nil {
 			return errors.Wrapf(err, "failed to get bfd session state ID")
 		}
-		reg.BFDPeerMetrics.SessionState.WithLabelValues(vrf, remoteAddress).Set(float64(sessionStateID))
+		reg.BFDPeerMetrics.SessionState.WithLabelValues(vrf, peer).Set(float64(sessionStateID))
 
 		if ocSt.ActiveProfile != nil {
 			st.Profile = *ocSt.ActiveProfile
@@ -1832,13 +2070,13 @@ func (p *BroadcomProcessor) updateBFDPeerMetrics(ctx context.Context, reg *switc
 
 		if ocSt.FailureTransitions != nil {
 			st.FailureTransitions = *ocSt.FailureTransitions
-			reg.BFDPeerMetrics.FailureTransitions.WithLabelValues(vrf, remoteAddress).Set(float64(*ocSt.FailureTransitions))
+			reg.BFDPeerMetrics.FailureTransitions.WithLabelValues(vrf, peer).Set(float64(*ocSt.FailureTransitions))
 		}
 
 		if swState.BFDPeers[vrf] == nil {
 			swState.BFDPeers[vrf] = map[string]agentapi.SwitchStateBFDPeer{}
 		}
-		swState.BFDPeers[vrf][remoteAddress] = st
+		swState.BFDPeers[vrf][peer] = st
 	}
 
 	return nil

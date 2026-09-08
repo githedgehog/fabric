@@ -11,13 +11,44 @@ import (
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type LLDPNeighbor struct {
+	// Name is reported as the neighbor advertises it, see IgnoredPrefix/IgnoredSuffix
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Port        string `json:"port,omitempty"`
+
+	// Only reported for the actual neighbors, the wiring has nothing to expect them from
+
+	MAC        string        `json:"mac,omitempty"`
+	TTL        uint16        `json:"ttl,omitempty"`
+	LastUpdate *kmetav1.Time `json:"updated,omitempty"`
+
+	// Parts of the Name ignored to match the wiring, only set when they made it match
+	IgnoredPrefix string `json:"ignoredPrefix,omitempty"`
+	IgnoredSuffix string `json:"ignoredSuffix,omitempty"`
+}
+
+// MatchedName is the Name without the ignored parts, the one compared against the wiring.
+func (n LLDPNeighbor) MatchedName() string {
+	return strings.TrimSuffix(strings.TrimPrefix(n.Name, n.IgnoredPrefix), n.IgnoredSuffix)
+}
+
+// Matches reports whether the neighbor is the one the wiring expects, ignoring case as host and port names do.
+// A port with nothing expected on it never matches, there is nothing to be right about.
+func (n LLDPNeighbor) Matches(expected LLDPNeighbor) bool {
+	if expected.Name == "" {
+		return false
+	}
+
+	if !strings.EqualFold(n.MatchedName(), expected.Name) || !strings.EqualFold(n.Port, expected.Port) {
+		return false
+	}
+
+	return expected.Description == "" || strings.EqualFold(n.Description, expected.Description)
 }
 
 type LLDPNeighborType string
@@ -37,7 +68,65 @@ type LLDPNeighborStatus struct {
 	Actual         []LLDPNeighbor   `json:"actual,omitempty"`
 }
 
-func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch) (map[string]LLDPNeighborStatus, error) {
+// DPUs name themselves after their host and hosts report their FQDN, while the wiring knows neither.
+var (
+	DefaultLLDPIgnoreSuffixes = []string{"-dpu", ".lan", ".maas"}
+	DefaultLLDPIgnorePrefixes = []string{}
+)
+
+type LLDPNeighborsOpts struct {
+	// Ignored in the neighbor system names, unset means nothing is ignored, see the defaults above
+	IgnorePrefixes []string
+	IgnoreSuffixes []string
+}
+
+// lldpNeighborNameCut returns the parts of a neighbor name to ignore for it to be the expected one, e.g. the .lan of
+// a server-1.lan wired as server-1. Nothing is cut unless it produces the expected name, so the wiring is free to call
+// the neighbor ash033-dpu, and never down to an empty name.
+func lldpNeighborNameCut(name, expected string, opts LLDPNeighborsOpts) (string, string) {
+	if expected == "" {
+		return "", ""
+	}
+
+	// offsets into the name, so that the ignored parts stay available for reporting
+	type cut struct{ start, end int }
+
+	full := cut{0, len(name)}
+	seen := map[cut]bool{full: true}
+
+	for queue := []cut{full}; len(queue) > 0; {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if strings.EqualFold(name[cur.start:cur.end], expected) {
+			return name[:cur.start], name[cur.end:]
+		}
+
+		// each step strictly shortens what's left, so this terminates
+		next := []cut{}
+		for _, prefix := range opts.IgnorePrefixes {
+			if prefix != "" && cur.end-cur.start > len(prefix) && strings.EqualFold(name[cur.start:cur.start+len(prefix)], prefix) {
+				next = append(next, cut{cur.start + len(prefix), cur.end})
+			}
+		}
+		for _, suffix := range opts.IgnoreSuffixes {
+			if suffix != "" && cur.end-cur.start > len(suffix) && strings.EqualFold(name[cur.end-len(suffix):cur.end], suffix) {
+				next = append(next, cut{cur.start, cur.end - len(suffix)})
+			}
+		}
+
+		for _, candidate := range next {
+			if !seen[candidate] {
+				seen[candidate] = true
+				queue = append(queue, candidate)
+			}
+		}
+	}
+
+	return "", ""
+}
+
+func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch, opts LLDPNeighborsOpts) (map[string]LLDPNeighborStatus, error) {
 	if sw == nil {
 		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
 	}
@@ -74,6 +163,17 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 		}
 
 		swNOS2API[sw.Name] = ports
+	}
+
+	srvExpectedName := map[string]string{}
+	srvList := &wiringapi.ServerList{}
+	if err := kube.List(ctx, srvList); err != nil {
+		return nil, fmt.Errorf("listing servers: %w", err)
+	}
+	for _, srv := range srvList.Items {
+		if name := srv.Spec.Inspect.ExpectedSystemName; name != "" {
+			srvExpectedName[srv.Name] = name
+		}
 	}
 
 	conns := &wiringapi.ConnectionList{}
@@ -144,11 +244,19 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				return nil, fmt.Errorf("duplicate port %s", kPort) //nolint:goerr113
 			}
 
+			expectedName := vDevice
+			// a server may advertise a system name that isn't its object name, only it knows so
+			if statusType == LLDPNeighborTypeServer {
+				if name, ok := srvExpectedName[vDevice]; ok {
+					expectedName = name
+				}
+			}
+
 			status.Type = statusType
 			status.ConnectionName = conn.Name
 			status.ConnectionType = conn.Spec.Type()
 			status.Expected = LLDPNeighbor{
-				Name: vDevice,
+				Name: expectedName,
 				Port: vPort,
 			}
 
@@ -156,6 +264,7 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 		}
 	}
 
+	// agents no longer report neighbors of their own management interface, but older ones still do
 	for ifaceName, iface := range ag.Status.State.Interfaces {
 		if strings.HasPrefix(ifaceName, wiringapi.ManagementPortPrefix) {
 			continue
@@ -164,7 +273,12 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 		for _, neighbor := range iface.LLDPNeighbors {
 			status := out[ifaceName]
 
-			port := neighbor.PortID
+			// port is derived by the agent, fall back to the raw port ID for the agents that don't report it yet
+			port := neighbor.Port
+			if port == "" {
+				port = neighbor.PortID
+			}
+
 			if status.Type == LLDPNeighborTypeFabric {
 				if status.Expected.Name != "" {
 					status.Expected.Description = wiringapi.SwitchLLDPDescription(ag.Spec.Config.DeploymentID)
@@ -177,17 +291,25 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 					return nil, fmt.Errorf("NOS ports mapping for %s not found", status.Expected.Name) //nolint:goerr113
 				}
 
-				if apiPort, ok := ports[port]; ok {
+				// mapping is keyed by the NOS interface names, so it's only the raw port ID that can match it
+				if apiPort, ok := ports[neighbor.PortID]; ok {
 					port = apiPort
 				} else {
-					slog.Warn("Port mapping not found", "switch", status.Expected.Name, "port", port)
+					slog.Warn("Port mapping not found", "switch", status.Expected.Name, "portID", neighbor.PortID, "port", port)
 				}
 			}
 
+			ignoredPrefix, ignoredSuffix := lldpNeighborNameCut(neighbor.SystemName, status.Expected.Name, opts)
+
 			status.Actual = append(status.Actual, LLDPNeighbor{
-				Name:        neighbor.SystemName,
-				Description: neighbor.SystemDescription,
-				Port:        port,
+				Name:          neighbor.SystemName,
+				Description:   neighbor.SystemDescription,
+				Port:          port,
+				MAC:           neighbor.MAC,
+				TTL:           neighbor.TTL,
+				LastUpdate:    neighbor.LastUpdate,
+				IgnoredPrefix: ignoredPrefix,
+				IgnoredSuffix: ignoredSuffix,
 			})
 
 			out[ifaceName] = status

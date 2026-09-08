@@ -74,11 +74,17 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 					last = HumanizeTime(now, n.LastEstablished.Time)
 				}
 
+				// an unnumbered session is keyed by the port it runs over, so say what it is
+				neighbor := name
+				if n.Unnumbered {
+					neighbor += " IPv6 LL"
+				}
+
 				data = append(data, []string{
 					t,
 					n.Port,
 					vrf,
-					name,
+					neighbor,
 					n.RemoteName,
 					n.ConnectionName,
 					s,

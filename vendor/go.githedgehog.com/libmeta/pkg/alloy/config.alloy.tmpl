@@ -131,6 +131,11 @@ prometheus.scrape "{{ $name }}" {
   {{ if $scrape.Address }}targets = [{ __address__ = "{{ $scrape.Address }}", }]{{ end }}
   {{ if $scrape.Self.Enable }}targets = prometheus.exporter.self.alloy.targets{{ end }}
   {{ if $scrape.Unix.Enable }}targets = prometheus.exporter.unix.host.targets{{ end }}
+  {{ if $scrape.ProxyURL }}proxy_url = "{{ $scrape.ProxyURL }}"{{ end }}
+  {{ if $scrape.HTTPHeaders }}http_headers = {
+    {{ range $k, $v := $scrape.HTTPHeaders }}"{{ $k }}" = ["{{ $v }}"],
+    {{ end }}
+  }{{ end }}
 
   forward_to = [
     prometheus.relabel.{{ $name }}.receiver,

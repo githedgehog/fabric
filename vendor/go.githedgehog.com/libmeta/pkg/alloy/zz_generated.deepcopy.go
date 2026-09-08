@@ -159,6 +159,13 @@ func (in *Scrape) DeepCopyInto(out *Scrape) {
 	*out = *in
 	out.Self = in.Self
 	in.Unix.DeepCopyInto(&out.Unix)
+	if in.HTTPHeaders != nil {
+		in, out := &in.HTTPHeaders, &out.HTTPHeaders
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Relabel != nil {
 		in, out := &in.Relabel, &out.Relabel
 		*out = make([]ScrapeRelabelRule, len(*in))

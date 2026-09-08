@@ -76,11 +76,17 @@ func (out *BFDOut) MarshalText(_ BFDIn, now time.Time) (string, error) {
 					last = HumanizeTime(now, p.LastUpTime.Time)
 				}
 
+				// an unnumbered session is keyed by the port it runs over, so say what it is
+				peer := addr
+				if p.Unnumbered {
+					peer += " IPv6 LL"
+				}
+
 				data = append(data, []string{
 					t,
 					p.Port,
 					vrf,
-					addr,
+					peer,
 					p.RemoteName,
 					p.ConnectionName,
 					s,
