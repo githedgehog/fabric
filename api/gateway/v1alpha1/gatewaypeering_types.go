@@ -177,6 +177,7 @@ type PeeringEntryExpose struct {
 	As                 []PeeringEntryAs `json:"as,omitempty"`
 	NAT                *PeeringNAT      `json:"nat,omitempty"`
 	DefaultDestination bool             `json:"default,omitempty"`
+	NoMultiPath        bool             `json:"noMultiPath,omitempty"`
 }
 
 type PeeringEntry struct {
