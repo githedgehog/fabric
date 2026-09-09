@@ -538,8 +538,12 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			// a 9036 fabric is a path-MTU black hole -- the handshake and every small packet pass,
 			// then the first full-size segment is untransmittable and the connection stops with
 			// its window collapsed to one segment.
+			//
+			// A slash, not a comma: the dataplane declares --interface with clap's
+			// `value_delimiter = ','`, so a comma is consumed as an interface separator before
+			// its parser runs and the suffix arrives as a value of its own.
 			if iface.MTU > 0 {
-				val += fmt.Sprintf(",mtu=%d", iface.MTU)
+				val += fmt.Sprintf("/mtu=%d", iface.MTU)
 			}
 			args = append(args, "--interface", val)
 		}
