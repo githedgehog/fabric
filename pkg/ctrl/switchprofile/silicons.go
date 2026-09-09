@@ -17,4 +17,5 @@ const (
 	SiliconSpectrum            = "Spectrum"
 	SiliconSpectrum2           = "Spectrum-2"
 	SiliconSpectrum3           = "Spectrum-3"
+	SiliconSpectrum4           = "Spectrum-4"
 )
