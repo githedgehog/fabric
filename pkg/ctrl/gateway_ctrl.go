@@ -532,6 +532,15 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 				// default:
 				// return nil
 			}
+			// The MTU travels with the interface, because the DPDK path has nowhere else to get
+			// it. The kernel driver picks it up from the `ip l set mtu` in its init container
+			// below; DPDK has no such step and takes the EAL's default of 1500 instead, which on
+			// a 9036 fabric is a path-MTU black hole -- the handshake and every small packet pass,
+			// then the first full-size segment is untransmittable and the connection stops with
+			// its window collapsed to one segment.
+			if iface.MTU > 0 {
+				val += fmt.Sprintf(",mtu=%d", iface.MTU)
+			}
 			args = append(args, "--interface", val)
 		}
 
