@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -349,6 +350,19 @@ func entityName(gwName string, t ...string) string {
 	return fmt.Sprintf("gw--%s--%s", gwName, strings.Join(t, "-"))
 }
 
+const (
+	// hugepages2Mi is the resource name the kubelet uses for 2 MiB hugepages.
+	hugepages2Mi = corev1.ResourceName("hugepages-2Mi")
+	// gatewayHugepages is how much hugepage memory the dataplane is granted.
+	//
+	// 2 MiB pages rather than 1 GiB: a gigabyte page needs a gigabyte of physically contiguous,
+	// gigabyte-aligned memory, which a host that has been up for a while usually cannot produce
+	// at runtime. Asking for a size the node cannot satisfy leaves the pod Pending forever.
+	gatewayHugepages = "4Gi"
+	// gatewayMemory is the ordinary memory limit, which hugepages are not counted against.
+	gatewayMemory = "4Gi"
+)
+
 // benchmarkPCI is the hand-wired device for each gateway in the benchmark lab.
 //
 // EXPERIMENT ONLY -- this branch exists to get a DPDK number out of the benchmark lab and must
@@ -624,6 +638,28 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								// under the kernel driver this is a no-op beyond one extra fork.
 								Command: []string{"/bin/dataplane-init"},
 								Args:    args,
+								// Hugepages are a scheduled resource, not something a privileged
+								// container may simply take. Without this the kubelet gives the pod
+								// a hugetlb cgroup limit of zero, and DPDK fails in
+								// `rte_eal_memory_init` with `Cannot init memory` -- an
+								// out-of-memory on a host with thousands of free pages, and one
+								// that `Privileged: true` does not lift, because that governs
+								// capabilities rather than cgroup limits.
+								//
+								// Requests must equal limits for hugepages; Kubernetes rejects a
+								// pod where they differ. The memory limit is separate: hugepages
+								// are not counted against it, so it has to be large enough for the
+								// dataplane's ordinary allocations on its own.
+								Resources: corev1.ResourceRequirements{
+									Limits: corev1.ResourceList{
+										hugepages2Mi:          resource.MustParse(gatewayHugepages),
+										corev1.ResourceMemory: resource.MustParse(gatewayMemory),
+									},
+									Requests: corev1.ResourceList{
+										hugepages2Mi:          resource.MustParse(gatewayHugepages),
+										corev1.ResourceMemory: resource.MustParse(gatewayMemory),
+									},
+								},
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
