@@ -38,7 +38,7 @@ require (
 	go.githedgehog.com/fabric-bcm-ygot v0.6.0-4.6.0
 	go.githedgehog.com/libmeta v0.4.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	k8s.io/api v0.36.4
 	k8s.io/apimachinery v0.36.4
 	k8s.io/client-go v0.36.4
