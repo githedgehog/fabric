@@ -61,6 +61,7 @@ var cumulusSwitchProfiles = []wiringapi.SwitchProfile{
 	CmlsNvidiaSN2201,
 	CmlsNvidiaSN3700c,
 	CmlsNvidiaSN4600,
+	CmlsNvidiaSN5610,
 	CumulusVX,
 }
 
