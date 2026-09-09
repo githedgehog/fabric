@@ -1301,6 +1301,7 @@ _Appears in:_
 | `as` _[PeeringEntryAs](#peeringentryas) array_ |  |  |  |
 | `nat` _[PeeringNAT](#peeringnat)_ |  |  |  |
 | `default` _boolean_ |  |  |  |
+| `noMultiPath` _boolean_ |  |  |  |
 
 
 #### PeeringEntryIP

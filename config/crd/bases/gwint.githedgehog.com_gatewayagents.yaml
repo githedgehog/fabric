@@ -418,6 +418,8 @@ spec:
                                     static:
                                       type: object
                                   type: object
+                                noMultiPath:
+                                  type: boolean
                               type: object
                             type: array
                         type: object
