@@ -1808,6 +1808,7 @@
       config:
         aggregate-id: PortChannel2
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet1]/ethernet
   summary: Create Interface Ethernet1 Ethernet Base
@@ -1817,6 +1818,7 @@
       config:
         aggregate-id: PortChannel1
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet2]/ethernet
   summary: Create Interface Ethernet2 Ethernet Base
@@ -1826,6 +1828,7 @@
       config:
         aggregate-id: PortChannel3
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet3]/ethernet
   summary: Create Interface Ethernet3 Ethernet Base
@@ -1835,6 +1838,7 @@
       config:
         aggregate-id: PortChannel3
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet4]/ethernet
   summary: Create Interface Ethernet4 Ethernet Base
@@ -1843,6 +1847,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet5]/ethernet
   summary: Create Interface Ethernet5 Ethernet Base
@@ -1851,6 +1856,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet6]/ethernet
   summary: Create Interface Ethernet6 Ethernet Base
@@ -1859,6 +1865,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet7]/ethernet
   summary: Create Interface Ethernet7 Ethernet Base
@@ -1867,6 +1874,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet8]/ethernet
   summary: Create Interface Ethernet8 Ethernet Base
@@ -1875,6 +1883,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Vlan1005]/routed-vlan/ipv4/sag-ipv4/config/static-anycast-gateway
   summary: Create Interface Vlan1005 VLAN Anycast Gateway
