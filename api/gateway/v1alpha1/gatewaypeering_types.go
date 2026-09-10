@@ -42,6 +42,8 @@ type PeeringSpec struct {
 	Peering map[string]*PeeringEntry `json:"peering,omitempty"`
 	// ACL is an optional, peering-scoped ACL
 	ACL *PeeringACL `json:"acl,omitempty"`
+	// NoMultiPath is an optional flag to disable multi-path for stateless peerings (handling by all gateways in a group)
+	NoMultiPath bool `json:"noMultiPath,omitempty"`
 }
 
 type PeeringNATMasquerade struct {
@@ -177,7 +179,6 @@ type PeeringEntryExpose struct {
 	As                 []PeeringEntryAs `json:"as,omitempty"`
 	NAT                *PeeringNAT      `json:"nat,omitempty"`
 	DefaultDestination bool             `json:"default,omitempty"`
-	NoMultiPath        bool             `json:"noMultiPath,omitempty"`
 }
 
 type PeeringEntry struct {
