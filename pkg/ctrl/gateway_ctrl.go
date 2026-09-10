@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -349,6 +350,62 @@ func entityName(gwName string, t ...string) string {
 	return fmt.Sprintf("gw--%s--%s", gwName, strings.Join(t, "-"))
 }
 
+const (
+	// hugepages2Mi is the resource name the kubelet uses for 2 MiB hugepages.
+	hugepages2Mi = corev1.ResourceName("hugepages-2Mi")
+	// gatewayHugepages is how much hugepage memory the dataplane is granted.
+	//
+	// 2 MiB pages rather than 1 GiB: a gigabyte page needs a gigabyte of physically contiguous,
+	// gigabyte-aligned memory, which a host that has been up for a while usually cannot produce
+	// at runtime. Asking for a size the node cannot satisfy leaves the pod Pending forever.
+	gatewayHugepages = "4Gi"
+	// gatewayMemory is the ordinary memory limit, which hugepages are not counted against.
+	gatewayMemory = "4Gi"
+)
+
+// benchmarkPCI is the hand-wired device for each gateway in the benchmark lab.
+//
+// EXPERIMENT ONLY -- this branch exists to get a DPDK number out of the benchmark lab and must
+// never merge.
+//
+// Both gateways name the same address because they are separate VMs, each with its own PCI space.
+var benchmarkPCI = map[string]string{
+	"gateway-1": "0000:02:01.0",
+	"gateway-2": "0000:02:01.0",
+}
+
+// benchmarkInterfaceOverride forces the DPDK device for a gateway in the benchmark lab.
+//
+// The lab's gateways are hand-wired, so the device the dataplane should drive is not the one
+// hydration inferred from the topology. Only the PCI address is forced: the interface *name* is
+// left exactly as the spec has it, because that name is the key the IPs and MTU hang off and the
+// one hydrate.go insists on finding. Renaming here would silently detach the addresses from the
+// interface they belong to.
+//
+// Returns the input untouched for any gateway not in the table, so this is inert everywhere else.
+func benchmarkInterfaceOverride(gwName string, in map[string]gwapi.GatewayInterface) (map[string]gwapi.GatewayInterface, error) {
+	pci, hardcoded := benchmarkPCI[gwName]
+	if !hardcoded {
+		return in, nil
+	}
+	// One address cannot describe two ports. Rather than hand both the same device -- which
+	// surfaces later as an opaque EAL complaint about a duplicate -- say so here.
+	if len(in) != 1 {
+		return nil, fmt.Errorf("benchmark override for %s expects exactly one interface, found %d", gwName, len(in)) //nolint:err113
+	}
+	out := map[string]gwapi.GatewayInterface{}
+	for name, iface := range in {
+		iface.PCI = pci
+		// PCI and Kernel are mutually exclusive; a spec hydrated for the kernel driver still
+		// carries the latter, and leaving it would describe two different devices.
+		iface.Kernel = ""
+		out[name] = iface
+		slog.Info("benchmark lab: forcing DPDK device", "gateway", gwName, "interface", name, "pci", pci)
+	}
+
+	return out, nil
+}
+
 func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway) error {
 	saName := entityName(gw.Name)
 
@@ -454,9 +511,15 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			args = append(args, "--pyroscope-url", "http://localhost:4040")
 		}
 
+		// EXPERIMENT ONLY -- see benchmarkInterfaceOverride. Must never merge.
+		ifaces, err := benchmarkInterfaceOverride(gw.Name, gw.Spec.Interfaces)
+		if err != nil {
+			return err
+		}
+
 		pcis, kernels := 0, 0
-		for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-			iface := gw.Spec.Interfaces[ifaceName]
+		for _, ifaceName := range slices.Sorted(maps.Keys(ifaces)) {
+			iface := ifaces[ifaceName]
 			val := ifaceName
 			switch {
 			case iface.PCI != "":
@@ -468,6 +531,19 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 				// TODO enable after migrating dataplane to a new interface format
 				// default:
 				// return nil
+			}
+			// The MTU travels with the interface, because the DPDK path has nowhere else to get
+			// it. The kernel driver picks it up from the `ip l set mtu` in its init container
+			// below; DPDK has no such step and takes the EAL's default of 1500 instead, which on
+			// a 9036 fabric is a path-MTU black hole -- the handshake and every small packet pass,
+			// then the first full-size segment is untransmittable and the connection stops with
+			// its window collapsed to one segment.
+			//
+			// A slash, not a comma: the dataplane declares --interface with clap's
+			// `value_delimiter = ','`, so a comma is consumed as an interface separator before
+			// its parser runs and the suffix arrives as a value of its own.
+			if iface.MTU > 0 {
+				val += fmt.Sprintf("/mtu=%d", iface.MTU)
 			}
 			args = append(args, "--interface", val)
 		}
@@ -481,12 +557,39 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 		args = append(args, "--driver", driver)
 
+		// The kernel netdev beside a dataplane-driven NIC is a hazard rather than a spare: it
+		// answers ARP, accepts connections and routes, all without the dataplane knowing.
+		// dataplane-init moves it into a network namespace of its own making, out of reach, and
+		// the dataplane puts a tap carrying the same name where it was -- which is what FRR and
+		// the interface manager find in its place.
+		//
+		// Both drivers. Under DPDK it is forced (on vfio-pci there is no netdev at all); under the
+		// kernel driver it is a choice, and it is the one that makes the netfilter rules keeping
+		// VXLAN away from the host stack unnecessary. The dataplane's own AF_PACKET sockets follow
+		// the interfaces, because its workers enter that namespace before opening anything.
+		args = append(args, "--datapath-netns")
+
+		// FRR is this process's to start, not a container of its own. That buys three things
+		// nothing outside the pod can express: a startup order (zebra's dplane module connects to
+		// the dataplane's control-plane socket as it loads, and a zebra that starts first finds
+		// nothing there), shared fate (when one of them dies they all do, rather than the
+		// dataplane forwarding on a FIB whose author has gone), and a control network namespace
+		// that FRR and the dataplane share while the outward-facing work -- the k8s client, the
+		// metrics endpoint -- stays in the host's.
+		//
+		// It also retires the three init containers that used to precede FRR. The nexthop sweep
+		// and the VTEP address flush were both cleanup after a *previous* FRR in a namespace that
+		// outlived it; the namespace is created per start now and dies with the process tree, so
+		// there is nothing left to meet. The chown-and-sweep of the state directory is
+		// dataplane-init's, which is the only thing here that knows when FRR is about to start.
+		args = append(args, "--supervise-frr")
+
 		// tmp hack to make dp work
 		var initContainers []corev1.Container
 		if driver == "kernel" {
 			iArgs := "set -ex && "
-			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-				iface := gw.Spec.Interfaces[ifaceName]
+			for _, ifaceName := range slices.Sorted(maps.Keys(ifaces)) {
+				iface := ifaces[ifaceName]
 				iArgs += fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
 				iArgs += fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
 				iArgs += fmt.Sprintf("([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
@@ -537,7 +640,39 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 							{
 								Name:  "dataplane",
 								Image: r.cfg.DataplaneRef,
-								Args:  args,
+								// Command, not just Args. The image's entrypoint is /bin/dataplane,
+								// so dataplane-init has shipped in it and never run: everything it
+								// does -- mounting hugetlbfs, binding NICs to vfio-pci or leaving a
+								// bifurcated one alone, moving the netdev into the datapath
+								// namespace -- was either done by an init container in shell or not
+								// done at all. Naming it here is what puts it in the path.
+								//
+								// It takes the same arguments as the dataplane and execs it, so
+								// under the kernel driver this is a no-op beyond one extra fork.
+								Command: []string{"/bin/dataplane-init"},
+								Args:    args,
+								// Hugepages are a scheduled resource, not something a privileged
+								// container may simply take. Without this the kubelet gives the pod
+								// a hugetlb cgroup limit of zero, and DPDK fails in
+								// `rte_eal_memory_init` with `Cannot init memory` -- an
+								// out-of-memory on a host with thousands of free pages, and one
+								// that `Privileged: true` does not lift, because that governs
+								// capabilities rather than cgroup limits.
+								//
+								// Requests must equal limits for hugepages; Kubernetes rejects a
+								// pod where they differ. The memory limit is separate: hugepages
+								// are not counted against it, so it has to be large enough for the
+								// dataplane's ordinary allocations on its own.
+								Resources: corev1.ResourceRequirements{
+									Limits: corev1.ResourceList{
+										hugepages2Mi:          resource.MustParse(gatewayHugepages),
+										corev1.ResourceMemory: resource.MustParse(gatewayMemory),
+									},
+									Requests: corev1.ResourceList{
+										hugepages2Mi:          resource.MustParse(gatewayHugepages),
+										corev1.ResourceMemory: resource.MustParse(gatewayMemory),
+									},
+								},
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
@@ -561,12 +696,51 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 										Name:      "dataplane-tmp",
 										MountPath: "/tmp",
 									},
+									{
+										Name:      frrTmpVolumeName,
+										MountPath: "/var/tmp/frr",
+									},
+								},
+							},
+							{
+								// Not under the supervisor, deliberately. It reads FRR's vty
+								// sockets, which are files, so it does not care which network
+								// namespace FRR ends up in -- and a metrics endpoint should not
+								// be able to take the gateway down with it, which is exactly what
+								// being supervised would mean.
+								//
+								// From the dataplane image, which now carries FRR and everything
+								// beside it.
+								Name:    "frr-exporter",
+								Image:   r.cfg.DataplaneRef,
+								Command: []string{"/bin/frr_exporter"},
+								Args: []string{
+									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
+									"--frr.socket.dir-path", frrRunMountPath,
+									"--no-collector.ospf",
+								},
+								SecurityContext: &corev1.SecurityContext{
+									Privileged: ptr.To(true),
+									RunAsUser:  ptr.To(int64(0)),
+								},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      frrRunVolumeName,
+										MountPath: frrRunMountPath,
+									},
 								},
 							},
 						},
 						Volumes: []corev1.Volume{
 							dataplaneSocketVolume,
 							frrSocketVolume,
+							{
+								Name: frrTmpVolumeName,
+								VolumeSource: corev1.VolumeSource{
+									// TODO consider memory medium
+									EmptyDir: &corev1.EmptyDirVolumeSource{},
+								},
+							},
 
 							{
 								Name: "dataplane-tmp",
@@ -587,153 +761,17 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 	}
 
-	frrVolumeMounts := []corev1.VolumeMount{
-		{
-			Name:      frrRunVolumeName,
-			MountPath: frrRunMountPath,
-		},
-		{
-			Name:      frrTmpVolumeName,
-			MountPath: "/var/tmp/frr",
-		},
-		{
-			Name:      frrRootRunVolumeName,
-			MountPath: frrRootRunMountPath,
-		},
-	}
-
-	{
-		frrDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: r.cfg.GatewayNamespace,
-			Name:      entityName(gw.Name, "frr"),
-		}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
-			labels := map[string]string{
-				"app.kubernetes.io/name": frrDS.Name, // TODO
-			}
-
-			frrDS.Spec = appv1.DaemonSetSpec{
-				Selector: &kmetav1.LabelSelector{
-					MatchLabels: labels,
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Labels: labels,
-					},
-					Spec: corev1.PodSpec{
-						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
-						HostNetwork:                   true,
-						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-						TerminationGracePeriodSeconds: ptr.To(int64(10)),
-						Tolerations:                   r.cfg.GatewayTolerations,
-						InitContainers: []corev1.Container{
-							// TODO remove it after frr container will take care of this
-							{
-								Name:    "init-frr",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										"chown -R frr:frr /run/frr/ && chmod -R 760 /run/frr && " +
-										"mkdir -p /var/run/frr/hh && chown -R frr:frr /var/run/frr/ && chmod -R 766 /var/run/frr &&" +
-										"rm -f /var/run/frr/*.pid /var/run/frr/*.sock /var/run/frr/*.vty /var/run/frr/*.api /var/run/frr/*.started",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-							// it's needed to avoid issues with leftover routes in the kernel being loaded by FRR on startup
-							{
-								Name:    "flush-zebra-nexthops",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										"ip -j -d nexthop show | jq '.[]|select(.protocol=\"zebra\")|.id' | while read -r id ; do ip nexthop del id $id ; done",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-							},
-							// it's needed to avoid issues with leftover routes on the physical interface learned from BGP
-							{
-								Name:    "flush-vtepip",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										fmt.Sprintf("ip addr del %s dev lo || true", gw.Spec.VTEPIP),
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-							},
-						},
-						Containers: []corev1.Container{
-							{
-								Name:    "frr",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/tini", "--"},
-								Args: []string{
-									"/libexec/frr/docker-start",
-									"--sock-path", filepath.Join(frrRunMountPath, frrAgentSocket),
-									"--reloader", "/libexec/frr/frr-reload.py",
-									"--bindir", "/bin",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-							{
-								Name:    "frr-exporter",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/frr_exporter"},
-								Args: []string{
-									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
-									"--frr.socket.dir-path", frrRootRunMountPath,
-									"--no-collector.ospf",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-						},
-						Volumes: []corev1.Volume{
-							frrSocketVolume,
-							{
-								Name: frrTmpVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									// TODO consider memory medium
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
-							},
-							{
-								Name: frrRootRunVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									HostPath: &corev1.HostPathVolumeSource{
-										Path: "/run/hedgehog/frr-root",
-										Type: ptr.To(corev1.HostPathDirectoryOrCreate),
-									},
-								},
-							},
-						},
-					},
-				},
-				UpdateStrategy: replaceUpdateStrategy,
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating or updating gateway frr daemonset: %w", err)
-		}
+	// The FRR DaemonSet is gone: FRR runs under `dataplane-init` in the dataplane pod, which is
+	// what lets the two share a network namespace, a startup order and a fate. `CreateOrUpdate`
+	// cannot express a removal, so the old object has to be deleted by name -- left behind it
+	// would keep running a second FRR against the same sockets, which is a worse failure than
+	// either arrangement alone.
+	frrDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
+		Namespace: r.cfg.GatewayNamespace,
+		Name:      entityName(gw.Name, "frr"),
+	}}
+	if err := r.Client.Delete(ctx, frrDS); err != nil && !kapierrors.IsNotFound(err) {
+		return fmt.Errorf("deleting the standalone gateway frr daemonset: %w", err)
 	}
 
 	return nil
