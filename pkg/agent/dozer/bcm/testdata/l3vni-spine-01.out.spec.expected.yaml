@@ -22,7 +22,10 @@ bfdProfiles:
     passiveMode: true
     requiredMinimumReceive: 300
 communityLists:
-  all-externals: {}
+  all-externals:
+    members:
+    - "50003:2"
+    - "50003:3"
   no-community:
     members:
     - REGEX:^$

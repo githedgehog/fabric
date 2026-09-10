@@ -23,7 +23,7 @@ bfdProfiles:
 communityLists:
   all-externals:
     members:
-    - 65102:1000
+    - "50003:1"
   all-gw-prios:
     members:
     - "50001:0"
@@ -36,6 +36,54 @@ communityLists:
     - "50001:7"
     - "50001:8"
     - "50001:9"
+  ext-rank-00:
+    members:
+    - "50002:0"
+  ext-rank-01:
+    members:
+    - "50002:1"
+  ext-rank-02:
+    members:
+    - "50002:2"
+  ext-rank-03:
+    members:
+    - "50002:3"
+  ext-rank-10:
+    members:
+    - "50002:10"
+  ext-rank-11:
+    members:
+    - "50002:11"
+  ext-rank-12:
+    members:
+    - "50002:12"
+  ext-rank-13:
+    members:
+    - "50002:13"
+  ext-rank-20:
+    members:
+    - "50002:20"
+  ext-rank-21:
+    members:
+    - "50002:21"
+  ext-rank-22:
+    members:
+    - "50002:22"
+  ext-rank-23:
+    members:
+    - "50002:23"
+  ext-rank-30:
+    members:
+    - "50002:30"
+  ext-rank-31:
+    members:
+    - "50002:31"
+  ext-rank-32:
+    members:
+    - "50002:32"
+  ext-rank-33:
+    members:
+    - "50002:33"
   gw-prio-0:
     members:
     - "50001:0"
@@ -69,6 +117,18 @@ communityLists:
   no-community:
     members:
     - REGEX:^$
+  uplink-prio-0:
+    members:
+    - "50004:0"
+  uplink-prio-1:
+    members:
+    - "50004:1"
+  uplink-prio-2:
+    members:
+    - "50004:2"
+  uplink-prio-3:
+    members:
+    - "50004:3"
   vpc-peers--vpc-01:
     members:
     - "50000:2"
@@ -504,6 +564,106 @@ routeMaps:
           matchCommunityLists: gw-prio-9
         result: accept
         setLocalPreference: 201
+      "65505":
+        conditions:
+          matchCommunityLists: uplink-prio-0
+        result: accept
+        setLocalPreference: 150
+      "65506":
+        conditions:
+          matchCommunityLists: uplink-prio-1
+        result: accept
+        setLocalPreference: 149
+      "65507":
+        conditions:
+          matchCommunityLists: uplink-prio-2
+        result: accept
+        setLocalPreference: 148
+      "65508":
+        conditions:
+          matchCommunityLists: uplink-prio-3
+        result: accept
+        setLocalPreference: 147
+      "65509":
+        conditions:
+          matchCommunityLists: ext-rank-00
+        result: accept
+        setLocalPreference: 150
+      "65510":
+        conditions:
+          matchCommunityLists: ext-rank-01
+        result: accept
+        setLocalPreference: 149
+      "65511":
+        conditions:
+          matchCommunityLists: ext-rank-02
+        result: accept
+        setLocalPreference: 148
+      "65512":
+        conditions:
+          matchCommunityLists: ext-rank-03
+        result: accept
+        setLocalPreference: 147
+      "65513":
+        conditions:
+          matchCommunityLists: ext-rank-10
+        result: accept
+        setLocalPreference: 146
+      "65514":
+        conditions:
+          matchCommunityLists: ext-rank-11
+        result: accept
+        setLocalPreference: 145
+      "65515":
+        conditions:
+          matchCommunityLists: ext-rank-12
+        result: accept
+        setLocalPreference: 144
+      "65516":
+        conditions:
+          matchCommunityLists: ext-rank-13
+        result: accept
+        setLocalPreference: 143
+      "65517":
+        conditions:
+          matchCommunityLists: ext-rank-20
+        result: accept
+        setLocalPreference: 142
+      "65518":
+        conditions:
+          matchCommunityLists: ext-rank-21
+        result: accept
+        setLocalPreference: 141
+      "65519":
+        conditions:
+          matchCommunityLists: ext-rank-22
+        result: accept
+        setLocalPreference: 140
+      "65520":
+        conditions:
+          matchCommunityLists: ext-rank-23
+        result: accept
+        setLocalPreference: 139
+      "65521":
+        conditions:
+          matchCommunityLists: ext-rank-30
+        result: accept
+        setLocalPreference: 138
+      "65522":
+        conditions:
+          matchCommunityLists: ext-rank-31
+        result: accept
+        setLocalPreference: 137
+      "65523":
+        conditions:
+          matchCommunityLists: ext-rank-32
+        result: accept
+        setLocalPreference: 136
+      "65524":
+        conditions:
+          matchCommunityLists: ext-rank-33
+        result: accept
+        setLocalPreference: 135
       "65525":
         conditions:
           matchCommunityLists: all-externals

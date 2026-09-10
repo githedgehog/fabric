@@ -137,6 +137,24 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     false,
 		},
 		{
+			name:    "BGP attachment with priority",
+			extAtt:  l3ExtAttGen("ext-att-prio", func(att *v1beta1.ExternalAttachment) { att.Spec.Priority = 2 }),
+			objects: baseObjs,
+			err:     false,
+		},
+		{
+			name:    "attachment priority above the maximum",
+			extAtt:  l3ExtAttGen("ext-att-prio-max", func(att *v1beta1.ExternalAttachment) { att.Spec.Priority = 4 }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "static attachment with priority",
+			extAtt:  staticExtAttGen("ext-att-st-prio", func(att *v1beta1.ExternalAttachment) { att.Spec.Priority = 1 }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
 			name:    "external does not exist",
 			extAtt:  l3ExtAttGen("ext-att-03", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-456" }),
 			objects: baseObjs,

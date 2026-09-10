@@ -257,10 +257,13 @@ type SpecRouteMap struct {
 }
 
 type SpecRouteMapStatement struct {
-	Conditions         SpecRouteMapConditions `json:"conditions,omitempty"`
-	SetCommunities     []string               `json:"setCommunities,omitempty"`
-	SetLocalPreference *uint32                `json:"setLocalPreference,omitempty"`
-	Result             SpecRouteMapResult     `json:"result,omitempty"`
+	Conditions SpecRouteMapConditions `json:"conditions,omitempty"`
+	// SetCommunities is added to the communities the route already carries, unless
+	// ReplaceCommunities is set, in which case it replaces them.
+	SetCommunities     []string           `json:"setCommunities,omitempty"`
+	ReplaceCommunities bool               `json:"replaceCommunities,omitempty"`
+	SetLocalPreference *uint32            `json:"setLocalPreference,omitempty"`
+	Result             SpecRouteMapResult `json:"result,omitempty"`
 }
 
 type SpecRouteMapConditions struct {

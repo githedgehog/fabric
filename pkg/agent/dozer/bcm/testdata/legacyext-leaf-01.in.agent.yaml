@@ -2,14 +2,14 @@ apiVersion: agent.githedgehog.com/v1beta1
 kind: Agent
 metadata:
   creationTimestamp: "2026-02-19T10:22:38Z"
-  generation: 14
+  generation: 16
   labels:
     fabric.githedgehog.com/profile: vs
     vlanns.fabric.githedgehog.com/default: "true"
-  name: leaf-02
+  name: leaf-01
   namespace: default
-  resourceVersion: "28054"
-  uid: 0a0722c6-445f-4363-93f4-7354a2fdfc4d
+  resourceVersion: "28002"
+  uid: 82613676-980b-482d-836b-babedfb13061
 spec:
   alloy: {}
   attachedVPCs:
@@ -17,14 +17,19 @@ spec:
     vpc-02: true
     vpc-03: true
   catalog:
-    externalCommIDs:
-      ext-snp-02: 2
-      ext-sp-01: 3
+    externalIDs:
+      ext-snp-02: 10
+      ext-sp-01: 11
     irbVLANs:
-      vpc-01: 3000
-      vpc-02: 3001
-      vpc-03: 3002
+      ext@ext-snp-02: 3000
+      ext@ext-sp-01: 3001
+      vpc-01: 3002
+      vpc-02: 3003
+      vpc-03: 3004
+    staticExternalSubnetOffsets:
+      leaf-01--ext-sp-01: 0
     subnetIDs:
+      0.0.0.0/0: 103
       10.0.1.0/24: 100
       10.0.2.0/24: 101
       10.0.3.0/24: 102
@@ -36,12 +41,14 @@ spec:
       vpc-03:
         default: 501
     vpcVNIs:
+      ext@ext-snp-02: 100
+      ext@ext-sp-01: 200
       vpc-01: 300
       vpc-02: 400
       vpc-03: 500
   config:
     alloy:
-      hostname: leaf-02
+      hostname: leaf-01
       kube: {}
       logFiles:
         agent:
@@ -102,58 +109,119 @@ spec:
     vpc-02/default: true
     vpc-03/default: true
   connections:
-    server-02--unbundled--leaf-02:
+    leaf-01--external:
+      external:
+        link:
+          switch:
+            port: leaf-01/E1/1
+    server-01--unbundled--leaf-01:
       unbundled:
         link:
           server:
-            port: server-02/enp2s1
+            port: server-01/enp2s1
           switch:
-            port: leaf-02/E1/1
-    server-03--unbundled--leaf-02:
+            port: leaf-01/E1/2
+    server-03--unbundled--leaf-01:
       unbundled:
         link:
           server:
-            port: server-03/enp2s2
+            port: server-03/enp2s1
           switch:
-            port: leaf-02/E1/2
-    server-04--unbundled--leaf-02:
+            port: leaf-01/E1/3
+    server-04--unbundled--leaf-01:
       unbundled:
         link:
           server:
-            port: server-04/enp2s2
+            port: server-04/enp2s1
           switch:
-            port: leaf-02/E1/3
-    spine-01--fabric--leaf-02:
+            port: leaf-01/E1/4
+    spine-01--fabric--leaf-01:
       fabric:
         links:
           - leaf:
-              ip: 172.30.128.5/31
-              port: leaf-02/E1/4
+              ip: 172.30.128.1/31
+              port: leaf-01/E1/5
             spine:
-              ip: 172.30.128.4/31
-              port: spine-01/E1/3
+              ip: 172.30.128.0/31
+              port: spine-01/E1/1
           - leaf:
-              ip: 172.30.128.7/31
-              port: leaf-02/E1/5
+              ip: 172.30.128.3/31
+              port: leaf-01/E1/6
             spine:
-              ip: 172.30.128.6/31
-              port: spine-01/E1/4
-    spine-02--fabric--leaf-02:
+              ip: 172.30.128.2/31
+              port: spine-01/E1/2
+    spine-02--fabric--leaf-01:
       fabric:
         links:
           - leaf:
-              ip: 172.30.128.15/31
-              port: leaf-02/E1/6
+              ip: 172.30.128.11/31
+              port: leaf-01/E1/7
             spine:
-              ip: 172.30.128.14/31
-              port: spine-02/E1/3
+              ip: 172.30.128.10/31
+              port: spine-02/E1/1
           - leaf:
-              ip: 172.30.128.17/31
-              port: leaf-02/E1/7
+              ip: 172.30.128.13/31
+              port: leaf-01/E1/8
             spine:
-              ip: 172.30.128.16/31
-              port: spine-02/E1/4
-  description: VS-02
+              ip: 172.30.128.12/31
+              port: spine-02/E1/2
+  description: VS-01
+  externalAttachments:
+    leaf-01--ext-snp-02:
+      connection: leaf-01--external
+      external: ext-snp-02
+      neighbor: {}
+      static:
+        ip: 100.1.20.2/24
+        remoteIP: 100.1.20.1
+        vlan: 20
+      switch: {}
+      inboundACL:
+        statements:
+          - seq: 15
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+            portRangeBegin: 22
+            portRangeEnd: 22
+          - seq: 20
+            action: deny
+            protocol: udp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+            portRangeBegin: 4789
+            portRangeEnd: 4789
+          - seq: 25
+            action: discard
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+          - seq: 30
+            action: transit
+            protocol: udp
+            srcPrefix: any
+            dstPrefix: 10.50.10.3/32
+    leaf-01--ext-sp-01:
+      connection: leaf-01--external
+      external: ext-sp-01
+      neighbor: {}
+      static:
+        proxy: true
+        remoteIP: 100.1.10.1
+        vlan: 10
+      switch: {}
+  externalPeerings:
+    vpc-02--ext-snp-02:
+      permit:
+        external:
+          name: ext-snp-02
+          prefixes:
+            - prefix: 0.0.0.0/0
+        vpc:
+          name: vpc-02
+          subnets:
+            - default
   externals:
     ext-snp-02:
       ipv4Namespace: default
@@ -174,26 +242,26 @@ spec:
     - apiVersion: wiring.githedgehog.com/v1beta1
       generation: 1
       kind: Switch
-      name: leaf-02
+      name: leaf-01
       namespace: default
   switch:
-    asn: 65102
+    asn: 65101
     boot:
-      mac: 0c:20:12:ff:01:00
-    description: VS-02
+      mac: 0c:20:12:ff:00:00
+    description: VS-01
     ecmp: {}
     linkFlapErrDisable:
       flapThreshold: 3
       samplingInterval: 30
       recoveryInterval: 300
-    ip: 172.30.0.10/21
+    ip: 172.30.0.9/21
     profile: vs
-    protocolIP: 172.30.8.3/32
+    protocolIP: 172.30.8.2/32
     redundancy: {}
     role: server-leaf
     vlanNamespaces:
       - default
-    vtepIP: 172.30.12.1/32
+    vtepIP: 172.30.12.0/32
   switchProfile:
     config:
       maxPathsEBGP: 16
@@ -450,20 +518,20 @@ spec:
         oniePortName: eth0
     switchSilicon: vs
   switches:
-    leaf-02:
-      asn: 65102
+    leaf-01:
+      asn: 65101
       boot:
-        mac: 0c:20:12:ff:01:00
-      description: VS-02
+        mac: 0c:20:12:ff:00:00
+      description: VS-01
       ecmp: {}
-      ip: 172.30.0.10/21
+      ip: 172.30.0.9/21
       profile: vs
-      protocolIP: 172.30.8.3/32
+      protocolIP: 172.30.8.2/32
       redundancy: {}
       role: server-leaf
       vlanNamespaces:
         - default
-      vtepIP: 172.30.12.1/32
+      vtepIP: 172.30.12.0/32
     spine-01:
       asn: 65100
       boot:
@@ -527,20 +595,20 @@ spec:
         - from: 1000
           to: 2999
   vpcAttachments:
-    s2-v3:
-      connection: server-02--unbundled--leaf-02
+    s1-v3:
+      connection: server-01--unbundled--leaf-01
       subnet: vpc-03/default
-    s3-v1-l2:
-      connection: server-03--unbundled--leaf-02
+    s3-v1-l1:
+      connection: server-03--unbundled--leaf-01
       subnet: vpc-01/default
-    s3-v2-l2:
-      connection: server-03--unbundled--leaf-02
+    s3-v2-l1:
+      connection: server-03--unbundled--leaf-01
       subnet: vpc-02/default
-    s4-v1-l2:
-      connection: server-04--unbundled--leaf-02
+    s4-v1-l1:
+      connection: server-04--unbundled--leaf-01
       subnet: vpc-01/default
-    s4-v2-l2:
-      connection: server-04--unbundled--leaf-02
+    s4-v2-l1:
+      connection: server-04--unbundled--leaf-01
       subnet: vpc-02/default
   vpcPeers:
     vpc-01--vpc-03:

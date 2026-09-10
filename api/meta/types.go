@@ -136,6 +136,40 @@ type FabricConfig struct {
 	reservedSubnets []netip.Prefix
 }
 
+// Fabric-owned community namespaces for external routes. They replace the ISP-controlled
+// communities we used to derive internal preference from, so nothing an external system sends us
+// can steer our own route selection. Kept out of pkg/agent so the gateway controller can name the
+// same values, and the natural home for ExternalCommunitiesConfig should they become configurable.
+const (
+	// ExtRankCommBase carries both priority axes packed together, stamped when a route is leaked
+	// into a VPC VRF
+	ExtRankCommBase = 50002
+	// ExtIDCommBase carries the identity of an External, stamped at ingress
+	ExtIDCommBase = 50003
+	// UplinkPrioCommBase carries the uplink axis priority, stamped at ingress
+	UplinkPrioCommBase = 50004
+	// ExtAttachIDCommBase carries the identity of one attachment, stamped at ingress
+	ExtAttachIDCommBase = 50005
+
+	// ExternalPreference is the local preference an unranked external route gets. Ranked ones sit
+	// below it, one step per priority level, and the whole band stays above the 100 that plain VPC
+	// routes use.
+	ExternalPreference = 150
+
+	// MaxExtPrioLevels is the number of preference classes on the External axis: which External a
+	// VPC prefers. Bounds External.spec.priority and ExternalPeering...external.priority.
+	MaxExtPrioLevels = 4
+	// MaxUplinkPrioLevels is the number of preference classes on the uplink axis: which link to
+	// one External. Bounds ExternalAttachment.spec.priority.
+	MaxUplinkPrioLevels = 4
+	// The two are packed into a single rank when a route is leaked into a VPC VRF, so their
+	// product is what the preference band has to hold. 4x4 leaves 135..150.
+)
+
+// ReservedCommBases are the namespaces the fabric stamps itself: nothing user-supplied may use
+// them, or a community would mean two things at once.
+var ReservedCommBases = []uint32{ExtRankCommBase, ExtIDCommBase, UplinkPrioCommBase, ExtAttachIDCommBase}
+
 type FabricMode string
 
 const (
@@ -404,8 +438,12 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s format is invalid", commStr) //nolint:err113
 		}
-		if _, err := strconv.ParseUint(parts[0], 10, 16); err != nil {
+		base, err := strconv.ParseUint(parts[0], 10, 16)
+		if err != nil {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)
+		}
+		if slices.Contains(ReservedCommBases, uint32(base)) {
+			return nil, errors.Errorf("config: gatewayCommunity community %s is in a fabric-owned community namespace", commStr)
 		}
 		if _, err := strconv.ParseUint(parts[1], 10, 16); err != nil {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)

@@ -15,8 +15,14 @@ spec:
   attachedVPCs:
     vpc-03: true
   catalog:
+    externalAttachmentCommIDs:
+      leaf-03--ext-bgp-01: 5
+    externalCommIDs:
+      ext-bgp-01: 1
     externalIDs:
       ext-bgp-01: 10
+    externalLeakIDs:
+      extattach@leaf-03--ext-bgp-01: 10
     irbVLANs:
       ext@ext-bgp-01: 3000
       vpc-03: 3001
