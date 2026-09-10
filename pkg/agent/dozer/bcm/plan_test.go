@@ -210,6 +210,11 @@ func TestPlan(t *testing.T) {
 		// both axes: uplink priorities 0 and 1 on external-01, External priority 1 on external-02,
 		// and a peering that overrides the External priority to 3 for one VPC
 		{name: "extprio-leaf-03"},
+		// group: extout
+		// the extprio group with the outbound half configured too: external-01 carries a localASN,
+		// its own prefixes to announce and a community, its two attachments different MEDs and
+		// prepends; external-02 is left to prepend from its External priority alone
+		{name: "extout-leaf-03"},
 		// group: mesh
 		// vs lab with 2 eslag leaves and 1 orphan connected via mesh, 3 vpcs with 2 servers each
 		{name: "mesh-leaf-01"}, // eslag, gateway connected to it

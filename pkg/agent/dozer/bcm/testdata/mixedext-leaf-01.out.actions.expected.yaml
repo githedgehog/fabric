@@ -1540,14 +1540,14 @@
         name: ext-inbound--ext-sp-01
       name: ext-inbound--ext-sp-01
   weight: 19
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-outbound--ext-sp-01]
-  summary: Create Route Maps Base ext-outbound--ext-sp-01
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-01--ext-sp-01-bgp]
+  summary: Create Route Maps Base ext-out--leaf-01--ext-sp-01-bgp
   type: update
   value:
     policy-definition:
     - config:
-        name: ext-outbound--ext-sp-01
-      name: ext-outbound--ext-sp-01
+        name: ext-out--leaf-01--ext-sp-01-bgp
+      name: ext-out--leaf-01--ext-sp-01-bgp
   weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-static--ext-snp-02]
   summary: Create Route Maps Base ext-static--ext-snp-02
@@ -1861,7 +1861,7 @@
         name: "5"
       name: "5"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-outbound--ext-sp-01]/statements/statement[name=10]
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-01--ext-sp-01-bgp]/statements/statement[name=10]
   summary: Create Route Map Statement 10
   type: update
   value:
@@ -1877,7 +1877,7 @@
         name: "10"
       name: "10"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-outbound--ext-sp-01]/statements/statement[name=20]
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-01--ext-sp-01-bgp]/statements/statement[name=20]
   summary: Create Route Map Statement 20
   type: update
   value:
@@ -4958,7 +4958,7 @@
           apply-policy:
             config:
               export-policy:
-              - ext-outbound--ext-sp-01
+              - ext-out--leaf-01--ext-sp-01-bgp
               import-policy:
               - ext-in--leaf-01--ext-sp-01-bgp
           config:

@@ -540,6 +540,13 @@ prefixLists:
         prefix:
           le: 32
           prefix: 0.0.0.0/0
+  ext-advertise--external-01:
+    prefixes:
+      "1":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 100.100.0.0/24
   ext-import--external-01:
     prefixes:
       "103":
@@ -762,6 +769,10 @@ routeMaps:
         conditions:
           matchPrefixLists: ipns-subnets--default
         result: reject
+      "12":
+        conditions:
+          matchPrefixLists: ext-advertise--external-01
+        result: reject
       "15":
         conditions:
           matchCommunityLists: ext-inbound--external-01
@@ -781,6 +792,10 @@ routeMaps:
       "10":
         conditions:
           matchPrefixLists: ipns-subnets--default
+        result: reject
+      "12":
+        conditions:
+          matchPrefixLists: ext-advertise--external-01
         result: reject
       "15":
         conditions:
@@ -849,6 +864,9 @@ routeMaps:
         result: accept
         setCommunities:
         - 64102:1000
+        - 64102:100
+        - 64102:200
+        setMetric: 0
       "20":
         conditions:
           matchCommunityLists: all-gw-prios
@@ -856,6 +874,19 @@ routeMaps:
         result: accept
         setCommunities:
         - 64102:1000
+        - 64102:100
+        - 64102:200
+        setMetric: 0
+      "30":
+        conditions:
+          matchPrefixLists: ext-advertise--external-01
+        replaceCommunities: true
+        result: accept
+        setCommunities:
+        - 64102:1000
+        - 64102:100
+        - 64102:200
+        setMetric: 0
   ext-out--leaf-03--external-01-b:
     statements:
       "10":
@@ -864,20 +895,36 @@ routeMaps:
         replaceCommunities: true
         result: accept
         setASPathPrepend:
-          asn: 65102
-          repeatN: 1
+          asn: 65199
+          repeatN: 2
         setCommunities:
         - 64102:1000
+        - 64102:100
+        setMetric: 50
       "20":
         conditions:
           matchCommunityLists: all-gw-prios
         replaceCommunities: true
         result: accept
         setASPathPrepend:
-          asn: 65102
-          repeatN: 1
+          asn: 65199
+          repeatN: 2
         setCommunities:
         - 64102:1000
+        - 64102:100
+        setMetric: 50
+      "30":
+        conditions:
+          matchPrefixLists: ext-advertise--external-01
+        replaceCommunities: true
+        result: accept
+        setASPathPrepend:
+          asn: 65199
+          repeatN: 2
+        setCommunities:
+        - 64102:1000
+        - 64102:100
+        setMetric: 50
   ext-out--leaf-03--external-02:
     statements:
       "10":
@@ -1383,6 +1430,9 @@ vrfs:
           - ext-out--leaf-03--external-01
           ipv4UnicastImportPolicies:
           - ext-in--leaf-03--external-01
+          localAS: 65199
+          localASNoPrepend: true
+          localASReplaceAs: true
           remoteAS: 64102
         100.1.11.6:
           description: External attach leaf-03--external-01-b
@@ -1392,6 +1442,9 @@ vrfs:
           - ext-out--leaf-03--external-01-b
           ipv4UnicastImportPolicies:
           - ext-in--leaf-03--external-01-b
+          localAS: 65199
+          localASNoPrepend: true
+          localASReplaceAs: true
           remoteAS: 64102
       networkImportCheck: true
       routerID: 172.30.8.4

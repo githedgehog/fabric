@@ -214,13 +214,19 @@ type SpecVRFBGPNeighbor struct {
 	IPv4UnicastImportPolicies []string `json:"ipv4UnicastImportPolicies,omitempty"`
 	IPv4UnicastExportPolicies []string `json:"ipv4UnicastExportPolicies,omitempty"`
 	IPv4ASOverride            *bool    `json:"ipv4ASOverride,omitempty"`
-	L2VPNEVPN                 *bool    `json:"l2vpnEvpn,omitempty"`
-	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
-	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
-	BFDProfile                *string  `json:"bfdProfile,omitempty"`
-	DisableConnectedCheck     *bool    `json:"disableConnectedCheck,omitempty"`
-	UpdateSource              *string  `json:"updateSource,omitempty"`
-	ExtendedNexthop           *bool    `json:"extendedNexthop,omitempty"`
+	// LocalAS makes the session present an ASN other than the switch's own to the peer. Always
+	// written with LocalASNoPrepend and LocalASReplaceAs: plain local-as prepends the real ASN
+	// after the local one, which would change the AS-path lengths we rank with.
+	LocalAS                 *uint32  `json:"localAS,omitempty"`
+	LocalASNoPrepend        *bool    `json:"localASNoPrepend,omitempty"`
+	LocalASReplaceAs        *bool    `json:"localASReplaceAs,omitempty"`
+	L2VPNEVPN               *bool    `json:"l2vpnEvpn,omitempty"`
+	L2VPNEVPNImportPolicies []string `json:"l2vpnEvpnImportPolicies,omitempty"`
+	L2VPNEVPNAllowOwnAS     *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
+	BFDProfile              *string  `json:"bfdProfile,omitempty"`
+	DisableConnectedCheck   *bool    `json:"disableConnectedCheck,omitempty"`
+	UpdateSource            *string  `json:"updateSource,omitempty"`
+	ExtendedNexthop         *bool    `json:"extendedNexthop,omitempty"`
 }
 
 const (
@@ -260,10 +266,17 @@ type SpecRouteMapStatement struct {
 	Conditions SpecRouteMapConditions `json:"conditions,omitempty"`
 	// SetCommunities is added to the communities the route already carries, unless
 	// ReplaceCommunities is set, in which case it replaces them.
-	SetCommunities     []string           `json:"setCommunities,omitempty"`
-	ReplaceCommunities bool               `json:"replaceCommunities,omitempty"`
-	SetLocalPreference *uint32            `json:"setLocalPreference,omitempty"`
-	Result             SpecRouteMapResult `json:"result,omitempty"`
+	SetCommunities     []string                   `json:"setCommunities,omitempty"`
+	ReplaceCommunities bool                       `json:"replaceCommunities,omitempty"`
+	SetLocalPreference *uint32                    `json:"setLocalPreference,omitempty"`
+	SetMetric          *uint32                    `json:"setMetric,omitempty"`
+	SetASPathPrepend   *SpecRouteMapASPathPrepend `json:"setASPathPrepend,omitempty"`
+	Result             SpecRouteMapResult         `json:"result,omitempty"`
+}
+
+type SpecRouteMapASPathPrepend struct {
+	ASN     uint32 `json:"asn,omitempty"`
+	RepeatN uint8  `json:"repeatN,omitempty"`
 }
 
 type SpecRouteMapConditions struct {

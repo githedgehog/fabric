@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net/netip"
 	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -44,6 +46,28 @@ type ExternalStaticSpec struct {
 	Prefixes []string `json:"prefixes,omitempty"`
 }
 
+// ExternalAdvertiseSpec controls what the fabric announces to this External, on every attachment
+// to it. Only valid for BGP externals: a static external has no session to carry any of it.
+type ExternalAdvertiseSpec struct {
+	// Prepend is how many times to prepend our own ASN to the routes advertised to this External,
+	// making it less attractive to the world by that many AS hops. Defaults to spec.priority, so a
+	// backup External is de-preferred in both directions. Unlike MED, this is visible to the whole
+	// internet, not just to this External. This and the attachment's own prepend add up, to at
+	// most 20 in total.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	Prepend *uint8 `json:"prepend,omitempty"`
+	// Prefixes is our own address space to announce to this External, for instance the pool a
+	// Gateway NATs VPC traffic into. The fabric never accepts these prefixes back.
+	// +optional
+	Prefixes []string `json:"prefixes,omitempty"`
+	// Communities are optionally attached to everything we advertise to this External, carrying
+	// provider policy rather than our preference ranking
+	// +optional
+	Communities []string `json:"communities,omitempty"`
+}
+
 // ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
 // filter routes from/to the external system.
 type ExternalSpec struct {
@@ -63,6 +87,16 @@ type ExternalSpec struct {
 	// +kubebuilder:validation:Maximum=3
 	// +optional
 	Priority uint8 `json:"priority,omitempty"`
+	// LocalASN makes every attachment to this External present the same ASN to the external system
+	// instead of each border leaf's own. Without it the external system sees two neighbouring
+	// ASNs and never compares the MEDs we send, so this is what makes advertise.med work. Opt-in
+	// and never defaulted: changing it resets the sessions and the external system has to change
+	// its remote-as to match. Not valid for static externals.
+	// +optional
+	LocalASN uint32 `json:"localASN,omitempty"`
+	// Advertise controls what we announce to this External and how attractive we make it
+	// +optional
+	Advertise *ExternalAdvertiseSpec `json:"advertise,omitempty"`
 }
 
 // ExternalStatus defines the observed state of External
@@ -75,6 +109,7 @@ type ExternalStatus struct{}
 // +kubebuilder:printcolumn:name="InComm",type=string,JSONPath=`.spec.inboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="OutComm",type=string,JSONPath=`.spec.outboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
+// +kubebuilder:printcolumn:name="LocalASN",type=string,JSONPath=`.spec.localASN`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
 // Users can do external peering with the external system by specifying the name of the External Object without need to
@@ -136,7 +171,38 @@ func (external *External) Default() {
 	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
 }
 
-func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+// validateAdvertiseCommunities rejects communities the fabric gives its own meaning to. The
+// ingress rewrite makes such a value harmless rather than dangerous, but a community meaning one
+// thing to the ISP and another to us is not something to leave configurable.
+func validateAdvertiseCommunities(comms []string, fabricCfg *meta.FabricConfig) error {
+	reserved := []string{}
+	for _, base := range meta.ReservedCommBases {
+		reserved = append(reserved, fmt.Sprintf("%d", base))
+	}
+	if fabricCfg != nil {
+		for _, gwComm := range fabricCfg.GatewayCommunities {
+			if base, _, found := strings.Cut(gwComm, ":"); found {
+				reserved = append(reserved, base)
+			}
+		}
+		if base, _, found := strings.Cut(fabricCfg.BaseVPCCommunity, ":"); found {
+			reserved = append(reserved, base)
+		}
+	}
+
+	for _, comm := range comms {
+		if !communityCheck.MatchString(comm) {
+			return errors.Errorf("advertise.communities entry %s is not a valid community, example 65102:100", comm)
+		}
+		if base, _, _ := strings.Cut(comm, ":"); slices.Contains(reserved, base) {
+			return errors.Errorf("advertise.communities entry %s is in a fabric-owned community namespace", comm)
+		}
+	}
+
+	return nil
+}
+
+func (external *External) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(external); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -160,11 +226,46 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		return nil, errors.Errorf("priority must be less than %d", meta.MaxExtPrioLevels)
 	}
 
+	var advertisePrefixes []netip.Prefix
+	if external.Spec.Advertise != nil {
+		if err := validateAdvertiseCommunities(external.Spec.Advertise.Communities, fabricCfg); err != nil {
+			return nil, err
+		}
+		for _, p := range external.Spec.Advertise.Prefixes {
+			parsed, err := netip.ParsePrefix(p)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid prefix %s in advertise.prefixes", p)
+			}
+			// the session only carries the IPv4 AFI, and the prefix list it lands in is IPv4-only
+			if !parsed.Addr().Is4() {
+				return nil, errors.Errorf("advertise.prefixes entry %s is not IPv4", p)
+			}
+			advertisePrefixes = append(advertisePrefixes, parsed)
+		}
+	}
+
+	if external.Spec.LocalASN != 0 && fabricCfg != nil {
+		if external.Spec.LocalASN == fabricCfg.SpineASN {
+			return nil, errors.Errorf("localASN %d is the fabric spine ASN", external.Spec.LocalASN)
+		}
+		if external.Spec.LocalASN >= fabricCfg.LeafASNStart && external.Spec.LocalASN <= fabricCfg.LeafASNEnd {
+			return nil, errors.Errorf("localASN %d is inside the fabric leaf ASN range %d-%d", external.Spec.LocalASN, fabricCfg.LeafASNStart, fabricCfg.LeafASNEnd)
+		}
+	}
+
 	if external.Spec.Static != nil {
 		// a static external has no BGP session and so no liveness signal: a "primary" that dies
 		// would keep attracting traffic
 		if external.Spec.Priority != 0 {
 			return nil, errors.Errorf("priority must not be set for static externals")
+		}
+
+		// and nothing to carry an announcement on either
+		if external.Spec.Advertise != nil {
+			return nil, errors.Errorf("advertise must not be set for static externals")
+		}
+		if external.Spec.LocalASN != 0 {
+			return nil, errors.Errorf("localASN must not be set for static externals")
 		}
 
 		if len(external.Spec.Static.Prefixes) == 0 {
@@ -196,6 +297,30 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 			}
 
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", external.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+		}
+
+		for _, prefix := range advertisePrefixes {
+			for _, subnet := range ipNs.Spec.Subnets {
+				ipnsPrefix, err := netip.ParsePrefix(subnet)
+				if err != nil {
+					return nil, errors.Wrapf(err, "invalid subnet %s in IPv4Namespace %s", subnet, external.Spec.IPv4Namespace)
+				}
+				if ipnsPrefix.Overlaps(prefix) {
+					return nil, errors.Errorf("advertise.prefixes entry %s is inside IPv4Namespace subnet %s, which is already advertised", prefix, subnet)
+				}
+			}
+		}
+
+		if external.Spec.LocalASN != 0 {
+			attaches := &ExternalAttachmentList{}
+			if err := kube.List(ctx, attaches, kclient.MatchingLabels{LabelExternal: external.Name}); err != nil {
+				return nil, errors.Wrapf(err, "failed to list external attachments for %s", external.Name) // TODO replace with some internal error to not expose to the user
+			}
+			for _, attach := range attaches.Items {
+				if attach.Spec.Neighbor.ASN == external.Spec.LocalASN {
+					return nil, errors.Errorf("localASN %d is the neighbor ASN of external attachment %s", external.Spec.LocalASN, attach.Name)
+				}
+			}
 		}
 	}
 
