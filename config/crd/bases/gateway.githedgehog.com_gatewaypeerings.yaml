@@ -163,6 +163,10 @@ spec:
                 description: GatewayGroup is the name of the gateway group that should
                   process the peering
                 type: string
+              noMultiPath:
+                description: NoMultiPath is an optional flag to disable multi-path
+                  for stateless peerings (handling by all gateways in a group)
+                type: boolean
               peering:
                 additionalProperties:
                   properties:
@@ -237,8 +241,6 @@ spec:
                               static:
                                 type: object
                             type: object
-                          noMultiPath:
-                            type: boolean
                         type: object
                       type: array
                   type: object

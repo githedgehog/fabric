@@ -1301,7 +1301,6 @@ _Appears in:_
 | `as` _[PeeringEntryAs](#peeringentryas) array_ |  |  |  |
 | `nat` _[PeeringNAT](#peeringnat)_ |  |  |  |
 | `default` _boolean_ |  |  |  |
-| `noMultiPath` _boolean_ |  |  |  |
 
 
 #### PeeringEntryIP
@@ -1423,6 +1422,7 @@ _Appears in:_
 | `gatewayGroup` _string_ | GatewayGroup is the name of the gateway group that should process the peering |  |  |
 | `peering` _object (keys:string, values:[PeeringEntry](#peeringentry))_ | Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name) |  |  |
 | `acl` _[PeeringACL](#peeringacl)_ | ACL is an optional, peering-scoped ACL |  |  |
+| `noMultiPath` _boolean_ | NoMultiPath is an optional flag to disable multi-path for stateless peerings (handling by all gateways in a group) |  |  |
 
 
 #### PeeringStatus
