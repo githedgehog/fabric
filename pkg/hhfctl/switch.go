@@ -128,6 +128,30 @@ func SwitchReinstall(ctx context.Context, name string) error {
 	return nil
 }
 
+func SwitchFactoryReset(ctx context.Context, name string) error {
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
+	if err != nil {
+		return fmt.Errorf("creating kube client: %w", err)
+	}
+
+	agent, err := getAgent(ctx, kube, name)
+	if err != nil {
+		return err
+	}
+
+	if agent.Status.BootID == "" {
+		return fmt.Errorf("agent is not running (missing .status.bootID)") //nolint:goerr113
+	}
+
+	agent.Spec.FactoryReset = agent.Status.BootID
+	err = kube.Update(ctx, agent)
+	if err != nil {
+		return fmt.Errorf("updating agent object: %w", err)
+	}
+
+	return nil
+}
+
 func SwitchIP(ctx context.Context, name string) error {
 	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)
 	if err != nil {

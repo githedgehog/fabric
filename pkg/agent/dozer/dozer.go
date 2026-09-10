@@ -40,6 +40,7 @@ type Processor interface {
 	FactoryReset(ctx context.Context) error
 	GetRoCE(ctx context.Context) (bool, error)
 	SetRoCE(ctx context.Context, enable bool) error
+	SaveConfig(ctx context.Context) error
 }
 
 type Action interface {

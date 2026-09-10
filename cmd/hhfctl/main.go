@@ -863,6 +863,32 @@ func main() {
 						},
 					},
 					{
+						Name:    "factory-reset",
+						Aliases: []string{"reset"},
+						Usage:   "Erase the switch startup config and reboot, the agent re-applies the fabric config from scratch on boot (only works if switch is healthy and sends heartbeats)",
+						Description: `Erases the startup config of the switch and reboots it. This is a recovery action to get rid of
+the config drift accumulated on the switch: on the next boot the agent reconfigures the control
+link and re-applies the whole fabric config from scratch.
+
+It does not decommission the switch: the config comes back on the next boot. Use reinstall to
+reboot into ONIE instead.`,
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							yesFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							if err := yesCheck(cCtx); err != nil {
+								return wrapErrWithPressToContinue(err)
+							}
+
+							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchFactoryReset(ctx, name), "failed to factory reset switch"))
+						},
+					},
+					{
 						Name:  "roce",
 						Usage: "Set RoCE mode on the switch (automatically reboots switch)",
 						Flags: []cli.Flag{

@@ -55,9 +55,10 @@ type AgentSpec struct {
 	ExternalPeerings     map[string]vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`
 	ConfiguredVPCSubnets map[string]bool                          `json:"configuredVPCSubnets,omitempty"`
 	AttachedVPCs         map[string]bool                          `json:"attachedVPCs,omitempty"`
-	Reinstall            string                                   `json:"reinstall,omitempty"`  // set to InstallID to reinstall NOS
-	Reboot               string                                   `json:"reboot,omitempty"`     // set to RunID to reboot
-	PowerReset           string                                   `json:"powerReset,omitempty"` // set to RunID to power reset
+	Reinstall            string                                   `json:"reinstall,omitempty"`    // set to InstallID to reinstall NOS
+	Reboot               string                                   `json:"reboot,omitempty"`       // set to BootID to reboot
+	PowerReset           string                                   `json:"powerReset,omitempty"`   // set to BootID to power reset
+	FactoryReset         string                                   `json:"factoryReset,omitempty"` // set to BootID to erase the startup config and reboot
 	Catalog              CatalogSpec                              `json:"catalog,omitempty"`
 
 	// TODO impl
