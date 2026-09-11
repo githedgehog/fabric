@@ -71,7 +71,8 @@ type SwitchProfileFeatures struct {
 // Defines switch-specific configuration options
 type SwitchProfileConfig struct {
 	// MaxPathsIBGP defines the maximum number of IBGP paths to be configured
-	MaxPathsEBGP uint32 `json:"maxPathsEBGP,omitempty"`
+	MaxPathsEBGP              uint32 `json:"maxPathsEBGP,omitempty"`
+	OddMaxBreakoutEvenDisable bool   `json:"oddMaxBreakoutEvenDisable,omitempty"`
 }
 
 // Defines a switch port configuration
