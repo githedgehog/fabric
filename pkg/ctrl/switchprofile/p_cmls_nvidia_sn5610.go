@@ -26,7 +26,7 @@ var CmlsNvidiaSN5610 = wiringapi.SwitchProfile{
 			ESLAG:         true,
 			ECMPRoCEQPN:   false,
 		},
-		Notes:    "Tranceiver orientation of bottom two rows of cages is opposite the top two",
+		Notes:    "Tranceiver orientation of bottom two rows of cages is upside down",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86_64-nv-sn5610-r0",
 		Config: wiringapi.SwitchProfileConfig{
