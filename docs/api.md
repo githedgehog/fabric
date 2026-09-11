@@ -3320,6 +3320,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `maxPathsEBGP` _integer_ | MaxPathsIBGP defines the maximum number of IBGP paths to be configured |  |  |
+| `oddMaxBreakoutEvenDisable` _boolean_ |  |  |  |
 
 
 #### SwitchProfileFeatures

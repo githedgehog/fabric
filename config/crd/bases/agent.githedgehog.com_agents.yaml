@@ -1444,6 +1444,8 @@ spec:
                           paths to be configured
                         format: int32
                         type: integer
+                      oddMaxBreakoutEvenDisable:
+                        type: boolean
                     type: object
                   displayName:
                     description: DisplayName defines the human-readable name of the
