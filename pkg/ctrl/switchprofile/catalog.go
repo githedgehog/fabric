@@ -59,6 +59,7 @@ var sonicCLSPlusSwitchProfiles = []wiringapi.SwitchProfile{
 
 var cumulusSwitchProfiles = []wiringapi.SwitchProfile{
 	CmlsNvidiaSN2201,
+	CmlsNvidiaSN2700,
 	CmlsNvidiaSN3700c,
 	CmlsNvidiaSN4600,
 	CmlsNvidiaSN5610,
