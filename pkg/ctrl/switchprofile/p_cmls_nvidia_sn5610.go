@@ -99,11 +99,11 @@ var CmlsNvidiaSN5610 = wiringapi.SwitchProfile{
 			"E1/62": {NOSName: "62", BaseNOSName: "swp", Label: "62", Profile: "OSFP-800G", Pipeline: "62"},
 			"E1/63": {NOSName: "63", BaseNOSName: "swp", Label: "63", Profile: "OSFP-800G", Pipeline: "63"},
 			"E1/64": {NOSName: "64", BaseNOSName: "swp", Label: "64", Profile: "OSFP-800G", Pipeline: "64"},
-			"E1/65": {NOSName: "65", BaseNOSName: "swp", Label: "65", Profile: "SFP28"},
-			"E1/66": {NOSName: "66", BaseNOSName: "swp", Label: "66", Profile: "SFP28"},
+			"E1/65": {NOSName: "65", BaseNOSName: "swp", Label: "65", Profile: "SFP28-25G"},
+			"E1/66": {NOSName: "66", BaseNOSName: "swp", Label: "66", Profile: "SFP28-25G"},
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
-			"SFP28-10G": {
+			"SFP28-25G": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "25G",
 					Supported: []string{"1G", "10G", "25G"},
