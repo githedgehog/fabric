@@ -34,7 +34,7 @@ var CmlsNvidiaSN5610 = wiringapi.SwitchProfile{
 		},
 		MaxPorts: 256,
 		Ports: map[string]wiringapi.SwitchProfilePort{
-			"M1":    {NOSName: "Management0", Management: true, OniePortName: "eth0"},
+			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
 			"E1/1":  {NOSName: "1", BaseNOSName: "swp", Label: "1", Profile: "OSFP-800G", Pipeline: "1"},
 			"E1/2":  {NOSName: "2", BaseNOSName: "swp", Label: "2", Profile: "OSFP-800G", Pipeline: "2"},
 			"E1/3":  {NOSName: "3", BaseNOSName: "swp", Label: "3", Profile: "OSFP-800G", Pipeline: "3"},
