@@ -43,6 +43,7 @@ const (
 	frrRunVolumeName       = "frr-run"
 	frrTmpVolumeName       = "frr-tmp"
 	frrRootRunVolumeName   = "frr-root-run"
+	hugePagesVolumeName    = "hugepages"
 
 	dataplaneRunHostPath = "/run/hedgehog/dataplane"
 	frrRunHostPath       = "/run/hedgehog/frr"
@@ -350,19 +351,6 @@ func entityName(gwName string, t ...string) string {
 	return fmt.Sprintf("gw--%s--%s", gwName, strings.Join(t, "-"))
 }
 
-const (
-	// hugepages2Mi is the resource name the kubelet uses for 2 MiB hugepages.
-	hugepages2Mi = corev1.ResourceName("hugepages-2Mi")
-	// gatewayHugepages is how much hugepage memory the dataplane is granted.
-	//
-	// 2 MiB pages rather than 1 GiB: a gigabyte page needs a gigabyte of physically contiguous,
-	// gigabyte-aligned memory, which a host that has been up for a while usually cannot produce
-	// at runtime. Asking for a size the node cannot satisfy leaves the pod Pending forever.
-	gatewayHugepages = "4Gi"
-	// gatewayMemory is the ordinary memory limit, which hugepages are not counted against.
-	gatewayMemory = "4Gi"
-)
-
 // benchmarkPCI is the hand-wired device for each gateway in the benchmark lab.
 //
 // EXPERIMENT ONLY -- this branch exists to get a DPDK number out of the benchmark lab and must
@@ -620,6 +608,11 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 				"app.kubernetes.io/name": dpDS.Name, // TODO
 			}
 
+			res := corev1.ResourceList{
+				"hugepages-1Gi":       resource.MustParse("4Gi"),
+				corev1.ResourceMemory: resource.MustParse("8Gi"),
+			}
+
 			dpDS.Spec = appv1.DaemonSetSpec{
 				Selector: &kmetav1.LabelSelector{
 					MatchLabels: labels,
@@ -664,14 +657,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								// are not counted against it, so it has to be large enough for the
 								// dataplane's ordinary allocations on its own.
 								Resources: corev1.ResourceRequirements{
-									Limits: corev1.ResourceList{
-										hugepages2Mi:          resource.MustParse(gatewayHugepages),
-										corev1.ResourceMemory: resource.MustParse(gatewayMemory),
-									},
-									Requests: corev1.ResourceList{
-										hugepages2Mi:          resource.MustParse(gatewayHugepages),
-										corev1.ResourceMemory: resource.MustParse(gatewayMemory),
-									},
+									Limits:   res,
+									Requests: res,
 								},
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
@@ -684,6 +671,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 									},
 								},
 								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      hugePagesVolumeName,
+										MountPath: "/dev/hugepages",
+									},
 									{
 										Name:      dataplaneRunVolumeName,
 										MountPath: dataplaneRunMountPath,
@@ -747,6 +738,15 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								VolumeSource: corev1.VolumeSource{
 									// TODO consider memory medium
 									EmptyDir: &corev1.EmptyDirVolumeSource{},
+								},
+							},
+
+							{
+								Name: hugePagesVolumeName,
+								VolumeSource: corev1.VolumeSource{
+									EmptyDir: &corev1.EmptyDirVolumeSource{
+										Medium: corev1.StorageMediumHugePages,
+									},
 								},
 							},
 						},
