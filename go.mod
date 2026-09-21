@@ -19,7 +19,7 @@ require (
 	github.com/lmittmann/tint v1.2.0
 	github.com/maruel/natural v1.3.0
 	github.com/mattn/go-isatty v0.0.24
-	github.com/olekukonko/tablewriter v1.1.4
+	github.com/olekukonko/tablewriter v1.1.5
 	github.com/openconfig/gnmi v0.14.1
 	github.com/openconfig/gnmic/pkg/api v0.1.11
 	github.com/openconfig/ygot v0.34.0
