@@ -154,22 +154,13 @@ func (p *BroadcomProcessor) Reinstall(ctx context.Context) error {
 	return p.Reboot(ctx, true)
 }
 
-func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
-	// TODO use sonic-cli for it and then switch to GNOI
-	// write erase boot
+func (p *BroadcomProcessor) FactoryReset(ctx context.Context) error {
+	// "write erase boot" prompts for confirmation ("...continue? [y/N]:")
+	if err := SonicCLIConfirm(ctx, "write erase boot", "y\n"); err != nil {
+		return fmt.Errorf("failed to reset config: %w", err)
+	}
 
-	// stdin, err := cmd.StdinPipe()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// go func() {
-	// 	defer stdin.Close()
-	// 	// todo test it
-	// 	io.WriteString(stdin, "y\n")
-	// }()
-
-	return fmt.Errorf("not supported") //nolint:err113
+	return p.Reboot(ctx, true)
 }
 
 func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -412,4 +403,10 @@ func (p *BroadcomProcessor) SetRoCE(ctx context.Context, val bool) error {
 	}
 
 	return nil
+}
+
+func (p *BroadcomProcessor) SaveConfig(ctx context.Context) error {
+	slog.Info("Saving config...")
+
+	return errors.Wrap(SonicCLI(ctx, "write memory"), "failed to save config")
 }
