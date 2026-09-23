@@ -4028,6 +4028,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		if _, exists := newIfaces[portName]; exists {
+			return errors.Errorf("spec interfaces: %s maps to NOS name %s already used by another port", name, portName)
+		}
+
 		newIfaces[portName] = iface
 	}
 	spec.Interfaces = newIfaces
@@ -4042,6 +4046,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		if _, exists := newACLIfaces[portName]; exists {
+			return errors.Errorf("ACL interfaces: %s maps to NOS name %s already used by another port", name, portName)
+		}
+
 		newACLIfaces[portName] = iface
 	}
 	spec.ACLInterfaces = newACLIfaces
@@ -4054,6 +4062,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if err != nil {
 				return errors.Wrapf(err, "failed to translate port name for LLDP interfaces %s", name)
 			}
+		}
+
+		if _, exists := newLLDPIfaces[portName]; exists {
+			return errors.Errorf("LLDP interfaces: %s maps to NOS name %s already used by another port", name, portName)
 		}
 
 		newLLDPIfaces[portName] = iface
@@ -4092,6 +4104,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		if _, exists := newLSTIfaces[portName]; exists {
+			return errors.Errorf("LST interfaces: %s maps to NOS name %s already used by another port", name, portName)
+		}
+
 		newLSTIfaces[portName] = iface
 	}
 	spec.LSTInterfaces = newLSTIfaces
@@ -4104,6 +4120,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if err != nil {
 				return errors.Wrapf(err, "failed to translate port name for errdisable interfaces %s", name)
 			}
+		}
+
+		if _, exists := newErrDisableIfaces[portName]; exists {
+			return errors.Errorf("errdisable interfaces: %s maps to NOS name %s already used by another port", name, portName)
 		}
 
 		newErrDisableIfaces[portName] = iface
@@ -4120,6 +4140,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
+		if _, exists := newPortLocators[portName]; exists {
+			return errors.Errorf("port locators: %s maps to NOS name %s already used by another port", name, portName)
+		}
+
 		newPortLocators[portName] = portLocator
 	}
 	spec.PortLocators = newPortLocators
@@ -4133,6 +4157,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 				if err != nil {
 					return errors.Wrapf(err, "failed to translate port name for VRF %s interfaces %s", vrfName, name)
 				}
+			}
+
+			if _, exists := newIfaces[portName]; exists {
+				return errors.Errorf("VRF %s interfaces: %s maps to NOS name %s already used by another port", vrfName, name, portName)
 			}
 
 			newIfaces[portName] = iface
@@ -4153,6 +4181,10 @@ func translatePortNames(agent *agentapi.Agent, spec *dozer.Spec) error {
 					if neighbor.Description != nil && strings.HasSuffix(*neighbor.Description, name) {
 						neighbor.Description = pointer.To(strings.TrimSuffix(*neighbor.Description, name) + newName)
 					}
+				}
+
+				if _, exists := newBGPNeighbors[newName]; exists {
+					return errors.Errorf("BGP neighbors in vrf %s: %s maps to NOS name %s already used by another port", vrfName, name, newName)
 				}
 
 				newBGPNeighbors[newName] = neighbor
