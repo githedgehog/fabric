@@ -32,6 +32,15 @@ type CatalogSpec struct {
 	// VPCSubnetVNIs stores VPC name -> subnet name -> VPC Subnet VNI, globally unique for the fabric
 	VPCSubnetVNIs map[string]map[string]uint32 `json:"vpcSubnetVNIs,omitempty"`
 
+	// ExternalCommIDs stores external name -> ID, globally unique for the fabric. Used as the low
+	// half of the fabric-owned External identity community, so it must mean the same thing on every
+	// switch (unlike ExternalIDs below, which is a per-switch route-map sequence number).
+	ExternalCommIDs map[string]uint16 `json:"externalCommIDs,omitempty"`
+	// ExternalAttachmentCommIDs stores external attachment name -> ID, globally unique for the
+	// fabric. Used as the low half of the fabric-owned attachment identity community, which lets a
+	// border leaf tell its own routes apart from those it learned from another border leaf.
+	ExternalAttachmentCommIDs map[string]uint16 `json:"externalAttachmentCommIDs,omitempty"`
+
 	// Global (for gw)
 	VPCInfoIDs map[string]uint32 `json:"vpcInfoIDs,omitempty"`
 
@@ -52,6 +61,10 @@ type CatalogSpec struct {
 	TH5WorkaroundVLANs map[string]uint16 `json:"th5WorkaroundVLANs,omitempty"`
 	// ExternalIDs stores external name -> ID, unique per switch
 	ExternalIDs map[string]uint16 `json:"externalIDs,omitempty"`
+	// ExternalLeakIDs stores the sequence number of a leak statement in import-vrf--<vpc>, unique
+	// per switch and keyed by extattach@<attachment>: each attachment is leaked by its own
+	// statement, matching its own identity community and at its own rank.
+	ExternalLeakIDs map[string]uint16 `json:"externalLeakIDs,omitempty"`
 	// SubnetIDs stores subnet -> ID, unique per switch
 	SubnetIDs map[string]uint32 `json:"subnetIDs,omitempty"`
 	// StaticExternalSubnetOffsets stores external attachment name -> subnet offset, unique per switch

@@ -200,6 +200,16 @@ func TestPlan(t *testing.T) {
 		// attachment only. Covers both combinations of static/BGP attachments on one switch.
 		{name: "mixedext-leaf-01"}, // static and BGP attachments to the same external; BFD with the default timers
 		{name: "mixedext-leaf-02"}, // BGP attachment only, to an external that still has static prefixes; BFD with custom timers
+		// the same switch with an agent config written before identity communities existed, which
+		// is what the upgrade check runs the new binary against. Must plan the pre-identity
+		// external config. TODO drop with the legacy path in planExternals
+		{name: "legacyext-leaf-3"},  // BGP external
+		{name: "legacyext-leaf-01"}, // static externals: must keep redistributing untagged, with no ext-static-- route map
+		// group: extprio
+		// the reg group with a second external and a second attachment to the first one, ranked on
+		// both axes: uplink priorities 0 and 1 on external-01, External priority 1 on external-02,
+		// and a peering that overrides the External priority to 3 for one VPC
+		{name: "extprio-leaf-03"},
 		// group: mesh
 		// vs lab with 2 eslag leaves and 1 orphan connected via mesh, 3 vpcs with 2 servers each
 		{name: "mesh-leaf-01"}, // eslag, gateway connected to it

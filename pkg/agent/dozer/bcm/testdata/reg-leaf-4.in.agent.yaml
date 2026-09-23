@@ -20,6 +20,8 @@ spec:
     connectionIDs:
       server-05--eslag--leaf-03--leaf-04: 1
       server-06--eslag--leaf-03--leaf-04: 2
+    externalCommIDs:
+      external-01: 4
     irbVLANs:
       vpc-03: 3002
       vpc-04: 3000

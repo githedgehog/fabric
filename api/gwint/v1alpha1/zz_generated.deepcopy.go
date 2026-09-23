@@ -243,6 +243,13 @@ func (in *GatewayAgentSpec) DeepCopyInto(out *GatewayAgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.UplinkCommunities != nil {
+		in, out := &in.UplinkCommunities, &out.UplinkCommunities
+		*out = make(map[string]uint32, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	out.Config = in.Config
 }
 

@@ -429,6 +429,20 @@ func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 			(*out)[key] = outVal
 		}
 	}
+	if in.ExternalCommIDs != nil {
+		in, out := &in.ExternalCommIDs, &out.ExternalCommIDs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.ExternalAttachmentCommIDs != nil {
+		in, out := &in.ExternalAttachmentCommIDs, &out.ExternalAttachmentCommIDs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.VPCInfoIDs != nil {
 		in, out := &in.VPCInfoIDs, &out.VPCInfoIDs
 		*out = make(map[string]uint32, len(*in))
@@ -473,6 +487,13 @@ func (in *CatalogSpec) DeepCopyInto(out *CatalogSpec) {
 	}
 	if in.ExternalIDs != nil {
 		in, out := &in.ExternalIDs, &out.ExternalIDs
+		*out = make(map[string]uint16, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.ExternalLeakIDs != nil {
+		in, out := &in.ExternalLeakIDs, &out.ExternalLeakIDs
 		*out = make(map[string]uint16, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

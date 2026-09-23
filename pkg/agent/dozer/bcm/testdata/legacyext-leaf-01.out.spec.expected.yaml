@@ -1,4 +1,71 @@
+aclInterfaces:
+  Ethernet0.20:
+    ingress: ext-inbound--leaf-01--ext-snp-02
+  Vlan3000:
+    ingress: no-ipns-peering--default
+  Vlan3001:
+    ingress: no-ipns-peering--default
 acls:
+  ext-inbound--leaf-01--ext-snp-02:
+    description: Inbound ACL leaf-01--ext-snp-02
+    entries:
+      "1":
+        action: DISCARD
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 443
+        protocol: TCP
+      "2":
+        action: DISCARD
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 8080
+        protocol: TCP
+      "3":
+        action: DISCARD
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 67
+        protocol: UDP
+      "4":
+        action: DISCARD
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 161
+        protocol: UDP
+      "5":
+        action: DISCARD
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 4789
+        protocol: UDP
+      "6":
+        action: DISCARD
+        destinationAddress: 100.1.20.2/32
+        destinationPort: 22
+        protocol: TCP
+      "15":
+        action: ACCEPT
+        destinationAddress: 10.50.10.3/32
+        destinationPort: 22
+        protocol: TCP
+      "20":
+        action: DROP
+        destinationAddress: 10.50.10.3/32
+        destinationPort: 4789
+        protocol: UDP
+      "25":
+        action: DISCARD
+        destinationAddress: 10.50.10.3/32
+        protocol: TCP
+      "30":
+        action: TRANSIT
+        destinationAddress: 10.50.10.3/32
+        protocol: UDP
+  ipns-egress--default:
+    entries:
+      "10":
+        action: DROP
+        destinationAddress: 10.0.0.0/16
+        protocol: IP
+      "65535":
+        action: ACCEPT
+        protocol: IP
   no-ipns-peering--default:
     description: Prevent VPCs to cross-talk via the external
     entries:
@@ -22,9 +89,7 @@ bfdProfiles:
     passiveMode: false
     requiredMinimumReceive: 300
 communityLists:
-  all-externals:
-    members:
-    - "50003:4"
+  all-externals: {}
   all-gw-prios:
     members:
     - "50001:0"
@@ -130,28 +195,19 @@ communityLists:
   uplink-prio-3:
     members:
     - "50004:3"
+  vpc-peers--vpc-01:
+    members:
+    - "50000:3"
+    - "50000:5"
+  vpc-peers--vpc-02:
+    members:
+    - "50000:4"
   vpc-peers--vpc-03:
     members:
     - "50000:3"
-    - "50000:4"
-  vpc-peers--vpc-04:
-    members:
-    - "50000:3"
-    - "50000:4"
+    - "50000:5"
 dhcpRelays:
-  Vlan1005:
-    linkSelect: true
-    relayAddress:
-    - 172.30.0.1
-    sourceInterface: Management0
-    vrfSelect: true
-  Vlan1006:
-    linkSelect: true
-    relayAddress:
-    - 172.30.0.1
-    sourceInterface: Management0
-    vrfSelect: true
-  Vlan1008:
+  Vlan1003:
     linkSelect: true
     relayAddress:
     - 172.30.0.1
@@ -177,88 +233,99 @@ errDisableInterfaces:
     flapThreshold: 3
     recoveryInterval: 300
     samplingInterval: 30
-  Ethernet8:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
-hostname: leaf-04
+hostname: leaf-01
 interfaces:
   Ethernet0:
     autoNegotiate: false
-    description: PC2 ESLAG server-05 server-05--eslag--leaf-03--leaf-04
+    description: External leaf-01--external
     enabled: true
-    mtu: 9036
-    portChannel: PortChannel2
     subinterfaces:
       "0": {}
+      "10":
+        ips:
+          172.30.16.0:
+            prefixLen: 31
+        proxyARP: {}
+        vlan: 10
+      "20":
+        ips:
+          100.1.20.2:
+            prefixLen: 24
+        vlan: 20
   Ethernet1:
     autoNegotiate: false
-    description: PC1 ESLAG server-06 server-06--eslag--leaf-03--leaf-04
+    description: Unbundled server-01 server-01--unbundled--leaf-01
     enabled: true
     mtu: 9036
-    portChannel: PortChannel1
     subinterfaces:
       "0": {}
+    trunkVLANs:
+    - "1003"
   Ethernet2:
     autoNegotiate: false
-    description: PC3 Bundled server-08 server-08--bundled--leaf-04
+    description: Unbundled server-03 server-03--unbundled--leaf-01
     enabled: true
     mtu: 9036
-    portChannel: PortChannel3
     subinterfaces:
       "0": {}
+      "1001":
+        ipv6:
+          ipv6Enabled: true
+        vlan: 1001
+      "1002":
+        ipv6:
+          ipv6Enabled: true
+        vlan: 1002
   Ethernet3:
     autoNegotiate: false
-    description: PC3 Bundled server-08 server-08--bundled--leaf-04
+    description: Unbundled server-04 server-04--unbundled--leaf-01
     enabled: true
     mtu: 9036
-    portChannel: PortChannel3
     subinterfaces:
       "0": {}
+      "1001":
+        ipv6:
+          ipv6Enabled: true
+        vlan: 1001
+      "1002":
+        ipv6:
+          ipv6Enabled: true
+        vlan: 1002
   Ethernet4:
     autoNegotiate: false
-    description: Fabric spine-01/E1/7 spine-01--fabric--leaf-04
+    description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.1:
+            prefixLen: 31
+  Ethernet5:
+    autoNegotiate: false
+    description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.3:
+            prefixLen: 31
+  Ethernet6:
+    autoNegotiate: false
+    description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+    enabled: true
+    subinterfaces:
+      "0":
+        ips:
+          172.30.128.11:
+            prefixLen: 31
+  Ethernet7:
+    autoNegotiate: false
+    description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
     enabled: true
     subinterfaces:
       "0":
         ips:
           172.30.128.13:
-            prefixLen: 31
-  Ethernet5:
-    autoNegotiate: false
-    description: Fabric spine-01/E1/8 spine-01--fabric--leaf-04
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.15:
-            prefixLen: 31
-  Ethernet6:
-    autoNegotiate: false
-    description: Fabric spine-02/E1/7 spine-02--fabric--leaf-04
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.35:
-            prefixLen: 31
-  Ethernet7:
-    autoNegotiate: false
-    description: Fabric spine-02/E1/8 spine-02--fabric--leaf-04
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.37:
-            prefixLen: 31
-  Ethernet8:
-    autoNegotiate: false
-    description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.22:
             prefixLen: 31
   Loopback1:
     description: Protocol loopback
@@ -266,7 +333,7 @@ interfaces:
     subinterfaces:
       "0":
         ips:
-          172.30.8.5:
+          172.30.8.2:
             prefixLen: 32
   Loopback2:
     description: VTEP loopback
@@ -274,7 +341,7 @@ interfaces:
     subinterfaces:
       "0":
         ips:
-          172.30.12.2:
+          172.30.12.0:
             prefixLen: 32
   Management0:
     autoNegotiate: true
@@ -283,75 +350,33 @@ interfaces:
     subinterfaces:
       "0":
         ips:
-          172.30.0.12:
+          172.30.0.9:
             prefixLen: 21
-  PortChannel1:
-    description: ESLAG server-06 server-06--eslag--leaf-03--leaf-04
-    enabled: true
-    mtu: 9036
-    subinterfaces:
-      "0": {}
-    trunkVLANs:
-    - "1006"
-  PortChannel2:
-    description: ESLAG server-05 server-05--eslag--leaf-03--leaf-04
-    enabled: true
-    mtu: 9036
-    subinterfaces:
-      "0": {}
-    trunkVLANs:
-    - "1005"
-  PortChannel3:
-    description: Bundled server-08 server-08--bundled--leaf-04
-    enabled: true
-    mtu: 9036
-    subinterfaces:
-      "0": {}
-    trunkVLANs:
-    - "1008"
-  Vlan1005:
-    description: VPC vpc-03/subnet-01
+  Vlan1003:
+    description: VPC vpc-03/default
     enabled: true
     vlanAnycastGateway:
-    - 10.0.5.1/24
-  Vlan1006:
-    description: VPC vpc-03/subnet-02
-    enabled: true
-    vlanAnycastGateway:
-    - 10.0.6.1/24
-  Vlan1008:
-    description: VPC vpc-04/subnet-02
-    enabled: true
-    vlanAnycastGateway:
-    - 10.0.8.1/24
+    - 10.0.3.1/24
   Vlan3000:
-    description: VPC vpc-04 IRB
+    description: External ext-snp-02 IRB
+    enabled: true
+  Vlan3001:
+    description: External ext-sp-01 IRB
     enabled: true
   Vlan3002:
+    description: VPC vpc-01 IRB
+    enabled: true
+  Vlan3003:
+    description: VPC vpc-02 IRB
+    enabled: true
+  Vlan3004:
     description: VPC vpc-03 IRB
     enabled: true
 lldp:
   enabled: true
   helloTimer: 5
   systemDescription: Hedgehog Fabric
-  systemName: leaf-04
-lstGroups:
-  spinelink:
-    allEvpnEsDownstream: true
-    timeout: 60
-lstInterfaces:
-  Ethernet4:
-    groups:
-    - spinelink
-  Ethernet5:
-    groups:
-    - spinelink
-  Ethernet6:
-    groups:
-    - spinelink
-  Ethernet7:
-    groups:
-    - spinelink
+  systemName: leaf-01
 neighborGlobal:
   ipv4DropNeighborAgingTime: 60
 ntp:
@@ -360,15 +385,6 @@ ntp:
 ntpServers:
   172.30.0.1:
     prefer: true
-portChannelConfigs:
-  PortChannel1:
-    fallback: false
-    systemMAC: f2:00:00:00:00:02
-  PortChannel2:
-    fallback: false
-    systemMAC: f2:00:00:00:00:01
-  PortChannel3:
-    fallback: false
 prefixLists:
   all-vtep-prefixes:
     prefixes:
@@ -380,6 +396,21 @@ prefixLists:
   any-prefix:
     prefixes:
       "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 0.0.0.0/0
+  ext-import--ext-snp-02:
+    prefixes:
+      "101":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.2.0/24
+  ext-import--ext-sp-01: {}
+  import-vrf--vpc-02--ext-snp-02:
+    prefixes:
+      "103":
         action: permit
         prefix:
           le: 32
@@ -397,10 +428,48 @@ prefixLists:
         action: permit
         prefix:
           le: 32
-          prefix: 172.30.8.5/32
+          prefix: 172.30.8.2/32
   static-ext-subnets: {}
+  vips-only--vpc-01--default:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          ge: 32
+          le: 32
+          prefix: 10.0.1.0/24
+      "15":
+        action: permit
+        prefix:
+          ge: 32
+          le: 32
+          prefix: 10.100.1.0/24
+      "20":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.100.11.0/28
+  vips-only--vpc-02--default:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.2.0/24
+      "15":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.100.2.0/24
+  vpc-ext-prefixes--vpc-01: {}
+  vpc-ext-prefixes--vpc-02:
+    prefixes:
+      "103":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 0.0.0.0/0
   vpc-ext-prefixes--vpc-03: {}
-  vpc-ext-prefixes--vpc-04: {}
   vpc-loopback-prefix:
     prefixes:
       "10":
@@ -408,91 +477,101 @@ prefixLists:
         prefix:
           le: 32
           prefix: 172.30.96.0/19
+  vpc-not-subnets--vpc-01:
+    prefixes:
+      "1":
+        action: deny
+        prefix:
+          le: 32
+          prefix: 10.0.1.0/24
+      "65535":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 0.0.0.0/0
+  vpc-not-subnets--vpc-02:
+    prefixes:
+      "1":
+        action: deny
+        prefix:
+          le: 32
+          prefix: 10.0.2.0/24
+      "65535":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 0.0.0.0/0
   vpc-not-subnets--vpc-03:
     prefixes:
       "1":
         action: deny
         prefix:
           le: 32
-          prefix: 10.0.6.0/24
-      "2":
-        action: deny
-        prefix:
-          le: 32
-          prefix: 10.0.5.0/24
+          prefix: 10.0.3.0/24
       "65535":
         action: permit
         prefix:
           le: 32
           prefix: 0.0.0.0/0
-  vpc-not-subnets--vpc-04:
+  vpc-peers--vpc-01:
     prefixes:
-      "1":
-        action: deny
-        prefix:
-          le: 32
-          prefix: 10.0.7.0/24
-      "2":
-        action: deny
-        prefix:
-          le: 32
-          prefix: 10.0.8.0/24
-      "65535":
+      "501":
         action: permit
         prefix:
           le: 32
-          prefix: 0.0.0.0/0
+          prefix: 10.0.3.0/24
+  vpc-peers--vpc-02: {}
   vpc-peers--vpc-03:
-    prefixes:
-      "401":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 10.0.7.0/24
-      "402":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 10.0.8.0/24
-  vpc-peers--vpc-04:
     prefixes:
       "301":
         action: permit
         prefix:
           le: 32
-          prefix: 10.0.6.0/24
-      "302":
+          prefix: 10.0.1.0/24
+  vpc-static-ext-subnets--vpc-01: {}
+  vpc-static-ext-subnets--vpc-02: {}
+  vpc-static-ext-subnets--vpc-03: {}
+  vpc-subnets--vpc-01:
+    prefixes:
+      "1":
         action: permit
         prefix:
           le: 32
-          prefix: 10.0.5.0/24
-  vpc-static-ext-subnets--vpc-03: {}
-  vpc-static-ext-subnets--vpc-04: {}
+          prefix: 10.0.1.0/24
+  vpc-subnets--vpc-02:
+    prefixes:
+      "1":
+        action: permit
+        prefix:
+          le: 32
+          prefix: 10.0.2.0/24
   vpc-subnets--vpc-03:
     prefixes:
       "1":
         action: permit
         prefix:
           le: 32
-          prefix: 10.0.6.0/24
-      "2":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 10.0.5.0/24
-  vpc-subnets--vpc-04:
+          prefix: 10.0.3.0/24
+  vtep-prefix:
     prefixes:
-      "1":
+      "10":
         action: permit
         prefix:
           le: 32
-          prefix: 10.0.7.0/24
-      "2":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 10.0.8.0/24
+          prefix: 172.30.12.0/32
 routeMaps:
+  ext-import--ext-snp-02:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ext-import--ext-snp-02
+        result: accept
+  ext-import--ext-sp-01:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ext-import--ext-sp-01
+        result: accept
   filter-attached-hosts:
     statements:
       "10":
@@ -502,16 +581,67 @@ routeMaps:
       "100":
         conditions: {}
         result: accept
+  import-vrf--vpc-01:
+    statements:
+      "1":
+        conditions:
+          matchNextHopPrefixLists: vpc-loopback-prefix
+        result: reject
+      "10005":
+        conditions:
+          matchPrefixLists: vpc-not-subnets--vpc-03
+          matchSourceVrf: VrfVvpc-03
+        result: reject
+      "50000":
+        conditions:
+          matchCommunityLists: vpc-peers--vpc-01
+        result: accept
+      "50001":
+        conditions:
+          matchCommunityLists: no-community
+          matchPrefixLists: vpc-peers--vpc-01
+        result: accept
+      "65535":
+        conditions: {}
+        result: reject
+  import-vrf--vpc-02:
+    statements:
+      "1":
+        conditions:
+          matchNextHopPrefixLists: vpc-loopback-prefix
+        result: reject
+      "5010":
+        conditions:
+          matchPrefixLists: ipns-subnets--default
+          matchSourceVrf: VrfEext-snp-02
+        result: reject
+      "50000":
+        conditions:
+          matchCommunityLists: vpc-peers--vpc-02
+        result: accept
+      "50001":
+        conditions:
+          matchCommunityLists: no-community
+          matchPrefixLists: vpc-peers--vpc-02
+        result: accept
+      "50010":
+        conditions:
+          matchPrefixLists: import-vrf--vpc-02--ext-snp-02
+        result: accept
+        setLocalPreference: 150
+      "65535":
+        conditions: {}
+        result: reject
   import-vrf--vpc-03:
     statements:
       "1":
         conditions:
           matchNextHopPrefixLists: vpc-loopback-prefix
         result: reject
-      "10004":
+      "10003":
         conditions:
-          matchPrefixLists: vpc-not-subnets--vpc-04
-          matchSourceVrf: VrfVvpc-04
+          matchPrefixLists: vpc-not-subnets--vpc-01
+          matchSourceVrf: VrfVvpc-01
         result: reject
       "50000":
         conditions:
@@ -521,29 +651,6 @@ routeMaps:
         conditions:
           matchCommunityLists: no-community
           matchPrefixLists: vpc-peers--vpc-03
-        result: accept
-      "65535":
-        conditions: {}
-        result: reject
-  import-vrf--vpc-04:
-    statements:
-      "1":
-        conditions:
-          matchNextHopPrefixLists: vpc-loopback-prefix
-        result: reject
-      "10003":
-        conditions:
-          matchPrefixLists: vpc-not-subnets--vpc-03
-          matchSourceVrf: VrfVvpc-03
-        result: reject
-      "50000":
-        conditions:
-          matchCommunityLists: vpc-peers--vpc-04
-        result: accept
-      "50001":
-        conditions:
-          matchCommunityLists: no-community
-          matchPrefixLists: vpc-peers--vpc-04
         result: accept
       "65535":
         conditions: {}
@@ -724,12 +831,72 @@ routeMaps:
         conditions:
           matchPrefixLists: static-ext-subnets
         result: accept
+  loopback-vtep:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: vtep-prefix
+        result: accept
+      "100":
+        conditions:
+          matchPrefixLists: static-ext-subnets
+        result: accept
   protocol-loopback-only:
     statements:
       "10":
         conditions:
           matchPrefixLists: protocol-loopback-prefix
         result: accept
+  vips-only--vpc-01--default:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: vips-only--vpc-01--default
+        result: accept
+  vips-only--vpc-02--default:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: vips-only--vpc-02--default
+        result: accept
+  vpc-redistribute-connected--vpc-01:
+    statements:
+      "1":
+        conditions:
+          matchPrefixLists: vpc-loopback-prefix
+        result: reject
+      "5":
+        conditions:
+          matchPrefixLists: vpc-subnets--vpc-01
+        result: accept
+        setCommunities:
+        - "50000:3"
+      "6":
+        conditions:
+          matchPrefixLists: vpc-static-ext-subnets--vpc-01
+        result: accept
+      "10":
+        conditions: {}
+        result: reject
+  vpc-redistribute-connected--vpc-02:
+    statements:
+      "1":
+        conditions:
+          matchPrefixLists: vpc-loopback-prefix
+        result: reject
+      "5":
+        conditions:
+          matchPrefixLists: vpc-subnets--vpc-02
+        result: accept
+        setCommunities:
+        - "50000:4"
+      "6":
+        conditions:
+          matchPrefixLists: vpc-static-ext-subnets--vpc-02
+        result: accept
+      "10":
+        conditions: {}
+        result: reject
   vpc-redistribute-connected--vpc-03:
     statements:
       "1":
@@ -741,7 +908,7 @@ routeMaps:
           matchPrefixLists: vpc-subnets--vpc-03
         result: accept
         setCommunities:
-        - "50000:3"
+        - "50000:5"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
@@ -749,7 +916,7 @@ routeMaps:
       "10":
         conditions: {}
         result: reject
-  vpc-redistribute-connected--vpc-04:
+  vpc-redistribute-static--vpc-01:
     statements:
       "1":
         conditions:
@@ -757,17 +924,26 @@ routeMaps:
         result: reject
       "5":
         conditions:
-          matchPrefixLists: vpc-subnets--vpc-04
-        result: accept
-        setCommunities:
-        - "50000:4"
-      "6":
-        conditions:
-          matchPrefixLists: vpc-static-ext-subnets--vpc-04
+          matchPrefixLists: vpc-static-ext-subnets--vpc-01
         result: accept
       "10":
-        conditions: {}
+        conditions:
+          matchPrefixLists: vpc-ext-prefixes--vpc-01
+        result: accept
+  vpc-redistribute-static--vpc-02:
+    statements:
+      "1":
+        conditions:
+          matchPrefixLists: vpc-loopback-prefix
         result: reject
+      "5":
+        conditions:
+          matchPrefixLists: vpc-static-ext-subnets--vpc-02
+        result: accept
+      "10":
+        conditions:
+          matchPrefixLists: vpc-ext-prefixes--vpc-02
+        result: accept
   vpc-redistribute-static--vpc-03:
     statements:
       "1":
@@ -782,71 +958,212 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-ext-prefixes--vpc-03
         result: accept
-  vpc-redistribute-static--vpc-04:
-    statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
-      "5":
-        conditions:
-          matchPrefixLists: vpc-static-ext-subnets--vpc-04
-        result: accept
-      "10":
-        conditions:
-          matchPrefixLists: vpc-ext-prefixes--vpc-04
-        result: accept
 suppressVLANNeighs:
-  Vlan1005: {}
-  Vlan1006: {}
-  Vlan1008: {}
-  Vlan3000: {}
+  Vlan1003: {}
   Vlan3002: {}
+  Vlan3003: {}
+  Vlan3004: {}
 users:
   admin:
     authorizedKeys:
-    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIALAU1RChR27OrcAjD6HFoLrBK3oVKJV6ATWYB3OjdSw
     - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
     password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
     role: admin
   op:
     authorizedKeys:
-    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIALAU1RChR27OrcAjD6HFoLrBK3oVKJV6ATWYB3OjdSw
     - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
     password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
     role: operator
 vrfVNIMap:
-  VrfVvpc-03:
+  VrfEext-snp-02:
+    vni: 100
+  VrfEext-sp-01:
+    vni: 200
+  VrfVvpc-01:
     vni: 300
-  VrfVvpc-04:
+  VrfVvpc-02:
     vni: 400
+  VrfVvpc-03:
+    vni: 500
 vrfs:
+  VrfEext-snp-02:
+    anycastMAC: "00:00:00:11:11:11"
+    bgp:
+      as: 65101
+      ipv4Unicast:
+        enable: true
+        importPolicy: ext-import--ext-snp-02
+        importVRFs:
+          VrfVvpc-02: {}
+        maxPaths: 16
+      l2vpnEvpn:
+        advertiseIPv4Unicast: true
+        enable: true
+      networkImportCheck: true
+      routerID: 172.30.8.2
+    enabled: true
+    evpnMH: {}
+    interfaces:
+      Ethernet0.20: {}
+      Vlan3000: {}
+    staticRoutes:
+      0.0.0.0/0:
+        nextHops:
+        - interface: Eth0.20
+          ip: 100.1.20.1
+      100.1.20.1/32:
+        nextHops:
+        - interface: Eth0.20
+    tableConnections:
+      static: {}
+  VrfEext-sp-01:
+    anycastMAC: "00:00:00:11:11:11"
+    bgp:
+      as: 65101
+      ipv4Unicast:
+        enable: true
+        importPolicy: ext-import--ext-sp-01
+        maxPaths: 16
+      l2vpnEvpn:
+        advertiseIPv4Unicast: true
+        enable: true
+      networkImportCheck: true
+      routerID: 172.30.8.2
+    enabled: true
+    evpnMH: {}
+    interfaces:
+      Ethernet0.10: {}
+      Vlan3001: {}
+    staticRoutes:
+      0.0.0.0/0:
+        nextHops:
+        - interface: Eth0.10
+          ip: 100.1.10.1
+      100.1.10.1/32:
+        nextHops:
+        - interface: Eth0.10
+    tableConnections:
+      static: {}
+  VrfVvpc-01:
+    anycastMAC: "00:00:00:11:11:11"
+    bgp:
+      as: 65101
+      ipv4Unicast:
+        enable: true
+        importPolicy: import-vrf--vpc-01
+        importVRFs:
+          VrfVvpc-03: {}
+        maxPaths: 16
+      l2vpnEvpn:
+        advertiseIPv4Unicast: true
+        enable: true
+      neighbors:
+        Ethernet2.1001:
+          description: HostBGP unnumbered Ethernet2.1001
+          enabled: true
+          extendedNexthop: true
+          ipv4ASOverride: true
+          ipv4Unicast: true
+          ipv4UnicastImportPolicies:
+          - vips-only--vpc-01--default
+          peerType: external
+        Ethernet3.1001:
+          description: HostBGP unnumbered Ethernet3.1001
+          enabled: true
+          extendedNexthop: true
+          ipv4ASOverride: true
+          ipv4Unicast: true
+          ipv4UnicastImportPolicies:
+          - vips-only--vpc-01--default
+          peerType: external
+      networkImportCheck: true
+      routerID: 172.30.8.2
+    enabled: true
+    evpnMH: {}
+    interfaces:
+      Ethernet2.1001: {}
+      Ethernet3.1001: {}
+      Vlan3002: {}
+    tableConnections:
+      attachedhost: {}
+      connected:
+        importPolicies:
+        - vpc-redistribute-connected--vpc-01
+      static:
+        importPolicies:
+        - vpc-redistribute-static--vpc-01
+  VrfVvpc-02:
+    anycastMAC: "00:00:00:11:11:11"
+    bgp:
+      as: 65101
+      ipv4Unicast:
+        enable: true
+        importPolicy: import-vrf--vpc-02
+        importVRFs:
+          VrfEext-snp-02: {}
+        maxPaths: 16
+      l2vpnEvpn:
+        advertiseIPv4Unicast: true
+        enable: true
+      neighbors:
+        Ethernet2.1002:
+          description: HostBGP unnumbered Ethernet2.1002
+          enabled: true
+          extendedNexthop: true
+          ipv4ASOverride: true
+          ipv4Unicast: true
+          ipv4UnicastImportPolicies:
+          - vips-only--vpc-02--default
+          peerType: external
+        Ethernet3.1002:
+          description: HostBGP unnumbered Ethernet3.1002
+          enabled: true
+          extendedNexthop: true
+          ipv4ASOverride: true
+          ipv4Unicast: true
+          ipv4UnicastImportPolicies:
+          - vips-only--vpc-02--default
+          peerType: external
+      networkImportCheck: true
+      routerID: 172.30.8.2
+    enabled: true
+    evpnMH: {}
+    interfaces:
+      Ethernet2.1002: {}
+      Ethernet3.1002: {}
+      Vlan3003: {}
+    tableConnections:
+      attachedhost: {}
+      connected:
+        importPolicies:
+        - vpc-redistribute-connected--vpc-02
+      static:
+        importPolicies:
+        - vpc-redistribute-static--vpc-02
   VrfVvpc-03:
     anycastMAC: "00:00:00:11:11:11"
     attachedHosts:
-      Vlan1005: {}
-      Vlan1006: {}
+      Vlan1003: {}
     bgp:
-      as: 65103
+      as: 65101
       ipv4Unicast:
         enable: true
         importPolicy: import-vrf--vpc-03
         importVRFs:
-          VrfVvpc-04: {}
+          VrfVvpc-01: {}
         maxPaths: 16
       l2vpnEvpn:
         advertiseIPv4Unicast: true
-        advertiseIPv4UnicastRouteMaps:
-        - filter-attached-hosts
         enable: true
       networkImportCheck: true
-      routerID: 172.30.8.5
+      routerID: 172.30.8.2
     enabled: true
     evpnMH: {}
     interfaces:
-      Vlan1005: {}
-      Vlan1006: {}
-      Vlan3002: {}
+      Vlan1003: {}
+      Vlan3004: {}
     tableConnections:
       attachedhost: {}
       connected:
@@ -855,47 +1172,15 @@ vrfs:
       static:
         importPolicies:
         - vpc-redistribute-static--vpc-03
-  VrfVvpc-04:
-    anycastMAC: "00:00:00:11:11:11"
-    attachedHosts:
-      Vlan1008: {}
-    bgp:
-      as: 65103
-      ipv4Unicast:
-        enable: true
-        importPolicy: import-vrf--vpc-04
-        importVRFs:
-          VrfVvpc-03: {}
-        maxPaths: 16
-      l2vpnEvpn:
-        advertiseIPv4Unicast: true
-        advertiseIPv4UnicastRouteMaps:
-        - filter-attached-hosts
-        enable: true
-      networkImportCheck: true
-      routerID: 172.30.8.5
-    enabled: true
-    evpnMH: {}
-    interfaces:
-      Vlan1008: {}
-      Vlan3000: {}
-    tableConnections:
-      attachedhost: {}
-      connected:
-        importPolicies:
-        - vpc-redistribute-connected--vpc-04
-      static:
-        importPolicies:
-        - vpc-redistribute-static--vpc-04
   default:
     anycastMAC: "00:00:00:11:11:11"
     bgp:
-      as: 65103
+      as: 65101
       ipv4Unicast:
         enable: true
         maxPaths: 16
         networks:
-          172.30.8.5/32: {}
+          172.30.8.2/32: {}
       l2vpnEvpn:
         advertiseAllVnis: true
         enable: true
@@ -906,76 +1191,60 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - loopback-all-vteps
+          - loopback-vtep
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65100
-          updateSource: 172.30.8.5
+          updateSource: 172.30.8.2
         172.30.8.1:
           description: Fabric spine-02 loopback (spine-link)
           disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - loopback-all-vteps
+          - loopback-vtep
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65100
-          updateSource: 172.30.8.5
+          updateSource: 172.30.8.2
+        172.30.128.0:
+          bfdProfile: fabric
+          description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65100
+        172.30.128.2:
+          bfdProfile: fabric
+          description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65100
+        172.30.128.10:
+          bfdProfile: fabric
+          description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+          enabled: true
+          ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - protocol-loopback-only
+          remoteAS: 65100
         172.30.128.12:
           bfdProfile: fabric
-          description: Fabric spine-01/E1/7 spine-01--fabric--leaf-04
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65100
-        172.30.128.14:
-          bfdProfile: fabric
-          description: Fabric spine-01/E1/8 spine-01--fabric--leaf-04
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65100
-        172.30.128.23:
-          description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
-          enabled: true
-          ipv4Unicast: true
-          l2vpnEvpn: true
-          l2vpnEvpnAllowOwnAS: true
-          l2vpnEvpnImportPolicies:
-          - l2vpn-neighbors
-          remoteAS: 65534
-        172.30.128.34:
-          bfdProfile: fabric
-          description: Fabric spine-02/E1/7 spine-02--fabric--leaf-04
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65100
-        172.30.128.36:
-          bfdProfile: fabric
-          description: Fabric spine-02/E1/8 spine-02--fabric--leaf-04
+          description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65100
       networkImportCheck: true
-      routerID: 172.30.8.5
+      routerID: 172.30.8.2
     enabled: true
-    ethernetSegments:
-      PortChannel1:
-        esi: 00f20000f20000000002
-      PortChannel2:
-        esi: 00f20000f20000000001
-    evpnMH:
-      macHoldtime: 60
-      startupDelay: 60
+    evpnMH: {}
     tableConnections:
       connected: {}
       static: {}
@@ -983,29 +1252,29 @@ vxlanEVPNNVOs:
   nvo1:
     sourceVtep: vtepfabric
 vxlanTunnelMap:
+  map_100_Vlan3000:
+    vlan: 3000
+    vni: 100
+    vtep: vtepfabric
+  map_200_Vlan3001:
+    vlan: 3001
+    vni: 200
+    vtep: vtepfabric
   map_300_Vlan3002:
     vlan: 3002
     vni: 300
     vtep: vtepfabric
-  map_301_Vlan1006:
-    vlan: 1006
-    vni: 301
-    vtep: vtepfabric
-  map_302_Vlan1005:
-    vlan: 1005
-    vni: 302
-    vtep: vtepfabric
-  map_400_Vlan3000:
-    vlan: 3000
+  map_400_Vlan3003:
+    vlan: 3003
     vni: 400
     vtep: vtepfabric
-  map_402_Vlan1008:
-    vlan: 1008
-    vni: 402
+  map_500_Vlan3004:
+    vlan: 3004
+    vni: 500
     vtep: vtepfabric
 vxlanTunnels:
   vtepfabric:
     qosUniform: false
-    sourceIP: 172.30.12.2
+    sourceIP: 172.30.12.0
     sourceInterface: Loopback2
 ztp: false
