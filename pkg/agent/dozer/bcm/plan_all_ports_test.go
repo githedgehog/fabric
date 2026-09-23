@@ -63,3 +63,19 @@ func TestPlanAllPortsUpBreakoutBaseName(t *testing.T) {
 	require.Equal(t, "Fabric E1/54 spine-2/E1/3", *spec.Interfaces["Ethernet56"].Description)
 	require.Equal(t, "Unused", *spec.Interfaces["Ethernet0"].Description)
 }
+
+func TestTranslatePortNamesCollision(t *testing.T) {
+	agent := &agentapi.Agent{
+		Spec: agentapi.AgentSpec{
+			SwitchProfile: allPortsTestProfile,
+		},
+	}
+	spec := &dozer.Spec{
+		Interfaces: map[string]*dozer.SpecInterface{
+			"E1/53":   {Enabled: pointer.To(true)},
+			"E1/53/1": {Enabled: pointer.To(true)},
+		},
+	}
+
+	require.ErrorContains(t, translatePortNames(agent, spec), "Ethernet52")
+}
