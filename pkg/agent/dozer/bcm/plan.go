@@ -3867,7 +3867,25 @@ func planAllPortsUp(agent *agentapi.Agent, spec *dozer.Spec) error {
 		return errors.Wrapf(err, "failed to get available API ports for switch")
 	}
 
+	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get NOS port mapping for switch")
+	}
+
+	// available ports use the sub-port name of non-broken-out ports ("E1/53/1"), while connections
+	// may have planned the same NOS interface under the base name ("E1/53")
+	plannedByNOS := map[string]string{}
+	for name := range spec.Interfaces {
+		if nosName, ok := api2nos[name]; ok {
+			plannedByNOS[nosName] = name
+		}
+	}
+
 	for port := range ports {
+		if name, ok := plannedByNOS[api2nos[port]]; ok {
+			port = name
+		}
+
 		if iface, exists := spec.Interfaces[port]; exists {
 			if iface.Enabled != nil && *iface.Enabled {
 				continue
