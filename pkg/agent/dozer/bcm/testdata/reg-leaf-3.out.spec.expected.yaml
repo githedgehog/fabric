@@ -660,7 +660,7 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-id--external-01
         result: accept
-  ext-outbound--external-01:
+  ext-out--leaf-03--external-01:
     statements:
       "10":
         conditions:
@@ -1122,7 +1122,7 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - ext-outbound--external-01
+          - ext-out--leaf-03--external-01
           ipv4UnicastImportPolicies:
           - ext-in--leaf-03--external-01
           remoteAS: 64102

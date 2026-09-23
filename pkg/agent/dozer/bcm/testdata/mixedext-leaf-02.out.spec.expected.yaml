@@ -568,7 +568,7 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-id--ext-sp-01
         result: accept
-  ext-outbound--ext-sp-01:
+  ext-out--leaf-02--ext-sp-01:
     statements:
       "10":
         conditions:
@@ -1002,7 +1002,7 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - ext-outbound--ext-sp-01
+          - ext-out--leaf-02--ext-sp-01
           ipv4UnicastImportPolicies:
           - ext-in--leaf-02--ext-sp-01
           remoteAS: 64102

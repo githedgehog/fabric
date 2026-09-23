@@ -94,6 +94,22 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.Ext
 		}
 	}
 
+	// an attachment MED only means anything while the sessions share an ASN; External.Validate
+	// only ever sees its own spec, and the attachment was admitted while localASN was still set
+	if oldExt.Spec.LocalASN != 0 && newExt.Spec.LocalASN == 0 {
+		extAttachments := &vpcapi.ExternalAttachmentList{}
+		if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
+			vpcapi.LabelExternal: newExt.Name,
+		}); err != nil {
+			return warns, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+		}
+		for _, attach := range extAttachments.Items {
+			if attach.Spec.Advertise != nil && attach.Spec.Advertise.MED != nil {
+				return warns, errors.Errorf("external attachment %s sets advertise.med, clear it before removing localASN from external %s", attach.Name, newExt.Name)
+			}
+		}
+	}
+
 	// static attachments install one route per spec.static.prefixes, so dropping the prefixes
 	// while they exist would leave them with nothing to point at
 	if oldExt.Spec.Static != nil && newExt.Spec.Static == nil {

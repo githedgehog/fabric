@@ -210,6 +210,35 @@ type ExternalAttachmentSpec struct {
 	// +kubebuilder:validation:Maximum=3
 	// +optional
 	Priority uint8 `json:"priority,omitempty"`
+	// Advertise controls how attractive we make this link to the external system, which is the
+	// only say we have in which link it sends traffic back on. Not valid for static attachments.
+	// +optional
+	Advertise *ExternalAttachmentAdvertiseSpec `json:"advertise,omitempty"`
+}
+
+// ExternalAttachmentAdvertiseSpec controls what this attachment's session announces.
+type ExternalAttachmentAdvertiseSpec struct {
+	// Prepend is how many times to prepend our ASN to the routes advertised on this session,
+	// on top of whatever the External itself prepends. Defaults to spec.priority, so a backup
+	// link is de-preferred in both directions. Visible to the whole internet, not just to this
+	// external system - use MED where the two links go to the same provider. This and the
+	// External's own prepend add up, to at most 20 in total.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	Prepend *uint8 `json:"prepend,omitempty"`
+	// MED is the metric advertised on this session, lower being preferred. Defaults to
+	// spec.priority * 10. Requires localASN on the External: without a shared ASN the external
+	// system sees each border leaf as a different neighbouring AS and never compares the values.
+	// +optional
+	MED *uint32 `json:"med,omitempty"`
+	// Communities are attached to everything we advertise on this session, on top of the
+	// External's outboundCommunity and advertise.communities. This is the per-link one: where a
+	// provider publishes communities that steer its own route selection, giving the two sessions
+	// to it different values acts on their local preference, which they weigh before both AS-path
+	// length and MED.
+	// +optional
+	Communities []string `json:"communities,omitempty"`
 }
 
 // ExternalAttachmentBFD configures BFD for the BGP session of an external attachment.
@@ -391,6 +420,10 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.Priority != 0 {
 			return nil, errors.Errorf("priority must not be set for static external attachments")
 		}
+		// and no session to carry a MED, a prepend or a community
+		if attach.Spec.Advertise != nil {
+			return nil, errors.Errorf("advertise must not be set for static external attachments")
+		}
 	}
 
 	if attach.Spec.Priority >= meta.MaxUplinkPrioLevels {
@@ -419,6 +452,12 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		return nil, errors.Wrapf(err, "invalid inboundACL")
 	}
 
+	if attach.Spec.Advertise != nil {
+		if err := validateAdvertiseCommunities(attach.Spec.Advertise.Communities, fabricCfg); err != nil {
+			return nil, err
+		}
+	}
+
 	if kube != nil {
 		ext := &External{}
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.External, Namespace: attach.Namespace}, ext); err != nil {
@@ -432,6 +471,15 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		// which is how a static uplink is migrated to BGP without an outage
 		if attach.Spec.Static != nil && ext.Spec.Static == nil {
 			return nil, errors.Errorf("external attachment is static but external %s has no static prefixes", attach.Spec.External)
+		}
+
+		// a MED the peer never compares is worse than no MED at all: it looks like ranking that
+		// works. See External.spec.localASN
+		if attach.Spec.Advertise != nil && attach.Spec.Advertise.MED != nil && ext.Spec.LocalASN == 0 {
+			return nil, errors.Errorf("advertise.med requires localASN on external %s", attach.Spec.External)
+		}
+		if ext.Spec.LocalASN != 0 && attach.Spec.Neighbor.ASN == ext.Spec.LocalASN {
+			return nil, errors.Errorf("neighbor.asn %d is the localASN of external %s", attach.Spec.Neighbor.ASN, attach.Spec.External)
 		}
 
 		conn := &wiringapi.Connection{}

@@ -990,6 +990,39 @@ spec:
                   description: ExternalAttachmentSpec defines the desired state of
                     ExternalAttachment
                   properties:
+                    advertise:
+                      description: |-
+                        Advertise controls how attractive we make this link to the external system, which is the
+                        only say we have in which link it sends traffic back on. Not valid for static attachments.
+                      properties:
+                        communities:
+                          description: |-
+                            Communities are attached to everything we advertise on this session, on top of the
+                            External's outboundCommunity and advertise.communities. This is the per-link one: where a
+                            provider publishes communities that steer its own route selection, giving the two sessions
+                            to it different values acts on their local preference, which they weigh before both AS-path
+                            length and MED.
+                          items:
+                            type: string
+                          type: array
+                        med:
+                          description: |-
+                            MED is the metric advertised on this session, lower being preferred. Defaults to
+                            spec.priority * 10. Requires localASN on the External: without a shared ASN the external
+                            system sees each border leaf as a different neighbouring AS and never compares the values.
+                          format: int32
+                          type: integer
+                        prepend:
+                          description: |-
+                            Prepend is how many times to prepend our ASN to the routes advertised on this session,
+                            on top of whatever the External itself prepends. Defaults to spec.priority, so a backup
+                            link is de-preferred in both directions. Visible to the whole internet, not just to this
+                            external system - use MED where the two links go to the same provider. This and the
+                            External's own prepend add up, to at most 20 in total.
+                          maximum: 10
+                          minimum: 0
+                          type: integer
+                      type: object
                     bfd:
                       description: |-
                         BFD (optional) enables BFD for the BGP session of this external attachment, an empty object
@@ -1220,6 +1253,35 @@ spec:
                     ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
                     filter routes from/to the external system.
                   properties:
+                    advertise:
+                      description: Advertise controls what we announce to this External
+                        and how attractive we make it
+                      properties:
+                        communities:
+                          description: |-
+                            Communities are optionally attached to everything we advertise to this External, carrying
+                            provider policy rather than our preference ranking
+                          items:
+                            type: string
+                          type: array
+                        prefixes:
+                          description: |-
+                            Prefixes is our own address space to announce to this External, for instance the pool a
+                            Gateway NATs VPC traffic into. The fabric never accepts these prefixes back.
+                          items:
+                            type: string
+                          type: array
+                        prepend:
+                          description: |-
+                            Prepend is how many times to prepend our own ASN to the routes advertised to this External,
+                            making it less attractive to the world by that many AS hops. Defaults to spec.priority, so a
+                            backup External is de-preferred in both directions. Unlike MED, this is visible to the whole
+                            internet, not just to this External. This and the attachment's own prepend add up, to at
+                            most 20 in total.
+                          maximum: 10
+                          minimum: 0
+                          type: integer
+                      type: object
                     inboundCommunity:
                       description: InboundCommunity is the optional inbound community
                         to filter routes from the external system (e.g. 65102:5000)
@@ -1228,6 +1290,15 @@ spec:
                       description: IPv4Namespace is the name of the IPv4Namespace
                         this External belongs to
                       type: string
+                    localASN:
+                      description: |-
+                        LocalASN makes every attachment to this External present the same ASN to the external system
+                        instead of each border leaf's own. Without it the external system sees two neighbouring
+                        ASNs and never compares the MEDs we send, so this is what makes advertise.med work. Opt-in
+                        and never defaulted: changing it resets the sessions and the external system has to change
+                        its remote-as to match. Not valid for static externals.
+                      format: int32
+                      type: integer
                     outboundCommunity:
                       description: OutboundCommunity is the optional outbound community
                         that all outbound routes will be stamped with (e.g. 50000:50001)

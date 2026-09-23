@@ -74,6 +74,16 @@
         name: any-prefix
       name: any-prefix
   weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-advertise--external-01]
+  summary: Create Prefix List Base ext-advertise--external-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: ext-advertise--external-01
+      name: ext-advertise--external-01
+  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-import--external-01]
   summary: Create Prefix List Base ext-import--external-01
   type: update
@@ -351,6 +361,20 @@
       ip-prefix: 0.0.0.0/0
       masklength-range: 0..32
       sequence-number: 10
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-advertise--external-01]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=100.100.0.0/24][masklength-range=24..32]
+  summary: Create Prefix Lists Entry 1
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 100.100.0.0/24
+        masklength-range: 24..32
+        sequence-number: 1
+      ip-prefix: 100.100.0.0/24
+      masklength-range: 24..32
+      sequence-number: 1
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-import--external-01]/extended-prefixes/extended-prefix[sequence-number=103][ip-prefix=10.0.5.0/24][masklength-range=24..32]
   summary: Create Prefix Lists Entry 103
@@ -1974,6 +1998,22 @@
         name: "10"
       name: "10"
   weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-in--leaf-03--external-01]/statements/statement[name=12]
+  summary: Create Route Map Statement 12
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ext-advertise--external-01
+      config:
+        name: "12"
+      name: "12"
+  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-in--leaf-03--external-01]/statements/statement[name=15]
   summary: Create Route Map Statement 15
   type: update
@@ -2036,6 +2076,22 @@
       config:
         name: "10"
       name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-in--leaf-03--external-01-b]/statements/statement[name=12]
+  summary: Create Route Map Statement 12
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ext-advertise--external-01
+      config:
+        name: "12"
+      name: "12"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-in--leaf-03--external-01-b]/statements/statement[name=15]
   summary: Create Route Map Statement 15
@@ -2254,6 +2310,8 @@
     statement:
     - actions:
         bgp-actions:
+          config:
+            set-med: 0
           set-community:
             config:
               method: INLINE
@@ -2262,6 +2320,8 @@
               config:
                 communities:
                 - 64102:1000
+                - 64102:100
+                - 64102:200
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2279,6 +2339,8 @@
     statement:
     - actions:
         bgp-actions:
+          config:
+            set-med: 0
           set-community:
             config:
               method: INLINE
@@ -2287,6 +2349,8 @@
               config:
                 communities:
                 - 64102:1000
+                - 64102:100
+                - 64102:200
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2297,17 +2361,15 @@
         name: "20"
       name: "20"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01-b]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01]/statements/statement[name=30]
+  summary: Create Route Map Statement 30
   type: update
   value:
     statement:
     - actions:
         bgp-actions:
-          set-as-path-prepend:
-            config:
-              asn: 65102
-              repeat-n: 1
+          config:
+            set-med: 0
           set-community:
             config:
               method: INLINE
@@ -2316,6 +2378,40 @@
               config:
                 communities:
                 - 64102:1000
+                - 64102:100
+                - 64102:200
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ext-advertise--external-01
+      config:
+        name: "30"
+      name: "30"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01-b]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-med: 50
+          set-as-path-prepend:
+            config:
+              asn: 65199
+              repeat-n: 2
+          set-community:
+            config:
+              method: INLINE
+              options: REPLACE
+            inline:
+              config:
+                communities:
+                - 64102:1000
+                - 64102:100
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2333,10 +2429,12 @@
     statement:
     - actions:
         bgp-actions:
+          config:
+            set-med: 50
           set-as-path-prepend:
             config:
-              asn: 65102
-              repeat-n: 1
+              asn: 65199
+              repeat-n: 2
           set-community:
             config:
               method: INLINE
@@ -2345,6 +2443,7 @@
               config:
                 communities:
                 - 64102:1000
+                - 64102:100
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2354,6 +2453,38 @@
       config:
         name: "20"
       name: "20"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-01-b]/statements/statement[name=30]
+  summary: Create Route Map Statement 30
+  type: update
+  value:
+    statement:
+    - actions:
+        bgp-actions:
+          config:
+            set-med: 50
+          set-as-path-prepend:
+            config:
+              asn: 65199
+              repeat-n: 2
+          set-community:
+            config:
+              method: INLINE
+              options: REPLACE
+            inline:
+              config:
+                communities:
+                - 64102:1000
+                - 64102:100
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ext-advertise--external-01
+      config:
+        name: "30"
+      name: "30"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-out--leaf-03--external-02]/statements/statement[name=10]
   summary: Create Route Map Statement 10
@@ -5760,6 +5891,9 @@
       config:
         description: External attach leaf-03--external-01
         enabled: true
+        local-as: 65199
+        local-as-no-prepend: true
+        local-as-replace-as: true
         neighbor-address: 100.1.10.6
         peer-as: 64102
       neighbor-address: 100.1.10.6
@@ -5787,6 +5921,9 @@
       config:
         description: External attach leaf-03--external-01-b
         enabled: true
+        local-as: 65199
+        local-as-no-prepend: true
+        local-as-replace-as: true
         neighbor-address: 100.1.11.6
         peer-as: 64102
       neighbor-address: 100.1.11.6

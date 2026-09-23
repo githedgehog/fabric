@@ -549,7 +549,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - ext-outbound--ext-bgp-01
+                      - ext-out--leaf-03--ext-bgp-01
                       import-policy:
                       - ext-in--leaf-03--ext-bgp-01
                   config:
@@ -1433,8 +1433,8 @@ routing-policy:
             name: "5"
           name: "5"
     - config:
-        name: ext-outbound--ext-bgp-01
-      name: ext-outbound--ext-bgp-01
+        name: ext-out--leaf-03--ext-bgp-01
+      name: ext-out--leaf-03--ext-bgp-01
       statements:
         statement:
         - actions:

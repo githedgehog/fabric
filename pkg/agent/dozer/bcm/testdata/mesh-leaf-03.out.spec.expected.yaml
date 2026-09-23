@@ -480,7 +480,7 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-id--ext-bgp-01
         result: accept
-  ext-outbound--ext-bgp-01:
+  ext-out--leaf-03--ext-bgp-01:
     statements:
       "10":
         conditions:
@@ -806,7 +806,7 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
-          - ext-outbound--ext-bgp-01
+          - ext-out--leaf-03--ext-bgp-01
           ipv4UnicastImportPolicies:
           - ext-in--leaf-03--ext-bgp-01
           remoteAS: 64102

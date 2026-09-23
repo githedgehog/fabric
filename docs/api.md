@@ -1927,6 +1927,25 @@ worry about the details of how external system is attached to the Fabric.
 | `status` _[ExternalStatus](#externalstatus)_ | Status is the observed state of the External |  |  |
 
 
+#### ExternalAdvertiseSpec
+
+
+
+ExternalAdvertiseSpec controls what the fabric announces to this External, on every attachment
+to it. Only valid for BGP externals: a static external has no session to carry any of it.
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prepend` _integer_ | Prepend is how many times to prepend our own ASN to the routes advertised to this External,<br />making it less attractive to the world by that many AS hops. Defaults to spec.priority, so a<br />backup External is de-preferred in both directions. Unlike MED, this is visible to the whole<br />internet, not just to this External. This and the attachment's own prepend add up, to at<br />most 20 in total. |  | Maximum: 10 <br />Minimum: 0 <br /> |
+| `prefixes` _string array_ | Prefixes is our own address space to announce to this External, for instance the pool a<br />Gateway NATs VPC traffic into. The fabric never accepts these prefixes back. |  |  |
+| `communities` _string array_ | Communities are optionally attached to everything we advertise to this External, carrying<br />provider policy rather than our preference ranking |  |  |
+
+
 #### ExternalAttachment
 
 
@@ -1945,6 +1964,24 @@ Effectively it represents BGP peering between the switch and external system inc
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalAttachmentSpec](#externalattachmentspec)_ | Spec is the desired state of the ExternalAttachment |  |  |
 | `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
+
+
+#### ExternalAttachmentAdvertiseSpec
+
+
+
+ExternalAttachmentAdvertiseSpec controls what this attachment's session announces.
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prepend` _integer_ | Prepend is how many times to prepend our ASN to the routes advertised on this session,<br />on top of whatever the External itself prepends. Defaults to spec.priority, so a backup<br />link is de-preferred in both directions. Visible to the whole internet, not just to this<br />external system - use MED where the two links go to the same provider. This and the<br />External's own prepend add up, to at most 20 in total. |  | Maximum: 10 <br />Minimum: 0 <br /> |
+| `med` _integer_ | MED is the metric advertised on this session, lower being preferred. Defaults to<br />spec.priority * 10. Requires localASN on the External: without a shared ASN the external<br />system sees each border leaf as a different neighbouring AS and never compares the values. |  |  |
+| `communities` _string array_ | Communities are attached to everything we advertise on this session, on top of the<br />External's outboundCommunity and advertise.communities. This is the per-link one: where a<br />provider publishes communities that steer its own route selection, giving the two sessions<br />to it different values acts on their local preference, which they weigh before both AS-path<br />length and MED. |  |  |
 
 
 #### ExternalAttachmentBFD
@@ -2005,6 +2042,7 @@ _Appears in:_
 | `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL defines the ACL statements to apply to inbound traffic on this external attachment |  |  |
 | `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the BGP session of this external attachment, an empty object<br />uses the fabric defaults |  |  |
 | `priority` _integer_ | Priority ranks this attachment against the other attachments of the same External. Lower is<br />preferred; equal priorities load-balance across border leaves, which is the existing behaviour<br />and the default. Fabric-wide: it is not overridable per VPC. Not valid for static attachments. |  | Maximum: 3 <br />Minimum: 0 <br /> |
+| `advertise` _[ExternalAttachmentAdvertiseSpec](#externalattachmentadvertisespec)_ | Advertise controls how attractive we make this link to the external system, which is the<br />only say we have in which link it sends traffic back on. Not valid for static attachments. |  |  |
 
 
 #### ExternalAttachmentStatic
@@ -2191,6 +2229,8 @@ _Appears in:_
 | `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
 | `static` _[ExternalStaticSpec](#externalstaticspec)_ | Static contains parameters specific to static externals |  |  |
 | `priority` _integer_ | Priority is the default preference class for routes learned from this External, used by any<br />ExternalPeering that does not override it. Lower is preferred; equal priorities load-balance.<br />0 (the default) preserves the existing behaviour. Not valid for static externals. |  | Maximum: 3 <br />Minimum: 0 <br /> |
+| `localASN` _integer_ | LocalASN makes every attachment to this External present the same ASN to the external system<br />instead of each border leaf's own. Without it the external system sees two neighbouring<br />ASNs and never compares the MEDs we send, so this is what makes advertise.med work. Opt-in<br />and never defaulted: changing it resets the sessions and the external system has to change<br />its remote-as to match. Not valid for static externals. |  |  |
+| `advertise` _[ExternalAdvertiseSpec](#externaladvertisespec)_ | Advertise controls what we announce to this External and how attractive we make it |  |  |
 
 
 #### ExternalStaticSpec

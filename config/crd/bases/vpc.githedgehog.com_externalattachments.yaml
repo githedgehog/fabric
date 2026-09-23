@@ -76,6 +76,39 @@ spec:
           spec:
             description: Spec is the desired state of the ExternalAttachment
             properties:
+              advertise:
+                description: |-
+                  Advertise controls how attractive we make this link to the external system, which is the
+                  only say we have in which link it sends traffic back on. Not valid for static attachments.
+                properties:
+                  communities:
+                    description: |-
+                      Communities are attached to everything we advertise on this session, on top of the
+                      External's outboundCommunity and advertise.communities. This is the per-link one: where a
+                      provider publishes communities that steer its own route selection, giving the two sessions
+                      to it different values acts on their local preference, which they weigh before both AS-path
+                      length and MED.
+                    items:
+                      type: string
+                    type: array
+                  med:
+                    description: |-
+                      MED is the metric advertised on this session, lower being preferred. Defaults to
+                      spec.priority * 10. Requires localASN on the External: without a shared ASN the external
+                      system sees each border leaf as a different neighbouring AS and never compares the values.
+                    format: int32
+                    type: integer
+                  prepend:
+                    description: |-
+                      Prepend is how many times to prepend our ASN to the routes advertised on this session,
+                      on top of whatever the External itself prepends. Defaults to spec.priority, so a backup
+                      link is de-preferred in both directions. Visible to the whole internet, not just to this
+                      external system - use MED where the two links go to the same provider. This and the
+                      External's own prepend add up, to at most 20 in total.
+                    maximum: 10
+                    minimum: 0
+                    type: integer
+                type: object
               bfd:
                 description: |-
                   BFD (optional) enables BFD for the BGP session of this external attachment, an empty object

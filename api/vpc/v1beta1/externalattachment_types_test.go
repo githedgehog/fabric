@@ -4,6 +4,7 @@
 package v1beta1_test
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -114,6 +115,16 @@ func TestExternalAttachmentValidation(t *testing.T) {
 					},
 				},
 			},
+		},
+	}
+	extWithLocalASN := &v1beta1.External{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Name:      "external-03",
+			Namespace: kmetav1.NamespaceDefault,
+		},
+		Spec: v1beta1.ExternalSpec{
+			IPv4Namespace: "default",
+			LocalASN:      65199,
 		},
 	}
 	tests := []struct {
@@ -308,6 +319,63 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			name: "BFD on static attachment",
 			extAtt: staticExtAttGen("ext-att-17", func(att *v1beta1.ExternalAttachment) {
 				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "advertise prepend and community",
+			extAtt: l3ExtAttGen("ext-att-adv", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Advertise = &v1beta1.ExternalAttachmentAdvertiseSpec{
+					Prepend:     ptr(uint8(2)),
+					Communities: []string{"64000:100"},
+				}
+			}),
+			objects: baseObjs,
+			err:     false,
+		},
+		{
+			name: "advertise community in a fabric-owned namespace",
+			extAtt: l3ExtAttGen("ext-att-adv-comm", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Advertise = &v1beta1.ExternalAttachmentAdvertiseSpec{
+					Communities: []string{fmt.Sprintf("%d:1", meta.UplinkPrioCommBase)},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			// without a shared ASN the peer never compares the MEDs, so this is a knob that
+			// silently does nothing
+			name: "advertise MED without localASN on the external",
+			extAtt: l3ExtAttGen("ext-att-med", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Advertise = &v1beta1.ExternalAttachmentAdvertiseSpec{MED: ptr(uint32(10))}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "advertise MED with localASN on the external",
+			extAtt: l3ExtAttGen("ext-att-med-ok", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.External = "external-03"
+				att.Spec.Advertise = &v1beta1.ExternalAttachmentAdvertiseSpec{MED: ptr(uint32(10))}
+			}),
+			objects: withObjs(baseObjs, extWithLocalASN),
+			err:     false,
+		},
+		{
+			name: "neighbor ASN equal to the external localASN",
+			extAtt: l3ExtAttGen("ext-att-asn-clash", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.External = "external-03"
+				att.Spec.Neighbor.ASN = 65199
+			}),
+			objects: withObjs(baseObjs, extWithLocalASN),
+			err:     true,
+		},
+		{
+			name: "advertise on a static attachment",
+			extAtt: staticExtAttGen("ext-att-st-adv", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Advertise = &v1beta1.ExternalAttachmentAdvertiseSpec{Prepend: ptr(uint8(1))}
 			}),
 			objects: baseObjs,
 			err:     true,

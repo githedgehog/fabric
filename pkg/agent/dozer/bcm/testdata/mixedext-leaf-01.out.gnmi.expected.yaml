@@ -867,7 +867,7 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - ext-outbound--ext-sp-01
+                      - ext-out--leaf-01--ext-sp-01-bgp
                       import-policy:
                       - ext-in--leaf-01--ext-sp-01-bgp
                   config:
@@ -2243,8 +2243,8 @@ routing-policy:
             name: "5"
           name: "5"
     - config:
-        name: ext-outbound--ext-sp-01
-      name: ext-outbound--ext-sp-01
+        name: ext-out--leaf-01--ext-sp-01-bgp
+      name: ext-out--leaf-01--ext-sp-01-bgp
       statements:
         statement:
         - actions:
