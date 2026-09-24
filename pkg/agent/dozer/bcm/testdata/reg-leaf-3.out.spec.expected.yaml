@@ -180,6 +180,7 @@ interfaces:
     autoNegotiate: false
     description: External leaf-03--external
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0": {}
       "10":
@@ -191,6 +192,7 @@ interfaces:
     autoNegotiate: false
     description: PC2 ESLAG server-05 server-05--eslag--leaf-03--leaf-04
     enabled: true
+    linkTraining: false
     mtu: 9036
     portChannel: PortChannel2
     subinterfaces:
@@ -199,6 +201,7 @@ interfaces:
     autoNegotiate: false
     description: PC1 ESLAG server-06 server-06--eslag--leaf-03--leaf-04
     enabled: true
+    linkTraining: false
     mtu: 9036
     portChannel: PortChannel1
     subinterfaces:
@@ -207,6 +210,7 @@ interfaces:
     autoNegotiate: false
     description: Unbundled server-07 server-07--unbundled--leaf-03
     enabled: true
+    linkTraining: false
     mtu: 9036
     subinterfaces:
       "0": {}
@@ -216,6 +220,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-01/E1/5 spine-01--fabric--leaf-03
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -225,6 +230,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-01/E1/6 spine-01--fabric--leaf-03
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -234,6 +240,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-02/E1/5 spine-02--fabric--leaf-03
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:
@@ -243,6 +250,7 @@ interfaces:
     autoNegotiate: false
     description: Fabric spine-02/E1/6 spine-02--fabric--leaf-03
     enabled: true
+    linkTraining: false
     subinterfaces:
       "0":
         ips:

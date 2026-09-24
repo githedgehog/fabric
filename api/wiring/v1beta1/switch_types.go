@@ -138,6 +138,8 @@ type SwitchSpec struct {
 	PortBreakouts map[string]string `json:"portBreakouts,omitempty"`
 	// PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false
 	PortAutoNegs map[string]bool `json:"portAutoNegs,omitempty"`
+	// PortLinkTrainings is a map of port link training, key is the port name, value is true or false
+	PortLinkTrainings map[string]bool `json:"portLinkTrainings,omitempty"`
 	// PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).
 	// Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
 	// instead that value persists on the device until a full config reset or a new explicit config
@@ -662,14 +664,21 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
-		fecPorts, err := sp.Spec.GetFECConfigurablePorts(&sw.Spec)
+		pbPorts, err := sp.Spec.GetAPIPortsPostBreakouts(&sw.Spec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get FEC-configurable ports")
+			return nil, errors.Wrapf(err, "failed to get API ports post breakouts")
 		}
 
 		for name := range sw.Spec.PortFECs {
-			if !fecPorts[name] {
-				return nil, errors.Errorf("port %s does not support configuring FEC "+
+			if !pbPorts[name] {
+				return nil, errors.Errorf("port %s with FEC configured not found in switch profile "+
+					"(a broken-out port must be configured per sub-port, e.g. E1/53/1)", name)
+			}
+		}
+
+		for name := range sw.Spec.PortLinkTrainings {
+			if !pbPorts[name] {
+				return nil, errors.Errorf("port %s with link training configured not found in switch profile "+
 					"(a broken-out port must be configured per sub-port, e.g. E1/53/1)", name)
 			}
 		}

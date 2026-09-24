@@ -483,6 +483,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet1]/ethernet
   summary: Create Interface Ethernet1 Ethernet Base
@@ -491,6 +492,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet2]/ethernet
   summary: Create Interface Ethernet2 Ethernet Base
@@ -499,6 +501,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet3]/ethernet
   summary: Create Interface Ethernet3 Ethernet Base
@@ -507,6 +510,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet4]/ethernet
   summary: Create Interface Ethernet4 Ethernet Base
@@ -515,6 +519,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
