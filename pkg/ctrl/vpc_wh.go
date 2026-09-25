@@ -68,7 +68,11 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admis
 	return warns, nil
 }
 
-func (w *VPCWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
+func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
+	if fabricChanged(oldVPC.Spec.Topology.Fabric, newVPC.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "failed to validate vpc")

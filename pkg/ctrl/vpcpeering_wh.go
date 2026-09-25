@@ -67,7 +67,11 @@ func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPC
 	return warns, nil
 }
 
-func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
+func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
+	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	// if !equality.Semantic.DeepEqual(oldPeer.Spec.Permit, newPeer.Spec.Permit) {
 	// 	return nil, errors.Errorf("vpc peering permit list is immutable")
 	// }

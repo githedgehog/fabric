@@ -68,7 +68,11 @@ func (w *GatewayWebhook) ValidateCreate(ctx context.Context, gw *gwapi.Gateway) 
 	return nil, nil
 }
 
-func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
+func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
+	if fabricChanged(oldGw.Spec.Topology.Fabric, newGw.Spec.Topology.Fabric) {
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	}
+
 	// TODO validate diff between oldObj and newObj if needed
 	if err := newGw.Validate(ctx, w.Reader, w.cfg); err != nil {
 		return nil, err //nolint:wrapcheck

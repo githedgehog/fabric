@@ -69,7 +69,11 @@ func (w *IPv4NamespaceWebhook) ValidateCreate(ctx context.Context, ns *vpcapi.IP
 	return warns, nil
 }
 
-func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.IPv4Namespace, newNs *vpcapi.IPv4Namespace) (admission.Warnings, error) {
+func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi.IPv4Namespace, newNs *vpcapi.IPv4Namespace) (admission.Warnings, error) {
+	if fabricChanged(oldNs.Spec.Topology.Fabric, newNs.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	if warn, err := newNs.Validate(ctx, w.Client, w.Cfg); err != nil {
 		return warn, errors.Wrapf(err, "failed to validate ipv4namespace")
 	}
