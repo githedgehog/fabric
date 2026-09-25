@@ -24,6 +24,8 @@ import (
 const (
 	PortNameSeparator    = "/"
 	DefaultVLANNamespace = "default"
+	DefaultFabric        = "default"
+	DefaultFabricDomain  = "default"
 )
 
 var (
@@ -70,6 +72,24 @@ func ListLabelVLANNamespace(vlanNamespace string) string {
 
 func ListLabelSwitchGroup(groupName string) string {
 	return ListLabel("switchgroup", groupName)
+}
+
+// FabricNameOrDefault resolves a fabric reference. Stored objects are never re-defaulted, so one
+// written before the reference existed carries an empty value and still belongs to the default fabric.
+func FabricNameOrDefault(fabricName string) string {
+	if fabricName == "" {
+		return DefaultFabric
+	}
+
+	return fabricName
+}
+
+func ListLabelFabric(fabricName string) string {
+	return ListLabel("fabric", fabricName)
+}
+
+func ListLabelDomain(domainName string) string {
+	return ListLabel("fabricdomain", domainName)
 }
 
 func MatchingLabelsForListLabelServer(serverName string) kclient.MatchingLabels {

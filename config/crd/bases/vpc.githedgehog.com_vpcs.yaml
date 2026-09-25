@@ -279,6 +279,14 @@ spec:
                   type: object
                 description: Subnets is the list of VPC subnets to configure
                 type: object
+              topology:
+                description: Topology is where the VPC sits in the fabric topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this VPC belongs
+                      to (if not specified, "default" is used)
+                    type: string
+                type: object
               vlanNamespace:
                 description: VLANNamespace is the name of the VLANNamespace this VPC
                   belongs to (if not specified, "default" is used)

@@ -232,6 +232,20 @@ spec:
                 - mixed-leaf
                 - virtual-edge
                 type: string
+              topology:
+                description: Topology is where the switch sits in the fabric topology
+                properties:
+                  domains:
+                    description: Domains is the list of the Fabric domains (spine
+                      layers) this switch belongs to, currently limited to one
+                    items:
+                      type: string
+                    type: array
+                  fabric:
+                    description: Fabric is the name of the Fabric this switch belongs
+                      to (if not specified, "default" is used)
+                    type: string
+                type: object
               vlanNamespaces:
                 description: VLANNamespaces is a list of VLAN namespaces the switch
                   is part of, their VLAN ranges could not overlap

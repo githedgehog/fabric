@@ -457,3 +457,32 @@ func TestSwitchDefaultPortLocators(t *testing.T) {
 		})
 	}
 }
+
+func TestSwitchDomainsValidation(t *testing.T) {
+	swGen := func(domains ...string) *wiringapi.Switch {
+		sw := &wiringapi.Switch{
+			ObjectMeta: kmetav1.ObjectMeta{
+				Name:      "leaf-01",
+				Namespace: kmetav1.NamespaceDefault,
+			},
+			Spec: wiringapi.SwitchSpec{
+				Role:       wiringapi.SwitchRoleServerLeaf,
+				Profile:    "dell-s5232f-on",
+				ASN:        65101,
+				IP:         "172.30.1.1/21",
+				ProtocolIP: "172.30.11.1/32",
+				VTEPIP:     "172.30.12.1/32",
+				Topology:   wiringapi.SwitchTopology{Domains: domains},
+			},
+		}
+		sw.Default()
+
+		return sw
+	}
+
+	_, err := swGen().Validate(t.Context(), nil, nil)
+	require.NoError(t, err)
+
+	_, err = swGen("plane-a").Validate(t.Context(), nil, nil)
+	require.ErrorContains(t, err, "fabric domains are not supported yet")
+}

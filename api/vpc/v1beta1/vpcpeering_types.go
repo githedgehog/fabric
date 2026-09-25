@@ -32,8 +32,16 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// VPCPeeringTopology is where a VPCPeering sits in the fabric topology
+type VPCPeeringTopology struct {
+	// Fabric is the name of the Fabric this VPCPeering belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // VPCPeeringSpec defines the desired state of VPCPeering
 type VPCPeeringSpec struct {
+	// Topology is where the VPCPeering sits in the fabric topology
+	Topology VPCPeeringTopology `json:"topology,omitempty"`
 	// Deprecated and no longer supported
 	Remote string `json:"remote,omitempty"`
 	//+kubebuilder:validation:MinItems=1
@@ -135,11 +143,17 @@ func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 func (peering *VPCPeering) Default() {
 	meta.DefaultObjectMetadata(peering)
 
+	if peering.Spec.Topology.Fabric == "" {
+		peering.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
 	if peering.Labels == nil {
 		peering.Labels = map[string]string{}
 	}
 
 	wiringapi.CleanupFabricLabels(peering.Labels)
+
+	peering.Labels[wiringapi.ListLabelFabric(peering.Spec.Topology.Fabric)] = ListLabelValue
 
 	vpc1, vpc2, err := peering.Spec.VPCs()
 	if err != nil {
@@ -155,6 +169,10 @@ func (peering *VPCPeering) Default() {
 func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if fabricCfg != nil && fabricCfg.VPCPeeringDisabled {
@@ -183,6 +201,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 			}
 		}
 
+		peeringFabric := wiringapi.FabricNameOrDefault(peering.Spec.Topology.Fabric)
 		ipv4Namespaces := []string{}
 		vlanNamespaces := []string{}
 		for _, vpcName := range []string{vpc1Name, vpc2Name} {
@@ -194,6 +213,10 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 				}
 
 				return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
+			}
+
+			if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
+				return nil, errors.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric)
 			}
 
 			ipv4Namespaces = append(ipv4Namespaces, vpc.Spec.IPv4Namespace)

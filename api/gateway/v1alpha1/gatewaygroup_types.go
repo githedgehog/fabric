@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,8 +20,17 @@ const (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// GatewayGroupTopology is where a GatewayGroup sits in the fabric topology
+type GatewayGroupTopology struct {
+	// Fabric is the name of the Fabric this GatewayGroup belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // GatewayGroupSpec defines the desired state of GatewayGroup
-type GatewayGroupSpec struct{}
+type GatewayGroupSpec struct {
+	// Topology is where the GatewayGroup sits in the fabric topology
+	Topology GatewayGroupTopology `json:"topology,omitempty"`
+}
 
 // GatewayGroupStatus defines the observed state of GatewayGroup.
 type GatewayGroupStatus struct {
@@ -66,14 +76,30 @@ func (gg *GatewayGroup) Default() {
 	if gg.Namespace == "" {
 		gg.Namespace = kmetav1.NamespaceDefault
 	}
+
+	if gg.Spec.Topology.Fabric == "" {
+		gg.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
+	if gg.Labels == nil {
+		gg.Labels = map[string]string{}
+	}
+
+	wiringapi.CleanupFabricLabels(gg.Labels)
+
+	gg.Labels[wiringapi.ListLabelFabric(gg.Spec.Topology.Fabric)] = ListLabelValue
 }
 
-func (gg *GatewayGroup) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) error {
+func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
 		return fmt.Errorf("gateway support is not enabled") //nolint:err113
 	}
 	if gg.Namespace != kmetav1.NamespaceDefault {
 		return fmt.Errorf("gatewaygroup namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric); err != nil {
+		return fmt.Errorf("invalid gateway group: %w", err)
 	}
 
 	return nil

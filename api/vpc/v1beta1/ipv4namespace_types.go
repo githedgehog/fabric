@@ -34,8 +34,16 @@ const MaxIPv4NamespaceSubnets = 10
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// IPv4NamespaceTopology is where a IPv4Namespace sits in the fabric topology
+type IPv4NamespaceTopology struct {
+	// Fabric is the name of the Fabric this IPv4Namespace belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // IPv4NamespaceSpec defines the desired state of IPv4Namespace
 type IPv4NamespaceSpec struct {
+	// Topology is where the IPv4Namespace sits in the fabric topology
+	Topology IPv4NamespaceTopology `json:"topology,omitempty"`
 	//+kubebuilder:validation:MinItems=1
 	//+kubebuilder:validation:MaxItems=20
 	// Subnets is the list of subnets to allocate VPC subnets from, couldn't overlap between each other and with Fabric reserved subnets
@@ -103,6 +111,10 @@ func (ns *IPv4NamespaceSpec) Labels() map[string]string {
 func (ns *IPv4Namespace) Default() {
 	meta.DefaultObjectMetadata(ns)
 
+	if ns.Spec.Topology.Fabric == "" {
+		ns.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
 	if ns.Labels == nil {
 		ns.Labels = map[string]string{}
 	}
@@ -111,12 +123,18 @@ func (ns *IPv4Namespace) Default() {
 
 	maps.Copy(ns.Labels, ns.Spec.Labels())
 
+	ns.Labels[wiringapi.ListLabelFabric(ns.Spec.Topology.Fabric)] = ListLabelValue
+
 	sort.Strings(ns.Spec.Subnets)
 }
 
-func (ns *IPv4Namespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if len(ns.Name) > 11 {

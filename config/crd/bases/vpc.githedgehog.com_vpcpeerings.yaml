@@ -82,6 +82,14 @@ spec:
               remote:
                 description: Deprecated and no longer supported
                 type: string
+              topology:
+                description: Topology is where the VPCPeering sits in the fabric topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this VPCPeering
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             type: object
           status:
             description: Status is the observed state of the VPCPeering

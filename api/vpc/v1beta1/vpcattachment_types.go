@@ -39,8 +39,16 @@ const (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// VPCAttachmentTopology is where a VPCAttachment sits in the fabric topology
+type VPCAttachmentTopology struct {
+	// Fabric is the name of the Fabric this VPCAttachment belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // VPCAttachmentSpec defines the desired state of VPCAttachment
 type VPCAttachmentSpec struct {
+	// Topology is where the VPCAttachment sits in the fabric topology
+	Topology VPCAttachmentTopology `json:"topology,omitempty"`
 	// Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default"
 	Subnet string `json:"subnet,omitempty"`
 	// Connection is the name of the connection to attach to the VPC
@@ -136,6 +144,10 @@ func (s *VPCAttachmentSpec) Labels() map[string]string {
 func (attach *VPCAttachment) Default() {
 	meta.DefaultObjectMetadata(attach)
 
+	if attach.Spec.Topology.Fabric == "" {
+		attach.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
 	parts := strings.SplitN(attach.Spec.Subnet, "/", 2)
 	if len(parts[0]) == 0 {
 		return // it'll be handled in validation stage
@@ -151,11 +163,17 @@ func (attach *VPCAttachment) Default() {
 	wiringapi.CleanupFabricLabels(attach.Labels)
 
 	maps.Copy(attach.Labels, attach.Spec.Labels())
+
+	attach.Labels[wiringapi.ListLabelFabric(attach.Spec.Topology.Fabric)] = ListLabelValue
 }
 
 func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if attach.Spec.Subnet == "" {
@@ -210,6 +228,14 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		}
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+
+		attachFabric := wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric)
+		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != attachFabric {
+			return nil, errors.Errorf("attachment is in fabric %s but vpc %s is in fabric %s", attachFabric, vpcName, vpcFabric)
+		}
+		if connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric); connFabric != attachFabric {
+			return nil, errors.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric)
 		}
 
 		if conn.Spec.ESLAG != nil && vpc.Spec.Mode != VPCModeL2VNI {

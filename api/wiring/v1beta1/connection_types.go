@@ -254,8 +254,17 @@ type ConnStaticExternal struct {
 	WithinVPC string `json:"withinVPC,omitempty"`
 }
 
+// ConnectionTopology is where a Connection sits in the fabric topology
+type ConnectionTopology struct {
+	// Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).
+	// It is the Fabric the connected devices are in, unrelated to the fabric connection type
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
+	// Topology is where the connection sits in the fabric topology
+	Topology ConnectionTopology `json:"topology,omitempty"`
 	// Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link)
 	Unbundled *ConnUnbundled `json:"unbundled,omitempty"`
 	// Bundled defines the bundled connection (port channel, single server to a single switch with multiple links)
@@ -720,6 +729,10 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 func (conn *Connection) Default() {
 	meta.DefaultObjectMetadata(conn)
 
+	if conn.Spec.Topology.Fabric == "" {
+		conn.Spec.Topology.Fabric = DefaultFabric
+	}
+
 	if conn.Labels == nil {
 		conn.Labels = map[string]string{}
 	}
@@ -733,6 +746,8 @@ func (conn *Connection) Default() {
 	labels, anns := conn.Spec.ConnectionLabelsAnnotations()
 	maps.Copy(conn.Labels, labels)
 	maps.Copy(conn.Annotations, anns)
+
+	conn.Labels[ListLabelFabric(conn.Spec.Topology.Fabric)] = ListLabelValue
 }
 
 func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {
@@ -829,6 +844,11 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 	if kube != nil {
 		rGroup := ""
 		rType := meta.RedundancyTypeNone
+		connFabric := FabricNameOrDefault(conn.Spec.Topology.Fabric)
+
+		if err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
+			return nil, err
+		}
 
 		for _, switchName := range switches {
 			sw := &Switch{}
@@ -838,6 +858,10 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get switch %s", switchName) // TODO replace with some internal error to not expose to the user
+			}
+
+			if swFabric := FabricNameOrDefault(sw.Spec.Topology.Fabric); swFabric != connFabric {
+				return nil, errors.Errorf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric)
 			}
 
 			if conn.Spec.ESLAG != nil {

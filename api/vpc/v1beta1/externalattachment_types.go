@@ -183,8 +183,16 @@ func (spec *ACLSpec) Validate() (admission.Warnings, error) {
 	return nil, nil
 }
 
+// ExternalAttachmentTopology is where a ExternalAttachment sits in the fabric topology
+type ExternalAttachmentTopology struct {
+	// Fabric is the name of the Fabric this ExternalAttachment belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // ExternalAttachmentSpec defines the desired state of ExternalAttachment
 type ExternalAttachmentSpec struct {
+	// Topology is where the ExternalAttachment sits in the fabric topology
+	Topology ExternalAttachmentTopology `json:"topology,omitempty"`
 	// External is the name of the External object this attachment belongs to
 	External string `json:"external,omitempty"`
 	// Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port)
@@ -316,6 +324,10 @@ func (extAttachList *ExternalAttachmentList) GetItems() []meta.Object {
 func (attach *ExternalAttachment) Default() {
 	meta.DefaultObjectMetadata(attach)
 
+	if attach.Spec.Topology.Fabric == "" {
+		attach.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
 	if attach.Labels == nil {
 		attach.Labels = map[string]string{}
 	}
@@ -324,11 +336,16 @@ func (attach *ExternalAttachment) Default() {
 
 	attach.Labels[wiringapi.LabelConnection] = attach.Spec.Connection
 	attach.Labels[LabelExternal] = attach.Spec.External
+	attach.Labels[wiringapi.ListLabelFabric(attach.Spec.Topology.Fabric)] = ListLabelValue
 }
 
 func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if attach.Spec.External == "" {
@@ -425,6 +442,14 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			}
 
 			return nil, errors.Wrapf(err, "failed to read connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+		}
+
+		attachFabric := wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric)
+		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != attachFabric {
+			return nil, errors.Errorf("attachment is in fabric %s but external %s is in fabric %s", attachFabric, attach.Spec.External, extFabric)
+		}
+		if connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric); connFabric != attachFabric {
+			return nil, errors.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric)
 		}
 
 		if conn.Spec.External == nil {

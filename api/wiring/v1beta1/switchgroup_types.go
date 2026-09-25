@@ -27,8 +27,17 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// SwitchGroupTopology is where a SwitchGroup sits in the fabric topology
+type SwitchGroupTopology struct {
+	// Fabric is the name of the Fabric this switch group belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // SwitchGroupSpec defines the desired state of SwitchGroup
-type SwitchGroupSpec struct{}
+type SwitchGroupSpec struct {
+	// Topology is where the switch group sits in the fabric topology
+	Topology SwitchGroupTopology `json:"topology,omitempty"`
+}
 
 // SwitchGroupStatus defines the observed state of SwitchGroup
 type SwitchGroupStatus struct{}
@@ -83,11 +92,27 @@ func (sgList *SwitchGroupList) GetItems() []meta.Object {
 
 func (sg *SwitchGroup) Default() {
 	meta.DefaultObjectMetadata(sg)
+
+	if sg.Spec.Topology.Fabric == "" {
+		sg.Spec.Topology.Fabric = DefaultFabric
+	}
+
+	if sg.Labels == nil {
+		sg.Labels = map[string]string{}
+	}
+
+	CleanupFabricLabels(sg.Labels)
+
+	sg.Labels[ListLabelFabric(sg.Spec.Topology.Fabric)] = ListLabelValue
 }
 
-func (sg *SwitchGroup) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (sg *SwitchGroup) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sg); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := CheckFabricExists(ctx, kube, sg.Namespace, sg.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	return nil, nil

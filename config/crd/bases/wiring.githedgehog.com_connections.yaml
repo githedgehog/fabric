@@ -440,6 +440,15 @@ spec:
                       one to make resource available to the specific VPC
                     type: string
                 type: object
+              topology:
+                description: Topology is where the connection sits in the fabric topology
+                properties:
+                  fabric:
+                    description: |-
+                      Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).
+                      It is the Fabric the connected devices are in, unrelated to the fabric connection type
+                    type: string
+                type: object
               unbundled:
                 description: Unbundled defines the unbundled connection (no port channel,
                   single server to a single switch with a single link)

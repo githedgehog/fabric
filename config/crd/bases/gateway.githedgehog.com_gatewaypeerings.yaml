@@ -247,6 +247,15 @@ spec:
                 description: Peerings is a map of peering entries for each VPC participating
                   in the peering (keyed by VPC name)
                 type: object
+              topology:
+                description: Topology is where the GatewayPeering sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this GatewayPeering
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             type: object
           status:
             description: PeeringStatus defines the observed state of Peering.
