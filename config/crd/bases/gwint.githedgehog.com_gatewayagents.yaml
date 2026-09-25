@@ -195,6 +195,15 @@ spec:
                     description: ProtocolIP is used as a loopback IP and BGP Router
                       ID
                     type: string
+                  topology:
+                    description: Topology is where the Gateway sits in the fabric
+                      topology
+                    properties:
+                      fabric:
+                        description: Fabric is the name of the Fabric this Gateway
+                          belongs to (if not specified, "default" is used)
+                        type: string
+                    type: object
                   vtepIP:
                     description: VTEP IP to be used by the gateway
                     type: string
@@ -427,6 +436,15 @@ spec:
                         type: object
                       description: Peerings is a map of peering entries for each VPC
                         participating in the peering (keyed by VPC name)
+                      type: object
+                    topology:
+                      description: Topology is where the GatewayPeering sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this GatewayPeering
+                            belongs to (if not specified, "default" is used)
+                          type: string
                       type: object
                   type: object
                 type: object

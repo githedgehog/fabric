@@ -891,6 +891,16 @@ spec:
                             VPC
                           type: string
                       type: object
+                    topology:
+                      description: Topology is where the connection sits in the fabric
+                        topology
+                      properties:
+                        fabric:
+                          description: |-
+                            Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).
+                            It is the Fabric the connected devices are in, unrelated to the fabric connection type
+                          type: string
+                      type: object
                     unbundled:
                       description: Unbundled defines the unbundled connection (no
                         port channel, single server to a single switch with a single
@@ -1121,6 +1131,15 @@ spec:
                             set to 0 if no VLAN is used
                           type: integer
                       type: object
+                    topology:
+                      description: Topology is where the ExternalAttachment sits in
+                        the fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this ExternalAttachment
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                   required:
                   - neighbor
                   - switch
@@ -1172,6 +1191,15 @@ spec:
                               type: array
                           type: object
                       type: object
+                    topology:
+                      description: Topology is where the ExternalPeering sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this ExternalPeering
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                   type: object
                 type: object
               externals:
@@ -1202,6 +1230,15 @@ spec:
                             type: string
                           type: array
                       type: object
+                    topology:
+                      description: Topology is where the External sits in the fabric
+                        topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this External
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                   type: object
                 type: object
               ipv4Namespaces:
@@ -1217,6 +1254,15 @@ spec:
                       maxItems: 20
                       minItems: 1
                       type: array
+                    topology:
+                      description: Topology is where the IPv4Namespace sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this IPv4Namespace
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                   type: object
                 type: object
               powerReset:
@@ -1420,6 +1466,20 @@ spec:
                     - mixed-leaf
                     - virtual-edge
                     type: string
+                  topology:
+                    description: Topology is where the switch sits in the fabric topology
+                    properties:
+                      domains:
+                        description: Domains is the list of the Fabric domains (spine
+                          layers) this switch belongs to, currently limited to one
+                        items:
+                          type: string
+                        type: array
+                      fabric:
+                        description: Fabric is the name of the Fabric this switch
+                          belongs to (if not specified, "default" is used)
+                        type: string
+                    type: object
                   vlanNamespaces:
                     description: VLANNamespaces is a list of VLAN namespaces the switch
                       is part of, their VLAN ranges could not overlap
@@ -1797,6 +1857,21 @@ spec:
                       - mixed-leaf
                       - virtual-edge
                       type: string
+                    topology:
+                      description: Topology is where the switch sits in the fabric
+                        topology
+                      properties:
+                        domains:
+                          description: Domains is the list of the Fabric domains (spine
+                            layers) this switch belongs to, currently limited to one
+                          items:
+                            type: string
+                          type: array
+                        fabric:
+                          description: Fabric is the name of the Fabric this switch
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                     vlanNamespaces:
                       description: VLANNamespaces is a list of VLAN namespaces the
                         switch is part of, their VLAN ranges could not overlap
@@ -1886,6 +1961,15 @@ spec:
                       description: Subnet is the full name of the VPC subnet to attach
                         to, such as "vpc-1/default"
                       type: string
+                    topology:
+                      description: Topology is where the VPCAttachment sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPCAttachment
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                   type: object
                 type: object
               vpcPeers:
@@ -1914,6 +1998,15 @@ spec:
                     remote:
                       description: Deprecated and no longer supported
                       type: string
+                    topology:
+                      description: Topology is where the VPCPeering sits in the fabric
+                        topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPCPeering
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                   type: object
                 type: object
               vpcs:
@@ -2147,6 +2240,14 @@ spec:
                             type: integer
                         type: object
                       description: Subnets is the list of VPC subnets to configure
+                      type: object
+                    topology:
+                      description: Topology is where the VPC sits in the fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPC belongs
+                            to (if not specified, "default" is used)
+                          type: string
                       type: object
                     vlanNamespace:
                       description: VLANNamespace is the name of the VLANNamespace

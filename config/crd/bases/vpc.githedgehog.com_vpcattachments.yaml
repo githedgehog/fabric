@@ -69,6 +69,15 @@ spec:
                 description: Subnet is the full name of the VPC subnet to attach to,
                   such as "vpc-1/default"
                 type: string
+              topology:
+                description: Topology is where the VPCAttachment sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this VPCAttachment
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             type: object
           status:
             description: Status is the observed state of the VPCAttachment

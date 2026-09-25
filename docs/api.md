@@ -1011,6 +1011,9 @@ GatewayGroupSpec defines the desired state of GatewayGroup
 _Appears in:_
 - [GatewayGroup](#gatewaygroup)
 
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[GatewayGroupTopology](#gatewaygrouptopology)_ | Topology is where the GatewayGroup sits in the fabric topology |  |  |
 
 
 #### GatewayGroupStatus
@@ -1024,6 +1027,22 @@ GatewayGroupStatus defines the observed state of GatewayGroup.
 _Appears in:_
 - [GatewayGroup](#gatewaygroup)
 
+
+
+#### GatewayGroupTopology
+
+
+
+GatewayGroupTopology is where a GatewayGroup sits in the fabric topology
+
+
+
+_Appears in:_
+- [GatewayGroupSpec](#gatewaygroupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this GatewayGroup belongs to (if not specified, "default" is used) |  |  |
 
 
 #### GatewayInterface
@@ -1120,6 +1139,22 @@ GatewayPeering is the Schema for the peerings API.
 | `status` _[PeeringStatus](#peeringstatus)_ |  |  |  |
 
 
+#### GatewayPeeringTopology
+
+
+
+GatewayPeeringTopology is where a GatewayPeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [PeeringSpec](#peeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this GatewayPeering belongs to (if not specified, "default" is used) |  |  |
+
+
 #### GatewayProfiling
 
 
@@ -1149,6 +1184,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[GatewayTopology](#gatewaytopology)_ | Topology is where the Gateway sits in the fabric topology |  |  |
 | `protocolIP` _string_ | ProtocolIP is used as a loopback IP and BGP Router ID |  |  |
 | `vtepIP` _string_ | VTEP IP to be used by the gateway |  |  |
 | `vtepMAC` _string_ | VTEP MAC address to be used by the gateway |  |  |
@@ -1174,6 +1210,22 @@ GatewayStatus defines the observed state of Gateway.
 _Appears in:_
 - [Gateway](#gateway)
 
+
+
+#### GatewayTopology
+
+
+
+GatewayTopology is where a Gateway sits in the fabric topology
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used) |  |  |
 
 
 #### PeeringACL
@@ -1419,6 +1471,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[GatewayPeeringTopology](#gatewaypeeringtopology)_ | Topology is where the GatewayPeering sits in the fabric topology |  |  |
 | `gatewayGroup` _string_ | GatewayGroup is the name of the gateway group that should process the peering |  |  |
 | `peering` _object (keys:string, values:[PeeringEntry](#peeringentry))_ | Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name) |  |  |
 | `acl` _[PeeringACL](#peeringacl)_ | ACL is an optional, peering-scoped ACL |  |  |
@@ -1997,6 +2050,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[ExternalAttachmentTopology](#externalattachmenttopology)_ | Topology is where the ExternalAttachment sits in the fabric topology |  |  |
 | `external` _string_ | External is the name of the External object this attachment belongs to |  |  |
 | `connection` _string_ | Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port) |  |  |
 | `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment in case of a BGP external |  |  |
@@ -2055,6 +2109,22 @@ _Appears in:_
 | `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length |  |  |
 
 
+#### ExternalAttachmentTopology
+
+
+
+ExternalAttachmentTopology is where a ExternalAttachment sits in the fabric topology
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this ExternalAttachment belongs to (if not specified, "default" is used) |  |  |
+
+
 #### ExternalPeering
 
 
@@ -2087,6 +2157,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[ExternalPeeringTopology](#externalpeeringtopology)_ | Topology is where the ExternalPeering sits in the fabric topology |  |  |
 | `permit` _[ExternalPeeringSpecPermit](#externalpeeringspecpermit)_ | Permit defines the peering policy - which VPC and External to peer with and which subnets/prefixes to permit |  |  |
 
 
@@ -2170,6 +2241,22 @@ _Appears in:_
 
 
 
+#### ExternalPeeringTopology
+
+
+
+ExternalPeeringTopology is where a ExternalPeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [ExternalPeeringSpec](#externalpeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this ExternalPeering belongs to (if not specified, "default" is used) |  |  |
+
+
 #### ExternalSpec
 
 
@@ -2184,6 +2271,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[ExternalTopology](#externaltopology)_ | Topology is where the External sits in the fabric topology |  |  |
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this External belongs to |  |  |
 | `inboundCommunity` _string_ | InboundCommunity is the optional inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
 | `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
@@ -2219,6 +2307,22 @@ _Appears in:_
 
 
 
+#### ExternalTopology
+
+
+
+ExternalTopology is where a External sits in the fabric topology
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this External belongs to (if not specified, "default" is used) |  |  |
+
+
 #### IPv4Namespace
 
 
@@ -2252,6 +2356,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[IPv4NamespaceTopology](#ipv4namespacetopology)_ | Topology is where the IPv4Namespace sits in the fabric topology |  |  |
 | `subnets` _string array_ | Subnets is the list of subnets to allocate VPC subnets from, couldn't overlap between each other and with Fabric reserved subnets |  | MaxItems: 20 <br />MinItems: 1 <br /> |
 
 
@@ -2266,6 +2371,22 @@ IPv4NamespaceStatus defines the observed state of IPv4Namespace
 _Appears in:_
 - [IPv4Namespace](#ipv4namespace)
 
+
+
+#### IPv4NamespaceTopology
+
+
+
+IPv4NamespaceTopology is where a IPv4Namespace sits in the fabric topology
+
+
+
+_Appears in:_
+- [IPv4NamespaceSpec](#ipv4namespacespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this IPv4Namespace belongs to (if not specified, "default" is used) |  |  |
 
 
 #### VPC
@@ -2321,6 +2442,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[VPCAttachmentTopology](#vpcattachmenttopology)_ | Topology is where the VPCAttachment sits in the fabric topology |  |  |
 | `subnet` _string_ | Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default" |  |  |
 | `connection` _string_ | Connection is the name of the connection to attach to the VPC |  |  |
 | `nativeVLAN` _boolean_ | NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet |  |  |
@@ -2337,6 +2459,23 @@ VPCAttachmentStatus defines the observed state of VPCAttachment
 _Appears in:_
 - [VPCAttachment](#vpcattachment)
 
+
+
+#### VPCAttachmentTopology
+
+
+
+VPCAttachmentTopology is where a VPCAttachment sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCAttachmentSpec](#vpcattachmentspec)
+- VPCAttachmentSpecAnn
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCAttachment belongs to (if not specified, "default" is used) |  |  |
 
 
 #### VPCDHCP
@@ -2504,6 +2643,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[VPCPeeringTopology](#vpcpeeringtopology)_ | Topology is where the VPCPeering sits in the fabric topology |  |  |
 | `remote` _string_ | Deprecated and no longer supported |  |  |
 | `permit` _[map[string]VPCPeer](#vpcpeer) array_ | Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets. |  | MaxItems: 10 <br />MinItems: 1 <br /> |
 
@@ -2519,6 +2659,22 @@ VPCPeeringStatus defines the observed state of VPCPeering
 _Appears in:_
 - [VPCPeering](#vpcpeering)
 
+
+
+#### VPCPeeringTopology
+
+
+
+VPCPeeringTopology is where a VPCPeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCPeeringSpec](#vpcpeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCPeering belongs to (if not specified, "default" is used) |  |  |
 
 
 #### VPCSpec
@@ -2537,6 +2693,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `mode` _[VPCMode](#vpcmode)_ | Mode is the VPC mode that defines how the VPCs are configured on the switches |  |  |
 | `subnets` _object (keys:string, values:[VPCSubnet](#vpcsubnet))_ | Subnets is the list of VPC subnets to configure |  |  |
+| `topology` _[VPCTopology](#vpctopology)_ | Topology is where the VPC sits in the fabric topology |  |  |
 | `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used) |  |  |
 | `vlanNamespace` _string_ | VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used) |  |  |
 | `defaultIsolated` _boolean_ | DefaultIsolated sets default behavior for isolated mode for the subnets (disabled by default) |  |  |
@@ -2617,6 +2774,22 @@ _Appears in:_
 | `maxPrefixLen` _integer_ | MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to the subnet's hostBGPMaxPrefixLen |  | Maximum: 32 <br />Minimum: 1 <br /> |
 
 
+#### VPCTopology
+
+
+
+VPCTopology is where a VPC sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPC belongs to (if not specified, "default" is used) |  |  |
+
+
 
 ## wiring.githedgehog.com/v1beta1
 
@@ -2625,6 +2798,7 @@ the underlay definition including Switches, Server, wiring between them and etc.
 
 ### Resource Types
 - [Connection](#connection)
+- [Fabric](#fabric)
 - [Server](#server)
 - [Switch](#switch)
 - [SwitchGroup](#switchgroup)
@@ -2967,6 +3141,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[ConnectionTopology](#connectiontopology)_ | Topology is where the connection sits in the fabric topology |  |  |
 | `unbundled` _[ConnUnbundled](#connunbundled)_ | Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link) |  |  |
 | `bundled` _[ConnBundled](#connbundled)_ | Bundled defines the bundled connection (port channel, single server to a single switch with multiple links) |  |  |
 | `mclag` _[ConnMCLAG](#connmclag)_ | Deprecated: MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
@@ -2993,6 +3168,58 @@ _Appears in:_
 
 
 
+#### ConnectionTopology
+
+
+
+ConnectionTopology is where a Connection sits in the fabric topology
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).<br />It is the Fabric the connected devices are in, unrelated to the fabric connection type |  |  |
+
+
+#### Fabric
+
+
+
+Fabric is a single spine-leaf topology, owning its switches, its ASN range and its address and VLAN namespaces.
+Fabrics are not cabled to each other and reach each other by peering as external systems.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `Fabric` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[FabricSpec](#fabricspec)_ | Spec is the desired state of the Fabric |  |  |
+| `status` _[FabricStatus](#fabricstatus)_ | Status is the observed state of the Fabric |  |  |
+
+
+#### FabricDomainSpec
+
+
+
+FabricDomainSpec defines a single spine layer of a Fabric
+
+
+
+_Appears in:_
+- [FabricSpec](#fabricspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `spineASN` _integer_ | SpineASN is the ASN shared by all spines of this domain, within the Fabric ASN range |  |  |
+
+
 #### FabricLink
 
 
@@ -3008,6 +3235,37 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `spine` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Spine is the spine side of the fabric link |  |  |
 | `leaf` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Leaf is the leaf side of the fabric link |  |  |
+
+
+#### FabricSpec
+
+
+
+FabricSpec defines the desired state of Fabric
+
+
+
+_Appears in:_
+- [Fabric](#fabric)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `asnStart` _integer_ | ASNStart is the first ASN of the range reserved for this Fabric |  |  |
+| `asnEnd` _integer_ | ASNEnd is the last ASN of the range reserved for this Fabric |  |  |
+| `domains` _object (keys:string, values:[FabricDomainSpec](#fabricdomainspec))_ | Domains is the set of spine layers in this Fabric, defaulted to a single "default" domain if empty |  |  |
+
+
+#### FabricStatus
+
+
+
+FabricStatus defines the observed state of Fabric
+
+
+
+_Appears in:_
+- [Fabric](#fabric)
+
 
 
 #### GatewayLink
@@ -3253,6 +3511,9 @@ SwitchGroupSpec defines the desired state of SwitchGroup
 _Appears in:_
 - [SwitchGroup](#switchgroup)
 
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[SwitchGroupTopology](#switchgrouptopology)_ | Topology is where the switch group sits in the fabric topology |  |  |
 
 
 #### SwitchGroupStatus
@@ -3266,6 +3527,22 @@ SwitchGroupStatus defines the observed state of SwitchGroup
 _Appears in:_
 - [SwitchGroup](#switchgroup)
 
+
+
+#### SwitchGroupTopology
+
+
+
+SwitchGroupTopology is where a SwitchGroup sits in the fabric topology
+
+
+
+_Appears in:_
+- [SwitchGroupSpec](#switchgroupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this switch group belongs to (if not specified, "default" is used) |  |  |
 
 
 #### SwitchLinkFlapErrDisable
@@ -3572,6 +3849,7 @@ _Appears in:_
 | `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf virtual-edge] <br />Required: \{\} <br /> |
 | `description` _string_ | Description is a description of the switch |  |  |
 | `profile` _string_ | Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric |  |  |
+| `topology` _[SwitchTopology](#switchtopology)_ | Topology is where the switch sits in the fabric topology |  |  |
 | `groups` _string array_ | Groups is a list of switch groups the switch belongs to |  |  |
 | `redundancy` _[SwitchRedundancy](#switchredundancy)_ | Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used for ESLAG connections |  |  |
 | `vlanNamespaces` _string array_ | VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap |  |  |
@@ -3621,6 +3899,23 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `switch1` _[BasePortName](#baseportname)_ | Switch1 is the first switch side of the connection |  |  |
 | `switch2` _[BasePortName](#baseportname)_ | Switch2 is the second switch side of the connection |  |  |
+
+
+#### SwitchTopology
+
+
+
+SwitchTopology is where a Switch sits in the fabric topology
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used) |  |  |
+| `domains` _string array_ | Domains is the list of the Fabric domains (spine layers) this switch belongs to, currently limited to one |  |  |
 
 
 #### VLANNamespace

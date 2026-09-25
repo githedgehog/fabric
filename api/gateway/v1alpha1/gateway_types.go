@@ -25,8 +25,16 @@ var ErrInvalidGW = errors.New("invalid gateway")
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// GatewayTopology is where a Gateway sits in the fabric topology
+type GatewayTopology struct {
+	// Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // GatewaySpec defines the desired state of Gateway.
 type GatewaySpec struct {
+	// Topology is where the Gateway sits in the fabric topology
+	Topology GatewayTopology `json:"topology,omitempty"`
 	// ProtocolIP is used as a loopback IP and BGP Router ID
 	ProtocolIP string `json:"protocolIP,omitempty"`
 	// VTEP IP to be used by the gateway
@@ -190,6 +198,18 @@ func (gw *Gateway) Default() {
 		gw.Spec.Workers = 4
 	}
 
+	if gw.Spec.Topology.Fabric == "" {
+		gw.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
+	if gw.Labels == nil {
+		gw.Labels = map[string]string{}
+	}
+
+	wiringapi.CleanupFabricLabels(gw.Labels)
+
+	gw.Labels[wiringapi.ListLabelFabric(gw.Spec.Topology.Fabric)] = ListLabelValue
+
 	slices.SortFunc(gw.Spec.Groups, func(a, b GatewayGroupMembership) int {
 		return strings.Compare(a.Name, b.Name)
 	})
@@ -209,6 +229,10 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	}
 	if gw.Namespace != kmetav1.NamespaceDefault {
 		return fmt.Errorf("gateway namespace must be %s: %w", kmetav1.NamespaceDefault, ErrInvalidGW)
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
 	}
 
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
@@ -464,13 +488,18 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		if err := kube.List(ctx, gwGroupList, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
 			return fmt.Errorf("listing gateway groups: %w", err)
 		}
-		gwGroups := map[string]bool{}
+		gwGroupFabrics := map[string]string{}
 		for _, gwGroup := range gwGroupList.Items {
-			gwGroups[gwGroup.Name] = true
+			gwGroupFabrics[gwGroup.Name] = wiringapi.FabricNameOrDefault(gwGroup.Spec.Topology.Fabric)
 		}
+		gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric)
 		for _, gwGroup := range gw.Spec.Groups {
-			if !gwGroups[gwGroup.Name] {
+			groupFabric, exists := gwGroupFabrics[gwGroup.Name]
+			if !exists {
 				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
+			}
+			if groupFabric != gwFabric {
+				return fmt.Errorf("gateway is in fabric %s but gateway group %s is in fabric %s: %w", gwFabric, gwGroup.Name, groupFabric, ErrInvalidGW)
 			}
 			if fabricCfg != nil && len(fabricCfg.GatewayCommunities) > 0 && gwGroupMembers[gwGroup.Name] >= len(fabricCfg.GatewayCommunities) {
 				return fmt.Errorf("gateway group %s already has too many members (%d), max is %d: %w", gwGroup.Name, gwGroupMembers[gwGroup.Name], len(fabricCfg.GatewayCommunities), ErrInvalidGW)

@@ -62,6 +62,15 @@ spec:
                 maxItems: 20
                 minItems: 1
                 type: array
+              topology:
+                description: Topology is where the IPv4Namespace sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this IPv4Namespace
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             type: object
           status:
             description: Status is the observed state of the IPv4Namespace
