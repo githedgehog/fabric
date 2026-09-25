@@ -210,6 +210,9 @@ func run(ctx context.Context) error {
 	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
 	}
+	if err = ctrl.SetupFabricInitializerWith(mgr, cfg); err != nil {
+		return fmt.Errorf("setting up fabric initializer: %w", err)
+	}
 	if err := ctrl.SetupGatewayReconcilerWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up gateway controller: %w", err)
 	}
@@ -237,6 +240,9 @@ func run(ctx context.Context) error {
 	if err = ctrl.SetupSwitchWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up switch webhook: %w", err)
 	}
+	if err = ctrl.SetupSwitchGroupWebhookWith(mgr, cfg); err != nil {
+		return fmt.Errorf("setting up switch group webhook: %w", err)
+	}
 	if err = ctrl.SetupVPCWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vpc webhook: %w", err)
 	}
@@ -251,6 +257,9 @@ func run(ctx context.Context) error {
 	}
 	if err = ctrl.SetupVLANNamespaceWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up vlan namespace webhook: %w", err)
+	}
+	if err = ctrl.SetupFabricWebhookWith(mgr, cfg); err != nil {
+		return fmt.Errorf("setting up fabric webhook: %w", err)
 	}
 	if err = ctrl.SetupExternalWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up external webhook: %w", err)
