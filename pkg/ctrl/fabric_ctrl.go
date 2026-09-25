@@ -80,13 +80,7 @@ func (i *FabricInitializer) ensureDefaultFabric(ctx context.Context) error {
 		Namespace: kmetav1.NamespaceDefault,
 	}}
 
-	spec := wiringapi.FabricSpec{
-		LeafASNStart: i.cfg.LeafASNStart,
-		LeafASNEnd:   i.cfg.LeafASNEnd,
-		Domains: map[string]wiringapi.FabricDomainSpec{
-			wiringapi.DefaultFabricDomain: {SpineASN: i.cfg.SpineASN, GatewayASN: i.cfg.GatewayASN},
-		},
-	}
+	spec := wiringapi.DefaultFabricSpec(i.cfg)
 
 	err := i.Get(ctx, kclient.ObjectKeyFromObject(fabric), fabric)
 	if kapierrors.IsNotFound(err) {
@@ -100,8 +94,13 @@ func (i *FabricInitializer) ensureDefaultFabric(ctx context.Context) error {
 		return fmt.Errorf("failed to get fabric %s: %w", fabric.Name, err)
 	}
 
-	if fabric.Spec.LeafASNStart != 0 {
+	// validation requires a fabric MTU, so a zero one means the fabric was written before the
+	// per-fabric config fields existed. Its ASNs are immutable, so keep any that are set
+	if fabric.Spec.FabricMTU != 0 {
 		return nil
+	}
+	if fabric.Spec.LeafASNStart != 0 {
+		spec.LeafASNStart, spec.LeafASNEnd, spec.Domains = fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, fabric.Spec.Domains
 	}
 
 	fabric.Spec = spec

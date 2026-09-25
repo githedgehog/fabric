@@ -57,6 +57,15 @@ spec:
           spec:
             description: Spec is the desired state of the Fabric
             properties:
+              defaultMaxPathsEBGP:
+                description: DefaultMaxPathsEBGP is the eBGP maximum-paths used when
+                  nothing more specific is set (defaulted from the controller config)
+                format: int32
+                type: integer
+              disableBFD:
+                description: DisableBFD disables BFD on the links between switches
+                  and on the sessions with the gateways
+                type: boolean
               domains:
                 additionalProperties:
                   description: FabricDomainSpec defines a single spine layer of a
@@ -76,6 +85,11 @@ spec:
                 description: Domains is the set of spine layers in this Fabric, at
                   least one is required
                 type: object
+              fabricMTU:
+                description: |-
+                  FabricMTU minus ServerFacingMTUOffset is the MTU of server-facing ports, links between switches
+                  keep the port default (defaulted from the controller config)
+                type: integer
               leafASNEnd:
                 description: LeafASNEnd is the last ASN of the range leaves of this
                   Fabric are allocated from
@@ -85,6 +99,10 @@ spec:
                 description: LeafASNStart is the first ASN of the range leaves of
                   this Fabric are allocated from
                 format: int32
+                type: integer
+              serverFacingMTUOffset:
+                description: ServerFacingMTUOffset is subtracted from FabricMTU on
+                  server-facing ports (defaulted from the controller config)
                 type: integer
             type: object
           status:

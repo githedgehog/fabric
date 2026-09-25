@@ -92,10 +92,25 @@ func TestHydrationValidation(t *testing.T) {
 		SpineASN:            65100,
 		LeafASNStart:        65101,
 		LeafASNEnd:          65200,
+		GatewayASN:          65201,
 		ManagementSubnet:    "172.30.0.0/21",
 		ManagementDHCPStart: "172.30.4.0",
 		ManagementDHCPEnd:   "172.30.7.254",
 		EnableGateway:       true,
+	}
+
+	backendFabric := &wiringapi.Fabric{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: "default"},
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 64101,
+			LeafASNEnd:   64199,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
+		},
+	}
+	inBackend := func(sw *wiringapi.Switch) *wiringapi.Switch {
+		sw.Spec.Topology.Fabric = "backend"
+
+		return sw
 	}
 
 	for _, test := range []struct {
@@ -220,6 +235,31 @@ func TestHydrationValidation(t *testing.T) {
 			objects:     []kclient.Object{},
 			dut:         getLeaf("leaf-out-of-range", 65000, "172.30.0.8/21"),
 			expectError: true,
+		},
+		{
+			name:        "leafInOtherFabric",
+			objects:     []kclient.Object{backendFabric},
+			dut:         inBackend(getLeaf("leaf-backend", 64150, "172.30.0.8/21")),
+			expectError: false,
+		},
+		{
+			// within the default fabric's range, which does not apply to the backend fabric
+			name:        "leafInOtherFabricOutOfRange",
+			objects:     []kclient.Object{backendFabric},
+			dut:         inBackend(getLeaf("leaf-backend", 65101, "172.30.0.8/21")),
+			expectError: true,
+		},
+		{
+			name:        "leafFabricNotFound",
+			objects:     []kclient.Object{},
+			dut:         inBackend(getLeaf("leaf-backend", 64150, "172.30.0.8/21")),
+			expectError: true,
+		},
+		{
+			name:        "spineInOtherFabric",
+			objects:     []kclient.Object{backendFabric},
+			dut:         inBackend(getSpine("spine-backend", 64100)),
+			expectError: false,
 		},
 		{
 			name:        "mgmtIPOutOfRange",

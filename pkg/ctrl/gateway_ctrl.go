@@ -20,6 +20,7 @@ import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -62,6 +63,7 @@ const (
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaypeerings,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch
 
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -91,6 +93,7 @@ func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error
 		Watches(&gwapi.Gateway{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
 		Watches(&gwapi.GatewayPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
 		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
+		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllGateways)).
 		Complete(r); err != nil {
 		return fmt.Errorf("setting up controller: %w", err)
 	}
@@ -205,6 +208,11 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		return nil, fmt.Errorf("gw is nil") //nolint:err113
 	}
 
+	fabric, err := wiringapi.GetFabricSpec(ctx, kube, cfg, gw.Namespace, gw.Spec.Topology.Fabric)
+	if err != nil {
+		return nil, fmt.Errorf("getting gateway fabric: %w", err)
+	}
+
 	inGwGroups := map[string]bool{}
 	for _, gr := range gw.Spec.Groups {
 		inGwGroups[gr.Name] = true
@@ -297,7 +305,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 			Groups:       gwGroups,
 			Communities:  comms,
 			Config: gwintapi.GatewayAgentSpecConfig{
-				FabricBFD: !cfg.DisableBFD,
+				FabricBFD: !fabric.DisableBFD,
 			},
 		},
 	}

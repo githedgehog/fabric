@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,8 +102,11 @@ func TestFabricUpdateASNs(t *testing.T) {
 		return &wiringapi.Fabric{
 			ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
 			Spec: wiringapi.FabricSpec{
-				LeafASNStart: leafASNStart,
-				LeafASNEnd:   leafASNEnd,
+				LeafASNStart:          leafASNStart,
+				LeafASNEnd:            leafASNEnd,
+				FabricMTU:             9100,
+				ServerFacingMTUOffset: 64,
+				DefaultMaxPathsEBGP:   64,
 				Domains: map[string]wiringapi.FabricDomainSpec{
 					wiringapi.DefaultFabricDomain: {SpineASN: spineASN, GatewayASN: gatewayASN},
 				},
@@ -138,4 +142,14 @@ func TestFabricUpdateASNs(t *testing.T) {
 			require.ErrorContains(t, err, tt.err)
 		})
 	}
+}
+
+func TestFabricDefaultFromConfig(t *testing.T) {
+	w := &FabricWebhook{Cfg: &meta.FabricConfig{FabricMTU: 9100, ServerFacingMTUOffset: 64, DefaultMaxPathsEBGP: 64}}
+
+	fabric := &wiringapi.Fabric{Spec: wiringapi.FabricSpec{FabricMTU: 1500}}
+	require.NoError(t, w.Default(t.Context(), fabric))
+	require.Equal(t, uint16(1500), fabric.Spec.FabricMTU)
+	require.Equal(t, uint16(64), fabric.Spec.ServerFacingMTUOffset)
+	require.Equal(t, uint32(64), fabric.Spec.DefaultMaxPathsEBGP)
 }

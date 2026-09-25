@@ -56,6 +56,19 @@ func fabricChanged(oldName, newName string) bool {
 func (w *FabricWebhook) Default(_ context.Context, fabric *wiringapi.Fabric) error {
 	fabric.Default()
 
+	// ASNs have no sensible default, but these are the same in most deployments
+	if w.Cfg != nil {
+		if fabric.Spec.FabricMTU == 0 {
+			fabric.Spec.FabricMTU = w.Cfg.FabricMTU
+		}
+		if fabric.Spec.ServerFacingMTUOffset == 0 {
+			fabric.Spec.ServerFacingMTUOffset = w.Cfg.ServerFacingMTUOffset
+		}
+		if fabric.Spec.DefaultMaxPathsEBGP == 0 {
+			fabric.Spec.DefaultMaxPathsEBGP = w.Cfg.DefaultMaxPathsEBGP
+		}
+	}
+
 	return nil
 }
 

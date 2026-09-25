@@ -341,6 +341,7 @@ func (attach *ExternalAttachment) Default() {
 }
 
 func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	var warns admission.Warnings
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -371,6 +372,47 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
 			return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
 		}
+
+		// what the neighbor ASN collides with in a fabric, if anything
+		collision := func(fabric *wiringapi.FabricSpec) string {
+			asn := attach.Spec.Neighbor.ASN
+			if asn >= fabric.LeafASNStart && asn <= fabric.LeafASNEnd {
+				return fmt.Sprintf("within the leaf ASN range %d-%d", fabric.LeafASNStart, fabric.LeafASNEnd)
+			}
+			for name, domain := range fabric.Domains {
+				if asn == domain.SpineASN || asn == domain.GatewayASN {
+					return fmt.Sprintf("the spine or gateway ASN of domain %s", name)
+				}
+			}
+
+			return ""
+		}
+		// the border leaf drops external routes carrying its fabric's spine or gateway ASN, and a
+		// leaf drops those carrying its own ASN through BGP loop detection
+		if fabricCfg != nil {
+			fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, attach.Namespace, attach.Spec.Topology.Fabric)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get fabric: %w", err)
+			}
+			if what := collision(fabric); what != "" {
+				return nil, fmt.Errorf("neighbor.asn %d is %s of its own fabric", attach.Spec.Neighbor.ASN, what) //nolint:err113
+			}
+		}
+		// the same happens in another fabric only if the two exchange routes through externals
+		if kube != nil {
+			fabrics := &wiringapi.FabricList{}
+			if err := kube.List(ctx, fabrics, kclient.InNamespace(attach.Namespace)); err != nil {
+				return nil, fmt.Errorf("failed to list fabrics: %w", err) // TODO hide internal error
+			}
+			for _, fabric := range fabrics.Items {
+				if fabric.Name == wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric) {
+					continue
+				}
+				if what := collision(&fabric.Spec); what != "" {
+					warns = append(warns, fmt.Sprintf("neighbor.asn %d is %s of fabric %s, which will drop its routes if they reach it", attach.Spec.Neighbor.ASN, what, fabric.Name))
+				}
+			}
+		}
 	} else {
 		if attach.Spec.Switch.IP != "" || attach.Spec.Switch.VLAN != 0 {
 			return nil, errors.Errorf("switch parameters must not be set for static external attachment")
@@ -399,12 +441,17 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 	}
 
-	var warns admission.Warnings
 	if bfd := attach.Spec.BFD; bfd != nil {
 		// disableBFD wins, and nothing downstream reports that it did: without this the session
 		// silently runs on the FRR defaults of 60/180 instead of the sub-second detection asked for
-		if fabricCfg != nil && fabricCfg.DisableBFD {
-			warns = append(warns, "bfd is ignored because disableBFD is set for the whole fabric")
+		if fabricCfg != nil {
+			fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, attach.Namespace, attach.Spec.Topology.Fabric)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get fabric: %w", err)
+			}
+			if fabric.DisableBFD {
+				warns = append(warns, "bfd is ignored because disableBFD is set for the whole fabric")
+			}
 		}
 		if bfd.MinRX != 0 && (bfd.MinRX < BFDMinIntervalMS || bfd.MinRX > BFDMaxIntervalMS) {
 			return nil, errors.Errorf("bfd.minRX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)

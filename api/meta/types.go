@@ -110,10 +110,11 @@ type FabricConfig struct {
 	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
 	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
 	DisableBFD               bool          `json:"disableBFD,omitempty"`
-	GatewayBFD               bool          `json:"gatewayBFD,omitempty"`
-	// TODO: these seed Fabric/default at first startup and move onto the Fabric object in the
-	// follow-up, which is when editing them here stops having an effect. Today they are still
-	// read directly, by switch ASN validation and by the spine ASN handed to the agent
+	// Deprecated: not read, the Fabric's DisableBFD covers the gateway sessions too
+	GatewayBFD bool `json:"gatewayBFD,omitempty"`
+	// These, and FabricMTU, ServerFacingMTUOffset, DefaultMaxPathsEBGP, GatewayASN and DisableBFD,
+	// only seed Fabric/default at first startup (or stand in for it while it does not exist).
+	// Editing them afterwards has no effect: edit the Fabric instead
 	SpineASN     uint32 `json:"spineASN,omitempty"`
 	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
 	LeafASNEnd   uint32 `json:"leafASNEnd,omitempty"`
