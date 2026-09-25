@@ -17,9 +17,12 @@ import (
 func TestFabricValidation(t *testing.T) {
 	fabricGen := func(name string, leafASNStart, leafASNEnd uint32, domains map[string]wiringapi.FabricDomainSpec) *wiringapi.Fabric {
 		fabric := withName(name, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{
-			LeafASNStart: leafASNStart,
-			LeafASNEnd:   leafASNEnd,
-			Domains:      domains,
+			LeafASNStart:          leafASNStart,
+			LeafASNEnd:            leafASNEnd,
+			FabricMTU:             9100,
+			ServerFacingMTUOffset: 64,
+			DefaultMaxPathsEBGP:   64,
+			Domains:               domains,
 		}})
 		fabric.Default()
 
@@ -27,6 +30,12 @@ func TestFabricValidation(t *testing.T) {
 	}
 	domain := func(spineASN, gatewayASN uint32) map[string]wiringapi.FabricDomainSpec {
 		return map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: spineASN, GatewayASN: gatewayASN}}
+	}
+
+	with := func(fabric *wiringapi.Fabric, mutate func(*wiringapi.Fabric)) *wiringapi.Fabric {
+		mutate(fabric)
+
+		return fabric
 	}
 
 	scheme := runtime.NewScheme()
@@ -50,6 +59,22 @@ func TestFabricValidation(t *testing.T) {
 		{name: "spine and gateway share an ASN", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64100)), err: "64100 is already used as domain default"},
 		{name: "spine ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64150, 64201)), err: "domain default spineASN 64150 is within the leaf ASN range"},
 		{name: "gateway ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64150)), err: "domain default gatewayASN 64150 is within the leaf ASN range"},
+		{
+			name: "no fabric MTU", err: "fabricMTU is required",
+			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.FabricMTU = 0 }),
+		},
+		{
+			name: "fabric MTU too large", err: "fabricMTU must be <= 9216",
+			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.FabricMTU = 9217 }),
+		},
+		{
+			name: "no server facing MTU offset", err: "serverFacingMTUOffset is required",
+			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.ServerFacingMTUOffset = 0 }),
+		},
+		{
+			name: "no default max paths", err: "defaultMaxPathsEBGP is required",
+			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.DefaultMaxPathsEBGP = 0 }),
+		},
 		{
 			name: "two domains", err: "more than one domain",
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{

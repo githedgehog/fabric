@@ -116,6 +116,19 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			},
 		},
 	}
+	backendFabric := &wiringapi.Fabric{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 64101,
+			LeafASNEnd:   64199,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
+		},
+	}
+	// Fabric/default is not in the objects, so it comes from this
+	asnCfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
+	withNeighborASN := func(asn uint32) func(*v1beta1.ExternalAttachment) {
+		return func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.ASN = asn }
+	}
 	tests := []struct {
 		name    string
 		extAtt  *v1beta1.ExternalAttachment
@@ -292,6 +305,55 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
 			}),
 			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "BGP neighbor ASN outside every fabric",
+			extAtt:  l3ExtAttGen("ext-att-01"),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+		},
+		{
+			name:    "BGP neighbor ASN in another fabric leaf range",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(64150)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			cfg:     asnCfg,
+			warns:   true,
+		},
+		{
+			name:    "BGP neighbor ASN is another fabric gateway ASN",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(64200)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			cfg:     asnCfg,
+			warns:   true,
+		},
+		{
+			name:    "BGP neighbor ASN in own fabric leaf range",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65150)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			cfg:     asnCfg,
+			err:     true,
+		},
+		{
+			name:    "BGP neighbor ASN is own fabric spine ASN",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65100)),
+			objects: baseObjs,
+			cfg:     asnCfg,
+			err:     true,
+		},
+		{
+			name:    "BGP neighbor ASN is own fabric gateway ASN",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65534)),
+			objects: baseObjs,
+			cfg:     asnCfg,
+			err:     true,
+		},
+		{
+			name: "BGP neighbor ASN in own non-default fabric leaf range",
+			extAtt: l3ExtAttGen("ext-att-01", withNeighborASN(64150), func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Topology.Fabric = "backend"
+			}),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			cfg:     asnCfg,
 			err:     true,
 		},
 	}

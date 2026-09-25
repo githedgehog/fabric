@@ -115,6 +115,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
 		Complete(r), "failed to setup agent controller")
 }
 
@@ -191,6 +192,31 @@ func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj k
 
 	for _, sw := range sws.Items {
 		if sw.Spec.Profile != obj.GetName() {
+			continue
+		}
+
+		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+			Namespace: sw.Namespace,
+			Name:      sw.Name,
+		}})
+	}
+
+	return res
+}
+
+func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	res := []reconcile.Request{}
+
+	sws := &wiringapi.SwitchList{}
+	err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
+	if err != nil {
+		kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile by fabric")
+
+		return res
+	}
+
+	for _, sw := range sws.Items {
+		if wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric) != obj.GetName() {
 			continue
 		}
 
@@ -286,6 +312,12 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
+
+	fabric, err := wiringapi.GetFabricSpec(ctx, r, r.cfg, sw.Namespace, sw.Spec.Topology.Fabric)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("error getting switch fabric: %w", err)
+	}
+	domain := fabric.OnlyDomain()
 
 	// TODO impl
 	statusUpdates := appendUpdate(nil, sw)
@@ -847,20 +879,20 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			ControlVIP:            r.cfg.ControlVIP,
 			BaseVPCCommunity:      r.cfg.BaseVPCCommunity,
 			VPCLoopbackSubnet:     r.cfg.VPCLoopbackSubnet,
-			FabricMTU:             r.cfg.FabricMTU,
-			ServerFacingMTUOffset: r.cfg.ServerFacingMTUOffset,
+			FabricMTU:             fabric.FabricMTU,
+			ServerFacingMTUOffset: fabric.ServerFacingMTUOffset,
 			ESLAGMACBase:          r.cfg.ESLAGMACBase,
 			ESLAGESIPrefix:        r.cfg.ESLAGESIPrefix,
-			DefaultMaxPathsEBGP:   r.cfg.DefaultMaxPathsEBGP,
-			GatewayASN:            r.cfg.GatewayASN,
-			SpineASN:              r.cfg.SpineASN,
+			DefaultMaxPathsEBGP:   fabric.DefaultMaxPathsEBGP,
+			GatewayASN:            domain.GatewayASN,
+			SpineASN:              domain.SpineASN,
 			LoopbackWorkaround:    r.cfg.LoopbackWorkaround,
 			ProtocolSubnet:        r.cfg.ProtocolSubnet,
 			VTEPSubnet:            r.cfg.VTEPSubnet,
 			FabricSubnet:          r.cfg.FabricSubnet,
 			ProxyExternalSubnet:   r.cfg.L2ProxyExternalSubnet,
-			DisableBFD:            r.cfg.DisableBFD,
-			GatewayBFD:            r.cfg.GatewayBFD,
+			DisableBFD:            fabric.DisableBFD,
+			GatewayBFD:            !fabric.DisableBFD,
 			Alloy:                 alloyCfg,
 			GatewayCommunities:    map[string]string{},
 		}

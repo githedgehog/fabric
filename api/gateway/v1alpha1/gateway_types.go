@@ -297,6 +297,16 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	if gw.Spec.ASN == 0 {
 		return fmt.Errorf("ASN must be set: %w", ErrInvalidGW)
 	}
+	if fabricCfg != nil {
+		// leaves peer with every gateway of the fabric using the fabric gateway ASN
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, gw.Namespace, gw.Spec.Topology.Fabric)
+		if err != nil {
+			return fmt.Errorf("getting fabric: %w", err)
+		}
+		if gatewayASN := fabric.OnlyDomain().GatewayASN; gw.Spec.ASN != gatewayASN {
+			return fmt.Errorf("ASN %d is not the gateway ASN %d of its fabric: %w", gw.Spec.ASN, gatewayASN, ErrInvalidGW)
+		}
+	}
 
 	if len(gw.Spec.Interfaces) == 0 {
 		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)

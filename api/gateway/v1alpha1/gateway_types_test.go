@@ -189,6 +189,12 @@ func TestGatewayValidate(t *testing.T) {
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
+			name: "test-asn-not-fabric-gateway-asn",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ASN = 65102 }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
 			name: "test-no-interfaces",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Interfaces = map[string]v1alpha1.GatewayInterface{} }),
 			objs: base,
@@ -303,6 +309,10 @@ func TestGatewayValidate(t *testing.T) {
 	require.NoError(t, wiringapi.AddToScheme(scheme), "should add wiring API to scheme")
 	cfg := &meta.FabricConfig{
 		EnableGateway: true,
+		SpineASN:      65100,
+		LeafASNStart:  65101,
+		LeafASNEnd:    65200,
+		GatewayASN:    65101,
 		GatewayCommunities: map[uint32]string{
 			0: "50000:1000",
 			1: "50000:1001",

@@ -472,15 +472,17 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		if _, exist := leafASNs[sw.Spec.ASN]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
 			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
 		}
-		// also check if it's within the fabric leaf ASN range
-		if sw.Spec.ASN < fabricCfg.LeafASNStart || sw.Spec.ASN > fabricCfg.LeafASNEnd {
-			return errors.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabricCfg.LeafASNStart, fabricCfg.LeafASNEnd) //nolint:goerr113
-		}
 	}
 
-	// spine ASN consistency check
-	if sw.Spec.Role.IsSpine() && sw.Spec.ASN != fabricCfg.SpineASN {
-		return errors.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, fabricCfg.SpineASN) //nolint:goerr113
+	fabric, err := GetFabricSpec(ctx, kube, fabricCfg, sw.Namespace, sw.Spec.Topology.Fabric)
+	if err != nil {
+		return err
+	}
+	if sw.Spec.Role.IsLeaf() && (sw.Spec.ASN < fabric.LeafASNStart || sw.Spec.ASN > fabric.LeafASNEnd) {
+		return fmt.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabric.LeafASNStart, fabric.LeafASNEnd) //nolint:err113
+	}
+	if spineASN := fabric.OnlyDomain().SpineASN; sw.Spec.Role.IsSpine() && sw.Spec.ASN != spineASN {
+		return fmt.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, spineASN) //nolint:err113
 	}
 
 	// leaf vtep IP uniqueness

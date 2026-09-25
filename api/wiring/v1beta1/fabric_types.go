@@ -24,6 +24,15 @@ type FabricSpec struct {
 	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
 	// LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from
 	LeafASNEnd uint32 `json:"leafASNEnd,omitempty"`
+	// FabricMTU minus ServerFacingMTUOffset is the MTU of server-facing ports, links between switches
+	// keep the port default (defaulted from the controller config)
+	FabricMTU uint16 `json:"fabricMTU,omitempty"`
+	// ServerFacingMTUOffset is subtracted from FabricMTU on server-facing ports (defaulted from the controller config)
+	ServerFacingMTUOffset uint16 `json:"serverFacingMTUOffset,omitempty"`
+	// DefaultMaxPathsEBGP is the eBGP maximum-paths used when nothing more specific is set (defaulted from the controller config)
+	DefaultMaxPathsEBGP uint32 `json:"defaultMaxPathsEBGP,omitempty"`
+	// DisableBFD disables BFD on the links between switches and on the sessions with the gateways
+	DisableBFD bool `json:"disableBFD,omitempty"`
 	// Domains is the set of spine layers in this Fabric, at least one is required
 	Domains map[string]FabricDomainSpec `json:"domains,omitempty"`
 }
@@ -130,6 +139,57 @@ func (fabric *Fabric) domainASNs() (map[uint32]string, error) {
 	return asns, nil
 }
 
+// DefaultFabricSpec is the spec Fabric/default is seeded with from the controller config
+func DefaultFabricSpec(cfg *meta.FabricConfig) FabricSpec {
+	return FabricSpec{
+		LeafASNStart:          cfg.LeafASNStart,
+		LeafASNEnd:            cfg.LeafASNEnd,
+		FabricMTU:             cfg.FabricMTU,
+		ServerFacingMTUOffset: cfg.ServerFacingMTUOffset,
+		DefaultMaxPathsEBGP:   cfg.DefaultMaxPathsEBGP,
+		DisableBFD:            cfg.DisableBFD,
+		Domains: map[string]FabricDomainSpec{
+			DefaultFabricDomain: {SpineASN: cfg.SpineASN, GatewayASN: cfg.GatewayASN},
+		},
+	}
+}
+
+// GetFabricSpec returns the spec of the named fabric. Fabric/default falls back to the controller
+// config while it does not exist: hhfab validates wiring with no controller running, and
+// admission can run before the initializer has created it.
+func GetFabricSpec(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, namespace, fabricName string) (*FabricSpec, error) {
+	name := FabricNameOrDefault(fabricName)
+
+	if kube != nil {
+		fabric := &Fabric{}
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, fabric)
+		if err == nil {
+			return &fabric.Spec, nil
+		}
+		if !kapierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
+		}
+	}
+
+	if name != DefaultFabric || cfg == nil {
+		return nil, fmt.Errorf("fabric %s not found", name) //nolint:err113
+	}
+
+	spec := DefaultFabricSpec(cfg)
+
+	return &spec, nil
+}
+
+// OnlyDomain returns the domain of the fabric, as a fabric has exactly one until multiple domains
+// are supported
+func (spec *FabricSpec) OnlyDomain() FabricDomainSpec {
+	for _, domain := range spec.Domains {
+		return domain
+	}
+
+	return FabricDomainSpec{}
+}
+
 func (fabric *Fabric) Default() {
 	meta.DefaultObjectMetadata(fabric)
 }
@@ -169,8 +229,21 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 		}
 	}
 
+	if fabric.Spec.FabricMTU == 0 {
+		return nil, fmt.Errorf("fabricMTU is required") //nolint:err113
+	}
+	if fabric.Spec.FabricMTU > 9216 {
+		return nil, fmt.Errorf("fabricMTU must be <= 9216") //nolint:err113
+	}
+	if fabric.Spec.ServerFacingMTUOffset == 0 {
+		return nil, fmt.Errorf("serverFacingMTUOffset is required") //nolint:err113
+	}
+	if fabric.Spec.DefaultMaxPathsEBGP == 0 {
+		return nil, fmt.Errorf("defaultMaxPathsEBGP is required") //nolint:err113
+	}
+
 	if kube != nil {
-		// fabrics peer with each other as externals, and a route carrying an ASN of the receiving
+		// fabrics can peer with each other as externals, and a route carrying an ASN of the receiving
 		// fabric is silently dropped by the border leaf filter or by BGP loop detection
 		fabrics := &FabricList{}
 		if err := kube.List(ctx, fabrics, kclient.InNamespace(fabric.Namespace)); err != nil {
