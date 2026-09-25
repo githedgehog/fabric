@@ -158,6 +158,16 @@ func TestConnectionValidation(t *testing.T) {
 			}),
 	}
 
+	// same switches, all of them in a fabric named "other" rather than in the default one
+	otherFabric := []kclient.Object{}
+	for _, obj := range base {
+		sw, ok := obj.DeepCopyObject().(*wiringapi.Switch)
+		require.True(t, ok)
+		sw.Spec.Topology.Fabric = "other"
+		otherFabric = append(otherFabric, sw)
+	}
+	otherFabric = append(otherFabric, withName("other", &wiringapi.Fabric{}))
+
 	for _, tt := range []struct {
 		name       string
 		conn       *wiringapi.Connection
@@ -166,6 +176,30 @@ func TestConnectionValidation(t *testing.T) {
 		err        bool
 		warning    string
 	}{
+		{
+			name:       "fabric-conn-crossing-fabrics",
+			conn:       fabricConnGen("fabric-1"),
+			withClient: true,
+			objects:    withObjs(otherFabric[:1], base[1:]...),
+			err:        true,
+		},
+		{
+			name: "fabric-conn-within-other-fabric",
+			conn: fabricConnGen("fabric-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Topology.Fabric = "other"
+			}),
+			withClient: true,
+			objects:    otherFabric,
+		},
+		{
+			name: "fabric-conn-in-fabric-that-does-not-exist",
+			conn: fabricConnGen("fabric-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Topology.Fabric = "nope"
+			}),
+			withClient: true,
+			objects:    otherFabric,
+			err:        true,
+		},
 		{
 			name: "static-ext-default-route",
 			conn: withName("static-ext-default-route", &wiringapi.Connection{

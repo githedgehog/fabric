@@ -49,6 +49,16 @@ spec:
             type: object
           spec:
             description: Spec is the desired state of the SwitchGroup
+            properties:
+              topology:
+                description: Topology is where the switch group sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this switch group
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             type: object
           status:
             description: Status is the observed state of the SwitchGroup

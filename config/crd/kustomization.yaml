@@ -28,6 +28,7 @@ resources:
   - bases/vpc.githedgehog.com_ipv4namespaces.yaml
   - bases/wiring.githedgehog.com_vlannamespaces.yaml
   - bases/wiring.githedgehog.com_switchgroups.yaml
+  - bases/wiring.githedgehog.com_fabrics.yaml
   - bases/vpc.githedgehog.com_externals.yaml
   - bases/vpc.githedgehog.com_externalattachments.yaml
   - bases/vpc.githedgehog.com_externalpeerings.yaml
@@ -54,6 +55,8 @@ patches:
   - path: patches/webhook_in_vpc_vpcpeerings.yaml
   - path: patches/webhook_in_vpc_ipv4namespaces.yaml
   - path: patches/webhook_in_wiring_vlannamespaces.yaml
+  - path: patches/webhook_in_wiring_fabrics.yaml
+  - path: patches/webhook_in_wiring_switchgroups.yaml
   - path: patches/webhook_in_vpc_externals.yaml
   - path: patches/webhook_in_vpc_externalattachments.yaml
   - path: patches/webhook_in_vpc_externalpeerings.yaml
@@ -75,6 +78,8 @@ patches:
   - path: patches/cainjection_in_vpc_vpcpeerings.yaml
   - path: patches/cainjection_in_vpc_ipv4namespaces.yaml
   - path: patches/cainjection_in_wiring_vlannamespaces.yaml
+  - path: patches/cainjection_in_wiring_fabrics.yaml
+  - path: patches/cainjection_in_wiring_switchgroups.yaml
   - path: patches/cainjection_in_vpc_externals.yaml
   - path: patches/cainjection_in_vpc_externalattachments.yaml
   - path: patches/cainjection_in_vpc_externalpeerings.yaml

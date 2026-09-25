@@ -38,6 +38,12 @@ import (
 // TODO specify gateway explicitly?
 // TODO rename VPCSubnet.Subnet to CIDR? or CIDRBlock like in AWS?
 
+// VPCTopology is where a VPC sits in the fabric topology
+type VPCTopology struct {
+	// Fabric is the name of the Fabric this VPC belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // VPCSpec defines the desired state of VPC.
 // At least one subnet is required.
 type VPCSpec struct {
@@ -45,6 +51,8 @@ type VPCSpec struct {
 	Mode VPCMode `json:"mode,omitempty"`
 	// Subnets is the list of VPC subnets to configure
 	Subnets map[string]*VPCSubnet `json:"subnets,omitempty"`
+	// Topology is where the VPC sits in the fabric topology
+	Topology VPCTopology `json:"topology,omitempty"`
 	// IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used)
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
 	// VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used)
@@ -318,6 +326,9 @@ func (vpc *VPCSpec) IsSubnetRestricted(subnetName string) bool {
 func (vpc *VPC) Default() {
 	meta.DefaultObjectMetadata(vpc)
 
+	if vpc.Spec.Topology.Fabric == "" {
+		vpc.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
 	if vpc.Spec.IPv4Namespace == "" {
 		vpc.Spec.IPv4Namespace = DefaultIPv4Namespace
 	}
@@ -333,6 +344,7 @@ func (vpc *VPC) Default() {
 
 	vpc.Labels[LabelIPv4NS] = vpc.Spec.IPv4Namespace
 	vpc.Labels[LabelVLANNS] = vpc.Spec.VLANNamespace
+	vpc.Labels[wiringapi.ListLabelFabric(vpc.Spec.Topology.Fabric)] = ListLabelValue
 
 	for _, subnet := range vpc.Spec.Subnets {
 		cidr, err := iputil.ParseCIDR(subnet.Subnet)
@@ -421,6 +433,10 @@ func (vpc *VPC) Default() {
 func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(vpc); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if len(vpc.Name) > 11 {
@@ -779,6 +795,11 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			}
 
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+		}
+
+		vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric)
+		if nsFabric := wiringapi.FabricNameOrDefault(ipNs.Spec.Topology.Fabric); nsFabric != vpcFabric {
+			return nil, errors.Errorf("vpc is in fabric %s but its IPv4Namespace %s is in fabric %s", vpcFabric, ipNs.Name, nsFabric)
 		}
 
 		vlanNs := &wiringapi.VLANNamespace{}

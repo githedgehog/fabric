@@ -67,7 +67,11 @@ func (w *ExternalAttachmentWebhook) ValidateCreate(ctx context.Context, attach *
 	return warns, nil
 }
 
-func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
+func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
+	if fabricChanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
 	// 	return nil, errors.Errorf("external attachment spec is immutable")
 	// }

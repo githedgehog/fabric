@@ -68,7 +68,11 @@ func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.
 	return nil, nil
 }
 
-func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
+func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
+	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	}
+
 	// TODO validate diff between oldObj and newObj if needed
 	if err := newPeer.Validate(ctx, w.Reader, w.cfg); err != nil {
 		return nil, err //nolint:wrapcheck

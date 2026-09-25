@@ -69,6 +69,10 @@ func (w *SwitchWebhook) ValidateCreate(ctx context.Context, sw *wiringapi.Switch
 }
 
 func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Switch, newSw *wiringapi.Switch) (admission.Warnings, error) {
+	if fabricChanged(oldSw.Spec.Topology.Fabric, newSw.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
 		return warns, errors.Wrapf(err, "error validating switch")

@@ -75,50 +75,54 @@ type UserCreds struct {
 }
 
 type FabricConfig struct {
-	DeploymentID             string            `json:"deploymentID,omitempty"`
-	ControlVIP               string            `json:"controlVIP,omitempty"`
-	APIServer                string            `json:"apiServer,omitempty"`
-	AgentRepo                string            `json:"agentRepo,omitempty"`
-	VPCIRBVLANRanges         []VLANRange       `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges     []VLANRange       `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
-	TH5WorkaroundVLANRange   []VLANRange       `json:"th5WorkaroundVLANRange"`
-	VPCPeeringDisabled       bool              `json:"vpcPeeringDisabled,omitempty"`
-	ReservedSubnets          []string          `json:"reservedSubnets,omitempty"`
-	Users                    []UserCreds       `json:"users,omitempty"`
-	FabricMode               FabricMode        `json:"fabricMode,omitempty"`
-	BaseVPCCommunity         string            `json:"baseVPCCommunity,omitempty"`
-	VPCLoopbackSubnet        string            `json:"vpcLoopbackSubnet,omitempty"`
-	FabricMTU                uint16            `json:"fabricMTU,omitempty"`
-	ServerFacingMTUOffset    uint16            `json:"serverFacingMTUOffset,omitempty"`
-	ESLAGMACBase             string            `json:"eslagMACBase,omitempty"`
-	ESLAGESIPrefix           string            `json:"eslagESIPrefix,omitempty"`
-	AlloyRepo                string            `json:"alloyRepo,omitempty"`
-	AlloyVersion             string            `json:"alloyVersion,omitempty"`
-	Alloy                    AlloyConfig       `json:"alloy,omitempty"` // TODO: not used anymore, remove in future releases
-	AlloyTargets             alloy.Targets     `json:"alloyTargets,omitempty"`
-	Observability            Observability     `json:"observability,omitempty"`
-	ControlProxyURL          string            `json:"controlProxyURL,omitempty"`
-	DefaultMaxPathsEBGP      uint32            `json:"defaultMaxPathsEBGP,omitempty"`
-	AllowExtraSwitchProfiles bool              `json:"allowExtraSwitchProfiles,omitempty"`
-	MCLAGSessionSubnet       string            `json:"mclagSessionSubnet,omitempty"` // TODO: deprecated, remove in future releases
-	GatewayASN               uint32            `json:"gatewayASN,omitempty"`         // Temporarily assuming that all GWs are in the same AS
-	GatewayAPISync           bool              `json:"gatewayAPISync,omitempty"`
-	LoopbackWorkaround       bool              `json:"loopbackWorkaround,omitempty"`
-	IncludeSONiCCLSPlus      bool              `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
-	IncludeCumulus           bool              `json:"includeCumulus,omitempty"`      // Include Cumulus
-	ProtocolSubnet           string            `json:"protocolSubnet,omitempty"`
-	VTEPSubnet               string            `json:"vtepSubnet,omitempty"`
-	FabricSubnet             string            `json:"fabricSubnet,omitempty"`
-	DisableBFD               bool              `json:"disableBFD,omitempty"`
-	GatewayBFD               bool              `json:"gatewayBFD,omitempty"`
-	SpineASN                 uint32            `json:"spineASN,omitempty"`
-	LeafASNStart             uint32            `json:"leafASNStart,omitempty"`
-	LeafASNEnd               uint32            `json:"leafASNEnd,omitempty"`
-	ManagementSubnet         string            `json:"managementSubnet,omitempty"`
-	ManagementDHCPStart      string            `json:"managementDHCPStart,omitempty"`
-	ManagementDHCPEnd        string            `json:"managementDHCPEnd,omitempty"`
-	GatewayCommunities       map[uint32]string `json:"gatewayCommunities,omitempty"`
-	L2ProxyExternalSubnet    string            `json:"l2ProxyExternalSubnet,omitempty"`
+	DeploymentID             string        `json:"deploymentID,omitempty"`
+	ControlVIP               string        `json:"controlVIP,omitempty"`
+	APIServer                string        `json:"apiServer,omitempty"`
+	AgentRepo                string        `json:"agentRepo,omitempty"`
+	VPCIRBVLANRanges         []VLANRange   `json:"vpcIRBVLANRange,omitempty"`
+	VPCPeeringVLANRanges     []VLANRange   `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	TH5WorkaroundVLANRange   []VLANRange   `json:"th5WorkaroundVLANRange"`
+	VPCPeeringDisabled       bool          `json:"vpcPeeringDisabled,omitempty"`
+	ReservedSubnets          []string      `json:"reservedSubnets,omitempty"`
+	Users                    []UserCreds   `json:"users,omitempty"`
+	FabricMode               FabricMode    `json:"fabricMode,omitempty"`
+	BaseVPCCommunity         string        `json:"baseVPCCommunity,omitempty"`
+	VPCLoopbackSubnet        string        `json:"vpcLoopbackSubnet,omitempty"`
+	FabricMTU                uint16        `json:"fabricMTU,omitempty"`
+	ServerFacingMTUOffset    uint16        `json:"serverFacingMTUOffset,omitempty"`
+	ESLAGMACBase             string        `json:"eslagMACBase,omitempty"`
+	ESLAGESIPrefix           string        `json:"eslagESIPrefix,omitempty"`
+	AlloyRepo                string        `json:"alloyRepo,omitempty"`
+	AlloyVersion             string        `json:"alloyVersion,omitempty"`
+	Alloy                    AlloyConfig   `json:"alloy,omitempty"` // TODO: not used anymore, remove in future releases
+	AlloyTargets             alloy.Targets `json:"alloyTargets,omitempty"`
+	Observability            Observability `json:"observability,omitempty"`
+	ControlProxyURL          string        `json:"controlProxyURL,omitempty"`
+	DefaultMaxPathsEBGP      uint32        `json:"defaultMaxPathsEBGP,omitempty"`
+	AllowExtraSwitchProfiles bool          `json:"allowExtraSwitchProfiles,omitempty"`
+	MCLAGSessionSubnet       string        `json:"mclagSessionSubnet,omitempty"` // TODO: deprecated, remove in future releases
+	GatewayASN               uint32        `json:"gatewayASN,omitempty"`         // Temporarily assuming that all GWs are in the same AS
+	GatewayAPISync           bool          `json:"gatewayAPISync,omitempty"`
+	LoopbackWorkaround       bool          `json:"loopbackWorkaround,omitempty"`
+	IncludeSONiCCLSPlus      bool          `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
+	IncludeCumulus           bool          `json:"includeCumulus,omitempty"`      // Include Cumulus
+	ProtocolSubnet           string        `json:"protocolSubnet,omitempty"`
+	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
+	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
+	DisableBFD               bool          `json:"disableBFD,omitempty"`
+	GatewayBFD               bool          `json:"gatewayBFD,omitempty"`
+	// TODO: these seed Fabric/default at first startup and move onto the Fabric object in the
+	// follow-up, which is when editing them here stops having an effect. Today they are still
+	// read directly, by switch ASN validation and by the spine ASN handed to the agent
+	SpineASN     uint32 `json:"spineASN,omitempty"`
+	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
+	LeafASNEnd   uint32 `json:"leafASNEnd,omitempty"`
+
+	ManagementSubnet      string            `json:"managementSubnet,omitempty"`
+	ManagementDHCPStart   string            `json:"managementDHCPStart,omitempty"`
+	ManagementDHCPEnd     string            `json:"managementDHCPEnd,omitempty"`
+	GatewayCommunities    map[uint32]string `json:"gatewayCommunities,omitempty"`
+	L2ProxyExternalSubnet string            `json:"l2ProxyExternalSubnet,omitempty"`
 
 	// Gateway-specific configuration
 	EnableGateway         bool                `json:"enableGateway,omitempty"`

@@ -105,6 +105,15 @@ spec:
                         type: array
                     type: object
                 type: object
+              topology:
+                description: Topology is where the ExternalPeering sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this ExternalPeering
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             type: object
           status:
             description: Status is the observed state of the ExternalPeering

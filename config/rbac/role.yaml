@@ -231,6 +231,16 @@ rules:
 - apiGroups:
   - wiring.githedgehog.com
   resources:
+  - fabrics
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
   - switches
   - switchprofiles
   verbs:

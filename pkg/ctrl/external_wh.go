@@ -68,6 +68,10 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 }
 
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
+	if fabricChanged(oldExt.Spec.Topology.Fabric, newExt.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {
 	// 	return nil, errors.Errorf("external spec is immutable")
 	// }

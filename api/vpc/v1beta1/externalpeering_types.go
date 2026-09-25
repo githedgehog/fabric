@@ -31,8 +31,16 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// ExternalPeeringTopology is where a ExternalPeering sits in the fabric topology
+type ExternalPeeringTopology struct {
+	// Fabric is the name of the Fabric this ExternalPeering belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // ExternalPeeringSpec defines the desired state of ExternalPeering
 type ExternalPeeringSpec struct {
+	// Topology is where the ExternalPeering sits in the fabric topology
+	Topology ExternalPeeringTopology `json:"topology,omitempty"`
 	// Permit defines the peering policy - which VPC and External to peer with and which subnets/prefixes to permit
 	Permit ExternalPeeringSpecPermit `json:"permit,omitempty"`
 }
@@ -131,6 +139,10 @@ func (peeringList *ExternalPeeringList) GetItems() []meta.Object {
 func (peering *ExternalPeering) Default() {
 	meta.DefaultObjectMetadata(peering)
 
+	if peering.Spec.Topology.Fabric == "" {
+		peering.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
 	if peering.Labels == nil {
 		peering.Labels = map[string]string{}
 	}
@@ -139,6 +151,7 @@ func (peering *ExternalPeering) Default() {
 
 	peering.Labels[LabelVPC] = peering.Spec.Permit.VPC.Name
 	peering.Labels[LabelExternal] = peering.Spec.Permit.External.Name
+	peering.Labels[wiringapi.ListLabelFabric(peering.Spec.Topology.Fabric)] = ListLabelValue
 
 	sort.Strings(peering.Spec.Permit.VPC.Subnets)
 	sort.Slice(peering.Spec.Permit.External.Prefixes, func(i, j int) bool {
@@ -149,6 +162,10 @@ func (peering *ExternalPeering) Default() {
 func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if peering.Spec.Permit.VPC.Name == "" {
@@ -198,6 +215,14 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 			}
 
 			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
+		}
+
+		peeringFabric := wiringapi.FabricNameOrDefault(peering.Spec.Topology.Fabric)
+		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
+			return nil, errors.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, peering.Spec.Permit.VPC.Name, vpcFabric)
+		}
+		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != peeringFabric {
+			return nil, errors.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, peering.Spec.Permit.External.Name, extFabric)
 		}
 
 		if vpc.Spec.IPv4Namespace != ext.Spec.IPv4Namespace {

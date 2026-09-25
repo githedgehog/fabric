@@ -228,6 +228,15 @@ spec:
                       VLAN is used
                     type: integer
                 type: object
+              topology:
+                description: Topology is where the ExternalAttachment sits in the
+                  fabric topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this ExternalAttachment
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
             required:
             - neighbor
             - switch

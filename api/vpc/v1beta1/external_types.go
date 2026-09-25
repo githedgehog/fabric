@@ -44,9 +44,17 @@ type ExternalStaticSpec struct {
 	Prefixes []string `json:"prefixes,omitempty"`
 }
 
+// ExternalTopology is where a External sits in the fabric topology
+type ExternalTopology struct {
+	// Fabric is the name of the Fabric this External belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
 // ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
 // filter routes from/to the external system.
 type ExternalSpec struct {
+	// Topology is where the External sits in the fabric topology
+	Topology ExternalTopology `json:"topology,omitempty"`
 	// IPv4Namespace is the name of the IPv4Namespace this External belongs to
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
 	// InboundCommunity is the optional inbound community to filter routes from the external system (e.g. 65102:5000)
@@ -115,6 +123,9 @@ func (extList *ExternalList) GetItems() []meta.Object {
 func (external *External) Default() {
 	meta.DefaultObjectMetadata(external)
 
+	if external.Spec.Topology.Fabric == "" {
+		external.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
 	if external.Spec.IPv4Namespace == "" {
 		external.Spec.IPv4Namespace = DefaultIPv4Namespace
 	}
@@ -126,11 +137,16 @@ func (external *External) Default() {
 	wiringapi.CleanupFabricLabels(external.Labels)
 
 	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
+	external.Labels[wiringapi.ListLabelFabric(external.Spec.Topology.Fabric)] = ListLabelValue
 }
 
 func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(external); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate fabric")
 	}
 
 	if len(external.Name) > 11 {
@@ -189,6 +205,11 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 			}
 
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", external.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+		}
+
+		extFabric := wiringapi.FabricNameOrDefault(external.Spec.Topology.Fabric)
+		if nsFabric := wiringapi.FabricNameOrDefault(ipNs.Spec.Topology.Fabric); nsFabric != extFabric {
+			return nil, errors.Errorf("external is in fabric %s but its IPv4Namespace %s is in fabric %s", extFabric, ipNs.Name, nsFabric)
 		}
 	}
 

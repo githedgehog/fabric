@@ -107,6 +107,14 @@ type SwitchBoot struct {
 	MAC string `json:"mac,omitempty"`
 }
 
+// SwitchTopology is where a Switch sits in the fabric topology
+type SwitchTopology struct {
+	// Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+	// Domains is the list of the Fabric domains (spine layers) this switch belongs to, currently limited to one
+	Domains []string `json:"domains,omitempty"`
+}
+
 // SwitchSpec defines the desired state of Switch
 type SwitchSpec struct {
 	// +kubebuilder:validation:Required
@@ -116,6 +124,8 @@ type SwitchSpec struct {
 	Description string `json:"description,omitempty"`
 	// Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric
 	Profile string `json:"profile,omitempty"`
+	// Topology is where the switch sits in the fabric topology
+	Topology SwitchTopology `json:"topology,omitempty"`
 	// Groups is a list of switch groups the switch belongs to
 	Groups []string `json:"groups,omitempty"`
 	// Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used for ESLAG connections
@@ -299,6 +309,10 @@ func (sw *Switch) Default() {
 		sw.Spec.VLANNamespaces = []string{"default"}
 	}
 
+	if sw.Spec.Topology.Fabric == "" {
+		sw.Spec.Topology.Fabric = DefaultFabric
+	}
+
 	if sw.Spec.Redundancy.Group != "" && !slices.Contains(sw.Spec.Groups, sw.Spec.Redundancy.Group) {
 		sw.Spec.Groups = append(sw.Spec.Groups, sw.Spec.Redundancy.Group)
 	}
@@ -323,8 +337,15 @@ func (sw *Switch) Default() {
 		sw.Labels[ListLabelVLANNamespace(vlanNs)] = ListLabelValue
 	}
 
+	sw.Labels[ListLabelFabric(sw.Spec.Topology.Fabric)] = ListLabelValue
+
+	for _, domain := range sw.Spec.Topology.Domains {
+		sw.Labels[ListLabelDomain(domain)] = ListLabelValue
+	}
+
 	sort.Strings(sw.Spec.Groups)
 	sort.Strings(sw.Spec.VLANNamespaces)
+	sort.Strings(sw.Spec.Topology.Domains)
 
 	sw.Labels[LabelProfile] = sw.Spec.Profile
 }
@@ -495,6 +516,15 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	if len(sw.Spec.VLANNamespaces) == 0 {
 		return nil, errors.Errorf("at least one VLAN namespace required")
 	}
+	// nothing reads the domains yet and nothing validates them against the fabric, so rejecting
+	// them outright keeps invalid domain labels out of etcd until the multi-domain work lands
+	if len(sw.Spec.Topology.Domains) > 0 {
+		return nil, errors.Errorf("fabric domains are not supported yet")
+	}
+
+	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
+		return nil, err
+	}
 	if sw.Spec.ASN == 0 {
 		return nil, errors.Errorf("ASN is required")
 	}
@@ -565,6 +595,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			return nil, errors.Wrapf(err, "invalid VLANNamespaces")
 		}
 
+		swFabric := FabricNameOrDefault(sw.Spec.Topology.Fabric)
 		for _, group := range sw.Spec.Groups {
 			if group == "" {
 				return nil, errors.Errorf("group name cannot be empty")
@@ -578,6 +609,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 				}
 
 				return nil, errors.Wrapf(err, "failed to get switch group %s", group) // TODO replace with some internal error to not expose to the user
+			}
+
+			if sgFabric := FabricNameOrDefault(sg.Spec.Topology.Fabric); sgFabric != swFabric {
+				return nil, errors.Errorf("switch is in fabric %s but switch group %s is in fabric %s", swFabric, group, sgFabric)
 			}
 		}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	vpcv1beta1 "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,8 +24,11 @@ func TestPeeringDefaultEmpty(t *testing.T) {
 			Namespace: kmetav1.NamespaceDefault,
 		},
 	}
-	ref.Labels = map[string]string{}
+	ref.Labels = map[string]string{
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
 	ref.Annotations = map[string]string{}
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
 
 	peering := &GatewayPeering{}
 	peering.Default()
@@ -63,11 +67,13 @@ func TestPeeringWithVpcsNoNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
 	}
 	ref.Annotations = map[string]string{
 		LabelVPCs: "vpc1,vpc2",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -107,6 +113,7 @@ func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
 	}
 
 	peering := common.DeepCopy()
@@ -151,8 +158,10 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -202,12 +211,14 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
 	}
 	ref.Annotations = map[string]string{
 		LabelVPCs: "vpc1,vpc2",
 		LabelNAT:  "static",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -259,12 +270,14 @@ func TestPeeringWithPortForwardNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
 	}
 	ref.Annotations = map[string]string{
 		LabelVPCs: "vpc1,vpc2",
 		LabelNAT:  "port-forward",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
 	ref.Spec.Peering["vpc1"].Expose[0].NAT.PortForward.IdleTimeout.Duration = DefaultPortForwardIdleTimeout
 
 	peering := common.DeepCopy()
@@ -331,12 +344,14 @@ func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
 	ref.Labels = map[string]string{
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
 	}
 	ref.Annotations = map[string]string{
 		LabelVPCs: "vpc1,vpc2",
 		LabelNAT:  "masquerade,port-forward",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
 	peering := common.DeepCopy()
 	peering.Default()
 	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
@@ -551,6 +566,10 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 		Spec: vpcv1beta1.ExternalSpec{},
 	})
 
+	vpc2Other := vpc2.DeepCopy()
+	vpc2Other.Spec.Topology.Fabric = "other"
+	nilVPC2 := func(p *GatewayPeering) { p.Spec.Peering["vpc-2"] = nil }
+
 	tests := []struct {
 		name    string
 		peering *GatewayPeering
@@ -590,6 +609,29 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 			name:    "VPC not found",
 			peering: generatePeering("vpc-not-found"),
 			objs:    []kclient.Object{gwGroup, vpc1}, // vpc-2 absent
+			err:     true,
+		},
+		{
+			name:    "VPC in another fabric",
+			peering: generatePeering("vpc-other-fabric"),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2Other},
+			err:     true,
+		},
+		{
+			name:    "nil entry",
+			peering: generatePeering("nil-entry", nilVPC2),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name:    "nil entry VPC not found",
+			peering: generatePeering("nil-entry-not-found", nilVPC2),
+			objs:    []kclient.Object{gwGroup, vpc1},
+			err:     true,
+		},
+		{
+			name:    "nil entry VPC in another fabric",
+			peering: generatePeering("nil-entry-other-fabric", nilVPC2),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2Other},
 			err:     true,
 		},
 		{
