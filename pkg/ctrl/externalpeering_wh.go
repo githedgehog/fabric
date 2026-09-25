@@ -67,7 +67,11 @@ func (w *ExternalPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcap
 	return warns, nil
 }
 
-func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.ExternalPeering, newPeer *vpcapi.ExternalPeering) (admission.Warnings, error) {
+func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.ExternalPeering, newPeer *vpcapi.ExternalPeering) (admission.Warnings, error) {
+	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	// if !equality.Semantic.DeepEqual(oldPeer.Spec, newPeer.Spec) {
 	// 	return nil, errors.Errorf("external peering spec is immutable")
 	// }

@@ -67,7 +67,11 @@ func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, attach *vpcap
 	return warns, nil
 }
 
-func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, _ *vpcapi.VPCAttachment, newAttach *vpcapi.VPCAttachment) (admission.Warnings, error) {
+func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.VPCAttachment, newAttach *vpcapi.VPCAttachment) (admission.Warnings, error) {
+	if fabricChanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric) {
+		return nil, errors.Errorf("topology.fabric is immutable")
+	}
+
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
 	// 	return nil, errors.Errorf("vpc attachment is immutable")
 	// }
