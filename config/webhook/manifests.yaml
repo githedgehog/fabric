@@ -90,6 +90,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-wiring-githedgehog-com-v1beta1-fabric
+  failurePolicy: Fail
+  name: mfabric.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - fabrics
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-gateway-githedgehog-com-v1alpha1-gateway
   failurePolicy: Fail
   name: mgateway.kb.io
@@ -206,6 +226,26 @@ webhooks:
     - UPDATE
     resources:
     - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-wiring-githedgehog-com-v1beta1-switchgroup
+  failurePolicy: Fail
+  name: mswitchgroup.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - switchgroups
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -424,6 +464,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-wiring-githedgehog-com-v1beta1-fabric
+  failurePolicy: Fail
+  name: vfabric.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - fabrics
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-gateway-githedgehog-com-v1alpha1-gateway
   failurePolicy: Fail
   name: vgateway.kb.io
@@ -543,6 +604,26 @@ webhooks:
     - DELETE
     resources:
     - switches
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-wiring-githedgehog-com-v1beta1-switchgroup
+  failurePolicy: Fail
+  name: vswitchgroup.kb.io
+  rules:
+  - apiGroups:
+    - wiring.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - switchgroups
   sideEffects: None
 - admissionReviewVersions:
   - v1
