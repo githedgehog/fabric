@@ -72,6 +72,10 @@ func TestFabricValidation(t *testing.T) {
 			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.ServerFacingMTUOffset = 0 }),
 		},
 		{
+			name: "server facing MTU offset not below fabric MTU", err: "serverFacingMTUOffset 9100 must be less than fabricMTU 9100",
+			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.ServerFacingMTUOffset = 9100 }),
+		},
+		{
 			name: "no default max paths", err: "defaultMaxPathsEBGP is required",
 			fabric: with(fabricGen("backend", 64101, 64200, domain(64100, 64201)), func(f *wiringapi.Fabric) { f.Spec.DefaultMaxPathsEBGP = 0 }),
 		},
