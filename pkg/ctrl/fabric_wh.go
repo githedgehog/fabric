@@ -76,10 +76,14 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 		return nil, fmt.Errorf("fabric leaf ASN range can not be changed") //nolint:err113
 	}
 	for name, oldDomain := range oldFabric.Spec.Domains {
-		if oldDomain.SpineASN != 0 && oldDomain.SpineASN != fabric.Spec.Domains[name].SpineASN {
+		domain, exists := fabric.Spec.Domains[name]
+		if !exists && oldDomain != (wiringapi.FabricDomainSpec{}) {
+			return nil, fmt.Errorf("domain %s can not be removed or renamed", name) //nolint:err113
+		}
+		if oldDomain.SpineASN != 0 && oldDomain.SpineASN != domain.SpineASN {
 			return nil, fmt.Errorf("spineASN of domain %s can not be changed", name) //nolint:err113
 		}
-		if oldDomain.GatewayASN != 0 && oldDomain.GatewayASN != fabric.Spec.Domains[name].GatewayASN {
+		if oldDomain.GatewayASN != 0 && oldDomain.GatewayASN != domain.GatewayASN {
 			return nil, fmt.Errorf("gatewayASN of domain %s can not be changed", name) //nolint:err113
 		}
 	}
