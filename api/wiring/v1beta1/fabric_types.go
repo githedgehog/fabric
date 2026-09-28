@@ -5,8 +5,8 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,18 +20,20 @@ import (
 
 // FabricSpec defines the desired state of Fabric
 type FabricSpec struct {
-	// ASNStart is the first ASN of the range reserved for this Fabric
-	ASNStart uint32 `json:"asnStart,omitempty"`
-	// ASNEnd is the last ASN of the range reserved for this Fabric
-	ASNEnd uint32 `json:"asnEnd,omitempty"`
-	// Domains is the set of spine layers in this Fabric, defaulted to a single "default" domain if empty
+	// LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from
+	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
+	// LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from
+	LeafASNEnd uint32 `json:"leafASNEnd,omitempty"`
+	// Domains is the set of spine layers in this Fabric, at least one is required
 	Domains map[string]FabricDomainSpec `json:"domains,omitempty"`
 }
 
 // FabricDomainSpec defines a single spine layer of a Fabric
 type FabricDomainSpec struct {
-	// SpineASN is the ASN shared by all spines of this domain, within the Fabric ASN range
+	// SpineASN is the ASN shared by all spines of this domain, outside the leaf ASN range
 	SpineASN uint32 `json:"spineASN,omitempty"`
+	// GatewayASN is the ASN shared by all gateways attached to this domain, outside the leaf ASN range
+	GatewayASN uint32 `json:"gatewayASN,omitempty"`
 }
 
 // FabricStatus defines the observed state of Fabric
@@ -40,8 +42,8 @@ type FabricStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=fab
-// +kubebuilder:printcolumn:name="ASNStart",type=integer,JSONPath=`.spec.asnStart`,priority=0
-// +kubebuilder:printcolumn:name="ASNEnd",type=integer,JSONPath=`.spec.asnEnd`,priority=0
+// +kubebuilder:printcolumn:name="LeafASNStart",type=integer,JSONPath=`.spec.leafASNStart`,priority=0
+// +kubebuilder:printcolumn:name="LeafASNEnd",type=integer,JSONPath=`.spec.leafASNEnd`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Fabric is a single spine-leaf topology, owning its switches, its ASN range and its address and VLAN namespaces.
 // Fabrics are not cabled to each other and reach each other by peering as external systems.
@@ -99,49 +101,71 @@ func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, fabr
 
 	if err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, &Fabric{}); err != nil {
 		if kapierrors.IsNotFound(err) {
-			return errors.Errorf("fabric %s not found", name)
+			return fmt.Errorf("fabric %s not found", name) //nolint:err113
 		}
 
-		return errors.Wrapf(err, "failed to get fabric %s", name) // TODO replace with some internal error to not expose to the user
+		return fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
 	}
 
 	return nil
 }
 
+// domainASNs maps each spine and gateway ASN of the fabric to what it is used for, failing if a
+// domain has either unset or the same ASN is used twice
+func (fabric *Fabric) domainASNs() (map[uint32]string, error) {
+	asns := map[uint32]string{}
+	for name, domain := range fabric.Spec.Domains {
+		for role, asn := range map[string]uint32{"spineASN": domain.SpineASN, "gatewayASN": domain.GatewayASN} {
+			what := fmt.Sprintf("domain %s %s", name, role)
+			if asn == 0 {
+				return nil, fmt.Errorf("%s is required", what) //nolint:err113
+			}
+			if other, exists := asns[asn]; exists {
+				return nil, fmt.Errorf("%s %d is already used as %s", what, asn, other) //nolint:err113
+			}
+			asns[asn] = what
+		}
+	}
+
+	return asns, nil
+}
+
 func (fabric *Fabric) Default() {
 	meta.DefaultObjectMetadata(fabric)
-
-	// storing the implicit domain keeps a single-domain fabric free of special cases, and gives
-	// its spine ASN somewhere to live
-	if len(fabric.Spec.Domains) == 0 {
-		fabric.Spec.Domains = map[string]FabricDomainSpec{DefaultFabricDomain: {}}
-	}
 }
 
 func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, fmt.Errorf("failed to validate metadata: %w", err)
 	}
 
 	// the name becomes a label key segment, which Kubernetes caps at 63 characters. Without this
 	// the failure surfaces as an opaque label error on every object that references the fabric
 	if len(fabric.Name) > 63 {
-		return nil, errors.Errorf("name %s is too long, must be <= 63 characters", fabric.Name)
+		return nil, fmt.Errorf("name %s is too long, must be <= 63 characters", fabric.Name) //nolint:err113
 	}
 
-	if fabric.Spec.ASNStart == 0 || fabric.Spec.ASNEnd == 0 {
-		return nil, errors.Errorf("asnStart and asnEnd are required")
+	if fabric.Spec.LeafASNStart == 0 || fabric.Spec.LeafASNEnd == 0 {
+		return nil, fmt.Errorf("leafASNStart and leafASNEnd are required") //nolint:err113
 	}
-	if fabric.Spec.ASNStart > fabric.Spec.ASNEnd {
-		return nil, errors.Errorf("asnStart %d is greater than asnEnd %d", fabric.Spec.ASNStart, fabric.Spec.ASNEnd)
+	if fabric.Spec.LeafASNStart > fabric.Spec.LeafASNEnd {
+		return nil, fmt.Errorf("leafASNStart %d is greater than leafASNEnd %d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd) //nolint:err113
 	}
 
+	if len(fabric.Spec.Domains) == 0 {
+		return nil, fmt.Errorf("at least one domain is required") //nolint:err113
+	}
 	if len(fabric.Spec.Domains) > 1 {
-		return nil, errors.Errorf("a fabric with more than one domain is not supported yet")
+		return nil, fmt.Errorf("a fabric with more than one domain is not supported yet") //nolint:err113
 	}
-	for name, domain := range fabric.Spec.Domains {
-		if domain.SpineASN < fabric.Spec.ASNStart || domain.SpineASN > fabric.Spec.ASNEnd {
-			return nil, errors.Errorf("domain %s spineASN %d is not within the fabric ASN range %d-%d", name, domain.SpineASN, fabric.Spec.ASNStart, fabric.Spec.ASNEnd)
+
+	asns, err := fabric.domainASNs()
+	if err != nil {
+		return nil, err
+	}
+	for asn, what := range asns {
+		if asn >= fabric.Spec.LeafASNStart && asn <= fabric.Spec.LeafASNEnd {
+			return nil, fmt.Errorf("%s %d is within the leaf ASN range %d-%d", what, asn, fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd) //nolint:err113
 		}
 	}
 
@@ -150,14 +174,30 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 		// fabric is silently dropped by the border leaf filter or by BGP loop detection
 		fabrics := &FabricList{}
 		if err := kube.List(ctx, fabrics, kclient.InNamespace(fabric.Namespace)); err != nil {
-			return nil, errors.Wrapf(err, "failed to list fabrics") // TODO hide internal error
+			return nil, fmt.Errorf("failed to list fabrics: %w", err) // TODO hide internal error
 		}
 		for _, other := range fabrics.Items {
 			if other.Name == fabric.Name {
 				continue
 			}
-			if fabric.Spec.ASNStart <= other.Spec.ASNEnd && other.Spec.ASNStart <= fabric.Spec.ASNEnd {
-				return nil, errors.Errorf("ASN range %d-%d overlaps with fabric %s range %d-%d", fabric.Spec.ASNStart, fabric.Spec.ASNEnd, other.Name, other.Spec.ASNStart, other.Spec.ASNEnd)
+			if fabric.Spec.LeafASNStart <= other.Spec.LeafASNEnd && other.Spec.LeafASNStart <= fabric.Spec.LeafASNEnd {
+				return nil, fmt.Errorf("leaf ASN range %d-%d overlaps with fabric %s leaf ASN range %d-%d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, other.Name, other.Spec.LeafASNStart, other.Spec.LeafASNEnd) //nolint:err113
+			}
+
+			// the other fabric has passed this validation already
+			otherASNs, _ := other.domainASNs()
+			for asn, what := range asns {
+				if asn >= other.Spec.LeafASNStart && asn <= other.Spec.LeafASNEnd {
+					return nil, fmt.Errorf("%s %d is within fabric %s leaf ASN range %d-%d", what, asn, other.Name, other.Spec.LeafASNStart, other.Spec.LeafASNEnd) //nolint:err113
+				}
+				if otherWhat, exists := otherASNs[asn]; exists {
+					return nil, fmt.Errorf("%s %d is already used by fabric %s as %s", what, asn, other.Name, otherWhat) //nolint:err113
+				}
+			}
+			for asn, otherWhat := range otherASNs {
+				if asn >= fabric.Spec.LeafASNStart && asn <= fabric.Spec.LeafASNEnd {
+					return nil, fmt.Errorf("leaf ASN range %d-%d contains fabric %s %s %d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, other.Name, otherWhat, asn) //nolint:err113
+				}
 			}
 		}
 	}

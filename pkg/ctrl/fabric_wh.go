@@ -5,8 +5,8 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
@@ -33,10 +33,14 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.Fabric{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &wiringapi.Fabric{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete(), "failed to setup fabric webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup fabric webhook: %w", err)
+	}
+
+	return nil
 }
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-fabric,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update,versions=v1beta1,name=mfabric.kb.io,admissionReviewVersions=v1
@@ -58,7 +62,7 @@ func (w *FabricWebhook) Default(_ context.Context, fabric *wiringapi.Fabric) err
 func (w *FabricWebhook) ValidateCreate(ctx context.Context, fabric *wiringapi.Fabric) (admission.Warnings, error) {
 	warns, err := fabric.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate fabric")
+		return warns, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	return warns, nil
@@ -67,19 +71,22 @@ func (w *FabricWebhook) ValidateCreate(ctx context.Context, fabric *wiringapi.Fa
 func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi.Fabric, fabric *wiringapi.Fabric) (admission.Warnings, error) {
 	// switches are validated against these ASNs and configured with them, so changing them would
 	// silently invalidate what is already admitted. Unset values can still be filled in
-	if oldFabric.Spec.ASNStart != 0 && oldFabric.Spec.ASNStart != fabric.Spec.ASNStart ||
-		oldFabric.Spec.ASNEnd != 0 && oldFabric.Spec.ASNEnd != fabric.Spec.ASNEnd {
-		return nil, errors.Errorf("fabric ASN range can not be changed")
+	if oldFabric.Spec.LeafASNStart != 0 && oldFabric.Spec.LeafASNStart != fabric.Spec.LeafASNStart ||
+		oldFabric.Spec.LeafASNEnd != 0 && oldFabric.Spec.LeafASNEnd != fabric.Spec.LeafASNEnd {
+		return nil, fmt.Errorf("fabric leaf ASN range can not be changed") //nolint:err113
 	}
 	for name, oldDomain := range oldFabric.Spec.Domains {
 		if oldDomain.SpineASN != 0 && oldDomain.SpineASN != fabric.Spec.Domains[name].SpineASN {
-			return nil, errors.Errorf("spineASN of domain %s can not be changed", name)
+			return nil, fmt.Errorf("spineASN of domain %s can not be changed", name) //nolint:err113
+		}
+		if oldDomain.GatewayASN != 0 && oldDomain.GatewayASN != fabric.Spec.Domains[name].GatewayASN {
+			return nil, fmt.Errorf("gatewayASN of domain %s can not be changed", name) //nolint:err113
 		}
 	}
 
 	warns, err := fabric.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate fabric")
+		return warns, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	return warns, nil
@@ -90,7 +97,7 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 	// to it implicitly, admission exempts it from the fabric-exists check so nothing would refuse
 	// to admit more, and the initializer only recreates it at startup.
 	if fabric.Name == wiringapi.DefaultFabric {
-		return nil, errors.Errorf("the default Fabric can not be deleted")
+		return nil, fmt.Errorf("the default Fabric can not be deleted") //nolint:err113
 	}
 
 	// Deleting a fabric out from under its objects does not just orphan them: every one of these
@@ -116,7 +123,7 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 		{"gateway peering", &gwapi.GatewayPeeringList{}},
 	} {
 		if err := w.Client.List(ctx, ref.list); err != nil {
-			return nil, errors.Wrapf(err, "error listing %ss", ref.kind) // TODO hide internal error
+			return nil, fmt.Errorf("error listing %ss: %w", ref.kind, err) // TODO hide internal error
 		}
 
 		if err := kmeta.EachListItem(ref.list, func(item runtime.Object) error {
@@ -149,7 +156,7 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 			case *gwapi.GatewayPeering:
 				declared = o.Spec.Topology.Fabric
 			default:
-				return errors.Errorf("unexpected type %T", item)
+				return fmt.Errorf("unexpected type %T", item) //nolint:err113
 			}
 
 			if wiringapi.FabricNameOrDefault(declared) != fabric.Name {
@@ -158,10 +165,10 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 
 			obj, ok := item.(kclient.Object)
 			if !ok {
-				return errors.Errorf("unexpected type %T", item)
+				return fmt.Errorf("unexpected type %T", item) //nolint:err113
 			}
 
-			return errors.Errorf("Fabric is still used by %s %s", ref.kind, obj.GetName())
+			return fmt.Errorf("fabric is still used by %s %s", ref.kind, obj.GetName()) //nolint:err113
 		}); err != nil {
 			return nil, err //nolint:wrapcheck // the error is ours, EachListItem only passes it through
 		}

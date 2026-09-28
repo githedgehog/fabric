@@ -3217,7 +3217,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `spineASN` _integer_ | SpineASN is the ASN shared by all spines of this domain, within the Fabric ASN range |  |  |
+| `spineASN` _integer_ | SpineASN is the ASN shared by all spines of this domain, outside the leaf ASN range |  |  |
+| `gatewayASN` _integer_ | GatewayASN is the ASN shared by all gateways attached to this domain, outside the leaf ASN range |  |  |
 
 
 #### FabricLink
@@ -3250,9 +3251,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `asnStart` _integer_ | ASNStart is the first ASN of the range reserved for this Fabric |  |  |
-| `asnEnd` _integer_ | ASNEnd is the last ASN of the range reserved for this Fabric |  |  |
-| `domains` _object (keys:string, values:[FabricDomainSpec](#fabricdomainspec))_ | Domains is the set of spine layers in this Fabric, defaulted to a single "default" domain if empty |  |  |
+| `leafASNStart` _integer_ | LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from |  |  |
+| `leafASNEnd` _integer_ | LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from |  |  |
+| `domains` _object (keys:string, values:[FabricDomainSpec](#fabricdomainspec))_ | Domains is the set of spine layers in this Fabric, at least one is required |  |  |
 
 
 #### FabricStatus

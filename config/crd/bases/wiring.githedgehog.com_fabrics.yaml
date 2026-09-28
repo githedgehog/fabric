@@ -21,11 +21,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.asnStart
-      name: ASNStart
+    - jsonPath: .spec.leafASNStart
+      name: LeafASNStart
       type: integer
-    - jsonPath: .spec.asnEnd
-      name: ASNEnd
+    - jsonPath: .spec.leafASNEnd
+      name: LeafASNEnd
       type: integer
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -57,30 +57,35 @@ spec:
           spec:
             description: Spec is the desired state of the Fabric
             properties:
-              asnEnd:
-                description: ASNEnd is the last ASN of the range reserved for this
-                  Fabric
-                format: int32
-                type: integer
-              asnStart:
-                description: ASNStart is the first ASN of the range reserved for this
-                  Fabric
-                format: int32
-                type: integer
               domains:
                 additionalProperties:
                   description: FabricDomainSpec defines a single spine layer of a
                     Fabric
                   properties:
+                    gatewayASN:
+                      description: GatewayASN is the ASN shared by all gateways attached
+                        to this domain, outside the leaf ASN range
+                      format: int32
+                      type: integer
                     spineASN:
                       description: SpineASN is the ASN shared by all spines of this
-                        domain, within the Fabric ASN range
+                        domain, outside the leaf ASN range
                       format: int32
                       type: integer
                   type: object
-                description: Domains is the set of spine layers in this Fabric, defaulted
-                  to a single "default" domain if empty
+                description: Domains is the set of spine layers in this Fabric, at
+                  least one is required
                 type: object
+              leafASNEnd:
+                description: LeafASNEnd is the last ASN of the range leaves of this
+                  Fabric are allocated from
+                format: int32
+                type: integer
+              leafASNStart:
+                description: LeafASNStart is the first ASN of the range leaves of
+                  this Fabric are allocated from
+                format: int32
+                type: integer
             type: object
           status:
             description: Status is the observed state of the Fabric
