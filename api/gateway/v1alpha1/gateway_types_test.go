@@ -62,6 +62,21 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 }
 
 func TestGatewayValidate(t *testing.T) {
+	const planeB = "plane-b"
+	twoDomains := withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		"default": {SpineASN: 65100, GatewayASN: 65101},
+		planeB:    {SpineASN: 65098, GatewayASN: 65099},
+	}}})
+	spineIn := func(domains ...string) *wiringapi.Switch {
+		return withName("spine-01", &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: domains}}})
+	}
+	gwConn := withName("spine-01--gateway--gw-1", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
+		Links: []wiringapi.GatewayLink{{
+			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "spine-01/E1/1"}},
+			Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gw-1/enp2s1"}},
+		}},
+	}}})
+
 	base := []kclient.Object{
 		&v1alpha1.GatewayGroup{
 			ObjectMeta: kmetav1.ObjectMeta{
@@ -192,6 +207,37 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-asn-not-fabric-gateway-asn",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ASN = 65102 }),
 			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-domain-not-in-fabric",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-domain-gateway-asn",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Topology.Domain = planeB
+				gw.Spec.ASN = 65099
+			}),
+			objs: append(slices.Clone(base), twoDomains),
+		},
+		{
+			name: "test-asn-of-another-domain",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
+			objs: append(slices.Clone(base), twoDomains),
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-cabled-into-its-domain",
+			gw:   *gwa("gw-1"),
+			objs: append(slices.Clone(base), twoDomains, spineIn(), gwConn),
+		},
+		{
+			name: "test-cabled-into-another-domain",
+			gw:   *gwa("gw-1"),
+			objs: append(slices.Clone(base), twoDomains, spineIn(planeB), gwConn),
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{

@@ -84,7 +84,16 @@ func FabricNameOrDefault(fabricName string) string {
 	return fabricName
 }
 
-// DomainsOrDefault resolves a switch's domains the same way, for switches written before domains existed.
+// DomainNameOrDefault and DomainsOrDefault resolve domain references the same way, for objects
+// written before domains existed.
+func DomainNameOrDefault(domainName string) string {
+	if domainName == "" {
+		return DefaultFabricDomain
+	}
+
+	return domainName
+}
+
 func DomainsOrDefault(domains []string) []string {
 	if len(domains) == 0 {
 		return []string{DefaultFabricDomain}

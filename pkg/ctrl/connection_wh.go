@@ -17,6 +17,7 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/pkg/errors"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
@@ -105,6 +106,15 @@ func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Re
 
 		if gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric); gwFabric != connFabric {
 			return fmt.Errorf("connection is in fabric %s but gateway %s is in fabric %s", connFabric, gw.Name, gwFabric) //nolint:err113
+		}
+
+		sw := &wiringapi.Switch{}
+		if err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Switch.DeviceName(), Namespace: conn.Namespace}, sw); err != nil {
+			return fmt.Errorf("failed to get switch %s: %w", link.Switch.DeviceName(), err) // TODO replace with some internal error to not expose to the user
+		}
+		gwDomain := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
+		if swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Equal(swDomains, []string{gwDomain}) {
+			return fmt.Errorf("gateway %s is in domain %s but switch %s is in domains %v", gw.Name, gwDomain, sw.Name, swDomains) //nolint:err113
 		}
 	}
 
