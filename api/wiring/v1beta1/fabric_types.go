@@ -238,6 +238,10 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 	if fabric.Spec.ServerFacingMTUOffset == 0 {
 		return nil, fmt.Errorf("serverFacingMTUOffset is required") //nolint:err113
 	}
+	// the server-facing MTU is computed as a uint16 subtraction, which would wrap around
+	if fabric.Spec.ServerFacingMTUOffset >= fabric.Spec.FabricMTU {
+		return nil, fmt.Errorf("serverFacingMTUOffset %d must be less than fabricMTU %d", fabric.Spec.ServerFacingMTUOffset, fabric.Spec.FabricMTU) //nolint:err113
+	}
 	if fabric.Spec.DefaultMaxPathsEBGP == 0 {
 		return nil, fmt.Errorf("defaultMaxPathsEBGP is required") //nolint:err113
 	}
