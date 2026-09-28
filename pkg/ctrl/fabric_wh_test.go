@@ -110,6 +110,9 @@ func TestFabricUpdateASNs(t *testing.T) {
 		}
 	}
 
+	renamed := fabricGen(64101, 64200, 64100, 64201)
+	renamed.Spec.Domains = map[string]wiringapi.FabricDomainSpec{"plane-a": renamed.Spec.Domains[wiringapi.DefaultFabricDomain]}
+
 	for _, tt := range []struct {
 		name     string
 		old, new *wiringapi.Fabric
@@ -122,6 +125,7 @@ func TestFabricUpdateASNs(t *testing.T) {
 		{name: "changing leafASNEnd", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64199, 64100, 64201), err: "leaf ASN range can not be changed"},
 		{name: "changing spineASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64099, 64201), err: "spineASN of domain default can not be changed"},
 		{name: "changing gatewayASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64202), err: "gatewayASN of domain default can not be changed"},
+		{name: "renaming the domain", old: fabricGen(64101, 64200, 64100, 64201), new: renamed, err: "domain default can not be removed or renamed"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &FabricWebhook{}
