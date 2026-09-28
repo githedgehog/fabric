@@ -153,3 +153,18 @@ func TestSwitchDomainChange(t *testing.T) {
 		})
 	}
 }
+
+func TestSwitchASNImmutable(t *testing.T) {
+	oldSw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{ASN: 65100}}
+	newSw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{ASN: 65099}}
+
+	_, err := (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSw, newSw)
+	require.ErrorContains(t, err, "asn is immutable")
+
+	oldSpine := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleSpine, ASN: 65100}}
+	newSpine := oldSpine.DeepCopy()
+	newSpine.Spec.Topology.Domains = []string{"plane-b"}
+
+	_, err = (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSpine, newSpine)
+	require.ErrorContains(t, err, "the domain of a spine is immutable")
+}

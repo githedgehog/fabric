@@ -78,6 +78,15 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 	if fabricChanged(oldSw.Spec.Topology.Fabric, newSw.Spec.Topology.Fabric) {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
+	// SONiC refuses to change the local AS of a running BGP instance, so the agent would fail on
+	// every attempt, and peers would keep the old ASN as nothing regenerates their config
+	if oldSw.Spec.ASN != newSw.Spec.ASN {
+		return nil, fmt.Errorf("asn is immutable, delete and recreate the switch to change it") //nolint:err113
+	}
+	// a spine's ASN is its domain's spine ASN, so its domain can't change either
+	if newSw.Spec.Role.IsSpine() && !slices.Equal(wiringapi.DomainsOrDefault(oldSw.Spec.Topology.Domains), wiringapi.DomainsOrDefault(newSw.Spec.Topology.Domains)) {
+		return nil, fmt.Errorf("the domain of a spine is immutable, delete and recreate the switch to change it") //nolint:err113
+	}
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
