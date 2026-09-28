@@ -168,6 +168,18 @@ func TestConnectionValidation(t *testing.T) {
 	}
 	otherFabric = append(otherFabric, withName("other", &wiringapi.Fabric{}))
 
+	spine, leaf1, leaf2 := base[0], base[1], base[2]
+	inDomains := func(obj kclient.Object, domains ...string) kclient.Object {
+		sw, ok := obj.DeepCopyObject().(*wiringapi.Switch)
+		require.True(t, ok)
+		sw.Spec.Topology.Domains = domains
+
+		return sw
+	}
+	onLeaf := func(conn *wiringapi.Connection) {
+		conn.Spec.Gateway.Links[0].Switch.Port = "leaf-01/E1/1"
+	}
+
 	for _, tt := range []struct {
 		name       string
 		conn       *wiringapi.Connection
@@ -198,6 +210,52 @@ func TestConnectionValidation(t *testing.T) {
 			}),
 			withClient: true,
 			objects:    otherFabric,
+			err:        true,
+		},
+		{
+			name:       "fabric-conn-leaf-not-in-spine-domain",
+			conn:       fabricConnGen("fabric-1"),
+			withClient: true,
+			objects:    []kclient.Object{inDomains(spine, "plane-b"), leaf1, leaf2},
+			err:        true,
+		},
+		{
+			name:       "fabric-conn-shared-leaf",
+			conn:       fabricConnGen("fabric-1"),
+			withClient: true,
+			objects:    []kclient.Object{inDomains(spine, "plane-b"), inDomains(leaf1, "default", "plane-b"), leaf2},
+		},
+		{
+			name:       "mesh-conn-same-domain",
+			conn:       meshConnGen("mesh-1"),
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "plane-b"), inDomains(leaf2, "plane-b")},
+		},
+		{
+			name:       "mesh-conn-across-domains",
+			conn:       meshConnGen("mesh-1"),
+			withClient: true,
+			objects:    []kclient.Object{spine, leaf1, inDomains(leaf2, "plane-b")},
+			err:        true,
+		},
+		{
+			name:       "mesh-conn-shared-leaf",
+			conn:       meshConnGen("mesh-1"),
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "default", "plane-b"), leaf2},
+			err:        true,
+		},
+		{
+			name:       "gateway-conn-single-domain-leaf",
+			conn:       gwConnGen("gw-1", onLeaf),
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "plane-b"), leaf2},
+		},
+		{
+			name:       "gateway-conn-shared-leaf",
+			conn:       gwConnGen("gw-1", onLeaf),
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "default", "plane-b"), leaf2},
 			err:        true,
 		},
 		{
