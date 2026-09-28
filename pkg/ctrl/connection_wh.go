@@ -16,8 +16,10 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -72,6 +74,38 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 		if err != nil {
 			return errors.Wrapf(err, "failed to get vpc %s", conn.Spec.StaticExternal.WithinVPC) // TODO replace with some internal error to not expose to the user
 		}
+
+		connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric)
+		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != connFabric {
+			return fmt.Errorf("connection is in fabric %s but vpc %s is in fabric %s", connFabric, vpc.Name, vpcFabric) //nolint:err113
+		}
+	}
+
+	return nil
+}
+
+// validateGateway checks that the gateways of a gateway connection are in its fabric. It's located
+// in a webhook to avoid circular dependency with gwapi
+func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Reader, conn *wiringapi.Connection) error {
+	if conn.Spec.Gateway == nil {
+		return nil
+	}
+
+	connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric)
+	for _, link := range conn.Spec.Gateway.Links {
+		gw := &gwapi.Gateway{}
+		err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Gateway.DeviceName(), Namespace: conn.Namespace}, gw)
+		// gateway existence has never been required, and wiring can be applied before the gateways
+		if kapierrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get gateway %s: %w", link.Gateway.DeviceName(), err) // TODO replace with some internal error to not expose to the user
+		}
+
+		if gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric); gwFabric != connFabric {
+			return fmt.Errorf("connection is in fabric %s but gateway %s is in fabric %s", connFabric, gw.Name, gwFabric) //nolint:err113
+		}
 	}
 
 	return nil
@@ -83,7 +117,11 @@ func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, conn *wiringapi.
 		return warns, errors.Wrapf(err, "error validating connection")
 	}
 
-	return warns, w.validateStaticExternal(ctx, w.KubeClient, conn)
+	if err := w.validateStaticExternal(ctx, w.KubeClient, conn); err != nil {
+		return warns, err
+	}
+
+	return warns, w.validateGateway(ctx, w.KubeClient, conn)
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringapi.Connection, newConn *wiringapi.Connection) (admission.Warnings, error) {
@@ -114,7 +152,11 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringa
 	// 	}
 	// }
 
-	return warns, w.validateStaticExternal(ctx, w.KubeClient, newConn)
+	if err := w.validateStaticExternal(ctx, w.KubeClient, newConn); err != nil {
+		return warns, err
+	}
+
+	return warns, w.validateGateway(ctx, w.KubeClient, newConn)
 }
 
 func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, conn *wiringapi.Connection) (admission.Warnings, error) {

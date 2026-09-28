@@ -622,6 +622,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - switchgroups
   sideEffects: None
