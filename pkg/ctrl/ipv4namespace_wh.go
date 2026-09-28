@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 	"net/netip"
 
 	"github.com/pkg/errors"
@@ -71,7 +72,7 @@ func (w *IPv4NamespaceWebhook) ValidateCreate(ctx context.Context, ns *vpcapi.IP
 
 func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi.IPv4Namespace, newNs *vpcapi.IPv4Namespace) (admission.Warnings, error) {
 	if fabricChanged(oldNs.Spec.Topology.Fabric, newNs.Spec.Topology.Fabric) {
-		return nil, errors.Errorf("topology.fabric is immutable")
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
 	if warn, err := newNs.Validate(ctx, w.Client, w.Cfg); err != nil {

@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -69,7 +70,7 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
 	if fabricChanged(oldExt.Spec.Topology.Fabric, newExt.Spec.Topology.Fabric) {
-		return nil, errors.Errorf("topology.fabric is immutable")
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
 	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {

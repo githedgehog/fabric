@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -69,7 +70,7 @@ func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPC
 
 func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
 	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
-		return nil, errors.Errorf("topology.fabric is immutable")
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
 	// if !equality.Semantic.DeepEqual(oldPeer.Spec.Permit, newPeer.Spec.Permit) {

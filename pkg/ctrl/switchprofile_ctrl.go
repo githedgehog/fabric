@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -93,7 +94,7 @@ func (r *SwitchProfileReconciler) Start(ctx context.Context) error {
 		l.Info("Failed to enforce switch profiles", "attempt", attempt, "error", err)
 		select {
 		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "switch profile initializer cancelled")
+			return fmt.Errorf("switch profile initializer cancelled: %w", ctx.Err())
 		case <-time.After(5 * time.Second):
 		}
 	}

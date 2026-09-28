@@ -146,7 +146,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if len(external.Name) > 11 {
@@ -209,7 +209,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 
 		extFabric := wiringapi.FabricNameOrDefault(external.Spec.Topology.Fabric)
 		if nsFabric := wiringapi.FabricNameOrDefault(ipNs.Spec.Topology.Fabric); nsFabric != extFabric {
-			return nil, errors.Errorf("external is in fabric %s but its IPv4Namespace %s is in fabric %s", extFabric, ipNs.Name, nsFabric)
+			return nil, fmt.Errorf("external is in fabric %s but its IPv4Namespace %s is in fabric %s", extFabric, ipNs.Name, nsFabric) //nolint:err113
 		}
 	}
 

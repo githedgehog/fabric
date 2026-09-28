@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"net/netip"
 	"sort"
@@ -134,7 +135,7 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if len(ns.Name) > 11 {

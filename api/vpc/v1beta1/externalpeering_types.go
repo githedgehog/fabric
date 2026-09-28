@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -165,7 +166,7 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if peering.Spec.Permit.VPC.Name == "" {
@@ -219,10 +220,10 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 
 		peeringFabric := wiringapi.FabricNameOrDefault(peering.Spec.Topology.Fabric)
 		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
-			return nil, errors.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, peering.Spec.Permit.VPC.Name, vpcFabric)
+			return nil, fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, peering.Spec.Permit.VPC.Name, vpcFabric) //nolint:err113
 		}
 		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != peeringFabric {
-			return nil, errors.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, peering.Spec.Permit.External.Name, extFabric)
+			return nil, fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, peering.Spec.Permit.External.Name, extFabric) //nolint:err113
 		}
 
 		if vpc.Spec.IPv4Namespace != ext.Spec.IPv4Namespace {
