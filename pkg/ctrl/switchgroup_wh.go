@@ -5,8 +5,8 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,10 +30,14 @@ func SetupSwitchGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) erro
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.SwitchGroup{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &wiringapi.SwitchGroup{}).
 		WithDefaulter(w).
 		WithValidator(w).
-		Complete(), "failed to setup switchgroup webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup switchgroup webhook: %w", err)
+	}
+
+	return nil
 }
 
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchgroup,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchgroups,verbs=create;update,versions=v1beta1,name=mswitchgroup.kb.io,admissionReviewVersions=v1
@@ -48,7 +52,7 @@ func (w *SwitchGroupWebhook) Default(_ context.Context, sg *wiringapi.SwitchGrou
 func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.SwitchGroup) (admission.Warnings, error) {
 	warns, err := sg.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate switchgroup")
+		return warns, fmt.Errorf("failed to validate switchgroup: %w", err)
 	}
 
 	return warns, nil
@@ -56,12 +60,12 @@ func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.S
 
 func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringapi.SwitchGroup, newSg *wiringapi.SwitchGroup) (admission.Warnings, error) {
 	if fabricChanged(oldSg.Spec.Topology.Fabric, newSg.Spec.Topology.Fabric) {
-		return nil, errors.Errorf("topology.fabric is immutable")
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
 	warns, err := newSg.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate switchgroup")
+		return warns, fmt.Errorf("failed to validate switchgroup: %w", err)
 	}
 
 	return warns, nil

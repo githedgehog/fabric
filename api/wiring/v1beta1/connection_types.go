@@ -861,7 +861,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 
 			if swFabric := FabricNameOrDefault(sw.Spec.Topology.Fabric); swFabric != connFabric {
-				return nil, errors.Errorf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric)
+				return nil, fmt.Errorf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric) //nolint:err113
 			}
 
 			if conn.Spec.ESLAG != nil {

@@ -519,7 +519,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	// nothing reads the domains yet and nothing validates them against the fabric, so rejecting
 	// them outright keeps invalid domain labels out of etcd until the multi-domain work lands
 	if len(sw.Spec.Topology.Domains) > 0 {
-		return nil, errors.Errorf("fabric domains are not supported yet")
+		return nil, fmt.Errorf("fabric domains are not supported yet") //nolint:err113
 	}
 
 	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
@@ -612,7 +612,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 
 			if sgFabric := FabricNameOrDefault(sg.Spec.Topology.Fabric); sgFabric != swFabric {
-				return nil, errors.Errorf("switch is in fabric %s but switch group %s is in fabric %s", swFabric, group, sgFabric)
+				return nil, fmt.Errorf("switch is in fabric %s but switch group %s is in fabric %s", swFabric, group, sgFabric) //nolint:err113
 			}
 		}
 

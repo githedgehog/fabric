@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/netip"
 	"slices"
@@ -436,7 +437,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if len(vpc.Name) > 11 {
@@ -799,7 +800,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 
 		vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric)
 		if nsFabric := wiringapi.FabricNameOrDefault(ipNs.Spec.Topology.Fabric); nsFabric != vpcFabric {
-			return nil, errors.Errorf("vpc is in fabric %s but its IPv4Namespace %s is in fabric %s", vpcFabric, ipNs.Name, nsFabric)
+			return nil, fmt.Errorf("vpc is in fabric %s but its IPv4Namespace %s is in fabric %s", vpcFabric, ipNs.Name, nsFabric) //nolint:err113
 		}
 
 		vlanNs := &wiringapi.VLANNamespace{}

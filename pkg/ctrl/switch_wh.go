@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -70,7 +71,7 @@ func (w *SwitchWebhook) ValidateCreate(ctx context.Context, sw *wiringapi.Switch
 
 func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Switch, newSw *wiringapi.Switch) (admission.Warnings, error) {
 	if fabricChanged(oldSw.Spec.Topology.Fabric, newSw.Spec.Topology.Fabric) {
-		return nil, errors.Errorf("topology.fabric is immutable")
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)

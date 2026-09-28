@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sort"
 
@@ -172,7 +173,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if fabricCfg != nil && fabricCfg.VPCPeeringDisabled {
@@ -216,7 +217,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 			}
 
 			if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
-				return nil, errors.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric)
+				return nil, fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric) //nolint:err113
 			}
 
 			ipv4Namespaces = append(ipv4Namespaces, vpc.Spec.IPv4Namespace)

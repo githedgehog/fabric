@@ -173,7 +173,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if attach.Spec.Subnet == "" {
@@ -232,10 +232,10 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 
 		attachFabric := wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric)
 		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != attachFabric {
-			return nil, errors.Errorf("attachment is in fabric %s but vpc %s is in fabric %s", attachFabric, vpcName, vpcFabric)
+			return nil, fmt.Errorf("attachment is in fabric %s but vpc %s is in fabric %s", attachFabric, vpcName, vpcFabric) //nolint:err113
 		}
 		if connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric); connFabric != attachFabric {
-			return nil, errors.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric)
+			return nil, fmt.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric) //nolint:err113
 		}
 
 		if conn.Spec.ESLAG != nil && vpc.Spec.Mode != VPCModeL2VNI {

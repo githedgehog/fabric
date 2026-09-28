@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -70,7 +71,7 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admis
 
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
 	if fabricChanged(oldVPC.Spec.Topology.Fabric, newVPC.Spec.Topology.Fabric) {
-		return nil, errors.Errorf("topology.fabric is immutable")
+		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)

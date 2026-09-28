@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/netip"
 	"slices"
@@ -345,7 +346,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate fabric")
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
 	if attach.Spec.External == "" {
@@ -446,10 +447,10 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 
 		attachFabric := wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric)
 		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != attachFabric {
-			return nil, errors.Errorf("attachment is in fabric %s but external %s is in fabric %s", attachFabric, attach.Spec.External, extFabric)
+			return nil, fmt.Errorf("attachment is in fabric %s but external %s is in fabric %s", attachFabric, attach.Spec.External, extFabric) //nolint:err113
 		}
 		if connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric); connFabric != attachFabric {
-			return nil, errors.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric)
+			return nil, fmt.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric) //nolint:err113
 		}
 
 		if conn.Spec.External == nil {
