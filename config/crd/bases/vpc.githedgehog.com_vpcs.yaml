@@ -282,6 +282,12 @@ spec:
               topology:
                 description: Topology is where the VPC sits in the fabric topology
                 properties:
+                  domain:
+                    description: |-
+                      Domain optionally pins the VPC to one Fabric domain, so that attaching it to a switch outside
+                      that domain is refused. Without it the VPC is in the domains all its attachment switches share.
+                      It is immutable
+                    type: string
                   fabric:
                     description: Fabric is the name of the Fabric this VPC belongs
                       to (if not specified, "default" is used)

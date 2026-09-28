@@ -304,6 +304,21 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			}
 		}
 
+		// a VPC is in the domains all the switches it is on share, so it can't span two domains
+		// that meet only at a shared leaf
+		connNames, err := VPCConnections(ctx, kube, attach.Namespace, vpcName, attach.Name, "")
+		if err != nil {
+			return nil, err
+		}
+		connNames = append(connNames, attach.Spec.Connection)
+		vpcSwitches, err := ConnectionSwitches(ctx, kube, attach.Namespace, connNames)
+		if err != nil {
+			return nil, err
+		}
+		if err := CheckCommonDomain(vpc.Spec.Topology.Domain, vpcSwitches); err != nil {
+			return nil, fmt.Errorf("vpc %s: %w", vpcName, err)
+		}
+
 		attaches := &VPCAttachmentList{}
 		err = kube.List(ctx, attaches, kclient.MatchingLabels{
 			wiringapi.LabelConnection: attach.Spec.Connection,

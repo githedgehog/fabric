@@ -80,6 +80,25 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != connFabric {
 			return fmt.Errorf("connection is in fabric %s but vpc %s is in fabric %s", connFabric, vpc.Name, vpcFabric) //nolint:err113
 		}
+
+		// the VPC's VRF is built on the switch, so the VPC's common domain check applies to it
+		connNames, err := vpcapi.VPCConnections(ctx, kube, conn.Namespace, vpc.Name, "", conn.Name)
+		if err != nil {
+			return err //nolint:wrapcheck
+		}
+		switches, err := vpcapi.ConnectionSwitches(ctx, kube, conn.Namespace, connNames)
+		if err != nil {
+			return err //nolint:wrapcheck
+		}
+		swName := conn.Spec.StaticExternal.Link.Switch.DeviceName()
+		sw := &wiringapi.Switch{}
+		if err := kube.Get(ctx, ktypes.NamespacedName{Name: swName, Namespace: conn.Namespace}, sw); err != nil {
+			return fmt.Errorf("failed to get switch %s: %w", swName, err) // TODO replace with some internal error to not expose to the user
+		}
+		switches[swName] = sw
+		if err := vpcapi.CheckCommonDomain(vpc.Spec.Topology.Domain, switches); err != nil {
+			return fmt.Errorf("vpc %s: %w", vpc.Name, err)
+		}
 	}
 
 	return nil

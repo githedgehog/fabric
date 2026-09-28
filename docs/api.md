@@ -2789,6 +2789,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this VPC belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain optionally pins the VPC to one Fabric domain, so that attaching it to a switch outside<br />that domain is refused. Without it the VPC is in the domains all its attachment switches share.<br />It is immutable |  |  |
 
 
 

@@ -73,6 +73,10 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, new
 	if fabricChanged(oldVPC.Spec.Topology.Fabric, newVPC.Spec.Topology.Fabric) {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
+	// so that a VPC update never has to re-check its attachments
+	if oldVPC.Spec.Topology.Domain != newVPC.Spec.Topology.Domain {
+		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
+	}
 
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
