@@ -41,10 +41,13 @@ func TestEnsureDefaultFabric(t *testing.T) {
 		Namespace: kmetav1.NamespaceDefault,
 	}, fabric))
 
-	// the spine ASN sits below the leaf range and the gateway ASN above it, as in the defaults
-	require.Equal(t, uint32(65100), fabric.Spec.ASNStart)
-	require.Equal(t, uint32(65534), fabric.Spec.ASNEnd)
-	require.Equal(t, uint32(65100), fabric.Spec.Domains[wiringapi.DefaultFabricDomain].SpineASN)
+	require.Equal(t, wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65533,
+		Domains: map[string]wiringapi.FabricDomainSpec{
+			wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534},
+		},
+	}, fabric.Spec)
 
 	require.NoError(t, i.ensureDefaultFabric(t.Context()))
 }

@@ -5,9 +5,9 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,13 +25,17 @@ type FabricInitializer struct {
 
 func SetupFabricInitializerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 	if cfg == nil {
-		return errors.New("fabric config is nil")
+		return fmt.Errorf("fabric config is nil") //nolint:err113
 	}
 
-	return errors.Wrapf(mgr.Add(&FabricInitializer{
+	if err := mgr.Add(&FabricInitializer{
 		Client: mgr.GetClient(),
 		cfg:    cfg,
-	}), "failed to add fabric initializer")
+	}); err != nil {
+		return fmt.Errorf("failed to add fabric initializer: %w", err)
+	}
+
+	return nil
 }
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch;create;update
@@ -54,7 +58,7 @@ func (i *FabricInitializer) Start(ctx context.Context) error {
 		l.Info("Failed to ensure the default fabric", "attempt", attempt, "error", err)
 		select {
 		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "fabric initializer cancelled")
+			return fmt.Errorf("fabric initializer cancelled: %w", ctx.Err())
 		case <-time.After(5 * time.Second):
 		}
 	}
@@ -76,31 +80,34 @@ func (i *FabricInitializer) ensureDefaultFabric(ctx context.Context) error {
 		Namespace: kmetav1.NamespaceDefault,
 	}}
 
-	// the spine and gateway ASNs sit outside the leaf range by configuration, so the range spans
-	// all three. Leaving the gateway out would let another fabric claim it, and the border leaf
-	// drops external routes carrying its own fabric's gateway ASN
 	spec := wiringapi.FabricSpec{
-		ASNStart: min(i.cfg.SpineASN, i.cfg.LeafASNStart, i.cfg.GatewayASN),
-		ASNEnd:   max(i.cfg.SpineASN, i.cfg.LeafASNEnd, i.cfg.GatewayASN),
+		LeafASNStart: i.cfg.LeafASNStart,
+		LeafASNEnd:   i.cfg.LeafASNEnd,
 		Domains: map[string]wiringapi.FabricDomainSpec{
-			wiringapi.DefaultFabricDomain: {SpineASN: i.cfg.SpineASN},
+			wiringapi.DefaultFabricDomain: {SpineASN: i.cfg.SpineASN, GatewayASN: i.cfg.GatewayASN},
 		},
 	}
 
 	err := i.Get(ctx, kclient.ObjectKeyFromObject(fabric), fabric)
 	if kapierrors.IsNotFound(err) {
 		fabric.Spec = spec
+		if err := i.Create(ctx, fabric); err != nil {
+			return fmt.Errorf("failed to create fabric %s: %w", fabric.Name, err)
+		}
 
-		return errors.Wrapf(i.Create(ctx, fabric), "failed to create fabric %s", fabric.Name)
+		return nil
 	} else if err != nil {
-		return errors.Wrapf(err, "failed to get fabric %s", fabric.Name)
+		return fmt.Errorf("failed to get fabric %s: %w", fabric.Name, err)
 	}
 
-	if fabric.Spec.ASNStart != 0 {
+	if fabric.Spec.LeafASNStart != 0 {
 		return nil
 	}
 
 	fabric.Spec = spec
+	if err := i.Update(ctx, fabric); err != nil {
+		return fmt.Errorf("failed to update fabric %s: %w", fabric.Name, err)
+	}
 
-	return errors.Wrapf(i.Update(ctx, fabric), "failed to update fabric %s", fabric.Name)
+	return nil
 }
