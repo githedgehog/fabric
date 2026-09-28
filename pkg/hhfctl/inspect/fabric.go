@@ -32,15 +32,24 @@ import (
 
 type FabricIn struct {
 	PortMapping bool
+	// Name limits the output to a single Fabric object
+	Name string
 }
 
 type FabricOut struct {
 	Summary  string             `json:"summary,omitempty"`
+	Fabrics  []*FabricOutFabric `json:"fabrics,omitempty"`
 	Switches []*FabricOutSwitch `json:"switches,omitempty"`
+}
+
+type FabricOutFabric struct {
+	Name string               `json:"name,omitempty"`
+	Spec wiringapi.FabricSpec `json:"spec,omitempty"`
 }
 
 type FabricOutSwitch struct {
 	Name               string      `json:"name,omitempty"`
+	Fabric             string      `json:"fabric,omitempty"`
 	Serial             string      `json:"serial,omitempty"`
 	Software           string      `json:"software,omitempty"`
 	ProfileDisplayName string      `json:"profileDisplayName,omitempty"`
@@ -52,7 +61,31 @@ type FabricOutSwitch struct {
 func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 	str := &strings.Builder{}
 
-	str.WriteString("Switches:\n")
+	str.WriteString("Fabrics:\n")
+
+	fabData := [][]string{}
+	for _, fab := range out.Fabrics {
+		spineASNs, gatewayASNs := []string{}, []string{}
+		for name, domain := range fab.Spec.Domains {
+			spineASNs = append(spineASNs, fmt.Sprintf("%d (%s)", domain.SpineASN, name))
+			gatewayASNs = append(gatewayASNs, fmt.Sprintf("%d (%s)", domain.GatewayASN, name))
+		}
+		slices.Sort(spineASNs)
+		slices.Sort(gatewayASNs)
+
+		fabData = append(fabData, []string{
+			fab.Name,
+			fmt.Sprintf("%d-%d", fab.Spec.LeafASNStart, fab.Spec.LeafASNEnd),
+			strings.Join(spineASNs, ", "),
+			strings.Join(gatewayASNs, ", "),
+		})
+	}
+	str.WriteString(RenderTable(
+		[]string{"Name", "Leaf ASN Range", "Spine ASN", "Gateway ASN"},
+		fabData,
+	))
+
+	str.WriteString("\nSwitches:\n")
 
 	swData := [][]string{}
 	for _, sw := range out.Switches {
@@ -68,6 +101,7 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 
 		swData = append(swData, []string{
 			sw.Name,
+			sw.Fabric,
 			sw.ProfileDisplayName,
 			sw.Role,
 			strings.Join(sw.Groups, ", "),
@@ -79,7 +113,7 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 		})
 	}
 	str.WriteString(RenderTable(
-		[]string{"Name", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
+		[]string{"Name", "Fabric", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
 		swData,
 	))
 
@@ -88,8 +122,25 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 
 var _ Func[FabricIn, *FabricOut] = Fabric
 
-func Fabric(ctx context.Context, kube kclient.Reader, _ FabricIn) (*FabricOut, error) {
+func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, error) {
 	out := &FabricOut{}
+
+	fabList := &wiringapi.FabricList{}
+	if err := kube.List(ctx, fabList); err != nil {
+		return nil, errors.Wrap(err, "cannot list fabrics")
+	}
+	for _, fab := range fabList.Items {
+		if in.Name != "" && fab.Name != in.Name {
+			continue
+		}
+		out.Fabrics = append(out.Fabrics, &FabricOutFabric{Name: fab.Name, Spec: fab.Spec})
+	}
+	if in.Name != "" && len(out.Fabrics) == 0 {
+		return nil, errors.Errorf("fabric %s not found", in.Name)
+	}
+	slices.SortFunc(out.Fabrics, func(a, b *FabricOutFabric) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	totalSwitches := 0
 	readySwitches := 0
@@ -101,6 +152,10 @@ func Fabric(ctx context.Context, kube kclient.Reader, _ FabricIn) (*FabricOut, e
 
 	for _, sw := range swList.Items {
 		swName := sw.Name
+		fabricName := wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric)
+		if in.Name != "" && fabricName != in.Name {
+			continue
+		}
 
 		totalSwitches++
 
@@ -122,6 +177,7 @@ func Fabric(ctx context.Context, kube kclient.Reader, _ FabricIn) (*FabricOut, e
 
 		swState := &FabricOutSwitch{
 			Name:               swName,
+			Fabric:             fabricName,
 			ProfileDisplayName: sp.Spec.DisplayName,
 			State:              switchStateSummary(agent),
 			Role:               string(sw.Spec.Role),

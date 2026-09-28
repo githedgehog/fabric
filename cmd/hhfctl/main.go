@@ -1157,15 +1157,21 @@ Examples:
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
+							&cli.StringFlag{
+								Name:  "name",
+								Usage: "only inspect the Fabric object with this name and its switches",
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
 						},
-						Action: func(_ *cli.Context) error {
+						Action: func(cCtx *cli.Context) error {
 							return errors.Wrapf(inspect.Run(ctx, inspect.Fabric, inspect.Args{
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
-							}, inspect.FabricIn{}, os.Stdout), "failed to inspect Fabric")
+							}, inspect.FabricIn{
+								Name: cCtx.String("name"),
+							}, os.Stdout), "failed to inspect Fabric")
 						},
 					},
 					{
