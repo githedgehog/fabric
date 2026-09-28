@@ -88,10 +88,11 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 	}
 
 	str.WriteString(RenderTable(
-		[]string{"Name", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
+		[]string{"Name", "Fabric", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
 		[][]string{
 			{
 				out.Name,
+				wiringapi.FabricNameOrDefault(out.Spec.Topology.Fabric),
 				out.Profile.DisplayName,
 				string(out.Spec.Role),
 				strings.Join(out.Spec.Groups, ", "),
