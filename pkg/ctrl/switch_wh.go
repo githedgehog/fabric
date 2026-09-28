@@ -18,11 +18,16 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/pkg/errors"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -83,7 +88,136 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 		return warns, errors.New("port breakouts cannot be changed when RoCEv2 is enabled")
 	}
 
+	oldDomains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(oldSw.Spec.Topology.Domains)))
+	newDomains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(newSw.Spec.Topology.Domains)))
+	if !slices.Equal(oldDomains, newDomains) {
+		if err := w.validateDomainChange(ctx, newSw); err != nil {
+			return warns, fmt.Errorf("can not change domains to %v: %w", newDomains, err)
+		}
+	}
+
 	return warns, nil
+}
+
+// validateDomainChange re-runs the domain checks of everything cabled to or attached through the
+// switch, as they were run against its old domains. It's located in a webhook to avoid circular
+// dependency with vpcapi and gwapi
+func (w *SwitchWebhook) validateDomainChange(ctx context.Context, sw *wiringapi.Switch) error {
+	swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains)
+
+	conns := &wiringapi.ConnectionList{}
+	if err := w.KubeClient.List(ctx, conns, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{
+		wiringapi.ListLabelSwitch(sw.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return fmt.Errorf("failed to list connections: %w", err) // TODO replace with some internal error to not expose to the user
+	}
+	swConns := []*wiringapi.Connection{}
+	for i := range conns.Items {
+		switchNames, _, _, _, err := conns.Items[i].Spec.Endpoints()
+		if err == nil && slices.Contains(switchNames, sw.Name) {
+			swConns = append(swConns, &conns.Items[i])
+		}
+	}
+
+	connNames := make([]string, 0, len(swConns))
+	for _, conn := range swConns {
+		connNames = append(connNames, conn.Name)
+	}
+	peers, err := vpcapi.ConnectionSwitches(ctx, w.KubeClient, sw.Namespace, connNames)
+	if err != nil {
+		return err //nolint:wrapcheck
+	}
+	peers[sw.Name] = sw
+
+	vpcNames := map[string]bool{}
+	extNames := map[string]bool{}
+	for _, conn := range swConns {
+		if err := conn.Spec.ValidateDomains(peers); err != nil {
+			return fmt.Errorf("connection %s: %w", conn.Name, err)
+		}
+
+		if conn.Spec.Gateway != nil {
+			for _, link := range conn.Spec.Gateway.Links {
+				gw := &gwapi.Gateway{}
+				err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: link.Gateway.DeviceName(), Namespace: sw.Namespace}, gw)
+				if kapierrors.IsNotFound(err) {
+					continue
+				}
+				if err != nil {
+					return fmt.Errorf("failed to get gateway %s: %w", link.Gateway.DeviceName(), err) // TODO replace with some internal error to not expose to the user
+				}
+				if gwDomain := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain); !slices.Equal(swDomains, []string{gwDomain}) {
+					return fmt.Errorf("connection %s cables it to gateway %s in domain %s", conn.Name, gw.Name, gwDomain) //nolint:err113
+				}
+			}
+		}
+
+		if conn.Spec.StaticExternal != nil && conn.Spec.StaticExternal.WithinVPC != "" {
+			vpcNames[conn.Spec.StaticExternal.WithinVPC] = true
+		}
+
+		vpcAttaches := &vpcapi.VPCAttachmentList{}
+		if err := w.KubeClient.List(ctx, vpcAttaches, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{wiringapi.LabelConnection: conn.Name}); err != nil {
+			return fmt.Errorf("failed to list vpc attachments: %w", err) // TODO replace with some internal error to not expose to the user
+		}
+		for _, attach := range vpcAttaches.Items {
+			if attach.Spec.Connection == conn.Name {
+				vpcNames[attach.Spec.VPCName()] = true
+			}
+		}
+
+		extAttaches := &vpcapi.ExternalAttachmentList{}
+		if err := w.KubeClient.List(ctx, extAttaches, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{wiringapi.LabelConnection: conn.Name}); err != nil {
+			return fmt.Errorf("failed to list external attachments: %w", err) // TODO replace with some internal error to not expose to the user
+		}
+		for _, attach := range extAttaches.Items {
+			if attach.Spec.Connection == conn.Name {
+				extNames[attach.Spec.External] = true
+			}
+		}
+	}
+
+	for vpcName := range vpcNames {
+		vpc := &vpcapi.VPC{}
+		if err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: sw.Namespace}, vpc); err != nil {
+			return fmt.Errorf("failed to get vpc %s: %w", vpcName, err) // TODO replace with some internal error to not expose to the user
+		}
+		vpcConns, err := vpcapi.VPCConnections(ctx, w.KubeClient, sw.Namespace, vpcName, "", "")
+		if err != nil {
+			return err //nolint:wrapcheck
+		}
+		switches, err := vpcapi.ConnectionSwitches(ctx, w.KubeClient, sw.Namespace, vpcConns)
+		if err != nil {
+			return err //nolint:wrapcheck
+		}
+		switches[sw.Name] = sw
+		if err := vpcapi.CheckCommonDomain(vpc.Spec.Topology.Domain, switches); err != nil {
+			return fmt.Errorf("vpc %s: %w", vpcName, err)
+		}
+	}
+
+	for extName := range extNames {
+		attaches := &vpcapi.ExternalAttachmentList{}
+		if err := w.KubeClient.List(ctx, attaches, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{vpcapi.LabelExternal: extName}); err != nil {
+			return fmt.Errorf("failed to list external attachments: %w", err) // TODO replace with some internal error to not expose to the user
+		}
+		attachConns := []string{}
+		for _, attach := range attaches.Items {
+			if attach.Spec.External == extName {
+				attachConns = append(attachConns, attach.Spec.Connection)
+			}
+		}
+		switches, err := vpcapi.ConnectionSwitches(ctx, w.KubeClient, sw.Namespace, attachConns)
+		if err != nil {
+			return err //nolint:wrapcheck
+		}
+		switches[sw.Name] = sw
+		if err := vpcapi.CheckCommonDomain("", switches); err != nil {
+			return fmt.Errorf("external %s: %w", extName, err)
+		}
+	}
+
+	return nil
 }
 
 func (w *SwitchWebhook) ValidateDelete(ctx context.Context, sw *wiringapi.Switch) (admission.Warnings, error) {
