@@ -94,13 +94,8 @@ func (i *FabricInitializer) ensureDefaultFabric(ctx context.Context) error {
 		return fmt.Errorf("failed to get fabric %s: %w", fabric.Name, err)
 	}
 
-	// validation requires a fabric MTU, so a zero one means the fabric was written before the
-	// per-fabric config fields existed. Its ASNs are immutable, so keep any that are set
-	if fabric.Spec.FabricMTU != 0 {
-		return nil
-	}
 	if fabric.Spec.LeafASNStart != 0 {
-		spec.LeafASNStart, spec.LeafASNEnd, spec.Domains = fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, fabric.Spec.Domains
+		return nil
 	}
 
 	fabric.Spec = spec

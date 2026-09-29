@@ -24,13 +24,6 @@ type FabricSpec struct {
 	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
 	// LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from
 	LeafASNEnd uint32 `json:"leafASNEnd,omitempty"`
-	// FabricMTU minus ServerFacingMTUOffset is the MTU of server-facing ports, links between switches
-	// keep the port default (defaulted from the controller config)
-	FabricMTU uint16 `json:"fabricMTU,omitempty"`
-	// ServerFacingMTUOffset is subtracted from FabricMTU on server-facing ports (defaulted from the controller config)
-	ServerFacingMTUOffset uint16 `json:"serverFacingMTUOffset,omitempty"`
-	// DefaultMaxPathsEBGP is the eBGP maximum-paths used when nothing more specific is set (defaulted from the controller config)
-	DefaultMaxPathsEBGP uint32 `json:"defaultMaxPathsEBGP,omitempty"`
 	// DisableBFD disables BFD on the links between switches and on the sessions with the gateways
 	DisableBFD bool `json:"disableBFD,omitempty"`
 	// Domains is the set of spine layers in this Fabric, at least one is required
@@ -142,12 +135,9 @@ func (fabric *Fabric) domainASNs() (map[uint32]string, error) {
 // DefaultFabricSpec is the spec Fabric/default is seeded with from the controller config
 func DefaultFabricSpec(cfg *meta.FabricConfig) FabricSpec {
 	return FabricSpec{
-		LeafASNStart:          cfg.LeafASNStart,
-		LeafASNEnd:            cfg.LeafASNEnd,
-		FabricMTU:             cfg.FabricMTU,
-		ServerFacingMTUOffset: cfg.ServerFacingMTUOffset,
-		DefaultMaxPathsEBGP:   cfg.DefaultMaxPathsEBGP,
-		DisableBFD:            cfg.DisableBFD,
+		LeafASNStart: cfg.LeafASNStart,
+		LeafASNEnd:   cfg.LeafASNEnd,
+		DisableBFD:   cfg.DisableBFD,
 		Domains: map[string]FabricDomainSpec{
 			DefaultFabricDomain: {SpineASN: cfg.SpineASN, GatewayASN: cfg.GatewayASN},
 		},
@@ -227,23 +217,6 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 		if asn >= fabric.Spec.LeafASNStart && asn <= fabric.Spec.LeafASNEnd {
 			return nil, fmt.Errorf("%s %d is within the leaf ASN range %d-%d", what, asn, fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd) //nolint:err113
 		}
-	}
-
-	if fabric.Spec.FabricMTU == 0 {
-		return nil, fmt.Errorf("fabricMTU is required") //nolint:err113
-	}
-	if fabric.Spec.FabricMTU > 9216 {
-		return nil, fmt.Errorf("fabricMTU must be <= 9216") //nolint:err113
-	}
-	if fabric.Spec.ServerFacingMTUOffset == 0 {
-		return nil, fmt.Errorf("serverFacingMTUOffset is required") //nolint:err113
-	}
-	// the server-facing MTU is computed as a uint16 subtraction, which would wrap around
-	if fabric.Spec.ServerFacingMTUOffset >= fabric.Spec.FabricMTU {
-		return nil, fmt.Errorf("serverFacingMTUOffset %d must be less than fabricMTU %d", fabric.Spec.ServerFacingMTUOffset, fabric.Spec.FabricMTU) //nolint:err113
-	}
-	if fabric.Spec.DefaultMaxPathsEBGP == 0 {
-		return nil, fmt.Errorf("defaultMaxPathsEBGP is required") //nolint:err113
 	}
 
 	if kube != nil {
