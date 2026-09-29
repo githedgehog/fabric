@@ -84,8 +84,8 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 	return nil
 }
 
-// validateGateway checks that the gateways of a gateway connection are in its fabric. It's located
-// in a webhook to avoid circular dependency with gwapi
+// validateGateway checks that the gateways of a gateway connection exist and are in its fabric.
+// It's located in a webhook to avoid circular dependency with gwapi
 func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Reader, conn *wiringapi.Connection) error {
 	if conn.Spec.Gateway == nil {
 		return nil
@@ -95,9 +95,9 @@ func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Re
 	for _, link := range conn.Spec.Gateway.Links {
 		gw := &gwapi.Gateway{}
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Gateway.DeviceName(), Namespace: conn.Namespace}, gw)
-		// gateway existence has never been required, and wiring can be applied before the gateways
+		// a connection admitted before its gateway would never have its fabric checked
 		if kapierrors.IsNotFound(err) {
-			continue
+			return fmt.Errorf("gateway %s not found", link.Gateway.DeviceName()) //nolint:err113
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get gateway %s: %w", link.Gateway.DeviceName(), err) // TODO replace with some internal error to not expose to the user

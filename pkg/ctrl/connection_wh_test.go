@@ -62,7 +62,7 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		{name: "static external, vpc in another fabric", conn: staticExternal("default"), objects: []kclient.Object{vpc}, err: "vpc vpc-01 is in fabric backend"},
 		{name: "gateway in the same fabric", conn: gateway("backend"), objects: []kclient.Object{gw}},
 		{name: "gateway in another fabric", conn: gateway("default"), objects: []kclient.Object{gw}, err: "gateway gateway-1 is in fabric backend"},
-		{name: "gateway not created yet", conn: gateway("default")},
+		{name: "gateway not created yet", conn: gateway("default"), err: "gateway gateway-1 not found"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
