@@ -146,6 +146,22 @@ func TestSwitchDomainChange(t *testing.T) {
 			objects: []kclient.Object{extConn, extAttach},
 		},
 		{
+			name: "static external within a vpc that no longer exists",
+			sw:   sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
+			objects: []kclient.Object{&wiringapi.Connection{ObjectMeta: objMeta("leaf-03--static-external--gone"), Spec: wiringapi.ConnectionSpec{StaticExternal: &wiringapi.ConnStaticExternal{
+				WithinVPC: "vpc-gone",
+				Link:      wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-03/E1/2"}}},
+			}}}},
+		},
+		{
+			name: "attached to an external that no longer exists",
+			sw:   sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
+			objects: []kclient.Object{extConn, &vpcapi.ExternalAttachment{
+				ObjectMeta: objMeta("ext-gone--leaf-03"),
+				Spec:       vpcapi.ExternalAttachmentSpec{External: "ext-gone", Connection: "leaf-03--external"},
+			}},
+		},
+		{
 			name: "switch with nothing cabled",
 			sw:   sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
 		},

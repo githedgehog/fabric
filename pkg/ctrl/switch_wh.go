@@ -188,7 +188,11 @@ func (w *SwitchWebhook) validateDomainChange(ctx context.Context, sw *wiringapi.
 
 	for vpcName := range vpcNames {
 		vpc := &vpcapi.VPC{}
-		if err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: sw.Namespace}, vpc); err != nil {
+		err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: sw.Namespace}, vpc)
+		if kapierrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
 			return fmt.Errorf("failed to get vpc %s: %w", vpcName, err) // TODO replace with some internal error to not expose to the user
 		}
 		if vpcDomain := wiringapi.DomainNameOrDefault(vpc.Spec.Topology.Domain); !slices.Contains(swDomains, vpcDomain) {
@@ -198,7 +202,11 @@ func (w *SwitchWebhook) validateDomainChange(ctx context.Context, sw *wiringapi.
 
 	for extName := range extNames {
 		ext := &vpcapi.External{}
-		if err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: sw.Namespace}, ext); err != nil {
+		err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: sw.Namespace}, ext)
+		if kapierrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
 			return fmt.Errorf("failed to get external %s: %w", extName, err) // TODO replace with some internal error to not expose to the user
 		}
 		if extDomain := wiringapi.DomainNameOrDefault(ext.Spec.Topology.Domain); !slices.Contains(swDomains, extDomain) {
