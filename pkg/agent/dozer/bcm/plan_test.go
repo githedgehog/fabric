@@ -211,6 +211,13 @@ func TestPlan(t *testing.T) {
 		{name: "unnum-reg-spine-1"},  // spine side of unnumbered fabric links
 		{name: "unnum-reg-leaf-3"},   // leaf side of unnumbered fabric links
 		{name: "unnum-mesh-leaf-01"}, // unnumbered mesh links next to a numbered gateway link
+		// group: domains
+		// the reg group in a fabric with a second domain plane-b (spine ASN 65010, gateway ASN 65011)
+		{name: "domains-spine-1"}, // in default only, rejects EVPN routes that crossed plane-b's spine
+		{name: "domains-leaf-3"},  // shared between both domains, external deny list covers both
+		{name: "domains-leaf-4"},  // in plane-b only, peers with the gateway using plane-b's gateway ASN
+		// group: legacy
+		{name: "legacy-reg-leaf-4"}, // reg-leaf-4 saved by a controller from before domains, with only the scalar ASNs
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			updateGoldens := os.Getenv("UPDATE") == "true"

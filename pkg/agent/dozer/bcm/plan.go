@@ -64,6 +64,7 @@ const (
 	NoCommunity                  = "no-community"
 	LSTGroupSpineLink            = "spinelink"
 	AsPathListFabricGW           = "fabric-gw-aspath"
+	AsPathListOtherDomainSpines  = "other-domain-spines"
 	BGPCommListAllExternals      = "all-externals"
 	BGPCommListAllGwPrios        = "all-gw-prios"
 	MgmtIface                    = "Management0"
@@ -461,6 +462,27 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
 				SetLocalPreference: pointer.To(GwPrioPreferenceBase + uint32(numPrios-idx)), //nolint: gosec
 				Result:             dozer.SpecRouteMapResultAccept,
+			}
+		}
+	}
+
+	if agent.Spec.Switch.Role.IsSpine() {
+		// a leaf shared between domains passes on what it learns from each, so drop what crossed
+		// another domain's spine before this domain's leaves get it
+		ownDomains := wiringapi.DomainsOrDefault(agent.Spec.Switch.Topology.Domains)
+		members := []string{}
+		for domainName, domain := range agentDomains(agent) {
+			if slices.Contains(ownDomains, domainName) || domain.SpineASN == 0 {
+				continue
+			}
+			members = append(members, fmt.Sprintf("_%d_", domain.SpineASN))
+		}
+		if len(members) > 0 {
+			slices.Sort(members) // sorted as the switch returns them
+			spec.AsPathLists[AsPathListOtherDomainSpines] = &dozer.SpecAsPathList{Members: members}
+			l2vpnNeighRMap.Statements["1"] = &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: pointer.To(AsPathListOtherDomainSpines)},
+				Result:     dozer.SpecRouteMapResultReject,
 			}
 		}
 	}
@@ -894,8 +916,11 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
-		if agent.Spec.Config.GatewayASN == 0 {
-			return errors.Errorf("gateway ASN not set")
+		// a switch with a gateway connection is in exactly one domain
+		domainName := wiringapi.DomainsOrDefault(agent.Spec.Switch.Topology.Domains)[0]
+		gatewayASN := agentDomains(agent)[domainName].GatewayASN
+		if gatewayASN == 0 {
+			return fmt.Errorf("gateway ASN not set for domain %s", domainName) //nolint:err113
 		}
 
 		for _, link := range conn.Gateway.Links {
@@ -974,7 +999,7 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
 				Enabled:                 pointer.To(true),
 				Description:             pointer.To(fmt.Sprintf("Gateway %s %s", remote, connName)),
-				RemoteAS:                pointer.To(agent.Spec.Config.GatewayASN), // TODO load peer GW and get ASN from it
+				RemoteAS:                pointer.To(gatewayASN), // TODO load peer GW and get ASN from it
 				IPv4Unicast:             pointer.To(true),
 				L2VPNEVPN:               pointer.To(true),
 				L2VPNEVPNAllowOwnAS:     pointer.To(true), // TODO: is this still needed?
@@ -1075,17 +1100,38 @@ func addToAddr(addr netip.Addr, n uint32) netip.Addr {
 	return netip.AddrFrom4(newIP)
 }
 
-func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
-	// Build AS-path list to deny routes with fabric spine or gateway ASNs in the path
-	// TODO: also exclude leaf ASNs - regex for the generic case is complex
-	asPathMembers := []string{}
-	if agent.Spec.Config.SpineASN != 0 {
-		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", agent.Spec.Config.SpineASN))
+// agentDomains falls back to the scalar ASNs for a config saved before Domains existed: the agent
+// plans from its saved config at startup and in the upgrade check, before it reads the new one.
+func agentDomains(agent *agentapi.Agent) map[string]wiringapi.FabricDomainSpec {
+	if len(agent.Spec.Config.Domains) > 0 {
+		return agent.Spec.Config.Domains
 	}
-	if agent.Spec.Config.GatewayASN != 0 {
-		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", agent.Spec.Config.GatewayASN))
+
+	return map[string]wiringapi.FabricDomainSpec{
+		slices.Min(wiringapi.DomainsOrDefault(agent.Spec.Switch.Topology.Domains)): {
+			SpineASN:   agent.Spec.Config.SpineASN,
+			GatewayASN: agent.Spec.Config.GatewayASN,
+		},
+	}
+}
+
+func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
+	// Build AS-path list to deny routes with the spine or gateway ASNs of the switch's domains in the path
+	// TODO: also exclude leaf ASNs - regex for the generic case is complex
+	domains := agentDomains(agent)
+	asPathMembers := []string{}
+	for _, domainName := range wiringapi.DomainsOrDefault(agent.Spec.Switch.Topology.Domains) {
+		domain := domains[domainName]
+		if domain.SpineASN != 0 {
+			asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.SpineASN))
+		}
+		if domain.GatewayASN != 0 {
+			asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.GatewayASN))
+		}
 	}
 	if len(asPathMembers) > 0 {
+		// sorted as the switch returns them, so the list isn't rewritten on every apply
+		slices.Sort(asPathMembers)
 		spec.AsPathLists[AsPathListFabricGW] = &dozer.SpecAsPathList{
 			Members: asPathMembers,
 		}

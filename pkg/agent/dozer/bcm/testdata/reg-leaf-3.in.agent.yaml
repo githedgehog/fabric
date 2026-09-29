@@ -97,6 +97,10 @@ spec:
     baseVPCCommunity: "50000:0"
     controlVIP: 172.30.0.1/32
     defaultMaxPathsEBGP: 64
+    domains:
+      default:
+        gatewayASN: 65534
+        spineASN: 65100
     eslagESIPrefix: "00:f2:00:00:"
     eslagMACBase: f2:00:00:00:00:00
     fabricMTU: 9100
