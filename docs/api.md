@@ -3253,9 +3253,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `leafASNStart` _integer_ | LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from |  |  |
 | `leafASNEnd` _integer_ | LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from |  |  |
-| `fabricMTU` _integer_ | FabricMTU minus ServerFacingMTUOffset is the MTU of server-facing ports, links between switches<br />keep the port default (defaulted from the controller config) |  |  |
-| `serverFacingMTUOffset` _integer_ | ServerFacingMTUOffset is subtracted from FabricMTU on server-facing ports (defaulted from the controller config) |  |  |
-| `defaultMaxPathsEBGP` _integer_ | DefaultMaxPathsEBGP is the eBGP maximum-paths used when nothing more specific is set (defaulted from the controller config) |  |  |
 | `disableBFD` _boolean_ | DisableBFD disables BFD on the links between switches and on the sessions with the gateways |  |  |
 | `domains` _object (keys:string, values:[FabricDomainSpec](#fabricdomainspec))_ | Domains is the set of spine layers in this Fabric, at least one is required |  |  |
 

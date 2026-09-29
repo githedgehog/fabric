@@ -771,11 +771,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 	}
 
 	if fabricCfg != nil {
-		fabric, err := GetFabricSpec(ctx, kube, fabricCfg, conn.Namespace, conn.Spec.Topology.Fabric)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get fabric: %w", err)
-		}
-		if err := conn.Spec.ValidateServerFacingMTU(fabric.FabricMTU, fabric.ServerFacingMTUOffset); err != nil {
+		if err := conn.Spec.ValidateServerFacingMTU(fabricCfg.FabricMTU, fabricCfg.ServerFacingMTUOffset); err != nil {
 			return nil, err
 		}
 	}
