@@ -19,7 +19,11 @@ spec:
     singular: gatewaygroup
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.topology.fabric
+      name: Fabric
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: GatewayGroup is the Schema for the gatewaygroups API
