@@ -2,61 +2,20 @@ apiVersion: agent.githedgehog.com/v1beta1
 kind: Agent
 metadata:
   creationTimestamp: "2026-01-16T00:09:01Z"
-  generation: 8
+  generation: 2
   labels:
     fabric.githedgehog.com/profile: vs
-    switchgroup.fabric.githedgehog.com/eslag-1: "true"
     vlanns.fabric.githedgehog.com/default: "true"
-  name: leaf-03
+  name: spine-01
   namespace: default
-  resourceVersion: "31829"
-  uid: 5195a27e-a1b7-4f2d-8cf3-4b7fe5bf7a08
+  resourceVersion: "31931"
+  uid: b5034c95-327c-41bb-93e9-71839c8d326e
 spec:
   alloy: {}
-  attachedVPCs:
-    vpc-03: true
-    vpc-04: true
-  catalog:
-    connectionIDs:
-      server-05--eslag--leaf-03--leaf-04: 1
-      server-06--eslag--leaf-03--leaf-04: 2
-    externalIDs:
-      external-01: 10
-    irbVLANs:
-      ext@external-01: 3003
-      vpc-01: 3001
-      vpc-03: 3002
-      vpc-04: 3000
-    portChannelIDs:
-      server-05--eslag--leaf-03--leaf-04: 2
-      server-06--eslag--leaf-03--leaf-04: 1
-      server-08--bundled--leaf-04: 3
-    subnetIDs:
-      0.0.0.0/0: 106
-      10.0.1.0/24: 105
-      10.0.2.0/24: 104
-      10.0.5.0/24: 103
-      10.0.6.0/24: 100
-      10.0.7.0/24: 102
-      10.0.8.0/24: 101
-    vpcSubnetVNIs:
-      vpc-01:
-        subnet-01: 201
-        subnet-02: 202
-      vpc-03:
-        subnet-01: 302
-        subnet-02: 301
-      vpc-04:
-        subnet-01: 401
-        subnet-02: 402
-    vpcVNIs:
-      ext@external-01: 100
-      vpc-01: 200
-      vpc-03: 300
-      vpc-04: 400
+  catalog: {}
   config:
     alloy:
-      hostname: leaf-03
+      hostname: spine-01
       kube: {}
       logFiles:
         agent:
@@ -101,6 +60,9 @@ spec:
       default:
         gatewayASN: 65534
         spineASN: 65100
+      plane-b:
+        gatewayASN: 65011
+        spineASN: 65010
     eslagESIPrefix: "00:f2:00:00:"
     eslagMACBase: f2:00:00:00:00:00
     fabricMTU: 9100
@@ -124,99 +86,92 @@ spec:
     spineLeaf: {}
     vpcLoopbackSubnet: 172.30.96.0/19
     vtepSubnet: 172.30.12.0/22
-  configuredVPCSubnets:
-    vpc-03/subnet-01: true
-    vpc-03/subnet-02: true
-    vpc-04/subnet-01: true
   connections:
-    leaf-03--external:
-      external:
-        link:
-          switch:
-            port: leaf-03/E1/1
-    server-05--eslag--leaf-03--leaf-04:
-      eslag:
+    spine-01--fabric--leaf-01:
+      fabric:
         links:
-          - server:
-              port: server-05/enp2s1
-            switch:
-              port: leaf-03/E1/2
-          - server:
-              port: server-05/enp2s2
-            switch:
-              port: leaf-04/E1/1
-    server-06--eslag--leaf-03--leaf-04:
-      eslag:
+          - leaf:
+              ip: 172.30.128.1/31
+              port: leaf-01/E1/8
+            spine:
+              ip: 172.30.128.0/31
+              port: spine-01/E1/1
+          - leaf:
+              ip: 172.30.128.3/31
+              port: leaf-01/E1/9
+            spine:
+              ip: 172.30.128.2/31
+              port: spine-01/E1/2
+    spine-01--fabric--leaf-02:
+      fabric:
         links:
-          - server:
-              port: server-06/enp2s1
-            switch:
-              port: leaf-03/E1/3
-          - server:
-              port: server-06/enp2s2
-            switch:
-              port: leaf-04/E1/2
-    server-07--unbundled--leaf-03:
-      unbundled:
-        link:
-          server:
-            port: server-07/enp2s1
-          switch:
-            port: leaf-03/E1/4
+          - leaf:
+              ip: 172.30.128.5/31
+              port: leaf-02/E1/9
+            spine:
+              ip: 172.30.128.4/31
+              port: spine-01/E1/3
+          - leaf:
+              ip: 172.30.128.7/31
+              port: leaf-02/E1/10
+            spine:
+              ip: 172.30.128.6/31
+              port: spine-01/E1/4
     spine-01--fabric--leaf-03:
       fabric:
         links:
           - leaf:
+              ip: 172.30.128.9/31
               port: leaf-03/E1/5
             spine:
+              ip: 172.30.128.8/31
               port: spine-01/E1/5
           - leaf:
+              ip: 172.30.128.11/31
               port: leaf-03/E1/6
             spine:
+              ip: 172.30.128.10/31
               port: spine-01/E1/6
-    spine-02--fabric--leaf-03:
+    spine-01--fabric--leaf-04:
       fabric:
         links:
           - leaf:
-              port: leaf-03/E1/7
+              ip: 172.30.128.13/31
+              port: leaf-04/E1/5
             spine:
-              port: spine-02/E1/5
+              ip: 172.30.128.12/31
+              port: spine-01/E1/7
           - leaf:
-              port: leaf-03/E1/8
+              ip: 172.30.128.15/31
+              port: leaf-04/E1/6
             spine:
-              port: spine-02/E1/6
-  description: VS-03 ESLAG 1
-  externalAttachments:
-    leaf-03--external-01:
-      connection: leaf-03--external
-      external: external-01
-      neighbor:
-        asn: 64102
-        ip: 100.1.10.6
-      switch:
-        ip: 100.1.10.1/24
-        vlan: 10
-  externalPeerings:
-    vpc-01--external-01:
-      permit:
-        external:
-          name: external-01
-          prefixes:
-            - prefix: 0.0.0.0/0
-        vpc:
-          name: vpc-01
-          subnets:
-            - subnet-01
-    vpc-03--external-01:
-      permit:
-        external:
-          name: external-01
-          prefixes:
-            - prefix: 0.0.0.0/0
-        vpc:
-          name: vpc-03
-          subnets:
-            - subnet-01
+              ip: 172.30.128.14/31
+              port: spine-01/E1/8
+    spine-01--fabric--leaf-05:
+      fabric:
+        links:
+          - leaf:
+              ip: 172.30.128.17/31
+              port: leaf-05/E1/4
+            spine:
+              ip: 172.30.128.16/31
+              port: spine-01/E1/9
+          - leaf:
+              ip: 172.30.128.19/31
+              port: leaf-05/E1/5
+            spine:
+              ip: 172.30.128.18/31
+              port: spine-01/E1/10
+    spine-01--gateway--gateway-1:
+      gateway:
+        links:
+          - gateway:
+              ip: 172.30.128.21/31
+              port: gateway-1/enp2s1
+            switch:
+              ip: 172.30.128.20/31
+              port: spine-01/E1/11
+  description: VS-06
   externals:
     external-01:
       inboundCommunity: 65102:1000
@@ -226,37 +181,30 @@ spec:
     default:
       subnets:
         - 10.0.0.0/16
-  redundancyGroupPeers:
-    - leaf-04
-  role: server-leaf
+  role: spine
   statusUpdates:
     - apiVersion: wiring.githedgehog.com/v1beta1
       generation: 1
       kind: Switch
-      name: leaf-03
+      name: spine-01
       namespace: default
   switch:
-    asn: 65102
+    asn: 65100
     boot:
-      mac: 0c:20:12:ff:02:00
-    description: VS-03 ESLAG 1
+      mac: 0c:20:12:ff:05:00
+    description: VS-06
     ecmp: {}
     linkFlapErrDisable:
       flapThreshold: 3
       samplingInterval: 30
       recoveryInterval: 300
-    groups:
-      - eslag-1
-    ip: 172.30.0.11/21
+    ip: 172.30.0.7/21
     profile: vs
-    protocolIP: 172.30.8.4/32
-    redundancy:
-      group: eslag-1
-      type: eslag
-    role: server-leaf
+    protocolIP: 172.30.8.0/32
+    redundancy: {}
+    role: spine
     vlanNamespaces:
       - default
-    vtepIP: 172.30.12.1/32
   switchProfile:
     config:
       maxPathsEBGP: 16
@@ -513,6 +461,42 @@ spec:
         oniePortName: eth0
     switchSilicon: vs
   switches:
+    leaf-01:
+      asn: 65101
+      boot:
+        mac: 0c:20:12:ff:00:00
+      description: VS-01 MCLAG 1
+      ecmp: {}
+      groups:
+        - mclag-1
+      ip: 172.30.0.9/21
+      profile: vs
+      protocolIP: 172.30.8.2/32
+      redundancy:
+        group: mclag-1
+        type: mclag
+      role: server-leaf
+      vlanNamespaces:
+        - default
+      vtepIP: 172.30.12.0/32
+    leaf-02:
+      asn: 65101
+      boot:
+        mac: 0c:20:12:ff:01:00
+      description: VS-02 MCLAG 1
+      ecmp: {}
+      groups:
+        - mclag-1
+      ip: 172.30.0.10/21
+      profile: vs
+      protocolIP: 172.30.8.3/32
+      redundancy:
+        group: mclag-1
+        type: mclag
+      role: server-leaf
+      vlanNamespaces:
+        - default
+      vtepIP: 172.30.12.0/32
     leaf-03:
       asn: 65102
       boot:
@@ -549,6 +533,20 @@ spec:
       vlanNamespaces:
         - default
       vtepIP: 172.30.12.2/32
+    leaf-05:
+      asn: 65104
+      boot:
+        mac: 0c:20:12:ff:04:00
+      description: VS-05
+      ecmp: {}
+      ip: 172.30.0.13/21
+      profile: vs
+      protocolIP: 172.30.8.6/32
+      redundancy: {}
+      role: server-leaf
+      vlanNamespaces:
+        - default
+      vtepIP: 172.30.12.3/32
     spine-01:
       asn: 65100
       boot:
@@ -558,19 +556,6 @@ spec:
       ip: 172.30.0.7/21
       profile: vs
       protocolIP: 172.30.8.0/32
-      redundancy: {}
-      role: spine
-      vlanNamespaces:
-        - default
-    spine-02:
-      asn: 65100
-      boot:
-        mac: 0c:20:12:ff:06:00
-      description: VS-07
-      ecmp: {}
-      ip: 172.30.0.8/21
-      profile: vs
-      protocolIP: 172.30.8.1/32
       redundancy: {}
       role: spine
       vlanNamespaces:
@@ -611,134 +596,4 @@ spec:
       ranges:
         - from: 1000
           to: 2999
-  vpcAttachments:
-    server-05--eslag--leaf-03--leaf-04--vpc-03--subnet-01:
-      connection: server-05--eslag--leaf-03--leaf-04
-      subnet: vpc-03/subnet-01
-    server-06--eslag--leaf-03--leaf-04--vpc-03--subnet-02:
-      connection: server-06--eslag--leaf-03--leaf-04
-      subnet: vpc-03/subnet-02
-    server-07--unbundled--leaf-03--vpc-04--subnet-01:
-      connection: server-07--unbundled--leaf-03
-      subnet: vpc-04/subnet-01
-  vpcPeers:
-    vpc-03--vpc-04:
-      permit:
-        - vpc-03: {}
-          vpc-04: {}
-  vpcs:
-    vpc-01:
-      ipv4Namespace: default
-      subnets:
-        subnet-01:
-          dhcp:
-            enable: true
-            options:
-              dnsServers:
-                - 1.0.0.1
-                - 1.1.1.1
-              interfaceMTU: 9036
-              leaseTimeSeconds: 3600
-              timeServers:
-                - 219.239.35.0
-            range:
-              end: 10.0.1.255
-              start: 10.0.1.2
-          gateway: 10.0.1.1
-          subnet: 10.0.1.0/24
-          vlan: 1001
-        subnet-02:
-          dhcp:
-            enable: true
-            options:
-              dnsServers:
-                - 1.0.0.1
-                - 1.1.1.1
-              interfaceMTU: 9036
-              leaseTimeSeconds: 3600
-              timeServers:
-                - 219.239.35.0
-            range:
-              end: 10.0.2.255
-              start: 10.0.2.2
-          gateway: 10.0.2.1
-          subnet: 10.0.2.0/24
-          vlan: 1002
-      vlanNamespace: default
-    vpc-03:
-      ipv4Namespace: default
-      subnets:
-        subnet-01:
-          dhcp:
-            enable: true
-            options:
-              dnsServers:
-                - 1.0.0.1
-                - 1.1.1.1
-              interfaceMTU: 9036
-              leaseTimeSeconds: 3600
-              timeServers:
-                - 219.239.35.0
-            range:
-              end: 10.0.5.255
-              start: 10.0.5.2
-          gateway: 10.0.5.1
-          subnet: 10.0.5.0/24
-          vlan: 1005
-        subnet-02:
-          dhcp:
-            enable: true
-            options:
-              dnsServers:
-                - 1.0.0.1
-                - 1.1.1.1
-              interfaceMTU: 9036
-              leaseTimeSeconds: 3600
-              timeServers:
-                - 219.239.35.0
-            range:
-              end: 10.0.6.255
-              start: 10.0.6.2
-          gateway: 10.0.6.1
-          subnet: 10.0.6.0/24
-          vlan: 1006
-      vlanNamespace: default
-    vpc-04:
-      ipv4Namespace: default
-      subnets:
-        subnet-01:
-          dhcp:
-            enable: true
-            options:
-              dnsServers:
-                - 1.0.0.1
-                - 1.1.1.1
-              interfaceMTU: 9036
-              leaseTimeSeconds: 3600
-              timeServers:
-                - 219.239.35.0
-            range:
-              end: 10.0.7.255
-              start: 10.0.7.2
-          gateway: 10.0.7.1
-          subnet: 10.0.7.0/24
-          vlan: 1007
-        subnet-02:
-          dhcp:
-            enable: true
-            options:
-              dnsServers:
-                - 1.0.0.1
-                - 1.1.1.1
-              interfaceMTU: 9036
-              leaseTimeSeconds: 3600
-              timeServers:
-                - 219.239.35.0
-            range:
-              end: 10.0.8.255
-              start: 10.0.8.2
-          gateway: 10.0.8.1
-          subnet: 10.0.8.0/24
-          vlan: 1008
-      vlanNamespace: default
 status: {}

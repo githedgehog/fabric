@@ -464,6 +464,26 @@ spec:
                     type: string
                   disableBFD:
                     type: boolean
+                  domains:
+                    additionalProperties:
+                      description: FabricDomainSpec defines a single spine layer of
+                        a Fabric
+                      properties:
+                        gatewayASN:
+                          description: GatewayASN is the ASN shared by all gateways
+                            attached to this domain, outside the leaf ASN range
+                          format: int32
+                          type: integer
+                        spineASN:
+                          description: SpineASN is the ASN shared by all spines of
+                            this domain, outside the leaf ASN range
+                          format: int32
+                          type: integer
+                      type: object
+                    description: |-
+                      Domains holds every domain of the switch's fabric. It replaces GatewayASN and SpineASN, which
+                      are still filled in for older agents and read only from configs saved before Domains existed.
+                    type: object
                   eslagESIPrefix:
                     type: string
                   eslagMACBase:

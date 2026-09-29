@@ -96,6 +96,8 @@ This route-map serves multiple purposes:
     Additionally, routes that come from static externals or from BGP externals with no inbound community
     will not be matched and their preference will not be increased.
     - it allows any other non-matched prefix through.
+
+    The gateway priority statements are only created on leaves.
     ```
     route-map l2vpn-neighbors permit 1
     match community gw-prio-0
@@ -142,6 +144,29 @@ This route-map serves multiple purposes:
      set local-preference 150
     !
     route-map l2vpn-neighbors permit 65535
+    ```
+1. On a spine in a fabric with several domains, the same route-map first rejects any route with
+another domain's spine ASN in its path, using an AS-path list of those ASNs. A leaf in two domains
+passes on what it learns from the spines of each, so without this the routes of one domain would
+reach every leaf of the other through it. Spines are in exactly one domain, and every route that
+crosses into a domain does so from a shared leaf into one of that domain's spines, so filtering
+there is enough; leaves are left alone, as their statement keys from 1 up are taken by the gateway
+priorities. Nothing is created in a fabric with a single domain. E.g. on a spine of the `default`
+domain, with a second domain whose spine ASN is 65010:
+    ```
+    bgp as-path-list other-domain-spines permit "_65010_"
+    !
+    route-map l2vpn-neighbors deny 1
+     match as-path other-domain-spines
+    !
+    ```
+1. We create an AS-path list with the spine and gateway ASNs of every domain the switch belongs to.
+It is used to reject routes learned from a [BGP-speaking external](#bgp-speaking-externals) that
+went through the fabric already. The other domains' ASNs are left out, so as not to rule out
+routes between domains through an external:
+    ```
+    bgp as-path-list fabric-gw-aspath permit "_65100_"
+    bgp as-path-list fabric-gw-aspath permit "_65534_"
     ```
 1. We create the following prefix-list matching any /32 belonging to the VTEP subnet prefix:
     ```
@@ -512,7 +537,8 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
      ip address 172.30.128.12/31
     ```
 1. create a BGP session with the other host in that /31 range. The ASN of the
-gateway currently comes from config (note: we could use `remote-as external` instead).
+gateway is the gateway ASN of the switch's domain, from the `Fabric` (a switch with a gateway
+connection is in exactly one domain; note: we could use `remote-as external` instead).
 We set `allowas-in` in the L2VPN AF as we used to do for other BGP sessions; **TODO:
 verify whether this still makes any sense, I suspect the answer is no**.
 We also set the `l2vpn-neighbors` route-map in the import direction, which ensures
@@ -1084,6 +1110,7 @@ in the external attachment:
     bgp community-list standard ext-inbound--ext-name permit 65102:1000
     ```
 1. We create several route-maps. In the inbound route-map, used in the import direction from the external:
+  - we deny routes that match the `fabric-gw-aspath` AS-path list (see [Switch Invariants](#switch-invariants))
   - we deny routes that match the IPv4 namespace the external belongs to
   - we allow routes that match the inbound community above (if specified), and set a local preference of 150. If no inbound community was specified, this applies to all routes.
   - we deny everything else (assuming there was an inbound community)
@@ -1095,9 +1122,12 @@ In the outbound route-map, used in the out direction with the external:
 
   ```
   route-map ext-inbound--ext-name deny 5
+   match as-path fabric-gw-aspath
+  !
+  route-map ext-inbound--ext-name deny 10
    match ip address prefix-list ipns-subnets--default
   !
-  route-map ext-inbound--ext-name permit 10
+  route-map ext-inbound--ext-name permit 15
    match community ext-inbound--ext-name
    set local-preference 150
   !
