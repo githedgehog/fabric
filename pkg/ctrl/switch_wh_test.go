@@ -66,6 +66,14 @@ func TestSwitchDomainChange(t *testing.T) {
 		Link:      wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-03/E1/2"}}},
 	}}}
 
+	extConn := &wiringapi.Connection{ObjectMeta: objMeta("leaf-03--external"), Spec: wiringapi.ConnectionSpec{External: &wiringapi.ConnExternal{
+		Link: wiringapi.ConnExternalLink{Switch: wiringapi.NewBasePortName("leaf-03/E1/3")},
+	}}}
+	extAttach := &vpcapi.ExternalAttachment{
+		ObjectMeta: objMeta("ext-1--leaf-03"),
+		Spec:       vpcapi.ExternalAttachmentSpec{External: "ext-1", Connection: "leaf-03--external"},
+	}
+
 	base := []kclient.Object{
 		sw("spine-a", wiringapi.SwitchRoleSpine),
 		sw("leaf-01", wiringapi.SwitchRoleServerLeaf),
@@ -77,6 +85,7 @@ func TestSwitchDomainChange(t *testing.T) {
 		attach("leaf-01"),
 		attach("leaf-02"),
 		&gwapi.Gateway{ObjectMeta: objMeta("gw-1")},
+		&vpcapi.External{ObjectMeta: objMeta("ext-1")},
 	}
 
 	for _, tt := range []struct {
@@ -99,7 +108,7 @@ func TestSwitchDomainChange(t *testing.T) {
 		{
 			name: "leaf moves away from the rest of its vpc",
 			sw:   sw("leaf-01", wiringapi.SwitchRoleServerLeaf, planeB),
-			err:  "vpc vpc-01: switch leaf-0",
+			err:  "it is attached to vpc vpc-01 in domain default",
 		},
 		{
 			name:    "spine moves away from its leaves",
@@ -123,7 +132,18 @@ func TestSwitchDomainChange(t *testing.T) {
 			name:    "static external leaf moves away from the rest of its vpc",
 			sw:      sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
 			objects: []kclient.Object{staticExt},
-			err:     "vpc vpc-01: switch leaf-0",
+			err:     "it is attached to vpc vpc-01 in domain default",
+		},
+		{
+			name:    "border leaf moves away from its external",
+			sw:      sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
+			objects: []kclient.Object{extConn, extAttach},
+			err:     "it is attached to external ext-1 in domain default",
+		},
+		{
+			name:    "border leaf joins a second domain",
+			sw:      sw("leaf-03", wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabricDomain, planeB),
+			objects: []kclient.Object{extConn, extAttach},
 		},
 		{
 			name: "switch with nothing cabled",

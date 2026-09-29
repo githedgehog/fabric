@@ -1226,7 +1226,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used) |  |  |
-| `domain` _string_ | Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).<br />It can't change while the Gateway has connections |  |  |
+| `domain` _string_ | Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).<br />It is immutable |  |  |
 
 
 #### PeeringACL
@@ -2322,6 +2322,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this External belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain the External is in (if not specified, "default" is used). It can<br />only be attached to switches in that domain, and it is immutable |  |  |
 
 
 #### IPv4Namespace
@@ -2789,7 +2790,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this VPC belongs to (if not specified, "default" is used) |  |  |
-| `domain` _string_ | Domain optionally pins the VPC to one Fabric domain, so that attaching it to a switch outside<br />that domain is refused. Without it the VPC is in the domains all its attachment switches share.<br />It is immutable |  |  |
+| `domain` _string_ | Domain is the Fabric domain the VPC is in (if not specified, "default" is used). It can only be<br />attached to switches in that domain, and it is immutable |  |  |
 
 
 

@@ -277,6 +277,9 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			if !slices.Contains(sw.Spec.VLANNamespaces, vpc.Spec.VLANNamespace) {
 				return nil, errors.Errorf("switch %s used in connection doesn't have vlan namespace %s", switchName, vpc.Spec.VLANNamespace)
 			}
+			if vpcDomain, swDomains := wiringapi.DomainNameOrDefault(vpc.Spec.Topology.Domain), wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Contains(swDomains, vpcDomain) {
+				return nil, fmt.Errorf("vpc %s is in domain %s but switch %s is in domains %v", vpcName, vpcDomain, switchName, swDomains) //nolint:err113
+			}
 
 			sp := &wiringapi.SwitchProfile{}
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: attach.Namespace}, sp)
@@ -302,21 +305,6 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			if subnetSpec.HostBGP && sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
 				return nil, errors.Errorf("cannot attach hostBGP subnet to switch %s which is an MCLAG peer", sw.Name)
 			}
-		}
-
-		// a VPC is in the domains all the switches it is on share, so it can't span two domains
-		// that meet only at a shared leaf
-		connNames, err := VPCConnections(ctx, kube, attach.Namespace, vpcName, attach.Name, "")
-		if err != nil {
-			return nil, err
-		}
-		connNames = append(connNames, attach.Spec.Connection)
-		vpcSwitches, err := ConnectionSwitches(ctx, kube, attach.Namespace, connNames)
-		if err != nil {
-			return nil, err
-		}
-		if err := CheckCommonDomain(vpc.Spec.Topology.Domain, vpcSwitches); err != nil {
-			return nil, fmt.Errorf("vpc %s: %w", vpcName, err)
 		}
 
 		attaches := &VPCAttachmentList{}

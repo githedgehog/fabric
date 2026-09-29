@@ -284,9 +284,8 @@ spec:
                 properties:
                   domain:
                     description: |-
-                      Domain optionally pins the VPC to one Fabric domain, so that attaching it to a switch outside
-                      that domain is refused. Without it the VPC is in the domains all its attachment switches share.
-                      It is immutable
+                      Domain is the Fabric domain the VPC is in (if not specified, "default" is used). It can only be
+                      attached to switches in that domain, and it is immutable
                     type: string
                   fabric:
                     description: Fabric is the name of the Fabric this VPC belongs

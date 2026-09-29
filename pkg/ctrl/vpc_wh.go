@@ -74,7 +74,7 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, new
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 	// so that a VPC update never has to re-check its attachments
-	if oldVPC.Spec.Topology.Domain != newVPC.Spec.Topology.Domain {
+	if wiringapi.DomainNameOrDefault(oldVPC.Spec.Topology.Domain) != wiringapi.DomainNameOrDefault(newVPC.Spec.Topology.Domain) {
 		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
 	}
 

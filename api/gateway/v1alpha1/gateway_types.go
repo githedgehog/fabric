@@ -31,7 +31,7 @@ type GatewayTopology struct {
 	// Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
 	// Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).
-	// It can't change while the Gateway has connections
+	// It is immutable
 	Domain string `json:"domain,omitempty"`
 }
 

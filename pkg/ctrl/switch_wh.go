@@ -191,38 +191,18 @@ func (w *SwitchWebhook) validateDomainChange(ctx context.Context, sw *wiringapi.
 		if err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: sw.Namespace}, vpc); err != nil {
 			return fmt.Errorf("failed to get vpc %s: %w", vpcName, err) // TODO replace with some internal error to not expose to the user
 		}
-		vpcConns, err := vpcapi.VPCConnections(ctx, w.KubeClient, sw.Namespace, vpcName, "", "")
-		if err != nil {
-			return err //nolint:wrapcheck
-		}
-		switches, err := vpcapi.ConnectionSwitches(ctx, w.KubeClient, sw.Namespace, vpcConns)
-		if err != nil {
-			return err //nolint:wrapcheck
-		}
-		switches[sw.Name] = sw
-		if err := vpcapi.CheckCommonDomain(vpc.Spec.Topology.Domain, switches); err != nil {
-			return fmt.Errorf("vpc %s: %w", vpcName, err)
+		if vpcDomain := wiringapi.DomainNameOrDefault(vpc.Spec.Topology.Domain); !slices.Contains(swDomains, vpcDomain) {
+			return fmt.Errorf("it is attached to vpc %s in domain %s", vpcName, vpcDomain) //nolint:err113
 		}
 	}
 
 	for extName := range extNames {
-		attaches := &vpcapi.ExternalAttachmentList{}
-		if err := w.KubeClient.List(ctx, attaches, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{vpcapi.LabelExternal: extName}); err != nil {
-			return fmt.Errorf("failed to list external attachments: %w", err) // TODO replace with some internal error to not expose to the user
+		ext := &vpcapi.External{}
+		if err := w.KubeClient.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: sw.Namespace}, ext); err != nil {
+			return fmt.Errorf("failed to get external %s: %w", extName, err) // TODO replace with some internal error to not expose to the user
 		}
-		attachConns := []string{}
-		for _, attach := range attaches.Items {
-			if attach.Spec.External == extName {
-				attachConns = append(attachConns, attach.Spec.Connection)
-			}
-		}
-		switches, err := vpcapi.ConnectionSwitches(ctx, w.KubeClient, sw.Namespace, attachConns)
-		if err != nil {
-			return err //nolint:wrapcheck
-		}
-		switches[sw.Name] = sw
-		if err := vpcapi.CheckCommonDomain("", switches); err != nil {
-			return fmt.Errorf("external %s: %w", extName, err)
+		if extDomain := wiringapi.DomainNameOrDefault(ext.Spec.Topology.Domain); !slices.Contains(swDomains, extDomain) {
+			return fmt.Errorf("it is attached to external %s in domain %s", extName, extDomain) //nolint:err113
 		}
 	}
 

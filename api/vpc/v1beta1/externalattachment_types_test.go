@@ -126,6 +126,14 @@ func TestExternalAttachmentValidation(t *testing.T) {
 	}
 	// Fabric/default is not in the objects, so it comes from this
 	asnCfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
+	leafOnB := &wiringapi.Switch{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
+		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b"}}},
+	}
+	extOnB := &v1beta1.External{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "external-03", Namespace: kmetav1.NamespaceDefault},
+		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", Topology: v1beta1.ExternalTopology{Domain: "plane-b"}},
+	}
 	withNeighborASN := func(asn uint32) func(*v1beta1.ExternalAttachment) {
 		return func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.ASN = asn }
 	}
@@ -195,6 +203,18 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			objects: withObjs(baseObjs,
 				staticExtAttGen("no-clash")),
 			err: false,
+		},
+		{
+			name:    "switch outside the external's domain",
+			extAtt:  l3ExtAttGen("ext-att-08b"),
+			objects: withObjs(baseObjs, leafOnB),
+			err:     true,
+		},
+		{
+			name:    "switch in the external's domain",
+			extAtt:  l3ExtAttGen("ext-att-08c", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-03" }),
+			objects: withObjs(baseObjs, leafOnB, extOnB),
+			err:     false,
 		},
 		{
 			name:    "static attach with both proxy and IP specified",
