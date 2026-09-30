@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -138,6 +141,16 @@ func TestExternalValidation(t *testing.T) {
 			err: true,
 		},
 		{
+			// the BGP attachments added while migrating from static need it from the start
+			name: "l2 with localASN",
+			external: extGen("valid-st", func(ext *v1beta1.External) {
+				ext.Spec.LocalASN = 64999
+				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
+					Prefixes: []string{"0.0.0.0/0"},
+				}
+			}),
+		},
+		{
 			name: "l2 with invalid prefix",
 			external: extGen("invalid-st", func(ext *v1beta1.External) {
 				ext.Spec.Static = &v1beta1.ExternalStaticSpec{
@@ -159,6 +172,115 @@ func TestExternalValidation(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestExternalLocalASNValidation(t *testing.T) {
+	ipns := &v1beta1.IPv4Namespace{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
+		Spec:       v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
+	}
+	backendFabric := &wiringapi.Fabric{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 64101,
+			LeafASNEnd:   64199,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
+		},
+	}
+	backendExt := &v1beta1.External{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "backend-ext", Namespace: kmetav1.NamespaceDefault},
+		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "backend", Topology: v1beta1.ExternalTopology{Fabric: "backend"}, LocalASN: 64999},
+	}
+	attach := l3ExtAttGen("ext-att-01", func(att *v1beta1.ExternalAttachment) {
+		att.Spec.External = "external-01"
+		att.Spec.Neighbor.ASN = 64000
+	})
+	// Fabric/default is not in the objects, so it comes from this
+	cfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
+	withLocalASN := func(asn uint32) *v1beta1.External {
+		return extGen("external-01", func(ext *v1beta1.External) { ext.Spec.LocalASN = asn })
+	}
+
+	tests := []struct {
+		name     string
+		external *v1beta1.External
+		objects  []kclient.Object
+		err      bool
+		warns    bool
+	}{
+		{
+			name:     "valid localASN",
+			external: withLocalASN(64999),
+			objects:  []kclient.Object{ipns, backendFabric, attach},
+		},
+		{
+			name:     "localASN in own fabric leaf range",
+			external: withLocalASN(65150),
+			objects:  []kclient.Object{ipns},
+			err:      true,
+		},
+		{
+			name:     "localASN is own fabric spine ASN",
+			external: withLocalASN(65100),
+			objects:  []kclient.Object{ipns},
+			err:      true,
+		},
+		{
+			name:     "localASN is own fabric gateway ASN",
+			external: withLocalASN(65534),
+			objects:  []kclient.Object{ipns},
+			err:      true,
+		},
+		{
+			name:     "localASN is an attachment neighbor ASN",
+			external: withLocalASN(64000),
+			objects:  []kclient.Object{ipns, attach},
+			err:      true,
+		},
+		{
+			name:     "localASN in another fabric leaf range",
+			external: withLocalASN(64150),
+			objects:  []kclient.Object{ipns, backendFabric},
+			warns:    true,
+		},
+		{
+			name:     "localASN shared with an external of another fabric",
+			external: withLocalASN(64999),
+			objects:  []kclient.Object{ipns, backendFabric, backendExt},
+			warns:    true,
+		},
+		{
+			name:     "localASN shared with an external of the same fabric",
+			external: withLocalASN(64999),
+			objects: []kclient.Object{ipns, extGen("other", func(ext *v1beta1.External) {
+				ext.Spec.LocalASN = 64999
+			})},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(test.objects...).
+				Build()
+			warns, err := test.external.Validate(t.Context(), kube, cfg)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			if test.warns {
+				require.NotEmpty(t, warns)
+			} else {
+				require.Empty(t, warns)
 			}
 		})
 	}

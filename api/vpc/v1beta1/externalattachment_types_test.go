@@ -376,6 +376,17 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			cfg:     asnCfg,
 			err:     true,
 		},
+		{
+			name: "BGP neighbor ASN is the external localASN",
+			extAtt: l3ExtAttGen("ext-att-01", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.External = "ext-local"
+			}),
+			objects: withObjs(baseObjs, &v1beta1.External{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "ext-local", Namespace: kmetav1.NamespaceDefault},
+				Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
+			}),
+			err: true,
+		},
 	}
 
 	scheme := runtime.NewScheme()
