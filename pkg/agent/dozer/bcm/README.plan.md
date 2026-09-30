@@ -151,8 +151,12 @@ passes on what it learns from the spines of each, so without this the routes of 
 reach every leaf of the other through it. Spines are in exactly one domain, and every route that
 crosses into a domain does so from a shared leaf into one of that domain's spines, so filtering
 there is enough; leaves are left alone, as their statement keys from 1 up are taken by the gateway
-priorities. Nothing is created in a fabric with a single domain. E.g. on a spine of the `default`
-domain, with a second domain whose spine ASN is 65010:
+priorities. This also rejects a route that left one domain through an external and came back
+into another, as the external keeps the fabric's AS-path: the domains of a fabric reach each other
+through a gateway or a VPC on the shared leaves, never through an external. Other fabrics are not
+affected, as the list only holds the spine ASNs of the switch's own fabric. Nothing is created in a
+fabric with a single domain. E.g. on a spine of the `default` domain, with a second domain whose
+spine ASN is 65010:
     ```
     bgp as-path-list other-domain-spines permit "_65010_"
     !
@@ -162,8 +166,9 @@ domain, with a second domain whose spine ASN is 65010:
     ```
 1. We create an AS-path list with the spine and gateway ASNs of every domain the switch belongs to.
 It is used to reject routes learned from a [BGP-speaking external](#bgp-speaking-externals) that
-went through the fabric already. The other domains' ASNs are left out, so as not to rule out
-routes between domains through an external:
+went through the fabric already. The other domains' ASNs are left out: a route through another
+domain of the fabric is dropped by the spine filter above anyway, but other fabrics' ASNs must not
+be listed, as fabrics reach each other through externals:
     ```
     bgp as-path-list fabric-gw-aspath permit "_65100_"
     bgp as-path-list fabric-gw-aspath permit "_65534_"
