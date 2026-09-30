@@ -526,6 +526,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, errors.Wrapf(err, "error listing externals")
 	}
 	for _, ext := range externalList.Items {
+		// filtered on the spec, not the fabric label, which objects from before fabrics don't carry
+		if wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric) != wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric) {
+			continue
+		}
+
 		externals[ext.Name] = ext.Spec
 		benchTouch = maxBenchTouch(benchTouch, &ext)
 		if attachedExternals[ext.Name] {
@@ -578,6 +583,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	ipv4Namespaces := map[string]vpcapi.IPv4NamespaceSpec{}
 	for _, ns := range ipv4NamespaceList.Items {
+		if wiringapi.FabricNameOrDefault(ns.Spec.Topology.Fabric) != wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric) {
+			continue
+		}
+
 		ipv4Namespaces[ns.Name] = ns.Spec
 		benchTouch = maxBenchTouch(benchTouch, &ns)
 	}
