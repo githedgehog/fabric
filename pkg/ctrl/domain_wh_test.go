@@ -30,9 +30,13 @@ func TestTopologyDomainImmutable(t *testing.T) {
 	gw := func(domain string) *gwapi.Gateway {
 		return &gwapi.Gateway{Spec: gwapi.GatewaySpec{Topology: gwapi.GatewayTopology{Domain: domain}}}
 	}
+	gwGr := func(domain string) *gwapi.GatewayGroup {
+		return &gwapi.GatewayGroup{Spec: gwapi.GatewayGroupSpec{Topology: gwapi.GatewayGroupTopology{Domain: domain}}}
+	}
 	vpcWh := &VPCWebhook{KubeClient: kube}
 	extWh := &ExternalWebhook{KubeClient: kube}
 	gwWh := &GatewayWebhook{Reader: kube}
+	gwGrWh := &GatewayGroupWebhook{Reader: kube}
 
 	for _, tt := range []struct {
 		name      string
@@ -77,6 +81,16 @@ func TestTopologyDomainImmutable(t *testing.T) {
 		}},
 		{name: "gateway domain defaulted", update: func() error {
 			_, err := gwWh.ValidateUpdate(t.Context(), gw(""), gw(wiringapi.DefaultFabricDomain))
+
+			return err
+		}},
+		{name: "gateway group domain changed", immutable: true, update: func() error {
+			_, err := gwGrWh.ValidateUpdate(t.Context(), gwGr(wiringapi.DefaultFabricDomain), gwGr("plane-b"))
+
+			return err
+		}},
+		{name: "gateway group domain defaulted", update: func() error {
+			_, err := gwGrWh.ValidateUpdate(t.Context(), gwGr(""), gwGr(wiringapi.DefaultFabricDomain))
 
 			return err
 		}},

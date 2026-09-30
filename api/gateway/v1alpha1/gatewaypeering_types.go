@@ -522,6 +522,8 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		if groupFabric := wiringapi.FabricNameOrDefault(gwGroup.Spec.Topology.Fabric); groupFabric != peeringFabric {
 			return fmt.Errorf("peering is in fabric %s but gateway group %s is in fabric %s", peeringFabric, p.Spec.GatewayGroup, groupFabric) //nolint:err113
 		}
+		// the gateways handling the peering are reachable only from leaves in their domain
+		groupDomain := wiringapi.DomainNameOrDefault(gwGroup.Spec.Topology.Domain)
 
 		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
 			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, p); err != nil {
@@ -547,6 +549,9 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				if extFabric := wiringapi.FabricNameOrDefault(external.Spec.Topology.Fabric); extFabric != peeringFabric {
 					return fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, extName, extFabric) //nolint:err113
 				}
+				if extDomain := wiringapi.DomainNameOrDefault(external.Spec.Topology.Domain); extDomain != groupDomain {
+					return fmt.Errorf("gateway group %s is in domain %s but external %s is in domain %s", p.Spec.GatewayGroup, groupDomain, extName, extDomain) //nolint:err113
+				}
 
 				// checking whether the prefix is part of the external is possible only if the external
 				// is static, as we know exactly which prefixes are reachable in that case. For BGP speaking
@@ -563,6 +568,9 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			}
 			if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
 				return fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric) //nolint:err113
+			}
+			if vpcDomains := wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains); !slices.Contains(vpcDomains, groupDomain) {
+				return fmt.Errorf("gateway group %s is in domain %s but vpc %s is in domains %v", p.Spec.GatewayGroup, groupDomain, vpcName, vpcDomains) //nolint:err113
 			}
 
 			peeringVPCs[vpcName] = &vpc

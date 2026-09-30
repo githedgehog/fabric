@@ -23,6 +23,9 @@ spec:
     - jsonPath: .spec.topology.fabric
       name: Fabric
       type: string
+    - jsonPath: .spec.topology.domain
+      name: Domain
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -52,6 +55,11 @@ spec:
                 description: Topology is where the GatewayGroup sits in the fabric
                   topology
                 properties:
+                  domain:
+                    description: |-
+                      Domain is the Fabric domain of the gateways in this group (if not specified, "default" is used).
+                      Only gateways in that domain can join it, and it is immutable
+                    type: string
                   fabric:
                     description: Fabric is the name of the Fabric this GatewayGroup
                       belongs to (if not specified, "default" is used)

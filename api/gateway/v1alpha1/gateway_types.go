@@ -540,18 +540,22 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		if err := kube.List(ctx, gwGroupList, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
 			return fmt.Errorf("listing gateway groups: %w", err)
 		}
-		gwGroupFabrics := map[string]string{}
+		gwGroupTopologies := map[string]GatewayGroupTopology{}
 		for _, gwGroup := range gwGroupList.Items {
-			gwGroupFabrics[gwGroup.Name] = wiringapi.FabricNameOrDefault(gwGroup.Spec.Topology.Fabric)
+			gwGroupTopologies[gwGroup.Name] = gwGroup.Spec.Topology
 		}
 		gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric)
+		gwDomain := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
 		for _, gwGroup := range gw.Spec.Groups {
-			groupFabric, exists := gwGroupFabrics[gwGroup.Name]
+			groupTopology, exists := gwGroupTopologies[gwGroup.Name]
 			if !exists {
 				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
 			}
-			if groupFabric != gwFabric {
+			if groupFabric := wiringapi.FabricNameOrDefault(groupTopology.Fabric); groupFabric != gwFabric {
 				return fmt.Errorf("gateway is in fabric %s but gateway group %s is in fabric %s: %w", gwFabric, gwGroup.Name, groupFabric, ErrInvalidGW)
+			}
+			if groupDomain := wiringapi.DomainNameOrDefault(groupTopology.Domain); groupDomain != gwDomain {
+				return fmt.Errorf("gateway is in domain %s but gateway group %s is in domain %s: %w", gwDomain, gwGroup.Name, groupDomain, ErrInvalidGW)
 			}
 			if fabricCfg != nil && len(fabricCfg.GatewayCommunities) > 0 && gwGroupMembers[gwGroup.Name] >= len(fabricCfg.GatewayCommunities) {
 				return fmt.Errorf("gateway group %s already has too many members (%d), max is %d: %w", gwGroup.Name, gwGroupMembers[gwGroup.Name], len(fabricCfg.GatewayCommunities), ErrInvalidGW)
