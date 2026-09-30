@@ -267,7 +267,6 @@ spec:
     role: server-leaf
     topology:
       domains:
-        - default
         - plane-b
     vlanNamespaces:
       - default

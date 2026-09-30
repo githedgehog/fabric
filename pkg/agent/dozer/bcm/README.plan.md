@@ -164,7 +164,8 @@ spine ASN is 65010:
      match as-path other-domain-spines
     !
     ```
-1. We create an AS-path list with the spine and gateway ASNs of every domain the switch belongs to.
+1. We create an AS-path list with the spine and gateway ASNs of the switch's domain (a switch with an
+external connection is in exactly one).
 It is used to reject routes learned from a [BGP-speaking external](#bgp-speaking-externals) that
 went through the fabric already. The other domains' ASNs are left out: a route through another
 domain of the fabric is dropped by the spine filter above anyway, but other fabrics' ASNs must not
