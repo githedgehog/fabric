@@ -1512,7 +1512,8 @@ spec:
                       domains:
                         description: |-
                           Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
-                          A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable
+                          A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+                          and the switches of a redundancy group must be in the same domains
                         items:
                           type: string
                         type: array
@@ -1905,7 +1906,8 @@ spec:
                         domains:
                           description: |-
                             Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
-                            A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable
+                            A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+                            and the switches of a redundancy group must be in the same domains
                           items:
                             type: string
                           type: array

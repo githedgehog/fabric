@@ -3922,7 +3922,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used) |  |  |
-| `domains` _string array_ | Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).<br />A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable |  |  |
+| `domains` _string array_ | Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).<br />A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,<br />and the switches of a redundancy group must be in the same domains |  |  |
 
 
 #### VLANNamespace

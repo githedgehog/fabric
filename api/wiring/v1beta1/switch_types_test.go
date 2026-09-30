@@ -594,15 +594,16 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			objects: []kclient.Object{swGen(leaf2, eslag, domains("plane-b", "default"))},
 		},
 		{
-			name:    "redundancy group sharing a domain, joining another one at a time",
+			name:    "redundancy group sharing only some domains",
 			sw:      swGen(eslag, domains("default", "plane-b")),
 			objects: []kclient.Object{swGen(leaf2, eslag)},
+			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
 		},
 		{
 			name:    "redundancy group sharing no domain",
 			sw:      swGen(eslag, domains("plane-b")),
 			objects: []kclient.Object{swGen(leaf2, eslag)},
-			err:     "switch shares no domain with the other switches of redundancy group eslag-1, switch leaf-02 is in domains [default]",
+			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
 		},
 		{
 			name: "redundancy group member written before domains existed",

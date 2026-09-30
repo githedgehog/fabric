@@ -112,7 +112,8 @@ type SwitchTopology struct {
 	// Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
 	// Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
-	// A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable
+	// A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+	// and the switches of a redundancy group must be in the same domains
 	Domains []string `json:"domains,omitempty"`
 }
 
@@ -632,24 +633,18 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 
 		// switches in an ESLAG group that don't share a domain never exchange the EVPN routes
-		// multihoming needs for DF election and split horizon. A shared domain rather than the
-		// same domains, so that switches of a group can join a domain one at a time
+		// multihoming needs for DF election and split horizon
 		if group := sw.Spec.Redundancy.Group; group != "" {
 			switches := &SwitchList{}
 			if err := kube.List(ctx, switches, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{ListLabelSwitchGroup(group): ListLabelValue}); err != nil {
 				return nil, fmt.Errorf("failed to list switches: %w", err) // TODO replace with some internal error to not expose to the user
 			}
-			common := domains
 			for _, other := range switches.Items {
 				if other.Name == sw.Name || other.Spec.Redundancy.Group != group {
 					continue
 				}
-				otherDomains := DomainsOrDefault(other.Spec.Topology.Domains)
-				common = slices.DeleteFunc(slices.Clone(common), func(domain string) bool {
-					return !slices.Contains(otherDomains, domain)
-				})
-				if len(common) == 0 {
-					return nil, fmt.Errorf("switch shares no domain with the other switches of redundancy group %s, switch %s is in domains %v", group, other.Name, otherDomains) //nolint:err113
+				if otherDomains := slices.Sorted(slices.Values(DomainsOrDefault(other.Spec.Topology.Domains))); !slices.Equal(domains, otherDomains) {
+					return nil, fmt.Errorf("switches of redundancy group %s must be in the same domains, switch %s is in domains %v", group, other.Name, otherDomains) //nolint:err113
 				}
 			}
 		}
