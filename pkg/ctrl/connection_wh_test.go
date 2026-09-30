@@ -38,7 +38,7 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	}
 
 	vpcPinnedB := vpc.DeepCopy()
-	vpcPinnedB.Spec.Topology.Domain = "plane-b"
+	vpcPinnedB.Spec.Topology.Domains = []string{"plane-b"}
 	leaf := &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
 		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
@@ -81,11 +81,11 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		{name: "static external, vpc in the same fabric", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leaf}},
 		{
 			name: "static external, vpc pinned to another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpcPinnedB, leaf},
-			err: "vpc vpc-01 is in domain plane-b but switch leaf-01 is in domains [default]",
+			err: "vpc vpc-01 is in domains [plane-b] but switch leaf-01 is in domains [default]",
 		},
 		{
 			name: "static external, vpc without a domain on a leaf in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leafOnB},
-			err: "vpc vpc-01 is in domain default but switch leaf-01 is in domains [plane-b]",
+			err: "vpc vpc-01 is in domains [default] but switch leaf-01 is in domains [plane-b]",
 		},
 		{name: "static external, vpc in another fabric", conn: staticExternal("default"), objects: []kclient.Object{vpc}, err: "vpc vpc-01 is in fabric backend"},
 		{name: "gateway in the same fabric", conn: gateway("backend"), objects: []kclient.Object{gw, spine}},

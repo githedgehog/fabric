@@ -4,6 +4,7 @@
 package v1beta1_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -87,7 +88,7 @@ func TestDomainPin(t *testing.T) {
 		{name: "defaulted", kube: withDefault},
 		{name: "pinned", kube: withDefault, domain: "plane-b"},
 		{name: "pinned to a domain not in the fabric", kube: withDefault, domain: "plane-c", err: "domain plane-c not found in fabric default"},
-		{name: "defaulted, fabric has no default domain", kube: namedOnly, err: "domain default not found in fabric default, topology.domain must name one of its domains"},
+		{name: "defaulted, fabric has no default domain", kube: namedOnly, err: "domain default not found in fabric default"},
 		{name: "pinned, fabric has no default domain", kube: namedOnly, domain: "plane-a"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -96,8 +97,12 @@ func TestDomainPin(t *testing.T) {
 				expected = wiringapi.DefaultFabricDomain
 			}
 
-			vpc := vpcGen("vpc-pin", func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Domain = tt.domain })
-			require.Equal(t, expected, vpc.Spec.Topology.Domain)
+			vpc := vpcGen("vpc-pin", func(vpc *v1beta1.VPC) {
+				if tt.domain != "" {
+					vpc.Spec.Topology.Domains = []string{tt.domain}
+				}
+			})
+			require.Equal(t, []string{expected}, vpc.Spec.Topology.Domains)
 			require.Contains(t, vpc.Labels, wiringapi.ListLabelDomain(expected))
 			_, vpcErr := vpc.Validate(t.Context(), tt.kube, &meta.FabricConfig{})
 
@@ -114,6 +119,57 @@ func TestDomainPin(t *testing.T) {
 				}
 				require.ErrorContains(t, err, tt.err)
 			}
+		})
+	}
+}
+
+func TestVPCDomains(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&v1beta1.IPv4Namespace{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
+				Spec:       v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
+			},
+			&wiringapi.VLANNamespace{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
+				Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
+			},
+			&wiringapi.Fabric{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
+				Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+					"plane-a": {}, "plane-b": {},
+				}},
+			},
+		).
+		Build()
+
+	for _, tt := range []struct {
+		name    string
+		domains []string
+		err     string
+	}{
+		{name: "two domains", domains: []string{"plane-b", "plane-a"}},
+		{name: "one domain not in the fabric", domains: []string{"plane-a", "plane-c"}, err: "domain plane-c not found in fabric default"},
+		{name: "duplicate", domains: []string{"plane-a", "plane-a"}, err: "domains must be unique"},
+		{name: "empty name", domains: []string{"plane-a", ""}, err: "domain name cannot be empty"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			vpc := vpcGen("vpc-domains", func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Domains = slices.Clone(tt.domains) })
+			require.NotContains(t, vpc.Labels, wiringapi.ListLabelDomain(""))
+			_, err := vpc.Validate(t.Context(), kube, &meta.FabricConfig{})
+			if tt.err != "" {
+				require.ErrorContains(t, err, tt.err)
+
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, []string{"plane-a", "plane-b"}, vpc.Spec.Topology.Domains)
+			require.Contains(t, vpc.Labels, wiringapi.ListLabelDomain("plane-a"))
+			require.Contains(t, vpc.Labels, wiringapi.ListLabelDomain("plane-b"))
 		})
 	}
 }

@@ -87,8 +87,9 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: swName, Namespace: conn.Namespace}, sw); err != nil {
 			return fmt.Errorf("failed to get switch %s: %w", swName, err) // TODO replace with some internal error to not expose to the user
 		}
-		if vpcDomain, swDomains := wiringapi.DomainNameOrDefault(vpc.Spec.Topology.Domain), wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Contains(swDomains, vpcDomain) {
-			return fmt.Errorf("vpc %s is in domain %s but switch %s is in domains %v", vpc.Name, vpcDomain, swName, swDomains) //nolint:err113
+		vpcDomains, swDomains := wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains), wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains)
+		if slices.ContainsFunc(vpcDomains, func(domain string) bool { return !slices.Contains(swDomains, domain) }) {
+			return fmt.Errorf("vpc %s is in domains %v but switch %s is in domains %v", vpc.Name, vpcDomains, swName, swDomains) //nolint:err113
 		}
 	}
 

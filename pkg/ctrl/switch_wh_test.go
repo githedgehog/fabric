@@ -108,7 +108,20 @@ func TestSwitchDomainChange(t *testing.T) {
 		{
 			name: "leaf moves away from the rest of its vpc",
 			sw:   sw("leaf-01", wiringapi.SwitchRoleServerLeaf, planeB),
-			err:  "it is attached to vpc vpc-01 in domain default",
+			err:  "it is attached to vpc vpc-01 in domains [default]",
+		},
+		{
+			name: "leaf leaves one of the domains of its vpc",
+			sw:   sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
+			objects: []kclient.Object{
+				unbundled("leaf-03"),
+				&vpcapi.VPC{ObjectMeta: objMeta("vpc-02"), Spec: vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Domains: []string{wiringapi.DefaultFabricDomain, planeB}}}},
+				&vpcapi.VPCAttachment{
+					ObjectMeta: objMeta("vpc-02--leaf-03"),
+					Spec:       vpcapi.VPCAttachmentSpec{Subnet: "vpc-02/default", Connection: "leaf-03--unbundled"},
+				},
+			},
+			err: "it is attached to vpc vpc-02 in domains [default plane-b]",
 		},
 		{
 			name:    "spine moves away from its leaves",
@@ -132,7 +145,7 @@ func TestSwitchDomainChange(t *testing.T) {
 			name:    "static external leaf moves away from the rest of its vpc",
 			sw:      sw("leaf-03", wiringapi.SwitchRoleServerLeaf, planeB),
 			objects: []kclient.Object{staticExt},
-			err:     "it is attached to vpc vpc-01 in domain default",
+			err:     "it is attached to vpc vpc-01 in domains [default]",
 		},
 		{
 			name:    "border leaf moves away from its external",

@@ -48,9 +48,9 @@ func TestVPCAttachmentValidation(t *testing.T) {
 	profile := &wiringapi.SwitchProfile{ObjectMeta: objMeta("profile"), Spec: wiringapi.SwitchProfileSpec{
 		Features: wiringapi.SwitchProfileFeatures{L2VNI: true, L3VNI: true},
 	}}
-	vpcIn := func(domain string) *v1beta1.VPC {
+	vpcIn := func(domains ...string) *v1beta1.VPC {
 		vpc := vpcGen("vpc-01")
-		vpc.Spec.Topology.Domain = domain
+		vpc.Spec.Topology.Domains = domains
 
 		return vpc
 	}
@@ -110,7 +110,7 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			name:    "switch outside the vpc domain",
 			attach:  onUnbundled,
 			objects: []kclient.Object{vpcIn(planeB), unbundled, sw("leaf-01", wiringapi.DefaultFabricDomain)},
-			err:     "vpc vpc-01 is in domain plane-b but switch leaf-01 is in domains [default]",
+			err:     "vpc vpc-01 is in domains [plane-b] but switch leaf-01 is in domains [default]",
 		},
 		{
 			name:    "switch in the vpc domain and another",
@@ -120,14 +120,31 @@ func TestVPCAttachmentValidation(t *testing.T) {
 		{
 			name:    "vpc stored before domains existed, switch in another domain",
 			attach:  onUnbundled,
-			objects: []kclient.Object{vpcIn(""), unbundled, sw("leaf-01", planeB)},
-			err:     "vpc vpc-01 is in domain default but switch leaf-01 is in domains [plane-b]",
+			objects: []kclient.Object{vpcIn(), unbundled, sw("leaf-01", planeB)},
+			err:     "vpc vpc-01 is in domains [default] but switch leaf-01 is in domains [plane-b]",
 		},
 		{
 			name:    "eslag with one switch outside the vpc domain",
 			attach:  onESLAG,
 			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain), eslag, sw("leaf-01"), sw("leaf-02", planeB)},
-			err:     "vpc vpc-01 is in domain default but switch leaf-02 is in domains [plane-b]",
+			err:     "vpc vpc-01 is in domains [default] but switch leaf-02 is in domains [plane-b]",
+		},
+		{
+			name:    "vpc in two domains, switch in both",
+			attach:  onUnbundled,
+			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain, planeB), unbundled, sw("leaf-01", wiringapi.DefaultFabricDomain, planeB)},
+		},
+		{
+			name:    "vpc in two domains, switch in one of them",
+			attach:  onUnbundled,
+			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain, planeB), unbundled, sw("leaf-01", planeB)},
+			err:     "vpc vpc-01 is in domains [default plane-b] but switch leaf-01 is in domains [plane-b]",
+		},
+		{
+			name:    "vpc in two domains, eslag with one switch in only one of them",
+			attach:  onESLAG,
+			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain, planeB), eslag, sw("leaf-01", wiringapi.DefaultFabricDomain, planeB), sw("leaf-02", wiringapi.DefaultFabricDomain)},
+			err:     "vpc vpc-01 is in domains [default plane-b] but switch leaf-02 is in domains [default]",
 		},
 		{
 			name:    "eslag with both switches in the vpc domain",

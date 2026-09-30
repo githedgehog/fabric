@@ -195,8 +195,8 @@ func (w *SwitchWebhook) validateDomainChange(ctx context.Context, sw *wiringapi.
 		if err != nil {
 			return fmt.Errorf("failed to get vpc %s: %w", vpcName, err) // TODO replace with some internal error to not expose to the user
 		}
-		if vpcDomain := wiringapi.DomainNameOrDefault(vpc.Spec.Topology.Domain); !slices.Contains(swDomains, vpcDomain) {
-			return fmt.Errorf("it is attached to vpc %s in domain %s", vpcName, vpcDomain) //nolint:err113
+		if vpcDomains := wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains); slices.ContainsFunc(vpcDomains, func(domain string) bool { return !slices.Contains(swDomains, domain) }) {
+			return fmt.Errorf("it is attached to vpc %s in domains %v", vpcName, vpcDomains) //nolint:err113
 		}
 	}
 

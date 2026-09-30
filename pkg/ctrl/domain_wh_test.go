@@ -21,8 +21,8 @@ func TestTopologyDomainImmutable(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 	kube := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	vpc := func(domain string) *vpcapi.VPC {
-		return &vpcapi.VPC{Spec: vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Domain: domain}}}
+	vpc := func(domains ...string) *vpcapi.VPC {
+		return &vpcapi.VPC{Spec: vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Domains: domains}}}
 	}
 	ext := func(domain string) *vpcapi.External {
 		return &vpcapi.External{Spec: vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Domain: domain}}}
@@ -44,9 +44,19 @@ func TestTopologyDomainImmutable(t *testing.T) {
 
 			return err
 		}},
+		{name: "vpc domain added", immutable: true, update: func() error {
+			_, err := vpcWh.ValidateUpdate(t.Context(), vpc(wiringapi.DefaultFabricDomain), vpc(wiringapi.DefaultFabricDomain, "plane-b"))
+
+			return err
+		}},
 		// stored before domains existed, then defaulted by admission on its first update
 		{name: "vpc domain defaulted", update: func() error {
-			_, err := vpcWh.ValidateUpdate(t.Context(), vpc(""), vpc(wiringapi.DefaultFabricDomain))
+			_, err := vpcWh.ValidateUpdate(t.Context(), vpc(), vpc(wiringapi.DefaultFabricDomain))
+
+			return err
+		}},
+		{name: "vpc domains reordered", update: func() error {
+			_, err := vpcWh.ValidateUpdate(t.Context(), vpc("plane-b", wiringapi.DefaultFabricDomain), vpc(wiringapi.DefaultFabricDomain, "plane-b"))
 
 			return err
 		}},
@@ -74,13 +84,13 @@ func TestTopologyDomainImmutable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.update()
 			if tt.immutable {
-				require.ErrorContains(t, err, "topology.domain is immutable")
+				require.ErrorContains(t, err, "is immutable")
 
 				return
 			}
 			// the rest of validation fails on the bare objects, past the immutability check
 			if err != nil {
-				require.NotContains(t, err.Error(), "topology.domain is immutable")
+				require.NotContains(t, err.Error(), "is immutable")
 			}
 		})
 	}
