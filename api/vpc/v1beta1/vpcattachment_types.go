@@ -277,6 +277,11 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			if !slices.Contains(sw.Spec.VLANNamespaces, vpc.Spec.VLANNamespace) {
 				return nil, errors.Errorf("switch %s used in connection doesn't have vlan namespace %s", switchName, vpc.Spec.VLANNamespace)
 			}
+			// a VPC is reachable from each of its domains only if every switch it is attached to is in all of them
+			vpcDomains, swDomains := wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains), wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains)
+			if slices.ContainsFunc(vpcDomains, func(domain string) bool { return !slices.Contains(swDomains, domain) }) {
+				return nil, fmt.Errorf("vpc %s is in domains %v but switch %s is in domains %v", vpcName, vpcDomains, switchName, swDomains) //nolint:err113
+			}
 
 			sp := &wiringapi.SwitchProfile{}
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: attach.Namespace}, sp)

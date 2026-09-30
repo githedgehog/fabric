@@ -48,6 +48,9 @@ type ExternalStaticSpec struct {
 type ExternalTopology struct {
 	// Fabric is the name of the Fabric this External belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
+	// Domain is the Fabric domain the External is in (if not specified, "default" is used). It can
+	// only be attached to switches in that domain, and it is immutable
+	Domain string `json:"domain,omitempty"`
 }
 
 // ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
@@ -126,6 +129,9 @@ func (external *External) Default() {
 	if external.Spec.Topology.Fabric == "" {
 		external.Spec.Topology.Fabric = wiringapi.DefaultFabric
 	}
+	if external.Spec.Topology.Domain == "" {
+		external.Spec.Topology.Domain = wiringapi.DefaultFabricDomain
+	}
 	if external.Spec.IPv4Namespace == "" {
 		external.Spec.IPv4Namespace = DefaultIPv4Namespace
 	}
@@ -138,9 +144,10 @@ func (external *External) Default() {
 
 	external.Labels[LabelIPv4NS] = external.Spec.IPv4Namespace
 	external.Labels[wiringapi.ListLabelFabric(external.Spec.Topology.Fabric)] = ListLabelValue
+	external.Labels[wiringapi.ListLabelDomain(external.Spec.Topology.Domain)] = ListLabelValue
 }
 
-func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
+func (external *External) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(external); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -210,6 +217,15 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, _ *
 		extFabric := wiringapi.FabricNameOrDefault(external.Spec.Topology.Fabric)
 		if nsFabric := wiringapi.FabricNameOrDefault(ipNs.Spec.Topology.Fabric); nsFabric != extFabric {
 			return nil, fmt.Errorf("external is in fabric %s but its IPv4Namespace %s is in fabric %s", extFabric, ipNs.Name, nsFabric) //nolint:err113
+		}
+
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, external.Namespace, external.Spec.Topology.Fabric)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get fabric: %w", err)
+		}
+		domain := wiringapi.DomainNameOrDefault(external.Spec.Topology.Domain)
+		if _, exists := fabric.Domains[domain]; !exists {
+			return nil, fmt.Errorf("domain %s not found in fabric %s, topology.domain must name one of its domains", domain, extFabric) //nolint:err113
 		}
 	}
 
