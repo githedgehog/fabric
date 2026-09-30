@@ -62,6 +62,22 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 }
 
 func TestGatewayValidate(t *testing.T) {
+	const planeB = "plane-b"
+	twoDomains := withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		"default": {SpineASN: 65100, GatewayASN: 65101},
+		planeB:    {SpineASN: 65098, GatewayASN: 65099},
+	}}})
+	spineIn := func(domains ...string) *wiringapi.Switch {
+		return withName("spine-01", &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: domains}}})
+	}
+	groupB := withName("gr-b", &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: planeB}}})
+	gwConn := withName("spine-01--gateway--gw-1", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
+		Links: []wiringapi.GatewayLink{{
+			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "spine-01/E1/1"}},
+			Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gw-1/enp2s1"}},
+		}},
+	}}})
+
 	base := []kclient.Object{
 		&v1alpha1.GatewayGroup{
 			ObjectMeta: kmetav1.ObjectMeta{
@@ -192,6 +208,55 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-asn-not-fabric-gateway-asn",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ASN = 65102 }),
 			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-domain-not-in-fabric",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-domain-gateway-asn",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Topology.Domain = planeB
+				gw.Spec.ASN = 65099
+				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr-b"}}
+			}),
+			objs: append(slices.Clone(base), twoDomains, groupB),
+		},
+		{
+			name: "test-group-in-another-domain",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr-b"}}
+			}),
+			objs: append(slices.Clone(base), twoDomains, groupB),
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-domain-group-in-default-domain",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Topology.Domain = planeB
+				gw.Spec.ASN = 65099
+			}),
+			objs: append(slices.Clone(base), twoDomains),
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-asn-of-another-domain",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
+			objs: append(slices.Clone(base), twoDomains),
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-cabled-into-its-domain",
+			gw:   *gwa("gw-1"),
+			objs: append(slices.Clone(base), twoDomains, spineIn(), gwConn),
+		},
+		{
+			name: "test-cabled-into-another-domain",
+			gw:   *gwa("gw-1"),
+			objs: append(slices.Clone(base), twoDomains, spineIn(planeB), gwConn),
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
@@ -361,4 +426,42 @@ func TestGatewayLogRateLimitDefaulting(t *testing.T) {
 		assert.Equal(t, uint32(100), gw.Spec.Logs.RateLimit.Burst)
 		assert.Equal(t, uint32(10), gw.Spec.Logs.RateLimit.ReplenishPerSecond)
 	})
+}
+
+func TestGatewayGroupDomain(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1alpha1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+			"default": {SpineASN: 65100, GatewayASN: 65101},
+			"plane-b": {SpineASN: 65098, GatewayASN: 65099},
+		}}}),
+	).Build()
+
+	for _, tt := range []struct {
+		group  string
+		domain string
+		err    string
+	}{
+		{group: "gr-1", domain: ""},
+		{group: "gr-1", domain: "plane-b"},
+		{group: "gr-1", domain: "plane-c", err: "domain plane-c not found in fabric default"},
+		// created by the gateway controllers even in a fabric without that domain
+		{group: v1alpha1.DefaultGatewayGroup, domain: "plane-c"},
+	} {
+		t.Run(tt.group+" in domain "+tt.domain, func(t *testing.T) {
+			group := withName(tt.group, &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: tt.domain}}})
+			group.Default()
+			require.Contains(t, group.Labels, wiringapi.ListLabelDomain(wiringapi.DomainNameOrDefault(tt.domain)))
+
+			err := group.Validate(t.Context(), kube, &meta.FabricConfig{EnableGateway: true})
+			if tt.err == "" {
+				require.NoError(t, err)
+
+				return
+			}
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
 }

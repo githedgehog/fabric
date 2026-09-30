@@ -1043,6 +1043,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this GatewayGroup belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain of the gateways in this group (if not specified, "default" is used).<br />Only gateways in that domain can join it, and it is immutable |  |  |
 
 
 #### GatewayInterface
@@ -1226,6 +1227,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).<br />It is immutable |  |  |
 
 
 #### PeeringACL

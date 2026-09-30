@@ -30,6 +30,12 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		ObjectMeta: kmetav1.ObjectMeta{Name: "gateway-1", Namespace: kmetav1.NamespaceDefault},
 		Spec:       gwapi.GatewaySpec{Topology: gwapi.GatewayTopology{Fabric: "backend"}},
 	}
+	gwPlaneB := gw.DeepCopy()
+	gwPlaneB.Spec.Topology.Domain = "plane-b"
+	spine := &wiringapi.Switch{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "spine-01", Namespace: kmetav1.NamespaceDefault},
+		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
+	}
 
 	staticExternal := func(fabricName string) *wiringapi.Connection {
 		return &wiringapi.Connection{
@@ -46,6 +52,7 @@ func TestConnectionReferencesFabric(t *testing.T) {
 			Spec: wiringapi.ConnectionSpec{
 				Topology: wiringapi.ConnectionTopology{Fabric: fabricName},
 				Gateway: &wiringapi.ConnGateway{Links: []wiringapi.GatewayLink{{
+					Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "spine-01/E1/1"}},
 					Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gateway-1/enp2s1"}},
 				}}},
 			},
@@ -60,7 +67,8 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	}{
 		{name: "static external, vpc in the same fabric", conn: staticExternal("backend"), objects: []kclient.Object{vpc}},
 		{name: "static external, vpc in another fabric", conn: staticExternal("default"), objects: []kclient.Object{vpc}, err: "vpc vpc-01 is in fabric backend"},
-		{name: "gateway in the same fabric", conn: gateway("backend"), objects: []kclient.Object{gw}},
+		{name: "gateway in the same fabric", conn: gateway("backend"), objects: []kclient.Object{gw, spine}},
+		{name: "gateway in another domain", conn: gateway("backend"), objects: []kclient.Object{gwPlaneB, spine}, err: "gateway gateway-1 is in domain plane-b but switch spine-01 is in domains [default]"},
 		{name: "gateway in another fabric", conn: gateway("default"), objects: []kclient.Object{gw}, err: "gateway gateway-1 is in fabric backend"},
 		{name: "gateway not created yet", conn: gateway("default"), err: "gateway gateway-1 not found"},
 	} {
