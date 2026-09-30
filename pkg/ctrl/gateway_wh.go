@@ -13,6 +13,7 @@ import (
 
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 )
 
 // +kubebuilder:webhook:path=/mutate-gateway-githedgehog-com-v1alpha1-gateway,mutating=true,failurePolicy=fail,sideEffects=None,groups=gateway.githedgehog.com,resources=gateways,verbs=create;update;delete,versions=v1alpha1,name=mgateway.kb.io,admissionReviewVersions=v1
@@ -71,6 +72,10 @@ func (w *GatewayWebhook) ValidateCreate(ctx context.Context, gw *gwapi.Gateway) 
 func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
 	if fabricChanged(oldGw.Spec.Topology.Fabric, newGw.Spec.Topology.Fabric) {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	}
+	// so that a Gateway update never has to re-check its connections
+	if wiringapi.DomainNameOrDefault(oldGw.Spec.Topology.Domain) != wiringapi.DomainNameOrDefault(newGw.Spec.Topology.Domain) {
+		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
 	}
 
 	// TODO validate diff between oldObj and newObj if needed

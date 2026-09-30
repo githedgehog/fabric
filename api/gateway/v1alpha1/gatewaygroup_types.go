@@ -24,6 +24,9 @@ const (
 type GatewayGroupTopology struct {
 	// Fabric is the name of the Fabric this GatewayGroup belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
+	// Domain is the Fabric domain of the gateways in this group (if not specified, "default" is used).
+	// Only gateways in that domain can join it, and it is immutable
+	Domain string `json:"domain,omitempty"`
 }
 
 // GatewayGroupSpec defines the desired state of GatewayGroup
@@ -80,6 +83,9 @@ func (gg *GatewayGroup) Default() {
 	if gg.Spec.Topology.Fabric == "" {
 		gg.Spec.Topology.Fabric = wiringapi.DefaultFabric
 	}
+	if gg.Spec.Topology.Domain == "" {
+		gg.Spec.Topology.Domain = wiringapi.DefaultFabricDomain
+	}
 
 	if gg.Labels == nil {
 		gg.Labels = map[string]string{}
@@ -88,6 +94,7 @@ func (gg *GatewayGroup) Default() {
 	wiringapi.CleanupFabricLabels(gg.Labels)
 
 	gg.Labels[wiringapi.ListLabelFabric(gg.Spec.Topology.Fabric)] = ListLabelValue
+	gg.Labels[wiringapi.ListLabelDomain(gg.Spec.Topology.Domain)] = ListLabelValue
 }
 
 func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
@@ -100,6 +107,19 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric); err != nil {
 		return fmt.Errorf("invalid gateway group: %w", err)
+	}
+
+	// the gateway controllers create the default group whatever the fabric's domains, so like the default
+	// fabric it is exempt; gateways and peerings using it are still checked against its domain
+	if fabricCfg != nil && gg.Name != DefaultGatewayGroup {
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, gg.Namespace, gg.Spec.Topology.Fabric)
+		if err != nil {
+			return fmt.Errorf("getting fabric: %w", err)
+		}
+		domainName := wiringapi.DomainNameOrDefault(gg.Spec.Topology.Domain)
+		if _, exists := fabric.Domains[domainName]; !exists {
+			return fmt.Errorf("domain %s not found in fabric %s", domainName, wiringapi.FabricNameOrDefault(gg.Spec.Topology.Fabric)) //nolint:err113
+		}
 	}
 
 	return nil

@@ -18,6 +18,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,6 +30,9 @@ var ErrInvalidGW = errors.New("invalid gateway")
 type GatewayTopology struct {
 	// Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
+	// Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).
+	// It is immutable
+	Domain string `json:"domain,omitempty"`
 }
 
 // GatewaySpec defines the desired state of Gateway.
@@ -201,6 +205,9 @@ func (gw *Gateway) Default() {
 	if gw.Spec.Topology.Fabric == "" {
 		gw.Spec.Topology.Fabric = wiringapi.DefaultFabric
 	}
+	if gw.Spec.Topology.Domain == "" {
+		gw.Spec.Topology.Domain = wiringapi.DefaultFabricDomain
+	}
 
 	if gw.Labels == nil {
 		gw.Labels = map[string]string{}
@@ -209,6 +216,7 @@ func (gw *Gateway) Default() {
 	wiringapi.CleanupFabricLabels(gw.Labels)
 
 	gw.Labels[wiringapi.ListLabelFabric(gw.Spec.Topology.Fabric)] = ListLabelValue
+	gw.Labels[wiringapi.ListLabelDomain(gw.Spec.Topology.Domain)] = ListLabelValue
 
 	slices.SortFunc(gw.Spec.Groups, func(a, b GatewayGroupMembership) int {
 		return strings.Compare(a.Name, b.Name)
@@ -298,13 +306,45 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		return fmt.Errorf("ASN must be set: %w", ErrInvalidGW)
 	}
 	if fabricCfg != nil {
-		// leaves peer with every gateway of the fabric using the fabric gateway ASN
+		// leaves peer with every gateway of their domain using the domain gateway ASN
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, gw.Namespace, gw.Spec.Topology.Fabric)
 		if err != nil {
 			return fmt.Errorf("getting fabric: %w", err)
 		}
-		if gatewayASN := fabric.OnlyDomain().GatewayASN; gw.Spec.ASN != gatewayASN {
-			return fmt.Errorf("ASN %d is not the gateway ASN %d of its fabric: %w", gw.Spec.ASN, gatewayASN, ErrInvalidGW)
+		domainName := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
+		domain, exists := fabric.Domains[domainName]
+		if !exists {
+			return fmt.Errorf("domain %s not found in fabric %s: %w", domainName, wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric), ErrInvalidGW)
+		}
+		if gw.Spec.ASN != domain.GatewayASN {
+			return fmt.Errorf("ASN %d is not the gateway ASN %d of domain %s: %w", gw.Spec.ASN, domain.GatewayASN, domainName, ErrInvalidGW)
+		}
+	}
+
+	// connections can be admitted before their gateway, and checking them here is also what
+	// keeps the domain from changing while the gateway is cabled
+	if kube != nil {
+		conns := &wiringapi.ConnectionList{}
+		if err := kube.List(ctx, conns, kclient.InNamespace(gw.Namespace)); err != nil {
+			return fmt.Errorf("listing connections: %w", err)
+		}
+		domainName := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
+		for _, conn := range conns.Items {
+			if conn.Spec.Gateway == nil {
+				continue
+			}
+			for _, link := range conn.Spec.Gateway.Links {
+				if link.Gateway.DeviceName() != gw.Name {
+					continue
+				}
+				sw := &wiringapi.Switch{}
+				if err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Switch.DeviceName(), Namespace: gw.Namespace}, sw); err != nil {
+					return fmt.Errorf("getting switch %s of connection %s: %w", link.Switch.DeviceName(), conn.Name, err)
+				}
+				if swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Equal(swDomains, []string{domainName}) {
+					return fmt.Errorf("gateway is in domain %s but connection %s cables it to switch %s in domains %v: %w", domainName, conn.Name, sw.Name, swDomains, ErrInvalidGW)
+				}
+			}
 		}
 	}
 
@@ -498,18 +538,22 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		if err := kube.List(ctx, gwGroupList, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
 			return fmt.Errorf("listing gateway groups: %w", err)
 		}
-		gwGroupFabrics := map[string]string{}
+		gwGroupTopologies := map[string]GatewayGroupTopology{}
 		for _, gwGroup := range gwGroupList.Items {
-			gwGroupFabrics[gwGroup.Name] = wiringapi.FabricNameOrDefault(gwGroup.Spec.Topology.Fabric)
+			gwGroupTopologies[gwGroup.Name] = gwGroup.Spec.Topology
 		}
 		gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric)
+		gwDomain := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
 		for _, gwGroup := range gw.Spec.Groups {
-			groupFabric, exists := gwGroupFabrics[gwGroup.Name]
+			groupTopology, exists := gwGroupTopologies[gwGroup.Name]
 			if !exists {
 				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
 			}
-			if groupFabric != gwFabric {
+			if groupFabric := wiringapi.FabricNameOrDefault(groupTopology.Fabric); groupFabric != gwFabric {
 				return fmt.Errorf("gateway is in fabric %s but gateway group %s is in fabric %s: %w", gwFabric, gwGroup.Name, groupFabric, ErrInvalidGW)
+			}
+			if groupDomain := wiringapi.DomainNameOrDefault(groupTopology.Domain); groupDomain != gwDomain {
+				return fmt.Errorf("gateway is in domain %s but gateway group %s is in domain %s: %w", gwDomain, gwGroup.Name, groupDomain, ErrInvalidGW)
 			}
 			if fabricCfg != nil && len(fabricCfg.GatewayCommunities) > 0 && gwGroupMembers[gwGroup.Name] >= len(fabricCfg.GatewayCommunities) {
 				return fmt.Errorf("gateway group %s already has too many members (%d), max is %d: %w", gwGroup.Name, gwGroupMembers[gwGroup.Name], len(fabricCfg.GatewayCommunities), ErrInvalidGW)

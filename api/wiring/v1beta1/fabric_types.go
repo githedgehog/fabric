@@ -172,16 +172,6 @@ func GetFabricSpec(ctx context.Context, kube kclient.Reader, cfg *meta.FabricCon
 	return &spec, nil
 }
 
-// OnlyDomain returns the domain of the fabric, as a fabric has exactly one until multiple domains
-// are supported
-func (spec *FabricSpec) OnlyDomain() FabricDomainSpec {
-	for _, domain := range spec.Domains {
-		return domain
-	}
-
-	return FabricDomainSpec{}
-}
-
 func (fabric *Fabric) Default() {
 	meta.DefaultObjectMetadata(fabric)
 }
