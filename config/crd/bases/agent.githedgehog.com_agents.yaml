@@ -190,6 +190,14 @@ spec:
                 additionalProperties:
                   type: boolean
                 type: object
+              benchTouch:
+                description: |-
+                  BenchTouch is the newest bench.githedgehog.com/touch label seen on the
+                  objects that make up this Agent's spec. It exists so a benchmark can
+                  trigger a real spec change - and with it the agent apply cycle - without
+                  altering switch configuration. It has no effect on the agent.
+                format: int64
+                type: integer
               catalog:
                 description: CatalogSpec defines the desired state of Catalog
                 properties:

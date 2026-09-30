@@ -60,6 +60,12 @@ type AgentSpec struct {
 	PowerReset           string                                   `json:"powerReset,omitempty"` // set to RunID to power reset
 	Catalog              CatalogSpec                              `json:"catalog,omitempty"`
 
+	// BenchTouch is the newest bench.githedgehog.com/touch label seen on the
+	// objects that make up this Agent's spec. It exists so a benchmark can
+	// trigger a real spec change - and with it the agent apply cycle - without
+	// altering switch configuration. It has no effect on the agent.
+	BenchTouch int64 `json:"benchTouch,omitempty"`
+
 	// TODO impl
 	StatusUpdates []ApplyStatusUpdate `json:"statusUpdates,omitempty"`
 }

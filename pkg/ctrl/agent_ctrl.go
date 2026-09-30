@@ -22,6 +22,7 @@ import (
 	"net"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -304,6 +305,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch connections")
 	}
 
+	benchTouch := maxBenchTouch(0, sw)
+
 	conns := map[string]wiringapi.ConnectionSpec{}
 	for _, conn := range connList.Items {
 		if !r.cfg.LoopbackWorkaround && conn.Spec.VPCLoopback != nil {
@@ -311,6 +314,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 
 		conns[conn.Name] = conn.Spec
+		benchTouch = maxBenchTouch(benchTouch, &conn)
 	}
 
 	// for spines, also add static external connections that are not within VPC
@@ -325,6 +329,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 				continue
 			}
 			conns[conn.Name] = conn.Spec
+			benchTouch = maxBenchTouch(benchTouch, &conn)
 		}
 	}
 
@@ -351,6 +356,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			continue
 		}
 		switches[sw.Name] = sw.Spec
+		benchTouch = maxBenchTouch(benchTouch, &sw)
 	}
 
 	// TODO optimize by only getting related VPC attachments
@@ -379,6 +385,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 				VPCAttachmentSpec: attach.Spec,
 				Annotations:       anns,
 			}
+			benchTouch = maxBenchTouch(benchTouch, &attach)
 
 			attachedVPCs[attach.Spec.VPCName()] = true
 			configuredSubnets[attach.Spec.Subnet] = true
@@ -445,6 +452,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 		if exists1 || exists2 {
 			peerings[peer.Name] = peer.Spec
+			benchTouch = maxBenchTouch(benchTouch, &peer)
 			peeredVPCs[vpc1] = true
 			peeredVPCs[vpc2] = true
 		}
@@ -465,6 +473,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 		attachedExternals[attach.Spec.External] = true
 		externalAttaches[attach.Name] = attach.Spec
+		benchTouch = maxBenchTouch(benchTouch, &attach)
 
 		if attach.Spec.Static != nil && attach.Spec.Static.Proxy {
 			proxyStaticExtAttachments[attach.Name] = true
@@ -481,6 +490,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	}
 	for _, ext := range externalList.Items {
 		externals[ext.Name] = ext.Spec
+		benchTouch = maxBenchTouch(benchTouch, &ext)
 		if attachedExternals[ext.Name] {
 			externalsToConfig[ext.Name] = ext.Spec
 			externalsReq[ext.Name] = true
@@ -502,11 +512,18 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		peeredVPCs[peering.Spec.Permit.VPC.Name] = true
 
 		externalPeerings[peering.Name] = peering.Spec
+		benchTouch = maxBenchTouch(benchTouch, &peering)
 	}
 
 	for _, vpc := range vpcList.Items {
 		if peeredVPCs[vpc.Name] {
 			vpcs[vpc.Name] = vpc.Spec
+		}
+	}
+
+	for _, vpc := range vpcList.Items {
+		if _, exists := vpcs[vpc.Name]; exists {
+			benchTouch = maxBenchTouch(benchTouch, &vpc)
 		}
 	}
 
@@ -525,6 +542,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	ipv4Namespaces := map[string]vpcapi.IPv4NamespaceSpec{}
 	for _, ns := range ipv4NamespaceList.Items {
 		ipv4Namespaces[ns.Name] = ns.Spec
+		benchTouch = maxBenchTouch(benchTouch, &ns)
 	}
 
 	vlanNamespaceList := &wiringapi.VLANNamespaceList{}
@@ -540,6 +558,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 
 		vlanNamespaces[ns.Name] = ns.Spec
+		benchTouch = maxBenchTouch(benchTouch, &ns)
 	}
 
 	usedVPCs := map[string]bool{}
@@ -819,6 +838,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 		agent.Spec.Catalog = *cat
 
+		agent.Spec.BenchTouch = benchTouch
+
 		agent.Spec.StatusUpdates = statusUpdates
 
 		agent.Spec.Config = agentapi.AgentSpecConfig{
@@ -1005,6 +1026,22 @@ func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// maxBenchTouch returns the max of cur and the obj's bench touch label value, ignoring missing or
+// unparseable labels. Max (not last-seen) keeps the value stable regardless of reconcile order.
+func maxBenchTouch(cur int64, obj kmetav1.Object) int64 {
+	val, ok := obj.GetLabels()[fmeta.BenchTouchLabel]
+	if !ok {
+		return cur
+	}
+
+	ts, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return cur
+	}
+
+	return max(cur, ts)
 }
 
 func appendUpdate(statusUpdates []agentapi.ApplyStatusUpdate, obj kclient.Object) []agentapi.ApplyStatusUpdate {
