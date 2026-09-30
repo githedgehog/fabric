@@ -51,11 +51,22 @@ func TestFabricValidation(t *testing.T) {
 		{name: "spine ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64150, 64201)), err: "domain default spineASN 64150 is within the leaf ASN range"},
 		{name: "gateway ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64150)), err: "domain default gatewayASN 64150 is within the leaf ASN range"},
 		{
-			name: "two domains", err: "more than one domain",
+			name: "two domains",
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{
 				"plane-a": {SpineASN: 64100, GatewayASN: 64201},
 				"plane-b": {SpineASN: 64099, GatewayASN: 64202},
 			}),
+		},
+		{
+			name: "two domains sharing a spine ASN", err: "64100 is already used as domain plane-",
+			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{
+				"plane-a": {SpineASN: 64100, GatewayASN: 64201},
+				"plane-b": {SpineASN: 64100, GatewayASN: 64202},
+			}),
+		},
+		{
+			name: "invalid domain name", err: "invalid domain name Plane_A",
+			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{"Plane_A": {SpineASN: 64100, GatewayASN: 64201}}),
 		},
 		{
 			name: "long name", err: "too long",

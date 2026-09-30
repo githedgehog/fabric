@@ -111,7 +111,9 @@ type SwitchBoot struct {
 type SwitchTopology struct {
 	// Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
-	// Domains is the list of the Fabric domains (spine layers) this switch belongs to, currently limited to one
+	// Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
+	// A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+	// and the switches of a redundancy group must be in the same domains
 	Domains []string `json:"domains,omitempty"`
 }
 
@@ -313,6 +315,10 @@ func (sw *Switch) Default() {
 		sw.Spec.Topology.Fabric = DefaultFabric
 	}
 
+	if len(sw.Spec.Topology.Domains) == 0 {
+		sw.Spec.Topology.Domains = []string{DefaultFabricDomain}
+	}
+
 	if sw.Spec.Redundancy.Group != "" && !slices.Contains(sw.Spec.Groups, sw.Spec.Redundancy.Group) {
 		sw.Spec.Groups = append(sw.Spec.Groups, sw.Spec.Redundancy.Group)
 	}
@@ -340,7 +346,10 @@ func (sw *Switch) Default() {
 	sw.Labels[ListLabelFabric(sw.Spec.Topology.Fabric)] = ListLabelValue
 
 	for _, domain := range sw.Spec.Topology.Domains {
-		sw.Labels[ListLabelDomain(domain)] = ListLabelValue
+		// validation rejects an empty name, but as a label key it would be refused first with a vaguer error
+		if domain != "" {
+			sw.Labels[ListLabelDomain(domain)] = ListLabelValue
+		}
 	}
 
 	sort.Strings(sw.Spec.Groups)
@@ -481,8 +490,16 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if sw.Spec.Role.IsLeaf() && (sw.Spec.ASN < fabric.LeafASNStart || sw.Spec.ASN > fabric.LeafASNEnd) {
 		return fmt.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabric.LeafASNStart, fabric.LeafASNEnd) //nolint:err113
 	}
-	if spineASN := fabric.OnlyDomain().SpineASN; sw.Spec.Role.IsSpine() && sw.Spec.ASN != spineASN {
-		return fmt.Errorf("spine %s ASN %d is not the expected spine ASN %d", sw.Name, sw.Spec.ASN, spineASN) //nolint:err113
+	if sw.Spec.Role.IsSpine() {
+		// a spine is in exactly one domain, checked by Validate
+		domainName := DomainsOrDefault(sw.Spec.Topology.Domains)[0]
+		domain, exists := fabric.Domains[domainName]
+		if !exists {
+			return fmt.Errorf("spine %s domain %s not found in fabric", sw.Name, domainName) //nolint:err113
+		}
+		if sw.Spec.ASN != domain.SpineASN {
+			return fmt.Errorf("spine %s ASN %d is not the spine ASN %d of domain %s", sw.Name, sw.Spec.ASN, domain.SpineASN, domainName) //nolint:err113
+		}
 	}
 
 	// leaf vtep IP uniqueness
@@ -518,10 +535,15 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	if len(sw.Spec.VLANNamespaces) == 0 {
 		return nil, errors.Errorf("at least one VLAN namespace required")
 	}
-	// nothing reads the domains yet and nothing validates them against the fabric, so rejecting
-	// them outright keeps invalid domain labels out of etcd until the multi-domain work lands
-	if len(sw.Spec.Topology.Domains) > 0 {
-		return nil, fmt.Errorf("fabric domains are not supported yet") //nolint:err113
+	domains := slices.Sorted(slices.Values(DomainsOrDefault(sw.Spec.Topology.Domains)))
+	if sw.Spec.Role.IsSpine() && len(domains) != 1 {
+		return nil, fmt.Errorf("spine must be in exactly one domain, found %d", len(domains)) //nolint:err113
+	}
+	if slices.Contains(domains, "") {
+		return nil, fmt.Errorf("domain name cannot be empty") //nolint:err113
+	}
+	if len(slices.Compact(slices.Clone(domains))) != len(domains) {
+		return nil, fmt.Errorf("domains must be unique") //nolint:err113
 	}
 
 	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
@@ -597,7 +619,34 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			return nil, errors.Wrapf(err, "invalid VLANNamespaces")
 		}
 
+		fabric, err := GetFabricSpec(ctx, kube, fabricCfg, sw.Namespace, sw.Spec.Topology.Fabric)
+		if err != nil {
+			return nil, err
+		}
 		swFabric := FabricNameOrDefault(sw.Spec.Topology.Fabric)
+		for _, domain := range domains {
+			if _, exists := fabric.Domains[domain]; !exists {
+				return nil, fmt.Errorf("domain %s not found in fabric %s", domain, swFabric) //nolint:err113
+			}
+		}
+
+		// switches in an ESLAG group that don't share a domain never exchange the EVPN routes
+		// multihoming needs for DF election and split horizon
+		if group := sw.Spec.Redundancy.Group; group != "" {
+			switches := &SwitchList{}
+			if err := kube.List(ctx, switches, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{ListLabelSwitchGroup(group): ListLabelValue}); err != nil {
+				return nil, fmt.Errorf("failed to list switches: %w", err) // TODO replace with some internal error to not expose to the user
+			}
+			for _, other := range switches.Items {
+				if other.Name == sw.Name || other.Spec.Redundancy.Group != group {
+					continue
+				}
+				if otherDomains := slices.Sorted(slices.Values(DomainsOrDefault(other.Spec.Topology.Domains))); !slices.Equal(domains, otherDomains) {
+					return nil, fmt.Errorf("switches of redundancy group %s must be in the same domains, switch %s is in domains %v", group, other.Name, otherDomains) //nolint:err113
+				}
+			}
+		}
+
 		for _, group := range sw.Spec.Groups {
 			if group == "" {
 				return nil, errors.Errorf("group name cannot be empty")

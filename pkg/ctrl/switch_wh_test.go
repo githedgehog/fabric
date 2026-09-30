@@ -17,3 +17,14 @@ func TestSwitchASNImmutable(t *testing.T) {
 	_, err := (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSw, newSw)
 	require.ErrorContains(t, err, "asn is immutable")
 }
+
+func TestSwitchDomainsImmutable(t *testing.T) {
+	for _, role := range []wiringapi.SwitchRole{wiringapi.SwitchRoleSpine, wiringapi.SwitchRoleServerLeaf} {
+		oldSw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Role: role}}
+		newSw := oldSw.DeepCopy()
+		newSw.Spec.Topology.Domains = []string{"plane-b"}
+
+		_, err := (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSw, newSw)
+		require.ErrorContains(t, err, "topology.domains is immutable", role)
+	}
+}

@@ -6,12 +6,14 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.githedgehog.com/fabric/api/meta"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -205,8 +207,11 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 	if len(fabric.Spec.Domains) == 0 {
 		return nil, fmt.Errorf("at least one domain is required") //nolint:err113
 	}
-	if len(fabric.Spec.Domains) > 1 {
-		return nil, fmt.Errorf("a fabric with more than one domain is not supported yet") //nolint:err113
+	for name := range fabric.Spec.Domains {
+		// the name becomes a label key segment
+		if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
+			return nil, fmt.Errorf("invalid domain name %s: %s", name, strings.Join(errs, ", ")) //nolint:err113
+		}
 	}
 
 	asns, err := fabric.domainASNs()

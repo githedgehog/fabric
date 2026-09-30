@@ -84,6 +84,24 @@ func FabricNameOrDefault(fabricName string) string {
 	return fabricName
 }
 
+// DomainNameOrDefault and DomainsOrDefault resolve domain references the same way, for objects
+// written before domains existed.
+func DomainNameOrDefault(domainName string) string {
+	if domainName == "" {
+		return DefaultFabricDomain
+	}
+
+	return domainName
+}
+
+func DomainsOrDefault(domains []string) []string {
+	if len(domains) == 0 {
+		return []string{DefaultFabricDomain}
+	}
+
+	return domains
+}
+
 func ListLabelFabric(fabricName string) string {
 	return ListLabel("fabric", fabricName)
 }
