@@ -173,3 +173,71 @@ func TestVPCDomains(t *testing.T) {
 		})
 	}
 }
+
+// the two-plane case: a VPC on the leaves shared by both planes, peered with a VPC of each
+func TestPeeringDomains(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	vpcIn := func(name string, domains ...string) kclient.Object {
+		return vpcGen(name, func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Domains = domains })
+	}
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		vpcIn("plane-1", "plane-1"),
+		vpcIn("plane-2", "plane-2"),
+		vpcIn("storage", "plane-1", "plane-2"),
+		extGen("ext-1", func(ext *v1beta1.External) { ext.Spec.Topology.Domain = "plane-1" }),
+	).Build()
+
+	vpcPeering := func(vpc1, vpc2 string) func() error {
+		return func() error {
+			peering := &v1beta1.VPCPeering{
+				ObjectMeta: kmetav1.ObjectMeta{Name: vpc1 + "--" + vpc2, Namespace: kmetav1.NamespaceDefault},
+				Spec:       v1beta1.VPCPeeringSpec{Permit: []map[string]v1beta1.VPCPeer{{vpc1: {}, vpc2: {}}}},
+			}
+			peering.Default()
+			_, err := peering.Validate(t.Context(), kube, nil)
+
+			return err //nolint:wrapcheck
+		}
+	}
+	extPeering := func(vpc, ext string) func() error {
+		return func() error {
+			peering := &v1beta1.ExternalPeering{
+				ObjectMeta: kmetav1.ObjectMeta{Name: vpc + "--" + ext, Namespace: kmetav1.NamespaceDefault},
+				Spec: v1beta1.ExternalPeeringSpec{Permit: v1beta1.ExternalPeeringSpecPermit{
+					VPC:      v1beta1.ExternalPeeringSpecVPC{Name: vpc},
+					External: v1beta1.ExternalPeeringSpecExternal{Name: ext},
+				}},
+			}
+			peering.Default()
+			_, err := peering.Validate(t.Context(), kube, nil)
+
+			return err //nolint:wrapcheck
+		}
+	}
+
+	for _, tt := range []struct {
+		name     string
+		validate func() error
+		err      string
+	}{
+		{name: "vpc peering sharing one domain", validate: vpcPeering("plane-1", "storage")},
+		{name: "vpc peering sharing the other domain", validate: vpcPeering("storage", "plane-2")},
+		{name: "vpc peering sharing no domain", validate: vpcPeering("plane-1", "plane-2"), err: "vpc plane-1 is in domains [plane-1] and vpc plane-2 in domains [plane-2], they must share one"},
+		{name: "external peering in the vpc domain", validate: extPeering("plane-1", "ext-1")},
+		{name: "external peering in one of the vpc domains", validate: extPeering("storage", "ext-1")},
+		{name: "external peering outside the vpc domains", validate: extPeering("plane-2", "ext-1"), err: "external ext-1 is in domain plane-1 but vpc plane-2 is in domains [plane-2]"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.validate()
+			if tt.err == "" {
+				require.NoError(t, err)
+
+				return
+			}
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
+}

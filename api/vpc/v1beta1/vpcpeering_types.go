@@ -258,6 +258,12 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 			return nil, errors.Wrapf(err, "failed to get VPC %s", vpc2Name) // TODO replace with some internal error to not expose to the user
 		}
 
+		// VPCs with no domain in common could only reach each other through a leaf shared by their domains
+		vpc1Domains, vpc2Domains := wiringapi.DomainsOrDefault(vpc1.Spec.Topology.Domains), wiringapi.DomainsOrDefault(vpc2.Spec.Topology.Domains)
+		if !slices.ContainsFunc(vpc1Domains, func(domain string) bool { return slices.Contains(vpc2Domains, domain) }) {
+			return nil, fmt.Errorf("vpc %s is in domains %v and vpc %s in domains %v, they must share one", vpc1Name, vpc1Domains, vpc2Name, vpc2Domains) //nolint:err113
+		}
+
 		for _, permit := range peering.Spec.Permit {
 			for vpcName, vpcPeer := range permit {
 				vpc := vpc1

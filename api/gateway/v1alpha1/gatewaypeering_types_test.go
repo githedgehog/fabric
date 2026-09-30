@@ -568,6 +568,15 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 
 	vpc2Other := vpc2.DeepCopy()
 	vpc2Other.Spec.Topology.Fabric = "other"
+	// a group in plane-b, and a VPC and an External in it
+	gwGroupB := gwGroup.DeepCopy()
+	gwGroupB.Spec.Topology.Domain = "plane-b"
+	vpc1Both := vpc1.DeepCopy()
+	vpc1Both.Spec.Topology.Domains = []string{"default", "plane-b"}
+	vpc2B := vpc2.DeepCopy()
+	vpc2B.Spec.Topology.Domains = []string{"plane-b"}
+	externalB := external.DeepCopy()
+	externalB.Spec.Topology.Domain = "plane-b"
 	nilVPC2 := func(p *GatewayPeering) { p.Spec.Peering["vpc-2"] = nil }
 
 	tests := []struct {
@@ -616,6 +625,28 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 			peering: generatePeering("vpc-other-fabric"),
 			objs:    []kclient.Object{gwGroup, vpc1, vpc2Other},
 			err:     true,
+		},
+		{
+			name:    "VPC outside the group domain",
+			peering: generatePeering("vpc-other-domain"),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2B},
+			err:     true,
+		},
+		{
+			name:    "VPCs in the group domain and another",
+			peering: generatePeering("vpc-two-domains"),
+			objs:    []kclient.Object{gwGroupB, vpc1Both, vpc2B},
+		},
+		{
+			name:    "external outside the group domain",
+			peering: generateExternalPeering("ext-other-domain"),
+			objs:    []kclient.Object{gwGroup, vpc1, externalB},
+			err:     true,
+		},
+		{
+			name:    "external in the group domain",
+			peering: generateExternalPeering("ext-group-domain"),
+			objs:    []kclient.Object{gwGroupB, vpc1Both, externalB},
 		},
 		{
 			name:    "nil entry",
