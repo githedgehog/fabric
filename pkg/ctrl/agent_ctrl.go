@@ -317,7 +317,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("error getting switch fabric: %w", err)
 	}
-	domain := fabric.OnlyDomain()
+	// AgentSpec has a single spine and gateway ASN, which only feed the external AS-path deny list,
+	// so a switch in several domains gets the first one's until that list becomes a set
+	domainName := slices.Min(wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains))
+	domain, exists := fabric.Domains[domainName]
+	if !exists {
+		return kctrl.Result{}, fmt.Errorf("switch domain %s not found in fabric", domainName) //nolint:err113
+	}
 
 	// TODO impl
 	statusUpdates := appendUpdate(nil, sw)

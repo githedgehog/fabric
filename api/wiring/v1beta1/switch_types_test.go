@@ -12,6 +12,7 @@ import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -499,30 +500,159 @@ func TestSwitchDefaultPortLocators(t *testing.T) {
 }
 
 func TestSwitchDomainsValidation(t *testing.T) {
-	swGen := func(domains ...string) *wiringapi.Switch {
-		sw := &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "leaf-01",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+	const otherFabric = "plane-a-fabric"
+	swGen := func(f ...func(sw *wiringapi.Switch)) *wiringapi.Switch {
+		sw := withName("leaf-01", &wiringapi.Switch{
 			Spec: wiringapi.SwitchSpec{
 				Role:       wiringapi.SwitchRoleServerLeaf,
-				Profile:    "dell-s5232f-on",
+				Profile:    switchprofile.DellS5232FON.Name,
 				ASN:        65101,
 				IP:         "172.30.1.1/21",
 				ProtocolIP: "172.30.11.1/32",
 				VTEPIP:     "172.30.12.1/32",
-				Topology:   wiringapi.SwitchTopology{Domains: domains},
 			},
+		})
+		for _, fn := range f {
+			fn(sw)
 		}
 		sw.Default()
 
 		return sw
 	}
+	spine := func(asn uint32) func(sw *wiringapi.Switch) {
+		return func(sw *wiringapi.Switch) {
+			sw.Spec.Role = wiringapi.SwitchRoleSpine
+			sw.Spec.ASN = asn
+			sw.Spec.VTEPIP = ""
+		}
+	}
+	// a second leaf, with addresses of its own
+	leaf2 := func(sw *wiringapi.Switch) {
+		sw.Name = "leaf-02"
+		sw.Spec.ASN = 65102
+		sw.Spec.IP = "172.30.1.2/21"
+		sw.Spec.ProtocolIP = "172.30.11.2/32"
+		sw.Spec.VTEPIP = "172.30.12.2/32"
+	}
+	domains := func(domains ...string) func(sw *wiringapi.Switch) {
+		return func(sw *wiringapi.Switch) { sw.Spec.Topology.Domains = domains }
+	}
+	eslag := func(sw *wiringapi.Switch) {
+		sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}
+	}
 
-	_, err := swGen().Validate(t.Context(), nil, nil)
-	require.NoError(t, err)
+	base := []kclient.Object{
+		vlanNSGen("default", []meta.VLANRange{{From: 1000, To: 2999}}),
+		withName("eslag-1", &wiringapi.SwitchGroup{}),
+		withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{LeafASNStart: 65101, LeafASNEnd: 65200, Domains: map[string]wiringapi.FabricDomainSpec{
+			"default": {SpineASN: 65100, GatewayASN: 65534},
+			"plane-b": {SpineASN: 65099, GatewayASN: 65535},
+		}}}),
+		withName(otherFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{LeafASNStart: 65101, LeafASNEnd: 65200, Domains: map[string]wiringapi.FabricDomainSpec{
+			"plane-a": {SpineASN: 64100, GatewayASN: 64201},
+		}}}),
+	}
 
-	_, err = swGen("plane-a").Validate(t.Context(), nil, nil)
-	require.ErrorContains(t, err, "fabric domains are not supported yet")
+	for _, tt := range []struct {
+		name    string
+		sw      *wiringapi.Switch
+		objects []kclient.Object
+		err     string
+	}{
+		{name: "defaulted", sw: swGen()},
+		{name: "shared leaf", sw: swGen(domains("plane-b", "default"))},
+		{name: "spine", sw: swGen(spine(65099), domains("plane-b"))},
+		{
+			name: "spine with the ASN of another domain", err: "spine leaf-01 ASN 65100 is not the spine ASN 65099 of domain plane-b",
+			sw: swGen(spine(65100), domains("plane-b")),
+		},
+		{
+			name: "spine in two domains", err: "spine must be in exactly one domain",
+			sw: swGen(spine(65099), domains("plane-b", "default")),
+		},
+		{
+			name: "domain not in fabric", err: "domain plane-c not found in fabric default",
+			sw: swGen(domains("plane-c")),
+		},
+		{
+			name: "duplicate domain", err: "domains must be unique",
+			sw: swGen(domains("default", "default")),
+		},
+		{
+			name: "defaulted in a fabric without a default domain", err: "domain default not found in fabric plane-a-fabric",
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Topology.Fabric = otherFabric }),
+		},
+		{
+			name: "named domain in another fabric",
+			sw: swGen(domains("plane-a"), func(sw *wiringapi.Switch) {
+				sw.Spec.Topology.Fabric = otherFabric
+			}),
+		},
+		{
+			name:    "redundancy group with the same domains",
+			sw:      swGen(eslag, domains("default", "plane-b")),
+			objects: []kclient.Object{swGen(leaf2, eslag, domains("plane-b", "default"))},
+		},
+		{
+			name:    "redundancy group sharing only some domains",
+			sw:      swGen(eslag, domains("default", "plane-b")),
+			objects: []kclient.Object{swGen(leaf2, eslag)},
+			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
+		},
+		{
+			name:    "redundancy group sharing no domain",
+			sw:      swGen(eslag, domains("plane-b")),
+			objects: []kclient.Object{swGen(leaf2, eslag)},
+			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
+		},
+		{
+			name: "redundancy group member written before domains existed",
+			sw:   swGen(eslag),
+			objects: []kclient.Object{func() *wiringapi.Switch {
+				sw := swGen(leaf2, eslag)
+				sw.Spec.Topology.Domains = nil
+
+				return sw
+			}()},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &meta.FabricConfig{
+				ControlVIP:          "172.30.0.1/32",
+				ProtocolSubnet:      "172.30.8.0/21",
+				VTEPSubnet:          "172.30.12.0/22",
+				ManagementSubnet:    "172.30.0.0/21",
+				ManagementDHCPStart: "172.30.4.0",
+			}
+			scheme := runtime.NewScheme()
+			require.NoError(t, wiringapi.AddToScheme(scheme))
+			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(withObjs(base, tt.objects...)...).Build()
+			profiles := switchprofile.NewDefaultSwitchProfiles()
+			require.NoError(t, profiles.RegisterAll(t.Context(), kube, cfg))
+			require.NoError(t, profiles.Enforce(t.Context(), kube, cfg, false))
+
+			_, err := tt.sw.Validate(t.Context(), kube, cfg)
+			if tt.err == "" {
+				require.NoError(t, err)
+
+				return
+			}
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
+}
+
+func TestSwitchDefaultDomains(t *testing.T) {
+	sw := &wiringapi.Switch{}
+	sw.Default()
+	require.Equal(t, []string{wiringapi.DefaultFabricDomain}, sw.Spec.Topology.Domains)
+	require.Contains(t, sw.Labels, wiringapi.ListLabelDomain(wiringapi.DefaultFabricDomain))
+
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b", "plane-a"}}}}
+	sw.Default()
+	require.Equal(t, []string{"plane-a", "plane-b"}, sw.Spec.Topology.Domains)
+
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-a", ""}}}}
+	sw.Default()
+	require.NotContains(t, sw.Labels, wiringapi.ListLabelDomain(""))
 }

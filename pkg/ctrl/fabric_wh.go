@@ -87,6 +87,15 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 			return nil, fmt.Errorf("gatewayASN of domain %s can not be changed", name) //nolint:err113
 		}
 	}
+	// nothing needs to grow a fabric yet, so its domains are fixed like its leaf ASN range. A
+	// fabric written before domains existed can still have them filled in
+	if len(oldFabric.Spec.Domains) > 0 {
+		for name := range fabric.Spec.Domains {
+			if _, exists := oldFabric.Spec.Domains[name]; !exists {
+				return nil, fmt.Errorf("domain %s can not be added to an existing fabric", name) //nolint:err113
+			}
+		}
+	}
 
 	warns, err := fabric.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {

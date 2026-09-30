@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -77,6 +78,11 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 	// every attempt, and peers would keep the old ASN as nothing regenerates their config
 	if oldSw.Spec.ASN != newSw.Spec.ASN {
 		return nil, fmt.Errorf("asn is immutable, delete and recreate the switch to change it") //nolint:err113
+	}
+	oldDomains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(oldSw.Spec.Topology.Domains)))
+	newDomains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(newSw.Spec.Topology.Domains)))
+	if !slices.Equal(oldDomains, newDomains) {
+		return nil, fmt.Errorf("topology.domains is immutable, delete and recreate the switch to change it") //nolint:err113
 	}
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
