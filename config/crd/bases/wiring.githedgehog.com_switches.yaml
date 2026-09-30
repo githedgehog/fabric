@@ -244,7 +244,7 @@ spec:
                   domains:
                     description: |-
                       Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
-                      A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several
+                      A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable
                     items:
                       type: string
                     type: array

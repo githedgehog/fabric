@@ -112,7 +112,7 @@ type SwitchTopology struct {
 	// Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used)
 	Fabric string `json:"fabric,omitempty"`
 	// Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
-	// A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several
+	// A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable
 	Domains []string `json:"domains,omitempty"`
 }
 
