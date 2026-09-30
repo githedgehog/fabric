@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -225,6 +226,9 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 		}
 		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != peeringFabric {
 			return nil, fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, peering.Spec.Permit.External.Name, extFabric) //nolint:err113
+		}
+		if extDomain, vpcDomains := wiringapi.DomainNameOrDefault(ext.Spec.Topology.Domain), wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains); !slices.Contains(vpcDomains, extDomain) {
+			return nil, fmt.Errorf("external %s is in domain %s but vpc %s is in domains %v", peering.Spec.Permit.External.Name, extDomain, peering.Spec.Permit.VPC.Name, vpcDomains) //nolint:err113
 		}
 
 		if vpc.Spec.IPv4Namespace != ext.Spec.IPv4Namespace {
