@@ -981,8 +981,6 @@
         as-path-set-member:
         - _65010_
         - _65011_
-        - _65100_
-        - _65534_
         as-path-set-name: fabric-gw-aspath
   weight: 12
 - path: /interfaces/interface[name=PortChannel1]
