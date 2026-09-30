@@ -179,6 +179,17 @@ func TestConnectionValidation(t *testing.T) {
 	onLeaf := func(conn *wiringapi.Connection) {
 		conn.Spec.Gateway.Links[0].Switch.Port = "leaf-01/E1/1"
 	}
+	extConn := withName("leaf-01--external", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{
+		External: &wiringapi.ConnExternal{Link: wiringapi.ConnExternalLink{Switch: wiringapi.NewBasePortName("leaf-01/E1/1")}},
+	}})
+	staticExtConn := withName("leaf-01--static-external", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{
+		StaticExternal: &wiringapi.ConnStaticExternal{Link: wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{
+			BasePortName: wiringapi.NewBasePortName("leaf-01/E1/1"),
+			IP:           "192.168.1.2/24",
+			NextHop:      "192.168.1.1",
+			Subnets:      []string{"10.10.0.0/16"},
+		}}},
+	}})
 
 	for _, tt := range []struct {
 		name       string
@@ -254,6 +265,32 @@ func TestConnectionValidation(t *testing.T) {
 		{
 			name:       "gateway-conn-shared-leaf",
 			conn:       gwConnGen("gw-1", onLeaf),
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "default", "plane-b"), leaf2},
+			err:        true,
+		},
+		{
+			name:       "external-conn-single-domain-leaf",
+			conn:       extConn,
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "plane-b"), leaf2},
+		},
+		{
+			name:       "external-conn-shared-leaf",
+			conn:       extConn,
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "default", "plane-b"), leaf2},
+			err:        true,
+		},
+		{
+			name:       "static-external-conn-single-domain-leaf",
+			conn:       staticExtConn,
+			withClient: true,
+			objects:    []kclient.Object{spine, inDomains(leaf1, "plane-b"), leaf2},
+		},
+		{
+			name:       "static-external-conn-shared-leaf",
+			conn:       staticExtConn,
 			withClient: true,
 			objects:    []kclient.Object{spine, inDomains(leaf1, "default", "plane-b"), leaf2},
 			err:        true,

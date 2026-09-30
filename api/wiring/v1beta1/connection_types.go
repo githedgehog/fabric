@@ -798,6 +798,21 @@ func (connSpec *ConnectionSpec) ValidateDomains(switches map[string]*Switch) err
 		}
 	}
 
+	// routes from an external enter the fabric at its border leaf with no spine ASN in their path, so
+	// on a leaf in two domains the spine filter could not keep them in one
+	borderLeaf := ""
+	if connSpec.External != nil {
+		borderLeaf = connSpec.External.Link.Switch.DeviceName()
+	}
+	if connSpec.StaticExternal != nil {
+		borderLeaf = connSpec.StaticExternal.Link.Switch.DeviceName()
+	}
+	if borderLeaf != "" {
+		if domains := domainsOf(borderLeaf); len(domains) != 1 {
+			return fmt.Errorf("switch %s with an external connection must be in exactly one domain, found %v", borderLeaf, domains) //nolint:err113
+		}
+	}
+
 	return nil
 }
 

@@ -157,6 +157,7 @@ func TestSwitchDomainChange(t *testing.T) {
 			name:    "border leaf joins a second domain",
 			sw:      sw("leaf-03", wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabricDomain, planeB),
 			objects: []kclient.Object{extConn, extAttach},
+			err:     "connection leaf-03--external: switch leaf-03 with an external connection must be in exactly one domain",
 		},
 		{
 			name: "static external within a vpc that no longer exists",
