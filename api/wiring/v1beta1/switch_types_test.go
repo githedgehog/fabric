@@ -650,4 +650,8 @@ func TestSwitchDefaultDomains(t *testing.T) {
 	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b", "plane-a"}}}}
 	sw.Default()
 	require.Equal(t, []string{"plane-a", "plane-b"}, sw.Spec.Topology.Domains)
+
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-a", ""}}}}
+	sw.Default()
+	require.NotContains(t, sw.Labels, wiringapi.ListLabelDomain(""))
 }

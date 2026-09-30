@@ -347,7 +347,10 @@ func (sw *Switch) Default() {
 	sw.Labels[ListLabelFabric(sw.Spec.Topology.Fabric)] = ListLabelValue
 
 	for _, domain := range sw.Spec.Topology.Domains {
-		sw.Labels[ListLabelDomain(domain)] = ListLabelValue
+		// validation rejects an empty name, but as a label key it would be refused first with a vaguer error
+		if domain != "" {
+			sw.Labels[ListLabelDomain(domain)] = ListLabelValue
+		}
 	}
 
 	sort.Strings(sw.Spec.Groups)
