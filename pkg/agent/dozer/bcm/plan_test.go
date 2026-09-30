@@ -214,7 +214,7 @@ func TestPlan(t *testing.T) {
 		// group: domains
 		// the reg group in a fabric with a second domain plane-b (spine ASN 65010, gateway ASN 65011)
 		{name: "domains-spine-1"}, // in default only, rejects EVPN routes that crossed plane-b's spine
-		{name: "domains-leaf-3"},  // shared between both domains, external deny list covers both
+		{name: "domains-leaf-3"},  // border leaf in plane-b only, external deny list has plane-b's ASNs, not default's
 		{name: "domains-leaf-4"},  // in plane-b only, peers with the gateway using plane-b's gateway ASN
 		// group: legacy
 		{name: "legacy-reg-leaf-4"}, // reg-leaf-4 saved by a controller from before domains, with only the scalar ASNs

@@ -1116,18 +1116,17 @@ func agentDomains(agent *agentapi.Agent) map[string]wiringapi.FabricDomainSpec {
 }
 
 func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
-	// Build AS-path list to deny routes with the spine or gateway ASNs of the switch's domains in the path
+	// Build AS-path list to deny routes with the spine or gateway ASNs of the switch's domain in the path
+	// (a switch with an external connection is in exactly one domain; Min rather than [0] matches
+	// the key agentDomains uses for configs saved before Domains existed)
 	// TODO: also exclude leaf ASNs - regex for the generic case is complex
-	domains := agentDomains(agent)
+	domain := agentDomains(agent)[slices.Min(wiringapi.DomainsOrDefault(agent.Spec.Switch.Topology.Domains))]
 	asPathMembers := []string{}
-	for _, domainName := range wiringapi.DomainsOrDefault(agent.Spec.Switch.Topology.Domains) {
-		domain := domains[domainName]
-		if domain.SpineASN != 0 {
-			asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.SpineASN))
-		}
-		if domain.GatewayASN != 0 {
-			asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.GatewayASN))
-		}
+	if domain.SpineASN != 0 {
+		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.SpineASN))
+	}
+	if domain.GatewayASN != 0 {
+		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.GatewayASN))
 	}
 	if len(asPathMembers) > 0 {
 		// sorted as the switch returns them, so the list isn't rewritten on every apply
