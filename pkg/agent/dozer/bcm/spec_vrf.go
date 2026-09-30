@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/openconfig/gnmic/pkg/api"
@@ -417,6 +418,11 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			remoteAS = oc.UnionUint32(*value.RemoteAS)
 		}
 
+		var localAS oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config_LocalAs_Union
+		if value.LocalAS != nil {
+			localAS = oc.UnionUint32(*value.LocalAS)
+		}
+
 		var bfd *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd
 		if value.BFDProfile != nil {
 			bfd = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_EnableBfd{
@@ -436,6 +442,9 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						Enabled:                        value.Enabled,
 						Description:                    value.Description,
 						PeerAs:                         remoteAS,
+						LocalAs:                        localAS,
+						LocalAsNoPrepend:               value.LocalASNoPrepend,
+						LocalAsReplaceAs:               value.LocalASReplaceAs,
 						PeerType:                       peerType,
 						DisableEbgpConnectedRouteCheck: value.DisableConnectedCheck,
 						CapabilityExtendedNexthop:      value.ExtendedNexthop,
@@ -885,6 +894,22 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							}
 						}
 
+						// SONiC reads some numeric unions back as strings (set-med does on 4.5.2), so accept both
+						var localAS *uint32
+						switch val := neighbor.Config.LocalAs.(type) {
+						case nil:
+						case oc.UnionUint32:
+							localAS = pointer.To(uint32(val))
+						case oc.UnionString:
+							parsed, err := strconv.ParseUint(string(val), 10, 32)
+							if err != nil {
+								return nil, fmt.Errorf("failed to unmarshal Local AS %q: %w", val, err)
+							}
+							localAS = pointer.To(uint32(parsed))
+						default:
+							return nil, fmt.Errorf("failed to unmarshal Local AS %v (expected a uint32 or a decimal string)", val) //nolint:err113
+						}
+
 						var bfdProfile *string
 						if neighbor.EnableBfd != nil && neighbor.EnableBfd.Config != nil {
 							if neighbor.EnableBfd.Config.Enabled != nil && *neighbor.EnableBfd.Config.Enabled {
@@ -896,6 +921,9 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							Enabled:                   neighbor.Config.Enabled,
 							Description:               neighbor.Config.Description,
 							RemoteAS:                  remoteAS,
+							LocalAS:                   localAS,
+							LocalASNoPrepend:          neighbor.Config.LocalAsNoPrepend,
+							LocalASReplaceAs:          neighbor.Config.LocalAsReplaceAs,
 							PeerType:                  peerType,
 							IPv4Unicast:               ipv4Unicast,
 							IPv4UnicastImportPolicies: ipv4ImportPolicies,

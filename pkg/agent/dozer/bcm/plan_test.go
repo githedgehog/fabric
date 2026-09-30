@@ -205,6 +205,9 @@ func TestPlan(t *testing.T) {
 		{name: "mesh-leaf-01"}, // eslag, gateway connected to it
 		{name: "mesh-leaf-02"}, // same as above
 		{name: "mesh-leaf-03"}, // standalone, bgp externals connected to it
+		// group: localasn
+		// mesh-leaf-03 with localASN 64999 on ext-bgp-01
+		{name: "localasn-leaf-03"}, // external session presents localASN instead of the leaf's ASN
 		// group: unnum
 		// the reg and mesh groups above with the fabric/mesh link IPs dropped, so those links run
 		// BGP unnumbered. Gateway links keep their IPs, the gateway does not support unnumbered yet

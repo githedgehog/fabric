@@ -67,6 +67,11 @@ type ExternalSpec struct {
 	// Static contains parameters specific to static externals
 	// +optional
 	Static *ExternalStaticSpec `json:"static,omitempty"`
+	// LocalASN makes every attachment to this External present the same ASN to the external system
+	// instead of each border leaf's own. Changing it resets all sessions to this External, and the
+	// external system has to change its remote-as to match. Static attachments ignore it.
+	// +optional
+	LocalASN uint32 `json:"localASN,omitempty"`
 }
 
 // ExternalStatus defines the observed state of External
@@ -80,6 +85,7 @@ type ExternalStatus struct{}
 // +kubebuilder:printcolumn:name="IPv4NS",type=string,JSONPath=`.spec.ipv4Namespace`,priority=0
 // +kubebuilder:printcolumn:name="InComm",type=string,JSONPath=`.spec.inboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="OutComm",type=string,JSONPath=`.spec.outboundCommunity`,priority=0
+// +kubebuilder:printcolumn:name="LocalASN",type=string,JSONPath=`.spec.localASN`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
 // Users can do external peering with the external system by specifying the name of the External Object without need to
@@ -150,6 +156,7 @@ func (external *External) Default() {
 }
 
 func (external *External) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	var warns admission.Warnings
 	if err := meta.ValidateObjectMetadata(external); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
@@ -229,7 +236,47 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		if _, exists := fabric.Domains[domain]; !exists {
 			return nil, fmt.Errorf("domain %s not found in fabric %s, topology.domain must name one of its domains", domain, extFabric) //nolint:err113
 		}
+
+		if localASN := external.Spec.LocalASN; localASN != 0 {
+			if what := asnCollision(fabric, localASN); what != "" {
+				return nil, fmt.Errorf("localASN %d is %s of its own fabric", localASN, what) //nolint:err113
+			}
+
+			attaches := &ExternalAttachmentList{}
+			if err := kube.List(ctx, attaches, kclient.InNamespace(external.Namespace), kclient.MatchingLabels{LabelExternal: external.Name}); err != nil {
+				return nil, fmt.Errorf("failed to list external attachments for %s: %w", external.Name, err) // TODO hide internal error
+			}
+			for _, attach := range attaches.Items {
+				if attach.Spec.Neighbor.ASN == localASN {
+					return nil, fmt.Errorf("localASN %d is the neighbor ASN of external attachment %s", localASN, attach.Name) //nolint:err113
+				}
+			}
+
+			// a session drops routes carrying its local-as, so two fabrics presenting the same one
+			// can't reach each other through the external systems
+			fabrics := &wiringapi.FabricList{}
+			if err := kube.List(ctx, fabrics, kclient.InNamespace(external.Namespace)); err != nil {
+				return nil, fmt.Errorf("failed to list fabrics: %w", err) // TODO hide internal error
+			}
+			for _, other := range fabrics.Items {
+				if other.Name == extFabric {
+					continue
+				}
+				if what := asnCollision(&other.Spec, localASN); what != "" {
+					warns = append(warns, fmt.Sprintf("localASN %d is %s of fabric %s, which will drop routes from this fabric if they reach it", localASN, what, other.Name))
+				}
+			}
+			externals := &ExternalList{}
+			if err := kube.List(ctx, externals, kclient.InNamespace(external.Namespace)); err != nil {
+				return nil, fmt.Errorf("failed to list externals: %w", err) // TODO hide internal error
+			}
+			for _, other := range externals.Items {
+				if other.Spec.LocalASN == localASN && wiringapi.FabricNameOrDefault(other.Spec.Topology.Fabric) != extFabric {
+					warns = append(warns, fmt.Sprintf("localASN %d is also used by external %s of fabric %s, so the two fabrics can't reach each other through external systems", localASN, other.Name, wiringapi.FabricNameOrDefault(other.Spec.Topology.Fabric)))
+				}
+			}
+		}
 	}
 
-	return nil, nil
+	return warns, nil
 }

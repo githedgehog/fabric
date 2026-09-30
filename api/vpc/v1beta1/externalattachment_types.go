@@ -341,6 +341,20 @@ func (attach *ExternalAttachment) Default() {
 	attach.Labels[wiringapi.ListLabelFabric(attach.Spec.Topology.Fabric)] = ListLabelValue
 }
 
+// asnCollision returns what asn collides with in a fabric, if anything
+func asnCollision(fabric *wiringapi.FabricSpec, asn uint32) string {
+	if asn >= fabric.LeafASNStart && asn <= fabric.LeafASNEnd {
+		return fmt.Sprintf("within the leaf ASN range %d-%d", fabric.LeafASNStart, fabric.LeafASNEnd)
+	}
+	for name, domain := range fabric.Domains {
+		if asn == domain.SpineASN || asn == domain.GatewayASN {
+			return fmt.Sprintf("the spine or gateway ASN of domain %s", name)
+		}
+	}
+
+	return ""
+}
+
 func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	var warns admission.Warnings
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
@@ -374,20 +388,6 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
 		}
 
-		// what the neighbor ASN collides with in a fabric, if anything
-		collision := func(fabric *wiringapi.FabricSpec) string {
-			asn := attach.Spec.Neighbor.ASN
-			if asn >= fabric.LeafASNStart && asn <= fabric.LeafASNEnd {
-				return fmt.Sprintf("within the leaf ASN range %d-%d", fabric.LeafASNStart, fabric.LeafASNEnd)
-			}
-			for name, domain := range fabric.Domains {
-				if asn == domain.SpineASN || asn == domain.GatewayASN {
-					return fmt.Sprintf("the spine or gateway ASN of domain %s", name)
-				}
-			}
-
-			return ""
-		}
 		// the border leaf drops external routes carrying its fabric's spine or gateway ASN, and a
 		// leaf drops those carrying its own ASN through BGP loop detection
 		if fabricCfg != nil {
@@ -395,7 +395,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			if err != nil {
 				return nil, fmt.Errorf("failed to get fabric: %w", err)
 			}
-			if what := collision(fabric); what != "" {
+			if what := asnCollision(fabric, attach.Spec.Neighbor.ASN); what != "" {
 				return nil, fmt.Errorf("neighbor.asn %d is %s of its own fabric", attach.Spec.Neighbor.ASN, what) //nolint:err113
 			}
 		}
@@ -409,7 +409,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 				if fabric.Name == wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric) {
 					continue
 				}
-				if what := collision(&fabric.Spec); what != "" {
+				if what := asnCollision(&fabric.Spec, attach.Spec.Neighbor.ASN); what != "" {
 					warns = append(warns, fmt.Sprintf("neighbor.asn %d is %s of fabric %s, which will drop its routes if they reach it", attach.Spec.Neighbor.ASN, what, fabric.Name))
 				}
 			}
@@ -482,6 +482,9 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		// which is how a static uplink is migrated to BGP without an outage
 		if attach.Spec.Static != nil && ext.Spec.Static == nil {
 			return nil, errors.Errorf("external attachment is static but external %s has no static prefixes", attach.Spec.External)
+		}
+		if attach.Spec.Static == nil && ext.Spec.LocalASN != 0 && attach.Spec.Neighbor.ASN == ext.Spec.LocalASN {
+			return nil, fmt.Errorf("neighbor.asn %d is the localASN of external %s", attach.Spec.Neighbor.ASN, attach.Spec.External) //nolint:err113
 		}
 
 		conn := &wiringapi.Connection{}
