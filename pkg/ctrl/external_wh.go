@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -71,6 +72,10 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
 	if fabricChanged(oldExt.Spec.Topology.Fabric, newExt.Spec.Topology.Fabric) {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	}
+	// so that an External update never has to re-check its attachments
+	if wiringapi.DomainNameOrDefault(oldExt.Spec.Topology.Domain) != wiringapi.DomainNameOrDefault(newExt.Spec.Topology.Domain) {
+		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
 	}
 
 	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {

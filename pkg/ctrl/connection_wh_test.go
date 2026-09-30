@@ -37,12 +37,25 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
 	}
 
+	vpcOnB := vpc.DeepCopy()
+	vpcOnB.Spec.Topology.Domains = []string{"plane-b"}
+	leaf := &wiringapi.Switch{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
+		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
+	}
+	// vpc-01 was written before domains existed, so it is in default
+	leafOnB := leaf.DeepCopy()
+	leafOnB.Spec.Topology.Domains = []string{"plane-b"}
+
 	staticExternal := func(fabricName string) *wiringapi.Connection {
 		return &wiringapi.Connection{
 			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01--static-external", Namespace: kmetav1.NamespaceDefault},
 			Spec: wiringapi.ConnectionSpec{
-				Topology:       wiringapi.ConnectionTopology{Fabric: fabricName},
-				StaticExternal: &wiringapi.ConnStaticExternal{WithinVPC: vpc.Name},
+				Topology: wiringapi.ConnectionTopology{Fabric: fabricName},
+				StaticExternal: &wiringapi.ConnStaticExternal{
+					WithinVPC: vpc.Name,
+					Link:      wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/1"}}},
+				},
 			},
 		}
 	}
@@ -65,7 +78,15 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		objects []kclient.Object
 		err     string
 	}{
-		{name: "static external, vpc in the same fabric", conn: staticExternal("backend"), objects: []kclient.Object{vpc}},
+		{name: "static external, vpc in the same fabric", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leaf}},
+		{
+			name: "static external, vpc in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpcOnB, leaf},
+			err: "vpc vpc-01 is in domains [plane-b] but switch leaf-01 is in domains [default]",
+		},
+		{
+			name: "static external, vpc without a domain on a leaf in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leafOnB},
+			err: "vpc vpc-01 is in domains [default] but switch leaf-01 is in domains [plane-b]",
+		},
 		{name: "static external, vpc in another fabric", conn: staticExternal("default"), objects: []kclient.Object{vpc}, err: "vpc vpc-01 is in fabric backend"},
 		{name: "gateway in the same fabric", conn: gateway("backend"), objects: []kclient.Object{gw, spine}},
 		{name: "gateway in another domain", conn: gateway("backend"), objects: []kclient.Object{gwPlaneB, spine}, err: "gateway gateway-1 is in domain plane-b but switch spine-01 is in domains [default]"},

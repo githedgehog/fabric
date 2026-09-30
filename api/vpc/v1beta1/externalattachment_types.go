@@ -504,6 +504,19 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			return nil, errors.Errorf("connection %s is not external", attach.Spec.Connection)
 		}
 
+		// border leaves in different domains attaching one External build the same VRF, so a leaf in
+		// both would merge the two domains' routes to it
+		extSwitches, err := ConnectionSwitches(ctx, kube, attach.Namespace, []string{attach.Spec.Connection})
+		if err != nil {
+			return nil, err
+		}
+		extDomain := wiringapi.DomainNameOrDefault(ext.Spec.Topology.Domain)
+		for name, sw := range extSwitches {
+			if swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Contains(swDomains, extDomain) {
+				return nil, fmt.Errorf("external %s is in domain %s but switch %s is in domains %v", attach.Spec.External, extDomain, name, swDomains) //nolint:err113
+			}
+		}
+
 		// validate VLAN collision
 		attaches := &ExternalAttachmentList{}
 		if err := kube.List(ctx, attaches, kclient.MatchingLabels{wiringapi.LabelName("connection"): attach.Spec.Connection}); err != nil {

@@ -2323,6 +2323,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this External belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain the External is in (if not specified, "default" is used). It can<br />only be attached to switches in that domain, and it is immutable |  |  |
 
 
 #### IPv4Namespace
@@ -2790,6 +2791,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this VPC belongs to (if not specified, "default" is used) |  |  |
+| `domains` _string array_ | Domains are the Fabric domains the VPC is in (if not specified, "default" is used). It can only<br />be attached to switches that are in all of them, and they are immutable |  |  |
 
 
 
