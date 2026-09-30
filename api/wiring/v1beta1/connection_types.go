@@ -750,6 +750,71 @@ func (conn *Connection) Default() {
 	conn.Labels[ListLabelFabric(conn.Spec.Topology.Fabric)] = ListLabelValue
 }
 
+// ValidateDomains checks the connection does not cross domains where it must not, given its switches by name
+func (connSpec *ConnectionSpec) ValidateDomains(switches map[string]*Switch) error {
+	domainsOf := func(name string) []string {
+		if sw, exists := switches[name]; exists {
+			return DomainsOrDefault(sw.Spec.Topology.Domains)
+		}
+
+		return nil
+	}
+
+	if connSpec.Fabric != nil {
+		for _, link := range connSpec.Fabric.Links {
+			spine, leaf := link.Spine.DeviceName(), link.Leaf.DeviceName()
+			for _, domain := range domainsOf(spine) {
+				if !slices.Contains(domainsOf(leaf), domain) {
+					return fmt.Errorf("spine %s is in domain %s but leaf %s is in domains %v", spine, domain, leaf, domainsOf(leaf)) //nolint:err113
+				}
+			}
+		}
+	}
+
+	// a mesh leaf transits by design, so a mesh link across domains would merge them
+	if connSpec.Mesh != nil {
+		for _, link := range connSpec.Mesh.Links {
+			leaf1, leaf2 := link.Leaf1.DeviceName(), link.Leaf2.DeviceName()
+			for _, leaf := range []string{leaf1, leaf2} {
+				if domains := domainsOf(leaf); len(domains) != 1 {
+					return fmt.Errorf("mesh leaf %s must be in exactly one domain, found %v", leaf, domains) //nolint:err113
+				}
+			}
+			if domains1, domains2 := domainsOf(leaf1), domainsOf(leaf2); domains1[0] != domains2[0] {
+				return fmt.Errorf("mesh leaf %s is in domain %s but leaf %s is in domain %s", leaf1, domains1[0], leaf2, domains2[0]) //nolint:err113
+			}
+		}
+	}
+
+	// a leaf with a gateway connection advertises every VTEP it knows to its spines, which would
+	// hand one domain's VTEPs to the other
+	if connSpec.Gateway != nil {
+		for _, link := range connSpec.Gateway.Links {
+			name := link.Switch.DeviceName()
+			if domains := domainsOf(name); len(domains) != 1 {
+				return fmt.Errorf("switch %s with a gateway connection must be in exactly one domain, found %v", name, domains) //nolint:err113
+			}
+		}
+	}
+
+	// routes from an external enter the fabric at its border leaf with no spine ASN in their path, so
+	// on a leaf in two domains the spine filter could not keep them in one
+	borderLeaf := ""
+	if connSpec.External != nil {
+		borderLeaf = connSpec.External.Link.Switch.DeviceName()
+	}
+	if connSpec.StaticExternal != nil {
+		borderLeaf = connSpec.StaticExternal.Link.Switch.DeviceName()
+	}
+	if borderLeaf != "" {
+		if domains := domainsOf(borderLeaf); len(domains) != 1 {
+			return fmt.Errorf("switch %s with an external connection must be in exactly one domain, found %v", borderLeaf, domains) //nolint:err113
+		}
+	}
+
+	return nil
+}
+
 func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {
 	if connSpec.Unbundled != nil && connSpec.Unbundled.MTU > fabricMTU-serverFacingMTUOffset {
 		return errors.Errorf("unbundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.Unbundled.MTU, fabricMTU, serverFacingMTUOffset)
@@ -850,6 +915,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			return nil, err
 		}
 
+		switchObjs := map[string]*Switch{}
 		for _, switchName := range switches {
 			sw := &Switch{}
 			err := kube.Get(ctx, ktypes.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
@@ -863,6 +929,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			if swFabric := FabricNameOrDefault(sw.Spec.Topology.Fabric); swFabric != connFabric {
 				return nil, fmt.Errorf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric) //nolint:err113
 			}
+			switchObjs[switchName] = sw
 
 			if conn.Spec.ESLAG != nil {
 				if sw.Spec.Redundancy.Group != "" {
@@ -904,6 +971,10 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Errorf("port %s is not allowed for switch %s", port, switchName)
 				}
 			}
+		}
+
+		if err := conn.Spec.ValidateDomains(switchObjs); err != nil {
+			return nil, err
 		}
 
 		if conn.Spec.ESLAG != nil {
