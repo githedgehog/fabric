@@ -18,6 +18,12 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.topology.fabric
+      name: Fabric
+      type: string
+    - jsonPath: .spec.topology.domains
+      name: Domains
+      type: string
     - jsonPath: .spec.ipv4Namespace
       name: IPv4NS
       type: string

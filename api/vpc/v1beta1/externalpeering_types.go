@@ -89,6 +89,7 @@ type ExternalPeeringStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;fabric;external,shortName=extpeering;extpeer
+// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="VPC",type=string,JSONPath=`.spec.permit.vpc.name`,priority=0
 // +kubebuilder:printcolumn:name="VPCSubnets",type=string,JSONPath=`.spec.permit.vpc.subnets`,priority=1
 // +kubebuilder:printcolumn:name="External",type=string,JSONPath=`.spec.permit.external.name`,priority=0

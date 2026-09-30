@@ -45,6 +45,7 @@ type SwitchGroupStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sg
+// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // SwitchGroup is the marker API object to group switches together, switch can belong to multiple groups
 type SwitchGroup struct {

@@ -295,6 +295,7 @@ type ConnectionStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=conn
+// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/connection-type`,priority=0
 // +kubebuilder:printcolumn:name="Switches",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/switches`,priority=1
 // +kubebuilder:printcolumn:name="Servers",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/servers`,priority=1

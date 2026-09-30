@@ -20,6 +20,12 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.topology.fabric
+      name: Fabric
+      type: string
+    - jsonPath: .spec.topology.domain
+      name: Domain
+      type: string
     - jsonPath: .spec.vtepIP
       name: VTEPIP
       type: string
