@@ -1478,7 +1478,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				bfdProfile = pointer.To(profileName)
 			}
 
-			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = &dozer.SpecVRFBGPNeighbor{
+			neigh := &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
 				RemoteAS:                  pointer.To(attach.Neighbor.ASN),
@@ -1487,6 +1487,14 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 				BFDProfile:                bfdProfile,
 			}
+			if external.LocalASN != 0 {
+				// plain local-as would prepend our real ASN after the local one, both on what we
+				// send and on what we receive
+				neigh.LocalAS = pointer.To(external.LocalASN)
+				neigh.LocalASNoPrepend = pointer.To(true)
+				neigh.LocalASReplaceAs = pointer.To(true)
+			}
+			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = neigh
 
 			if err := planHardenedInboundACL(spec, name, ip.String(), attach.InboundACL); err != nil {
 				return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)

@@ -209,6 +209,9 @@ type SpecVRFBGPNeighbor struct {
 	Enabled                   *bool    `json:"enabled,omitempty"`
 	Description               *string  `json:"description,omitempty"`
 	RemoteAS                  *uint32  `json:"remoteAS,omitempty"`
+	LocalAS                   *uint32  `json:"localAS,omitempty"`
+	LocalASNoPrepend          *bool    `json:"localASNoPrepend,omitempty"`
+	LocalASReplaceAs          *bool    `json:"localASReplaceAs,omitempty"`
 	PeerType                  *string  `json:"peerType,omitempty"`
 	IPv4Unicast               *bool    `json:"ipv4Unicast,omitempty"`
 	IPv4UnicastImportPolicies []string `json:"ipv4UnicastImportPolicies,omitempty"`

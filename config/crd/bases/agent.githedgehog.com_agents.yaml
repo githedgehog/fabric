@@ -1244,6 +1244,13 @@ spec:
                       description: IPv4Namespace is the name of the IPv4Namespace
                         this External belongs to
                       type: string
+                    localASN:
+                      description: |-
+                        LocalASN makes every attachment to this External present the same ASN to the external system
+                        instead of each border leaf's own. Changing it resets all sessions to this External, and the
+                        external system has to change its remote-as to match. Static attachments ignore it.
+                      format: int32
+                      type: integer
                     outboundCommunity:
                       description: OutboundCommunity is the optional outbound community
                         that all outbound routes will be stamped with (e.g. 50000:50001)
