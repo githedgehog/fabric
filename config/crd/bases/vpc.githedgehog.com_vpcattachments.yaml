@@ -20,6 +20,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.topology.fabric
+      name: Fabric
+      type: string
     - jsonPath: .spec.subnet
       name: VPCSUBNET
       type: string

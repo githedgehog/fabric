@@ -21,6 +21,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.topology.fabric
+      name: Fabric
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
