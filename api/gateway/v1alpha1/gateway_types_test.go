@@ -67,16 +67,7 @@ func TestGatewayValidate(t *testing.T) {
 		"default": {SpineASN: 65100, GatewayASN: 65101},
 		planeB:    {SpineASN: 65098, GatewayASN: 65099},
 	}}})
-	spineIn := func(domains ...string) *wiringapi.Switch {
-		return withName("spine-01", &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: domains}}})
-	}
 	groupB := withName("gr-b", &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: planeB}}})
-	gwConn := withName("spine-01--gateway--gw-1", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
-		Links: []wiringapi.GatewayLink{{
-			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "spine-01/E1/1"}},
-			Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gw-1/enp2s1"}},
-		}},
-	}}})
 
 	base := []kclient.Object{
 		&v1alpha1.GatewayGroup{
@@ -246,17 +237,6 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-asn-of-another-domain",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
 			objs: append(slices.Clone(base), twoDomains),
-			err:  v1alpha1.ErrInvalidGW,
-		},
-		{
-			name: "test-cabled-into-its-domain",
-			gw:   *gwa("gw-1"),
-			objs: append(slices.Clone(base), twoDomains, spineIn(), gwConn),
-		},
-		{
-			name: "test-cabled-into-another-domain",
-			gw:   *gwa("gw-1"),
-			objs: append(slices.Clone(base), twoDomains, spineIn(planeB), gwConn),
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{

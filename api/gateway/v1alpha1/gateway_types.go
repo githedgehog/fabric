@@ -18,7 +18,6 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -320,33 +319,6 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		}
 		if gw.Spec.ASN != domain.GatewayASN {
 			return fmt.Errorf("ASN %d is not the gateway ASN %d of domain %s: %w", gw.Spec.ASN, domain.GatewayASN, domainName, ErrInvalidGW)
-		}
-	}
-
-	// connections can be admitted before their gateway, and checking them here is also what
-	// keeps the domain from changing while the gateway is cabled
-	if kube != nil {
-		conns := &wiringapi.ConnectionList{}
-		if err := kube.List(ctx, conns, kclient.InNamespace(gw.Namespace)); err != nil {
-			return fmt.Errorf("listing connections: %w", err)
-		}
-		domainName := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
-		for _, conn := range conns.Items {
-			if conn.Spec.Gateway == nil {
-				continue
-			}
-			for _, link := range conn.Spec.Gateway.Links {
-				if link.Gateway.DeviceName() != gw.Name {
-					continue
-				}
-				sw := &wiringapi.Switch{}
-				if err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Switch.DeviceName(), Namespace: gw.Namespace}, sw); err != nil {
-					return fmt.Errorf("getting switch %s of connection %s: %w", link.Switch.DeviceName(), conn.Name, err)
-				}
-				if swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Equal(swDomains, []string{domainName}) {
-					return fmt.Errorf("gateway is in domain %s but connection %s cables it to switch %s in domains %v: %w", domainName, conn.Name, sw.Name, swDomains, ErrInvalidGW)
-				}
-			}
 		}
 	}
 
