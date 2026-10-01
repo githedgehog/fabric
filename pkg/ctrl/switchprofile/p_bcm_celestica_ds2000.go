@@ -105,7 +105,7 @@ var CelesticaDS2000 = wiringapi.SwitchProfile{
 			"SFP28-25G": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{
 					Default:   "25G",
-					Supported: []string{"10G", "25G"},
+					Supported: []string{"1","10G", "25G"},
 				},
 			},
 			"QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix: {
