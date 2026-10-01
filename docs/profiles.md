@@ -88,54 +88,54 @@ Label column is a port label on a physical switch.
 | Port | Label | Type | Group | Default | Supported |
 |------|-------|------|-------|---------|-----------|
 | M1 |  | Management |  |  |  |
-| E1/1 | 1 | Direct |  | 25G | 10G, 25G |
-| E1/2 | 2 | Direct |  | 25G | 10G, 25G |
-| E1/3 | 3 | Direct |  | 25G | 10G, 25G |
-| E1/4 | 4 | Direct |  | 25G | 10G, 25G |
-| E1/5 | 5 | Direct |  | 25G | 10G, 25G |
-| E1/6 | 6 | Direct |  | 25G | 10G, 25G |
-| E1/7 | 7 | Direct |  | 25G | 10G, 25G |
-| E1/8 | 8 | Direct |  | 25G | 10G, 25G |
-| E1/9 | 9 | Direct |  | 25G | 10G, 25G |
-| E1/10 | 10 | Direct |  | 25G | 10G, 25G |
-| E1/11 | 11 | Direct |  | 25G | 10G, 25G |
-| E1/12 | 12 | Direct |  | 25G | 10G, 25G |
-| E1/13 | 13 | Direct |  | 25G | 10G, 25G |
-| E1/14 | 14 | Direct |  | 25G | 10G, 25G |
-| E1/15 | 15 | Direct |  | 25G | 10G, 25G |
-| E1/16 | 16 | Direct |  | 25G | 10G, 25G |
-| E1/17 | 17 | Direct |  | 25G | 10G, 25G |
-| E1/18 | 18 | Direct |  | 25G | 10G, 25G |
-| E1/19 | 19 | Direct |  | 25G | 10G, 25G |
-| E1/20 | 20 | Direct |  | 25G | 10G, 25G |
-| E1/21 | 21 | Direct |  | 25G | 10G, 25G |
-| E1/22 | 22 | Direct |  | 25G | 10G, 25G |
-| E1/23 | 23 | Direct |  | 25G | 10G, 25G |
-| E1/24 | 24 | Direct |  | 25G | 10G, 25G |
-| E1/25 | 25 | Direct |  | 25G | 10G, 25G |
-| E1/26 | 26 | Direct |  | 25G | 10G, 25G |
-| E1/27 | 27 | Direct |  | 25G | 10G, 25G |
-| E1/28 | 28 | Direct |  | 25G | 10G, 25G |
-| E1/29 | 29 | Direct |  | 25G | 10G, 25G |
-| E1/30 | 30 | Direct |  | 25G | 10G, 25G |
-| E1/31 | 31 | Direct |  | 25G | 10G, 25G |
-| E1/32 | 32 | Direct |  | 25G | 10G, 25G |
-| E1/33 | 33 | Direct |  | 25G | 10G, 25G |
-| E1/34 | 34 | Direct |  | 25G | 10G, 25G |
-| E1/35 | 35 | Direct |  | 25G | 10G, 25G |
-| E1/36 | 36 | Direct |  | 25G | 10G, 25G |
-| E1/37 | 37 | Direct |  | 25G | 10G, 25G |
-| E1/38 | 38 | Direct |  | 25G | 10G, 25G |
-| E1/39 | 39 | Direct |  | 25G | 10G, 25G |
-| E1/40 | 40 | Direct |  | 25G | 10G, 25G |
-| E1/41 | 41 | Direct |  | 25G | 10G, 25G |
-| E1/42 | 42 | Direct |  | 25G | 10G, 25G |
-| E1/43 | 43 | Direct |  | 25G | 10G, 25G |
-| E1/44 | 44 | Direct |  | 25G | 10G, 25G |
-| E1/45 | 45 | Direct |  | 25G | 10G, 25G |
-| E1/46 | 46 | Direct |  | 25G | 10G, 25G |
-| E1/47 | 47 | Direct |  | 25G | 10G, 25G |
-| E1/48 | 48 | Direct |  | 25G | 10G, 25G |
+| E1/1 | 1 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/2 | 2 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/3 | 3 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/4 | 4 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/5 | 5 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/6 | 6 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/7 | 7 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/8 | 8 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/9 | 9 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/10 | 10 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/11 | 11 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/12 | 12 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/13 | 13 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/14 | 14 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/15 | 15 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/16 | 16 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/17 | 17 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/18 | 18 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/19 | 19 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/20 | 20 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/21 | 21 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/22 | 22 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/23 | 23 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/24 | 24 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/25 | 25 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/26 | 26 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/27 | 27 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/28 | 28 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/29 | 29 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/30 | 30 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/31 | 31 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/32 | 32 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/33 | 33 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/34 | 34 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/35 | 35 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/36 | 36 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/37 | 37 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/38 | 38 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/39 | 39 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/40 | 40 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/41 | 41 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/42 | 42 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/43 | 43 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/44 | 44 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/45 | 45 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/46 | 46 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/47 | 47 | Direct |  | 25G | 1G, 10G, 25G |
+| E1/48 | 48 | Direct |  | 25G | 1G, 10G, 25G |
 | E1/49 | 49 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 | E1/50 | 50 | Direct |  | 100G | 40G, 100G |
 | E1/51 | 51 | Direct |  | 100G | 40G, 100G |
