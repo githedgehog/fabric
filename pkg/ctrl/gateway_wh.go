@@ -95,6 +95,22 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 	return nil, nil
 }
 
-func (w *GatewayWebhook) ValidateDelete(_ context.Context, _ *gwapi.Gateway) (admission.Warnings, error) {
+// recreating a cabled gateway in another domain would otherwise bypass the connection checks
+func (w *GatewayWebhook) ValidateDelete(ctx context.Context, gw *gwapi.Gateway) (admission.Warnings, error) {
+	conns := &wiringapi.ConnectionList{}
+	if err := w.List(ctx, conns, kclient.InNamespace(gw.Namespace)); err != nil {
+		return nil, fmt.Errorf("listing connections: %w", err)
+	}
+	for _, conn := range conns.Items {
+		if conn.Spec.Gateway == nil {
+			continue
+		}
+		for _, link := range conn.Spec.Gateway.Links {
+			if link.Gateway.DeviceName() == gw.Name {
+				return nil, fmt.Errorf("gateway is used by connection %s", conn.Name) //nolint:err113
+			}
+		}
+	}
+
 	return nil, nil
 }
