@@ -193,6 +193,25 @@ func (p *BroadcomProcessor) CalculateActions(_ context.Context, actual, desired 
 		return []dozer.Action{}, nil
 	}
 
+	// subinterfaces that need a rebuild are deleted along with everything else that goes first,
+	// and only created again in a second, separately ordered set of actions
+	if intermediate := withoutRebuiltSubinterfaces(actual, desired); intermediate != nil {
+		first, err := calculateActions(actual, intermediate)
+		if err != nil {
+			return nil, err
+		}
+		second, err := calculateActions(intermediate, desired)
+		if err != nil {
+			return nil, err
+		}
+
+		return append(first, second...), nil
+	}
+
+	return calculateActions(actual, desired)
+}
+
+func calculateActions(actual, desired *dozer.Spec) ([]dozer.Action, error) {
 	actions := &ActionQueue{}
 
 	if err := specEnforcer.Handle("", "root", actual, desired, actions); err != nil {
