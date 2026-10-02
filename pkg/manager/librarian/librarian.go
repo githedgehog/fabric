@@ -16,6 +16,7 @@ package librarian
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"math"
 	"sync"
@@ -104,20 +105,26 @@ func (m *Manager) saveCatalog(ctx context.Context, kube kclient.Client, key stri
 	return nil
 }
 
-func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client) error {
+// UpdateConnections makes sure the named connection has an ID allocated: if it doesn't, the IDs of all ESLAG
+// connections are re-processed, which also releases the IDs of the deleted ones. Reports whether the catalog changed.
+func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client, connName string) (bool, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	cat, err := m.getCatalog(ctx, kube, CatConns)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	if _, ok := cat.Spec.ConnectionIDs[connName]; ok {
+		return false, nil
 	}
 
 	connList := &wiringapi.ConnectionList{}
 	if err := kube.List(ctx, connList, kclient.MatchingLabels{
 		wiringapi.LabelConnectionType: wiringapi.ConnectionTypeESLAG,
 	}); err != nil {
-		return errors.Wrapf(err, "error listing ESLAG connections")
+		return false, fmt.Errorf("listing ESLAG connections: %w", err)
 	}
 
 	conns := map[string]bool{}
@@ -128,12 +135,21 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client) er
 	a := &Allocator[uint32]{
 		Values: NewNextFreeValueFromRanges([][2]uint32{{1, math.MaxUint32}}, 1), // TODO replace with some kind of range from config
 	}
-	cat.Spec.ConnectionIDs, err = a.Allocate(cat.Spec.ConnectionIDs, conns)
+	ids, err := a.Allocate(cat.Spec.ConnectionIDs, conns)
 	if err != nil {
-		return errors.Wrapf(err, "failed to allocate connection IDs")
+		return false, fmt.Errorf("allocating connection IDs: %w", err)
 	}
 
-	return m.saveCatalog(ctx, kube, CatConns, cat)
+	if maps.Equal(ids, cat.Spec.ConnectionIDs) {
+		return false, nil
+	}
+	cat.Spec.ConnectionIDs = ids
+
+	if err := m.saveCatalog(ctx, kube, CatConns, cat); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
