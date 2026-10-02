@@ -16,16 +16,20 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+// ConnectionReconciler allocates the IDs of the ESLAG connections in the connections catalog
 type ConnectionReconciler struct {
 	kclient.Client
 	libr *librarian.Manager
@@ -33,7 +37,7 @@ type ConnectionReconciler struct {
 
 func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager) error {
 	if libMngr == nil {
-		return errors.New("librarian manager is nil")
+		return fmt.Errorf("librarian manager is nil") //nolint:err113
 	}
 
 	r := &ConnectionReconciler{
@@ -41,10 +45,22 @@ func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager
 		libr:   libMngr,
 	}
 
-	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
+	// only ESLAG connections get IDs allocated
+	eslagOnly, err := predicate.LabelSelectorPredicate(kmetav1.LabelSelector{
+		MatchLabels: map[string]string{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeESLAG},
+	})
+	if err != nil {
+		return fmt.Errorf("creating ESLAG connections predicate: %w", err)
+	}
+
+	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("Connection").
-		For(&wiringapi.Connection{}).
-		Complete(r), "failed to setup connection controller")
+		For(&wiringapi.Connection{}, builder.WithPredicates(eslagOnly)).
+		Complete(r); err != nil {
+		return fmt.Errorf("setting up connection controller: %w", err)
+	}
+
+	return nil
 }
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
@@ -55,21 +71,28 @@ func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager
 func (r *ConnectionReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	if err := r.libr.UpdateConnections(ctx, r.Client); err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error updating connections catalog")
-	}
-
 	conn := &wiringapi.Connection{}
-	err := r.Get(ctx, req.NamespacedName, conn)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, conn); err != nil {
+		// the IDs of deleted connections are released with the next allocation
 		if kapierrors.IsNotFound(err) {
 			return kctrl.Result{}, nil
 		}
 
-		return kctrl.Result{}, errors.Wrapf(err, "error getting connection")
+		return kctrl.Result{}, fmt.Errorf("getting connection: %w", err)
 	}
 
-	l.Info("connection reconciled")
+	if conn.Spec.ESLAG == nil {
+		return kctrl.Result{}, nil
+	}
+
+	updated, err := r.libr.UpdateConnections(ctx, r.Client, conn.Name)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("updating connections catalog: %w", err)
+	}
+
+	if updated {
+		l.Info("Connections catalog updated")
+	}
 
 	return kctrl.Result{}, nil
 }
