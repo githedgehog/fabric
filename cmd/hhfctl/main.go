@@ -132,6 +132,15 @@ func main() {
 		Destination: &output,
 	}
 
+	inspectFabricFlag := &cli.StringFlag{
+		Name:  "fabric",
+		Usage: "only inspect switches of this Fabric (can't be used together with switch names)",
+	}
+	inspectDomainFlag := &cli.StringFlag{
+		Name:  "domain",
+		Usage: "only inspect switches of this Fabric domain (requires --fabric)",
+	}
+
 	appName := "hhfctl"
 	usage := "Hedgehog Fabric API CLI client"
 	if len(os.Args) > 0 {
@@ -1349,6 +1358,8 @@ Examples:
 								Aliases: []string{"name", "n"},
 								Usage:   "Switch names to inspect BGP neighbors for (if not specified, will inspect all switches)",
 							},
+							inspectFabricFlag,
+							inspectDomainFlag,
 							&cli.BoolFlag{
 								Name:  "strict",
 								Usage: "strict BGP check (will fail if any neighbor is missing, not expected or not established)",
@@ -1363,6 +1374,8 @@ Examples:
 								Output:  inspect.OutputType(output),
 							}, inspect.BGPIn{
 								Switches: cCtx.StringSlice("switch-name"),
+								Fabric:   cCtx.String("fabric"),
+								Domain:   cCtx.String("domain"),
 								Strict:   cCtx.Bool("strict"),
 							}, os.Stdout), "failed to inspect BGP")
 						},
@@ -1378,6 +1391,8 @@ Examples:
 								Aliases: []string{"name", "n"},
 								Usage:   "Switch names to inspect BFD peers for (if not specified, will inspect all switches)",
 							},
+							inspectFabricFlag,
+							inspectDomainFlag,
 							&cli.BoolFlag{
 								Name:  "strict",
 								Usage: "strict BFD check (will fail if any peer is missing, not expected or not up)",
@@ -1392,6 +1407,8 @@ Examples:
 								Output:  inspect.OutputType(output),
 							}, inspect.BFDIn{
 								Switches: cCtx.StringSlice("switch-name"),
+								Fabric:   cCtx.String("fabric"),
+								Domain:   cCtx.String("domain"),
 								Strict:   cCtx.Bool("strict"),
 							}, os.Stdout), "failed to inspect BFD")
 						},
@@ -1407,27 +1424,29 @@ Examples:
 								Aliases: []string{"name", "n"},
 								Usage:   "Switch names to inspect LLDP neighbors for (if not specified, will inspect all switches)",
 							},
+							inspectFabricFlag,
+							inspectDomainFlag,
 							&cli.BoolFlag{
 								Name:  "strict",
 								Usage: "strict LLDP check (will fail if any neighbor is missing or not as expected ignoring external ones)",
 							},
 							&cli.BoolFlag{
-								Name:  "fabric",
+								Name:  "fabric-conns",
 								Usage: "include fabric neighbors (fabric connections)",
 								Value: true,
 							},
 							&cli.BoolFlag{
-								Name:  "external",
+								Name:  "external-conns",
 								Usage: "include external neighbors (external and staticexternal connections)",
 								Value: true,
 							},
 							&cli.BoolFlag{
-								Name:  "server",
+								Name:  "server-conns",
 								Usage: "include server neighbors (unbundled, bundled, eslag and mclag connections)",
 								Value: true,
 							},
 							&cli.BoolFlag{
-								Name:  "gateway",
+								Name:  "gateway-conns",
 								Usage: "include gateway neighbors (gateway connections)",
 								Value: true,
 							},
@@ -1464,12 +1483,16 @@ Examples:
 								Output:  inspect.OutputType(output),
 							}, inspect.LLDPIn{
 								Switches: cCtx.StringSlice("switch-name"),
-								Strict:   cCtx.Bool("strict"),
-								Fabric:   cCtx.Bool("fabric"),
-								External: cCtx.Bool("external"),
-								Server:   cCtx.Bool("server"),
-								Gateway:  cCtx.Bool("gateway"),
-								ShowAll:  cCtx.Bool("show-all"),
+								Fabric:   cCtx.String("fabric"),
+								Domain:   cCtx.String("domain"),
+
+								FabricConns:   cCtx.Bool("fabric-conns"),
+								ExternalConns: cCtx.Bool("external-conns"),
+								ServerConns:   cCtx.Bool("server-conns"),
+								GatewayConns:  cCtx.Bool("gateway-conns"),
+
+								Strict:  cCtx.Bool("strict"),
+								ShowAll: cCtx.Bool("show-all"),
 
 								Description: cCtx.Bool("description"),
 								TTL:         cCtx.Bool("ttl"),

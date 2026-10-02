@@ -32,7 +32,13 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 
 	sw := &wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf},
+		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
+	}
+
+	// not one of the inspected switches, so it's fetched as a peer
+	spineSw := &wiringapi.Switch{
+		ObjectMeta: kmetav1.ObjectMeta{Name: spine, Namespace: kmetav1.NamespaceDefault},
+		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleSpine, ASN: spineASN, ProtocolIP: "172.30.11.2/32"},
 	}
 
 	fabricConn := &wiringapi.Connection{
@@ -59,13 +65,16 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	}
 
 	// E1/1 and E1/2 are plain SFP28 ports on the S5248F, E1/53 a breakout-capable QSFP28
-	newAgent := func(silicon string) *agentapi.Agent {
+	newProfile := func(silicon string) *wiringapi.SwitchProfile {
+		sp := switchprofile.DellS5248FON.DeepCopy()
+		sp.Namespace = kmetav1.NamespaceDefault
+		sp.Spec.SwitchSilicon = silicon
+
+		return sp
+	}
+
+	newAgent := func() *agentapi.Agent {
 		ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
-		ag.Spec.SwitchProfile = switchprofile.DellS5248FON.Spec.DeepCopy()
-		ag.Spec.SwitchProfile.SwitchSilicon = silicon
-		ag.Spec.Switches = map[string]wiringapi.SwitchSpec{
-			spine: {ASN: spineASN, ProtocolIP: "172.30.11.2/32"},
-		}
 		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1, "E1/53": wVLAN + 2}
 
 		return ag
@@ -123,10 +132,10 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			require.NoError(t, vpcapi.AddToScheme(scheme))
 			require.NoError(t, agentapi.AddToScheme(scheme))
 
-			ag := newAgent(tt.silicon)
+			ag := newAgent()
 			ag.Status.State.BGPNeighbors = reported(tt.reported...)
 
-			objs := []kclient.Object{sw, ag}
+			objs := []kclient.Object{sw, spineSw, newProfile(tt.silicon), ag}
 			for _, conn := range []*wiringapi.Connection{fabricConn} {
 				conn := conn.DeepCopy()
 				conn.Default()
@@ -137,8 +146,10 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 				WithStatusSubresource(ag).Build()
 			require.NoError(t, kube.Status().Update(t.Context(), ag))
 
-			neighs, err := apiutil.GetBGPNeighbors(t.Context(), kube, &meta.FabricConfig{}, sw)
+			status, err := apiutil.GetBGPStatus(t.Context(), kube, &meta.FabricConfig{}, apiutil.SwitchFilter{Names: []string{self}})
 			require.NoError(t, err)
+			require.Contains(t, status, self)
+			neighs := status[self].Neighbors
 
 			// an expected key that does not match what the agent reports shows up as an extra
 			// entry, which is what keying every unnumbered session by "unnum" used to do
@@ -152,6 +163,18 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 				require.Equal(t, want.port, neigh.Port)
 				require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neigh.SessionState,
 					"neighbor %s must join the state the agent reports", key)
+
+				// BFD runs on the link sessions only, which are expected even without a BFD session reported
+				peer, ok := status[self].BFDPeers["default"][key]
+				if want.port == "Lo" {
+					require.False(t, ok, "loopback neighbor %s must not be a BFD peer", key)
+
+					continue
+				}
+				require.True(t, ok, "BFD peer %s must be present", key)
+				require.True(t, peer.Expected, "BFD peer %s must be expected", key)
+				require.Equal(t, want.conn, peer.ConnectionName)
+				require.Equal(t, want.port, peer.Port)
 			}
 		})
 	}

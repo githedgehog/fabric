@@ -17,7 +17,6 @@ import (
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/valid"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	coreapi "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,7 +25,10 @@ import (
 
 type BGPIn struct {
 	Switches []string
-	Strict   bool
+	// Fabric and Domain select the switches instead of the names
+	Fabric string
+	Domain string
+	Strict bool
 }
 
 type BGPOut struct {
@@ -129,6 +131,40 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 		Neighbors: map[string]map[string]map[string]apiutil.BGPNeighborStatus{},
 	}
 
+	status, err := getBGPStatus(ctx, kube, apiutil.SwitchFilter{Names: in.Switches, Fabric: in.Fabric, Domain: in.Domain})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, swName := range slices.Sorted(maps.Keys(status)) {
+		neighs := status[swName].Neighbors
+
+		if in.Strict {
+			for vrf, vrfNeighbors := range neighs {
+				for name, neighbor := range vrfNeighbors {
+					if !neighbor.Expected {
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", swName, vrf, name)) //nolint:goerr113
+					}
+
+					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", swName, vrf, name)) //nolint:goerr113
+					}
+				}
+			}
+		}
+
+		out.Neighbors[swName] = neighs
+	}
+
+	return out, nil
+}
+
+// getBGPStatus is shared by the BGP and BFD inspects, both are computed from the same switch state
+func getBGPStatus(ctx context.Context, kube kclient.Reader, filter apiutil.SwitchFilter) (map[string]*apiutil.BGPSwitchStatus, error) {
+	if err := filter.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid switch filter: %w", err)
+	}
+
 	fabCfgCM := &coreapi.ConfigMap{}
 	if err := kube.Get(ctx, kclient.ObjectKey{Name: "fabric-ctrl-config", Namespace: "fab"}, fabCfgCM); err != nil {
 		return nil, fmt.Errorf("getting fabric-ctrl-config: %w", err)
@@ -145,43 +181,10 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 		return nil, fmt.Errorf("initializing fabric config: %w", err)
 	}
 
-	sws := &wiringapi.SwitchList{}
-	if err := kube.List(ctx, sws); err != nil {
-		return nil, fmt.Errorf("listing switches: %w", err)
+	status, err := apiutil.GetBGPStatus(ctx, kube, fabCfg, filter)
+	if err != nil {
+		return nil, fmt.Errorf("getting BGP status: %w", err)
 	}
 
-	for _, sw := range sws.Items {
-		if len(in.Switches) > 0 && !slices.Contains(in.Switches, sw.Name) {
-			continue
-		}
-
-		neighs, err := apiutil.GetBGPNeighbors(ctx, kube, fabCfg, &sw)
-		if err != nil {
-			return nil, fmt.Errorf("getting BGP neighbors for switch %s: %w", sw.Name, err)
-		}
-
-		if in.Strict {
-			for vrf, vrfNeighbors := range neighs {
-				for name, neighbor := range vrfNeighbors {
-					if !neighbor.Expected {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", sw.Name, vrf, name)) //nolint:goerr113
-					}
-
-					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", sw.Name, vrf, name)) //nolint:goerr113
-					}
-				}
-			}
-		}
-
-		out.Neighbors[sw.Name] = neighs
-	}
-
-	for _, sw := range in.Switches {
-		if _, ok := out.Neighbors[sw]; !ok {
-			return nil, fmt.Errorf("switch %s not found", sw) //nolint:goerr113
-		}
-	}
-
-	return out, nil
+	return status, nil
 }

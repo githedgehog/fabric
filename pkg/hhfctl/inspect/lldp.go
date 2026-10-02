@@ -21,11 +21,17 @@ import (
 )
 
 type LLDPIn struct {
-	Switches    []string
-	Fabric      bool
-	Server      bool
-	External    bool
-	Gateway     bool
+	Switches []string
+	// Fabric and Domain select the switches instead of the names
+	Fabric string
+	Domain string
+
+	// Which neighbors to include by the type of connection they're wired with
+	FabricConns   bool
+	ServerConns   bool
+	ExternalConns bool
+	GatewayConns  bool
+
 	Strict      bool
 	ShowAll     bool
 	Description bool
@@ -317,54 +323,44 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 		Neighbors: map[string]map[string]apiutil.LLDPNeighborStatus{},
 	}
 
-	sws := &wiringapi.SwitchList{}
-	if err := kube.List(ctx, sws); err != nil {
-		return nil, fmt.Errorf("listing switches: %w", err)
+	filter := apiutil.SwitchFilter{Names: in.Switches, Fabric: in.Fabric, Domain: in.Domain}
+	if err := filter.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid switch filter: %w", err)
 	}
 
-	for _, sw := range sws.Items {
-		if len(in.Switches) > 0 && !slices.Contains(in.Switches, sw.Name) {
-			continue
-		}
+	neighbors, err := apiutil.GetLLDPNeighbors(ctx, kube, filter, apiutil.LLDPNeighborsOpts{
+		IgnorePrefixes: in.IgnorePrefixes,
+		IgnoreSuffixes: in.IgnoreSuffixes,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting lldp neighbors: %w", err)
+	}
 
-		neighbors, err := apiutil.GetLLDPNeighbors(ctx, kube, &sw, apiutil.LLDPNeighborsOpts{
-			IgnorePrefixes: in.IgnorePrefixes,
-			IgnoreSuffixes: in.IgnoreSuffixes,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("getting lldp neighbors for %s: %w", sw.Name, err)
-		}
+	for _, swName := range slices.Sorted(maps.Keys(neighbors)) {
+		out.Neighbors[swName] = map[string]apiutil.LLDPNeighborStatus{}
 
-		out.Neighbors[sw.Name] = map[string]apiutil.LLDPNeighborStatus{}
-
-		for name, n := range neighbors {
-			if !in.Fabric && n.Type == apiutil.LLDPNeighborTypeFabric {
+		for name, n := range neighbors[swName] {
+			if !in.FabricConns && n.Type == apiutil.LLDPNeighborTypeFabric {
 				continue
 			}
 
-			if !in.Server && n.Type == apiutil.LLDPNeighborTypeServer {
+			if !in.ServerConns && n.Type == apiutil.LLDPNeighborTypeServer {
 				continue
 			}
 
-			if !in.External && n.Type == apiutil.LLDPNeighborTypeExternal {
+			if !in.ExternalConns && n.Type == apiutil.LLDPNeighborTypeExternal {
 				continue
 			}
 
-			if !in.Gateway && n.Type == apiutil.LLDPNeighborTypeGateway {
+			if !in.GatewayConns && n.Type == apiutil.LLDPNeighborTypeGateway {
 				continue
 			}
 
-			out.Neighbors[sw.Name][name] = n
+			out.Neighbors[swName][name] = n
 
 			if in.Strict {
-				out.Errs = append(out.Errs, lldpStrictErrs(sw.Name, name, n)...)
+				out.Errs = append(out.Errs, lldpStrictErrs(swName, name, n)...)
 			}
-		}
-	}
-
-	for _, sw := range in.Switches {
-		if _, ok := out.Neighbors[sw]; !ok {
-			return nil, fmt.Errorf("switch %s not found", sw) //nolint:goerr113
 		}
 	}
 
