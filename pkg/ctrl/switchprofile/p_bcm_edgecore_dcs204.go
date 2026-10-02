@@ -64,8 +64,8 @@ var EdgecoreDCS204 = wiringapi.SwitchProfile{
 			"E1/30": {NOSName: "1/30", BaseNOSName: "Ethernet116", Label: "30", Profile: "QSFP28-100G"},
 			"E1/31": {NOSName: "1/31", BaseNOSName: "Ethernet120", Label: "31", Profile: "QSFP28-100G"},
 			"E1/32": {NOSName: "Ethernet124", Label: "32", Profile: "QSFP28-100G" + wiringapi.NonBreakoutPortExceptionSuffix}, // 32x QSFP28-100G, single port w/o breakout
-			"E1/33": {NOSName: "Ethernet128", Label: "33", Profile: "SFP28-10G"},
-			"E1/34": {NOSName: "Ethernet129", Label: "34", Profile: "SFP28-10G"},
+			"E1/33": {NOSName: "Ethernet125", Label: "33", Profile: "SFP28-10G"},
+			"E1/34": {NOSName: "Ethernet126", Label: "34", Profile: "SFP28-10G"},
 		},
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"SFP28-10G": {
