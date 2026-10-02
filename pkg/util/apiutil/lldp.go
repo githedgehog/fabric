@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"strings"
 
-	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -126,62 +125,100 @@ func lldpNeighborNameCut(name, expected string, opts LLDPNeighborsOpts) (string,
 	return "", ""
 }
 
-func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Switch, opts LLDPNeighborsOpts) (map[string]LLDPNeighborStatus, error) {
-	if sw == nil {
-		return nil, fmt.Errorf("switch is nil") //nolint:goerr113
+// lldpData is what the LLDP neighbors of any switch may refer to, loaded once or on demand and shared by all of them
+type lldpData struct {
+	// only the servers that advertise a system name other than their object name
+	serverNames map[string]string
+	nos2API     map[string]map[string]string
+}
+
+func loadLLDPData(ctx context.Context, kube kclient.Reader) (*lldpData, error) {
+	data := &lldpData{
+		serverNames: map[string]string{},
+		nos2API:     map[string]map[string]string{},
 	}
 
-	ag := &agentapi.Agent{}
-	if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, ag); err != nil {
-		return nil, fmt.Errorf("getting agent %s: %w", sw.Name, err)
-	}
-
-	out := map[string]LLDPNeighborStatus{}
-
-	sps := map[string]*wiringapi.SwitchProfile{}
-	swSP := map[string]*wiringapi.SwitchProfile{}
-	swNOS2API := map[string]map[string]string{}
-
-	swList := &wiringapi.SwitchList{}
-	if err := kube.List(ctx, swList); err != nil {
-		return nil, fmt.Errorf("listing switches: %w", err)
-	}
-	for _, sw := range swList.Items {
-		sp, ok := sps[sw.Spec.Profile]
-		if !ok {
-			sp = &wiringapi.SwitchProfile{}
-			if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp); err != nil {
-				return nil, fmt.Errorf("getting switch profile %s: %w", sw.Spec.Profile, err)
-			}
-			sps[sp.Name] = sp
-		}
-		swSP[sw.Name] = sp
-
-		ports, err := sp.Spec.GetNOS2APIPortsFor(&sw.Spec)
-		if err != nil {
-			return nil, fmt.Errorf("getting NOS ports mapping for %s: %w", sw.Name, err)
-		}
-
-		swNOS2API[sw.Name] = ports
-	}
-
-	srvExpectedName := map[string]string{}
 	srvList := &wiringapi.ServerList{}
-	if err := kube.List(ctx, srvList); err != nil {
+	if err := kube.List(ctx, srvList, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
 		return nil, fmt.Errorf("listing servers: %w", err)
 	}
 	for _, srv := range srvList.Items {
 		if name := srv.Spec.Inspect.ExpectedSystemName; name != "" {
-			srvExpectedName[srv.Name] = name
+			data.serverNames[srv.Name] = name
 		}
 	}
 
-	conns := &wiringapi.ConnectionList{}
-	if err := kube.List(ctx, conns, wiringapi.MatchingLabelsForListLabelSwitch(sw.Name)); err != nil {
-		return nil, fmt.Errorf("listing connections: %w", err)
+	return data, nil
+}
+
+func normalizePortName(ctx context.Context, in *switchInput, swName, port string) (string, error) {
+	_, sp, err := in.cache.switchProfile(ctx, swName)
+	if err != nil {
+		return "", err
 	}
 
-	for _, conn := range conns.Items {
+	normalized, err := sp.Spec.NormalizePortName(port)
+	if err != nil {
+		return "", fmt.Errorf("normalizing port name %s: %w", port, err)
+	}
+
+	return normalized, nil
+}
+
+// nos2APIPorts is the NOS to API port names mapping of a switch, only ever needed for the fabric peers
+func (d *lldpData) nos2APIPorts(ctx context.Context, in *switchInput, swName string) (map[string]string, error) {
+	if ports, ok := d.nos2API[swName]; ok {
+		return ports, nil
+	}
+
+	sw, sp, err := in.cache.switchProfile(ctx, swName)
+	if err != nil {
+		return nil, err
+	}
+
+	ports, err := sp.Spec.GetNOS2APIPortsFor(&sw.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("getting NOS ports mapping for %s: %w", swName, err)
+	}
+	d.nos2API[swName] = ports
+
+	return ports, nil
+}
+
+// GetLLDPNeighbors returns the LLDP neighbors of the switches selected by the filter, keyed by switch name and port
+func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, filter SwitchFilter, opts LLDPNeighborsOpts) (map[string]map[string]LLDPNeighborStatus, error) {
+	if err := filter.check(ctx, kube); err != nil {
+		return nil, err
+	}
+
+	data, err := loadLLDPData(ctx, kube)
+	if err != nil {
+		return nil, err
+	}
+
+	out := map[string]map[string]LLDPNeighborStatus{}
+	if err := forEachSwitch(ctx, kube, filter, nil, func(in *switchInput) error {
+		neighbors, err := lldpNeighbors(ctx, data, in, opts)
+		if err != nil {
+			return fmt.Errorf("getting LLDP neighbors for switch %s: %w", in.sw.Name, err)
+		}
+
+		out[in.sw.Name] = neighbors
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func lldpNeighbors(ctx context.Context, data *lldpData, in *switchInput, opts LLDPNeighborsOpts) (map[string]LLDPNeighborStatus, error) {
+	sw, ag := in.sw, in.ag
+
+	out := map[string]LLDPNeighborStatus{}
+
+	for _, conn := range in.conns {
 		if conn.Spec.VPCLoopback != nil {
 			continue
 		}
@@ -217,25 +254,15 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 				statusType = LLDPNeighborTypeServer
 			}
 
-			if sp, exist := swSP[kDevice]; exist {
-				port, err := sp.Spec.NormalizePortName(kPort)
-				if err != nil {
-					return nil, fmt.Errorf("normalizing port name %s: %w", kPort, err)
-				}
-				kPort = port
-			} else {
-				return nil, fmt.Errorf("switch profile not found for %s", kDevice) //nolint:goerr113
+			kPort, err = normalizePortName(ctx, in, kDevice, kPort)
+			if err != nil {
+				return nil, err
 			}
 
 			if statusType == LLDPNeighborTypeFabric {
-				if sp, exist := swSP[vDevice]; exist {
-					port, err := sp.Spec.NormalizePortName(vPort)
-					if err != nil {
-						return nil, fmt.Errorf("normalizing port name %s: %w", vPort, err)
-					}
-					vPort = port
-				} else {
-					return nil, fmt.Errorf("switch profile not found for %s", vDevice) //nolint:goerr113
+				vPort, err = normalizePortName(ctx, in, vDevice, vPort)
+				if err != nil {
+					return nil, err
 				}
 			}
 
@@ -247,7 +274,7 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 			expectedName := vDevice
 			// a server may advertise a system name that isn't its object name, only it knows so
 			if statusType == LLDPNeighborTypeServer {
-				if name, ok := srvExpectedName[vDevice]; ok {
+				if name, ok := data.serverNames[vDevice]; ok {
 					expectedName = name
 				}
 			}
@@ -286,9 +313,9 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, sw *wiringapi.Sw
 					return nil, fmt.Errorf("expected neighbor name not found for %s while type if fabric", ifaceName) //nolint:goerr113
 				}
 
-				ports, ok := swNOS2API[status.Expected.Name]
-				if !ok {
-					return nil, fmt.Errorf("NOS ports mapping for %s not found", status.Expected.Name) //nolint:goerr113
+				ports, err := data.nos2APIPorts(ctx, in, status.Expected.Name)
+				if err != nil {
+					return nil, err
 				}
 
 				// mapping is keyed by the NOS interface names, so it's only the raw port ID that can match it

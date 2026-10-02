@@ -137,10 +137,10 @@ func TestGetLLDPNeighbors(t *testing.T) {
 		}),
 	).Build()
 
-	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-	}, apiutil.LLDPNeighborsOpts{})
+	all, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"leaf-1"}}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
+	require.Len(t, all, 1)
+	neighbors := all["leaf-1"]
 
 	// server: derived port is compared to the wiring, so it matches instead of showing a MAC
 	server := neighbors["E1/1"]
@@ -265,10 +265,10 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 		conn("server-4", "E1/4"),
 	).Build()
 
-	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-	}, apiutil.LLDPNeighborsOpts{IgnoreSuffixes: apiutil.DefaultLLDPIgnoreSuffixes})
+	all, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"leaf-1"}},
+		apiutil.LLDPNeighborsOpts{IgnoreSuffixes: apiutil.DefaultLLDPIgnoreSuffixes})
 	require.NoError(t, err)
+	neighbors := all["leaf-1"]
 
 	for _, tt := range []struct {
 		port     string
@@ -342,10 +342,9 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 	kube := fake.NewClientBuilder().WithScheme(scheme).
 		WithObjects(profile, sw("leaf-1"), sw("spine-1"), agent, conn).Build()
 
-	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-	}, apiutil.LLDPNeighborsOpts{})
+	all, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"leaf-1"}}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
+	neighbors := all["leaf-1"]
 
 	// the description is reported as is, it's never mapped, and it doesn't accidentally match the expected port
 	actual := neighbors["E1/2"].Actual
