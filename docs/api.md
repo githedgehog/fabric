@@ -1525,6 +1525,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `topology` _[VPCInfoTopology](#vpcinfotopology)_ | Topology is where the VPCInfo sits in the fabric topology |  |  |
 | `subnets` _object (keys:string, values:[VPCInfoSubnet](#vpcinfosubnet))_ | Subnets is a map of all subnets in the VPC (incl. CIDRs, VNIs, etc) keyed by the subnet name |  |  |
 | `vni` _integer_ | VNI is the VNI for the VPC |  |  |
 
@@ -1559,6 +1560,23 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `cidr` _string_ | CIDR is the subnet CIDR block, such as "10.0.0.0/24" |  |  |
+
+
+#### VPCInfoTopology
+
+
+
+VPCInfoTopology is where a VPCInfo sits in the fabric topology, the same as its VPC or External
+
+
+
+_Appears in:_
+- [VPCInfoSpec](#vpcinfospec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCInfo belongs to (if not specified, "default" is used) |  |  |
+| `domains` _string array_ | Domains are the Fabric domains of the VPC or External (if not specified, "default" is used), only the<br />gateways in them get it |  |  |
 
 
 
