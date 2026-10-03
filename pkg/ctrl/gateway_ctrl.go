@@ -60,7 +60,7 @@ const (
 
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaypeerings,verbs=get;list;watch
 // +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch
@@ -192,18 +192,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	{
-		defGwGr := &gwapi.GatewayGroup{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      gwapi.DefaultGatewayGroup,
-				Namespace: kmetav1.NamespaceDefault,
-			},
-		}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, defGwGr, func() error {
-			return nil
-		}); err != nil {
-			return kctrl.Result{}, fmt.Errorf("creating/updating default gateway group: %w", err)
-		}
-
 		orig := gw.DeepCopy()
 		gw.Default()
 		if !reflect.DeepEqual(orig, gw) {
