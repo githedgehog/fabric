@@ -81,6 +81,13 @@ rules:
   resources:
   - gatewaygroups
   - gatewaypeerings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
   - gateways
   - vpcinfos
   verbs:
@@ -94,7 +101,6 @@ rules:
 - apiGroups:
   - gateway.githedgehog.com
   resources:
-  - gatewaypeerings/status
   - gateways/status
   - vpcinfos/status
   verbs:

@@ -111,9 +111,7 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 		return fmt.Errorf("invalid gateway group: %w", err)
 	}
 
-	// the gateway controllers create the default group whatever the fabric's domains, so like the default
-	// fabric it is exempt; gateways and peerings using it are still checked against its domain
-	if fabricCfg != nil && gg.Name != DefaultGatewayGroup {
+	if fabricCfg != nil {
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, gg.Namespace, gg.Spec.Topology.Fabric)
 		if err != nil {
 			return fmt.Errorf("getting fabric: %w", err)

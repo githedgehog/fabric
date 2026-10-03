@@ -427,8 +427,8 @@ func TestGatewayGroupDomain(t *testing.T) {
 		{group: "gr-1", domain: ""},
 		{group: "gr-1", domain: "plane-b"},
 		{group: "gr-1", domain: "plane-c", err: "domain plane-c not found in fabric default"},
-		// created by the gateway controllers even in a fabric without that domain
-		{group: v1alpha1.DefaultGatewayGroup, domain: "plane-c"},
+		// the default group is checked like any other
+		{group: v1alpha1.DefaultGatewayGroup, domain: "plane-c", err: "domain plane-c not found in fabric default"},
 	} {
 		t.Run(tt.group+" in domain "+tt.domain, func(t *testing.T) {
 			group := withName(tt.group, &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: tt.domain}}})
