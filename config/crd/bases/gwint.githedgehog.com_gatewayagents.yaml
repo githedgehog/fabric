@@ -468,6 +468,22 @@ spec:
                       description: Subnets is a map of all subnets in the VPC (incl.
                         CIDRs, VNIs, etc) keyed by the subnet name
                       type: object
+                    topology:
+                      description: Topology is where the VPCInfo sits in the fabric
+                        topology
+                      properties:
+                        domains:
+                          description: |-
+                            Domains are the Fabric domains of the VPC or External (if not specified, "default" is used), only the
+                            gateways in them get it
+                          items:
+                            type: string
+                          type: array
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPCInfo
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
                     vni:
                       description: VNI is the VNI for the VPC
                       format: int32
