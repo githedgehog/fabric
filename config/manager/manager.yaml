@@ -110,11 +110,11 @@ spec:
           # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
           resources:
             limits:
-              cpu: 1000m
-              memory: 512Mi
+              cpu: 8000m
+              memory: 8Gi
             requests:
-              cpu: 200m
-              memory: 128Mi
+              cpu: 500m
+              memory: 256Mi
           volumeMounts:
             - name: config
               mountPath: /etc/hedgehog/fabric
