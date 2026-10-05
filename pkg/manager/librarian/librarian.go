@@ -152,23 +152,35 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client, co
 	return true, nil
 }
 
-func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
+// EnsureVNIs makes sure the given VPCs (incl. their subnets) and externals have VNIs allocated: if any of them doesn't,
+// the VNIs of all VPCs and externals are reallocated, which also releases the VNIs of the deleted ones. Reports
+// whether the catalog changed.
+func (m *Manager) EnsureVNIs(ctx context.Context, kube kclient.Client, vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) (bool, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	cat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	return m.ensureVNIs(ctx, kube, cat, vpcs, externals)
+}
+
+// ensureVNIs is EnsureVNIs for an already loaded VNIs catalog, which is updated in place. The mutex has to be held.
+func (m *Manager) ensureVNIs(ctx context.Context, kube kclient.Client, cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) (bool, error) {
+	if vnisAllocated(cat, vpcs, externals) {
+		return false, nil
 	}
 
 	vpcList := &vpcapi.VPCList{}
 	if err := kube.List(ctx, vpcList); err != nil {
-		return errors.Wrapf(err, "error listing VPCs")
+		return false, fmt.Errorf("listing VPCs: %w", err)
 	}
 
 	externalList := &vpcapi.ExternalList{}
 	if err := kube.List(ctx, externalList); err != nil {
-		return errors.Wrapf(err, "error listing externals")
+		return false, fmt.Errorf("listing externals: %w", err)
 	}
 
 	reqs := map[string]bool{}
@@ -183,28 +195,63 @@ func (m *Manager) UpdateVNIs(ctx context.Context, kube kclient.Client) error {
 		Values: NewNextFreeValueFromRanges([][2]uint32{{VPCVNIOffset, VPCVNIMax}}, VPCVNIOffset),
 	}
 
-	cat.Spec.VPCVNIs, err = a.Allocate(cat.Spec.VPCVNIs, reqs)
+	vnis, err := a.Allocate(cat.Spec.VPCVNIs, reqs)
 	if err != nil {
-		return errors.Wrapf(err, "failed to allocate VPC/External VNIs")
+		return false, fmt.Errorf("allocating VPC/External VNIs: %w", err)
 	}
 
+	// the subnet VNI maps are replaced, never modified, so a shallow copy is enough to compare
+	subnetVNIs := maps.Clone(cat.Spec.VPCSubnetVNIs)
 	for _, vpc := range vpcList.Items {
 		subnets := map[string]bool{}
 		for subnetName := range vpc.Spec.Subnets {
 			subnets[subnetName] = true
 		}
 
-		vpcVNI := cat.Spec.VPCVNIs[vpc.Name]
+		vpcVNI := vnis[vpc.Name]
 		a := &Allocator[uint32]{
 			Values: NewNextFreeValueFromRanges([][2]uint32{{vpcVNI + 1, vpcVNI + VPCVNIOffset - 1}}, 1),
 		}
-		cat.Spec.VPCSubnetVNIs[vpc.Name], err = a.Allocate(cat.Spec.VPCSubnetVNIs[vpc.Name], subnets)
+		subnetVNIs[vpc.Name], err = a.Allocate(subnetVNIs[vpc.Name], subnets)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate VPC subnet VNIs for %s", vpc.Name)
+			return false, fmt.Errorf("allocating VPC subnet VNIs for %s: %w", vpc.Name, err)
 		}
 	}
 
-	return m.saveCatalog(ctx, kube, CatVNIs, cat)
+	if maps.Equal(vnis, cat.Spec.VPCVNIs) && maps.EqualFunc(subnetVNIs, cat.Spec.VPCSubnetVNIs, maps.Equal) {
+		return false, nil
+	}
+	cat.Spec.VPCVNIs = vnis
+	cat.Spec.VPCSubnetVNIs = subnetVNIs
+
+	if err := m.saveCatalog(ctx, kube, CatVNIs, cat); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// vnisAllocated reports whether the VPCs, all of their subnets and the externals have VNIs in the catalog
+func vnisAllocated(cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) bool {
+	for name, vpc := range vpcs {
+		if _, ok := cat.Spec.VPCVNIs[name]; !ok {
+			return false
+		}
+
+		for subnet := range vpc.Subnets {
+			if _, ok := cat.Spec.VPCSubnetVNIs[name][subnet]; !ok {
+				return false
+			}
+		}
+	}
+
+	for name := range externals {
+		if _, ok := cat.Spec.VPCVNIs[ReqForExt(name)]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (m *Manager) getRedundancyGroupKey(swName string, redundancy wiringapi.SwitchRedundancy) string {
@@ -446,33 +493,53 @@ func ReqForExt(extPeeringName string) string {
 	return ReqPrefixExt + extPeeringName
 }
 
-func (m *Manager) GetVPCVNI(ctx context.Context, kube kclient.Client, vpc string) (uint32, error) {
-	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
+// GetOrEnsureVPCVNI returns the VNI of the VPC, allocating the VNIs of it and its subnets first if any is missing
+func (m *Manager) GetOrEnsureVPCVNI(ctx context.Context, kube kclient.Client, vpc *vpcapi.VPC) (uint32, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	cat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
-		return 0, errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
+		return 0, err
 	}
 
-	if vni, exists := vnisCat.Spec.VPCVNIs[vpc]; exists {
+	if _, err := m.ensureVNIs(ctx, kube, cat, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil); err != nil {
+		return 0, err
+	}
+
+	// it's missing if the VPC wasn't listed while allocating
+	if vni, exists := cat.Spec.VPCVNIs[vpc.Name]; exists {
 		return vni, nil
 	}
 
-	return 0, errors.Errorf("failed to find VPC VNI for vpc %s", vpc)
+	return 0, fmt.Errorf("failed to find VPC VNI for vpc %s", vpc.Name) //nolint:err113
 }
 
-func (m *Manager) GetExternalVNI(ctx context.Context, kube kclient.Client, external string) (uint32, error) {
-	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
+// GetOrEnsureExternalVNI returns the VNI of the external, allocating it first if it's missing
+func (m *Manager) GetOrEnsureExternalVNI(ctx context.Context, kube kclient.Client, external string) (uint32, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	cat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
-		return 0, errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
+		return 0, err
 	}
 
-	if vni, exists := vnisCat.Spec.VPCVNIs[ReqForExt(external)]; exists {
+	if _, err := m.ensureVNIs(ctx, kube, cat, nil, map[string]bool{external: true}); err != nil {
+		return 0, err
+	}
+
+	// it's missing if the external wasn't listed while allocating
+	if vni, exists := cat.Spec.VPCVNIs[ReqForExt(external)]; exists {
 		return vni, nil
 	}
 
-	return 0, errors.Errorf("failed to find VNI for external %s", external)
+	return 0, fmt.Errorf("failed to find VNI for external %s", external) //nolint:err113
 }
 
-func (m *Manager) UpdateAndGetVPCInfoID(ctx context.Context, kube kclient.Client, maxVal uint32, vpcInfoName string) (uint32, error) {
+// GetOrEnsureVPCInfoID returns the ID of the VPCInfo. If it doesn't have one yet, the IDs of all VPCInfos are reallocated,
+// which also releases the IDs of the deleted ones.
+func (m *Manager) GetOrEnsureVPCInfoID(ctx context.Context, kube kclient.Client, maxVal uint32, vpcInfoName string) (uint32, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -481,9 +548,13 @@ func (m *Manager) UpdateAndGetVPCInfoID(ctx context.Context, kube kclient.Client
 		return 0, err
 	}
 
+	if id, exists := cat.Spec.VPCInfoIDs[vpcInfoName]; exists {
+		return id, nil
+	}
+
 	vpcList := &gwapi.VPCInfoList{}
 	if err := kube.List(ctx, vpcList); err != nil {
-		return 0, errors.Wrapf(err, "error listing VPC infos")
+		return 0, fmt.Errorf("listing VPC infos: %w", err)
 	}
 	vpcs := map[string]bool{}
 	for _, vpc := range vpcList.Items {
@@ -493,15 +564,21 @@ func (m *Manager) UpdateAndGetVPCInfoID(ctx context.Context, kube kclient.Client
 	a := &Allocator[uint32]{
 		Values: NewNextFreeValueFromRanges([][2]uint32{{0, maxVal}}, 1),
 	}
-	cat.Spec.VPCInfoIDs, err = a.Allocate(cat.Spec.VPCInfoIDs, vpcs)
+	ids, err := a.Allocate(cat.Spec.VPCInfoIDs, vpcs)
 	if err != nil {
-		return 0, errors.Wrapf(err, "failed to allocate VPCInfo IDs")
+		return 0, fmt.Errorf("allocating VPCInfo IDs: %w", err)
 	}
 
-	vpcInfoID, exists := cat.Spec.VPCInfoIDs[vpcInfoName]
+	// it's missing if the VPCInfo wasn't listed while allocating
+	id, exists := ids[vpcInfoName]
 	if !exists {
-		return 0, errors.Errorf("failed to find VPCInfo ID for vpcInfo %s", vpcInfoName)
+		return 0, fmt.Errorf("failed to find VPCInfo ID for vpcInfo %s", vpcInfoName) //nolint:err113
 	}
 
-	return vpcInfoID, m.saveCatalog(ctx, kube, CatVPCInfos, cat)
+	cat.Spec.VPCInfoIDs = ids
+	if err := m.saveCatalog(ctx, kube, CatVPCInfos, cat); err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }

@@ -57,21 +57,26 @@ func (r *VPCInfoReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		return kctrl.Result{}, nil
 	}
 
-	l.Info("Reconciling VPCInfo")
-
-	vpcID, err := r.libr.UpdateAndGetVPCInfoID(ctx, r, VPCID.GetMaxValue(), req.Name)
+	vpcID, err := r.libr.GetOrEnsureVPCInfoID(ctx, r, VPCID.GetMaxValue(), req.Name)
 	if err != nil {
-		return kctrl.Result{}, fmt.Errorf("updating vpcinfo id: %w", err)
+		return kctrl.Result{}, fmt.Errorf("getting vpcinfo id: %w", err)
 	}
 
-	vpc.Status.InternalID, err = VPCID.Encode(vpcID)
+	internalID, err := VPCID.Encode(vpcID)
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("encoding vpcinfo id: %w", err)
 	}
 
+	if vpc.Status.InternalID == internalID {
+		return kctrl.Result{}, nil
+	}
+
+	vpc.Status.InternalID = internalID
 	if err := r.Status().Update(ctx, vpc); err != nil {
 		return kctrl.Result{}, fmt.Errorf("updating vpcinfo status: %w", err)
 	}
+
+	l.Info("VPCInfo internal ID updated", "id", internalID)
 
 	return kctrl.Result{}, nil
 }
