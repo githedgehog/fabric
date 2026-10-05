@@ -58,6 +58,10 @@ func TestFabricDeleteGuard(t *testing.T) {
 				ObjectMeta: kmetav1.ObjectMeta{Name: "gwg-01", Namespace: kmetav1.NamespaceDefault},
 				Spec:       gwapi.GatewayGroupSpec{Topology: gwapi.GatewayGroupTopology{Fabric: fabricName}},
 			},
+			&gwapi.VPCInfo{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "vpcinfo-01", Namespace: kmetav1.NamespaceDefault},
+				Spec:       gwapi.VPCInfoSpec{Topology: gwapi.VPCInfoTopology{Fabric: fabricName}},
+			},
 		}
 	}
 
@@ -71,7 +75,8 @@ func TestFabricDeleteGuard(t *testing.T) {
 		{name: "default fabric, nothing in it", fabric: "default", err: "default Fabric can not be deleted"},
 		{name: "fabric with a switch", fabric: "backend", objects: inFabric("backend")[:1], err: "switch leaf-01"},
 		{name: "fabric with a vpc", fabric: "backend", objects: inFabric("backend")[1:2], err: "VPC vpc-01"},
-		{name: "fabric with a gateway group", fabric: "backend", objects: inFabric("backend")[2:], err: "gateway group gwg-01"},
+		{name: "fabric with a gateway group", fabric: "backend", objects: inFabric("backend")[2:3], err: "gateway group gwg-01"},
+		{name: "fabric with a vpc info", fabric: "backend", objects: inFabric("backend")[3:], err: "VPC info vpcinfo-01"},
 		// reserved whether or not anything is in it; an object written before the reference
 		// existed belongs to it implicitly and carries an empty topology.fabric
 		{name: "default fabric, populated", fabric: "default", objects: inFabric("")[1:2], err: "default Fabric can not be deleted"},

@@ -134,6 +134,7 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 		{"gateway", &gwapi.GatewayList{}},
 		{"gateway group", &gwapi.GatewayGroupList{}},
 		{"gateway peering", &gwapi.GatewayPeeringList{}},
+		{"VPC info", &gwapi.VPCInfoList{}},
 	} {
 		if err := w.Client.List(ctx, ref.list); err != nil {
 			return nil, fmt.Errorf("error listing %ss: %w", ref.kind, err) // TODO hide internal error
@@ -167,6 +168,8 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 			case *gwapi.GatewayGroup:
 				declared = o.Spec.Topology.Fabric
 			case *gwapi.GatewayPeering:
+				declared = o.Spec.Topology.Fabric
+			case *gwapi.VPCInfo:
 				declared = o.Spec.Topology.Fabric
 			default:
 				return fmt.Errorf("unexpected type %T", item) //nolint:err113
