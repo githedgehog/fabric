@@ -23,16 +23,13 @@ import (
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -55,41 +52,19 @@ func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *
 		libr:   libMngr,
 	}
 
-	// TODO only enqueue related VPCs
-	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
+	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("VPC").
 		For(&vpcapi.VPC{}).
-		// It's enough to trigger just a single VPC update in this case as it'll update DHCP config for all VPCs
-		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOneVPC)).
-		Complete(r), "failed to setup vpc controller")
-}
-
-func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, _ kclient.Object) []reconcile.Request {
-	res := []reconcile.Request{}
-
-	vpcs := &vpcapi.VPCList{}
-	err := r.List(ctx, vpcs, kclient.Limit(1))
-	if err != nil {
-		kctrllog.FromContext(ctx).Error(err, "error listing vpcs")
-
-		return res
-	}
-	if len(vpcs.Items) > 0 {
-		res = append(res, reconcile.Request{
-			NamespacedName: kclient.ObjectKeyFromObject(&vpcs.Items[0]),
-		})
+		Complete(r); err != nil {
+		return fmt.Errorf("setting up vpc controller: %w", err)
 	}
 
-	return res
+	return nil
 }
 
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
-
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/finalizers,verbs=update
 
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
@@ -102,30 +77,31 @@ func (r *VPCReconciler) enqueueOneVPC(ctx context.Context, _ kclient.Object) []r
 func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	err := r.libr.UpdateVNIs(ctx, r.Client)
-	if err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error updating VNIs catalog")
-	}
-
 	vpc := &vpcapi.VPC{}
-	err = r.Get(ctx, req.NamespacedName, vpc)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, vpc); err != nil {
 		if kapierrors.IsNotFound(err) {
+			// the VNIs of deleted VPCs are released with the next allocation
 			l.Info("vpc deleted, cleaning up dhcp subnets")
-			err = r.deleteDHCPSubnets(ctx, req.NamespacedName, map[string]*vpcapi.VPCSubnet{})
-			if err != nil {
-				return kctrl.Result{}, errors.Wrapf(err, "error deleting dhcp subnets for removed vpc")
+			if err := r.deleteDHCPSubnets(ctx, req.NamespacedName, map[string]*vpcapi.VPCSubnet{}); err != nil {
+				return kctrl.Result{}, fmt.Errorf("deleting dhcp subnets for removed vpc: %w", err)
 			}
 
 			return kctrl.Result{}, nil
 		}
 
-		return kctrl.Result{}, errors.Wrapf(err, "error getting vpc %s", req.NamespacedName)
+		return kctrl.Result{}, fmt.Errorf("getting vpc %s: %w", req.NamespacedName, err)
 	}
 
-	err = r.updateDHCPSubnets(ctx, vpc)
+	updated, err := r.libr.EnsureVNIs(ctx, r.Client, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil)
 	if err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error updating dhcp subnets")
+		return kctrl.Result{}, fmt.Errorf("updating VNIs catalog: %w", err)
+	}
+	if updated {
+		l.Info("VNIs catalog updated")
+	}
+
+	if err := r.updateDHCPSubnets(ctx, vpc); err != nil {
+		return kctrl.Result{}, fmt.Errorf("updating dhcp subnets: %w", err)
 	}
 
 	l.Info("vpc reconciled")

@@ -659,9 +659,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		idConns[name] = true
 	}
 
-	err = r.libr.UpdateVNIs(ctx, r.Client)
-	if err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error updating VNIs catalog")
+	if _, err := r.libr.EnsureVNIs(ctx, r.Client, vpcs, externalsReq); err != nil {
+		return kctrl.Result{}, fmt.Errorf("updating VNIs catalog: %w", err)
 	}
 
 	cat := &agentapi.CatalogSpec{}

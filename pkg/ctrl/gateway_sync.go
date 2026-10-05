@@ -93,7 +93,7 @@ func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Res
 		return kctrl.Result{}, fmt.Errorf("getting VPC %s: %w", req.NamespacedName, err)
 	}
 
-	vni, err := r.libr.GetVPCVNI(ctx, r.Client, vpc.Name)
+	vni, err := r.libr.GetOrEnsureVPCVNI(ctx, r.Client, vpc)
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("getting VPC %s VNI: %w", vpc.Name, err)
 	}
@@ -208,7 +208,8 @@ func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctr
 		return kctrl.Result{}, fmt.Errorf("getting External %s: %w", req.NamespacedName, err)
 	}
 
-	vni, err := r.libr.GetExternalVNI(ctx, r.Client, external.Name)
+	// an External attached to no switch only gets its VNI allocated here
+	vni, err := r.libr.GetOrEnsureExternalVNI(ctx, r.Client, external.Name)
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("getting External %s VNI: %w", external.Name, err)
 	}

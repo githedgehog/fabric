@@ -215,6 +215,7 @@ rules:
   resources:
   - connections
   - servers
+  - switches
   - switchgroups
   - vlannamespaces
   verbs:
@@ -247,7 +248,6 @@ rules:
 - apiGroups:
   - wiring.githedgehog.com
   resources:
-  - switches
   - switchprofiles
   verbs:
   - create
@@ -257,9 +257,3 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - wiring.githedgehog.com
-  resources:
-  - switches/finalizers
-  verbs:
-  - update
