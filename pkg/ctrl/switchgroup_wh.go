@@ -6,6 +6,7 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -71,8 +72,20 @@ func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringap
 	return warns, nil
 }
 
-// ValidateDelete is deliberately empty: deleting a group that switches still reference has always
-// been allowed, and Switch.Validate already refuses to admit a switch naming a group that is gone.
-func (w *SwitchGroupWebhook) ValidateDelete(_ context.Context, _ *wiringapi.SwitchGroup) (admission.Warnings, error) {
+// ValidateDelete refuses deleting a group that switches still reference: the catalog of a redundancy group is garbage
+// collected with its SwitchGroup, and its members would then get their IRB VLANs and port channel IDs reallocated.
+// The specs are checked rather than the group labels, which switches written before them don't have.
+func (w *SwitchGroupWebhook) ValidateDelete(ctx context.Context, sg *wiringapi.SwitchGroup) (admission.Warnings, error) {
+	sws := &wiringapi.SwitchList{}
+	if err := w.KubeClient.List(ctx, sws, kclient.InNamespace(sg.Namespace)); err != nil {
+		return nil, fmt.Errorf("listing switches: %w", err)
+	}
+
+	for _, sw := range sws.Items {
+		if sw.Spec.Redundancy.Group == sg.Name || slices.Contains(sw.Spec.Groups, sg.Name) {
+			return nil, fmt.Errorf("switch group is used by switch %s", sw.Name) //nolint:err113
+		}
+	}
+
 	return nil, nil
 }

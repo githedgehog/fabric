@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
@@ -16,13 +15,12 @@ import (
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 type GwVPCSync struct {
@@ -48,29 +46,13 @@ func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lib
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("GwVPCSync").
 		For(&vpcapi.VPC{}).
-		// TODO consider relying on the owner reference
-		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForVPCInfo)).
+		// recreated if deleted and reverted if its spec is changed, but not reconciled on its status updates
+		Owns(&gwapi.VPCInfo{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r); err != nil {
 		return fmt.Errorf("failed to setup controller: %w", err)
 	}
 
 	return nil
-}
-
-func (r *GwVPCSync) enqueueForVPCInfo(ctx context.Context, obj kclient.Object) []reconcile.Request {
-	vpcInfo, ok := obj.(*gwapi.VPCInfo)
-	if !ok {
-		kctrllog.FromContext(ctx).Info("Enqueue: object is not a VPCInfo", "obj", obj)
-
-		return nil
-	}
-
-	return []reconcile.Request{
-		{NamespacedName: ktypes.NamespacedName{
-			Namespace: vpcInfo.Namespace,
-			Name:      vpcInfo.Name,
-		}},
-	}
 }
 
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
@@ -92,6 +74,10 @@ func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Res
 
 		return kctrl.Result{}, fmt.Errorf("getting VPC %s: %w", req.NamespacedName, err)
 	}
+	// its VPCInfo is garbage collected with it
+	if vpc.DeletionTimestamp != nil {
+		return kctrl.Result{}, nil
+	}
 
 	vni, err := r.libr.GetOrEnsureVPCVNI(ctx, r.Client, vpc)
 	if err != nil {
@@ -110,9 +96,8 @@ func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Res
 		Namespace: vpc.Namespace,
 	}}
 	if op, err := ctrlutil.CreateOrUpdate(ctx, r.Client, vpcInfo, func() error {
-		if err := ctrlutil.SetControllerReference(vpc, vpcInfo, r.Scheme(),
-			ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-			return fmt.Errorf("setting controller reference: %w", err)
+		if err := setOwner(vpc, vpcInfo, r.Scheme()); err != nil {
+			return err
 		}
 
 		vpcInfo.Spec = gwapi.VPCInfoSpec{
@@ -159,33 +144,13 @@ func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("GwExternalSync").
 		For(&vpcapi.External{}).
-		// TODO consider relying on the owner reference
-		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForVPCInfo)).
+		// recreated if deleted and reverted if its spec is changed, but not reconciled on its status updates
+		Owns(&gwapi.VPCInfo{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r); err != nil {
 		return fmt.Errorf("failed to setup controller: %w", err)
 	}
 
 	return nil
-}
-
-func (r *GwExternalSync) enqueueForVPCInfo(ctx context.Context, obj kclient.Object) []reconcile.Request {
-	vpcInfo, ok := obj.(*gwapi.VPCInfo)
-	if !ok {
-		kctrllog.FromContext(ctx).Info("Enqueue: object is not a VPCInfo", "obj", obj)
-
-		return nil
-	}
-
-	if !strings.HasPrefix(vpcInfo.Name, vpcapi.VPCInfoExtPrefix) {
-		return nil
-	}
-
-	return []reconcile.Request{
-		{NamespacedName: ktypes.NamespacedName{
-			Namespace: vpcInfo.Namespace,
-			Name:      strings.TrimPrefix(vpcInfo.Name, vpcapi.VPCInfoExtPrefix),
-		}},
-	}
 }
 
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals,verbs=get;list;watch
@@ -207,6 +172,10 @@ func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctr
 
 		return kctrl.Result{}, fmt.Errorf("getting External %s: %w", req.NamespacedName, err)
 	}
+	// its VPCInfo is garbage collected with it
+	if external.DeletionTimestamp != nil {
+		return kctrl.Result{}, nil
+	}
 
 	// an External attached to no switch only gets its VNI allocated here
 	vni, err := r.libr.GetOrEnsureExternalVNI(ctx, r.Client, external.Name)
@@ -225,9 +194,8 @@ func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctr
 		Namespace: external.Namespace,
 	}}
 	if op, err := ctrlutil.CreateOrUpdate(ctx, r.Client, vpcInfo, func() error {
-		if err := ctrlutil.SetControllerReference(external, vpcInfo, r.Scheme(),
-			ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-			return fmt.Errorf("setting controller reference: %w", err)
+		if err := setOwner(external, vpcInfo, r.Scheme()); err != nil {
+			return err
 		}
 
 		vpcInfo.Spec = gwapi.VPCInfoSpec{

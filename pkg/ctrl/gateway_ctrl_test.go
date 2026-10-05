@@ -11,8 +11,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +34,11 @@ func gatewayTestKube(t *testing.T, extra ...kclient.Object) kclient.Client {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	require.NoError(t, gwapi.AddToScheme(scheme))
+	// what the reconciler deploys for the gateways
+	require.NoError(t, gwintapi.AddToScheme(scheme))
+	require.NoError(t, appv1.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, rbacv1.AddToScheme(scheme))
 
 	objMeta := func(name string) kmetav1.ObjectMeta {
 		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}

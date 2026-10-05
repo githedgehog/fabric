@@ -81,7 +81,8 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req kctrl.Request)
 		return kctrl.Result{}, fmt.Errorf("getting connection: %w", err)
 	}
 
-	if conn.Spec.ESLAG == nil {
+	// nothing to allocate for a connection being deleted
+	if conn.DeletionTimestamp != nil || conn.Spec.ESLAG == nil {
 		return kctrl.Result{}, nil
 	}
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -70,6 +71,17 @@ func (w *GatewayWebhook) ValidateCreate(ctx context.Context, gw *gwapi.Gateway) 
 }
 
 func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
+	// a gateway being deleted only gets its finalizer removed, which must not depend on it still being valid
+	if newGw.DeletionTimestamp != nil {
+		return nil, nil
+	}
+
+	// nothing to validate in a metadata only update, e.g. the controller adding its finalizer, which must not be
+	// refused for a gateway that doesn't pass the current validation anymore
+	if equality.Semantic.DeepEqual(oldGw.Spec, newGw.Spec) {
+		return nil, nil
+	}
+
 	if fabricChanged(oldGw.Spec.Topology.Fabric, newGw.Spec.Topology.Fabric) {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
