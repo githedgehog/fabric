@@ -31,6 +31,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -266,15 +267,51 @@ func (m *Manager) getSwitchKey(swName string) string {
 	return CatSwitchPrefix + swName
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, redundancy wiringapi.SwitchRedundancy, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
+// setCatalogOwner makes the catalog garbage collected with the owner. It's a plain owner reference, not a controller
+// one: the catalog is shared allocation state written by the agent reconciles, not reconciled from its owner. The
+// owner deletion isn't blocked on it.
+func setCatalogOwner(kube kclient.Client, owner kclient.Object, cat *agentapi.Catalog) error {
+	if err := ctrlutil.SetOwnerReference(owner, cat, kube.Scheme()); err != nil {
+		return fmt.Errorf("setting catalog %s owner: %w", cat.Name, err)
+	}
+
+	return nil
+}
+
+// setRedundancyCatalogOwner makes the switch/redundancy catalog of the switch garbage collected with the SwitchGroup
+// of its redundancy group or with the switch itself without one. The catalog of a group that's gone, which could be
+// deleted while still in use before, is left without an owner.
+func setRedundancyCatalogOwner(ctx context.Context, kube kclient.Client, sw *wiringapi.Switch, cat *agentapi.Catalog) error {
+	redundancy := sw.Spec.Redundancy
+	if redundancy.Type == meta.RedundancyTypeNone || redundancy.Group == "" {
+		return setCatalogOwner(kube, sw, cat)
+	}
+
+	sg := &wiringapi.SwitchGroup{}
+	if err := kube.Get(ctx, ktypes.NamespacedName{Name: redundancy.Group, Namespace: sw.Namespace}, sg); err != nil {
+		if kapierrors.IsNotFound(err) {
+			return nil
+		}
+
+		return fmt.Errorf("getting switch group %s: %w", redundancy.Group, err)
+	}
+
+	return setCatalogOwner(kube, sg, cat)
+}
+
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	key := m.getRedundancyGroupKey(swName, redundancy)
+	key := m.getRedundancyGroupKey(sw.Name, sw.Spec.Redundancy)
 
 	cat, err := m.getCatalog(ctx, kube, key)
 	if err != nil {
-		return errors.Errorf("failed to get switch/redundancy catalog %s", key)
+		return fmt.Errorf("getting switch/redundancy catalog %s: %w", key, err)
+	}
+
+	if err := setRedundancyCatalogOwner(ctx, kube, sw, cat); err != nil {
+		return err
 	}
 
 	{
@@ -287,7 +324,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		}
 		cat.Spec.IRBVLANs, err = a.Allocate(cat.Spec.IRBVLANs, irbVLANReqs)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate IRB VLANs for %s", key)
+			return fmt.Errorf("allocating IRB VLANs for %s: %w", key, err)
 		}
 	}
 
@@ -297,22 +334,22 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		}
 		cat.Spec.PortChannelIDs, err = a.Allocate(cat.Spec.PortChannelIDs, portChanConns)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate PortChannel IDs for %s", key)
+			return fmt.Errorf("allocating PortChannel IDs for %s: %w", key, err)
 		}
 	}
 
 	if err := m.saveCatalog(ctx, kube, key, cat); err != nil {
-		return errors.Errorf("failed to save catalog %s", key)
+		return fmt.Errorf("saving catalog %s: %w", key, err)
 	}
 
 	connsCat, err := m.getCatalog(ctx, kube, CatConns)
 	if err != nil {
-		return errors.Errorf("failed to get connections catalog %s", CatConns)
+		return fmt.Errorf("getting connections catalog %s: %w", CatConns, err)
 	}
 
 	vnisCat, err := m.getCatalog(ctx, kube, CatVNIs)
 	if err != nil {
-		return errors.Errorf("failed to get VNIs catalog %s", CatVNIs)
+		return fmt.Errorf("getting VNIs catalog %s: %w", CatVNIs, err)
 	}
 
 	ret.ConnectionIDs = map[string]uint32{}
@@ -320,7 +357,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		if id, exists := connsCat.Spec.ConnectionIDs[name]; exists {
 			ret.ConnectionIDs[name] = id
 		} else {
-			return errors.Errorf("failed to find ID for connection %s", name)
+			return fmt.Errorf("failed to find ID for connection %s", name) //nolint:err113
 		}
 	}
 
@@ -331,14 +368,14 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			ret.VPCVNIs[name] = vni
 			ret.VPCSubnetVNIs[name] = vnisCat.Spec.VPCSubnetVNIs[name] // TODO pass configured subnets and check if they exist or even pass only configured ones
 		} else {
-			return errors.Errorf("failed to find VPC VNI for vpc %s", name)
+			return fmt.Errorf("failed to find VPC VNI for vpc %s", name) //nolint:err113
 		}
 	}
 	for name := range externals {
 		if vni, exists := vnisCat.Spec.VPCVNIs[ReqForExt(name)]; exists {
 			ret.VPCVNIs[ReqForExt(name)] = vni
 		} else {
-			return errors.Errorf("failed to find external VNI for external %s", name)
+			return fmt.Errorf("failed to find external VNI for external %s", name) //nolint:err113
 		}
 	}
 
@@ -347,14 +384,14 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		if vlan, exists := cat.Spec.IRBVLANs[name]; exists {
 			ret.IRBVLANs[name] = vlan
 		} else {
-			return errors.Errorf("failed to find IRB VLAN for vpc %s", name)
+			return fmt.Errorf("failed to find IRB VLAN for vpc %s", name) //nolint:err113
 		}
 	}
 	for name := range externals {
 		if vlan, exists := cat.Spec.IRBVLANs[ReqPrefixExt+name]; exists {
 			ret.IRBVLANs[ReqPrefixExt+name] = vlan
 		} else {
-			return errors.Errorf("failed to find IRB VLAN for external %s", name)
+			return fmt.Errorf("failed to find IRB VLAN for external %s", name) //nolint:err113
 		}
 	}
 
@@ -363,22 +400,26 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		if id, exists := cat.Spec.PortChannelIDs[name]; exists {
 			ret.PortChannelIDs[name] = id
 		} else {
-			return errors.Errorf("failed to find PortChannel ID for connection %s", name)
+			return fmt.Errorf("failed to find PortChannel ID for connection %s", name) //nolint:err113
 		}
 	}
 
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, swName string, loWorkaroundLinks []string, loWorkaroundReqs, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, loWorkaroundLinks []string, loWorkaroundReqs, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	key := m.getSwitchKey(swName)
+	key := m.getSwitchKey(sw.Name)
 
 	cat, err := m.getCatalog(ctx, kube, key)
 	if err != nil {
-		return errors.Errorf("failed to get switch catalog %s", key)
+		return fmt.Errorf("getting switch catalog %s: %w", key, err)
+	}
+
+	if err := setCatalogOwner(kube, sw, cat); err != nil {
+		return err
 	}
 
 	{
@@ -387,7 +428,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 		cat.Spec.LooopbackWorkaroundLinks, err = a.Allocate(cat.Spec.LooopbackWorkaroundLinks, loWorkaroundReqs)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate loopback workaround links for %s", key)
+			return fmt.Errorf("allocating loopback workaround links for %s: %w", key, err)
 		}
 	}
 
@@ -397,7 +438,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 		cat.Spec.LoopbackWorkaroundVLANs, err = a.Allocate(cat.Spec.LoopbackWorkaroundVLANs, loWorkaroundReqs)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate loopback workaround VLANs for %s", key)
+			return fmt.Errorf("allocating loopback workaround VLANs for %s: %w", key, err)
 		}
 	}
 
@@ -407,7 +448,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 		cat.Spec.ExternalIDs, err = a.Allocate(cat.Spec.ExternalIDs, externals)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate external IDs for %s", key)
+			return fmt.Errorf("allocating external IDs for %s: %w", key, err)
 		}
 	}
 
@@ -417,7 +458,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 		cat.Spec.StaticExternalSubnetOffsets, err = a.Allocate(cat.Spec.StaticExternalSubnetOffsets, proxyStaticExtAttachments)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate static external subnet offsets for %s", key)
+			return fmt.Errorf("allocating static external subnet offsets for %s: %w", key, err)
 		}
 	}
 
@@ -427,7 +468,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 		cat.Spec.SubnetIDs, err = a.Allocate(cat.Spec.SubnetIDs, subnets)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate subnet IDs for %s", key)
+			return fmt.Errorf("allocating subnet IDs for %s: %w", key, err)
 		}
 	}
 
@@ -437,47 +478,47 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 		cat.Spec.TH5WorkaroundVLANs, err = a.Allocate(cat.Spec.TH5WorkaroundVLANs, th5WorkaroundReqs)
 		if err != nil {
-			return errors.Wrapf(err, "failed to allocate TH5 workaround VLANs for %s", key)
+			return fmt.Errorf("allocating TH5 workaround VLANs for %s: %w", key, err)
 		}
 	}
 
 	if err := m.saveCatalog(ctx, kube, key, cat); err != nil {
-		return errors.Errorf("failed to save switch catalog %s", key)
+		return fmt.Errorf("saving switch catalog %s: %w", key, err)
 	}
 
 	ret.LooopbackWorkaroundLinks = cat.Spec.LooopbackWorkaroundLinks
 	ret.LoopbackWorkaroundVLANs = cat.Spec.LoopbackWorkaroundVLANs
 	for req := range loWorkaroundReqs {
 		if _, exists := ret.LooopbackWorkaroundLinks[req]; !exists {
-			return errors.Errorf("failed to find loopback workaround link for %s", req)
+			return fmt.Errorf("failed to find loopback workaround link for %s", req) //nolint:err113
 		}
 	}
 
 	ret.ExternalIDs = cat.Spec.ExternalIDs
 	for ext := range externals {
 		if _, exists := ret.ExternalIDs[ext]; !exists {
-			return errors.Errorf("failed to find external ID for %s", ext)
+			return fmt.Errorf("failed to find external ID for %s", ext) //nolint:err113
 		}
 	}
 
 	ret.StaticExternalSubnetOffsets = cat.Spec.StaticExternalSubnetOffsets
 	for attach := range proxyStaticExtAttachments {
 		if _, exists := ret.StaticExternalSubnetOffsets[attach]; !exists {
-			return errors.Errorf("failed to find static external attachment subnet offset for %s", attach)
+			return fmt.Errorf("failed to find static external attachment subnet offset for %s", attach) //nolint:err113
 		}
 	}
 
 	ret.SubnetIDs = cat.Spec.SubnetIDs
 	for prefix := range subnets {
 		if _, exists := ret.SubnetIDs[prefix]; !exists {
-			return errors.Errorf("failed to find external peering prefix ID for %s", prefix)
+			return fmt.Errorf("failed to find external peering prefix ID for %s", prefix) //nolint:err113
 		}
 	}
 
 	ret.TH5WorkaroundVLANs = cat.Spec.TH5WorkaroundVLANs
 	for req := range th5WorkaroundReqs {
 		if _, exists := ret.TH5WorkaroundVLANs[req]; !exists {
-			return errors.Errorf("failed to find TH5 workaround VLAN for %s", req)
+			return fmt.Errorf("failed to find TH5 workaround VLAN for %s", req) //nolint:err113
 		}
 	}
 

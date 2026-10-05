@@ -27,6 +27,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -55,6 +56,8 @@ func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("VPC").
 		For(&vpcapi.VPC{}).
+		// recreated if deleted, garbage collected with the VPC otherwise
+		Owns(&dhcpapi.DHCPSubnet{}, builder.WithPredicates(onlyDeletes)).
 		Complete(r); err != nil {
 		return fmt.Errorf("setting up vpc controller: %w", err)
 	}
@@ -77,19 +80,17 @@ func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *
 func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
+	// the DHCPSubnets of a deleted VPC are garbage collected with it and its VNIs are released with the next allocation
 	vpc := &vpcapi.VPC{}
 	if err := r.Get(ctx, req.NamespacedName, vpc); err != nil {
 		if kapierrors.IsNotFound(err) {
-			// the VNIs of deleted VPCs are released with the next allocation
-			l.Info("vpc deleted, cleaning up dhcp subnets")
-			if err := r.deleteDHCPSubnets(ctx, req.NamespacedName, map[string]*vpcapi.VPCSubnet{}); err != nil {
-				return kctrl.Result{}, fmt.Errorf("deleting dhcp subnets for removed vpc: %w", err)
-			}
-
 			return kctrl.Result{}, nil
 		}
 
 		return kctrl.Result{}, fmt.Errorf("getting vpc %s: %w", req.NamespacedName, err)
+	}
+	if vpc.DeletionTimestamp != nil {
+		return kctrl.Result{}, nil
 	}
 
 	updated, err := r.libr.EnsureVNIs(ctx, r.Client, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil)
@@ -109,19 +110,30 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl
 	return kctrl.Result{}, nil
 }
 
+// updateDHCPSubnets makes the DHCPSubnets match the subnets of the VPC with DHCP enabled, they're garbage collected
+// with the VPC
 func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
-	err := r.deleteDHCPSubnets(ctx, kclient.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, vpc.Spec.Subnets)
-	if err != nil {
-		return errors.Wrapf(err, "error deleting obsolete dhcp subnets")
-	}
-
+	withDHCP := map[string]*vpcapi.VPCSubnet{}
 	for subnetName, subnet := range vpc.Spec.Subnets {
 		if !subnet.DHCP.Enable || subnet.VLAN == 0 || subnet.DHCP.Range == nil {
 			continue
 		}
 
+		withDHCP[subnetName] = subnet
+	}
+
+	// including the ones of the subnets that still exist with DHCP disabled
+	if err := r.deleteDHCPSubnets(ctx, kclient.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, withDHCP); err != nil {
+		return fmt.Errorf("deleting obsolete dhcp subnets: %w", err)
+	}
+
+	for subnetName, subnet := range withDHCP {
 		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: kmetav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
-		_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
+		_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
+			if err := setOwner(vpc, dhcp, r.Scheme()); err != nil {
+				return err
+			}
+
 			pxeURL := ""
 			dnsServers := []string{}
 			timeServers := []string{}
@@ -192,7 +204,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 			return nil
 		})
 		if err != nil {
-			return errors.Wrapf(err, "error creating dhcp subnet for %s/%s", vpc.Name, subnetName)
+			return fmt.Errorf("creating dhcp subnet for %s/%s: %w", vpc.Name, subnetName, err)
 		}
 	}
 

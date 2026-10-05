@@ -11,10 +11,12 @@ import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -124,6 +126,67 @@ func TestEnsureVNIs(t *testing.T) {
 	// a VPC that doesn't exist can't get a VNI
 	_, err = libr.GetOrEnsureVPCVNI(t.Context(), kube, vpc("vpc-3"))
 	require.ErrorContains(t, err, "failed to find VPC VNI for vpc vpc-3")
+}
+
+// TestCatalogOwners covers what the switch and redundancy group catalogs are garbage collected with
+func TestCatalogOwners(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	objMeta := func(name string) kmetav1.ObjectMeta {
+		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}
+	}
+	sw := func(name, group string) *wiringapi.Switch {
+		s := &wiringapi.Switch{ObjectMeta: objMeta(name)}
+		if group != "" {
+			s.Spec.Redundancy = wiringapi.SwitchRedundancy{Type: meta.RedundancyTypeESLAG, Group: group}
+		}
+
+		return s
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		sw("leaf-1", ""),
+		sw("leaf-2", "eslag-1"),
+		// its group was deleted while still in use, which used to be allowed
+		sw("leaf-3", "eslag-2"),
+		&wiringapi.SwitchGroup{ObjectMeta: objMeta("eslag-1")},
+	).Build()
+	libr := librarian.NewManager(&meta.FabricConfig{})
+
+	get := func(obj kclient.Object, name string) kclient.Object {
+		t.Helper()
+
+		require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Name: name, Namespace: kmetav1.NamespaceDefault}, obj))
+
+		return obj
+	}
+	owners := func(key string) []string {
+		t.Helper()
+
+		res := []string{}
+		for _, ref := range get(&agentapi.Catalog{}, key).GetOwnerReferences() {
+			// plain owner references, the catalogs aren't reconciled from their owners
+			require.Nil(t, ref.Controller, key)
+			require.Nil(t, ref.BlockOwnerDeletion, key)
+			res = append(res, ref.Kind+"/"+ref.Name)
+		}
+
+		return res
+	}
+
+	for _, name := range []string{"leaf-1", "leaf-2", "leaf-3"} {
+		s := get(&wiringapi.Switch{}, name).(*wiringapi.Switch)
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil))
+	}
+
+	// without a redundancy group both catalogs are the same one, owned by the switch
+	require.Equal(t, []string{"Switch/leaf-1"}, owners("switch.leaf-1"))
+	require.Equal(t, []string{"Switch/leaf-2"}, owners("switch.leaf-2"))
+	require.Equal(t, []string{"SwitchGroup/eslag-1"}, owners("redundancy.eslag-1"))
+	require.Empty(t, owners("redundancy.eslag-2"))
 }
 
 func TestGetOrEnsureVPCInfoID(t *testing.T) {

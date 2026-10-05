@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	kctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -90,6 +91,13 @@ func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("Gateway").
 		For(&gwapi.Gateway{}).
+		// recreated if deleted, garbage collected with the gateway otherwise
+		Owns(&gwintapi.GatewayAgent{}, builder.WithPredicates(onlyDeletes)).
+		Owns(&rbacv1.Role{}, builder.WithPredicates(onlyDeletes)).
+		Owns(&rbacv1.RoleBinding{}, builder.WithPredicates(onlyDeletes)).
+		// in the gateway namespace, out of reach of owner references, so they're found by label
+		Watches(&appv1.DaemonSet{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForDeployed), builder.WithPredicates(onlyDeletes)).
+		Watches(&corev1.ServiceAccount{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForDeployed), builder.WithPredicates(onlyDeletes)).
 		Watches(&gwapi.Gateway{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForGateway)).
 		Watches(&gwapi.GatewayPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForPeering)).
 		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForVPCInfo)).
@@ -167,6 +175,28 @@ func (r *GatewayReconciler) enqueueForFabric(ctx context.Context, obj kclient.Ob
 	return r.enqueueGateways(ctx, obj.GetName(), nil)
 }
 
+// LabelGateway marks what's deployed for a gateway in the gateway namespace, which owner references can't reach
+var LabelGateway = wiringapi.LabelName("gateway")
+
+func setGatewayLabel(obj kclient.Object, gw *gwapi.Gateway) {
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[LabelGateway] = gw.Name
+	obj.SetLabels(labels)
+}
+
+// enqueueForDeployed reconciles the gateway something in the gateway namespace was deployed for
+func (r *GatewayReconciler) enqueueForDeployed(_ context.Context, obj kclient.Object) []reconcile.Request {
+	name := obj.GetLabels()[LabelGateway]
+	if name == "" {
+		return nil
+	}
+
+	return []reconcile.Request{{NamespacedName: ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}}}
+}
+
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
@@ -186,7 +216,20 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	if gw.DeletionTimestamp != nil {
-		l.Info("Gateway is being deleted, skipping")
+		if !ctrlutil.ContainsFinalizer(gw, CleanupFinalizer) {
+			return kctrl.Result{}, nil
+		}
+
+		l.Info("Gateway is being deleted, cleaning up")
+
+		if err := r.cleanupGateway(ctx, gw); err != nil {
+			return kctrl.Result{}, fmt.Errorf("cleaning up gateway: %w", err)
+		}
+
+		ctrlutil.RemoveFinalizer(gw, CleanupFinalizer)
+		if err := r.Update(ctx, gw); err != nil {
+			return kctrl.Result{}, fmt.Errorf("removing gateway finalizer: %w", err)
+		}
 
 		return kctrl.Result{}, nil
 	}
@@ -194,8 +237,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	{
 		orig := gw.DeepCopy()
 		gw.Default()
+		// the gateway namespace isn't reachable by owner references
+		ctrlutil.AddFinalizer(gw, CleanupFinalizer)
 		if !reflect.DeepEqual(orig, gw) {
-			l.Info("Applying defaults to Gateway")
+			l.Info("Applying defaults and finalizer to Gateway")
 
 			if err := r.Update(ctx, gw); err != nil {
 				return kctrl.Result{}, fmt.Errorf("updating gateway: %w", err)
@@ -217,7 +262,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	// we intentionally manage gateway agent in the default namespace
 	gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
-		// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
+		if err := setOwner(gw, gwAg, r.Scheme()); err != nil {
+			return err
+		}
+
 		gwAg.Spec = newGwAg.Spec
 
 		return nil
@@ -233,6 +281,22 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 }
 
 var ErrRetryLater = fmt.Errorf("retry later")
+
+// cleanupGateway deletes what's deployed for the gateway in the gateway namespace, the rest in the gateway's own
+// namespace is garbage collected with it
+func (r *GatewayReconciler) cleanupGateway(ctx context.Context, gw *gwapi.Gateway) error {
+	for _, obj := range []kclient.Object{
+		&appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "dataplane")}},
+		&appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "frr")}},
+		&corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)}},
+	} {
+		if err := r.Delete(ctx, obj); kclient.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting %T %s: %w", obj, obj.GetName(), err)
+		}
+	}
+
+	return nil
+}
 
 func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, gw *gwapi.Gateway) (*gwintapi.GatewayAgent, error) {
 	if cfg == nil {
@@ -268,6 +332,11 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		return nil, fmt.Errorf("listing gateways: %w", err)
 	}
 	for _, gw := range gws.Items {
+		// a gateway being deleted is no longer a member
+		if gw.DeletionTimestamp != nil {
+			continue
+		}
+
 		for _, gr := range gw.Spec.Groups {
 			if !inGwGroups[gr.Name] {
 				continue
@@ -415,7 +484,11 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Namespace: r.cfg.GatewayNamespace,
 			Name:      saName,
 		}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil }); err != nil {
+		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error {
+			setGatewayLabel(sa, gw)
+
+			return nil
+		}); err != nil {
 			return fmt.Errorf("creating service account: %w", err)
 		}
 
@@ -424,6 +497,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Name:      saName,
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
+			if err := setOwner(gw, role, r.Scheme()); err != nil {
+				return err
+			}
+
 			role.Rules = []rbacv1.PolicyRule{
 				{
 					APIGroups:     []string{gwintapi.GroupVersion.Group},
@@ -449,6 +526,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Name:      saName,
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
+			if err := setOwner(gw, roleBinding, r.Scheme()); err != nil {
+				return err
+			}
+
 			roleBinding.Subjects = []rbacv1.Subject{
 				{
 					Kind:      "ServiceAccount",
@@ -571,6 +652,9 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Name:      entityName(gw.Name, "dataplane"),
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dpDS, func() error {
+			// only on the daemonset itself, its selector is immutable
+			setGatewayLabel(dpDS, gw)
+
 			labels := map[string]string{
 				"app.kubernetes.io/name": dpDS.Name, // TODO
 			}
@@ -666,6 +750,9 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Name:      entityName(gw.Name, "frr"),
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
+			// only on the daemonset itself, its selector is immutable
+			setGatewayLabel(frrDS, gw)
+
 			labels := map[string]string{
 				"app.kubernetes.io/name": frrDS.Name, // TODO
 			}

@@ -42,6 +42,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -106,6 +107,12 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("Agent").
 		For(&wiringapi.Switch{}).
+		// recreated if deleted, garbage collected with the switch otherwise
+		Owns(&agentapi.Agent{}, builder.WithPredicates(onlyDeletes)).
+		Owns(&corev1.ServiceAccount{}, builder.WithPredicates(onlyDeletes)).
+		Owns(&rbacv1.Role{}, builder.WithPredicates(onlyDeletes)).
+		Owns(&rbacv1.RoleBinding{}, builder.WithPredicates(onlyDeletes)).
+		Owns(&corev1.Secret{}, builder.WithPredicates(onlyDeletes)).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabelsAndSpines)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
@@ -313,6 +320,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch")
 	}
 
+	// everything produced for the switch is garbage collected with it
+	if sw.DeletionTimestamp != nil {
+		return kctrl.Result{}, nil
+	}
+
 	fabric, err := wiringapi.GetFabricSpec(ctx, r, r.cfg, sw.Namespace, sw.Spec.Topology.Fabric)
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("error getting switch fabric: %w", err)
@@ -328,7 +340,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	statusUpdates := appendUpdate(nil, sw)
 
 	switchNsName := kmetav1.ObjectMeta{Name: sw.Name, Namespace: sw.Namespace}
-	res, err := r.prepareAgentInfra(ctx, switchNsName)
+	res, err := r.prepareAgentInfra(ctx, sw)
 	if err != nil {
 		return kctrl.Result{}, err
 	}
@@ -665,7 +677,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	cat := &agentapi.CatalogSpec{}
 
-	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw.Name, sw.Spec.Redundancy, usedVPCs, portChanConns, idConns, externalsReq)
+	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
@@ -772,7 +784,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw.Name, loWorkaroundLinks, loWorkaroundReqs, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw, loWorkaroundLinks, loWorkaroundReqs, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
@@ -849,6 +861,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	agent := &agentapi.Agent{ObjectMeta: switchNsName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, agent, func() error {
+		if err := setOwner(sw, agent, r.Scheme()); err != nil {
+			return err
+		}
+
 		agent.Annotations = swAnns
 		agent.Labels = sw.Labels
 		agent.Spec.Role = sw.Spec.Role
@@ -928,29 +944,36 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	return kctrl.Result{}, nil
 }
 
-func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.ObjectMeta) (*kctrl.Result, error) {
+// prepareAgentInfra creates the agent credentials, all of them garbage collected with the switch
+func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.Switch) (*kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	saName := AgentServiceAccount(ag.Name)
-	sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
-	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil })
+	saName := AgentServiceAccount(sw.Name)
+	sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName}}
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error {
+		return setOwner(sw, sa, r.Scheme())
+	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating service account")
+		return nil, fmt.Errorf("creating service account: %w", err)
 	}
 
-	role := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
+	role := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
+		if err := setOwner(sw, role, r.Scheme()); err != nil {
+			return err
+		}
+
 		role.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups:     []string{agentapi.GroupVersion.Group},
 				Resources:     []string{"agents"},
-				ResourceNames: []string{ag.Name},
+				ResourceNames: []string{sw.Name},
 				Verbs:         []string{"get", "watch"},
 			},
 			{
 				APIGroups:     []string{agentapi.GroupVersion.Group},
 				Resources:     []string{"agents/status"},
-				ResourceNames: []string{ag.Name},
+				ResourceNames: []string{sw.Name},
 				Verbs:         []string{"get", "list", "watch", "create", "update", "patch", "delete"},
 			},
 		}
@@ -958,11 +981,15 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.Obje
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating role")
+		return nil, fmt.Errorf("creating role: %w", err)
 	}
 
-	roleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName}}
+	roleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
+		if err := setOwner(sw, roleBinding, r.Scheme()); err != nil {
+			return err
+		}
+
 		roleBinding.Subjects = []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
@@ -979,11 +1006,15 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.Obje
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating role binding")
+		return nil, fmt.Errorf("creating role binding: %w", err)
 	}
 
-	tokenSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: saName + "-satoken"}}
+	tokenSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName + "-satoken"}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, tokenSecret, func() error {
+		if err := setOwner(sw, tokenSecret, r.Scheme()); err != nil {
+			return err
+		}
+
 		if tokenSecret.Annotations == nil {
 			tokenSecret.Annotations = map[string]string{}
 		}
@@ -994,7 +1025,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.Obje
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating token secret")
+		return nil, fmt.Errorf("creating token secret: %w", err)
 	}
 
 	// we don't yet have service account token for the agent
@@ -1007,12 +1038,16 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.Obje
 
 	kubeconfig, err := r.genKubeconfig(tokenSecret)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error generating kubeconfig")
+		return nil, fmt.Errorf("generating kubeconfig: %w", err)
 	}
 
-	secretName := AgentKubeconfigSecret(ag.Name)
-	kubeconfigSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: ag.Namespace, Name: secretName}}
+	secretName := AgentKubeconfigSecret(sw.Name)
+	kubeconfigSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: secretName}}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, kubeconfigSecret, func() error {
+		if err := setOwner(sw, kubeconfigSecret, r.Scheme()); err != nil {
+			return err
+		}
+
 		kubeconfigSecret.StringData = map[string]string{
 			AgentKubeconfigKey: kubeconfig,
 		}
@@ -1020,7 +1055,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, ag kmetav1.Obje
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating kubeconfig secret")
+		return nil, fmt.Errorf("creating kubeconfig secret: %w", err)
 	}
 
 	return nil, nil //nolint: nilnil
