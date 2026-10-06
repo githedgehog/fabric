@@ -19,6 +19,7 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,10 +40,12 @@ const (
 // controller is locked, so its own writes are the only ones.
 type FabricControllerInitializer struct {
 	kclient.Client
-	key      ktypes.NamespacedName
-	version  string
-	cfg      *meta.FabricConfig
-	profiles *switchprofile.Default
+	apiReader    kclient.Reader
+	key          ktypes.NamespacedName
+	version      string
+	cfg          *meta.FabricConfig
+	profiles     *switchprofile.Default
+	passInterval time.Duration
 }
 
 func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
@@ -57,11 +60,13 @@ func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, c
 	}
 
 	if err := mgr.Add(&FabricControllerInitializer{
-		Client:   mgr.GetClient(),
-		key:      ktypes.NamespacedName{Namespace: namespace, Name: fcintapi.FabricControllerName},
-		version:  version.Version,
-		cfg:      cfg,
-		profiles: profiles,
+		Client:       mgr.GetClient(),
+		apiReader:    mgr.GetAPIReader(),
+		key:          ktypes.NamespacedName{Namespace: namespace, Name: fcintapi.FabricControllerName},
+		version:      version.Version,
+		cfg:          cfg,
+		profiles:     profiles,
+		passInterval: refreshPassInterval,
 	}); err != nil {
 		return fmt.Errorf("adding fabric controller initializer: %w", err)
 	}
@@ -129,7 +134,21 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context) error {
 		return fmt.Errorf("enforcing switch profiles: %w", err)
 	}
 
+	if err := i.refresh(ctx, fc); err != nil {
+		i.recordRefreshFailure(ctx, fc, err)
+
+		return fmt.Errorf("refreshing stored objects: %w", err)
+	}
+
 	fc.Status.InitializedVersion = i.version
+	fc.Status.Refresh.FinishedAt = kmetav1.Now()
+	kmeta.SetStatusCondition(&fc.Status.Conditions, kmetav1.Condition{
+		Type:               fcintapi.ConditionRefreshing,
+		Status:             kmetav1.ConditionFalse,
+		ObservedGeneration: fc.Generation,
+		Reason:             "Refreshed",
+		Message:            "Stored objects refreshed with the defaults of version " + i.version,
+	})
 	kmeta.SetStatusCondition(&fc.Status.Conditions, kmetav1.Condition{
 		Type:               fcintapi.ConditionInitialized,
 		Status:             kmetav1.ConditionTrue,
@@ -137,13 +156,54 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context) error {
 		Reason:             "Initialized",
 		Message:            "Initialized version " + i.version,
 	})
-	if err := i.Status().Update(ctx, fc); err != nil {
+	// this write unlocks fabric-ctrl on every replica; retried by writeStatus so a temporary error or a concurrent
+	// spec change doesn't make the whole initialization, incl. a pass over all stored objects, start over
+	if err := i.writeStatus(ctx, fc); err != nil {
 		return fmt.Errorf("recording initialized version: %w", err)
 	}
 
 	l.Info("Initialized")
 
 	return nil
+}
+
+// writeStatus stores fc's status as a whole. fabric-ctrl's leader is the only status writer, so a conflict can only
+// come from a spec change (e.g. forceUnlock): it re-reads the object from the API server, bypassing the cache, puts
+// the same status on top and writes again. Temporary API errors are retried a few times as well.
+func (i *FabricControllerInitializer) writeStatus(ctx context.Context, fc *fcintapi.FabricController) error {
+	status := fc.Status.DeepCopy()
+
+	if err := retry.OnError(retry.DefaultBackoff, func(err error) bool {
+		return !kapierrors.IsNotFound(err) && !kapierrors.IsInvalid(err) && !kapierrors.IsForbidden(err)
+	}, func() error {
+		err := i.Status().Update(ctx, fc)
+		if kapierrors.IsConflict(err) {
+			if err := i.apiReader.Get(ctx, i.key, fc); err != nil {
+				return fmt.Errorf("getting fabric controller: %w", err)
+			}
+			fc.Status = *status.DeepCopy()
+		}
+
+		return err //nolint:wrapcheck
+	}); err != nil {
+		return fmt.Errorf("writing fabric controller status: %w", err)
+	}
+
+	return nil
+}
+
+// recordRefreshFailure shows why fabric-ctrl is still locked, failing to do so doesn't change the retry
+func (i *FabricControllerInitializer) recordRefreshFailure(ctx context.Context, fc *fcintapi.FabricController, refreshErr error) {
+	kmeta.SetStatusCondition(&fc.Status.Conditions, kmetav1.Condition{
+		Type:               fcintapi.ConditionRefreshing,
+		Status:             kmetav1.ConditionTrue,
+		ObservedGeneration: fc.Generation,
+		Reason:             "Retrying",
+		Message:            refreshErr.Error(),
+	})
+	if err := i.writeStatus(ctx, fc); err != nil {
+		kctrllog.FromContext(ctx).Info("Failed to record refresh failure", "error", err.Error())
+	}
 }
 
 func (i *FabricControllerInitializer) getOrCreate(ctx context.Context) (*fcintapi.FabricController, error) {
