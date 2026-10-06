@@ -34,7 +34,7 @@ type VLANNamespaceWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupVLANNamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupVLANNamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &VLANNamespaceWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -44,7 +44,7 @@ func SetupVLANNamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) er
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.VLANNamespace{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*wiringapi.VLANNamespace](w, lock)).
 		Complete(), "failed to setup vlannamespace webhook")
 }
 

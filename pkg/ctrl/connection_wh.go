@@ -39,7 +39,7 @@ type ConnectionWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupConnectionWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupConnectionWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &ConnectionWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -49,7 +49,7 @@ func SetupConnectionWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.Connection{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*wiringapi.Connection](w, lock)).
 		Complete(), "failed to setup connection webhook")
 }
 

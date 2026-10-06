@@ -271,58 +271,58 @@ func run(ctx context.Context) error {
 		}
 	}
 
-	if err = ctrl.SetupConnectionWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupConnectionWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up connection webhook: %w", err)
 	}
-	if err = ctrl.SetupServerWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupServerWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up server webhook: %w", err)
 	}
-	if err = ctrl.SetupSwitchWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupSwitchWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up switch webhook: %w", err)
 	}
-	if err = ctrl.SetupSwitchGroupWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupSwitchGroupWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up switch group webhook: %w", err)
 	}
-	if err = ctrl.SetupVPCWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupVPCWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up vpc webhook: %w", err)
 	}
-	if err = ctrl.SetupVPCAttachmentWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupVPCAttachmentWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up vpc attachment webhook: %w", err)
 	}
-	if err = ctrl.SetupVPCPeeringWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupVPCPeeringWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up vpc peering webhook: %w", err)
 	}
-	if err = ctrl.SetupIPv4NamespaceWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupIPv4NamespaceWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up ipv4 namespace webhook: %w", err)
 	}
-	if err = ctrl.SetupVLANNamespaceWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupVLANNamespaceWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up vlan namespace webhook: %w", err)
 	}
-	if err = ctrl.SetupFabricWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupFabricWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up fabric webhook: %w", err)
 	}
-	if err = ctrl.SetupExternalWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupExternalWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up external webhook: %w", err)
 	}
-	if err = ctrl.SetupExternalAttachmentWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupExternalAttachmentWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up external attachment webhook: %w", err)
 	}
-	if err = ctrl.SetupExternalPeeringWebhookWith(mgr, cfg); err != nil {
+	if err = ctrl.SetupExternalPeeringWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up external peering webhook: %w", err)
 	}
-	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles); err != nil {
+	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles, lock); err != nil {
 		return fmt.Errorf("setting up switch profile webhook: %w", err)
 	}
-	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg, gwValid); err != nil {
+	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg, gwValid, lock); err != nil {
 		return fmt.Errorf("setting up gateway webhook: %w", err)
 	}
-	if err := ctrl.SetupGatewayGroupWebhookWith(mgr, cfg); err != nil {
+	if err := ctrl.SetupGatewayGroupWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up gateway group webhook: %w", err)
 	}
-	if err := ctrl.SetupGatewayPeeringWebhookWith(mgr, cfg, gwValid); err != nil {
+	if err := ctrl.SetupGatewayPeeringWebhookWith(mgr, cfg, gwValid, lock); err != nil {
 		return fmt.Errorf("setting up gateway peering webhook: %w", err)
 	}
-	if err := ctrl.SetupVPCInfoWebhookWith(mgr, cfg); err != nil {
+	if err := ctrl.SetupVPCInfoWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up vpc info webhook: %w", err)
 	}
 

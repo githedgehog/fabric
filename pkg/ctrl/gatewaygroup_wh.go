@@ -24,7 +24,7 @@ type GatewayGroupWebhook struct {
 	cfg *meta.FabricConfig
 }
 
-func SetupGatewayGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupGatewayGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &GatewayGroupWebhook{
 		Reader: mgr.GetClient(),
 		cfg:    cfg,
@@ -32,7 +32,7 @@ func SetupGatewayGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) err
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.GatewayGroup{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*gwapi.GatewayGroup](w, lock)).
 		Complete(); err != nil {
 		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
 	}

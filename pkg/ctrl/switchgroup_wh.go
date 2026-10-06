@@ -23,7 +23,7 @@ type SwitchGroupWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupSwitchGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupSwitchGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &SwitchGroupWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -33,7 +33,7 @@ func SetupSwitchGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) erro
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &wiringapi.SwitchGroup{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*wiringapi.SwitchGroup](w, lock)).
 		Complete(); err != nil {
 		return fmt.Errorf("failed to setup switchgroup webhook: %w", err)
 	}

@@ -22,7 +22,7 @@ type VPCInfoWebhook struct {
 	cfg *meta.FabricConfig
 }
 
-func SetupVPCInfoWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupVPCInfoWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &VPCInfoWebhook{
 		Reader: mgr.GetClient(),
 		cfg:    cfg,
@@ -30,7 +30,7 @@ func SetupVPCInfoWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.VPCInfo{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*gwapi.VPCInfo](w, lock)).
 		Complete(); err != nil {
 		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
 	}

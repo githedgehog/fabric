@@ -34,7 +34,7 @@ type ExternalPeeringWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupExternalPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupExternalPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &ExternalPeeringWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -44,7 +44,7 @@ func SetupExternalPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) 
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalPeering{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*vpcapi.ExternalPeering](w, lock)).
 		Complete(), "failed to setup external peering webhook")
 }
 

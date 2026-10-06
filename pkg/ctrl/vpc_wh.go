@@ -36,7 +36,7 @@ type VPCWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupVPCWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupVPCWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &VPCWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -46,7 +46,7 @@ func SetupVPCWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPC{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*vpcapi.VPC](w, lock)).
 		Complete(), "failed to setup vpc webhook")
 }
 
