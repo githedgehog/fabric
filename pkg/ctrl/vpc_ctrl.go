@@ -44,13 +44,19 @@ type VPCReconciler struct {
 	kclient.Client
 	cfg  *meta.FabricConfig
 	libr *librarian.Manager
+	lock *Lock
 }
 
-func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, lock *Lock) error {
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
+	}
+
 	r := &VPCReconciler{
 		Client: mgr.GetClient(),
 		cfg:    cfg,
 		libr:   libMngr,
+		lock:   lock,
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
@@ -79,6 +85,10 @@ func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *
 
 func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	// the DHCPSubnets of a deleted VPC are garbage collected with it and its VNIs are released with the next allocation
 	vpc := &vpcapi.VPC{}

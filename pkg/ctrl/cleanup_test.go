@@ -71,7 +71,7 @@ func markDeleted(t *testing.T, kube kclient.Client, obj kclient.Object) {
 
 func TestGatewayCleanup(t *testing.T) {
 	kube := gatewayTestKube(t)
-	r := &GatewayReconciler{Client: kube, cfg: &meta.FabricConfig{GatewayNamespace: "fab"}}
+	r := &GatewayReconciler{Client: kube, cfg: &meta.FabricConfig{GatewayNamespace: "fab"}, lock: unlockedLock()}
 
 	_, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
 	require.NoError(t, err)
@@ -172,7 +172,7 @@ func TestAgentCleanup(t *testing.T) {
 		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}},
 		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-2", Namespace: kmetav1.NamespaceDefault}},
 	).Build()
-	r := &AgentReconciler{Client: kube, cfg: &meta.FabricConfig{}}
+	r := &AgentReconciler{Client: kube, cfg: &meta.FabricConfig{}, lock: unlockedLock()}
 
 	sw := &wiringapi.Switch{}
 	require.NoError(t, kube.Get(t.Context(), objKey("leaf-1"), sw))
@@ -218,7 +218,7 @@ func TestVPCCleanup(t *testing.T) {
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc("vpc-1"), vpc("vpc-2")).Build()
 	cfg := &meta.FabricConfig{}
-	r := &VPCReconciler{Client: kube, cfg: cfg, libr: librarian.NewManager(cfg)}
+	r := &VPCReconciler{Client: kube, cfg: cfg, libr: librarian.NewManager(cfg), lock: unlockedLock()}
 
 	_, err := r.Reconcile(t.Context(), reconcileReq("vpc-1"))
 	require.NoError(t, err)
@@ -262,11 +262,11 @@ func TestGwVPCSyncOwner(t *testing.T) {
 	cfg := &meta.FabricConfig{}
 	libr := librarian.NewManager(cfg)
 
-	_, err := (&GwVPCSync{Client: kube, cfg: cfg, libr: libr}).Reconcile(t.Context(), reconcileReq("vpc-1"))
+	_, err := (&GwVPCSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("vpc-1"))
 	require.NoError(t, err)
 	requireOwnedBy(t, kube, &gwapi.VPCInfo{}, "vpc-1", "VPC", "vpc-1")
 
-	_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr}).Reconcile(t.Context(), reconcileReq("ext-1"))
+	_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("ext-1"))
 	require.NoError(t, err)
 	requireOwnedBy(t, kube, &gwapi.VPCInfo{}, vpcapi.VPCInfoExtPrefix+"ext-1", "External", "ext-1")
 }
@@ -305,7 +305,7 @@ func TestConnectionTerminating(t *testing.T) {
 		Spec:       wiringapi.ConnectionSpec{ESLAG: &wiringapi.ConnESLAG{}},
 	}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
-	r := &ConnectionReconciler{Client: kube, libr: librarian.NewManager(&meta.FabricConfig{})}
+	r := &ConnectionReconciler{Client: kube, libr: librarian.NewManager(&meta.FabricConfig{}), lock: unlockedLock()}
 
 	markDeleted(t, kube, conn)
 	_, err := r.Reconcile(t.Context(), reconcileReq("conn-1"))

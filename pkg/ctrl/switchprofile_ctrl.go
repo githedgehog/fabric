@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,17 +32,22 @@ type SwitchProfileReconciler struct {
 	kclient.Client
 	cfg      *meta.FabricConfig
 	profiles *switchprofile.Default
+	lock     *Lock
 }
 
-func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
+func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default, lock *Lock) error {
 	if cfg == nil {
 		return errors.New("fabric config is nil")
+	}
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
 	}
 
 	r := &SwitchProfileReconciler{
 		Client:   mgr.GetClient(),
 		cfg:      cfg,
 		profiles: profiles,
+		lock:     lock,
 	}
 
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
@@ -55,6 +61,11 @@ func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig,
 
 func (r *SwitchProfileReconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	// the initialization enforces the profiles while locked
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	if !r.profiles.IsInitialized() {
 		return kctrl.Result{RequeueAfter: 1 * time.Second}, nil

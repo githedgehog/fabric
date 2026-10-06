@@ -23,12 +23,18 @@ import (
 type VPCInfoReconciler struct {
 	kclient.Client
 	libr *librarian.Manager
+	lock *Lock
 }
 
-func SetupVPCInfoReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager) error {
+func SetupVPCInfoReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager, lock *Lock) error {
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
+	}
+
 	r := &VPCInfoReconciler{
 		Client: mgr.GetClient(),
 		libr:   libMngr,
+		lock:   lock,
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
@@ -43,6 +49,10 @@ func SetupVPCInfoReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager) e
 
 func (r *VPCInfoReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	vpc := &gwapi.VPCInfo{}
 	if err := r.Get(ctx, req.NamespacedName, vpc); err != nil {

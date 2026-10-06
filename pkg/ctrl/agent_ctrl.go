@@ -75,9 +75,10 @@ type AgentReconciler struct {
 	regCA       string
 	regUsername string
 	regPassword string
+	lock        *Lock
 }
 
-func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMngr *librarian.Manager, ca, username, password string) error {
+func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMngr *librarian.Manager, ca, username, password string, lock *Lock) error {
 	if cfg == nil {
 		return errors.New("fabric config is nil")
 	}
@@ -93,6 +94,9 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 	if password == "" {
 		return errors.New("reg password is empty")
 	}
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
+	}
 
 	r := &AgentReconciler{
 		Client:      mgr.GetClient(),
@@ -101,6 +105,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		regCA:       ca,
 		regUsername: username,
 		regPassword: password,
+		lock:        lock,
 	}
 
 	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
@@ -127,6 +132,11 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 }
 
 func (r *AgentReconciler) enqueueBySwitchListLabelsAndSpines(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
 	res := []reconcile.Request{}
 
 	labels := obj.GetLabels()
@@ -187,6 +197,11 @@ func (r *AgentReconciler) enqueueBySwitchListLabelsAndSpines(ctx context.Context
 }
 
 func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
@@ -212,6 +227,11 @@ func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj k
 }
 
 func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
@@ -237,6 +257,12 @@ func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Objec
 }
 
 func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter; the refresh alone would fan out
+	// every write of a refreshed object to every switch otherwise
+	if r.lock.Locked() {
+		return nil
+	}
+
 	res := []reconcile.Request{}
 
 	sws := &wiringapi.SwitchList{}
@@ -309,6 +335,10 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Ob
 
 func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	sw := &wiringapi.Switch{}
 	err := r.Get(ctx, req.NamespacedName, sw)

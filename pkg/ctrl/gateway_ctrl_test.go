@@ -195,7 +195,7 @@ func TestBuildGatewayAgentNotReadyElsewhere(t *testing.T) {
 
 func TestGatewayEnqueue(t *testing.T) {
 	kube := gatewayTestKube(t)
-	r := &GatewayReconciler{Client: kube}
+	r := &GatewayReconciler{Client: kube, lock: unlockedLock()}
 
 	get := func(obj kclient.Object, name string) kclient.Object {
 		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: name, Namespace: kmetav1.NamespaceDefault}, obj))

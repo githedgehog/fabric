@@ -241,32 +241,32 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("registering default switch profiles: %w", err)
 	}
 
-	if err = ctrl.SetupAgentReconsilerWith(mgr, cfg, libMngr, string(ca), string(username), string(password)); err != nil {
+	if err = ctrl.SetupAgentReconsilerWith(mgr, cfg, libMngr, string(ca), string(username), string(password), lock); err != nil {
 		return fmt.Errorf("setting up agent controller: %w", err)
 	}
-	if err = ctrl.SetupVPCReconcilerWith(mgr, cfg, libMngr); err != nil {
+	if err = ctrl.SetupVPCReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
 		return fmt.Errorf("setting up vpc controller: %w", err)
 	}
-	if err = ctrl.SetupConnectionReconcilerWith(mgr, libMngr); err != nil {
+	if err = ctrl.SetupConnectionReconcilerWith(mgr, libMngr, lock); err != nil {
 		return fmt.Errorf("setting up connection controller: %w", err)
 	}
-	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles); err != nil {
+	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles, lock); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
 	}
 	if err = ctrl.SetupFabricControllerInitializerWith(mgr, ctrlNamespace, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up fabric controller initializer: %w", err)
 	}
-	if err := ctrl.SetupGatewayReconcilerWith(mgr, cfg); err != nil {
+	if err := ctrl.SetupGatewayReconcilerWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up gateway controller: %w", err)
 	}
-	if err := ctrl.SetupVPCInfoReconcilerWith(mgr, libMngr); err != nil {
+	if err := ctrl.SetupVPCInfoReconcilerWith(mgr, libMngr, lock); err != nil {
 		return fmt.Errorf("setting up vpc info controller: %w", err)
 	}
 	if cfg.GatewayAPISync {
-		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr); err != nil {
+		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
 			return fmt.Errorf("setting up gateway vpc sync controller: %w", err)
 		}
-		if err := ctrl.SetupGwExternalSyncReconcilerWith(mgr, cfg, libMngr); err != nil {
+		if err := ctrl.SetupGwExternalSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
 			return fmt.Errorf("setting up gateway external sync controller: %w", err)
 		}
 	}

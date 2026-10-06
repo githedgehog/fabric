@@ -49,7 +49,7 @@ func TestConnectionReconcile(t *testing.T) {
 		},
 	).Build()
 
-	r := &ConnectionReconciler{Client: kube, libr: librarian.NewManager(&meta.FabricConfig{})}
+	r := &ConnectionReconciler{Client: kube, libr: librarian.NewManager(&meta.FabricConfig{}), lock: unlockedLock()}
 
 	reconcile := func(name string) {
 		t.Helper()
