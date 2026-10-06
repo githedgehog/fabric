@@ -33,16 +33,21 @@ import (
 type ConnectionReconciler struct {
 	kclient.Client
 	libr *librarian.Manager
+	lock *Lock
 }
 
-func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager) error {
+func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager, lock *Lock) error {
 	if libMngr == nil {
 		return fmt.Errorf("librarian manager is nil") //nolint:err113
+	}
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
 	}
 
 	r := &ConnectionReconciler{
 		Client: mgr.GetClient(),
 		libr:   libMngr,
+		lock:   lock,
 	}
 
 	// only ESLAG connections get IDs allocated
@@ -70,6 +75,10 @@ func SetupConnectionReconcilerWith(mgr kctrl.Manager, libMngr *librarian.Manager
 
 func (r *ConnectionReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	conn := &wiringapi.Connection{}
 	if err := r.Get(ctx, req.NamespacedName, conn); err != nil {

@@ -27,20 +27,25 @@ type GwVPCSync struct {
 	kclient.Client
 	cfg  *meta.FabricConfig
 	libr *librarian.Manager
+	lock *Lock
 }
 
-func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, lock *Lock) error {
 	if cfg == nil {
 		return fmt.Errorf("fabric config is nil") //nolint:goerr113
 	}
 	if libMngr == nil {
 		return fmt.Errorf("librarian manager is nil") //nolint:goerr113
 	}
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
+	}
 
 	r := &GwVPCSync{
 		Client: mgr.GetClient(),
 		cfg:    cfg,
 		libr:   libMngr,
+		lock:   lock,
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
@@ -65,6 +70,10 @@ func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lib
 
 func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	vpc := &vpcapi.VPC{}
 	if err := r.Get(ctx, req.NamespacedName, vpc); err != nil {
@@ -125,20 +134,25 @@ type GwExternalSync struct {
 	kclient.Client
 	cfg  *meta.FabricConfig
 	libr *librarian.Manager
+	lock *Lock
 }
 
-func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager) error {
+func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, lock *Lock) error {
 	if cfg == nil {
 		return fmt.Errorf("fabric config is nil") //nolint:goerr113
 	}
 	if libMngr == nil {
 		return fmt.Errorf("librarian manager is nil") //nolint:goerr113
 	}
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
+	}
 
 	r := &GwExternalSync{
 		Client: mgr.GetClient(),
 		cfg:    cfg,
 		libr:   libMngr,
+		lock:   lock,
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
@@ -163,6 +177,10 @@ func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig
 
 func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	external := &vpcapi.External{}
 	if err := r.Get(ctx, req.NamespacedName, external); err != nil {

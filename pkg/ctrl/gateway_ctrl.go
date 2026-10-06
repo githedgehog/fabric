@@ -75,17 +75,22 @@ const (
 
 type GatewayReconciler struct {
 	kclient.Client
-	cfg *meta.FabricConfig
+	cfg  *meta.FabricConfig
+	lock *Lock
 }
 
-func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	if cfg == nil {
 		return fmt.Errorf("gateway controller config is nil") //nolint:goerr113
+	}
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
 	}
 
 	r := &GatewayReconciler{
 		Client: mgr.GetClient(),
 		cfg:    cfg,
+		lock:   lock,
 	}
 
 	if err := kctrl.NewControllerManagedBy(mgr).
@@ -112,6 +117,11 @@ func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error
 // enqueueGateways enqueues the gateways of the fabric, only the ones in the given domains if any. No fabric means
 // all gateways.
 func (r *GatewayReconciler) enqueueGateways(ctx context.Context, fabric string, domains []string) []reconcile.Request {
+	// all gateways are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
 	opts := []kclient.ListOption{}
 	if fabric != "" {
 		opts = append(opts, kclient.MatchingLabels{wiringapi.ListLabelFabric(fabric): gwapi.ListLabelValue})
@@ -187,7 +197,8 @@ func setGatewayLabel(obj kclient.Object, gw *gwapi.Gateway) {
 	obj.SetLabels(labels)
 }
 
-// enqueueForDeployed reconciles the gateway something in the gateway namespace was deployed for
+// enqueueForDeployed reconciles the gateway something in the gateway namespace was deployed for. Not silenced while
+// locked like the other mappers: it's a single request without any fan-out and the refresh never triggers it.
 func (r *GatewayReconciler) enqueueForDeployed(_ context.Context, obj kclient.Object) []reconcile.Request {
 	name := obj.GetLabels()[LabelGateway]
 	if name == "" {
@@ -199,6 +210,10 @@ func (r *GatewayReconciler) enqueueForDeployed(_ context.Context, obj kclient.Ob
 
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
 
 	if req.Namespace != kmetav1.NamespaceDefault {
 		l.Info("Skipping Gateway in non-default namespace")

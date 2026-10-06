@@ -7,11 +7,17 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	authnv1 "k8s.io/api/authentication/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// lockedRequeueAfter is how long a reconciler waits before checking again while fabric-ctrl is locked. Every object
+// it got an event for stays queued meanwhile, so all of them are reconciled within that time once it's unlocked,
+// without the events dropped by the fan-out mappers while locked.
+const lockedRequeueAfter = 15 * time.Second
 
 // Lock keeps the fabric controller read-only until the running version is initialized: reconcilers wait and only
 // the fabric controller itself may write the objects it serves webhooks for. It starts locked and is set by the
