@@ -51,6 +51,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - authentication.k8s.io
+  resources:
+  - selfsubjectreviews
+  verbs:
+  - create
+- apiGroups:
   - dhcp.githedgehog.com
   resources:
   - dhcpsubnets
@@ -76,6 +82,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - fabriccontrollers
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - gateway.githedgehog.com
   resources:

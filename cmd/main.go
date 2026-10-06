@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -56,7 +57,29 @@ import (
 
 const (
 	DockerCredsPath = "/creds-docker/" + corev1.DockerConfigJsonKey
+
+	PodNamespaceEnv = "POD_NAMESPACE"
+	SANamespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
+
+// getCtrlNamespace returns the namespace the fabric controller runs in, from the downward API or the service account
+func getCtrlNamespace() (string, error) {
+	if ns := os.Getenv(PodNamespaceEnv); ns != "" {
+		return ns, nil
+	}
+
+	data, err := os.ReadFile(SANamespaceFile)
+	if err != nil {
+		return "", fmt.Errorf("%s isn't set and reading %s: %w", PodNamespaceEnv, SANamespaceFile, err)
+	}
+
+	ns := strings.TrimSpace(string(data))
+	if ns == "" {
+		return "", fmt.Errorf("%s isn't set and %s is empty", PodNamespaceEnv, SANamespaceFile) //nolint:err113
+	}
+
+	return ns, nil
+}
 
 func main() {
 	// TODO make it configurable
@@ -193,6 +216,22 @@ func run(ctx context.Context) error {
 	})
 	if err != nil {
 		return fmt.Errorf("creating manager: %w", err)
+	}
+
+	ctrlNamespace, err := getCtrlNamespace()
+	if err != nil {
+		return fmt.Errorf("getting fabric controller namespace: %w", err)
+	}
+
+	self, err := ctrl.SelfUsername(ctx, mgr.GetClient())
+	if err != nil {
+		return fmt.Errorf("getting own username: %w", err)
+	}
+	slog.Info("Fabric controller identity", "namespace", ctrlNamespace, "username", self)
+
+	lock := ctrl.NewLock(self)
+	if err := ctrl.SetupFabricControllerReconcilerWith(mgr, ctrlNamespace, lock); err != nil {
+		return fmt.Errorf("setting up fabric controller controller: %w", err)
 	}
 
 	libMngr := librarian.NewManager(cfg)
