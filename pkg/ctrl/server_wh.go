@@ -32,7 +32,7 @@ type ServerWebhook struct {
 	Cfg    *meta.FabricConfig
 }
 
-func SetupServerWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupServerWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &ServerWebhook{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -41,7 +41,7 @@ func SetupServerWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.Server{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*wiringapi.Server](w, lock)).
 		Complete(), "failed to setup server webhook")
 }
 

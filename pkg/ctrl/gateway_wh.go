@@ -26,7 +26,7 @@ type GatewayWebhook struct {
 	v   *GatewayValidator
 }
 
-func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator) error {
+func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *GatewayValidator, lock *Lock) error {
 	if cfg.EnableGateway && v == nil {
 		return fmt.Errorf("validator is nil") //nolint:err113
 	}
@@ -39,7 +39,7 @@ func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v *Gatew
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.Gateway{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*gwapi.Gateway](w, lock)).
 		Complete(); err != nil {
 		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
 	}

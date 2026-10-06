@@ -34,7 +34,7 @@ type ExternalAttachmentWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupExternalAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupExternalAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &ExternalAttachmentWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -44,7 +44,7 @@ func SetupExternalAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfi
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalAttachment{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*vpcapi.ExternalAttachment](w, lock)).
 		Complete(), "failed to setup external attachment webhook")
 }
 

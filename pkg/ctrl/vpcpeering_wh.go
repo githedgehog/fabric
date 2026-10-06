@@ -34,7 +34,7 @@ type VPCPeeringWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupVPCPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupVPCPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &VPCPeeringWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -44,7 +44,7 @@ func SetupVPCPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCPeering{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*vpcapi.VPCPeering](w, lock)).
 		Complete(), "failed to setup vpc peering webhook")
 }
 

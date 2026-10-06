@@ -36,7 +36,7 @@ type SwitchProfileWebhook struct {
 	Profiles   *switchprofile.Default
 }
 
-func SetupSwitchProfileWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
+func SetupSwitchProfileWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, profiles *switchprofile.Default, lock *Lock) error {
 	w := &SwitchProfileWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -47,7 +47,7 @@ func SetupSwitchProfileWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, pr
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.SwitchProfile{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*wiringapi.SwitchProfile](w, lock)).
 		Complete(), "failed to setup switch profile webhook")
 }
 

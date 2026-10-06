@@ -36,7 +36,7 @@ type IPv4NamespaceWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupIPv4NamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupIPv4NamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &IPv4NamespaceWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -46,7 +46,7 @@ func SetupIPv4NamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) er
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.IPv4Namespace{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*vpcapi.IPv4Namespace](w, lock)).
 		Complete(), "failed to setup ipv4namespace webhook")
 }
 

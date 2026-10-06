@@ -25,7 +25,7 @@ type FabricWebhook struct {
 	Cfg        *meta.FabricConfig
 }
 
-func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
+func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	w := &FabricWebhook{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -35,7 +35,7 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig) error {
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &wiringapi.Fabric{}).
 		WithDefaulter(w).
-		WithValidator(w).
+		WithValidator(newLockedValidator[*wiringapi.Fabric](w, lock)).
 		Complete(); err != nil {
 		return fmt.Errorf("failed to setup fabric webhook: %w", err)
 	}
