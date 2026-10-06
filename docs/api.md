@@ -3,6 +3,7 @@
 ## Packages
 - [agent.githedgehog.com/v1beta1](#agentgithedgehogcomv1beta1)
 - [dhcp.githedgehog.com/v1beta1](#dhcpgithedgehogcomv1beta1)
+- [fcint.githedgehog.com/v1alpha1](#fcintgithedgehogcomv1alpha1)
 - [gateway.githedgehog.com/v1alpha1](#gatewaygithedgehogcomv1alpha1)
 - [gwint.githedgehog.com/v1alpha1](#gwintgithedgehogcomv1alpha1)
 - [vpc.githedgehog.com/v1beta1](#vpcgithedgehogcomv1beta1)
@@ -840,6 +841,111 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `allocated` _object (keys:string, values:[DHCPAllocated](#dhcpallocated))_ | Allocated is a map of allocated IPs with expiry time and hostname from DHCP requests |  |  |
+
+
+
+## fcint.githedgehog.com/v1alpha1
+
+Package v1alpha1 contains API Schema definitions for the fcint v1alpha1 API group.
+
+### Resource Types
+- [FabricController](#fabriccontroller)
+
+
+
+#### FabricController
+
+
+
+FabricController is the Schema for the fabriccontrollers API. It holds the state of the fabric controller itself:
+the version that completed initialization (including refreshing all stored objects with the current defaults) and
+the progress of that refresh. The fabric controller only reconciles and accepts user changes once it's initialized.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `fcint.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `FabricController` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[FabricControllerSpec](#fabriccontrollerspec)_ |  |  |  |
+| `status` _[FabricControllerStatus](#fabriccontrollerstatus)_ |  |  |  |
+
+
+#### FabricControllerRefresh
+
+
+
+FabricControllerRefresh is the progress of a refresh of stored objects with the current defaults and labels
+
+
+
+_Appears in:_
+- [FabricControllerStatus](#fabriccontrollerstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | Version is the fabric controller version running the refresh |  |  |
+| `startedAt` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | StartedAt is the time the refresh started |  |  |
+| `finishedAt` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | FinishedAt is the time the refresh finished |  |  |
+| `passes` _integer_ | Passes is the number of passes over the stored objects so far |  |  |
+| `kinds` _[FabricControllerRefreshKind](#fabriccontrollerrefreshkind) array_ | Kinds is the progress per kind |  |  |
+
+
+#### FabricControllerRefreshKind
+
+
+
+FabricControllerRefreshKind is the refresh progress of a single kind
+
+
+
+_Appears in:_
+- [FabricControllerRefresh](#fabriccontrollerrefresh)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is the kind of the refreshed objects |  |  |
+| `total` _integer_ | Total is the number of objects of the kind |  |  |
+| `updated` _integer_ | Updated is the number of objects updated with the current defaults |  |  |
+| `rejected` _integer_ | Rejected is the number of objects whose update was rejected |  |  |
+| `stale` _integer_ | Stale is the number of objects that still don't carry the current defaults after retries |  |  |
+
+
+#### FabricControllerSpec
+
+
+
+FabricControllerSpec defines the desired state of FabricController.
+
+
+
+_Appears in:_
+- [FabricController](#fabriccontroller)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `forceUnlock` _boolean_ | ForceUnlock unlocks the fabric controller regardless of the initialized version. It's a last resort for a<br />stuck refresh: objects that weren't refreshed don't carry the current defaults and labels |  |  |
+
+
+#### FabricControllerStatus
+
+
+
+FabricControllerStatus defines the observed state of FabricController.
+
+
+
+_Appears in:_
+- [FabricController](#fabriccontroller)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `initializedVersion` _string_ | InitializedVersion is the fabric controller version that completed initialization, including the refresh of<br />stored objects. The fabric controller is locked until it matches the running version |  |  |
+| `refresh` _[FabricControllerRefresh](#fabriccontrollerrefresh)_ | Refresh is the progress of the last or current refresh of stored objects |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | Conditions of the fabric controller: Initialized and Refreshing |  |  |
 
 
 

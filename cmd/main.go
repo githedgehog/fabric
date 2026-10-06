@@ -31,6 +31,7 @@ import (
 	"github.com/mattn/go-isatty"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
@@ -152,6 +153,9 @@ func run(ctx context.Context) error {
 	}
 	if err := gwintapi.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("adding gwintapi scheme: %w", err)
+	}
+	if err := fcintapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding fcintapi scheme: %w", err)
 	}
 	//+kubebuilder:scaffold:scheme
 
