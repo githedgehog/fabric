@@ -4,6 +4,7 @@
 package ctrl
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,10 +18,56 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
+
+func TestWriteStatusConflict(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	key := ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName}
+	stored := &fcintapi.FabricController{ObjectMeta: kmetav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name}}
+
+	conflicts := 0
+	kube := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(stored).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			SubResourceUpdate: func(ctx context.Context, c kclient.Client, sub string, obj kclient.Object, opts ...kclient.SubResourceUpdateOption) error {
+				// as if someone changed the spec after the status writer read the object
+				if conflicts < 2 {
+					conflicts++
+
+					return kapierrors.NewConflict(schema.GroupResource{Group: "fcint.githedgehog.com", Resource: "fabriccontrollers"}, obj.GetName(), nil)
+				}
+
+				return c.SubResource(sub).Update(ctx, obj, opts...)
+			},
+		}).
+		Build()
+
+	i := &FabricControllerInitializer{Client: kube, apiReader: kube, key: key}
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	fc.Status.InitializedVersion = "v1.2.3"
+	kmeta.SetStatusCondition(&fc.Status.Conditions, kmetav1.Condition{
+		Type: fcintapi.ConditionInitialized, Status: kmetav1.ConditionTrue, Reason: "Initialized",
+	})
+
+	require.NoError(t, i.writeStatus(t.Context(), fc))
+	require.Equal(t, 2, conflicts)
+
+	got := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, got))
+	require.Equal(t, "v1.2.3", got.Status.InitializedVersion, "the status is written again after re-reading")
+	require.True(t, kmeta.IsStatusConditionTrue(got.Status.Conditions, fcintapi.ConditionInitialized))
+}
 
 func TestFabricControllerInitializer(t *testing.T) {
 	for _, ver := range []string{develVersion, "v1.2.3"} {
@@ -104,11 +151,12 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 			profiles := switchprofile.NewDefaultSwitchProfiles()
 
 			i := &FabricControllerInitializer{
-				Client:   kube,
-				key:      ktypes.NamespacedName{Namespace: ns, Name: fcintapi.FabricControllerName},
-				version:  ver,
-				cfg:      cfg,
-				profiles: profiles,
+				Client:    kube,
+				apiReader: kube,
+				key:       ktypes.NamespacedName{Namespace: ns, Name: fcintapi.FabricControllerName},
+				version:   ver,
+				cfg:       cfg,
+				profiles:  profiles,
 			}
 
 			require.NoError(t, i.Start(t.Context()))

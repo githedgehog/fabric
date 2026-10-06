@@ -109,6 +109,7 @@ rules:
   verbs:
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - gateway.githedgehog.com
@@ -201,6 +202,7 @@ rules:
   verbs:
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - vpc.githedgehog.com
@@ -246,6 +248,7 @@ rules:
   verbs:
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - wiring.githedgehog.com
@@ -268,6 +271,7 @@ rules:
   - create
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - wiring.githedgehog.com
