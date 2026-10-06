@@ -455,7 +455,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
 
-	domains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains)))
+	domains := slices.Sorted(slices.Values(vpc.Spec.Topology.Domains))
+	if len(domains) == 0 {
+		return nil, fmt.Errorf("at least one domain is required") //nolint:err113
+	}
 	if slices.Contains(domains, "") {
 		return nil, fmt.Errorf("domain name cannot be empty") //nolint:err113
 	}
@@ -821,12 +824,12 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
 		}
 
-		vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric)
-		if nsFabric := wiringapi.FabricNameOrDefault(ipNs.Spec.Topology.Fabric); nsFabric != vpcFabric {
+		vpcFabric := vpc.Spec.Topology.Fabric
+		if nsFabric := ipNs.Spec.Topology.Fabric; nsFabric != vpcFabric {
 			return nil, fmt.Errorf("vpc is in fabric %s but its IPv4Namespace %s is in fabric %s", vpcFabric, ipNs.Name, nsFabric) //nolint:err113
 		}
 
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, vpc.Namespace, vpc.Spec.Topology.Fabric)
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get fabric: %w", err)
 		}

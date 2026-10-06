@@ -178,10 +178,7 @@ func TestExternalValidation(t *testing.T) {
 }
 
 func TestExternalLocalASNValidation(t *testing.T) {
-	ipns := &v1beta1.IPv4Namespace{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-		Spec:       v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
-	}
+	ipns := ipv4NamespaceObj()
 	backendFabric := &wiringapi.Fabric{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
 		Spec: wiringapi.FabricSpec{
@@ -190,16 +187,17 @@ func TestExternalLocalASNValidation(t *testing.T) {
 			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
 		},
 	}
-	backendExt := &v1beta1.External{
+	backendExt := defaulted(&v1beta1.External{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "backend-ext", Namespace: kmetav1.NamespaceDefault},
 		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "backend", Topology: v1beta1.ExternalTopology{Fabric: "backend"}, LocalASN: 64999},
-	}
+	})
 	attach := l3ExtAttGen("ext-att-01", func(att *v1beta1.ExternalAttachment) {
 		att.Spec.External = "external-01"
 		att.Spec.Neighbor.ASN = 64000
 	})
-	// Fabric/default is not in the objects, so it comes from this
+	// Fabric/default, added to the objects of every test, is created from this
 	cfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
+	defaultFabric := fabricObj(wiringapi.DefaultFabric, cfg)
 	withLocalASN := func(asn uint32) *v1beta1.External {
 		return extGen("external-01", func(ext *v1beta1.External) { ext.Spec.LocalASN = asn })
 	}
@@ -269,7 +267,7 @@ func TestExternalLocalASNValidation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			kube := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(test.objects...).
+				WithObjects(withObjs(test.objects, defaultFabric)...).
 				Build()
 			warns, err := test.external.Validate(t.Context(), kube, cfg)
 			if test.err {

@@ -43,9 +43,13 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
 		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
 	}
-	// vpc-01 was written before domains existed, so it is in default
 	leafOnB := leaf.DeepCopy()
 	leafOnB.Spec.Topology.Domains = []string{"plane-b"}
+
+	// stored objects are always defaulted, the ones created without a domain are in the default one
+	for _, obj := range []interface{ Default() }{vpc, vpcOnB, gw, gwPlaneB, spine, leaf, leafOnB} {
+		obj.Default()
+	}
 
 	staticExternal := func(fabricName string) *wiringapi.Connection {
 		return &wiringapi.Connection{
@@ -84,7 +88,7 @@ func TestConnectionReferencesFabric(t *testing.T) {
 			err: "vpc vpc-01 is in domains [plane-b] but switch leaf-01 is in domains [default]",
 		},
 		{
-			name: "static external, vpc without a domain on a leaf in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leafOnB},
+			name: "static external, vpc in the default domain on a leaf in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leafOnB},
 			err: "vpc vpc-01 is in domains [default] but switch leaf-01 is in domains [plane-b]",
 		},
 		{name: "static external, vpc in another fabric", conn: staticExternal("default"), objects: []kclient.Object{vpc}, err: "vpc vpc-01 is in fabric backend"},

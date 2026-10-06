@@ -92,7 +92,7 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 		[][]string{
 			{
 				out.Name,
-				wiringapi.FabricNameOrDefault(out.Spec.Topology.Fabric),
+				out.Spec.Topology.Fabric,
 				out.Profile.DisplayName,
 				string(out.Spec.Role),
 				strings.Join(out.Spec.Groups, ", "),

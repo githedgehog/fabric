@@ -152,7 +152,7 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 
 	for _, sw := range swList.Items {
 		swName := sw.Name
-		fabricName := wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric)
+		fabricName := sw.Spec.Topology.Fabric
 		if in.Name != "" && fabricName != in.Name {
 			continue
 		}

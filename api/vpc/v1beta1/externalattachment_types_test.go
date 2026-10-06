@@ -77,7 +77,7 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 
 func TestExternalAttachmentValidation(t *testing.T) {
 	baseObjs := []kclient.Object{
-		&v1beta1.External{
+		defaulted(&v1beta1.External{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "external-01",
 				Namespace: kmetav1.NamespaceDefault,
@@ -87,8 +87,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				InboundCommunity:  "50000:1001",
 				OutboundCommunity: "50000:1002",
 			},
-		},
-		&v1beta1.External{
+		}),
+		defaulted(&v1beta1.External{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "external-02",
 				Namespace: kmetav1.NamespaceDefault,
@@ -99,8 +99,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 					Prefixes: []string{"0.0.0.0/0"},
 				},
 			},
-		},
-		&wiringapi.Connection{
+		}),
+		defaulted(&wiringapi.Connection{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "leaf-01--external",
 				Namespace: kmetav1.NamespaceDefault,
@@ -114,7 +114,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	}
 	backendFabric := &wiringapi.Fabric{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
@@ -124,16 +124,16 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
 		},
 	}
-	// Fabric/default is not in the objects, so it comes from this
+	// Fabric/default, added to the objects of every test, is created from the test config
 	asnCfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
-	leafOnB := &wiringapi.Switch{
+	leafOnB := defaulted(&wiringapi.Switch{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
 		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b"}}},
-	}
-	extOnB := &v1beta1.External{
+	})
+	extOnB := defaulted(&v1beta1.External{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "external-03", Namespace: kmetav1.NamespaceDefault},
 		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", Topology: v1beta1.ExternalTopology{Domain: "plane-b"}},
-	}
+	})
 	withNeighborASN := func(asn uint32) func(*v1beta1.ExternalAttachment) {
 		return func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.ASN = asn }
 	}
@@ -381,10 +381,10 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			extAtt: l3ExtAttGen("ext-att-01", func(att *v1beta1.ExternalAttachment) {
 				att.Spec.External = "ext-local"
 			}),
-			objects: withObjs(baseObjs, &v1beta1.External{
+			objects: withObjs(baseObjs, defaulted(&v1beta1.External{
 				ObjectMeta: kmetav1.ObjectMeta{Name: "ext-local", Namespace: kmetav1.NamespaceDefault},
 				Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
-			}),
+			})),
 			err: true,
 		},
 	}
@@ -395,14 +395,14 @@ func TestExternalAttachmentValidation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			kube := fake.NewClientBuilder().
-				WithScheme(scheme).
-				WithObjects(test.objects...).
-				Build()
 			cfg := test.cfg
 			if cfg == nil {
 				cfg = &meta.FabricConfig{}
 			}
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(withObjs(test.objects, fabricObj(wiringapi.DefaultFabric, cfg))...).
+				Build()
 			warns, err := test.extAtt.Validate(t.Context(), kube, cfg)
 			if test.err {
 				require.Error(t, err, "expected error but got none")

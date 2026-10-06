@@ -23,15 +23,19 @@ func TestFabricFilter(t *testing.T) {
 	meta := func(name string) kmetav1.ObjectMeta {
 		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}
 	}
+	// stored switches are always defaulted
 	switchGen := func(name, fabricName string) kclient.Object {
-		return &wiringapi.Switch{ObjectMeta: meta(name), Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: fabricName}, Profile: "vs"}}
+		sw := &wiringapi.Switch{ObjectMeta: meta(name), Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: fabricName}, Profile: "vs"}}
+		sw.Default()
+
+		return sw
 	}
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&wiringapi.SwitchProfile{ObjectMeta: meta("vs")},
 		&wiringapi.Fabric{ObjectMeta: meta("default")},
 		&wiringapi.Fabric{ObjectMeta: meta("backend")},
-		// written before the fabric reference existed
+		// created without a fabric, so defaulted to the default one
 		switchGen("leaf-01", ""),
 		switchGen("leaf-02", "backend"),
 	).Build()

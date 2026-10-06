@@ -23,10 +23,10 @@ func TestFabricChanged(t *testing.T) {
 	}{
 		{old: "", new: ""},
 		{old: "backend", new: "backend"},
-		// the stored object predates the reference and the incoming one has just been defaulted,
-		// so this is every update to every object on the first upgrade and must not be refused
+		// a stored object the refresh left alone can be normalized to the default
 		{old: "", new: "default"},
 		{old: "default", new: ""},
+		// but nothing leaves the default fabric by being unset first
 		{old: "", new: "backend", changed: true},
 		{old: "default", new: "backend", changed: true},
 		{old: "backend", new: "", changed: true},
@@ -34,6 +34,49 @@ func TestFabricChanged(t *testing.T) {
 	} {
 		t.Run(tt.old+"->"+tt.new, func(t *testing.T) {
 			require.Equal(t, tt.changed, fabricChanged(tt.old, tt.new))
+		})
+	}
+}
+
+func TestDomainChanged(t *testing.T) {
+	for _, tt := range []struct {
+		old, new string
+		changed  bool
+	}{
+		{old: "", new: ""},
+		{old: "plane-a", new: "plane-a"},
+		{old: "", new: "default"},
+		{old: "default", new: ""},
+		{old: "", new: "plane-a", changed: true},
+		{old: "default", new: "plane-a", changed: true},
+		{old: "plane-a", new: "", changed: true},
+		{old: "plane-a", new: "plane-b", changed: true},
+	} {
+		t.Run(tt.old+"->"+tt.new, func(t *testing.T) {
+			require.Equal(t, tt.changed, domainChanged(tt.old, tt.new))
+		})
+	}
+}
+
+func TestDomainsChanged(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		old, new []string
+		changed  bool
+	}{
+		{name: "both unset"},
+		{name: "same", old: []string{"plane-a", "plane-b"}, new: []string{"plane-a", "plane-b"}},
+		{name: "same, other order", old: []string{"plane-b", "plane-a"}, new: []string{"plane-a", "plane-b"}},
+		{name: "unset normalized to default", new: []string{"default"}},
+		{name: "default back to unset", old: []string{"default"}},
+		{name: "unset to another domain", new: []string{"plane-a"}, changed: true},
+		{name: "unset to default and another", new: []string{"default", "plane-a"}, changed: true},
+		{name: "default to another", old: []string{"default"}, new: []string{"plane-a"}, changed: true},
+		{name: "another to unset", old: []string{"plane-a"}, changed: true},
+		{name: "one more", old: []string{"plane-a"}, new: []string{"plane-a", "plane-b"}, changed: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.changed, domainsChanged(tt.old, tt.new))
 		})
 	}
 }

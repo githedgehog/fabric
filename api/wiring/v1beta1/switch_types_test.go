@@ -39,6 +39,7 @@ func TestHydrationValidation(t *testing.T) {
 			ProtocolIP: "172.30.8.2/32",
 		},
 	}
+	leafSwitch.Default()
 	getLeaf := func(name string, asn uint32, ip string) *wiringapi.Switch {
 		leaf := leafSwitch.DeepCopy()
 		leaf.Name = name
@@ -61,6 +62,7 @@ func TestHydrationValidation(t *testing.T) {
 			ProtocolIP: "172.30.8.2/32",
 		},
 	}
+	spineSwitch.Default()
 	getSpine := func(name string, asn uint32) *wiringapi.Switch {
 		spine := spineSwitch.DeepCopy()
 		spine.Name = name
@@ -85,6 +87,7 @@ func TestHydrationValidation(t *testing.T) {
 			ProtocolIP: "172.30.8.2/32",
 		},
 	}
+	mclagSwitch.Default()
 
 	fabricCfg := &meta.FabricConfig{
 		ControlVIP:          "172.30.0.1/32",
@@ -100,6 +103,10 @@ func TestHydrationValidation(t *testing.T) {
 		EnableGateway:       true,
 	}
 
+	defaultFabric := &wiringapi.Fabric{
+		ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
+		Spec:       wiringapi.DefaultFabricSpec(fabricCfg),
+	}
 	backendFabric := &wiringapi.Fabric{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: "default"},
 		Spec: wiringapi.FabricSpec{
@@ -110,6 +117,7 @@ func TestHydrationValidation(t *testing.T) {
 	}
 	inBackend := func(sw *wiringapi.Switch) *wiringapi.Switch {
 		sw.Spec.Topology.Fabric = "backend"
+		sw.Default()
 
 		return sw
 	}
@@ -377,9 +385,15 @@ func TestHydrationValidation(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			// stored objects carry their defaults and the default fabric always exists
+			for _, obj := range test.objects {
+				if defaulter, ok := obj.(interface{ Default() }); ok {
+					defaulter.Default()
+				}
+			}
 			kube := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(test.objects...).
+				WithObjects(withObjs([]kclient.Object{defaultFabric}, test.objects...)...).
 				Build()
 
 			err := test.dut.HydrationValidation(ctx, kube, fabricCfg)
@@ -541,9 +555,12 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}
 	}
 
+	eslagGroup := withName("eslag-1", &wiringapi.SwitchGroup{})
+	eslagGroup.Default()
+
 	base := []kclient.Object{
 		vlanNSGen("default", []meta.VLANRange{{From: 1000, To: 2999}}),
-		withName("eslag-1", &wiringapi.SwitchGroup{}),
+		eslagGroup,
 		withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{LeafASNStart: 65101, LeafASNEnd: 65200, Domains: map[string]wiringapi.FabricDomainSpec{
 			"default": {SpineASN: 65100, GatewayASN: 65534},
 			"plane-b": {SpineASN: 65099, GatewayASN: 65535},
@@ -606,6 +623,8 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
 		},
 		{
+			// an empty value no longer means the default domain: such a member is one the refresh of stored
+			// objects on initialization had to leave alone
 			name: "redundancy group member written before domains existed",
 			sw:   swGen(eslag),
 			objects: []kclient.Object{func() *wiringapi.Switch {
@@ -614,6 +633,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 
 				return sw
 			}()},
+			err: "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains []",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

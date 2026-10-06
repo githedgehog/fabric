@@ -25,13 +25,13 @@ func TestVPCAttachmentValidation(t *testing.T) {
 	objMeta := func(name string) kmetav1.ObjectMeta {
 		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}
 	}
-	// not defaulted, so that no domains means stored before domains existed
+	// defaulted as stored, so that no domains given means the default one
 	sw := func(name string, domains ...string) *wiringapi.Switch {
-		return &wiringapi.Switch{ObjectMeta: objMeta(name), Spec: wiringapi.SwitchSpec{
+		return defaulted(&wiringapi.Switch{ObjectMeta: objMeta(name), Spec: wiringapi.SwitchSpec{
 			Profile:        "profile",
 			VLANNamespaces: []string{wiringapi.DefaultVLANNamespace},
 			Topology:       wiringapi.SwitchTopology{Domains: domains},
-		}}
+		}})
 	}
 	link := func(serverPort, leaf string) wiringapi.ServerToSwitchLink {
 		return wiringapi.ServerToSwitchLink{
@@ -39,11 +39,14 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			Switch: wiringapi.NewBasePortName(leaf + "/E1/1"),
 		}
 	}
-	unbundled := &wiringapi.Connection{ObjectMeta: objMeta("server-01--unbundled--leaf-01"), Spec: wiringapi.ConnectionSpec{
+	unbundled := defaulted(&wiringapi.Connection{ObjectMeta: objMeta("server-01--unbundled--leaf-01"), Spec: wiringapi.ConnectionSpec{
 		Unbundled: &wiringapi.ConnUnbundled{Link: link("enp2s1", "leaf-01")},
-	}}
-	eslag := &wiringapi.Connection{ObjectMeta: objMeta("server-01--eslag--leaf-01--leaf-02"), Spec: wiringapi.ConnectionSpec{
+	}})
+	eslag := defaulted(&wiringapi.Connection{ObjectMeta: objMeta("server-01--eslag--leaf-01--leaf-02"), Spec: wiringapi.ConnectionSpec{
 		ESLAG: &wiringapi.ConnESLAG{Links: []wiringapi.ServerToSwitchLink{link("enp2s1", "leaf-01"), link("enp2s2", "leaf-02")}},
+	}})
+	fabric := &wiringapi.Fabric{ObjectMeta: objMeta(wiringapi.DefaultFabric), Spec: wiringapi.FabricSpec{
+		Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}, planeB: {}},
 	}}
 	profile := &wiringapi.SwitchProfile{ObjectMeta: objMeta("profile"), Spec: wiringapi.SwitchProfileSpec{
 		Features: wiringapi.SwitchProfileFeatures{L2VNI: true, L3VNI: true},
@@ -102,7 +105,7 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			err: "connection server-01--unbundled--leaf-01 already attached to vpc subnet vpc-01/default",
 		},
 		{
-			name:    "switch stored before domains existed",
+			name:    "switch with domains defaulted",
 			attach:  onUnbundled,
 			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain), unbundled, sw("leaf-01")},
 		},
@@ -118,9 +121,9 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			objects: []kclient.Object{vpcIn(planeB), unbundled, sw("leaf-01", wiringapi.DefaultFabricDomain, planeB)},
 		},
 		{
-			name:    "vpc stored before domains existed, switch in another domain",
+			name:    "vpc with domains defaulted, switch in another domain",
 			attach:  onUnbundled,
-			objects: []kclient.Object{vpcIn(), unbundled, sw("leaf-01", planeB)},
+			objects: []kclient.Object{vpcGen("vpc-01"), unbundled, sw("leaf-01", planeB)},
 			err:     "vpc vpc-01 is in domains [default] but switch leaf-01 is in domains [plane-b]",
 		},
 		{
@@ -153,7 +156,7 @@ func TestVPCAttachmentValidation(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(tt.objects, profile)...).Build()
+			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(tt.objects, profile, fabric)...).Build()
 
 			_, err := tt.attach.Validate(t.Context(), kube, nil)
 			if tt.err == "" {

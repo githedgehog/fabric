@@ -6,6 +6,7 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
@@ -46,11 +47,48 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Loc
 //+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-fabric,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update,versions=v1beta1,name=mfabric.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-fabric,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update;delete,versions=v1beta1,name=vfabric.kb.io,admissionReviewVersions=v1
 
-// fabricChanged reports whether an update moves an object to another fabric. It resolves both
-// sides because the stored object may predate the reference and still hold an empty value, while
-// the incoming one has just been defaulted to "default".
+// The fabric and domain immutability checks, and the check for what still uses a fabric, treat an unset fabric or
+// domain as the default one. Stored objects are refreshed with the current defaults on initialization, but one the
+// refresh had to leave alone (rejected or stale, see the FabricController status) may still hold an empty value: it
+// can be normalized to the default later, while nothing can leave the default fabric or domain by being unset first.
+
+// fabricChanged reports whether an update moves an object to another fabric
 func fabricChanged(oldName, newName string) bool {
-	return wiringapi.FabricNameOrDefault(oldName) != wiringapi.FabricNameOrDefault(newName)
+	return fabricOrDefault(oldName) != fabricOrDefault(newName)
+}
+
+// domainChanged reports whether an update moves an object to another domain
+func domainChanged(oldName, newName string) bool {
+	return domainOrDefault(oldName) != domainOrDefault(newName)
+}
+
+// domainsChanged reports whether an update changes the set of domains an object is in
+func domainsChanged(oldNames, newNames []string) bool {
+	return !slices.Equal(sortedDomainsOrDefault(oldNames), sortedDomainsOrDefault(newNames))
+}
+
+func sortedDomainsOrDefault(names []string) []string {
+	if len(names) == 0 {
+		return []string{wiringapi.DefaultFabricDomain}
+	}
+
+	return slices.Sorted(slices.Values(names))
+}
+
+func fabricOrDefault(name string) string {
+	if name == "" {
+		return wiringapi.DefaultFabric
+	}
+
+	return name
+}
+
+func domainOrDefault(name string) string {
+	if name == "" {
+		return wiringapi.DefaultFabricDomain
+	}
+
+	return name
 }
 
 func (w *FabricWebhook) Default(_ context.Context, fabric *wiringapi.Fabric) error {
@@ -175,7 +213,7 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 				return fmt.Errorf("unexpected type %T", item) //nolint:err113
 			}
 
-			if wiringapi.FabricNameOrDefault(declared) != fabric.Name {
+			if fabricOrDefault(declared) != fabric.Name {
 				return nil
 			}
 

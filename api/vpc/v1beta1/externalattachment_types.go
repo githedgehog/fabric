@@ -391,7 +391,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		// the border leaf drops external routes carrying its fabric's spine or gateway ASN, and a
 		// leaf drops those carrying its own ASN through BGP loop detection
 		if fabricCfg != nil {
-			fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, attach.Namespace, attach.Spec.Topology.Fabric)
+			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get fabric: %w", err)
 			}
@@ -406,7 +406,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 				return nil, fmt.Errorf("failed to list fabrics: %w", err) // TODO hide internal error
 			}
 			for _, fabric := range fabrics.Items {
-				if fabric.Name == wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric) {
+				if fabric.Name == attach.Spec.Topology.Fabric {
 					continue
 				}
 				if what := asnCollision(&fabric.Spec, attach.Spec.Neighbor.ASN); what != "" {
@@ -446,7 +446,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		// disableBFD wins, and nothing downstream reports that it did: without this the session
 		// silently runs on the FRR defaults of 60/180 instead of the sub-second detection asked for
 		if fabricCfg != nil {
-			fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, attach.Namespace, attach.Spec.Topology.Fabric)
+			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get fabric: %w", err)
 			}
@@ -496,11 +496,11 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			return nil, errors.Wrapf(err, "failed to read connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
 		}
 
-		attachFabric := wiringapi.FabricNameOrDefault(attach.Spec.Topology.Fabric)
-		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != attachFabric {
+		attachFabric := attach.Spec.Topology.Fabric
+		if extFabric := ext.Spec.Topology.Fabric; extFabric != attachFabric {
 			return nil, fmt.Errorf("attachment is in fabric %s but external %s is in fabric %s", attachFabric, attach.Spec.External, extFabric) //nolint:err113
 		}
-		if connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric); connFabric != attachFabric {
+		if connFabric := conn.Spec.Topology.Fabric; connFabric != attachFabric {
 			return nil, fmt.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric) //nolint:err113
 		}
 
@@ -514,9 +514,9 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if err != nil {
 			return nil, err
 		}
-		extDomain := wiringapi.DomainNameOrDefault(ext.Spec.Topology.Domain)
+		extDomain := ext.Spec.Topology.Domain
 		for name, sw := range extSwitches {
-			if swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Contains(swDomains, extDomain) {
+			if swDomains := sw.Spec.Topology.Domains; !slices.Contains(swDomains, extDomain) {
 				return nil, fmt.Errorf("external %s is in domain %s but switch %s is in domains %v", attach.Spec.External, extDomain, name, swDomains) //nolint:err113
 			}
 		}

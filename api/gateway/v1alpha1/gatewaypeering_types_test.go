@@ -579,6 +579,15 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 	externalB.Spec.Topology.Domain = "plane-b"
 	nilVPC2 := func(p *GatewayPeering) { p.Spec.Peering["vpc-2"] = nil }
 
+	// stored objects have been defaulted by the mutating webhook
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, vpc2, external, vpc2Other, gwGroupB, vpc1Both, vpc2B, externalB} {
+		obj.Default()
+	}
+	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65101},
+		"plane-b":                     {SpineASN: 65098, GatewayASN: 65099},
+	}}})
+
 	tests := []struct {
 		name    string
 		peering *GatewayPeering
@@ -736,11 +745,13 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, AddToScheme(scheme))
 	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 			kube := fake.NewClientBuilder().
 				WithScheme(scheme).
+				WithObjects(fabric).
 				WithObjects(tt.objs...).
 				Build()
 			tt.peering.Default()
@@ -1060,6 +1071,14 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 		Spec: vpcv1beta1.ExternalSpec{},
 	})
 
+	// stored objects have been defaulted by the mutating webhook
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, vpc2, external} {
+		obj.Default()
+	}
+	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65101},
+	}}})
+
 	tests := []struct {
 		name    string
 		peering *GatewayPeering
@@ -1162,11 +1181,13 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, AddToScheme(scheme))
 	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 			kube := fake.NewClientBuilder().
 				WithScheme(scheme).
+				WithObjects(fabric).
 				WithObjects(tt.objs...).
 				Build()
 			tt.peering.Default()

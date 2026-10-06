@@ -107,7 +107,8 @@ func TestVPCValidation(t *testing.T) {
 	require.NoError(t, reservedRailCfg.WithReservedSubnets())
 
 	baseKubeObjs := []kclient.Object{
-		&v1beta1.IPv4Namespace{
+		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
+		defaulted(&v1beta1.IPv4Namespace{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "default",
 				Namespace: kmetav1.NamespaceDefault,
@@ -115,8 +116,8 @@ func TestVPCValidation(t *testing.T) {
 			Spec: v1beta1.IPv4NamespaceSpec{
 				Subnets: []string{"10.0.0.0/8"},
 			},
-		},
-		&wiringapi.VLANNamespace{
+		}),
+		defaulted(&wiringapi.VLANNamespace{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "default",
 				Namespace: kmetav1.NamespaceDefault,
@@ -124,7 +125,7 @@ func TestVPCValidation(t *testing.T) {
 			Spec: wiringapi.VLANNamespaceSpec{
 				Ranges: []meta.VLANRange{{From: 100, To: 4094}},
 			},
-		},
+		}),
 	}
 
 	tests := []struct {

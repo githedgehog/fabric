@@ -136,7 +136,7 @@ func (r *GatewayReconciler) enqueueGateways(ctx context.Context, fabric string, 
 
 	res := []reconcile.Request{}
 	for _, gw := range gws.Items {
-		if len(domains) > 0 && !slices.Contains(domains, wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)) {
+		if len(domains) > 0 && !slices.Contains(domains, gw.Spec.Topology.Domain) {
 			continue
 		}
 
@@ -156,8 +156,7 @@ func (r *GatewayReconciler) enqueueForGateway(ctx context.Context, obj kclient.O
 		return nil
 	}
 
-	return r.enqueueGateways(ctx, wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric),
-		[]string{wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)})
+	return r.enqueueGateways(ctx, gw.Spec.Topology.Fabric, []string{gw.Spec.Topology.Domain})
 }
 
 // peerings have no domain of their own, they go to all gateways of the fabric that have the peered VPCs
@@ -167,7 +166,7 @@ func (r *GatewayReconciler) enqueueForPeering(ctx context.Context, obj kclient.O
 		return nil
 	}
 
-	return r.enqueueGateways(ctx, wiringapi.FabricNameOrDefault(peering.Spec.Topology.Fabric), nil)
+	return r.enqueueGateways(ctx, peering.Spec.Topology.Fabric, nil)
 }
 
 // a VPCInfo has the topology of its VPC or External
@@ -177,8 +176,7 @@ func (r *GatewayReconciler) enqueueForVPCInfo(ctx context.Context, obj kclient.O
 		return nil
 	}
 
-	return r.enqueueGateways(ctx, wiringapi.FabricNameOrDefault(vpcInfo.Spec.Topology.Fabric),
-		wiringapi.DomainsOrDefault(vpcInfo.Spec.Topology.Domains))
+	return r.enqueueGateways(ctx, vpcInfo.Spec.Topology.Fabric, vpcInfo.Spec.Topology.Domains)
 }
 
 func (r *GatewayReconciler) enqueueForFabric(ctx context.Context, obj kclient.Object) []reconcile.Request {
@@ -321,19 +319,19 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		return nil, fmt.Errorf("gw is nil") //nolint:err113
 	}
 
-	fabric, err := wiringapi.GetFabricSpec(ctx, kube, cfg, gw.Namespace, gw.Spec.Topology.Fabric)
+	fabric, err := wiringapi.GetFabricSpec(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
 	if err != nil {
 		return nil, fmt.Errorf("getting gateway fabric: %w", err)
 	}
 
 	// the gateway only gets what's in its own fabric and domain
-	gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric)
+	gwFabric := gw.Spec.Topology.Fabric
 	inFabric := kclient.MatchingLabels{
 		wiringapi.ListLabelFabric(gwFabric): gwapi.ListLabelValue,
 	}
 	inDomain := kclient.MatchingLabels{
-		wiringapi.ListLabelFabric(gwFabric):                                               gwapi.ListLabelValue,
-		wiringapi.ListLabelDomain(wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)): gwapi.ListLabelValue,
+		wiringapi.ListLabelFabric(gwFabric):                gwapi.ListLabelValue,
+		wiringapi.ListLabelDomain(gw.Spec.Topology.Domain): gwapi.ListLabelValue,
 	}
 
 	inGwGroups := map[string]bool{}
@@ -456,7 +454,7 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 
 	gws := &gwapi.GatewayList{}
 	if err := kube.List(ctx, gws, kclient.MatchingLabels{
-		wiringapi.ListLabelFabric(wiringapi.FabricNameOrDefault(peering.Spec.Topology.Fabric)): gwapi.ListLabelValue,
+		wiringapi.ListLabelFabric(peering.Spec.Topology.Fabric): gwapi.ListLabelValue,
 	}); err != nil {
 		return nil, fmt.Errorf("listing gateways: %w", err)
 	}

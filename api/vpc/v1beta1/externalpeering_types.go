@@ -220,14 +220,14 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
 		}
 
-		peeringFabric := wiringapi.FabricNameOrDefault(peering.Spec.Topology.Fabric)
-		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
+		peeringFabric := peering.Spec.Topology.Fabric
+		if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != peeringFabric {
 			return nil, fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, peering.Spec.Permit.VPC.Name, vpcFabric) //nolint:err113
 		}
-		if extFabric := wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric); extFabric != peeringFabric {
+		if extFabric := ext.Spec.Topology.Fabric; extFabric != peeringFabric {
 			return nil, fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, peering.Spec.Permit.External.Name, extFabric) //nolint:err113
 		}
-		if extDomain, vpcDomains := wiringapi.DomainNameOrDefault(ext.Spec.Topology.Domain), wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains); !slices.Contains(vpcDomains, extDomain) {
+		if extDomain, vpcDomains := ext.Spec.Topology.Domain, vpc.Spec.Topology.Domains; !slices.Contains(vpcDomains, extDomain) {
 			return nil, fmt.Errorf("external %s is in domain %s but vpc %s is in domains %v", peering.Spec.Permit.External.Name, extDomain, peering.Spec.Permit.VPC.Name, vpcDomains) //nolint:err113
 		}
 
