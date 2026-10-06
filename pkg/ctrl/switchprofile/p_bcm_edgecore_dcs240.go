@@ -25,7 +25,7 @@ var EdgecoreDCS240 = wiringapi.SwitchProfile{
 			RoCE:          true,
 			MCLAG:         false,
 			ESLAG:         true,
-			ECMPRoCEQPN:   false,
+			ECMPRoCEQPN:   true,
 			PortLocator:   true,
 		},
 		Notes:    "Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14W",
