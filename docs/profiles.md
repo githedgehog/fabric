@@ -44,7 +44,7 @@ The following table shows which features are supported by each switch profile:
 | [Dell Z9332F-ON](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-check: |
 | [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
-| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
+| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
 | [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-check: |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-check: |
@@ -939,7 +939,7 @@ Notes: Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14
 - RoCE: true
 - MCLAG: false
 - ESLAG: true
-- ECMP RoCE QPN hashing: false
+- ECMP RoCE QPN hashing: true
 
 **Available Ports:**
 
