@@ -39,6 +39,7 @@ resources:
   - bases/gateway.githedgehog.com_gatewaypeerings.yaml
   - bases/gateway.githedgehog.com_vpcinfos.yaml
   - bases/gwint.githedgehog.com_gatewayagents.yaml
+  - bases/fcint.githedgehog.com_fabriccontrollers.yaml
   #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
