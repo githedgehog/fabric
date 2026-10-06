@@ -50,6 +50,9 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	for _, obj := range []interface{ Default() }{vpc, vpcOnB, gw, gwPlaneB, spine, leaf, leafOnB} {
 		obj.Default()
 	}
+	// as stored when the refresh on fabric-ctrl initialization had to leave it alone
+	vpcWithoutDomains := vpc.DeepCopy()
+	vpcWithoutDomains.Spec.Topology.Domains = nil
 
 	staticExternal := func(fabricName string) *wiringapi.Connection {
 		return &wiringapi.Connection{
@@ -90,6 +93,10 @@ func TestConnectionReferencesFabric(t *testing.T) {
 		{
 			name: "static external, vpc in the default domain on a leaf in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpc, leafOnB},
 			err: "vpc vpc-01 is in domains [default] but switch leaf-01 is in domains [plane-b]",
+		},
+		{
+			name: "static external, vpc without domains on a leaf in another domain", conn: staticExternal("backend"), objects: []kclient.Object{vpcWithoutDomains, leafOnB},
+			err: "vpc vpc-01 has no domains",
 		},
 		{name: "static external, vpc in another fabric", conn: staticExternal("default"), objects: []kclient.Object{vpc}, err: "vpc vpc-01 is in fabric backend"},
 		{name: "gateway in the same fabric", conn: gateway("backend"), objects: []kclient.Object{gw, spine}},

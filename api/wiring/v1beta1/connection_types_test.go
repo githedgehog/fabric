@@ -181,6 +181,14 @@ func TestConnectionValidation(t *testing.T) {
 
 		return defaulted(sw)
 	}
+	// as stored when the refresh on fabric-ctrl initialization had to leave it alone
+	withoutDomains := func(obj kclient.Object) kclient.Object {
+		sw, ok := obj.DeepCopyObject().(*wiringapi.Switch)
+		require.True(t, ok)
+		sw.Spec.Topology.Domains = nil
+
+		return sw
+	}
 	onLeaf := func(conn *wiringapi.Connection) {
 		conn.Spec.Gateway.Links[0].Switch.Port = "leaf-01/E1/1"
 	}
@@ -240,6 +248,13 @@ func TestConnectionValidation(t *testing.T) {
 			conn:       fabricConnGen("fabric-1"),
 			withClient: true,
 			objects:    []kclient.Object{inDomains(spine, "plane-b"), inDomains(leaf1, "default", "plane-b"), leaf2},
+		},
+		{
+			name:       "fabric-conn-spine-without-domains",
+			conn:       fabricConnGen("fabric-1"),
+			withClient: true,
+			objects:    []kclient.Object{withoutDomains(spine), inDomains(leaf1, "plane-b"), leaf2},
+			err:        true,
 		},
 		{
 			name:       "mesh-conn-same-domain",
