@@ -43,11 +43,10 @@ spec:
     matchLabels:
       control-plane: ctrl
   replicas: 1
+  # one fabric-ctrl version at a time: the new version's initialization refreshes stored objects with its defaults,
+  # an old version's webhook still serving meanwhile would default them with its own
   strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 1
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       annotations:

@@ -74,7 +74,7 @@ helm := localbin / "helm" + "-" + helm_version
     [ -f {{ helm }} ] || just _goinstall "helm.sh/helm/v3/cmd/helm" {{ helm_version }} "helm" {{ helm }}
 
 # helmify
-helmify_version := "v0.4.11"
+helmify_version := "v0.4.17"
 helmify := localbin / "helmify" + "-" + helmify_version
 @_helmify: _localbin
     [ -f {{ helmify }} ] || just _goinstall "github.com/arttor/helmify/cmd/helmify" {{ helmify_version }} "helmify" {{ helmify }}
