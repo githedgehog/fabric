@@ -25,6 +25,13 @@ func withName[T kclient.Object](name string, obj T) T {
 	return obj
 }
 
+// defaulted models a stored object, which the mutating webhook has defaulted
+func defaulted[T interface{ Default() }](obj T) T {
+	obj.Default()
+
+	return obj
+}
+
 func gwa(name string, f ...func(gw *v1alpha1.Gateway)) *v1alpha1.Gateway { //nolint:unparam
 	gw := withName(name, &v1alpha1.Gateway{
 		Spec: v1alpha1.GatewaySpec{
@@ -62,21 +69,35 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 }
 
 func TestGatewayValidate(t *testing.T) {
+	cfg := &meta.FabricConfig{
+		EnableGateway: true,
+		SpineASN:      65100,
+		LeafASNStart:  65101,
+		LeafASNEnd:    65200,
+		GatewayASN:    65101,
+		GatewayCommunities: map[uint32]string{
+			0: "50000:1000",
+			1: "50000:1001",
+		},
+	}
+
 	const planeB = "plane-b"
-	twoDomains := withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+	oneDomain := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)})
+	twoDomains := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
 		"default": {SpineASN: 65100, GatewayASN: 65101},
 		planeB:    {SpineASN: 65098, GatewayASN: 65099},
 	}}})
-	groupB := withName("gr-b", &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: planeB}}})
+	groupB := defaulted(withName("gr-b", &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: planeB}}}))
 
-	base := []kclient.Object{
-		&v1alpha1.GatewayGroup{
+	// everything but the fabric, which is either oneDomain or twoDomains
+	common := []kclient.Object{
+		defaulted(&v1alpha1.GatewayGroup{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      v1alpha1.DefaultGatewayGroup,
 				Namespace: "default",
 			},
-		},
-		withName("gw-2", &v1alpha1.Gateway{
+		}),
+		defaulted(withName("gw-2", &v1alpha1.Gateway{
 			Spec: v1alpha1.GatewaySpec{
 				ProtocolIP: "172.30.8.2/32",
 				VTEPIP:     "172.30.12.0/32",
@@ -97,14 +118,15 @@ func TestGatewayValidate(t *testing.T) {
 					},
 				},
 			},
-		}),
-		withName("sw-1", &wiringapi.Switch{
+		})),
+		defaulted(withName("sw-1", &wiringapi.Switch{
 			Spec: wiringapi.SwitchSpec{
 				ProtocolIP: "172.30.8.45/32",
 				VTEPIP:     "172.30.12.45/32",
 			},
-		}),
+		})),
 	}
+	base := withObjs(common, oneDomain)
 
 	tests := []struct {
 		name string
@@ -214,14 +236,14 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.ASN = 65099
 				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr-b"}}
 			}),
-			objs: append(slices.Clone(base), twoDomains, groupB),
+			objs: withObjs(common, twoDomains, groupB),
 		},
 		{
 			name: "test-group-in-another-domain",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
 				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr-b"}}
 			}),
-			objs: append(slices.Clone(base), twoDomains, groupB),
+			objs: withObjs(common, twoDomains, groupB),
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
@@ -230,13 +252,13 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Topology.Domain = planeB
 				gw.Spec.ASN = 65099
 			}),
-			objs: append(slices.Clone(base), twoDomains),
+			objs: withObjs(common, twoDomains),
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
 			name: "test-asn-of-another-domain",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
-			objs: append(slices.Clone(base), twoDomains),
+			objs: withObjs(common, twoDomains),
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
@@ -277,17 +299,17 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 0}}
 			}),
 			objs: withObjs(base,
-				withName("gr1", &v1alpha1.GatewayGroup{}),
-				withName("gw-3", &v1alpha1.Gateway{
+				defaulted(withName("gr1", &v1alpha1.GatewayGroup{})),
+				defaulted(withName("gw-3", &v1alpha1.Gateway{
 					Spec: v1alpha1.GatewaySpec{
 						Groups: []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 1}},
 					},
-				}),
-				withName("gw-4", &v1alpha1.Gateway{
+				})),
+				defaulted(withName("gw-4", &v1alpha1.Gateway{
 					Spec: v1alpha1.GatewaySpec{
 						Groups: []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 2}},
 					},
-				}),
+				})),
 			),
 			err: v1alpha1.ErrInvalidGW,
 		},
@@ -297,12 +319,12 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 0}}
 			}),
 			objs: withObjs(base,
-				withName("gr1", &v1alpha1.GatewayGroup{}),
-				withName("gw-3", &v1alpha1.Gateway{
+				defaulted(withName("gr1", &v1alpha1.GatewayGroup{})),
+				defaulted(withName("gw-3", &v1alpha1.Gateway{
 					Spec: v1alpha1.GatewaySpec{
 						Groups: []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 1}},
 					},
-				}),
+				})),
 			),
 		},
 		{
@@ -352,17 +374,6 @@ func TestGatewayValidate(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1alpha1.AddToScheme(scheme), "should add gateway API to scheme")
 	require.NoError(t, wiringapi.AddToScheme(scheme), "should add wiring API to scheme")
-	cfg := &meta.FabricConfig{
-		EnableGateway: true,
-		SpineASN:      65100,
-		LeafASNStart:  65101,
-		LeafASNEnd:    65200,
-		GatewayASN:    65101,
-		GatewayCommunities: map[uint32]string{
-			0: "50000:1000",
-			1: "50000:1001",
-		},
-	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -433,7 +444,13 @@ func TestGatewayGroupDomain(t *testing.T) {
 		t.Run(tt.group+" in domain "+tt.domain, func(t *testing.T) {
 			group := withName(tt.group, &v1alpha1.GatewayGroup{Spec: v1alpha1.GatewayGroupSpec{Topology: v1alpha1.GatewayGroupTopology{Domain: tt.domain}}})
 			group.Default()
-			require.Contains(t, group.Labels, wiringapi.ListLabelDomain(wiringapi.DomainNameOrDefault(tt.domain)))
+			// an unset domain is defaulted to the default one
+			expectedDomain := tt.domain
+			if expectedDomain == "" {
+				expectedDomain = wiringapi.DefaultFabricDomain
+			}
+			require.Equal(t, expectedDomain, group.Spec.Topology.Domain)
+			require.Contains(t, group.Labels, wiringapi.ListLabelDomain(expectedDomain))
 
 			err := group.Validate(t.Context(), kube, &meta.FabricConfig{EnableGateway: true})
 			if tt.err == "" {

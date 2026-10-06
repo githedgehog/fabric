@@ -755,7 +755,7 @@ func (conn *Connection) Default() {
 func (connSpec *ConnectionSpec) ValidateDomains(switches map[string]*Switch) error {
 	domainsOf := func(name string) []string {
 		if sw, exists := switches[name]; exists {
-			return DomainsOrDefault(sw.Spec.Topology.Domains)
+			return sw.Spec.Topology.Domains
 		}
 
 		return nil
@@ -910,7 +910,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 	if kube != nil {
 		rGroup := ""
 		rType := meta.RedundancyTypeNone
-		connFabric := FabricNameOrDefault(conn.Spec.Topology.Fabric)
+		connFabric := conn.Spec.Topology.Fabric
 
 		if err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
 			return nil, err
@@ -927,7 +927,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 				return nil, errors.Wrapf(err, "failed to get switch %s", switchName) // TODO replace with some internal error to not expose to the user
 			}
 
-			if swFabric := FabricNameOrDefault(sw.Spec.Topology.Fabric); swFabric != connFabric {
+			if swFabric := sw.Spec.Topology.Fabric; swFabric != connFabric {
 				return nil, fmt.Errorf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric) //nolint:err113
 			}
 			switchObjs[switchName] = sw

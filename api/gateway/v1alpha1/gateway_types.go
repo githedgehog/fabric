@@ -308,14 +308,14 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	}
 	if fabricCfg != nil {
 		// leaves peer with every gateway of their domain using the domain gateway ASN
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, gw.Namespace, gw.Spec.Topology.Fabric)
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
 		if err != nil {
 			return fmt.Errorf("getting fabric: %w", err)
 		}
-		domainName := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
+		domainName := gw.Spec.Topology.Domain
 		domain, exists := fabric.Domains[domainName]
 		if !exists {
-			return fmt.Errorf("domain %s not found in fabric %s: %w", domainName, wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric), ErrInvalidGW)
+			return fmt.Errorf("domain %s not found in fabric %s: %w", domainName, gw.Spec.Topology.Fabric, ErrInvalidGW)
 		}
 		if gw.Spec.ASN != domain.GatewayASN {
 			return fmt.Errorf("ASN %d is not the gateway ASN %d of domain %s: %w", gw.Spec.ASN, domain.GatewayASN, domainName, ErrInvalidGW)
@@ -516,17 +516,17 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		for _, gwGroup := range gwGroupList.Items {
 			gwGroupTopologies[gwGroup.Name] = gwGroup.Spec.Topology
 		}
-		gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric)
-		gwDomain := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
+		gwFabric := gw.Spec.Topology.Fabric
+		gwDomain := gw.Spec.Topology.Domain
 		for _, gwGroup := range gw.Spec.Groups {
 			groupTopology, exists := gwGroupTopologies[gwGroup.Name]
 			if !exists {
 				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
 			}
-			if groupFabric := wiringapi.FabricNameOrDefault(groupTopology.Fabric); groupFabric != gwFabric {
+			if groupFabric := groupTopology.Fabric; groupFabric != gwFabric {
 				return fmt.Errorf("gateway is in fabric %s but gateway group %s is in fabric %s: %w", gwFabric, gwGroup.Name, groupFabric, ErrInvalidGW)
 			}
-			if groupDomain := wiringapi.DomainNameOrDefault(groupTopology.Domain); groupDomain != gwDomain {
+			if groupDomain := groupTopology.Domain; groupDomain != gwDomain {
 				return fmt.Errorf("gateway is in domain %s but gateway group %s is in domain %s: %w", gwDomain, gwGroup.Name, groupDomain, ErrInvalidGW)
 			}
 			if fabricCfg != nil && len(fabricCfg.GatewayCommunities) > 0 && gwGroupMembers[gwGroup.Name] >= len(fabricCfg.GatewayCommunities) {

@@ -243,7 +243,7 @@ func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Objec
 	}
 
 	for _, sw := range sws.Items {
-		if wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric) != obj.GetName() {
+		if sw.Spec.Topology.Fabric != obj.GetName() {
 			continue
 		}
 
@@ -355,12 +355,16 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, nil
 	}
 
-	fabric, err := wiringapi.GetFabricSpec(ctx, r, r.cfg, sw.Namespace, sw.Spec.Topology.Fabric)
+	fabric, err := wiringapi.GetFabricSpec(ctx, r, sw.Namespace, sw.Spec.Topology.Fabric)
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("error getting switch fabric: %w", err)
 	}
+	// a switch the refresh had to leave alone may still have none
+	if len(sw.Spec.Topology.Domains) == 0 {
+		return kctrl.Result{}, fmt.Errorf("switch has no domains") //nolint:err113
+	}
 	// only for the deprecated scalar ASNs in the agent config, which agents from before domains read
-	domainName := slices.Min(wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains))
+	domainName := slices.Min(sw.Spec.Topology.Domains)
 	domain, exists := fabric.Domains[domainName]
 	if !exists {
 		return kctrl.Result{}, fmt.Errorf("switch domain %s not found in fabric", domainName) //nolint:err113
@@ -568,8 +572,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, errors.Wrapf(err, "error listing externals")
 	}
 	for _, ext := range externalList.Items {
-		// filtered on the spec, not the fabric label, which objects from before fabrics don't carry
-		if wiringapi.FabricNameOrDefault(ext.Spec.Topology.Fabric) != wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric) {
+		if ext.Spec.Topology.Fabric != sw.Spec.Topology.Fabric {
 			continue
 		}
 
@@ -625,7 +628,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	ipv4Namespaces := map[string]vpcapi.IPv4NamespaceSpec{}
 	for _, ns := range ipv4NamespaceList.Items {
-		if wiringapi.FabricNameOrDefault(ns.Spec.Topology.Fabric) != wiringapi.FabricNameOrDefault(sw.Spec.Topology.Fabric) {
+		if ns.Spec.Topology.Fabric != sw.Spec.Topology.Fabric {
 			continue
 		}
 

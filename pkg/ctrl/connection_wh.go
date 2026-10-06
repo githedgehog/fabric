@@ -76,8 +76,8 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 			return errors.Wrapf(err, "failed to get vpc %s", conn.Spec.StaticExternal.WithinVPC) // TODO replace with some internal error to not expose to the user
 		}
 
-		connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric)
-		if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != connFabric {
+		connFabric := conn.Spec.Topology.Fabric
+		if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != connFabric {
 			return fmt.Errorf("connection is in fabric %s but vpc %s is in fabric %s", connFabric, vpc.Name, vpcFabric) //nolint:err113
 		}
 
@@ -87,7 +87,7 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: swName, Namespace: conn.Namespace}, sw); err != nil {
 			return fmt.Errorf("failed to get switch %s: %w", swName, err) // TODO replace with some internal error to not expose to the user
 		}
-		vpcDomains, swDomains := wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains), wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains)
+		vpcDomains, swDomains := vpc.Spec.Topology.Domains, sw.Spec.Topology.Domains
 		if slices.ContainsFunc(vpcDomains, func(domain string) bool { return !slices.Contains(swDomains, domain) }) {
 			return fmt.Errorf("vpc %s is in domains %v but switch %s is in domains %v", vpc.Name, vpcDomains, swName, swDomains) //nolint:err113
 		}
@@ -103,7 +103,7 @@ func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Re
 		return nil
 	}
 
-	connFabric := wiringapi.FabricNameOrDefault(conn.Spec.Topology.Fabric)
+	connFabric := conn.Spec.Topology.Fabric
 	for _, link := range conn.Spec.Gateway.Links {
 		gw := &gwapi.Gateway{}
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Gateway.DeviceName(), Namespace: conn.Namespace}, gw)
@@ -115,7 +115,7 @@ func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Re
 			return fmt.Errorf("failed to get gateway %s: %w", link.Gateway.DeviceName(), err) // TODO replace with some internal error to not expose to the user
 		}
 
-		if gwFabric := wiringapi.FabricNameOrDefault(gw.Spec.Topology.Fabric); gwFabric != connFabric {
+		if gwFabric := gw.Spec.Topology.Fabric; gwFabric != connFabric {
 			return fmt.Errorf("connection is in fabric %s but gateway %s is in fabric %s", connFabric, gw.Name, gwFabric) //nolint:err113
 		}
 
@@ -123,8 +123,8 @@ func (w *ConnectionWebhook) validateGateway(ctx context.Context, kube kclient.Re
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: link.Switch.DeviceName(), Namespace: conn.Namespace}, sw); err != nil {
 			return fmt.Errorf("failed to get switch %s: %w", link.Switch.DeviceName(), err) // TODO replace with some internal error to not expose to the user
 		}
-		gwDomain := wiringapi.DomainNameOrDefault(gw.Spec.Topology.Domain)
-		if swDomains := wiringapi.DomainsOrDefault(sw.Spec.Topology.Domains); !slices.Equal(swDomains, []string{gwDomain}) {
+		gwDomain := gw.Spec.Topology.Domain
+		if swDomains := sw.Spec.Topology.Domains; !slices.Equal(swDomains, []string{gwDomain}) {
 			return fmt.Errorf("gateway %s is in domain %s but switch %s is in domains %v", gw.Name, gwDomain, sw.Name, swDomains) //nolint:err113
 		}
 	}

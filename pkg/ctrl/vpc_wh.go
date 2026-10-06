@@ -17,7 +17,6 @@ package ctrl
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -75,9 +74,7 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, new
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 	// so that a VPC update never has to re-check its attachments
-	oldDomains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(oldVPC.Spec.Topology.Domains)))
-	newDomains := slices.Sorted(slices.Values(wiringapi.DomainsOrDefault(newVPC.Spec.Topology.Domains)))
-	if !slices.Equal(oldDomains, newDomains) {
+	if domainsChanged(oldVPC.Spec.Topology.Domains, newVPC.Spec.Topology.Domains) {
 		return nil, fmt.Errorf("topology.domains is immutable") //nolint:err113
 	}
 

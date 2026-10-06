@@ -518,12 +518,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
 		}
 
-		peeringFabric := wiringapi.FabricNameOrDefault(p.Spec.Topology.Fabric)
-		if groupFabric := wiringapi.FabricNameOrDefault(gwGroup.Spec.Topology.Fabric); groupFabric != peeringFabric {
+		peeringFabric := p.Spec.Topology.Fabric
+		if groupFabric := gwGroup.Spec.Topology.Fabric; groupFabric != peeringFabric {
 			return fmt.Errorf("peering is in fabric %s but gateway group %s is in fabric %s", peeringFabric, p.Spec.GatewayGroup, groupFabric) //nolint:err113
 		}
 		// the gateways handling the peering are reachable only from leaves in their domain
-		groupDomain := wiringapi.DomainNameOrDefault(gwGroup.Spec.Topology.Domain)
+		groupDomain := gwGroup.Spec.Topology.Domain
 
 		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
 			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, p); err != nil {
@@ -546,10 +546,10 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					return fmt.Errorf("failed to get External %s: %w", extName, err)
 				}
 
-				if extFabric := wiringapi.FabricNameOrDefault(external.Spec.Topology.Fabric); extFabric != peeringFabric {
+				if extFabric := external.Spec.Topology.Fabric; extFabric != peeringFabric {
 					return fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, extName, extFabric) //nolint:err113
 				}
-				if extDomain := wiringapi.DomainNameOrDefault(external.Spec.Topology.Domain); extDomain != groupDomain {
+				if extDomain := external.Spec.Topology.Domain; extDomain != groupDomain {
 					return fmt.Errorf("gateway group %s is in domain %s but external %s is in domain %s", p.Spec.GatewayGroup, groupDomain, extName, extDomain) //nolint:err113
 				}
 
@@ -566,10 +566,10 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 
 				return fmt.Errorf("failed to get VPC %s: %w", vpcName, err)
 			}
-			if vpcFabric := wiringapi.FabricNameOrDefault(vpc.Spec.Topology.Fabric); vpcFabric != peeringFabric {
+			if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != peeringFabric {
 				return fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric) //nolint:err113
 			}
-			if vpcDomains := wiringapi.DomainsOrDefault(vpc.Spec.Topology.Domains); !slices.Contains(vpcDomains, groupDomain) {
+			if vpcDomains := vpc.Spec.Topology.Domains; !slices.Contains(vpcDomains, groupDomain) {
 				return fmt.Errorf("gateway group %s is in domain %s but vpc %s is in domains %v", p.Spec.GatewayGroup, groupDomain, vpcName, vpcDomains) //nolint:err113
 			}
 

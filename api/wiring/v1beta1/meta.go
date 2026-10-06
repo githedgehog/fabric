@@ -74,34 +74,6 @@ func ListLabelSwitchGroup(groupName string) string {
 	return ListLabel("switchgroup", groupName)
 }
 
-// FabricNameOrDefault resolves a fabric reference. Stored objects are never re-defaulted, so one
-// written before the reference existed carries an empty value and still belongs to the default fabric.
-func FabricNameOrDefault(fabricName string) string {
-	if fabricName == "" {
-		return DefaultFabric
-	}
-
-	return fabricName
-}
-
-// DomainNameOrDefault and DomainsOrDefault resolve domain references the same way, for objects
-// written before domains existed.
-func DomainNameOrDefault(domainName string) string {
-	if domainName == "" {
-		return DefaultFabricDomain
-	}
-
-	return domainName
-}
-
-func DomainsOrDefault(domains []string) []string {
-	if len(domains) == 0 {
-		return []string{DefaultFabricDomain}
-	}
-
-	return domains
-}
-
 func ListLabelFabric(fabricName string) string {
 	return ListLabel("fabric", fabricName)
 }

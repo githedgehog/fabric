@@ -63,14 +63,11 @@ func TestVPCAndExternalDomain(t *testing.T) {
 		return fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(
-				&v1beta1.IPv4Namespace{
-					ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-					Spec:       v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
-				},
-				&wiringapi.VLANNamespace{
+				ipv4NamespaceObj(),
+				defaulted(&wiringapi.VLANNamespace{
 					ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
 					Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
-				},
+				}),
 				fabric,
 			).
 			Build()
@@ -130,14 +127,11 @@ func TestVPCDomains(t *testing.T) {
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(
-			&v1beta1.IPv4Namespace{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-				Spec:       v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
-			},
-			&wiringapi.VLANNamespace{
+			ipv4NamespaceObj(),
+			defaulted(&wiringapi.VLANNamespace{
 				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
 				Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
-			},
+			}),
 			&wiringapi.Fabric{
 				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
 				Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
@@ -184,6 +178,12 @@ func TestPeeringDomains(t *testing.T) {
 		return vpcGen(name, func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Domains = domains })
 	}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&wiringapi.Fabric{
+			ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
+			Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+				"plane-1": {}, "plane-2": {},
+			}},
+		},
 		vpcIn("plane-1", "plane-1"),
 		vpcIn("plane-2", "plane-2"),
 		vpcIn("storage", "plane-1", "plane-2"),

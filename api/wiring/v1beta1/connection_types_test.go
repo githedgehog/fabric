@@ -131,31 +131,36 @@ func gwConnGen(name string, f ...func(conn *wiringapi.Connection)) *wiringapi.Co
 }
 
 func TestConnectionValidation(t *testing.T) {
+	defaulted := func(sw *wiringapi.Switch) *wiringapi.Switch {
+		sw.Default()
+
+		return sw
+	}
 	base := []kclient.Object{
-		withName("spine-01",
+		defaulted(withName("spine-01",
 			&wiringapi.Switch{
 				Spec: wiringapi.SwitchSpec{
 					Role:    wiringapi.SwitchRoleSpine,
 					ASN:     65100,
 					Profile: switchprofile.DellS5232FON.Name,
 				},
-			}),
-		withName("leaf-01",
+			})),
+		defaulted(withName("leaf-01",
 			&wiringapi.Switch{
 				Spec: wiringapi.SwitchSpec{
 					Role:    wiringapi.SwitchRoleServerLeaf,
 					ASN:     65101,
 					Profile: switchprofile.DellS5232FON.Name,
 				},
-			}),
-		withName("leaf-02",
+			})),
+		defaulted(withName("leaf-02",
 			&wiringapi.Switch{
 				Spec: wiringapi.SwitchSpec{
 					Role:    wiringapi.SwitchRoleServerLeaf,
 					ASN:     65102,
 					Profile: switchprofile.DellS5232FON.Name,
 				},
-			}),
+			})),
 	}
 
 	// same switches, all of them in a fabric named "other" rather than in the default one
@@ -164,7 +169,7 @@ func TestConnectionValidation(t *testing.T) {
 		sw, ok := obj.DeepCopyObject().(*wiringapi.Switch)
 		require.True(t, ok)
 		sw.Spec.Topology.Fabric = "other"
-		otherFabric = append(otherFabric, sw)
+		otherFabric = append(otherFabric, defaulted(sw))
 	}
 	otherFabric = append(otherFabric, withName("other", &wiringapi.Fabric{}))
 
@@ -174,7 +179,7 @@ func TestConnectionValidation(t *testing.T) {
 		require.True(t, ok)
 		sw.Spec.Topology.Domains = domains
 
-		return sw
+		return defaulted(sw)
 	}
 	onLeaf := func(conn *wiringapi.Connection) {
 		conn.Spec.Gateway.Links[0].Switch.Port = "leaf-01/E1/1"
@@ -868,15 +873,19 @@ func TestConnectionValidation(t *testing.T) {
 			if tt.withClient {
 				scheme := runtime.NewScheme()
 				require.NoError(t, wiringapi.AddToScheme(scheme))
+				// the default fabric always exists
+				defaultFabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)})
 				kube = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(tt.objects...).
+					WithObjects(withObjs(tt.objects, defaultFabric)...).
 					Build()
 				profiles := switchprofile.NewDefaultSwitchProfiles()
 				require.NoError(t, profiles.RegisterAll(ctx, kube, cfg))
 				require.NoError(t, profiles.Enforce(ctx, kube, cfg, false))
 			}
 
+			// as the mutating webhook does before validation
+			tt.conn.Default()
 			warn, err := tt.conn.Validate(ctx, kube, cfg)
 
 			if tt.warning != "" {

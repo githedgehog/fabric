@@ -94,12 +94,9 @@ func (fabricList *FabricList) GetItems() []meta.Object {
 	return items
 }
 
-// CheckFabricExists checks that a fabric reference names a Fabric that exists. The default fabric
-// is exempt: it is ensured at controller startup, and an object admitted before that has run would
-// otherwise be refused.
-func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, fabricName string) error {
-	name := FabricNameOrDefault(fabricName)
-	if kube == nil || name == DefaultFabric {
+// CheckFabricExists checks that a fabric reference names a Fabric that exists
+func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, name string) error {
+	if kube == nil {
 		return nil
 	}
 
@@ -146,30 +143,22 @@ func DefaultFabricSpec(cfg *meta.FabricConfig) FabricSpec {
 	}
 }
 
-// GetFabricSpec returns the spec of the named fabric. Fabric/default falls back to the controller
-// config while it does not exist: hhfab validates wiring with no controller running, and
-// admission can run before the initializer has created it.
-func GetFabricSpec(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig, namespace, fabricName string) (*FabricSpec, error) {
-	name := FabricNameOrDefault(fabricName)
-
-	if kube != nil {
-		fabric := &Fabric{}
-		err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, fabric)
-		if err == nil {
-			return &fabric.Spec, nil
-		}
-		if !kapierrors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
-		}
+// GetFabricSpec returns the spec of the named fabric
+func GetFabricSpec(ctx context.Context, kube kclient.Reader, namespace, name string) (*FabricSpec, error) {
+	if kube == nil {
+		return nil, fmt.Errorf("can't get fabric %s without a client", name) //nolint:err113
 	}
 
-	if name != DefaultFabric || cfg == nil {
-		return nil, fmt.Errorf("fabric %s not found", name) //nolint:err113
+	fabric := &Fabric{}
+	if err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, fabric); err != nil {
+		if kapierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("fabric %s not found", name) //nolint:err113
+		}
+
+		return nil, fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
 	}
 
-	spec := DefaultFabricSpec(cfg)
-
-	return &spec, nil
+	return &fabric.Spec, nil
 }
 
 func (fabric *Fabric) Default() {

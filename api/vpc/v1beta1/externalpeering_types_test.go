@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,7 +48,8 @@ func extPeeringGen(name string, f ...func(peering *v1beta1.ExternalPeering)) *v1
 
 func TestExternalPeeringValidation(t *testing.T) {
 	baseObjs := []kclient.Object{
-		&v1beta1.VPC{
+		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
+		defaulted(&v1beta1.VPC{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "vpc-01",
 				Namespace: kmetav1.NamespaceDefault,
@@ -59,8 +61,8 @@ func TestExternalPeeringValidation(t *testing.T) {
 					"subnet-b": {Subnet: "10.0.2.0/24", VLAN: 102},
 				},
 			},
-		},
-		&v1beta1.External{
+		}),
+		defaulted(&v1beta1.External{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "external-01",
 				Namespace: kmetav1.NamespaceDefault,
@@ -70,8 +72,8 @@ func TestExternalPeeringValidation(t *testing.T) {
 				InboundCommunity:  "50000:1001",
 				OutboundCommunity: "50000:1002",
 			},
-		},
-		&v1beta1.External{
+		}),
+		defaulted(&v1beta1.External{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      "external-other-ns",
 				Namespace: kmetav1.NamespaceDefault,
@@ -81,7 +83,7 @@ func TestExternalPeeringValidation(t *testing.T) {
 				InboundCommunity:  "50000:2001",
 				OutboundCommunity: "50000:2002",
 			},
-		},
+		}),
 	}
 
 	tests := []struct {
@@ -200,6 +202,7 @@ func TestExternalPeeringValidation(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

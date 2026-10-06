@@ -202,6 +202,11 @@ func TestGatewayEnqueue(t *testing.T) {
 
 		return obj
 	}
+	defaulted := func(vpcInfo *gwapi.VPCInfo) kclient.Object {
+		vpcInfo.Default()
+
+		return vpcInfo
+	}
 
 	for _, tt := range []struct {
 		name    string
@@ -214,9 +219,9 @@ func TestGatewayEnqueue(t *testing.T) {
 		{name: "vpcinfo in a domain", obj: get(&gwapi.VPCInfo{}, "vpc-3"), enqueue: r.enqueueForVPCInfo, gws: []string{"gw-3"}},
 		{name: "vpcinfo in two domains", obj: get(&gwapi.VPCInfo{}, "vpc-4"), enqueue: r.enqueueForVPCInfo, gws: []string{"gw-1", "gw-2", "gw-3"}},
 		{
-			// written before the topology existed, the same as the default one
+			// created without a topology, so defaulted to the default fabric and domain
 			name:    "vpcinfo without topology",
-			obj:     &gwapi.VPCInfo{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-7", Namespace: kmetav1.NamespaceDefault}},
+			obj:     defaulted(&gwapi.VPCInfo{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-7", Namespace: kmetav1.NamespaceDefault}}),
 			enqueue: r.enqueueForVPCInfo,
 			gws:     []string{"gw-1", "gw-2"},
 		},

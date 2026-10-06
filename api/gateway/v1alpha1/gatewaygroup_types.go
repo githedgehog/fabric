@@ -112,13 +112,13 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 	}
 
 	if fabricCfg != nil {
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, fabricCfg, gg.Namespace, gg.Spec.Topology.Fabric)
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric)
 		if err != nil {
 			return fmt.Errorf("getting fabric: %w", err)
 		}
-		domainName := wiringapi.DomainNameOrDefault(gg.Spec.Topology.Domain)
+		domainName := gg.Spec.Topology.Domain
 		if _, exists := fabric.Domains[domainName]; !exists {
-			return fmt.Errorf("domain %s not found in fabric %s", domainName, wiringapi.FabricNameOrDefault(gg.Spec.Topology.Fabric)) //nolint:err113
+			return fmt.Errorf("domain %s not found in fabric %s", domainName, gg.Spec.Topology.Fabric) //nolint:err113
 		}
 	}
 

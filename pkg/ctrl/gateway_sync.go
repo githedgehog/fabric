@@ -11,7 +11,6 @@ import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -219,7 +218,7 @@ func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctr
 		vpcInfo.Spec = gwapi.VPCInfoSpec{
 			Topology: gwapi.VPCInfoTopology{
 				Fabric:  external.Spec.Topology.Fabric,
-				Domains: []string{wiringapi.DomainNameOrDefault(external.Spec.Topology.Domain)},
+				Domains: []string{external.Spec.Topology.Domain},
 			},
 			VNI:     vni,
 			Subnets: subnets,

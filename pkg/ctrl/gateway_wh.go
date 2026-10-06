@@ -86,7 +86,7 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 	// so that a Gateway update never has to re-check its connections
-	if wiringapi.DomainNameOrDefault(oldGw.Spec.Topology.Domain) != wiringapi.DomainNameOrDefault(newGw.Spec.Topology.Domain) {
+	if domainChanged(oldGw.Spec.Topology.Domain, newGw.Spec.Topology.Domain) {
 		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
 	}
 
