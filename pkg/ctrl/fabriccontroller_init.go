@@ -30,8 +30,8 @@ import (
 const develVersion = "(devel)"
 
 const (
-	initRetryMin = 1 * time.Second
-	initRetryMax = 30 * time.Second
+	initRetryDelay    = 1 * time.Second
+	initRetryMaxDelay = 30 * time.Second
 )
 
 // FabricControllerInitializer initializes the running fabric controller version once: the default fabric for a
@@ -92,7 +92,7 @@ func (i *FabricControllerInitializer) Start(ctx context.Context) error {
 	l := kctrllog.FromContext(ctx).WithValues("initializer", "fabric-controller", "version", i.version)
 	ctx = kctrllog.IntoContext(ctx, l)
 
-	delay := initRetryMin
+	delay := initRetryDelay
 	for {
 		err := i.initialize(ctx)
 		if err == nil {
@@ -106,7 +106,7 @@ func (i *FabricControllerInitializer) Start(ctx context.Context) error {
 		case <-time.After(delay):
 		}
 
-		delay = min(2*delay, initRetryMax)
+		delay = min(2*delay, initRetryMaxDelay)
 	}
 }
 
