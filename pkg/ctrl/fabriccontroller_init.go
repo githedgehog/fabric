@@ -34,10 +34,10 @@ const (
 	initRetryMaxDelay = 30 * time.Second
 )
 
-// FabricControllerInitializer initializes the running fabric controller version once: the default fabric for a
-// deployment that predates fabrics, the built-in switch profiles and the refresh of stored objects. Recording the
-// version in the FabricController then unlocks the fabric controller on every replica. While it runs the fabric
-// controller is locked, so its own writes are the only ones.
+// FabricControllerInitializer enforces the built-in switch profiles on every start and initializes the running fabric
+// controller version once: the default fabric for a deployment that predates fabrics and the refresh of stored
+// objects. Recording the version in the FabricController then unlocks the fabric controller on every replica. While
+// it runs the fabric controller is locked, so its own writes are the only ones.
 type FabricControllerInitializer struct {
 	kclient.Client
 	apiReader    kclient.Reader
@@ -118,6 +118,12 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context) error {
 		return err
 	}
 
+	// on every start, not only once per version: it's what marks this process's catalog of built-in profiles as
+	// initialized, and the profiles may have been changed by hand since
+	if err := i.profiles.Enforce(ctx, i.Client, i.cfg, true); err != nil {
+		return fmt.Errorf("enforcing switch profiles: %w", err)
+	}
+
 	if fc.Status.InitializedVersion == i.version && i.version != develVersion {
 		l.Info("Already initialized")
 
@@ -128,10 +134,6 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context) error {
 
 	if err := i.ensureFabricForUpgrade(ctx); err != nil {
 		return err
-	}
-
-	if err := i.profiles.Enforce(ctx, i.Client, i.cfg, true); err != nil {
-		return fmt.Errorf("enforcing switch profiles: %w", err)
 	}
 
 	if err := i.refresh(ctx, fc); err != nil {

@@ -17,7 +17,6 @@ package switchprofile
 import (
 	"context"
 	"slices"
-	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -62,8 +61,7 @@ var cumulusSwitchProfiles = []wiringapi.SwitchProfile{
 }
 
 type Default struct {
-	store       map[string]*wiringapi.SwitchProfile
-	initialized uint32
+	store map[string]*wiringapi.SwitchProfile
 }
 
 func NewDefaultSwitchProfiles() *Default {
@@ -155,17 +153,11 @@ func (d *Default) Enforce(ctx context.Context, kube kclient.Client, cfg *meta.Fa
 		}
 	}
 
-	atomic.StoreUint32(&d.initialized, 1)
-
 	return nil
 }
 
 func (d *Default) Get(name string) *wiringapi.SwitchProfile {
 	return d.store[name]
-}
-
-func (d *Default) IsInitialized() bool {
-	return atomic.LoadUint32(&d.initialized) == 1
 }
 
 func (d *Default) List() []*wiringapi.SwitchProfile {
