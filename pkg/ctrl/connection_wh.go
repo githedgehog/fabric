@@ -88,6 +88,11 @@ func (w *ConnectionWebhook) validateStaticExternal(ctx context.Context, kube kcl
 			return fmt.Errorf("failed to get switch %s: %w", swName, err) // TODO replace with some internal error to not expose to the user
 		}
 		vpcDomains, swDomains := vpc.Spec.Topology.Domains, sw.Spec.Topology.Domains
+		// a stored VPC the refresh on fabric-ctrl initialization had to leave alone may have none, and the check
+		// below would pass when there's nothing to compare
+		if len(vpcDomains) == 0 {
+			return fmt.Errorf("vpc %s has no domains", vpc.Name) //nolint:err113
+		}
 		if slices.ContainsFunc(vpcDomains, func(domain string) bool { return !slices.Contains(swDomains, domain) }) {
 			return fmt.Errorf("vpc %s is in domains %v but switch %s is in domains %v", vpc.Name, vpcDomains, swName, swDomains) //nolint:err113
 		}

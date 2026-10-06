@@ -110,6 +110,13 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain), unbundled, sw("leaf-01")},
 		},
 		{
+			// as stored when the refresh on fabric-ctrl initialization had to leave it alone
+			name:    "vpc without domains",
+			attach:  onUnbundled,
+			objects: []kclient.Object{vpcIn(), unbundled, sw("leaf-01", planeB)},
+			err:     "vpc vpc-01 has no domains",
+		},
+		{
 			name:    "switch outside the vpc domain",
 			attach:  onUnbundled,
 			objects: []kclient.Object{vpcIn(planeB), unbundled, sw("leaf-01", wiringapi.DefaultFabricDomain)},

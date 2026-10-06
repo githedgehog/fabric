@@ -753,6 +753,14 @@ func (conn *Connection) Default() {
 
 // ValidateDomains checks the connection does not cross domains where it must not, given its switches by name
 func (connSpec *ConnectionSpec) ValidateDomains(switches map[string]*Switch) error {
+	// a stored switch the refresh on fabric-ctrl initialization had to leave alone may have none, and the checks
+	// below would let a link through when there's nothing to compare
+	for _, name := range slices.Sorted(maps.Keys(switches)) {
+		if len(switches[name].Spec.Topology.Domains) == 0 {
+			return fmt.Errorf("switch %s has no domains", name) //nolint:err113
+		}
+	}
+
 	domainsOf := func(name string) []string {
 		if sw, exists := switches[name]; exists {
 			return sw.Spec.Topology.Domains
