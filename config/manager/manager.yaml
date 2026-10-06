@@ -89,6 +89,11 @@ spec:
             - /bin/fabric
           image: controller:latest
           name: manager
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
