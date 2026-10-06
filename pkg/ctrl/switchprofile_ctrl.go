@@ -17,7 +17,6 @@ package ctrl
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -62,13 +61,9 @@ func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig,
 func (r *SwitchProfileReconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	// the initialization enforces the profiles while locked
+	// the initialization enforces the profiles on every start while locked
 	if r.lock.Locked() {
 		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
-	}
-
-	if !r.profiles.IsInitialized() {
-		return kctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	if err := r.profiles.Enforce(ctx, r.Client, r.cfg, true); err != nil {

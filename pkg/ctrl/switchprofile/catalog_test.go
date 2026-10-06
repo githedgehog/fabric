@@ -101,7 +101,6 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 	profiles := switchprofile.NewDefaultSwitchProfiles()
 	require.NoError(t, profiles.RegisterAll(ctx, kube, &meta.FabricConfig{}))
 	require.NoError(t, profiles.Enforce(ctx, kube, &meta.FabricConfig{}, false))
-	require.True(t, profiles.IsInitialized())
 
 	actualList := &wiringapi.SwitchProfileList{}
 	require.NoError(t, kube.List(ctx, actualList))

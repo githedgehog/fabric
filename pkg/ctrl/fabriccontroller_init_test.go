@@ -149,6 +149,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				Build()
 
 			profiles := switchprofile.NewDefaultSwitchProfiles()
+			require.NoError(t, profiles.RegisterAll(t.Context(), kube, cfg))
 
 			i := &FabricControllerInitializer{
 				Client:    kube,
@@ -175,7 +176,12 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 			}
 
 			require.Equal(t, tt.initializes, kmeta.IsStatusConditionTrue(fc.Status.Conditions, fcintapi.ConditionInitialized))
-			require.Equal(t, tt.initializes, profiles.IsInitialized())
+
+			// built-in switch profiles are enforced on every start, an already initialized version included
+			sps := &wiringapi.SwitchProfileList{}
+			require.NoError(t, kube.List(t.Context(), sps))
+			require.NotEmpty(t, sps.Items)
+			require.Len(t, sps.Items, len(profiles.List()))
 
 			// initializing again is a no-op
 			require.NoError(t, i.Start(t.Context()))
