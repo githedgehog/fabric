@@ -253,8 +253,8 @@ func run(ctx context.Context) error {
 	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
 	}
-	if err = ctrl.SetupFabricInitializerWith(mgr, cfg); err != nil {
-		return fmt.Errorf("setting up fabric initializer: %w", err)
+	if err = ctrl.SetupFabricControllerInitializerWith(mgr, ctrlNamespace, cfg, profiles); err != nil {
+		return fmt.Errorf("setting up fabric controller initializer: %w", err)
 	}
 	if err := ctrl.SetupGatewayReconcilerWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up gateway controller: %w", err)

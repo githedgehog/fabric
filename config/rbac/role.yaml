@@ -87,9 +87,20 @@ rules:
   resources:
   - fabriccontrollers
   verbs:
+  - create
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - fabriccontrollers/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - gateway.githedgehog.com
   resources:
@@ -257,7 +268,6 @@ rules:
   - create
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - wiring.githedgehog.com

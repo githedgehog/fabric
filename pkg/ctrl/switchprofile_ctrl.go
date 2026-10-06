@@ -16,7 +16,6 @@ package ctrl
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,7 +25,6 @@ import (
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type SwitchProfileReconciler struct {
@@ -44,10 +42,6 @@ func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig,
 		Client:   mgr.GetClient(),
 		cfg:      cfg,
 		profiles: profiles,
-	}
-
-	if err := mgr.Add(r); err != nil {
-		return errors.Wrapf(err, "failed to add switch profile initializer")
 	}
 
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
@@ -73,39 +67,4 @@ func (r *SwitchProfileReconciler) Reconcile(ctx context.Context, _ kctrl.Request
 	l.Info("switch profiles reconciled")
 
 	return kctrl.Result{}, nil
-}
-
-var (
-	_ manager.Runnable               = (*SwitchProfileReconciler)(nil)
-	_ manager.LeaderElectionRunnable = (*SwitchProfileReconciler)(nil)
-)
-
-func (r *SwitchProfileReconciler) Start(ctx context.Context) error {
-	l := kctrllog.FromContext(ctx).WithValues("initializer", "switchprofile")
-	l.Info("SwitchProfile initial setup")
-
-	var err error
-	for attempt := 0; attempt < 60; attempt++ { // TODO think about more graceful way to handle this
-		err = r.profiles.Enforce(ctx, r.Client, r.cfg, true)
-		if err == nil {
-			break
-		}
-
-		l.Info("Failed to enforce switch profiles", "attempt", attempt, "error", err)
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("switch profile initializer cancelled: %w", ctx.Err())
-		case <-time.After(5 * time.Second):
-		}
-	}
-
-	if err != nil {
-		return errors.Wrap(err, "error enforcing switch profiles")
-	}
-
-	return nil
-}
-
-func (r *SwitchProfileReconciler) NeedLeaderElection() bool {
-	return true
 }
