@@ -329,24 +329,31 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 			if _, ok := out[vrf]; !ok {
 				out[vrf] = map[string]BGPNeighborStatus{}
 			}
-			neigh, ok := out[vrf][extAtt.Spec.Neighbor.IP]
-			if !ok {
-				out[vrf][extAtt.Spec.Neighbor.IP] = BGPNeighborStatus{}
-			}
-
 			port, err := sp.Spec.NormalizePortName(conn.Spec.External.Link.Switch.LocalPortName())
 			if err != nil {
 				return nil, fmt.Errorf("external connection %s: %w", conn.Name, err)
 			}
 
+			// the agent reports an unnumbered neighbor by the interface it runs over
+			key := extAtt.Spec.Neighbor.IP
+			unnumbered := key == ""
+			if unnumbered {
+				key = port
+				if extAtt.Spec.Switch.VLAN != 0 {
+					key = fmt.Sprintf("%s.%d", port, extAtt.Spec.Switch.VLAN)
+				}
+			}
+
+			neigh := out[vrf][key]
 			neigh.RemoteName = ext.Name
+			neigh.Unnumbered = unnumbered
 			neigh.Expected = true
 			neigh.Type = BGPNeighborTypeExternal
 			neigh.Port = port
 			neigh.ConnectionName = conn.Name
 			neigh.ConnectionType = conn.Spec.Type()
 
-			out[vrf][extAtt.Spec.Neighbor.IP] = neigh
+			out[vrf][key] = neigh
 		}
 	}
 
