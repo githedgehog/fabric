@@ -496,6 +496,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	vlans := map[uint16]bool{}
 	hostBGPSubnets := 0
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
+		// the name is used in labels and in the name of the subnet's DHCPSubnet, as <vpc>--<subnet>
+		if err := meta.ValidateName("subnet name", subnetName); err != nil {
+			return nil, err //nolint:wrapcheck
+		}
 		if subnetCfg.Subnet == "" {
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
 		}
