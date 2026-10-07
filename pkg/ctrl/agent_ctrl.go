@@ -116,8 +116,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("Agent").
 		For(&wiringapi.Switch{}).
-		// only spec changes reach the other switches' Agents
-		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueNeighbors), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueNeighbors), builder.WithPredicates(neighborChanged)).
 		// recreated if deleted, garbage collected with the switch otherwise
 		Owns(&agentapi.Agent{}, builder.WithPredicates(onlyDeletes)).
 		Owns(&corev1.ServiceAccount{}, builder.WithPredicates(onlyDeletes)).
@@ -241,6 +240,10 @@ func (r *AgentReconciler) enqueueByAttachment(ctx context.Context, obj kclient.O
 
 	return switchRequests(obj.GetNamespace(), switchesOfConnection(conn))
 }
+
+// neighborChanged admits the switch changes that reach the other switches' Agents: its spec and its labels, as they
+// take the highest bench touch label of their neighbors too
+var neighborChanged = predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})
 
 // enqueueNeighbors reconciles the switches sharing a connection with the switch, as their Agents carry a copy of its
 // spec, and the switches of its redundancy group, as their Agents list it as a peer

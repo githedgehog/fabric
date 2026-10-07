@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -154,6 +155,18 @@ func TestAgentEnqueueNeighbors(t *testing.T) {
 	require.Empty(t, enqueuedNames(t, r.enqueueNeighbors, get("leaf-4")))
 	// the redundancy group peers list it, even without a connection in common
 	require.Equal(t, []string{"leaf-6"}, enqueuedNames(t, r.enqueueNeighbors, get("leaf-5")))
+
+	// only spec and label changes reach the neighbors
+	updated := func(fn func(sw *wiringapi.Switch)) bool {
+		old := get("leaf-1")
+		sw := old.DeepCopy()
+		fn(sw)
+
+		return neighborChanged.Update(event.UpdateEvent{ObjectOld: old, ObjectNew: sw})
+	}
+	require.True(t, updated(func(sw *wiringapi.Switch) { sw.Generation++ }))
+	require.True(t, updated(func(sw *wiringapi.Switch) { sw.Labels[meta.BenchTouchLabel] = "1" }))
+	require.False(t, updated(func(sw *wiringapi.Switch) { sw.Annotations = map[string]string{"foo": "bar"} }))
 }
 
 func TestAgentEnqueueByVLANNamespace(t *testing.T) {
