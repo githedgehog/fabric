@@ -232,12 +232,19 @@ func (gw *Gateway) Default() {
 
 var linuxIfaceNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,8}[a-zA-Z0-9]$`)
 
+// MaxGatewayNameLength leaves room for the gateway's daemonset names, gw--<name>--dataplane at most, which are used as
+// the app.kubernetes.io/name label value of their pods as well, and label values are capped at 63 characters
+const MaxGatewayNameLength = 63 - len("gw--") - len("--dataplane")
+
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
 		return fmt.Errorf("gateway support is not enabled: %w", ErrInvalidGW)
 	}
-	if gw.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("gateway namespace must be %s: %w", kmetav1.NamespaceDefault, ErrInvalidGW)
+	if err := meta.ValidateObjectMetadata(gw); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
+	}
+	if len(gw.Name) > MaxGatewayNameLength {
+		return fmt.Errorf("name %s is too long, must be <= %d characters: %w", gw.Name, MaxGatewayNameLength, ErrInvalidGW)
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {

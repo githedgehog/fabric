@@ -120,8 +120,8 @@ func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
 		return fmt.Errorf("gateway support is not enabled") //nolint:err113
 	}
-	if vpc.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("vpcinfo namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	if err := meta.ValidateObjectMetadata(vpc); err != nil {
+		return fmt.Errorf("invalid vpcinfo: %w", err)
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {

@@ -5,6 +5,7 @@ package v1alpha1_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func defaulted[T interface{ Default() }](obj T) T {
 	return obj
 }
 
-func gwa(name string, f ...func(gw *v1alpha1.Gateway)) *v1alpha1.Gateway { //nolint:unparam
+func gwa(name string, f ...func(gw *v1alpha1.Gateway)) *v1alpha1.Gateway {
 	gw := withName(name, &v1alpha1.Gateway{
 		Spec: v1alpha1.GatewaySpec{
 			ProtocolIP: "172.30.8.3/32",
@@ -138,6 +139,17 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-no-overlap",
 			gw:   *gwa("gw-1"),
 			objs: base,
+		},
+		{
+			name: "test-name-max-length",
+			gw:   *gwa(strings.Repeat("g", v1alpha1.MaxGatewayNameLength)),
+			objs: base,
+		},
+		{
+			name: "test-name-too-long",
+			gw:   *gwa(strings.Repeat("g", v1alpha1.MaxGatewayNameLength+1)),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
 			name: "test-proto-ip-overlap",
