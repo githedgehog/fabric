@@ -1081,8 +1081,10 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 			return err
 		}
 
-		kubeconfigSecret.StringData = map[string]string{
-			AgentKubeconfigKey: kubeconfig,
+		// not StringData: it's write-only, so it never matches what's stored and the secret would be rewritten on
+		// every reconcile
+		kubeconfigSecret.Data = map[string][]byte{
+			AgentKubeconfigKey: []byte(kubeconfig),
 		}
 
 		return nil
