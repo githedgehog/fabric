@@ -206,5 +206,15 @@ func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, conn *wiringapi.
 		return nil, errors.Errorf("connection has external attachments")
 	}
 
+	rps := &vpcapi.RemotePeeringList{}
+	if err := w.Client.List(ctx, rps, kclient.MatchingLabels{
+		wiringapi.ListLabelConnection(conn.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing remote peerings") // TODO hide internal error
+	}
+	if len(rps.Items) > 0 {
+		return nil, errors.Errorf("connection has remote peerings")
+	}
+
 	return nil, nil
 }

@@ -231,6 +231,17 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err: false,
 		},
 		{
+			name:    "VLAN used by a remote peering",
+			extAtt:  l3ExtAttGen("ext-att-07b"),
+			objects: withObjs(baseObjs, rpGen("rp-01", func(rp *v1beta1.RemotePeering) { rp.Spec.Links[0].VLAN = 100 })),
+			err:     true,
+		},
+		{
+			name:    "VLAN next to a remote peering",
+			extAtt:  l3ExtAttGen("ext-att-07c"),
+			objects: withObjs(baseObjs, rpGen("rp-01")),
+		},
+		{
 			name:    "switch outside the external's domain",
 			extAtt:  l3ExtAttGen("ext-att-08b"),
 			objects: withObjs(baseObjs, leafOnB),

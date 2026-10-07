@@ -193,6 +193,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-vpc-githedgehog-com-v1beta1-remotepeering
+  failurePolicy: Fail
+  name: mremotepeering.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - remotepeerings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-wiring-githedgehog-com-v1beta1-server
   failurePolicy: Fail
   name: mserver.kb.io
@@ -562,6 +582,27 @@ webhooks:
     - DELETE
     resources:
     - ipv4namespaces
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1beta1-remotepeering
+  failurePolicy: Fail
+  name: vremotepeering.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - remotepeerings
   sideEffects: None
 - admissionReviewVersions:
   - v1

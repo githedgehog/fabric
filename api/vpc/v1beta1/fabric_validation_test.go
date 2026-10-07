@@ -17,7 +17,10 @@ import (
 )
 
 // nsOther is the IPv4Namespace of the fabric named "other"
-const nsOther = "ns-other"
+const (
+	nsOther    = "ns-other"
+	fabricNope = "nope"
+)
 
 // defaulted sets the defaults of a fixture object, as the mutating webhook does on admission and
 // the controller does for every stored object on init
@@ -75,6 +78,17 @@ func otherFabricObjs() []kclient.Object {
 				External: &wiringapi.ConnExternal{
 					Link: wiringapi.ConnExternalLink{
 						Switch: wiringapi.BasePortName{Port: "leaf-01/E1/1"},
+					},
+				},
+			},
+		}),
+		defaulted(&wiringapi.Connection{
+			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-02--external-other", Namespace: kmetav1.NamespaceDefault},
+			Spec: wiringapi.ConnectionSpec{
+				Topology: wiringapi.ConnectionTopology{Fabric: "other"},
+				External: &wiringapi.ConnExternal{
+					Link: wiringapi.ConnExternalLink{
+						Switch: wiringapi.BasePortName{Port: "leaf-02/E1/1"},
 					},
 				},
 			},
@@ -143,6 +157,20 @@ func TestFabricMismatchValidation(t *testing.T) {
 				peering.Spec.Permit.External.Name = "ext-other"
 			}),
 		},
+		{
+			name: "remote peering against its ipv4 namespace",
+			obj:  rpGen("rp-ns-bad", func(rp *v1beta1.RemotePeering) { rp.Spec.IPv4Namespace = nsOther }),
+		},
+		{
+			name: "remote peering against a local vpc",
+			obj: rpGen("rp-vpc-bad", func(rp *v1beta1.RemotePeering) {
+				rp.Spec.Local = map[string]v1beta1.RemotePeeringVPC{"vpc-other": {Subnets: []string{"default"}}}
+			}),
+		},
+		{
+			name: "remote peering against a link connection",
+			obj:  rpGen("rp-conn-bad", func(rp *v1beta1.RemotePeering) { rp.Spec.Links[0].Connection = "leaf-02--external-other" }),
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.obj.Validate(t.Context(), kube, &meta.FabricConfig{})
@@ -199,14 +227,14 @@ func TestFabricMustExistValidation(t *testing.T) {
 	}{
 		{
 			name: "vpc",
-			obj:  vpcGen("vpc-bad", func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Fabric = "nope" }),
+			obj:  vpcGen("vpc-bad", func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Fabric = fabricNope }),
 		},
 		{
 			name: "ipv4 namespace",
 			obj: &v1beta1.IPv4Namespace{
 				ObjectMeta: kmetav1.ObjectMeta{Name: "ns-bad", Namespace: kmetav1.NamespaceDefault},
 				Spec: v1beta1.IPv4NamespaceSpec{
-					Topology: v1beta1.IPv4NamespaceTopology{Fabric: "nope"},
+					Topology: v1beta1.IPv4NamespaceTopology{Fabric: fabricNope},
 					Subnets:  []string{"10.2.0.0/16"},
 				},
 			},
@@ -214,8 +242,12 @@ func TestFabricMustExistValidation(t *testing.T) {
 		{
 			name: "external peering",
 			obj: extPeeringGen("ext-peer-bad", func(peering *v1beta1.ExternalPeering) {
-				peering.Spec.Topology.Fabric = "nope"
+				peering.Spec.Topology.Fabric = fabricNope
 			}),
+		},
+		{
+			name: "remote peering",
+			obj:  rpGen("rp-bad", func(rp *v1beta1.RemotePeering) { rp.Spec.Topology.Fabric = fabricNope }),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

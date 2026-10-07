@@ -79,6 +79,18 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		return warn, errors.Wrapf(err, "failed to validate ipv4namespace")
 	}
 
+	rps := &vpcapi.RemotePeeringList{}
+	if err := w.Client.List(ctx, rps, kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: newNs.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing remote peerings") // TODO hide internal error
+	}
+	for _, rp := range rps.Items {
+		if err := rp.Spec.CheckNamespaceSubnets(newNs.Name, newNs.Spec.Subnets); err != nil {
+			return nil, fmt.Errorf("remote peering %s: %w", rp.Name, err)
+		}
+	}
+
 	nsSubnets := []netip.Prefix{}
 	for _, subnet := range newNs.Spec.Subnets {
 		ipNet, err := netip.ParsePrefix(subnet)
@@ -140,6 +152,16 @@ func (w *IPv4NamespaceWebhook) ValidateDelete(ctx context.Context, ns *vpcapi.IP
 	}
 	if len(externals.Items) > 0 {
 		return nil, errors.Errorf("IPv4Namespace has externals")
+	}
+
+	rps := &vpcapi.RemotePeeringList{}
+	if err := w.Client.List(ctx, rps, kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: ns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing remote peerings") // TODO hide internal error
+	}
+	if len(rps.Items) > 0 {
+		return nil, errors.Errorf("IPv4Namespace has remote peerings")
 	}
 
 	return nil, nil

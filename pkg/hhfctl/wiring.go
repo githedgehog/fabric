@@ -90,6 +90,10 @@ func WiringExport(ctx context.Context, opts WiringExportOptions) error {
 		if err := kubeutil.PrintObjectList(ctx, kube, out, &vpcapi.ExternalPeeringList{}, objs); err != nil {
 			return fmt.Errorf("printing external peerings: %w", err)
 		}
+
+		if err := kubeutil.PrintObjectList(ctx, kube, out, &vpcapi.RemotePeeringList{}, objs); err != nil {
+			return fmt.Errorf("printing remote peerings: %w", err)
+		}
 	}
 
 	return nil

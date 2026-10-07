@@ -83,6 +83,19 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, new
 		return warns, errors.Wrapf(err, "failed to validate vpc")
 	}
 
+	// the agent of a border leaf fails to plan a remote peering whose VPC lost what it relies on
+	rps := &vpcapi.RemotePeeringList{}
+	if err := w.Client.List(ctx, rps, kclient.MatchingLabels{
+		vpcapi.ListLabelVPC(newVPC.Name): vpcapi.ListLabelValue,
+	}); err != nil {
+		return warns, errors.Wrapf(err, "error listing remote peerings") // TODO hide internal error
+	}
+	for _, rp := range rps.Items {
+		if err := rp.Spec.CheckLocalVPC(newVPC.Name, &newVPC.Spec); err != nil {
+			return warns, fmt.Errorf("remote peering %s: %w", rp.Name, err)
+		}
+	}
+
 	// TODO check that you can only add subnets, or edit/remove unused ones
 
 	// for subnetName, oldSubnet := range oldVPC.Spec.Subnets {
@@ -128,6 +141,16 @@ func (w *VPCWebhook) ValidateDelete(ctx context.Context, vpc *vpcapi.VPC) (admis
 	}
 	if len(extPeerings.Items) > 0 {
 		return nil, errors.Errorf("VPC has external peerings")
+	}
+
+	rps := &vpcapi.RemotePeeringList{}
+	if err := w.Client.List(ctx, rps, kclient.MatchingLabels{
+		vpcapi.ListLabelVPC(vpc.Name): vpcapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing remote peerings") // TODO hide internal error
+	}
+	if len(rps.Items) > 0 {
+		return nil, errors.Errorf("VPC has remote peerings")
 	}
 
 	staticExts := &wiringapi.ConnectionList{}

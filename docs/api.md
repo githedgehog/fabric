@@ -1973,6 +1973,7 @@ and Externals APIs. Intended to be used by the user.
 - [ExternalAttachment](#externalattachment)
 - [ExternalPeering](#externalpeering)
 - [IPv4Namespace](#ipv4namespace)
+- [RemotePeering](#remotepeering)
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
 - [VPCPeering](#vpcpeering)
@@ -2027,6 +2028,7 @@ ACLSpec defines an IPv4 Access Control List applied to inbound traffic on an ext
 
 _Appears in:_
 - [ExternalAttachmentSpec](#externalattachmentspec)
+- [RemotePeeringLink](#remotepeeringlink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2138,6 +2140,7 @@ Unset values fall back to the fabric defaults.
 
 _Appears in:_
 - [ExternalAttachmentSpec](#externalattachmentspec)
+- [RemotePeeringLink](#remotepeeringlink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2516,6 +2519,129 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this IPv4Namespace belongs to (if not specified, "default" is used) |  |  |
+
+
+#### RemotePeering
+
+
+
+RemotePeering connects local VPCs to a remote router that hands off per VRF, such as a border leaf of
+another fabric. Every local VPC reaches every remote prefix, and nothing else: local VPCs don't reach
+each other through it, and only the listed subnets and prefixes are exchanged.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `RemotePeering` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[RemotePeeringSpec](#remotepeeringspec)_ | Spec is the desired state of the RemotePeering |  |  |
+| `status` _[RemotePeeringStatus](#remotepeeringstatus)_ | Status is the observed state of the RemotePeering |  |  |
+
+
+#### RemotePeeringLink
+
+
+
+RemotePeeringLink is a BGP unnumbered session to the remote router on an External connection
+
+
+
+_Appears in:_
+- [RemotePeeringSpec](#remotepeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `connection` _string_ | Connection is the name of the External Connection the session runs over |  |  |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID of the subinterface on the connection's switch port, 0 for no VLAN.<br />The remote end must use the same one |  |  |
+| `remoteASN` _integer_ | RemoteASN (optional) is the ASN of the remote router, if not set any ASN other than the switch's own is accepted |  |  |
+| `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the session, an empty object uses the fabric defaults |  |  |
+| `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL (optional) defines the ACL statements to apply to inbound traffic on this link |  |  |
+
+
+#### RemotePeeringRemote
+
+
+
+RemotePeeringRemote is what is accepted from the remote side
+
+
+
+_Appears in:_
+- [RemotePeeringSpec](#remotepeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefixes` _string array_ | Prefixes are the IPv4 prefixes accepted from the remote side. They match exactly, so<br />0.0.0.0/0 only accepts the default route and 10.1.0.0/16 doesn't accept 10.1.1.0/24 |  |  |
+
+
+#### RemotePeeringSpec
+
+
+
+RemotePeeringSpec defines the desired state of RemotePeering
+
+
+
+_Appears in:_
+- [RemotePeering](#remotepeering)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[RemotePeeringTopology](#remotepeeringtopology)_ | Topology is where the RemotePeering sits in the fabric topology |  |  |
+| `ipv4Namespace` _string_ | IPv4Namespace is the IPv4Namespace of the local VPCs (if not specified, "default" is used) |  |  |
+| `links` _[RemotePeeringLink](#remotepeeringlink) array_ | Links are the BGP sessions to the remote router |  |  |
+| `local` _object (keys:string, values:[RemotePeeringVPC](#remotepeeringvpc))_ | Local are the local VPCs by name, with the subnets advertised to the remote side |  |  |
+| `remote` _[RemotePeeringRemote](#remotepeeringremote)_ | Remote is what is accepted from the remote side |  |  |
+
+
+#### RemotePeeringStatus
+
+
+
+RemotePeeringStatus defines the observed state of RemotePeering
+
+
+
+_Appears in:_
+- [RemotePeering](#remotepeering)
+
+
+
+#### RemotePeeringTopology
+
+
+
+RemotePeeringTopology is where a RemotePeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [RemotePeeringSpec](#remotepeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this RemotePeering belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain the RemotePeering is in (if not specified, "default" is used). Its links<br />must be on switches of that domain and its VPCs must be in it, and it is immutable |  |  |
+
+
+#### RemotePeeringVPC
+
+
+
+RemotePeeringVPC is a local VPC taking part in a RemotePeering
+
+
+
+_Appears in:_
+- [RemotePeeringSpec](#remotepeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subnets` _string array_ | Subnets are the names of the VPC subnets advertised to the remote side |  |  |
 
 
 #### VPC

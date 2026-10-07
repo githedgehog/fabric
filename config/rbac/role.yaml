@@ -197,6 +197,7 @@ rules:
   - externalpeerings
   - externals
   - ipv4namespaces
+  - remotepeerings
   - vpcattachments
   - vpcpeerings
   verbs:

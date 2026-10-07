@@ -32,6 +32,7 @@ resources:
   - bases/vpc.githedgehog.com_externals.yaml
   - bases/vpc.githedgehog.com_externalattachments.yaml
   - bases/vpc.githedgehog.com_externalpeerings.yaml
+  - bases/vpc.githedgehog.com_remotepeerings.yaml
   - bases/dhcp.githedgehog.com_dhcpsubnets.yaml
   - bases/agent.githedgehog.com_catalogs.yaml
   - bases/gateway.githedgehog.com_gateways.yaml
@@ -61,6 +62,7 @@ patches:
   - path: patches/webhook_in_vpc_externals.yaml
   - path: patches/webhook_in_vpc_externalattachments.yaml
   - path: patches/webhook_in_vpc_externalpeerings.yaml
+  - path: patches/webhook_in_vpc_remotepeerings.yaml
   #- path: patches/webhook_in_dhcp_dhcpsubnets.yaml
   #- path: patches/webhook_in_agent_catalogs.yaml
   - path: patches/webhook_in_wiring_switchprofiles.yaml
@@ -84,6 +86,7 @@ patches:
   - path: patches/cainjection_in_vpc_externals.yaml
   - path: patches/cainjection_in_vpc_externalattachments.yaml
   - path: patches/cainjection_in_vpc_externalpeerings.yaml
+  - path: patches/cainjection_in_vpc_remotepeerings.yaml
   #- path: patches/cainjection_in_dhcp_dhcpsubnets.yaml
   #- path: patches/cainjection_in_agent_catalogs.yaml
   - path: patches/cainjection_in_wiring_switchprofiles.yaml
