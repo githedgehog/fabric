@@ -137,6 +137,41 @@ func TestAgentEnqueueByFabricWide(t *testing.T) {
 	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueByFabricWide, external("")))
 }
 
+func TestAgentEnqueueByExternalPeering(t *testing.T) {
+	kube := agentEnqueueTestKube(t,
+		&vpcapi.External{
+			ObjectMeta: enqueueTestMeta("ext-b"),
+			Spec:       vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Fabric: wiringapi.DefaultFabric, Domain: "plane-b"}},
+		},
+		&vpcapi.External{
+			ObjectMeta: enqueueTestMeta("ext-default"),
+			Spec:       vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Fabric: wiringapi.DefaultFabric, Domain: wiringapi.DefaultFabricDomain}},
+		},
+	)
+	r := &AgentReconciler{Client: kube, lock: unlockedLock()}
+
+	peering := func(external, fabric string) *vpcapi.ExternalPeering {
+		return &vpcapi.ExternalPeering{
+			ObjectMeta: enqueueTestMeta("vpc-1--" + external),
+			Spec: vpcapi.ExternalPeeringSpec{
+				Topology: vpcapi.ExternalPeeringTopology{Fabric: fabric},
+				Permit: vpcapi.ExternalPeeringSpecPermit{
+					VPC:      vpcapi.ExternalPeeringSpecVPC{Name: "vpc-1"},
+					External: vpcapi.ExternalPeeringSpecExternal{Name: external},
+				},
+			},
+		}
+	}
+
+	// only the switches of the external's domain can be attached to it
+	require.Equal(t, []string{"leaf-3"}, enqueuedNames(t, r.enqueueByExternalPeering, peering("ext-b", wiringapi.DefaultFabric)))
+	require.Equal(t, []string{"leaf-1", "leaf-2", "spine-1"}, enqueuedNames(t, r.enqueueByExternalPeering, peering("ext-default", wiringapi.DefaultFabric)))
+
+	// without the external its domain isn't known, so all switches of the peering's fabric are reconciled
+	require.Equal(t, []string{"leaf-4"}, enqueuedNames(t, r.enqueueByExternalPeering, peering("ext-gone", "backend")))
+	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueByExternalPeering, peering("ext-gone", "")))
+}
+
 func TestAgentEnqueueByAttachment(t *testing.T) {
 	vpcAttach := func(name, conn string) *vpcapi.VPCAttachment {
 		a := &vpcapi.VPCAttachment{
