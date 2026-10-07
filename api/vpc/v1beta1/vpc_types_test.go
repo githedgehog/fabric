@@ -5,6 +5,7 @@ package v1beta1_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -86,6 +87,14 @@ func otherVPCGen(subnets map[string]*v1beta1.VPCSubnet) *v1beta1.VPC {
 			VLANNamespace: "default",
 			Subnets:       subnets,
 		},
+	}
+}
+
+// renameDefaultSubnet moves the default subnet added by vpcGen to the new name, keeping its config
+func renameDefaultSubnet(name string) func(*v1beta1.VPC) {
+	return func(vpc *v1beta1.VPC) {
+		vpc.Spec.Subnets[name] = vpc.Spec.Subnets["default"]
+		delete(vpc.Spec.Subnets, "default")
 	}
 }
 
@@ -175,6 +184,25 @@ func TestVPCValidation(t *testing.T) {
 				}
 			}),
 			err: true,
+		},
+		{
+			name: "subnet name max length",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength))),
+		},
+		{
+			name: "subnet name too long",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength+1))),
+			err:  true,
+		},
+		{
+			name: "subnet name not lowercase",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet("Subnet-1")),
+			err:  true,
+		},
+		{
+			name: "subnet name with underscore",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet("subnet_1")),
+			err:  true,
 		},
 		{
 			name: "missing subnet cidr",
