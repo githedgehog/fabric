@@ -269,6 +269,9 @@ func run(ctx context.Context) error {
 		if err := ctrl.SetupGwExternalSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
 			return fmt.Errorf("setting up gateway external sync controller: %w", err)
 		}
+		if err := ctrl.SetupGwRemotePeeringSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
+			return fmt.Errorf("setting up gateway remote peering sync controller: %w", err)
+		}
 	}
 
 	if err = ctrl.SetupConnectionWebhookWith(mgr, cfg, lock); err != nil {

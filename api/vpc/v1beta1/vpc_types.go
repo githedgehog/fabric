@@ -472,6 +472,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	if strings.HasPrefix(vpc.Name, VPCInfoExtPrefix) {
 		return nil, errors.Errorf("vpc name cannot start with '%s': %s", VPCInfoExtPrefix, vpc.Name)
 	}
+	if strings.HasPrefix(vpc.Name, VPCInfoRPPrefix) {
+		return nil, errors.Errorf("vpc name cannot start with '%s': %s", VPCInfoRPPrefix, vpc.Name)
+	}
 	if vpc.Spec.IPv4Namespace == "" {
 		return nil, errors.Errorf("ipv4Namespace is required")
 	}

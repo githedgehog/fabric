@@ -585,9 +585,19 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 	externalB := external.DeepCopy()
 	externalB.Spec.Topology.Domain = "plane-b"
 	nilVPC2 := func(p *GatewayPeering) { p.Spec.Peering["vpc-2"] = nil }
+	rp := withName("b1", &vpcv1beta1.RemotePeering{})
+	rpB := rp.DeepCopy()
+	rpB.Spec.Topology.Domain = gwGroupB.Spec.Topology.Domain
+	rpOther := rp.DeepCopy()
+	rpOther.Spec.Topology.Fabric = "other"
+	// the external side of generateExternalPeering, as the remote peering b1
+	toRP := func(p *GatewayPeering) {
+		p.Spec.Peering["rp.b1"] = p.Spec.Peering["ext.out-1"]
+		delete(p.Spec.Peering, "ext.out-1")
+	}
 
 	// stored objects have been defaulted by the mutating webhook
-	for _, obj := range []interface{ Default() }{gwGroup, vpc1, vpc2, external, vpc2Other, gwGroupB, vpc1Both, vpc2B, externalB} {
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, vpc2, external, vpc2Other, gwGroupB, vpc1Both, vpc2B, externalB, rp, rpB, rpOther} {
 		obj.Default()
 	}
 	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
@@ -745,6 +755,42 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 				p.Spec.Peering["ext.out-1"].Expose[0] = expose
 			}),
 			objs: []kclient.Object{gwGroup, vpc1, external},
+			err:  true,
+		},
+		{
+			name:    "remote peering with default flag",
+			peering: generateExternalPeering("rp-default", toRP),
+			objs:    []kclient.Object{gwGroup, vpc1, rp},
+		},
+		{
+			name:    "remote peering not found",
+			peering: generateExternalPeering("rp-missing", toRP),
+			objs:    []kclient.Object{gwGroup, vpc1},
+			err:     true,
+		},
+		{
+			name:    "remote peering outside the group domain",
+			peering: generateExternalPeering("rp-other-domain", toRP),
+			objs:    []kclient.Object{gwGroup, vpc1, rpB},
+			err:     true,
+		},
+		{
+			name:    "remote peering in the group domain",
+			peering: generateExternalPeering("rp-group-domain", toRP),
+			objs:    []kclient.Object{gwGroupB, vpc1Both, rpB},
+		},
+		{
+			name:    "remote peering in another fabric",
+			peering: generateExternalPeering("rp-other-fabric", toRP),
+			objs:    []kclient.Object{gwGroup, vpc1, rpOther},
+			err:     true,
+		},
+		{
+			name: "remote peering with VPCSubnet",
+			peering: generateExternalPeering("rp-vpcsubnet", toRP, func(p *GatewayPeering) {
+				p.Spec.Peering["rp.b1"].Expose[0] = PeeringEntryExpose{IPs: []PeeringEntryIP{{VPCSubnet: "subnet-01"}}}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, rp},
 			err:  true,
 		},
 	}

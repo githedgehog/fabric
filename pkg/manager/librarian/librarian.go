@@ -640,6 +640,28 @@ func (m *Manager) GetOrEnsureExternalVNI(ctx context.Context, kube kclient.Clien
 	return 0, fmt.Errorf("failed to find VNI for external %s", external) //nolint:err113
 }
 
+// GetOrEnsureRemotePeeringVNI returns the VNI of the remote peering, allocating it first if it's missing
+func (m *Manager) GetOrEnsureRemotePeeringVNI(ctx context.Context, kube kclient.Client, rp string) (uint32, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	cat, err := m.getCatalog(ctx, kube, CatVNIs)
+	if err != nil {
+		return 0, err
+	}
+
+	if _, err := m.ensureVNIs(ctx, kube, cat, nil, nil, map[string]bool{rp: true}); err != nil {
+		return 0, err
+	}
+
+	// it's missing if the remote peering wasn't listed while allocating
+	if vni, exists := cat.Spec.VPCVNIs[ReqForRP(rp)]; exists {
+		return vni, nil
+	}
+
+	return 0, fmt.Errorf("failed to find VNI for remote peering %s", rp) //nolint:err113
+}
+
 // GetOrEnsureVPCInfoID returns the ID of the VPCInfo. If it doesn't have one yet, the IDs of all VPCInfos are reallocated,
 // which also releases the IDs of the deleted ones.
 func (m *Manager) GetOrEnsureVPCInfoID(ctx context.Context, kube kclient.Client, maxVal uint32, vpcInfoName string) (uint32, error) {

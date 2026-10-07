@@ -130,4 +130,22 @@ func TestRemotePeeringReferences(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("delete in use", func(t *testing.T) {
+		w := &RemotePeeringWebhook{Client: kube}
+		_, err := w.ValidateDelete(t.Context(), rp)
+		require.NoError(t, err)
+
+		gwPeering := &gwapi.GatewayPeering{
+			ObjectMeta: kmetav1.ObjectMeta{Name: "rp-01--ext-01", Namespace: kmetav1.NamespaceDefault},
+			Spec: gwapi.PeeringSpec{Peering: map[string]*gwapi.PeeringEntry{
+				vpcapi.VPCInfoRPPrefix + "rp-01":   {},
+				vpcapi.VPCInfoExtPrefix + "ext-01": {},
+			}},
+		}
+		gwPeering.Default()
+		require.NoError(t, kube.Create(t.Context(), gwPeering))
+		_, err = w.ValidateDelete(t.Context(), rp)
+		require.ErrorContains(t, err, "remote peering is used by gateway peering rp-01--ext-01")
+	})
 }

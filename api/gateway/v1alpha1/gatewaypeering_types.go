@@ -370,6 +370,9 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					if extName, isExternal := strings.CutPrefix(name, v1beta1.VPCInfoExtPrefix); isExternal {
 						return fmt.Errorf("external %s cannot have an IP block with VPC Subnets specified", extName) //nolint:err113
 					}
+					if rpName, isRP := strings.CutPrefix(name, v1beta1.VPCInfoRPPrefix); isRP {
+						return fmt.Errorf("remote peering %s cannot have an IP block with VPC Subnets specified", rpName) //nolint:err113
+					}
 					nonnil++
 				}
 				if nonnil != 1 {
@@ -558,6 +561,26 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				// checking whether the prefix is part of the external is possible only if the external
 				// is static, as we know exactly which prefixes are reachable in that case. For BGP speaking
 				// externals there is no way to know that. For simplicity, I'm just skipping the check for both.
+				continue
+			}
+			if rpName, isRP := strings.CutPrefix(vpcName, v1beta1.VPCInfoRPPrefix); isRP {
+				var rp v1beta1.RemotePeering
+				if err := kube.Get(ctx, ktypes.NamespacedName{Name: rpName, Namespace: kmetav1.NamespaceDefault}, &rp); err != nil {
+					if kapierrors.IsNotFound(err) {
+						return fmt.Errorf("remote peering %s not found", rpName) //nolint:err113
+					}
+
+					return fmt.Errorf("failed to get RemotePeering %s: %w", rpName, err)
+				}
+
+				if rpFabric := rp.Spec.Topology.Fabric; rpFabric != peeringFabric {
+					return fmt.Errorf("peering is in fabric %s but remote peering %s is in fabric %s", peeringFabric, rpName, rpFabric) //nolint:err113
+				}
+				if rpDomain := rp.Spec.Topology.Domain; rpDomain != groupDomain {
+					return fmt.Errorf("gateway group %s is in domain %s but remote peering %s is in domain %s", p.Spec.GatewayGroup, groupDomain, rpName, rpDomain) //nolint:err113
+				}
+
+				// the remote side may advertise anything in its remote prefixes, as for BGP externals
 				continue
 			}
 			var vpc v1beta1.VPC

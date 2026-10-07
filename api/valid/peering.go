@@ -21,7 +21,8 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 	checkName := checkPeering.GetName()
 	checkNs := checkPeering.GetNamespace()
 
-	var vpcs, exts []string
+	// rps keep their VPCInfo prefix, they're only ever in GatewayPeerings
+	var vpcs, exts, rps []string
 	switch peering := any(checkPeering).(type) {
 	case *vpcapi.VPCPeering:
 		vpc1, vpc2, err := peering.Spec.VPCs()
@@ -36,6 +37,8 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 		for vpc := range peering.Spec.Peering {
 			if ext, ok := strings.CutPrefix(vpc, gwapi.VPCInfoExtPrefix); ok {
 				exts = append(exts, ext)
+			} else if strings.HasPrefix(vpc, vpcapi.VPCInfoRPPrefix) {
+				rps = append(rps, vpc)
 			} else {
 				vpcs = append(vpcs, vpc)
 			}
@@ -44,8 +47,8 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 		return fmt.Errorf("unexpected peering type %T for %q", checkPeering, checkName) //nolint:err113
 	}
 
-	if len(vpcs)+len(exts) != 2 {
-		return fmt.Errorf("invalid peering %q: expected exactly 2 unique vpcs/externals, got %d + %d", checkName, len(vpcs), len(exts)) //nolint:err113
+	if len(vpcs)+len(exts)+len(rps) != 2 {
+		return fmt.Errorf("invalid peering %q: expected exactly 2 unique vpcs/externals/remote peerings, got %d + %d + %d", checkName, len(vpcs), len(exts), len(rps)) //nolint:err113
 	}
 
 	slices.Sort(vpcs)
@@ -99,6 +102,9 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 		for _, ext := range exts {
 			labels[gwapi.ListLabelVPC(gwapi.VPCInfoExtPrefix+ext)] = gwapi.ListLabelValue
 		}
+		for _, rp := range rps {
+			labels[gwapi.ListLabelVPC(rp)] = gwapi.ListLabelValue
+		}
 		if err := kube.List(ctx, gwPeers, labels); err != nil {
 			return fmt.Errorf("failed to list GatewayPeerings: %w", err)
 		}
@@ -108,7 +114,7 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 				continue
 			}
 
-			return fmt.Errorf("GatewayPeering %q already exists for VPCs %s", peer.Name, strings.Join(append(vpcs, exts...), ", ")) //nolint:err113
+			return fmt.Errorf("GatewayPeering %q already exists for VPCs %s", peer.Name, strings.Join(slices.Concat(vpcs, exts, rps), ", ")) //nolint:err113
 		}
 	}
 

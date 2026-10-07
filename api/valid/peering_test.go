@@ -113,6 +113,11 @@ func TestValidatePeering(t *testing.T) {
 			objects: []kclient.Object{gwPeering("vpc-1", gwExt("ext-2"))},
 		},
 		{
+			name:    "gw-peering-rp-no-conflict",
+			check:   checkPeering(gwPeering("vpc-1", vpcapi.VPCInfoRPPrefix+"rp-1")),
+			objects: []kclient.Object{gwPeering("vpc-1", vpcapi.VPCInfoRPPrefix+"rp-2"), vpcPeering("vpc-1", "rp-1")},
+		},
+		{
 			name:    "vpc-peering-update-self",
 			check:   checkPeering(vpcPeering("vpc-1", "vpc-2")),
 			objects: []kclient.Object{vpcPeering("vpc-1", "vpc-2")},
@@ -143,6 +148,12 @@ func TestValidatePeering(t *testing.T) {
 			name:    "gw-peering-conflicting-gw-peering",
 			check:   checkPeering(gwPeering("vpc-1", gwExt("ext-1"))),
 			objects: []kclient.Object{gwPeering(gwExt("ext-1"), "vpc-1", "other-name")},
+			err:     true,
+		},
+		{
+			name:    "gw-peering-rp-conflicting-gw-peering",
+			check:   checkPeering(gwPeering(vpcapi.VPCInfoRPPrefix+"rp-1", gwExt("ext-1"))),
+			objects: []kclient.Object{gwPeering(gwExt("ext-1"), vpcapi.VPCInfoRPPrefix+"rp-1", "other-name")},
 			err:     true,
 		},
 		{

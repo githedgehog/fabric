@@ -131,7 +131,7 @@ func TestProducedObjectNames(t *testing.T) {
 		require.NoError(t, agentapi.AddToScheme(scheme))
 		require.NoError(t, dhcpapi.AddToScheme(scheme))
 
-		// VPC and External names are capped at 11 characters
+		// VPC, External and RemotePeering names are capped at 11 characters
 		vpc := &vpcapi.VPC{
 			ObjectMeta: kmetav1.ObjectMeta{Name: maxName("vpc-", 11), Namespace: kmetav1.NamespaceDefault},
 			Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{
@@ -145,8 +145,10 @@ func TestProducedObjectNames(t *testing.T) {
 		vpc.Default()
 		ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: maxName("ext-", 11), Namespace: kmetav1.NamespaceDefault}}
 		ext.Default()
+		rp := &vpcapi.RemotePeering{ObjectMeta: kmetav1.ObjectMeta{Name: maxName("rp-", 11), Namespace: kmetav1.NamespaceDefault}}
+		rp.Default()
 
-		kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()
+		kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext, rp).Build()
 		cfg := &meta.FabricConfig{}
 		libr := librarian.NewManager(cfg)
 
@@ -155,6 +157,8 @@ func TestProducedObjectNames(t *testing.T) {
 		_, err = (&GwVPCSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq(vpc.Name))
 		require.NoError(t, err)
 		_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq(ext.Name))
+		require.NoError(t, err)
+		_, err = (&GwRemotePeeringSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq(rp.Name))
 		require.NoError(t, err)
 
 		requireValidObjects(t, kube, &dhcpapi.DHCPSubnetList{}, &gwapi.VPCInfoList{})

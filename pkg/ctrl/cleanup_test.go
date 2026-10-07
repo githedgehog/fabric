@@ -260,8 +260,10 @@ func TestGwVPCSyncOwner(t *testing.T) {
 	vpc.Default()
 	ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
 	ext.Default()
+	rp := &vpcapi.RemotePeering{ObjectMeta: kmetav1.ObjectMeta{Name: "rp-1", Namespace: kmetav1.NamespaceDefault}}
+	rp.Default()
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext, rp).Build()
 	cfg := &meta.FabricConfig{}
 	libr := librarian.NewManager(cfg)
 
@@ -272,10 +274,14 @@ func TestGwVPCSyncOwner(t *testing.T) {
 	_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("ext-1"))
 	require.NoError(t, err)
 	requireOwnedBy(t, kube, &gwapi.VPCInfo{}, vpcapi.VPCInfoExtPrefix+"ext-1", "External", "ext-1")
+
+	_, err = (&GwRemotePeeringSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("rp-1"))
+	require.NoError(t, err)
+	requireOwnedBy(t, kube, &gwapi.VPCInfo{}, vpcapi.VPCInfoRPPrefix+"rp-1", "RemotePeering", "rp-1")
 }
 
-// a VPC or External the refresh on fabric-ctrl initialization had to leave alone gets no VPCInfo, whose defaulting
-// would put it into the default fabric and domain
+// a VPC, External or RemotePeering the refresh on fabric-ctrl initialization had to leave alone gets no VPCInfo, whose
+// defaulting would put it into the default fabric and domain
 func TestGwSyncTopologyRequired(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, vpcapi.AddToScheme(scheme))
@@ -288,8 +294,11 @@ func TestGwSyncTopologyRequired(t *testing.T) {
 	ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
 	ext.Default()
 	ext.Spec.Topology.Fabric = ""
+	rp := &vpcapi.RemotePeering{ObjectMeta: kmetav1.ObjectMeta{Name: "rp-1", Namespace: kmetav1.NamespaceDefault}}
+	rp.Default()
+	rp.Spec.Topology.Domain = ""
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext, rp).Build()
 	cfg := &meta.FabricConfig{}
 	libr := librarian.NewManager(cfg)
 
@@ -300,6 +309,10 @@ func TestGwSyncTopologyRequired(t *testing.T) {
 	_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("ext-1"))
 	require.ErrorContains(t, err, "external ext-1 has no fabric or domain")
 	requireNotFound(t, kube, &gwapi.VPCInfo{}, kmetav1.NamespaceDefault, vpcapi.VPCInfoExtPrefix+"ext-1")
+
+	_, err = (&GwRemotePeeringSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("rp-1"))
+	require.ErrorContains(t, err, "remote peering rp-1 has no fabric or domain")
+	requireNotFound(t, kube, &gwapi.VPCInfo{}, kmetav1.NamespaceDefault, vpcapi.VPCInfoRPPrefix+"rp-1")
 }
 
 func TestSwitchGroupDeleteInUse(t *testing.T) {

@@ -224,6 +224,7 @@ rules:
   - vpc.githedgehog.com
   resources:
   - externals/finalizers
+  - remotepeerings/finalizers
   - vpcs/finalizers
   verbs:
   - update

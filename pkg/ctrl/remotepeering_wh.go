@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,6 +86,16 @@ func (w *RemotePeeringWebhook) ValidateUpdate(ctx context.Context, oldRP *vpcapi
 	return warns, nil
 }
 
-func (w *RemotePeeringWebhook) ValidateDelete(_ context.Context, _ *vpcapi.RemotePeering) (admission.Warnings, error) {
+func (w *RemotePeeringWebhook) ValidateDelete(ctx context.Context, rp *vpcapi.RemotePeering) (admission.Warnings, error) {
+	gwPeerings := &gwapi.GatewayPeeringList{}
+	if err := w.Client.List(ctx, gwPeerings, kclient.MatchingLabels{
+		gwapi.ListLabelVPC(vpcapi.VPCInfoRPPrefix + rp.Name): gwapi.ListLabelValue,
+	}); err != nil {
+		return nil, fmt.Errorf("error listing gateway peerings: %w", err) // TODO hide internal error
+	}
+	if len(gwPeerings.Items) > 0 {
+		return nil, fmt.Errorf("remote peering is used by gateway peering %s", gwPeerings.Items[0].Name) //nolint:err113
+	}
+
 	return nil, nil
 }

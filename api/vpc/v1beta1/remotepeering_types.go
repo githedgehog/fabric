@@ -31,6 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// VPCInfoRPPrefix is the prefix of a RemotePeering's VPCInfo, which GatewayPeerings refer to it by
+const VPCInfoRPPrefix = "rp."
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // RemotePeeringTopology is where a RemotePeering sits in the fabric topology
