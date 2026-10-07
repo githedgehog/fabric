@@ -129,7 +129,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
-		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByExternalPeering)).
 		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
 		Complete(r), "failed to setup agent controller")
@@ -239,18 +239,38 @@ func (r *AgentReconciler) enqueueByAttachment(ctx context.Context, obj kclient.O
 	return switchRequests(obj.GetNamespace(), switchesOfConnection(conn))
 }
 
-// switchesInFabric returns the switches of the fabric, by their fabric label
-func (r *AgentReconciler) switchesInFabric(ctx context.Context, namespace, fabric string) (map[string]bool, error) {
-	sws := &wiringapi.SwitchList{}
-	if err := r.List(ctx, sws, kclient.InNamespace(namespace), kclient.MatchingLabels{
-		wiringapi.ListLabelFabric(fabric): wiringapi.ListLabelValue,
-	}); err != nil {
-		return nil, fmt.Errorf("listing switches of fabric %s: %w", fabric, err)
+// switchesInFabric returns the switches of the fabric in any of the domains, or all of its switches if no domains are
+// given, by their fabric and domain labels
+func (r *AgentReconciler) switchesInFabric(ctx context.Context, namespace, fabric string, domains ...string) (map[string]bool, error) {
+	switches := map[string]bool{}
+	list := func(selector kclient.MatchingLabels) error {
+		sws := &wiringapi.SwitchList{}
+		if err := r.List(ctx, sws, kclient.InNamespace(namespace), selector); err != nil {
+			return err //nolint:wrapcheck
+		}
+		for _, sw := range sws.Items {
+			switches[sw.Name] = true
+		}
+
+		return nil
 	}
 
-	switches := make(map[string]bool, len(sws.Items))
-	for _, sw := range sws.Items {
-		switches[sw.Name] = true
+	if len(domains) == 0 {
+		if err := list(kclient.MatchingLabels{wiringapi.ListLabelFabric(fabric): wiringapi.ListLabelValue}); err != nil {
+			return nil, fmt.Errorf("listing switches of fabric %s: %w", fabric, err)
+		}
+
+		return switches, nil
+	}
+
+	// a switch can be in multiple domains, so there is a list per domain
+	for _, domain := range domains {
+		if err := list(kclient.MatchingLabels{
+			wiringapi.ListLabelFabric(fabric): wiringapi.ListLabelValue,
+			wiringapi.ListLabelDomain(domain): wiringapi.ListLabelValue,
+		}); err != nil {
+			return nil, fmt.Errorf("listing switches of fabric %s domain %s: %w", fabric, domain, err)
+		}
 	}
 
 	return switches, nil
@@ -289,6 +309,47 @@ func (r *AgentReconciler) enqueueByFabricWide(ctx context.Context, obj kclient.O
 	}
 
 	return switchRequests(obj.GetNamespace(), switches)
+}
+
+// enqueueByExternalPeering reconciles the switches an ExternalPeering could be configured on: only the ones attached
+// to its External get it and an ExternalAttachment's switch has to be in the External's domain
+func (r *AgentReconciler) enqueueByExternalPeering(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
+	peering, ok := obj.(*vpcapi.ExternalPeering)
+	if !ok {
+		kctrllog.FromContext(ctx).Error(fmt.Errorf("unexpected type %T", obj), "error mapping to switches of the external, reconciling all switches") //nolint:err113
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	// without the External its domain isn't known, but it has to be in the peering's fabric
+	fabric, domains := peering.Spec.Topology.Fabric, []string(nil)
+	ext := &vpcapi.External{}
+	if err := r.Get(ctx, kclient.ObjectKey{Namespace: peering.Namespace, Name: peering.Spec.Permit.External.Name}, ext); err == nil {
+		fabric, domains = ext.Spec.Topology.Fabric, []string{ext.Spec.Topology.Domain}
+	} else if !kapierrors.IsNotFound(err) {
+		kctrllog.FromContext(ctx).Error(err, "error getting external, reconciling all switches", "external", peering.Spec.Permit.External.Name)
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+	if fabric == "" {
+		kctrllog.FromContext(ctx).Error(fmt.Errorf("no fabric"), "error mapping to switches of the external, reconciling all switches", "name", peering.Name) //nolint:err113
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	switches, err := r.switchesInFabric(ctx, peering.Namespace, fabric, domains...)
+	if err != nil {
+		kctrllog.FromContext(ctx).Error(err, "error mapping to switches of the external, reconciling all switches")
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	return switchRequests(peering.Namespace, switches)
 }
 
 func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
