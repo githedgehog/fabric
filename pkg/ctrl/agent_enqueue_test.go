@@ -133,6 +133,15 @@ func TestAgentEnqueueByFabricWide(t *testing.T) {
 		Spec:       vpcapi.IPv4NamespaceSpec{Topology: vpcapi.IPv4NamespaceTopology{Fabric: "backend"}},
 	}))
 
+	require.Equal(t, []string{"leaf-4"}, enqueuedNames(t, r.enqueueByFabricWide, &vpcapi.VPC{
+		ObjectMeta: enqueueTestMeta("vpc-1"),
+		Spec:       vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Fabric: "backend"}},
+	}))
+	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "spine-1"}, enqueuedNames(t, r.enqueueByFabricWide, &vpcapi.VPCPeering{
+		ObjectMeta: enqueueTestMeta("vpc-1--vpc-2"),
+		Spec:       vpcapi.VPCPeeringSpec{Topology: vpcapi.VPCPeeringTopology{Fabric: wiringapi.DefaultFabric}},
+	}))
+
 	// without a fabric it's not known which switches have it, so all of them are reconciled
 	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueByFabricWide, external("")))
 }
