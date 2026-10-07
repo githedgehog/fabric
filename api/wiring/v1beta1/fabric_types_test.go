@@ -119,3 +119,12 @@ func TestFabricValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestFabricReferenceRequired(t *testing.T) {
+	// with or without a client to look it up
+	require.ErrorIs(t, wiringapi.CheckFabricExists(t.Context(), nil, "default", ""), wiringapi.ErrFabricNotSet)
+	require.ErrorIs(t, wiringapi.CheckFabricExists(t.Context(), fake.NewClientBuilder().Build(), "default", ""), wiringapi.ErrFabricNotSet)
+
+	_, err := wiringapi.GetFabricSpec(t.Context(), fake.NewClientBuilder().Build(), "default", "")
+	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
+}

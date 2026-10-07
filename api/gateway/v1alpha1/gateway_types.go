@@ -243,6 +243,9 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {
 		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
 	}
+	if gw.Spec.Topology.Domain == "" {
+		return fmt.Errorf("topology.domain is required: %w", ErrInvalidGW)
+	}
 
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
 		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)

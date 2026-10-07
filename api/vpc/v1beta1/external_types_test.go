@@ -283,3 +283,14 @@ func TestExternalLocalASNValidation(t *testing.T) {
 		})
 	}
 }
+
+// defaulting sets it, so only an External the refresh on fabric-ctrl initialization had to leave alone or one
+// validated without defaulting can miss it
+func TestExternalDomainRequired(t *testing.T) {
+	ext := &v1beta1.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext.Default()
+	ext.Spec.Topology.Domain = ""
+
+	_, err := ext.Validate(t.Context(), nil, nil)
+	require.ErrorContains(t, err, "topology.domain is required")
+}

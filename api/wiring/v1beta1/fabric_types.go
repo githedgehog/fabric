@@ -5,6 +5,7 @@ package v1beta1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -94,8 +95,15 @@ func (fabricList *FabricList) GetItems() []meta.Object {
 	return items
 }
 
-// CheckFabricExists checks that a fabric reference names a Fabric that exists
+// ErrFabricNotSet is returned for an empty fabric reference: defaulting sets it, so only an object the refresh on
+// fabric-ctrl initialization had to leave alone or one validated without defaulting can have it empty
+var ErrFabricNotSet = errors.New("topology.fabric is required")
+
+// CheckFabricExists checks that a fabric reference is set and, given a client, names a Fabric that exists
 func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, name string) error {
+	if name == "" {
+		return ErrFabricNotSet
+	}
 	if kube == nil {
 		return nil
 	}
@@ -145,6 +153,9 @@ func DefaultFabricSpec(cfg *meta.FabricConfig) FabricSpec {
 
 // GetFabricSpec returns the spec of the named fabric
 func GetFabricSpec(ctx context.Context, kube kclient.Reader, namespace, name string) (*FabricSpec, error) {
+	if name == "" {
+		return nil, ErrFabricNotSet
+	}
 	if kube == nil {
 		return nil, fmt.Errorf("can't get fabric %s without a client", name) //nolint:err113
 	}

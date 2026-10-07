@@ -170,6 +170,30 @@ func TestBuildGatewayAgentScope(t *testing.T) {
 	}
 }
 
+// selecting by an empty fabric or domain label matches nothing, so a gateway or peering the refresh on fabric-ctrl
+// initialization had to leave alone would get an empty config without these errors
+func TestBuildGatewayAgentTopologyRequired(t *testing.T) {
+	kube := gatewayTestKube(t)
+	cfg := &meta.FabricConfig{}
+
+	gw := &gwapi.Gateway{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "gw-1", Namespace: kmetav1.NamespaceDefault}, gw))
+
+	withoutDomain := gw.DeepCopy()
+	withoutDomain.Spec.Topology.Domain = ""
+	_, err := BuildGatewayAgent(t.Context(), kube, cfg, withoutDomain)
+	require.ErrorContains(t, err, "gateway gw-1 has no domain")
+
+	withoutFabric := gw.DeepCopy()
+	withoutFabric.Spec.Topology.Fabric = ""
+	_, err = BuildGatewayAgent(t.Context(), kube, cfg, withoutFabric)
+	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
+
+	peering := &gwapi.GatewayPeering{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}}
+	_, err = BuildGatewayAgentForPeering(t.Context(), kube, cfg, peering)
+	require.ErrorContains(t, err, "peering vpc-1--vpc-2 has no fabric")
+}
+
 func TestBuildGatewayAgentNotReadyElsewhere(t *testing.T) {
 	notReady := &gwapi.VPCInfo{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-6", Namespace: kmetav1.NamespaceDefault},
