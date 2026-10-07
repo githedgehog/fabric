@@ -127,10 +127,10 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
-		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
-		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
 		Complete(r), "failed to setup agent controller")
 }
@@ -237,6 +237,58 @@ func (r *AgentReconciler) enqueueByAttachment(ctx context.Context, obj kclient.O
 	}
 
 	return switchRequests(obj.GetNamespace(), switchesOfConnection(conn))
+}
+
+// switchesInFabric returns the switches of the fabric, by their fabric label
+func (r *AgentReconciler) switchesInFabric(ctx context.Context, namespace, fabric string) (map[string]bool, error) {
+	sws := &wiringapi.SwitchList{}
+	if err := r.List(ctx, sws, kclient.InNamespace(namespace), kclient.MatchingLabels{
+		wiringapi.ListLabelFabric(fabric): wiringapi.ListLabelValue,
+	}); err != nil {
+		return nil, fmt.Errorf("listing switches of fabric %s: %w", fabric, err)
+	}
+
+	switches := make(map[string]bool, len(sws.Items))
+	for _, sw := range sws.Items {
+		switches[sw.Name] = true
+	}
+
+	return switches, nil
+}
+
+// enqueueByFabricWide reconciles all switches of the fabric of an External or IPv4Namespace, every switch gets all of
+// them in its fabric
+func (r *AgentReconciler) enqueueByFabricWide(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
+	var fabric string
+	switch o := obj.(type) {
+	case *vpcapi.External:
+		fabric = o.Spec.Topology.Fabric
+	case *vpcapi.IPv4Namespace:
+		fabric = o.Spec.Topology.Fabric
+	default:
+		kctrllog.FromContext(ctx).Error(fmt.Errorf("unexpected type %T", obj), "error mapping to switches of the fabric") //nolint:err113
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+	if fabric == "" {
+		kctrllog.FromContext(ctx).Error(fmt.Errorf("no fabric"), "error mapping to switches of the fabric, reconciling all switches", "kind", fmt.Sprintf("%T", obj), "name", obj.GetName()) //nolint:err113
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	switches, err := r.switchesInFabric(ctx, obj.GetNamespace(), fabric)
+	if err != nil {
+		kctrllog.FromContext(ctx).Error(err, "error mapping to switches of the fabric, reconciling all switches")
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	return switchRequests(obj.GetNamespace(), switches)
 }
 
 func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {

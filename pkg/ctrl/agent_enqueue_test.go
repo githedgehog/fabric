@@ -118,6 +118,25 @@ func TestAgentEnqueueByConnection(t *testing.T) {
 	require.Equal(t, []string{"leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueBySwitchListLabelsAndSpines, get("leaf-4--static-external")))
 }
 
+func TestAgentEnqueueByFabricWide(t *testing.T) {
+	kube := agentEnqueueTestKube(t)
+	r := &AgentReconciler{Client: kube, lock: unlockedLock()}
+
+	external := func(fabric string) *vpcapi.External {
+		return &vpcapi.External{ObjectMeta: enqueueTestMeta("ext-1"), Spec: vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Fabric: fabric}}}
+	}
+
+	// every switch of the fabric gets all of its externals and IPv4 namespaces, whatever the domain
+	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "spine-1"}, enqueuedNames(t, r.enqueueByFabricWide, external(wiringapi.DefaultFabric)))
+	require.Equal(t, []string{"leaf-4"}, enqueuedNames(t, r.enqueueByFabricWide, &vpcapi.IPv4Namespace{
+		ObjectMeta: enqueueTestMeta("ipns-1"),
+		Spec:       vpcapi.IPv4NamespaceSpec{Topology: vpcapi.IPv4NamespaceTopology{Fabric: "backend"}},
+	}))
+
+	// without a fabric it's not known which switches have it, so all of them are reconciled
+	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueByFabricWide, external("")))
+}
+
 func TestAgentEnqueueByAttachment(t *testing.T) {
 	vpcAttach := func(name, conn string) *vpcapi.VPCAttachment {
 		a := &vpcapi.VPCAttachment{
