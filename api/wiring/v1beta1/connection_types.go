@@ -915,14 +915,14 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		return nil, errors.Errorf("gateway connection is not allowed in current fabric configuration")
 	}
 
+	if err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
+		return nil, err
+	}
+
 	if kube != nil {
 		rGroup := ""
 		rType := meta.RedundancyTypeNone
 		connFabric := conn.Spec.Topology.Fabric
-
-		if err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
-			return nil, err
-		}
 
 		switchObjs := map[string]*Switch{}
 		for _, switchName := range switches {
