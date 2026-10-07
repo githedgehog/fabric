@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,6 +117,43 @@ func TestAgentEnqueueByConnection(t *testing.T) {
 	require.Equal(t, []string{"leaf-1", "leaf-2"}, enqueuedNames(t, r.enqueueBySwitchListLabelsAndSpines, get("server-2--eslag--leaf-1--leaf-2")))
 	// a static external outside of a VPC is configured on all spines too
 	require.Equal(t, []string{"leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueBySwitchListLabelsAndSpines, get("leaf-4--static-external")))
+}
+
+func TestAgentEnqueueNeighbors(t *testing.T) {
+	grouped := func(name string) *wiringapi.Switch {
+		sw := enqueueTestSwitch(name, wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabric, wiringapi.DefaultFabricDomain)
+		sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}
+		// adds the redundancy group to the groups and sets their labels
+		sw.Default()
+
+		return sw
+	}
+
+	kube := agentEnqueueTestKube(t,
+		enqueueTestConn("spine-1--fabric--leaf-1", wiringapi.ConnectionSpec{
+			Fabric: &wiringapi.ConnFabric{Links: []wiringapi.FabricLink{{
+				Spine: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("spine-1/E1/1")},
+				Leaf:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("leaf-1/E1/10")},
+			}}},
+		}),
+		grouped("leaf-5"),
+		grouped("leaf-6"),
+	)
+	r := &AgentReconciler{Client: kube, lock: unlockedLock()}
+
+	get := func(name string) *wiringapi.Switch {
+		sw := &wiringapi.Switch{}
+		require.NoError(t, kube.Get(t.Context(), objKey(name), sw))
+
+		return sw
+	}
+
+	// the switches it shares a connection with carry a copy of its spec
+	require.Equal(t, []string{"leaf-2", "spine-1"}, enqueuedNames(t, r.enqueueNeighbors, get("leaf-1")))
+	require.Equal(t, []string{"leaf-1"}, enqueuedNames(t, r.enqueueNeighbors, get("spine-1")))
+	require.Empty(t, enqueuedNames(t, r.enqueueNeighbors, get("leaf-4")))
+	// the redundancy group peers list it, even without a connection in common
+	require.Equal(t, []string{"leaf-6"}, enqueuedNames(t, r.enqueueNeighbors, get("leaf-5")))
 }
 
 func TestAgentEnqueueByFabricWide(t *testing.T) {

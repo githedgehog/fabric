@@ -51,6 +51,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -115,6 +116,8 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("Agent").
 		For(&wiringapi.Switch{}).
+		// only spec changes reach the other switches' Agents
+		Watches(&wiringapi.Switch{}, handler.EnqueueRequestsFromMapFunc(r.enqueueNeighbors), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// recreated if deleted, garbage collected with the switch otherwise
 		Owns(&agentapi.Agent{}, builder.WithPredicates(onlyDeletes)).
 		Owns(&corev1.ServiceAccount{}, builder.WithPredicates(onlyDeletes)).
@@ -236,6 +239,51 @@ func (r *AgentReconciler) enqueueByAttachment(ctx context.Context, obj kclient.O
 	}
 
 	return switchRequests(obj.GetNamespace(), switchesOfConnection(conn))
+}
+
+// enqueueNeighbors reconciles the switches sharing a connection with the switch, as their Agents carry a copy of its
+// spec, and the switches of its redundancy group, as their Agents list it as a peer
+func (r *AgentReconciler) enqueueNeighbors(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
+	sw, ok := obj.(*wiringapi.Switch)
+	if !ok {
+		kctrllog.FromContext(ctx).Error(fmt.Errorf("unexpected type %T", obj), "error mapping to neighbor switches, reconciling all switches") //nolint:err113
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	conns := &wiringapi.ConnectionList{}
+	if err := r.List(ctx, conns, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(sw.Name)); err != nil {
+		kctrllog.FromContext(ctx).Error(err, "error listing switch connections, reconciling all switches")
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	switches := map[string]bool{}
+	for _, conn := range conns.Items {
+		maps.Copy(switches, switchesOfConnection(&conn))
+	}
+
+	if group := sw.Spec.Redundancy.Group; group != "" {
+		peers := &wiringapi.SwitchList{}
+		if err := r.List(ctx, peers, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForSwitchGroup(group)); err != nil {
+			kctrllog.FromContext(ctx).Error(err, "error listing redundancy group switches, reconciling all switches")
+
+			return r.enqueueAllSwitches(ctx, obj)
+		}
+		for _, peer := range peers.Items {
+			switches[peer.Name] = true
+		}
+	}
+
+	// the switch itself is reconciled as the controller's own object
+	delete(switches, sw.Name)
+
+	return switchRequests(sw.Namespace, switches)
 }
 
 // switchesInFabric returns the switches of the fabric in any of the domains, or all of its switches if no domains are
