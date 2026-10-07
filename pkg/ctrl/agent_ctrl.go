@@ -40,7 +40,10 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -442,14 +445,12 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		benchTouch = maxBenchTouch(benchTouch, &sw)
 	}
 
-	// TODO optimize by only getting related VPC attachments
 	attaches := map[string]agentapi.VPCAttachmentSpecAnn{}
 	configuredSubnets := map[string]bool{} // TODO probably it's not really needed
 	attachedVPCs := map[string]bool{}
 	attachList := &vpcapi.VPCAttachmentList{}
-	err = r.List(ctx, attachList, kclient.InNamespace(sw.Namespace))
-	if err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error listing vpc attachments")
+	if err := r.listByConnections(ctx, sw.Namespace, attachList, conns); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing vpc attachments: %w", err)
 	}
 	for _, attach := range attachList.Items {
 		_, conn := conns[attach.Spec.Connection]
@@ -545,9 +546,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	proxyStaticExtAttachments := map[string]bool{}
 	externalAttaches := map[string]vpcapi.ExternalAttachmentSpec{}
 	externalAttachList := &vpcapi.ExternalAttachmentList{}
-	err = r.List(ctx, externalAttachList, kclient.InNamespace(sw.Namespace))
-	if err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error listing external attachments")
+	if err := r.listByConnections(ctx, sw.Namespace, externalAttachList, conns); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing external attachments: %w", err)
 	}
 	for _, attach := range externalAttachList.Items {
 		if _, exists := conns[attach.Spec.Connection]; !exists {
@@ -1142,6 +1142,35 @@ func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// listByConnections lists the objects labeled with one of the connections, as VPC and external attachments are, so
+// that a switch only gets the attachments of its own connections and not a copy of all of them. The list is left
+// empty without any connections.
+func (r *AgentReconciler) listByConnections(ctx context.Context, namespace string, list kclient.ObjectList, conns map[string]wiringapi.ConnectionSpec) error {
+	if len(conns) == 0 {
+		return nil
+	}
+
+	names := make([]string, 0, len(conns))
+	for name := range conns {
+		if errs := kvalidation.IsValidLabelValue(name); len(errs) > 0 {
+			return fmt.Errorf("connection name %s isn't a valid label value, which attachments refer to it by: %s", name, strings.Join(errs, ", ")) //nolint:err113
+		}
+
+		names = append(names, name)
+	}
+
+	req, err := labels.NewRequirement(wiringapi.LabelConnection, selection.In, names)
+	if err != nil {
+		return fmt.Errorf("selecting by connections: %w", err)
+	}
+
+	if err := r.List(ctx, list, kclient.InNamespace(namespace), kclient.MatchingLabelsSelector{Selector: labels.NewSelector().Add(*req)}); err != nil {
+		return fmt.Errorf("listing by connections: %w", err)
+	}
+
+	return nil
 }
 
 // maxBenchTouch returns the max of cur and the obj's bench touch label value, ignoring missing or
