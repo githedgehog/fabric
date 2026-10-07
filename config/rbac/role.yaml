@@ -198,6 +198,7 @@ rules:
   - externals
   - ipv4namespaces
   - vpcattachments
+  - vpcinterconnects
   - vpcpeerings
   verbs:
   - get

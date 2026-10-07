@@ -329,6 +329,11 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 		return errors.Wrap(err, "cannot delete gateway peerings")
 	}
 
+	// after the gateway peerings, which they can't be deleted under
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCInterconnect{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete VPC interconnects")
+	}
+
 	// delete all attachments
 	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCAttachment{}, &delAllOpts); err != nil {
 		return errors.Wrap(err, "cannot delete vpc attachments")

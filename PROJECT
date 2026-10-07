@@ -207,6 +207,18 @@ resources:
     crdVersion: v1
     namespaced: true
   domain: githedgehog.com
+  group: vpc
+  kind: VPCInterconnect
+  path: go.githedgehog.com/fabric/api/vpc/v1beta1
+  version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: githedgehog.com
   group: dhcp
   kind: DHCPSubnet
   path: go.githedgehog.com/fabric/api/dhcp/v1beta1

@@ -86,6 +86,16 @@ func TestExternalPeeringValidation(t *testing.T) {
 		}),
 	}
 
+	generatedExt := extGen("ic-01", func(ext *v1beta1.External) { ext.OwnerReferences = ownedBy("ic-01") })
+	toGenerated := func(owner string) func(*v1beta1.ExternalPeering) {
+		return func(peering *v1beta1.ExternalPeering) {
+			peering.Spec.Permit.External.Name = "ic-01"
+			if owner != "" {
+				peering.OwnerReferences = ownedBy(owner)
+			}
+		}
+	}
+
 	tests := []struct {
 		name    string
 		peering *v1beta1.ExternalPeering
@@ -158,6 +168,23 @@ func TestExternalPeeringValidation(t *testing.T) {
 				peering.Spec.Permit.External.Name = "external-other-ns"
 			}),
 			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "user peering with a generated external",
+			peering: extPeeringGen("ext-peer-08b", toGenerated("")),
+			objects: withObjs(baseObjs, generatedExt),
+			err:     true,
+		},
+		{
+			name:    "peering generated with the external",
+			peering: extPeeringGen("ext-peer-08c", toGenerated("ic-01")),
+			objects: withObjs(baseObjs, generatedExt),
+		},
+		{
+			name:    "peering generated for another VPC interconnect",
+			peering: extPeeringGen("ext-peer-08d", toGenerated("ic-02")),
+			objects: withObjs(baseObjs, generatedExt),
 			err:     true,
 		},
 		{

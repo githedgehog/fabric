@@ -216,6 +216,16 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	}
 
 	if kube != nil {
+		// a VPC interconnect generates the External with its name
+		if VPCInterconnectOwner(external) == "" {
+			ic := &VPCInterconnect{}
+			if err := kube.Get(ctx, ktypes.NamespacedName{Name: external.Name, Namespace: external.Namespace}, ic); err == nil {
+				return nil, fmt.Errorf("VPC interconnect %s already exists", external.Name) //nolint:err113
+			} else if !kapierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get VPC interconnect %s: %w", external.Name, err) // TODO hide internal error
+			}
+		}
+
 		ipNs := &IPv4Namespace{}
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
 		if err != nil {

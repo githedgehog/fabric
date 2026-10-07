@@ -177,6 +177,25 @@ func TestExternalValidation(t *testing.T) {
 	}
 }
 
+// a VPC interconnect generates the External with its name
+func TestExternalVPCInterconnectName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}), ipv4NamespaceObj(), icGen("ic-01"),
+	).Build()
+
+	_, err := extGen("ic-01").Validate(t.Context(), kube, &meta.FabricConfig{})
+	require.ErrorContains(t, err, "VPC interconnect ic-01 already exists")
+
+	_, err = extGen("ic-01", func(ext *v1beta1.External) { ext.OwnerReferences = ownedBy("ic-01") }).Validate(t.Context(), kube, &meta.FabricConfig{})
+	require.NoError(t, err)
+
+	_, err = extGen("ext-01").Validate(t.Context(), kube, &meta.FabricConfig{})
+	require.NoError(t, err)
+}
+
 func TestExternalLocalASNValidation(t *testing.T) {
 	ipns := ipv4NamespaceObj()
 	backendFabric := &wiringapi.Fabric{
