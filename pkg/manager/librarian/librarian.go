@@ -27,6 +27,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -104,6 +105,16 @@ func (m *Manager) saveCatalog(ctx context.Context, kube kclient.Client, key stri
 	}
 
 	return nil
+}
+
+// saveCatalogIfChanged saves the catalog unless it's the same as orig, read before any of the changes, so that the
+// catalogs every switch reconcile goes through aren't rewritten when nothing in them changed
+func (m *Manager) saveCatalogIfChanged(ctx context.Context, kube kclient.Client, key string, orig, cat *agentapi.Catalog) error {
+	if equality.Semantic.DeepEqual(orig, cat) {
+		return nil
+	}
+
+	return m.saveCatalog(ctx, kube, key, cat)
 }
 
 // UpdateConnections makes sure the named connection has an ID allocated: if it doesn't, the IDs of all ESLAG
@@ -309,6 +320,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	if err != nil {
 		return fmt.Errorf("getting switch/redundancy catalog %s: %w", key, err)
 	}
+	orig := cat.DeepCopy()
 
 	if err := setRedundancyCatalogOwner(ctx, kube, sw, cat); err != nil {
 		return err
@@ -338,7 +350,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		}
 	}
 
-	if err := m.saveCatalog(ctx, kube, key, cat); err != nil {
+	if err := m.saveCatalogIfChanged(ctx, kube, key, orig, cat); err != nil {
 		return fmt.Errorf("saving catalog %s: %w", key, err)
 	}
 
@@ -417,6 +429,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 	if err != nil {
 		return fmt.Errorf("getting switch catalog %s: %w", key, err)
 	}
+	orig := cat.DeepCopy()
 
 	if err := setCatalogOwner(kube, sw, cat); err != nil {
 		return err
@@ -482,7 +495,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		}
 	}
 
-	if err := m.saveCatalog(ctx, kube, key, cat); err != nil {
+	if err := m.saveCatalogIfChanged(ctx, kube, key, orig, cat); err != nil {
 		return fmt.Errorf("saving switch catalog %s: %w", key, err)
 	}
 
