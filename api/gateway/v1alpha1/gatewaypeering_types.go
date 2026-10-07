@@ -524,6 +524,11 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		}
 		// the gateways handling the peering are reachable only from leaves in their domain
 		groupDomain := gwGroup.Spec.Topology.Domain
+		// a stored gateway group the refresh on fabric-ctrl initialization had to leave alone may have none, and an
+		// external without one too would then look like it's in the same domain
+		if groupDomain == "" {
+			return fmt.Errorf("gateway group %s has no domain", p.Spec.GatewayGroup) //nolint:err113
+		}
 
 		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
 			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, p); err != nil {

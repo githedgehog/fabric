@@ -164,6 +164,9 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	if err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric); err != nil {
 		return nil, fmt.Errorf("failed to validate fabric: %w", err)
 	}
+	if external.Spec.Topology.Domain == "" {
+		return nil, fmt.Errorf("topology.domain is required") //nolint:err113
+	}
 
 	if len(external.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", external.Name)

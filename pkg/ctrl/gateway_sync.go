@@ -86,6 +86,10 @@ func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Res
 	if vpc.DeletionTimestamp != nil {
 		return kctrl.Result{}, nil
 	}
+	// copied into the VPCInfo, whose defaulting would put it into the default fabric and domain otherwise
+	if vpc.Spec.Topology.Fabric == "" || len(vpc.Spec.Topology.Domains) == 0 {
+		return kctrl.Result{}, fmt.Errorf("VPC %s has no fabric or domains", vpc.Name) //nolint:err113
+	}
 
 	vni, err := r.libr.GetOrEnsureVPCVNI(ctx, r.Client, vpc)
 	if err != nil {
@@ -192,6 +196,10 @@ func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctr
 	// its VPCInfo is garbage collected with it
 	if external.DeletionTimestamp != nil {
 		return kctrl.Result{}, nil
+	}
+	// copied into the VPCInfo, whose defaulting would put it into the default fabric and domain otherwise
+	if external.Spec.Topology.Fabric == "" || external.Spec.Topology.Domain == "" {
+		return kctrl.Result{}, fmt.Errorf("external %s has no fabric or domain", external.Name) //nolint:err113
 	}
 
 	// an External attached to no switch only gets its VNI allocated here

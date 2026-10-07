@@ -255,10 +255,13 @@ func TestGwVPCSyncOwner(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 	require.NoError(t, agentapi.AddToScheme(scheme))
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&vpcapi.VPC{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}},
-		&vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}},
-	).Build()
+	// defaulted as stored
+	vpc := &vpcapi.VPC{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}}
+	vpc.Default()
+	ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext.Default()
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()
 	cfg := &meta.FabricConfig{}
 	libr := librarian.NewManager(cfg)
 
@@ -269,6 +272,34 @@ func TestGwVPCSyncOwner(t *testing.T) {
 	_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("ext-1"))
 	require.NoError(t, err)
 	requireOwnedBy(t, kube, &gwapi.VPCInfo{}, vpcapi.VPCInfoExtPrefix+"ext-1", "External", "ext-1")
+}
+
+// a VPC or External the refresh on fabric-ctrl initialization had to leave alone gets no VPCInfo, whose defaulting
+// would put it into the default fabric and domain
+func TestGwSyncTopologyRequired(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+
+	vpc := &vpcapi.VPC{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}}
+	vpc.Default()
+	vpc.Spec.Topology.Domains = nil
+	ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext.Default()
+	ext.Spec.Topology.Fabric = ""
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()
+	cfg := &meta.FabricConfig{}
+	libr := librarian.NewManager(cfg)
+
+	_, err := (&GwVPCSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("vpc-1"))
+	require.ErrorContains(t, err, "VPC vpc-1 has no fabric or domains")
+	requireNotFound(t, kube, &gwapi.VPCInfo{}, kmetav1.NamespaceDefault, "vpc-1")
+
+	_, err = (&GwExternalSync{Client: kube, cfg: cfg, libr: libr, lock: unlockedLock()}).Reconcile(t.Context(), reconcileReq("ext-1"))
+	require.ErrorContains(t, err, "external ext-1 has no fabric or domain")
+	requireNotFound(t, kube, &gwapi.VPCInfo{}, kmetav1.NamespaceDefault, vpcapi.VPCInfoExtPrefix+"ext-1")
 }
 
 func TestSwitchGroupDeleteInUse(t *testing.T) {

@@ -1234,3 +1234,52 @@ func TestValidatePort(t *testing.T) {
 		})
 	}
 }
+
+// defaulting sets them, so only an object the refresh on fabric-ctrl initialization had to leave alone or one
+// validated without defaulting can miss them
+func TestTopologyDomainRequired(t *testing.T) {
+	gw := withName("gw-1", &Gateway{})
+	gw.Default()
+	gw.Spec.Topology.Domain = ""
+	require.ErrorContains(t, gw.Validate(t.Context(), nil, nil), "topology.domain is required")
+
+	gwGroup := withName("gwgr-1", &GatewayGroup{})
+	gwGroup.Default()
+	gwGroup.Spec.Topology.Domain = ""
+	require.ErrorContains(t, gwGroup.Validate(t.Context(), nil, nil), "topology.domain is required")
+
+	vpcInfo := withName("vpc-1", &VPCInfo{})
+	vpcInfo.Default()
+	vpcInfo.Spec.Topology.Domains = nil
+	require.ErrorContains(t, vpcInfo.Validate(t.Context(), nil, nil), "vpcinfo must be in at least one domain")
+
+	fabricNotSet := withName("vpc-1", &VPCInfo{})
+	require.ErrorIs(t, fabricNotSet.Validate(t.Context(), nil, nil), wiringapi.ErrFabricNotSet)
+}
+
+func TestPeeringGroupWithoutDomain(t *testing.T) {
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{})
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{Spec: vpcv1beta1.VPCSpec{Subnets: map[string]*vpcv1beta1.VPCSubnet{
+		"sub1": {Subnet: "10.0.1.0/24"},
+	}}})
+	external := withName("out-1", &vpcv1beta1.External{})
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, external} {
+		obj.Default()
+	}
+	// stored as the refresh on fabric-ctrl initialization had to leave them
+	gwGroup.Spec.Topology.Domain = ""
+	external.Spec.Topology.Domain = ""
+	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65101},
+	}}})
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme))
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fabric, gwGroup, vpc1, external).Build()
+
+	peering := generateExternalPeering("ext-group-without-domain")
+	peering.Default()
+	require.ErrorContains(t, peering.Validate(t.Context(), kube, nil), "gateway group default has no domain")
+}

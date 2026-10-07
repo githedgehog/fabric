@@ -323,6 +323,10 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 	if err != nil {
 		return nil, fmt.Errorf("getting gateway fabric: %w", err)
 	}
+	// selecting by an empty domain's label matches nothing and would leave the gateway with an empty config
+	if gw.Spec.Topology.Domain == "" {
+		return nil, fmt.Errorf("gateway %s has no domain", gw.Name) //nolint:err113
+	}
 
 	// the gateway only gets what's in its own fabric and domain
 	gwFabric := gw.Spec.Topology.Fabric
@@ -450,6 +454,10 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 	}
 	if peering == nil {
 		return nil, fmt.Errorf("peering is nil") //nolint:err113
+	}
+	// selecting by an empty fabric's label matches no gateway
+	if peering.Spec.Topology.Fabric == "" {
+		return nil, fmt.Errorf("peering %s has no fabric", peering.Name) //nolint:err113
 	}
 
 	gws := &gwapi.GatewayList{}
