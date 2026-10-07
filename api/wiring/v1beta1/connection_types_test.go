@@ -916,3 +916,14 @@ func TestConnectionValidation(t *testing.T) {
 		})
 	}
 }
+
+// without a client nothing that needs other objects is checked, but the fabric still has to be set
+func TestConnectionValidationWithoutClient(t *testing.T) {
+	conn := fabricConnGen("spine-01--fabric--leaf-01")
+	_, err := conn.Validate(t.Context(), nil, nil)
+	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
+
+	conn.Default()
+	_, err = conn.Validate(t.Context(), nil, nil)
+	require.NoError(t, err)
+}
