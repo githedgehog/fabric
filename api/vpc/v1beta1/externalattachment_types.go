@@ -390,7 +390,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 
 		// the border leaf drops external routes carrying its fabric's spine or gateway ASN, and a
 		// leaf drops those carrying its own ASN through BGP loop detection
-		if fabricCfg != nil {
+		if fabricCfg != nil && kube != nil {
 			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get fabric: %w", err)
@@ -445,7 +445,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	if bfd := attach.Spec.BFD; bfd != nil {
 		// disableBFD wins, and nothing downstream reports that it did: without this the session
 		// silently runs on the FRR defaults of 60/180 instead of the sub-second detection asked for
-		if fabricCfg != nil {
+		if fabricCfg != nil && kube != nil {
 			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get fabric: %w", err)

@@ -474,3 +474,16 @@ func TestGatewayGroupDomain(t *testing.T) {
 		})
 	}
 }
+
+// without a client nothing that needs other objects is checked, the fabric neither
+func TestGatewayValidateWithoutClient(t *testing.T) {
+	cfg := &meta.FabricConfig{EnableGateway: true}
+
+	gw := gwa("gw-1")
+	gw.Default()
+	require.NoError(t, gw.Validate(t.Context(), nil, cfg))
+
+	group := withName("gr-1", &v1alpha1.GatewayGroup{})
+	group.Default()
+	require.NoError(t, group.Validate(t.Context(), nil, cfg))
+}

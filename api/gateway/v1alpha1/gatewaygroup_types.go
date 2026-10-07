@@ -114,7 +114,7 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 		return fmt.Errorf("invalid gateway group: topology.domain is required") //nolint:err113
 	}
 
-	if fabricCfg != nil {
+	if fabricCfg != nil && kube != nil {
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric)
 		if err != nil {
 			return fmt.Errorf("getting fabric: %w", err)

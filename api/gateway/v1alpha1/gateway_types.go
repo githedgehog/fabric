@@ -316,7 +316,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	if gw.Spec.ASN == 0 {
 		return fmt.Errorf("ASN must be set: %w", ErrInvalidGW)
 	}
-	if fabricCfg != nil {
+	if fabricCfg != nil && kube != nil {
 		// leaves peer with every gateway of their domain using the domain gateway ASN
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
 		if err != nil {

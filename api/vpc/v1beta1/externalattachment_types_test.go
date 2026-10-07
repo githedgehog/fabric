@@ -418,6 +418,12 @@ func TestExternalAttachmentValidation(t *testing.T) {
 	}
 }
 
+// without a client nothing that needs other objects is checked, the fabric neither
+func TestExternalAttachmentValidationWithoutClient(t *testing.T) {
+	_, err := l3ExtAttGen("ext-att-01").Validate(t.Context(), nil, &meta.FabricConfig{})
+	require.NoError(t, err)
+}
+
 func extAttWithACL(stmts ...v1beta1.ACLStatement) *v1beta1.ExternalAttachment {
 	return l3ExtAttGen("acl-test", func(att *v1beta1.ExternalAttachment) {
 		att.Spec.InboundACL = &v1beta1.ACLSpec{Statements: stmts}
