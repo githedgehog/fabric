@@ -25,7 +25,6 @@ import (
 	"net/netip"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -3911,29 +3910,17 @@ func vpcSubnetVIPsOnlyRouteMapName(vpc string, subnet string) string {
 }
 
 func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
-	baseParts := strings.Split(agent.Spec.Config.BaseVPCCommunity, ":")
-	if len(baseParts) != 2 {
-		return "", errors.Errorf("invalid base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
-	}
-	base, err := strconv.ParseUint(baseParts[1], 10, 16)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
-	}
-
 	vni, exists := agent.Spec.Catalog.VPCVNIs[vpc]
 	if !exists {
 		return "", errors.Errorf("VNI for VPC %s not found", vpc)
 	}
-	if vni%100 != 0 {
-		return "", errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc)
+
+	comm, err := librarian.VNICommunity(agent.Spec.Config.BaseVPCCommunity, vni)
+	if err != nil {
+		return "", fmt.Errorf("community for VPC %s: %w", vpc, err)
 	}
 
-	id := base + uint64(vni)/100
-	if id >= 65535 {
-		return "", errors.Errorf("VPC %s community id is too large", vpc)
-	}
-
-	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
+	return comm, nil
 }
 
 func planAllPortsUp(agent *agentapi.Agent, spec *dozer.Spec) error {

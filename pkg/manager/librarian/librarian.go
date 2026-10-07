@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -635,4 +637,28 @@ func (m *Manager) GetOrEnsureVPCInfoID(ctx context.Context, kube kclient.Client,
 	}
 
 	return id, nil
+}
+
+// VNICommunity is the community of the VPC, or the External, with the given VNI. VNIs come from a single pool in
+// steps of VPCVNIOffset, so no two of them share it.
+func VNICommunity(baseVPCCommunity string, vni uint32) (string, error) {
+	baseParts := strings.Split(baseVPCCommunity, ":")
+	if len(baseParts) != 2 {
+		return "", fmt.Errorf("invalid base VPC community %s", baseVPCCommunity) //nolint:err113
+	}
+	base, err := strconv.ParseUint(baseParts[1], 10, 16)
+	if err != nil {
+		return "", fmt.Errorf("parsing base VPC community %s: %w", baseVPCCommunity, err)
+	}
+
+	if vni%VPCVNIOffset != 0 {
+		return "", fmt.Errorf("VNI %d is not a multiple of %d", vni, VPCVNIOffset) //nolint:err113
+	}
+
+	id := base + uint64(vni)/VPCVNIOffset
+	if id >= 65535 {
+		return "", fmt.Errorf("community id for VNI %d is too large", vni) //nolint:err113
+	}
+
+	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
 }
