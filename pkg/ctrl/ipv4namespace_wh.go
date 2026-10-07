@@ -110,6 +110,10 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		return nil, fmt.Errorf("listing externals: %w", err) // TODO hide internal error
 	}
 	for _, ext := range exts.Items {
+		// a generated External has the remote prefixes of its VPC interconnect, checked above
+		if vpcapi.VPCInterconnectOwner(&ext) != "" {
+			continue
+		}
 		if err := newNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(ext.Spec.InboundPrefixes))); err != nil {
 			return nil, fmt.Errorf("external %s: %w", ext.Name, err)
 		}

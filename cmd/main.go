@@ -262,6 +262,9 @@ func run(ctx context.Context) error {
 	if err := ctrl.SetupVPCInfoReconcilerWith(mgr, libMngr, lock); err != nil {
 		return fmt.Errorf("setting up vpc info controller: %w", err)
 	}
+	if err := ctrl.SetupVPCInterconnectReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
+		return fmt.Errorf("setting up vpc interconnect controller: %w", err)
+	}
 	if cfg.GatewayAPISync {
 		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
 			return fmt.Errorf("setting up gateway vpc sync controller: %w", err)

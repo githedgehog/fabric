@@ -11,6 +11,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -32,6 +33,11 @@ func PrintObjectList(ctx context.Context, kube kclient.Reader, w io.Writer, objL
 	}
 
 	for _, obj := range objList.GetItems() {
+		// generated from another object, which is printed instead
+		if kmetav1.GetControllerOf(obj) != nil {
+			continue
+		}
+
 		if *objs > 0 {
 			_, err := fmt.Fprintf(w, "---\n")
 			if err != nil {

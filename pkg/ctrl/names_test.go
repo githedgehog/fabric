@@ -159,4 +159,27 @@ func TestProducedObjectNames(t *testing.T) {
 
 		requireValidObjects(t, kube, &dhcpapi.DHCPSubnetList{}, &gwapi.VPCInfoList{})
 	})
+
+	t.Run("vpc interconnect", func(t *testing.T) {
+		// capped at 11 characters as its External, with a connection name making the longest attachment name
+		ic := &vpcapi.VPCInterconnect{
+			ObjectMeta: kmetav1.ObjectMeta{Name: maxName("ic-", 11), Namespace: kmetav1.NamespaceDefault},
+			Spec: vpcapi.VPCInterconnectSpec{
+				Links: []vpcapi.VPCInterconnectLink{{Connection: maxName("leaf-01--", meta.MaxNameLength-11-2-2-4), VLAN: 4094}},
+				Local: map[string]vpcapi.VPCInterconnectVPC{maxName("vpc-", 11): {Subnets: []string{"subnet-01"}}},
+			},
+		}
+		ic.Default()
+		require.Len(t, vpcapi.VPCInterconnectAttachmentName(ic.Name, ic.Spec.Links[0]), meta.MaxNameLength)
+
+		kube := vpcInterconnectTestKube(t, ic)
+		cfg := &meta.FabricConfig{BaseVPCCommunity: "50000:0"}
+		r := &VPCInterconnectReconciler{Client: kube, cfg: cfg, libr: librarian.NewManager(cfg), lock: unlockedLock()}
+		for range 2 {
+			_, err := r.Reconcile(t.Context(), reconcileReq(ic.Name))
+			require.NoError(t, err)
+		}
+
+		requireValidObjects(t, kube, &vpcapi.ExternalList{}, &vpcapi.ExternalAttachmentList{}, &vpcapi.ExternalPeeringList{})
+	})
 }

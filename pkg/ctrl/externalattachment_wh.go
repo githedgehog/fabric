@@ -44,7 +44,7 @@ func SetupExternalAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfi
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalAttachment{}).
 		WithDefaulter(w).
-		WithValidator(newLockedValidator[*vpcapi.ExternalAttachment](w, lock)).
+		WithValidator(newLockedValidator[*vpcapi.ExternalAttachment](newGeneratedValidator[*vpcapi.ExternalAttachment](w, mgr.GetClient(), lock), lock)).
 		Complete(), "failed to setup external attachment webhook")
 }
 
