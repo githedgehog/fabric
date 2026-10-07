@@ -4,11 +4,14 @@
 package ctrl
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -16,6 +19,61 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+func TestAgentListByConnections(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+
+	attach := func(name, conn string) *vpcapi.VPCAttachment {
+		a := &vpcapi.VPCAttachment{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Spec:       vpcapi.VPCAttachmentSpec{Subnet: "vpc-1/subnet-1", Connection: conn},
+		}
+		// sets the connection label the attachments are selected by
+		a.Default()
+
+		return a
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		attach("attach-1", "conn-1"),
+		attach("attach-2", "conn-2"),
+		attach("attach-3", "conn-3"),
+	).Build()
+	r := &AgentReconciler{Client: kube}
+
+	list := func(conns ...string) ([]string, error) {
+		specs := map[string]wiringapi.ConnectionSpec{}
+		for _, conn := range conns {
+			specs[conn] = wiringapi.ConnectionSpec{}
+		}
+
+		attaches := &vpcapi.VPCAttachmentList{}
+		if err := r.listByConnections(t.Context(), kmetav1.NamespaceDefault, attaches, specs); err != nil {
+			return nil, err
+		}
+
+		names := []string{}
+		for _, a := range attaches.Items {
+			names = append(names, a.Name)
+		}
+		slices.Sort(names)
+
+		return names, nil
+	}
+
+	names, err := list("conn-1", "conn-3", "conn-4")
+	require.NoError(t, err)
+	require.Equal(t, []string{"attach-1", "attach-3"}, names)
+
+	names, err = list()
+	require.NoError(t, err)
+	require.Empty(t, names)
+
+	// a name nothing could ever be attached to by label is reported rather than skipped
+	_, err = list("conn-1", strings.Repeat("c", 64))
+	require.ErrorContains(t, err, "isn't a valid label value")
+}
 
 // TestAgentKubeconfigSecret covers the kubeconfig secret the switches get at install: the kubeconfig is stored as is
 // and the secret isn't rewritten when nothing changed
