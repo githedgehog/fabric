@@ -187,7 +187,13 @@ func TestPeeringDomains(t *testing.T) {
 		vpcIn("plane-1", "plane-1"),
 		vpcIn("plane-2", "plane-2"),
 		vpcIn("storage", "plane-1", "plane-2"),
+		vpcGen("other-fabric", func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Fabric = "backend" }),
 		extGen("ext-1", func(ext *v1beta1.External) { ext.Spec.Topology.Domain = "plane-1" }),
+		ipv4NamespaceObj(),
+		defaulted(&wiringapi.VLANNamespace{
+			ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
+			Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
+		}),
 	).Build()
 
 	vpcPeering := func(vpc1, vpc2 string) func() error {
@@ -218,11 +224,33 @@ func TestPeeringDomains(t *testing.T) {
 		}
 	}
 
+	// a relay VPC has to be one the VPC could peer with
+	relayVPC := func(domain, relay string) func() error {
+		return func() error {
+			vpc := vpcGen("relaying", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Topology.Domains = []string{domain}
+				// not overlapping with the stored VPCs
+				vpc.Spec.Subnets["default"] = &v1beta1.VPCSubnet{
+					Subnet:  "10.0.5.0/24",
+					Gateway: "10.0.5.1",
+					VLAN:    150,
+					DHCP:    v1beta1.VPCDHCP{Relay: "10.99.0.1/32", RelayVPC: relay},
+				}
+			})
+			_, err := vpc.Validate(t.Context(), kube, &meta.FabricConfig{})
+
+			return err //nolint:wrapcheck
+		}
+	}
+
 	for _, tt := range []struct {
 		name     string
 		validate func() error
 		err      string
 	}{
+		{name: "dhcp relay vpc sharing a domain", validate: relayVPC("plane-1", "storage")},
+		{name: "dhcp relay vpc sharing no domain", validate: relayVPC("plane-1", "plane-2"), err: "subnet default: vpc is in domains [plane-1] and dhcp relay vpc plane-2 in domains [plane-2], they must share one"},
+		{name: "dhcp relay vpc in another fabric", validate: relayVPC("plane-1", "other-fabric"), err: "subnet default: vpc is in fabric default but dhcp relay vpc other-fabric is in fabric backend"},
 		{name: "vpc peering sharing one domain", validate: vpcPeering("plane-1", "storage")},
 		{name: "vpc peering sharing the other domain", validate: vpcPeering("storage", "plane-2")},
 		{name: "vpc peering sharing no domain", validate: vpcPeering("plane-1", "plane-2"), err: "vpc plane-1 is in domains [plane-1] and vpc plane-2 in domains [plane-2], they must share one"},
