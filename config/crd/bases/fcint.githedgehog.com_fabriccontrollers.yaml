@@ -153,6 +153,11 @@ spec:
                       description: FabricControllerRefreshKind is the refresh progress
                         of a single kind
                       properties:
+                        invalid:
+                          description: |-
+                            Invalid is the number of objects that fail the validation of the current version, checked without looking up
+                            other objects. They still get the current defaults, but any change to them is rejected until they're fixed
+                          type: integer
                         kind:
                           description: Kind is the kind of the refreshed objects
                           type: string

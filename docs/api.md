@@ -912,6 +912,7 @@ _Appears in:_
 | `updated` _integer_ | Updated is the number of objects updated with the current defaults |  |  |
 | `rejected` _integer_ | Rejected is the number of objects whose update was rejected |  |  |
 | `stale` _integer_ | Stale is the number of objects that still don't carry the current defaults after retries |  |  |
+| `invalid` _integer_ | Invalid is the number of objects that fail the validation of the current version, checked without looking up<br />other objects. They still get the current defaults, but any change to them is rejected until they're fixed |  |  |
 
 
 #### FabricControllerSpec

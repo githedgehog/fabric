@@ -5,6 +5,7 @@ package ctrl
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 
@@ -156,18 +157,81 @@ func TestFabricControllerRefresh(t *testing.T) {
 	require.False(t, fc.Status.Refresh.FinishedAt.IsZero())
 	require.Greater(t, fc.Status.Refresh.Passes, 1)
 
-	var switches *fcintapi.FabricControllerRefreshKind
-	for idx, k := range fc.Status.Refresh.Kinds {
-		if k.Kind == "Switch" {
-			switches = &fc.Status.Refresh.Kinds[idx]
-		}
-	}
-	require.NotNil(t, switches)
 	require.Equal(t, fcintapi.FabricControllerRefreshKind{
 		Kind:     "Switch",
 		Total:    5,
 		Updated:  2,
 		Rejected: 1,
 		Stale:    1,
-	}, *switches)
+		// none of the switches has an ASN or IPs
+		Invalid: 5,
+	}, refreshKindStatus(t, fc, "Switch"))
+}
+
+func refreshKindStatus(t *testing.T, fc *fcintapi.FabricController, kind string) fcintapi.FabricControllerRefreshKind {
+	t.Helper()
+
+	for _, k := range fc.Status.Refresh.Kinds {
+		if k.Kind == kind {
+			return k
+		}
+	}
+	require.Fail(t, "no refresh status", "kind %s", kind)
+
+	return fcintapi.FabricControllerRefreshKind{}
+}
+
+// a stored object that fails the current validation is reported and still gets the current defaults
+func TestFabricControllerRefreshInvalid(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
+
+	// the fabric label is an outdated default, it's removed by the refresh
+	server := func(name string) *wiringapi.Server {
+		return &wiringapi.Server{ObjectMeta: kmetav1.ObjectMeta{
+			Namespace: kmetav1.NamespaceDefault,
+			Name:      name,
+			Labels:    map[string]string{wiringapi.LabelName("outdated"): "true"},
+		}}
+	}
+	tooLong := strings.Repeat("s", meta.MaxNameLength+1)
+
+	kube := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}},
+			server("server-1"),
+			server(tooLong),
+		).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		Build()
+
+	i := &FabricControllerInitializer{
+		Client:    kube,
+		apiReader: kube,
+		key:       ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName},
+		version:   "v1.2.3",
+		cfg:       &meta.FabricConfig{AllowExtraSwitchProfiles: true},
+		profiles:  switchprofile.NewDefaultSwitchProfiles(),
+	}
+	require.NoError(t, i.Start(t.Context()))
+
+	for _, name := range []string{"server-1", tooLong} {
+		srv := &wiringapi.Server{}
+		require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}, srv))
+		require.Empty(t, srv.Labels, "server %s should carry the current defaults", name)
+	}
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), i.key, fc))
+	require.Equal(t, "v1.2.3", fc.Status.InitializedVersion)
+	require.Equal(t, fcintapi.FabricControllerRefreshKind{
+		Kind:    "Server",
+		Total:   2,
+		Updated: 2,
+		Invalid: 1,
+	}, refreshKindStatus(t, fc, "Server"))
 }
