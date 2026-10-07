@@ -156,6 +156,26 @@ func TestAgentEnqueueNeighbors(t *testing.T) {
 	require.Equal(t, []string{"leaf-6"}, enqueuedNames(t, r.enqueueNeighbors, get("leaf-5")))
 }
 
+func TestAgentEnqueueByVLANNamespace(t *testing.T) {
+	isolated := &wiringapi.Switch{
+		ObjectMeta: enqueueTestMeta("leaf-5"),
+		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, VLANNamespaces: []string{"isolated"}},
+	}
+	// sets the VLANNamespace labels, the others are in the default one
+	isolated.Default()
+
+	kube := agentEnqueueTestKube(t, isolated)
+	r := &AgentReconciler{Client: kube, lock: unlockedLock()}
+
+	vlanNs := func(name string) *wiringapi.VLANNamespace {
+		return &wiringapi.VLANNamespace{ObjectMeta: enqueueTestMeta(name)}
+	}
+
+	require.Equal(t, []string{"leaf-1", "leaf-2", "leaf-3", "leaf-4", "spine-1"}, enqueuedNames(t, r.enqueueByVLANNamespace, vlanNs("default")))
+	require.Equal(t, []string{"leaf-5"}, enqueuedNames(t, r.enqueueByVLANNamespace, vlanNs("isolated")))
+	require.Empty(t, enqueuedNames(t, r.enqueueByVLANNamespace, vlanNs("unused")))
+}
+
 func TestAgentEnqueueByFabricWide(t *testing.T) {
 	kube := agentEnqueueTestKube(t)
 	r := &AgentReconciler{Client: kube, lock: unlockedLock()}

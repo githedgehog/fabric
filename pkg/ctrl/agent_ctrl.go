@@ -134,6 +134,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByExternalPeering)).
 		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
+		Watches(&wiringapi.VLANNamespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByVLANNamespace)).
 		Complete(r), "failed to setup agent controller")
 }
 
@@ -284,6 +285,30 @@ func (r *AgentReconciler) enqueueNeighbors(ctx context.Context, obj kclient.Obje
 	delete(switches, sw.Name)
 
 	return switchRequests(sw.Namespace, switches)
+}
+
+// enqueueByVLANNamespace reconciles the switches in the VLANNamespace, by their VLANNamespace label
+func (r *AgentReconciler) enqueueByVLANNamespace(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
+	sws := &wiringapi.SwitchList{}
+	if err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()), kclient.MatchingLabels{
+		wiringapi.ListLabelVLANNamespace(obj.GetName()): wiringapi.ListLabelValue,
+	}); err != nil {
+		kctrllog.FromContext(ctx).Error(err, "error listing switches of vlan namespace, reconciling all switches")
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	switches := make(map[string]bool, len(sws.Items))
+	for _, sw := range sws.Items {
+		switches[sw.Name] = true
+	}
+
+	return switchRequests(obj.GetNamespace(), switches)
 }
 
 // switchesInFabric returns the switches of the fabric in any of the domains, or all of its switches if no domains are
