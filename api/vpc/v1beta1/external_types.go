@@ -250,6 +250,13 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 				return nil, fmt.Errorf("failed to list external attachments for %s: %w", external.Name, err) // TODO hide internal error
 			}
 			for _, attach := range attaches.Items {
+				if attach.Spec.Static != nil {
+					continue
+				}
+				// see ExternalAttachment.Validate, a neighbor ASN is required with a localASN
+				if attach.Spec.Neighbor.ASN == 0 {
+					return nil, fmt.Errorf("localASN requires a neighbor ASN, external attachment %s has none", attach.Name) //nolint:err113
+				}
 				if attach.Spec.Neighbor.ASN == localASN {
 					return nil, fmt.Errorf("localASN %d is the neighbor ASN of external attachment %s", localASN, attach.Name) //nolint:err113
 				}

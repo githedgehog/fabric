@@ -179,3 +179,75 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 		})
 	}
 }
+
+// an unnumbered external session is reported under the subinterface it runs over
+func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
+	const self = "leaf-01"
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+
+	sp := switchprofile.DellS5248FON.DeepCopy()
+	sp.Namespace = kmetav1.NamespaceDefault
+
+	conn := &wiringapi.Connection{
+		ObjectMeta: kmetav1.ObjectMeta{Name: self + "--external", Namespace: kmetav1.NamespaceDefault},
+		Spec: wiringapi.ConnectionSpec{
+			External: &wiringapi.ConnExternal{Link: wiringapi.ConnExternalLink{Switch: wiringapi.NewBasePortName(self + "/E1/3")}},
+		},
+	}
+	conn.Default()
+
+	ext := &vpcapi.External{
+		ObjectMeta: kmetav1.ObjectMeta{Name: "ext", Namespace: kmetav1.NamespaceDefault},
+		Spec:       vpcapi.ExternalSpec{IPv4Namespace: "default"},
+	}
+	attach := func(name string, vlan uint16, switchIP, neighIP string) *vpcapi.ExternalAttachment {
+		att := &vpcapi.ExternalAttachment{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Spec: vpcapi.ExternalAttachmentSpec{
+				External:   ext.Name,
+				Connection: conn.Name,
+				Switch:     vpcapi.ExternalAttachmentSwitch{VLAN: vlan, IP: switchIP},
+				Neighbor:   vpcapi.ExternalAttachmentNeighbor{ASN: 64000, IP: neighIP},
+			},
+		}
+		att.Default()
+
+		return att
+	}
+
+	ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
+	ag.Status.State.BGPNeighbors = map[string]map[string]agentapi.SwitchStateBGPNeighbor{
+		"VrfEext": {
+			"E1/3.101": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
+			"10.0.0.2": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
+		},
+	}
+
+	sw := &wiringapi.Switch{
+		ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault},
+		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(sw, sp, ag, conn, ext, attach("unnum", 101, "", ""), attach("num", 102, "10.0.0.1/30", "10.0.0.2")).
+		WithStatusSubresource(ag).Build()
+	require.NoError(t, kube.Status().Update(t.Context(), ag))
+
+	status, err := apiutil.GetBGPStatus(t.Context(), kube, &meta.FabricConfig{}, apiutil.SwitchFilter{Names: []string{self}})
+	require.NoError(t, err)
+	neighs := status[self].Neighbors["VrfEext"]
+	require.Len(t, neighs, 2)
+
+	for key, unnumbered := range map[string]bool{"E1/3.101": true, "10.0.0.2": false} {
+		neigh, ok := neighs[key]
+		require.True(t, ok, "neighbor %s must be present", key)
+		require.True(t, neigh.Expected, "neighbor %s must be expected", key)
+		require.Equal(t, unnumbered, neigh.Unnumbered, "neighbor %s", key)
+		require.Equal(t, "E1/3", neigh.Port)
+		require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neigh.SessionState)
+	}
+}

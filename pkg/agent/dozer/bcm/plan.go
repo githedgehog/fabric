@@ -1445,33 +1445,36 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		extVrfName := extVrfName(externalName)
 
 		if attach.Static == nil {
-			if attach.Switch.VLAN != 0 {
-				vlan = pointer.To(attach.Switch.VLAN)
-			}
-
-			ipNet, err := netip.ParsePrefix(attach.Switch.IP)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse external attach switch ip %s", attach.Switch.IP)
-			}
-			prefixLength := ipNet.Bits()
-			ip := ipNet.Addr()
-			if !ip.Is4() {
-				return fmt.Errorf("invalid external attach switch ip %s, expected IPv4", attach.Switch.IP) //nolint:err113
-			}
-
-			spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = &dozer.SpecSubinterface{
-				VLAN: vlan,
-				IPs: map[string]*dozer.SpecInterfaceIP{
-					ip.String(): {
-						PrefixLen: pointer.To(uint8(prefixLength)), //nolint:gosec
-					},
-				},
-			}
-
 			ifaceName := port
 			if attach.Switch.VLAN != 0 {
+				vlan = pointer.To(attach.Switch.VLAN)
 				ifaceName = fmt.Sprintf("%s.%d", port, attach.Switch.VLAN)
 			}
+
+			// no IPs means BGP unnumbered, with the neighbor keyed by the interface
+			unnumbered := attach.Switch.IP == ""
+			subIface := &dozer.SpecSubinterface{VLAN: vlan}
+			neighborKey := ifaceName
+			switchIP := ""
+			if unnumbered {
+				subIface.IPv6 = &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}
+			} else {
+				ipNet, err := netip.ParsePrefix(attach.Switch.IP)
+				if err != nil {
+					return errors.Wrapf(err, "failed to parse external attach switch ip %s", attach.Switch.IP)
+				}
+				if !ipNet.Addr().Is4() {
+					return fmt.Errorf("invalid external attach switch ip %s, expected IPv4", attach.Switch.IP) //nolint:err113
+				}
+				switchIP = ipNet.Addr().String()
+				subIface.IPs = map[string]*dozer.SpecInterfaceIP{
+					switchIP: {
+						PrefixLen: pointer.To(uint8(ipNet.Bits())), //nolint:gosec
+					},
+				}
+				neighborKey = attach.Neighbor.IP
+			}
+			spec.Interfaces[port].Subinterfaces[uint32(attach.Switch.VLAN)] = subIface
 
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
 
@@ -1492,11 +1495,19 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			neigh := &dozer.SpecVRFBGPNeighbor{
 				Enabled:                   pointer.To(true),
 				Description:               pointer.To(fmt.Sprintf("External attach %s", name)),
-				RemoteAS:                  pointer.To(attach.Neighbor.ASN),
 				IPv4Unicast:               pointer.To(true),
 				IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 				BFDProfile:                bfdProfile,
+			}
+			if attach.Neighbor.ASN != 0 {
+				neigh.RemoteAS = pointer.To(attach.Neighbor.ASN)
+			} else {
+				neigh.PeerType = pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal))
+			}
+			// leave it unset for numbered attachments so we don't touch existing neighbors
+			if unnumbered {
+				neigh.ExtendedNexthop = pointer.To(true)
 			}
 			if external.LocalASN != 0 {
 				// plain local-as would prepend our real ASN after the local one, both on what we
@@ -1505,9 +1516,9 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				neigh.LocalASNoPrepend = pointer.To(true)
 				neigh.LocalASReplaceAs = pointer.To(true)
 			}
-			spec.VRFs[extVrfName].BGP.Neighbors[attach.Neighbor.IP] = neigh
+			spec.VRFs[extVrfName].BGP.Neighbors[neighborKey] = neigh
 
-			if err := planHardenedInboundACL(spec, name, ip.String(), attach.InboundACL); err != nil {
+			if err := planHardenedInboundACL(spec, name, switchIP, attach.InboundACL); err != nil {
 				return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 			}
 			spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
@@ -1734,45 +1745,49 @@ func planHardenedInboundACL(spec *dozer.Spec, attachName string, switchIP string
 		return nil
 	}
 
-	dstAddr := switchIP + "/32"
-
-	entries := map[uint32]*dozer.SpecACLEntry{
-		1: {
-			Protocol:           dozer.SpecACLEntryProtocolTCP,
-			DestinationAddress: pointer.To(dstAddr),
-			DestinationPort:    pointer.To(uint16(443)),
-			Action:             dozer.SpecACLEntryActionDiscard,
-		},
-		2: {
-			Protocol:           dozer.SpecACLEntryProtocolTCP,
-			DestinationAddress: pointer.To(dstAddr),
-			DestinationPort:    pointer.To(uint16(8080)),
-			Action:             dozer.SpecACLEntryActionDiscard,
-		},
-		3: {
-			Protocol:           dozer.SpecACLEntryProtocolUDP,
-			DestinationAddress: pointer.To(dstAddr),
-			DestinationPort:    pointer.To(uint16(67)),
-			Action:             dozer.SpecACLEntryActionDiscard,
-		},
-		4: {
-			Protocol:           dozer.SpecACLEntryProtocolUDP,
-			DestinationAddress: pointer.To(dstAddr),
-			DestinationPort:    pointer.To(uint16(161)),
-			Action:             dozer.SpecACLEntryActionDiscard,
-		},
-		5: {
-			Protocol:           dozer.SpecACLEntryProtocolUDP,
-			DestinationAddress: pointer.To(dstAddr),
-			DestinationPort:    pointer.To(uint16(4789)),
-			Action:             dozer.SpecACLEntryActionDiscard,
-		},
-		6: {
-			Protocol:           dozer.SpecACLEntryProtocolTCP,
-			DestinationAddress: pointer.To(dstAddr),
-			DestinationPort:    pointer.To(uint16(22)),
-			Action:             dozer.SpecACLEntryActionDiscard,
-		},
+	entries := map[uint32]*dozer.SpecACLEntry{}
+	// an unnumbered attachment has no IPv4 address to protect, and this IPv4 ACL can't match its
+	// link-local one
+	if switchIP != "" {
+		dstAddr := switchIP + "/32"
+		entries = map[uint32]*dozer.SpecACLEntry{
+			1: {
+				Protocol:           dozer.SpecACLEntryProtocolTCP,
+				DestinationAddress: pointer.To(dstAddr),
+				DestinationPort:    pointer.To(uint16(443)),
+				Action:             dozer.SpecACLEntryActionDiscard,
+			},
+			2: {
+				Protocol:           dozer.SpecACLEntryProtocolTCP,
+				DestinationAddress: pointer.To(dstAddr),
+				DestinationPort:    pointer.To(uint16(8080)),
+				Action:             dozer.SpecACLEntryActionDiscard,
+			},
+			3: {
+				Protocol:           dozer.SpecACLEntryProtocolUDP,
+				DestinationAddress: pointer.To(dstAddr),
+				DestinationPort:    pointer.To(uint16(67)),
+				Action:             dozer.SpecACLEntryActionDiscard,
+			},
+			4: {
+				Protocol:           dozer.SpecACLEntryProtocolUDP,
+				DestinationAddress: pointer.To(dstAddr),
+				DestinationPort:    pointer.To(uint16(161)),
+				Action:             dozer.SpecACLEntryActionDiscard,
+			},
+			5: {
+				Protocol:           dozer.SpecACLEntryProtocolUDP,
+				DestinationAddress: pointer.To(dstAddr),
+				DestinationPort:    pointer.To(uint16(4789)),
+				Action:             dozer.SpecACLEntryActionDiscard,
+			},
+			6: {
+				Protocol:           dozer.SpecACLEntryProtocolTCP,
+				DestinationAddress: pointer.To(dstAddr),
+				DestinationPort:    pointer.To(uint16(22)),
+				Action:             dozer.SpecACLEntryActionDiscard,
+			},
+		}
 	}
 
 	if userACL != nil {
