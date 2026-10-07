@@ -145,7 +145,7 @@ jobs:
 
     needs:
       - test-build
-    uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
+    uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@dev/frostman/bench
     with:
       skip: >-
         ${{
