@@ -75,6 +75,71 @@ func TestAgentListByConnections(t *testing.T) {
 	require.ErrorContains(t, err, "isn't a valid label value")
 }
 
+func TestAgentSwitchLookups(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	sw := func(name, group string, redundancy meta.RedundancyType, groups ...string) *wiringapi.Switch {
+		s := &wiringapi.Switch{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Spec: wiringapi.SwitchSpec{
+				Groups:     groups,
+				Redundancy: wiringapi.SwitchRedundancy{Group: group, Type: redundancy},
+			},
+		}
+		// adds the redundancy group to the groups and sets their labels
+		s.Default()
+
+		return s
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		sw("leaf-3", "eslag-1", meta.RedundancyTypeESLAG),
+		sw("leaf-1", "eslag-1", meta.RedundancyTypeESLAG),
+		sw("leaf-2", "eslag-1", meta.RedundancyTypeESLAG),
+		sw("leaf-4", "eslag-2", meta.RedundancyTypeESLAG),
+		// in the group, but not as its redundancy group
+		sw("leaf-5", "", meta.RedundancyTypeNone, "eslag-1"),
+		sw("spine-1", "", meta.RedundancyTypeNone),
+	).Build()
+	r := &AgentReconciler{Client: kube}
+
+	get := func(name string) *wiringapi.Switch {
+		s := &wiringapi.Switch{}
+		require.NoError(t, kube.Get(t.Context(), objKey(name), s))
+
+		return s
+	}
+
+	peers, err := r.redundancyGroupPeers(t.Context(), get("leaf-1"))
+	require.NoError(t, err)
+	require.Equal(t, []string{"leaf-2", "leaf-3"}, peers)
+
+	peers, err = r.redundancyGroupPeers(t.Context(), get("leaf-4"))
+	require.NoError(t, err)
+	require.Empty(t, peers)
+
+	peers, err = r.redundancyGroupPeers(t.Context(), get("spine-1"))
+	require.NoError(t, err)
+	require.Empty(t, peers)
+
+	// a peer of another redundancy type is reported
+	leaf2 := get("leaf-2")
+	leaf2.Spec.Redundancy.Type = meta.RedundancyTypeMCLAG
+	require.NoError(t, kube.Update(t.Context(), leaf2))
+	_, err = r.redundancyGroupPeers(t.Context(), get("leaf-1"))
+	require.ErrorContains(t, err, "different redundancy types")
+
+	switches, err := r.getSwitches(t.Context(), kmetav1.NamespaceDefault, map[string]bool{"leaf-1": true, "spine-1": true})
+	require.NoError(t, err)
+	require.Len(t, switches, 2)
+	require.Equal(t, "eslag-1", switches["leaf-1"].Spec.Redundancy.Group)
+
+	// a neighbor that doesn't exist is reported rather than left out
+	_, err = r.getSwitches(t.Context(), kmetav1.NamespaceDefault, map[string]bool{"leaf-1": true, "leaf-9": true})
+	require.ErrorContains(t, err, "getting switch leaf-9")
+}
+
 // TestAgentKubeconfigSecret covers the kubeconfig secret the switches get at install: the kubeconfig is stored as is
 // and the secret isn't rewritten when nothing changed
 func TestAgentKubeconfigSecret(t *testing.T) {
