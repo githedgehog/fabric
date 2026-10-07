@@ -112,7 +112,6 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		lock:        lock,
 	}
 
-	// TODO only enqueue switches when related VPC/VPCAttach/VPCPeering changes
 	return errors.Wrapf(kctrl.NewControllerManagedBy(mgr).
 		Named("Agent").
 		For(&wiringapi.Switch{}).
@@ -124,9 +123,9 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Owns(&corev1.Secret{}, builder.WithPredicates(onlyDeletes)).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabelsAndSpines)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
-		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
-		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByExternalPeering)).
@@ -277,7 +276,7 @@ func (r *AgentReconciler) switchesInFabric(ctx context.Context, namespace, fabri
 }
 
 // enqueueByFabricWide reconciles all switches of the fabric of an External or IPv4Namespace, every switch gets all of
-// them in its fabric
+// them in its fabric, and of a VPC or VPCPeering, as VPCs never leave their fabric
 func (r *AgentReconciler) enqueueByFabricWide(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
 	if r.lock.Locked() {
@@ -289,6 +288,10 @@ func (r *AgentReconciler) enqueueByFabricWide(ctx context.Context, obj kclient.O
 	case *vpcapi.External:
 		fabric = o.Spec.Topology.Fabric
 	case *vpcapi.IPv4Namespace:
+		fabric = o.Spec.Topology.Fabric
+	case *vpcapi.VPC:
+		fabric = o.Spec.Topology.Fabric
+	case *vpcapi.VPCPeering:
 		fabric = o.Spec.Topology.Fabric
 	default:
 		kctrllog.FromContext(ctx).Error(fmt.Errorf("unexpected type %T", obj), "error mapping to switches of the fabric") //nolint:err113
