@@ -2160,8 +2160,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `asn` _integer_ | ASN is the ASN of the BGP neighbor |  |  |
-| `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length) |  |  |
+| `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  |  |
+| `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
 
 
 #### ExternalAttachmentSpec
@@ -2233,7 +2233,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used |  |  |
-| `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length |  |  |
+| `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length.<br />Leave it and neighbor.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
 
 
 #### ExternalAttachmentTopology

@@ -152,6 +152,32 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     false,
 		},
 		{
+			name: "valid unnumbered BGP external attachment",
+			extAtt: l3ExtAttGen("ext-att-01u", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Switch.IP = ""
+				att.Spec.Neighbor.IP = ""
+			}),
+			objects: baseObjs,
+		},
+		{
+			name:    "BGP external attachment without neighbor ASN",
+			extAtt:  l3ExtAttGen("ext-att-01a", withNeighborASN(0)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			cfg:     asnCfg,
+		},
+		{
+			name:    "BGP external attachment with switch IP only",
+			extAtt:  l3ExtAttGen("ext-att-01b", func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.IP = "" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "BGP external attachment with neighbor IP only",
+			extAtt:  l3ExtAttGen("ext-att-01c", func(att *v1beta1.ExternalAttachment) { att.Spec.Switch.IP = "" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
 			name:    "valid static external attachment",
 			extAtt:  staticExtAttGen("ext-att-02"),
 			objects: baseObjs,
