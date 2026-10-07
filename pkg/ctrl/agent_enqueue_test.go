@@ -139,6 +139,14 @@ func TestAgentEnqueueNeighbors(t *testing.T) {
 		}),
 		grouped("leaf-5"),
 		grouped("leaf-6"),
+		// lists the group without being in it as its redundancy group
+		func() *wiringapi.Switch {
+			sw := enqueueTestSwitch("leaf-7", wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabric, wiringapi.DefaultFabricDomain)
+			sw.Spec.Groups = []string{"eslag-1"}
+			sw.Default()
+
+			return sw
+		}(),
 	)
 	r := &AgentReconciler{Client: kube, lock: unlockedLock()}
 
