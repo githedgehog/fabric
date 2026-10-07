@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"net"
 	"slices"
 	"sort"
@@ -124,10 +125,10 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabelsAndSpines)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
-		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
-		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
+		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
@@ -140,36 +141,11 @@ func (r *AgentReconciler) enqueueBySwitchListLabelsAndSpines(ctx context.Context
 		return nil
 	}
 
-	res := []reconcile.Request{}
+	labelSwitches := switchesOfConnection(obj)
+	res := switchRequests(obj.GetNamespace(), labelSwitches)
 
-	labels := obj.GetLabels()
-
-	// TODO extract to lib
-	switchConnPrefix := wiringapi.ListLabelPrefix(wiringapi.ConnectionLabelTypeSwitch)
-
-	labelSwitches := map[string]bool{}
-	needSpines := false
-	for label, val := range labels {
-		if label == wiringapi.LabelConnectionType && val == wiringapi.ConnectionTypeStaticExternal {
-			needSpines = true
-
-			continue
-		}
-		if val != wiringapi.ListLabelValue {
-			continue
-		}
-
-		if strings.HasPrefix(label, switchConnPrefix) {
-			switchName := strings.TrimPrefix(label, switchConnPrefix)
-			res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
-				Namespace: obj.GetNamespace(),
-				Name:      switchName,
-			}})
-			labelSwitches[switchName] = true
-		}
-	}
-
-	if !needSpines {
+	// static externals outside of a VPC are configured on all spines
+	if obj.GetLabels()[wiringapi.LabelConnectionType] != wiringapi.ConnectionTypeStaticExternal {
 		return res
 	}
 
@@ -197,6 +173,70 @@ func (r *AgentReconciler) enqueueBySwitchListLabelsAndSpines(ctx context.Context
 	}
 
 	return res
+}
+
+// switchesOfConnection returns the switches a connection is on, by its switch list labels, which are also what a
+// switch's connections are listed by in the reconcile
+func switchesOfConnection(conn kclient.Object) map[string]bool {
+	prefix := wiringapi.ListLabelPrefix(wiringapi.ConnectionLabelTypeSwitch)
+
+	switches := map[string]bool{}
+	for label, val := range conn.GetLabels() {
+		if val != wiringapi.ListLabelValue {
+			continue
+		}
+		if name, ok := strings.CutPrefix(label, prefix); ok {
+			switches[name] = true
+		}
+	}
+
+	return switches
+}
+
+// switchRequests turns switch names into requests, sorted for a stable order
+func switchRequests(namespace string, switches map[string]bool) []reconcile.Request {
+	res := make([]reconcile.Request, 0, len(switches))
+	for _, name := range slices.Sorted(maps.Keys(switches)) {
+		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{Namespace: namespace, Name: name}})
+	}
+
+	return res
+}
+
+// enqueueByAttachment reconciles the switches of the connection a VPC or external attachment is on, they're the only
+// ones getting it
+func (r *AgentReconciler) enqueueByAttachment(ctx context.Context, obj kclient.Object) []reconcile.Request {
+	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
+	if r.lock.Locked() {
+		return nil
+	}
+
+	var connName string
+	switch attach := obj.(type) {
+	case *vpcapi.VPCAttachment:
+		connName = attach.Spec.Connection
+	case *vpcapi.ExternalAttachment:
+		connName = attach.Spec.Connection
+	default:
+		kctrllog.FromContext(ctx).Error(fmt.Errorf("unexpected type %T", obj), "error mapping attachment to switches") //nolint:err113
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	conn := &wiringapi.Connection{}
+	if err := r.Get(ctx, ktypes.NamespacedName{Namespace: obj.GetNamespace(), Name: connName}, conn); err != nil {
+		// without its connection the attachment isn't on any switch, and deleting the connection reconciles its
+		// switches by itself
+		if kapierrors.IsNotFound(err) {
+			return nil
+		}
+
+		kctrllog.FromContext(ctx).Error(err, "error getting attachment connection, reconciling all switches", "connection", connName)
+
+		return r.enqueueAllSwitches(ctx, obj)
+	}
+
+	return switchRequests(obj.GetNamespace(), switchesOfConnection(conn))
 }
 
 func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
