@@ -81,6 +81,18 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		return warn, errors.Wrapf(err, "failed to validate ipv4namespace")
 	}
 
+	ics := &vpcapi.VPCInterconnectList{}
+	if err := w.Client.List(ctx, ics, kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: newNs.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing VPC interconnects") // TODO hide internal error
+	}
+	for _, ic := range ics.Items {
+		if err := newNs.CheckOutside("remote prefix", ic.Spec.Remote.Prefixes); err != nil {
+			return nil, fmt.Errorf("VPC interconnect %s: %w", ic.Name, err)
+		}
+	}
+
 	nsSubnets := []netip.Prefix{}
 	for _, subnet := range newNs.Spec.Subnets {
 		ipNet, err := netip.ParsePrefix(subnet)
@@ -154,6 +166,16 @@ func (w *IPv4NamespaceWebhook) ValidateDelete(ctx context.Context, ns *vpcapi.IP
 	}
 	if len(externals.Items) > 0 {
 		return nil, errors.Errorf("IPv4Namespace has externals")
+	}
+
+	ics := &vpcapi.VPCInterconnectList{}
+	if err := w.Client.List(ctx, ics, kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: ns.Name,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing VPC interconnects") // TODO hide internal error
+	}
+	if len(ics.Items) > 0 {
+		return nil, errors.Errorf("IPv4Namespace has VPC interconnects")
 	}
 
 	return nil, nil

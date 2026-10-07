@@ -83,6 +83,19 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, new
 		return warns, errors.Wrapf(err, "failed to validate vpc")
 	}
 
+	// the agent of a border leaf fails to plan a VPC interconnect whose VPC lost what it relies on
+	ics := &vpcapi.VPCInterconnectList{}
+	if err := w.Client.List(ctx, ics, kclient.MatchingLabels{
+		vpcapi.ListLabelVPC(newVPC.Name): vpcapi.ListLabelValue,
+	}); err != nil {
+		return warns, errors.Wrapf(err, "error listing VPC interconnects") // TODO hide internal error
+	}
+	for _, ic := range ics.Items {
+		if err := ic.Spec.CheckLocalVPC(newVPC.Name, &newVPC.Spec); err != nil {
+			return warns, fmt.Errorf("VPC interconnect %s: %w", ic.Name, err)
+		}
+	}
+
 	// TODO check that you can only add subnets, or edit/remove unused ones
 
 	// for subnetName, oldSubnet := range oldVPC.Spec.Subnets {
@@ -128,6 +141,16 @@ func (w *VPCWebhook) ValidateDelete(ctx context.Context, vpc *vpcapi.VPC) (admis
 	}
 	if len(extPeerings.Items) > 0 {
 		return nil, errors.Errorf("VPC has external peerings")
+	}
+
+	ics := &vpcapi.VPCInterconnectList{}
+	if err := w.Client.List(ctx, ics, kclient.MatchingLabels{
+		vpcapi.ListLabelVPC(vpc.Name): vpcapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing VPC interconnects") // TODO hide internal error
+	}
+	if len(ics.Items) > 0 {
+		return nil, errors.Errorf("VPC has VPC interconnects")
 	}
 
 	staticExts := &wiringapi.ConnectionList{}

@@ -169,6 +169,7 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 		{"external", &vpcapi.ExternalList{}},
 		{"external attachment", &vpcapi.ExternalAttachmentList{}},
 		{"external peering", &vpcapi.ExternalPeeringList{}},
+		{"VPC interconnect", &vpcapi.VPCInterconnectList{}},
 		{"gateway", &gwapi.GatewayList{}},
 		{"gateway group", &gwapi.GatewayGroupList{}},
 		{"gateway peering", &gwapi.GatewayPeeringList{}},
@@ -200,6 +201,8 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 			case *vpcapi.ExternalAttachment:
 				declared = o.Spec.Topology.Fabric
 			case *vpcapi.ExternalPeering:
+				declared = o.Spec.Topology.Fabric
+			case *vpcapi.VPCInterconnect:
 				declared = o.Spec.Topology.Fabric
 			case *gwapi.Gateway:
 				declared = o.Spec.Topology.Fabric

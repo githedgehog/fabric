@@ -310,6 +310,9 @@ func run(ctx context.Context) error {
 	if err = ctrl.SetupExternalPeeringWebhookWith(mgr, cfg, lock); err != nil {
 		return fmt.Errorf("setting up external peering webhook: %w", err)
 	}
+	if err = ctrl.SetupVPCInterconnectWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up VPC interconnect webhook: %w", err)
+	}
 	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles, lock); err != nil {
 		return fmt.Errorf("setting up switch profile webhook: %w", err)
 	}

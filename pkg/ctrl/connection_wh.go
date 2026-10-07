@@ -206,5 +206,15 @@ func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, conn *wiringapi.
 		return nil, errors.Errorf("connection has external attachments")
 	}
 
+	ics := &vpcapi.VPCInterconnectList{}
+	if err := w.Client.List(ctx, ics, kclient.MatchingLabels{
+		wiringapi.ListLabelConnection(conn.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "error listing VPC interconnects") // TODO hide internal error
+	}
+	if len(ics.Items) > 0 {
+		return nil, errors.Errorf("connection has VPC interconnects")
+	}
+
 	return nil, nil
 }

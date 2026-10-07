@@ -66,6 +66,10 @@ func ListLabelSwitch(switchName string) string {
 	return ListLabel(ConnectionLabelTypeSwitch, switchName)
 }
 
+func ListLabelConnection(connName string) string {
+	return ListLabel("connection", connName)
+}
+
 func ListLabelVLANNamespace(vlanNamespace string) string {
 	return ListLabel("vlanns", vlanNamespace)
 }

@@ -57,6 +57,7 @@ var refreshKinds = []refreshKind{
 	{"External", func() kclient.ObjectList { return &vpcapi.ExternalList{} }},
 	{"ExternalAttachment", func() kclient.ObjectList { return &vpcapi.ExternalAttachmentList{} }},
 	{"ExternalPeering", func() kclient.ObjectList { return &vpcapi.ExternalPeeringList{} }},
+	{"VPCInterconnect", func() kclient.ObjectList { return &vpcapi.VPCInterconnectList{} }},
 	{"GatewayGroup", func() kclient.ObjectList { return &gwapi.GatewayGroupList{} }},
 	{"Gateway", func() kclient.ObjectList { return &gwapi.GatewayList{} }},
 	{"VPCInfo", func() kclient.ObjectList { return &gwapi.VPCInfoList{} }},
@@ -64,7 +65,7 @@ var refreshKinds = []refreshKind{
 }
 
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics;switchprofiles;vlannamespaces;switchgroups;switches;servers;connections,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces;vpcs;vpcattachments;vpcpeerings;externals;externalattachments;externalpeerings,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces;vpcs;vpcattachments;vpcpeerings;externals;externalattachments;externalpeerings;vpcinterconnects,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups;gateways;vpcinfos;gatewaypeerings,verbs=get;list;watch;update
 
 type refreshKind struct {

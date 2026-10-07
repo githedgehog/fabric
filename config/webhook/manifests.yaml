@@ -354,6 +354,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-vpc-githedgehog-com-v1beta1-vpcinterconnect
+  failurePolicy: Fail
+  name: mvpcinterconnect.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vpcinterconnects
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-vpc-githedgehog-com-v1beta1-vpcpeering
   failurePolicy: Fail
   name: mvpcpeering.kb.io
@@ -730,6 +750,27 @@ webhooks:
     - DELETE
     resources:
     - vpcinfos
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-vpc-githedgehog-com-v1beta1-vpcinterconnect
+  failurePolicy: Fail
+  name: vvpcinterconnect.kb.io
+  rules:
+  - apiGroups:
+    - vpc.githedgehog.com
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - vpcinterconnects
   sideEffects: None
 - admissionReviewVersions:
   - v1
