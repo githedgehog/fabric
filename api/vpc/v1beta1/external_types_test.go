@@ -195,6 +195,10 @@ func TestExternalLocalASNValidation(t *testing.T) {
 		att.Spec.External = "external-01"
 		att.Spec.Neighbor.ASN = 64000
 	})
+	attachNoASN := attach.DeepCopy()
+	attachNoASN.Name = "ext-att-02"
+	attachNoASN.Spec.Neighbor.ASN = 0
+	staticAttach := staticExtAttGen("ext-att-03", func(att *v1beta1.ExternalAttachment) { att.Spec.External = attach.Spec.External })
 	// Fabric/default, added to the objects of every test, is created from this
 	cfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
 	defaultFabric := fabricObj(wiringapi.DefaultFabric, cfg)
@@ -237,6 +241,17 @@ func TestExternalLocalASNValidation(t *testing.T) {
 			external: withLocalASN(64000),
 			objects:  []kclient.Object{ipns, attach},
 			err:      true,
+		},
+		{
+			name:     "localASN with an attachment without a neighbor ASN",
+			external: withLocalASN(64999),
+			objects:  []kclient.Object{ipns, attachNoASN},
+			err:      true,
+		},
+		{
+			name:     "localASN with a static attachment",
+			external: withLocalASN(64999),
+			objects:  []kclient.Object{ipns, staticAttach},
 		},
 		{
 			name:     "localASN in another fabric leaf range",
