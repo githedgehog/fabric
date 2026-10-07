@@ -278,7 +278,7 @@ func (i *FabricControllerInitializer) refreshObject(ctx context.Context, kind, k
 		// deleted since the cache listed it, nothing left to refresh; it's gone from the cache by a later pass too
 		return
 	case kapierrors.IsInvalid(err) || kapierrors.IsForbidden(err) || kapierrors.IsBadRequest(err):
-		l.Info("Refresh rejected, leaving the object as is", "error", err.Error())
+		l.Error(err, "Refresh rejected, leaving the object as is")
 		st.update(func() {
 			st.excluded[key] = true
 			progress.Rejected++
