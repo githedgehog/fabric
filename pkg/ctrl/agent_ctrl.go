@@ -280,7 +280,10 @@ func (r *AgentReconciler) enqueueNeighbors(ctx context.Context, obj kclient.Obje
 			return r.enqueueAllSwitches(ctx, obj)
 		}
 		for _, peer := range peers.Items {
-			switches[peer.Name] = true
+			// the label is on every switch listing the group, not only the ones having it as their redundancy group
+			if peer.Spec.Redundancy.Group == group {
+				switches[peer.Name] = true
+			}
 		}
 	}
 
