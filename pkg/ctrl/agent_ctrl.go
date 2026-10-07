@@ -430,19 +430,14 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	switchList := &wiringapi.SwitchList{}
-	err = r.List(ctx, switchList, kclient.InNamespace(sw.Namespace))
+	neighbors, err := r.getSwitches(ctx, sw.Namespace, neighborSwitches)
 	if err != nil {
-		return kctrl.Result{}, errors.Wrapf(err, "error getting switches")
+		return kctrl.Result{}, fmt.Errorf("getting neighbor switches: %w", err)
 	}
-
 	switches := map[string]wiringapi.SwitchSpec{}
-	for _, sw := range switchList.Items {
-		if !neighborSwitches[sw.Name] {
-			continue
-		}
-		switches[sw.Name] = sw.Spec
-		benchTouch = maxBenchTouch(benchTouch, &sw)
+	for name, neighbor := range neighbors {
+		switches[name] = neighbor.Spec
+		benchTouch = maxBenchTouch(benchTouch, neighbor)
 	}
 
 	attaches := map[string]agentapi.VPCAttachmentSpecAnn{}
@@ -666,17 +661,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		portChanConns[name] = true
 	}
 
-	rgPeers := []string{}
-	if sw.Spec.Redundancy.Group != string(fmeta.RedundancyTypeNone) {
-		for _, other := range switchList.Items {
-			if sw.Spec.Redundancy.Group == other.Spec.Redundancy.Group && sw.Name != other.Name {
-				if sw.Spec.Redundancy.Type != other.Spec.Redundancy.Type {
-					return kctrl.Result{}, errors.Errorf("switch %s and %s have different redundancy types but in the redundancy same group", sw.Name, other.Name)
-				}
-
-				rgPeers = append(rgPeers, other.Name)
-			}
-		}
+	rgPeers, err := r.redundancyGroupPeers(ctx, sw)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("getting redundancy group peers: %w", err)
 	}
 
 	for _, rgPeerName := range rgPeers {
@@ -1142,6 +1129,53 @@ func (r *AgentReconciler) genKubeconfig(secret *corev1.Secret) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// getSwitches gets the named switches one by one rather than copying all of them out of the cache. They're the
+// neighbors of a switch, so they must exist: connections refuse missing switches and connected ones can't be deleted.
+func (r *AgentReconciler) getSwitches(ctx context.Context, namespace string, names map[string]bool) (map[string]*wiringapi.Switch, error) {
+	switches := make(map[string]*wiringapi.Switch, len(names))
+	for name := range names {
+		sw := &wiringapi.Switch{}
+		if err := r.Get(ctx, ktypes.NamespacedName{Namespace: namespace, Name: name}, sw); err != nil {
+			return nil, fmt.Errorf("getting switch %s: %w", name, err)
+		}
+
+		switches[name] = sw
+	}
+
+	return switches, nil
+}
+
+// redundancyGroupPeers returns the other switches of the switch's redundancy group, sorted so that the agent spec
+// doesn't change with the order they're listed in. They're found by the label of the group, which the redundancy
+// group is always one of.
+func (r *AgentReconciler) redundancyGroupPeers(ctx context.Context, sw *wiringapi.Switch) ([]string, error) {
+	peers := []string{}
+
+	group := sw.Spec.Redundancy.Group
+	if group == "" {
+		return peers, nil
+	}
+
+	sws := &wiringapi.SwitchList{}
+	if err := r.List(ctx, sws, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForSwitchGroup(group)); err != nil {
+		return nil, fmt.Errorf("listing switches of group %s: %w", group, err)
+	}
+
+	for _, other := range sws.Items {
+		if other.Name == sw.Name || other.Spec.Redundancy.Group != group {
+			continue
+		}
+		if other.Spec.Redundancy.Type != sw.Spec.Redundancy.Type {
+			return nil, fmt.Errorf("switch %s and %s have different redundancy types but are in the same redundancy group", sw.Name, other.Name) //nolint:err113
+		}
+
+		peers = append(peers, other.Name)
+	}
+	slices.Sort(peers)
+
+	return peers, nil
 }
 
 // listByConnections lists the objects labeled with one of the connections, as VPC and external attachments are, so
