@@ -178,7 +178,9 @@ func TestCatalogOwners(t *testing.T) {
 
 	for _, name := range []string{"leaf-1", "leaf-2", "leaf-3"} {
 		s := get(&wiringapi.Switch{}, name).(*wiringapi.Switch)
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil))
+		// something to allocate, as a catalog left without an owner is otherwise unchanged and never saved
+		portChanConns := map[string]bool{name + "--bundled": true}
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil))
 		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil))
 	}
 
@@ -187,6 +189,54 @@ func TestCatalogOwners(t *testing.T) {
 	require.Equal(t, []string{"Switch/leaf-2"}, owners("switch.leaf-2"))
 	require.Equal(t, []string{"SwitchGroup/eslag-1"}, owners("redundancy.eslag-1"))
 	require.Empty(t, owners("redundancy.eslag-2"))
+}
+
+// TestSwitchCatalogsNotRewritten covers the catalogs every switch reconcile goes through: they're only saved when
+// something in them changed
+func TestSwitchCatalogsNotRewritten(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}},
+	).Build()
+	libr := librarian.NewManager(&meta.FabricConfig{})
+
+	sw := &wiringapi.Switch{}
+	require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}, sw))
+
+	resourceVersion := func() string {
+		t.Helper()
+
+		cat := &agentapi.Catalog{}
+		require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Name: "switch.leaf-1", Namespace: librarian.Namespace}, cat))
+
+		return cat.ResourceVersion
+	}
+
+	// without a redundancy group both builders write the same catalog
+	build := func(portChanConns, subnets map[string]bool) {
+		t.Helper()
+
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil))
+		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, nil, nil, subnets, nil))
+	}
+
+	build(map[string]bool{"conn-1": true}, map[string]bool{"10.0.1.0/24": true})
+	rv := resourceVersion()
+
+	// the same requests change nothing
+	build(map[string]bool{"conn-1": true}, map[string]bool{"10.0.1.0/24": true})
+	require.Equal(t, rv, resourceVersion())
+
+	// a new request is saved, by either builder
+	build(map[string]bool{"conn-1": true, "conn-2": true}, map[string]bool{"10.0.1.0/24": true})
+	require.NotEqual(t, rv, resourceVersion())
+	rv = resourceVersion()
+
+	build(map[string]bool{"conn-1": true, "conn-2": true}, map[string]bool{"10.0.1.0/24": true, "10.0.2.0/24": true})
+	require.NotEqual(t, rv, resourceVersion())
 }
 
 func TestGetOrEnsureVPCInfoID(t *testing.T) {
