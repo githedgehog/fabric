@@ -66,6 +66,9 @@ type FabricControllerRefreshKind struct {
 	Rejected int `json:"rejected,omitempty"`
 	// Stale is the number of objects that still don't carry the current defaults after retries
 	Stale int `json:"stale,omitempty"`
+	// Invalid is the number of objects that fail the validation of the current version, checked without looking up
+	// other objects. They still get the current defaults, but any change to them is rejected until they're fixed
+	Invalid int `json:"invalid,omitempty"`
 }
 
 // +kubebuilder:object:root=true

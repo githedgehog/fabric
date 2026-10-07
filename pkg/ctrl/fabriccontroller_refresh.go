@@ -13,6 +13,7 @@ import (
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"golang.org/x/sync/errgroup"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 const (
@@ -85,6 +87,8 @@ type refreshState struct {
 	// defaulted it. After refreshMaxAttempts writes the object is left alone and counted as stale.
 	writes   map[string]int
 	excluded map[string]bool
+	// validated are the objects already validated by this refresh, once is enough
+	validated map[string]bool
 }
 
 func (st *refreshState) kind(kind string) *fcintapi.FabricControllerRefreshKind {
@@ -105,6 +109,19 @@ func (st *refreshState) isExcluded(key string) bool {
 	return st.excluded[key]
 }
 
+// firstValidation records the object as validated, it's true the first time only
+func (st *refreshState) firstValidation(key string) bool {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	if st.validated[key] {
+		return false
+	}
+	st.validated[key] = true
+
+	return true
+}
+
 func (st *refreshState) update(f func()) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
@@ -115,7 +132,8 @@ func (st *refreshState) update(f func()) {
 // refresh writes the current defaults to every stored object that doesn't carry them. It repeats passes over the
 // cache until one finds nothing left to change: informers aren't ordered against each other, so the FabricController
 // update that unlocks reconcilers could otherwise reach them before the last refreshed objects do. Objects whose
-// write is rejected or that keep coming back without the current defaults are left out and recorded in the status.
+// write is rejected or that keep coming back without the current defaults are left out and recorded in the status,
+// as are the objects that fail the current validation, which are still updated with the current defaults.
 func (i *FabricControllerInitializer) refresh(ctx context.Context, fc *fcintapi.FabricController) error {
 	l := kctrllog.FromContext(ctx)
 
@@ -132,9 +150,10 @@ func (i *FabricControllerInitializer) refresh(ctx context.Context, fc *fcintapi.
 	}
 
 	st := &refreshState{
-		kinds:    map[string]*fcintapi.FabricControllerRefreshKind{},
-		writes:   map[string]int{},
-		excluded: map[string]bool{},
+		kinds:     map[string]*fcintapi.FabricControllerRefreshKind{},
+		writes:    map[string]int{},
+		excluded:  map[string]bool{},
+		validated: map[string]bool{},
 	}
 	lastReport := time.Now()
 
@@ -219,6 +238,9 @@ func (i *FabricControllerInitializer) refreshKind(ctx context.Context, k refresh
 		// the list shares the cache's objects, so defaulting needs a copy: the only one per object and pass
 		want, _ := obj.DeepCopyObject().(defaultable)
 		want.Default()
+		if st.firstValidation(key) {
+			i.validateStored(ctx, k.kind, want, st)
+		}
 		if defaultedEqual(obj, want) {
 			return nil
 		}
@@ -237,6 +259,34 @@ func (i *FabricControllerInitializer) refreshKind(ctx context.Context, k refresh
 	_ = g.Wait()
 
 	return diffs, nil
+}
+
+// validateStored reports a stored object that fails the validation of the current version. The object is still
+// updated with the current defaults: the refresh skips validation, as an object left without the current defaults
+// and labels is missed by whatever looks it up by them. It's validated without a client, so without looking up other
+// objects, and on its own copy, as it's only checked. obj is the defaulted object, as the webhooks validate it.
+func (i *FabricControllerInitializer) validateStored(ctx context.Context, kind string, obj defaultable, st *refreshState) {
+	var err error
+	switch v := obj.DeepCopyObject().(type) {
+	case interface {
+		Validate(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) (admission.Warnings, error)
+	}:
+		_, err = v.Validate(ctx, nil, i.cfg)
+	case interface {
+		Validate(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) error
+	}:
+		err = v.Validate(ctx, nil, i.cfg)
+	default:
+		err = fmt.Errorf("%T can't be validated", obj) //nolint:err113
+	}
+	if err == nil {
+		return
+	}
+
+	kctrllog.FromContext(ctx).Error(err, "Stored object fails validation, any change to it is rejected until it's fixed",
+		"kind", kind, "ns", obj.GetNamespace(), "name", obj.GetName())
+	progress := st.kind(kind)
+	st.update(func() { progress.Invalid++ })
 }
 
 // refreshObject writes an object with the current defaults and records the outcome. obj is the refresh's own copy.
