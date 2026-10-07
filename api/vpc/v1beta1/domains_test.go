@@ -188,6 +188,14 @@ func TestPeeringDomains(t *testing.T) {
 		vpcIn("plane-2", "plane-2"),
 		vpcIn("storage", "plane-1", "plane-2"),
 		vpcGen("other-fabric", func(vpc *v1beta1.VPC) { vpc.Spec.Topology.Fabric = "backend" }),
+		vpcGen("other-ipv4ns", func(vpc *v1beta1.VPC) {
+			vpc.Spec.Topology.Domains = []string{"plane-1"}
+			vpc.Spec.IPv4Namespace = "ipv4ns-2"
+		}),
+		vpcGen("other-vlanns", func(vpc *v1beta1.VPC) {
+			vpc.Spec.Topology.Domains = []string{"plane-1"}
+			vpc.Spec.VLANNamespace = "vlanns-2"
+		}),
 		extGen("ext-1", func(ext *v1beta1.External) { ext.Spec.Topology.Domain = "plane-1" }),
 		ipv4NamespaceObj(),
 		defaulted(&wiringapi.VLANNamespace{
@@ -249,6 +257,8 @@ func TestPeeringDomains(t *testing.T) {
 		err      string
 	}{
 		{name: "dhcp relay vpc sharing a domain", validate: relayVPC("plane-1", "storage")},
+		{name: "dhcp relay vpc in another ipv4 namespace", validate: relayVPC("plane-1", "other-ipv4ns"), err: "subnet default: vpc is in IPv4 namespace default but dhcp relay vpc other-ipv4ns is in ipv4ns-2"},
+		{name: "dhcp relay vpc in another vlan namespace", validate: relayVPC("plane-1", "other-vlanns"), err: "subnet default: vpc is in VLAN namespace default but dhcp relay vpc other-vlanns is in vlanns-2"},
 		{name: "dhcp relay vpc sharing no domain", validate: relayVPC("plane-1", "plane-2"), err: "subnet default: vpc is in domains [plane-1] and dhcp relay vpc plane-2 in domains [plane-2], they must share one"},
 		{name: "dhcp relay vpc in another fabric", validate: relayVPC("plane-1", "other-fabric"), err: "subnet default: vpc is in fabric default but dhcp relay vpc other-fabric is in fabric backend"},
 		{name: "vpc peering sharing one domain", validate: vpcPeering("plane-1", "storage")},

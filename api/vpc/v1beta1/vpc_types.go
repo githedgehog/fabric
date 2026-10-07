@@ -905,6 +905,12 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				if !slices.ContainsFunc(vpcDomains, func(domain string) bool { return slices.Contains(relayDomains, domain) }) {
 					return nil, fmt.Errorf("subnet %s: vpc is in domains %v and dhcp relay vpc %s in domains %v, they must share one", subnetName, vpcDomains, relayVPC.Name, relayDomains) //nolint:err113
 				}
+				if relayNs := relayVPC.Spec.IPv4Namespace; relayNs != vpc.Spec.IPv4Namespace {
+					return nil, fmt.Errorf("subnet %s: vpc is in IPv4 namespace %s but dhcp relay vpc %s is in %s", subnetName, vpc.Spec.IPv4Namespace, relayVPC.Name, relayNs) //nolint:err113
+				}
+				if relayNs := relayVPC.Spec.VLANNamespace; relayNs != vpc.Spec.VLANNamespace {
+					return nil, fmt.Errorf("subnet %s: vpc is in VLAN namespace %s but dhcp relay vpc %s is in %s", subnetName, vpc.Spec.VLANNamespace, relayVPC.Name, relayNs) //nolint:err113
+				}
 			}
 		}
 
