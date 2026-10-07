@@ -131,6 +131,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&vpcapi.External{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.ExternalAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.ExternalPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByExternalPeering)).
+		Watches(&vpcapi.RemotePeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
 		Watches(&wiringapi.VLANNamespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByVLANNamespace)).
@@ -354,8 +355,8 @@ func (r *AgentReconciler) switchesInFabric(ctx context.Context, namespace, fabri
 	return switches, nil
 }
 
-// enqueueByFabricWide reconciles all switches of the fabric of an External or IPv4Namespace, every switch gets all of
-// them in its fabric, and of a VPC or VPCPeering, as VPCs never leave their fabric
+// enqueueByFabricWide reconciles all switches of the fabric of an External, RemotePeering or IPv4Namespace, every switch
+// gets all of them in its fabric, and of a VPC or VPCPeering, as VPCs never leave their fabric
 func (r *AgentReconciler) enqueueByFabricWide(ctx context.Context, obj kclient.Object) []reconcile.Request {
 	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
 	if r.lock.Locked() {
@@ -365,6 +366,8 @@ func (r *AgentReconciler) enqueueByFabricWide(ctx context.Context, obj kclient.O
 	var fabric string
 	switch o := obj.(type) {
 	case *vpcapi.External:
+		fabric = o.Spec.Topology.Fabric
+	case *vpcapi.RemotePeering:
 		fabric = o.Spec.Topology.Fabric
 	case *vpcapi.IPv4Namespace:
 		fabric = o.Spec.Topology.Fabric
@@ -563,6 +566,9 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Ob
 
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings/status,verbs=get;update;patch
+
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=remotepeerings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=remotepeerings/status,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
@@ -832,6 +838,37 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		benchTouch = maxBenchTouch(benchTouch, &peering)
 	}
 
+	// every switch of the fabric gets all remote peerings, for their communities, but only configures the ones with a
+	// link on it
+	remotePeerings := map[string]vpcapi.RemotePeeringSpec{}
+	remotePeeringsReq := map[string]bool{}
+	attachedRemotePeerings := map[string]bool{}
+	rpList := &vpcapi.RemotePeeringList{}
+	if err := r.List(ctx, rpList, kclient.InNamespace(sw.Namespace)); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing remote peerings: %w", err)
+	}
+	for _, rp := range rpList.Items {
+		if rp.Spec.Topology.Fabric != sw.Spec.Topology.Fabric {
+			continue
+		}
+
+		remotePeerings[rp.Name] = rp.Spec
+		remotePeeringsReq[rp.Name] = true
+		benchTouch = maxBenchTouch(benchTouch, &rp)
+		if !slices.ContainsFunc(rp.Spec.Links, func(link vpcapi.RemotePeeringLink) bool {
+			_, exists := conns[link.Connection]
+
+			return exists
+		}) {
+			continue
+		}
+
+		attachedRemotePeerings[rp.Name] = true
+		for vpcName := range rp.Spec.Local {
+			peeredVPCs[vpcName] = true
+		}
+	}
+
 	for _, vpc := range vpcList.Items {
 		if peeredVPCs[vpc.Name] {
 			vpcs[vpc.Name] = vpc.Spec
@@ -926,13 +963,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		idConns[name] = true
 	}
 
-	if _, err := r.libr.EnsureVNIs(ctx, r.Client, vpcs, externalsReq); err != nil {
+	if _, err := r.libr.EnsureVNIs(ctx, r.Client, vpcs, externalsReq, remotePeeringsReq); err != nil {
 		return kctrl.Result{}, fmt.Errorf("updating VNIs catalog: %w", err)
 	}
 
 	cat := &agentapi.CatalogSpec{}
 
-	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq)
+	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq, remotePeeringsReq, attachedRemotePeerings)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
@@ -990,6 +1027,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			subnetsReq[prefix.Prefix] = true
 		}
 	}
+	for name := range attachedRemotePeerings {
+		for _, prefix := range remotePeerings[name].Remote.Prefixes {
+			subnetsReq[prefix] = true
+		}
+	}
 	for connName, conn := range conns {
 		if conn.StaticExternal == nil {
 			continue
@@ -1039,7 +1081,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw, loWorkaroundLinks, loWorkaroundReqs, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw, loWorkaroundLinks, loWorkaroundReqs, externalsReq, attachedRemotePeerings, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
@@ -1138,6 +1180,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		agent.Spec.Externals = externals
 		agent.Spec.ExternalAttachments = externalAttaches
 		agent.Spec.ExternalPeerings = externalPeerings
+		agent.Spec.RemotePeerings = remotePeerings
 		agent.Spec.ConfiguredVPCSubnets = configuredSubnets
 		agent.Spec.AttachedVPCs = attachedVPCs
 		agent.Spec.Users = userCreds

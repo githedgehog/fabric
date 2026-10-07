@@ -996,7 +996,7 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 	}
 
 	for vrfName := range sonicVRFs.VRF_LIST {
-		if vrfName != VRFDefault && !strings.HasPrefix(vrfName, "VrfI") && !strings.HasPrefix(vrfName, "VrfE") {
+		if vrfName != VRFDefault && !strings.HasPrefix(vrfName, "VrfI") && !strings.HasPrefix(vrfName, "VrfE") && !strings.HasPrefix(vrfName, "VrfR") {
 			continue
 		}
 

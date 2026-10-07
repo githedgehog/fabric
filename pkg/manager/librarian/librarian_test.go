@@ -70,7 +70,7 @@ func TestEnsureVNIs(t *testing.T) {
 	update := func(vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) bool {
 		t.Helper()
 
-		updated, err := libr.EnsureVNIs(t.Context(), kube, vpcs, externals)
+		updated, err := libr.EnsureVNIs(t.Context(), kube, vpcs, externals, nil)
 		require.NoError(t, err)
 
 		return updated
@@ -103,6 +103,15 @@ func TestEnsureVNIs(t *testing.T) {
 	require.NoError(t, kube.Create(t.Context(), &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-2", Namespace: kmetav1.NamespaceDefault}}))
 	require.True(t, update(nil, map[string]bool{"ext-2": true}))
 	require.Contains(t, catalog().Spec.VPCVNIs, librarian.ReqForExt("ext-2"))
+
+	// so does a new remote peering, from the same pool, so its community is never a VPC's
+	require.NoError(t, kube.Create(t.Context(), &vpcapi.RemotePeering{ObjectMeta: kmetav1.ObjectMeta{Name: "rp-1", Namespace: kmetav1.NamespaceDefault}}))
+	updated, err := libr.EnsureVNIs(t.Context(), kube, nil, nil, map[string]bool{"rp-1": true})
+	require.NoError(t, err)
+	require.True(t, updated)
+	vnis = catalog().Spec
+	require.Contains(t, vnis.VPCVNIs, librarian.ReqForRP("rp-1"))
+	require.NotContains(t, []uint32{vnis.VPCVNIs["vpc-1"], vnis.VPCVNIs[librarian.ReqForExt("ext-1")], vnis.VPCVNIs[librarian.ReqForExt("ext-2")]}, vnis.VPCVNIs[librarian.ReqForRP("rp-1")])
 
 	// getting an allocated VNI doesn't touch the catalog
 	cat = catalog()
@@ -180,8 +189,8 @@ func TestCatalogOwners(t *testing.T) {
 		s := get(&wiringapi.Switch{}, name).(*wiringapi.Switch)
 		// something to allocate, as a catalog left without an owner is otherwise unchanged and never saved
 		portChanConns := map[string]bool{name + "--bundled": true}
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil))
-		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil, nil))
 	}
 
 	// without a redundancy group both catalogs are the same one, owned by the switch
@@ -219,8 +228,8 @@ func TestSwitchCatalogsNotRewritten(t *testing.T) {
 	build := func(portChanConns, subnets map[string]bool) {
 		t.Helper()
 
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil))
-		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, nil, nil, subnets, nil))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, nil, nil, nil, subnets, nil))
 	}
 
 	build(map[string]bool{"conn-1": true}, map[string]bool{"10.0.1.0/24": true})

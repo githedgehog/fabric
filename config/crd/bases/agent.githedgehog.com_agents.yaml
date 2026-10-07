@@ -1317,6 +1317,173 @@ spec:
                 type: array
               reinstall:
                 type: string
+              remotePeerings:
+                additionalProperties:
+                  description: RemotePeeringSpec defines the desired state of RemotePeering
+                  properties:
+                    ipv4Namespace:
+                      description: IPv4Namespace is the IPv4Namespace of the local
+                        VPCs (if not specified, "default" is used)
+                      type: string
+                    links:
+                      description: Links are the BGP sessions to the remote router
+                      items:
+                        description: RemotePeeringLink is a BGP unnumbered session
+                          to the remote router on an External connection
+                        properties:
+                          bfd:
+                            description: BFD (optional) enables BFD for the session,
+                              an empty object uses the fabric defaults
+                            properties:
+                              minRX:
+                                description: MinRX is the minimum interval in ms at
+                                  which we accept BFD control packets from the peer
+                                  (default 300)
+                                format: int32
+                                maximum: 60000
+                                minimum: 10
+                                type: integer
+                              minTX:
+                                description: MinTX is the desired interval in ms at
+                                  which we send BFD control packets (default 300)
+                                format: int32
+                                maximum: 60000
+                                minimum: 10
+                                type: integer
+                              multiplier:
+                                description: Multiplier is how many missed packets
+                                  bring the session down (default 3)
+                                maximum: 255
+                                minimum: 2
+                                type: integer
+                              passive:
+                                description: |-
+                                  Passive makes us wait for the peer to initiate the session instead of initiating it
+                                  ourselves, for the rare ISP that requires it. Both ends passive means no session at all.
+                                type: boolean
+                            type: object
+                          connection:
+                            description: Connection is the name of the External Connection
+                              the session runs over
+                            type: string
+                          inboundACL:
+                            description: InboundACL (optional) defines the ACL statements
+                              to apply to inbound traffic on this link
+                            properties:
+                              statements:
+                                items:
+                                  properties:
+                                    action:
+                                      type: string
+                                    dstPrefix:
+                                      type: string
+                                    icmpCode:
+                                      type: integer
+                                    icmpType:
+                                      type: integer
+                                    portRangeBegin:
+                                      type: integer
+                                    portRangeEnd:
+                                      type: integer
+                                    protocol:
+                                      type: string
+                                    seq:
+                                      type: integer
+                                    srcPrefix:
+                                      type: string
+                                    tcpFilters:
+                                      properties:
+                                        ack:
+                                          type: boolean
+                                        established:
+                                          type: boolean
+                                        fin:
+                                          type: boolean
+                                        notAck:
+                                          type: boolean
+                                        notFin:
+                                          type: boolean
+                                        notPsh:
+                                          type: boolean
+                                        notRst:
+                                          type: boolean
+                                        notSyn:
+                                          type: boolean
+                                        notUrg:
+                                          type: boolean
+                                        psh:
+                                          type: boolean
+                                        rst:
+                                          type: boolean
+                                        syn:
+                                          type: boolean
+                                        urg:
+                                          type: boolean
+                                      type: object
+                                  required:
+                                  - action
+                                  - dstPrefix
+                                  - protocol
+                                  - seq
+                                  - srcPrefix
+                                  type: object
+                                type: array
+                            type: object
+                          remoteASN:
+                            description: RemoteASN (optional) is the ASN of the remote
+                              router, if not set any ASN other than the switch's own
+                              is accepted
+                            format: int32
+                            type: integer
+                          vlan:
+                            description: |-
+                              VLAN (optional) is the VLAN ID of the subinterface on the connection's switch port, 0 for no VLAN.
+                              The remote end must use the same one
+                            type: integer
+                        type: object
+                      type: array
+                    local:
+                      additionalProperties:
+                        description: RemotePeeringVPC is a local VPC taking part in
+                          a RemotePeering
+                        properties:
+                          subnets:
+                            description: Subnets are the names of the VPC subnets
+                              advertised to the remote side
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      description: Local are the local VPCs by name, with the subnets
+                        advertised to the remote side
+                      type: object
+                    remote:
+                      description: Remote is what is accepted from the remote side
+                      properties:
+                        prefixes:
+                          description: |-
+                            Prefixes are the IPv4 prefixes accepted from the remote side. They match exactly, so
+                            0.0.0.0/0 only accepts the default route and 10.1.0.0/16 doesn't accept 10.1.1.0/24
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    topology:
+                      description: Topology is where the RemotePeering sits in the
+                        fabric topology
+                      properties:
+                        domain:
+                          description: |-
+                            Domain is the Fabric domain the RemotePeering is in (if not specified, "default" is used). Its links
+                            must be on switches of that domain and its VPCs must be in it, and it is immutable
+                          type: string
+                        fabric:
+                          description: Fabric is the name of the Fabric this RemotePeering
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  type: object
+                type: object
               role:
                 description: SwitchRole is the role of the switch, could be spine,
                   server-leaf or border-leaf or mixed-leaf

@@ -218,6 +218,10 @@ func TestPlan(t *testing.T) {
 		// mesh-leaf-03 with its external attachment unnumbered, plus a second unnumbered one on
 		// VLAN 11 of the same connection without a neighbor ASN
 		{name: "unnumext-leaf-03"}, // unnumbered external sessions, with BFD, with a user inbound ACL
+		// group: rp
+		// unnumext-leaf-03 plus remote peering b1, with a link here on VLAN 101 and one on another leaf, and
+		// b2, with its only link on another leaf
+		{name: "rp-leaf-03"}, // remote peering next to external attachments on the same connection
 		// group: domains
 		// the reg group in a fabric with a second domain plane-b (spine ASN 65010, gateway ASN 65011)
 		{name: "domains-spine-1"}, // in default only, rejects EVPN routes that crossed plane-b's spine

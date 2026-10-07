@@ -53,6 +53,7 @@ type AgentSpec struct {
 	Externals            map[string]vpcapi.ExternalSpec           `json:"externals,omitempty"`
 	ExternalAttachments  map[string]vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"`
 	ExternalPeerings     map[string]vpcapi.ExternalPeeringSpec    `json:"externalPeerings,omitempty"`
+	RemotePeerings       map[string]vpcapi.RemotePeeringSpec      `json:"remotePeerings,omitempty"`
 	ConfiguredVPCSubnets map[string]bool                          `json:"configuredVPCSubnets,omitempty"`
 	AttachedVPCs         map[string]bool                          `json:"attachedVPCs,omitempty"`
 	Reinstall            string                                   `json:"reinstall,omitempty"`  // set to InstallID to reinstall NOS

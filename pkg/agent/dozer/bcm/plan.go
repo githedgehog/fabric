@@ -228,6 +228,11 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 		return nil, errors.Wrap(err, "failed to plan external peerings")
 	}
 
+	err = planRemotePeerings(agent, spec)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to plan remote peerings")
+	}
+
 	err = planStaticExternals(agent, spec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to plan static external connections")
@@ -1261,25 +1266,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			continue
 		}
 
-		spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)] = &dozer.SpecACL{
-			Entries: map[uint32]*dozer.SpecACLEntry{
-				65535: {
-					Action: dozer.SpecACLEntryActionAccept,
-				},
-			},
-		}
-
-		ipns, exists := agent.Spec.IPv4Namespaces[external.IPv4Namespace]
-		if !exists {
-			return errors.Errorf("ipv4 namespace %s not found for external %s", external.IPv4Namespace, externalName)
-		}
-		seq := uint32(10)
-		for _, subnet := range ipns.Subnets {
-			spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)].Entries[seq] = &dozer.SpecACLEntry{
-				DestinationAddress: pointer.To(subnet),
-				Action:             dozer.SpecACLEntryActionDrop,
-			}
-			seq += 10
+		if err := planIPNSEgressACL(agent, spec, external.IPv4Namespace); err != nil {
+			return fmt.Errorf("external %s: %w", externalName, err)
 		}
 
 		spec.PrefixLists[extImportPrefixListName(externalName)] = &dozer.SpecPrefixList{
@@ -1394,33 +1382,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.RouteMaps[extOutboundRouteMapName(externalName)] = outboundRMap
 		}
 
-		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
-		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
-		if irbVLAN == 0 {
-			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:goerr113
-		}
-		if extVNI == 0 {
-			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:goerr113
-		}
-		irbIface := vlanName(irbVLAN)
-		spec.Interfaces[irbIface] = &dozer.SpecInterface{
-			Enabled:     pointer.To(true),
-			Description: pointer.To(fmt.Sprintf("External %s IRB", externalName)),
-		}
-		spec.VRFs[extVrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
-		spec.VRFVNIMap[extVrfName] = &dozer.SpecVRFVNIEntry{
-			VNI: pointer.To(extVNI),
-		}
-		spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", extVNI, irbIface)] = &dozer.SpecVXLANTunnelMap{
-			VTEP: pointer.To(VTEPFabric),
-			VNI:  pointer.To(extVNI),
-			VLAN: pointer.To(irbVLAN),
-		}
-		if spec.ACLInterfaces == nil {
-			spec.ACLInterfaces = map[string]*dozer.SpecACLInterface{}
-		}
-		spec.ACLInterfaces[irbIface] = &dozer.SpecACLInterface{
-			Ingress: pointer.To(ipNsNoExtPeeringACLName(external.IPv4Namespace)),
+		if err := planVRFIRB(agent, spec, extVrfName, librarian.ReqForExt(externalName), fmt.Sprintf("External %s IRB", externalName), external.IPv4Namespace); err != nil {
+			return fmt.Errorf("external %s: %w", externalName, err)
 		}
 	}
 
@@ -1622,7 +1585,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Ingress: pointer.To(extInboundACLName(name)),
 				}
 			} else if attach.InboundACL != nil {
-				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
+				if err := planInboundACL(spec, extInboundACLName(name), fmt.Sprintf("Inbound ACL %s", name), attach.InboundACL); err != nil {
 					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 				}
 				spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
@@ -1630,6 +1593,67 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+// planIPNSEgressACL creates the ACL that keeps traffic for the namespace from leaving through an external link
+func planIPNSEgressACL(agent *agentapi.Agent, spec *dozer.Spec, ipnsName string) error {
+	ipns, exists := agent.Spec.IPv4Namespaces[ipnsName]
+	if !exists {
+		return errors.Errorf("ipv4 namespace %s not found", ipnsName)
+	}
+
+	acl := &dozer.SpecACL{
+		Entries: map[uint32]*dozer.SpecACLEntry{
+			65535: {
+				Action: dozer.SpecACLEntryActionAccept,
+			},
+		},
+	}
+	seq := uint32(10)
+	for _, subnet := range ipns.Subnets {
+		acl.Entries[seq] = &dozer.SpecACLEntry{
+			DestinationAddress: pointer.To(subnet),
+			Action:             dozer.SpecACLEntryActionDrop,
+		}
+		seq += 10
+	}
+	spec.ACLs[ipnsEgressAccessList(ipnsName)] = acl
+
+	return nil
+}
+
+// planVRFIRB maps an External or RemotePeering VRF to its VNI through an IRB VLAN, both from the catalog under catKey
+func planVRFIRB(agent *agentapi.Agent, spec *dozer.Spec, vrfName, catKey, description, ipns string) error {
+	irbVLAN := agent.Spec.Catalog.IRBVLANs[catKey]
+	vni := agent.Spec.Catalog.VPCVNIs[catKey]
+	if irbVLAN == 0 {
+		return fmt.Errorf("IRB VLAN for %s not found in catalog", catKey) //nolint:goerr113
+	}
+	if vni == 0 {
+		return fmt.Errorf("VNI for %s not found in catalog", catKey) //nolint:goerr113
+	}
+	irbIface := vlanName(irbVLAN)
+	spec.Interfaces[irbIface] = &dozer.SpecInterface{
+		Enabled:     pointer.To(true),
+		Description: pointer.To(description),
+	}
+	spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
+	spec.VRFVNIMap[vrfName] = &dozer.SpecVRFVNIEntry{
+		VNI: pointer.To(vni),
+	}
+	spec.VXLANTunnelMap[fmt.Sprintf("map_%d_%s", vni, irbIface)] = &dozer.SpecVXLANTunnelMap{
+		VTEP: pointer.To(VTEPFabric),
+		VNI:  pointer.To(vni),
+		VLAN: pointer.To(irbVLAN),
+	}
+	if spec.ACLInterfaces == nil {
+		spec.ACLInterfaces = map[string]*dozer.SpecACLInterface{}
+	}
+	spec.ACLInterfaces[irbIface] = &dozer.SpecACLInterface{
+		Ingress: pointer.To(ipNsNoExtPeeringACLName(ipns)),
 	}
 
 	return nil
@@ -1716,8 +1740,7 @@ func aclStatementToEntry(stmt vpcapi.ACLStatement) (*dozer.SpecACLEntry, error) 
 	return entry, nil
 }
 
-func planInboundACL(spec *dozer.Spec, attachName string, aclSpec *vpcapi.ACLSpec) error {
-	dozerName := extInboundACLName(attachName)
+func planInboundACL(spec *dozer.Spec, dozerName, description string, aclSpec *vpcapi.ACLSpec) error {
 	if _, exists := spec.ACLs[dozerName]; exists {
 		return nil
 	}
@@ -1732,7 +1755,7 @@ func planInboundACL(spec *dozer.Spec, attachName string, aclSpec *vpcapi.ACLSpec
 	}
 
 	spec.ACLs[dozerName] = &dozer.SpecACL{
-		Description: pointer.To(fmt.Sprintf("Inbound ACL %s", attachName)),
+		Description: pointer.To(description),
 		Entries:     entries,
 	}
 
@@ -2215,6 +2238,10 @@ func vpcVrfName(vpcName string) string {
 
 func extVrfName(externalName string) string {
 	return vrfName("E" + externalName)
+}
+
+func rpVrfName(rpName string) string {
+	return vrfName("R" + rpName)
 }
 
 // normalize nexthops as we get them in an inconsistent order, and otherwise
@@ -3674,6 +3701,246 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 	return nil
 }
 
+// planRemotePeerings configures the remote peerings with a link on this switch much like a BGP External with its
+// attachments and peerings, but with exact filters both ways: only the local subnets go out and only the remote
+// prefixes come in. Each one has its own community, derived from its VNI as for VPCs, which replaces whatever
+// communities the routes carry in both directions.
+func planRemotePeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
+	protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
+	if err != nil {
+		return fmt.Errorf("parsing protocol ip %s: %w", agent.Spec.Switch.ProtocolIP, err)
+	}
+
+	for name, rp := range agent.Spec.RemotePeerings {
+		comm, err := communityForVPC(agent, librarian.ReqForRP(name))
+		if err != nil {
+			return fmt.Errorf("remote peering %s community: %w", name, err)
+		}
+		if agent.IsSpineLeaf() && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, comm) {
+			spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, comm)
+		}
+
+		links := map[int]wiringapi.ConnectionSpec{}
+		for idx, link := range rp.Links {
+			if conn, exists := agent.Spec.Connections[link.Connection]; exists && conn.External != nil {
+				links[idx] = conn
+			}
+		}
+		if len(links) == 0 {
+			continue
+		}
+
+		if err := planIPNSEgressACL(agent, spec, rp.IPv4Namespace); err != nil {
+			return fmt.Errorf("remote peering %s: %w", name, err)
+		}
+
+		localPrefixes := map[uint32]*dozer.SpecPrefixListEntry{}
+		for vpcName, local := range rp.Local {
+			vpc, exists := agent.Spec.VPCs[vpcName]
+			if !exists {
+				return fmt.Errorf("VPC %s not found for remote peering %s", vpcName, name) //nolint:err113
+			}
+			for _, subnetName := range local.Subnets {
+				subnet, exists := vpc.Subnets[subnetName]
+				if !exists {
+					return fmt.Errorf("VPC %s subnet %s not found for remote peering %s", vpcName, subnetName, name) //nolint:err113
+				}
+				idx := agent.Spec.Catalog.SubnetIDs[subnet.Subnet]
+				if idx == 0 || idx >= 65000 {
+					return fmt.Errorf("invalid subnet id %d for subnet %s of VPC %s in remote peering %s", idx, subnet.Subnet, vpcName, name) //nolint:err113
+				}
+				localPrefixes[idx] = &dozer.SpecPrefixListEntry{
+					Prefix: dozer.SpecPrefixListPrefix{Prefix: subnet.Subnet},
+					Action: dozer.SpecPrefixListActionPermit,
+				}
+			}
+		}
+		spec.PrefixLists[rpLocalPrefixListName(name)] = &dozer.SpecPrefixList{Prefixes: localPrefixes}
+
+		remotePrefixes := map[uint32]*dozer.SpecPrefixListEntry{}
+		for _, prefix := range rp.Remote.Prefixes {
+			idx := agent.Spec.Catalog.SubnetIDs[prefix]
+			if idx == 0 || idx >= 65000 {
+				return fmt.Errorf("invalid prefix id %d for prefix %s in remote peering %s", idx, prefix, name) //nolint:err113
+			}
+			remotePrefixes[idx] = &dozer.SpecPrefixListEntry{
+				Prefix: dozer.SpecPrefixListPrefix{Prefix: prefix},
+				Action: dozer.SpecPrefixListActionPermit,
+			}
+		}
+		spec.PrefixLists[rpRemotePrefixListName(name)] = &dozer.SpecPrefixList{Prefixes: remotePrefixes}
+
+		spec.CommunityLists[rpCommListName(name)] = &dozer.SpecCommunityList{
+			Members: []string{comm},
+		}
+
+		spec.RouteMaps[rpImportRouteMapName(name)] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(rpLocalPrefixListName(name)),
+					},
+					Result: dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+
+		inbound := map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchPrefixList: pointer.To(rpRemotePrefixListName(name)),
+				},
+				SetCommunities:     []string{comm},
+				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+				Result:             dozer.SpecRouteMapResultAccept,
+			},
+		}
+		if _, ok := spec.AsPathLists[AsPathListFabricGW]; ok {
+			inbound["5"] = &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchAsPathList: pointer.To(AsPathListFabricGW),
+				},
+				Result: dozer.SpecRouteMapResultReject,
+			}
+		}
+		spec.RouteMaps[rpInboundRouteMapName(name)] = &dozer.SpecRouteMap{Statements: inbound}
+
+		spec.RouteMaps[rpOutboundRouteMapName(name)] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchPrefixList: pointer.To(rpLocalPrefixListName(name)),
+					},
+					SetCommunities: []string{comm},
+					Result:         dozer.SpecRouteMapResultAccept,
+				},
+				"20": {
+					Conditions: dozer.SpecRouteMapConditions{
+						MatchCommunityList: pointer.To(string(BGPCommListAllGwPrios)),
+					},
+					SetCommunities: []string{comm},
+					Result:         dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+
+		rpVrf := rpVrfName(name)
+		spec.VRFs[rpVrf] = &dozer.SpecVRF{
+			Enabled:          pointer.To(true),
+			AnycastMAC:       pointer.To(AnycastMAC),
+			Interfaces:       map[string]*dozer.SpecVRFInterface{},
+			StaticRoutes:     map[string]*dozer.SpecVRFStaticRoute{},
+			TableConnections: map[string]*dozer.SpecVRFTableConnection{},
+			BGP: &dozer.SpecVRFBGP{
+				AS:                 pointer.To(agent.Spec.Switch.ASN),
+				RouterID:           pointer.To(protocolIP.String()),
+				NetworkImportCheck: pointer.To(true),
+				IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
+					Enabled:      true,
+					MaxPaths:     pointer.To(getMaxPaths(agent)),
+					Networks:     map[string]*dozer.SpecVRFBGPNetwork{},
+					ImportVRFs:   map[string]*dozer.SpecVRFBGPImportVRF{},
+					ImportPolicy: pointer.To(rpImportRouteMapName(name)),
+				},
+				L2VPNEVPN: dozer.SpecVRFBGPL2VPNEVPN{
+					Enabled:              agent.IsSpineLeaf(),
+					AdvertiseIPv4Unicast: pointer.To(true),
+					// only the remote routes, the local subnets leaked in are in the fabric already
+					AdvertiseIPv4UnicastRouteMaps: []string{rpInboundRouteMapName(name)},
+				},
+				Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
+			},
+		}
+
+		if err := planVRFIRB(agent, spec, rpVrf, librarian.ReqForRP(name), fmt.Sprintf("Remote peering %s IRB", name), rp.IPv4Namespace); err != nil {
+			return fmt.Errorf("remote peering %s: %w", name, err)
+		}
+
+		for idx, conn := range links {
+			link := rp.Links[idx]
+			port := conn.External.Link.Switch.LocalPortName()
+			ifaceName := port
+			var vlan *uint16
+			if link.VLAN != 0 {
+				vlan = pointer.To(link.VLAN)
+				ifaceName = fmt.Sprintf("%s.%d", port, link.VLAN)
+			}
+			spec.Interfaces[port].Subinterfaces[uint32(link.VLAN)] = &dozer.SpecSubinterface{
+				VLAN: vlan,
+				IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)},
+			}
+			spec.VRFs[rpVrf].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
+			// unnumbered, so there's no switch IPv4 address for the hardened rules of externals to protect
+			aclIface := &dozer.SpecACLInterface{
+				Egress: pointer.To(ipnsEgressAccessList(rp.IPv4Namespace)),
+			}
+			if link.InboundACL != nil {
+				aclName := fmt.Sprintf("rp-inbound--%s--%d", name, idx)
+				if err := planInboundACL(spec, aclName, fmt.Sprintf("Inbound ACL remote peering %s link %d", name, idx), link.InboundACL); err != nil {
+					return fmt.Errorf("planning inbound ACL for remote peering %s link %d: %w", name, idx, err)
+				}
+				aclIface.Ingress = pointer.To(aclName)
+			}
+			spec.ACLInterfaces[ifaceName] = aclIface
+
+			var bfdProfile *string
+			if link.BFD != nil && !agent.Spec.Config.DisableBFD {
+				profileName := rpBFDProfileName(name, idx)
+				spec.BFDProfiles[profileName] = &dozer.SpecBFDProfile{
+					PassiveMode:              pointer.To(link.BFD.Passive),
+					RequiredMinimumReceive:   pointer.To(cmp.Or(link.BFD.MinRX, ExternalBFDIntervalMS)),
+					DesiredMinimumTxInterval: pointer.To(cmp.Or(link.BFD.MinTX, ExternalBFDIntervalMS)),
+					DetectionMultiplier:      pointer.To(cmp.Or(link.BFD.Multiplier, ExternalBFDMultiplier)),
+				}
+				bfdProfile = pointer.To(profileName)
+			}
+
+			neigh := &dozer.SpecVRFBGPNeighbor{
+				Enabled:                   pointer.To(true),
+				Description:               pointer.To(fmt.Sprintf("Remote peering %s", name)),
+				IPv4Unicast:               pointer.To(true),
+				IPv4UnicastImportPolicies: []string{rpInboundRouteMapName(name)},
+				IPv4UnicastExportPolicies: []string{rpOutboundRouteMapName(name)},
+				BFDProfile:                bfdProfile,
+				ExtendedNexthop:           pointer.To(true),
+			}
+			if link.RemoteASN != 0 {
+				neigh.RemoteAS = pointer.To(link.RemoteASN)
+			} else {
+				neigh.PeerType = pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal))
+			}
+			spec.VRFs[rpVrf].BGP.Neighbors[ifaceName] = neigh
+		}
+
+		id := agent.Spec.Catalog.ExternalIDs[librarian.ReqForRP(name)]
+		if id < 10 || id >= 5000 {
+			return fmt.Errorf("invalid external id %d for remote peering %s", id, name) //nolint:err113
+		}
+		for vpcName := range rp.Local {
+			vpcVrf := vpcVrfName(vpcName)
+			importVrfRouteMap, exists := spec.RouteMaps[vpcExtImportVrfRouteMapName(vpcName)]
+			if !exists || spec.VRFs[vpcVrf] == nil || spec.VRFs[vpcVrf].BGP == nil {
+				return fmt.Errorf("VPC %s of remote peering %s is not planned", vpcName, name) //nolint:err113
+			}
+			// local VPCs only take the remote prefixes, never each other's subnets
+			importVrfRouteMap.Statements[fmt.Sprintf("%d", 50000+id)] = &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchSourceVRF:     pointer.To(rpVrf),
+					MatchCommunityList: pointer.To(rpCommListName(name)),
+					MatchPrefixList:    pointer.To(rpRemotePrefixListName(name)),
+				},
+				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+				Result:             dozer.SpecRouteMapResultAccept,
+			}
+
+			spec.VRFs[rpVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
+			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[rpVrf] = &dozer.SpecVRFBGPImportVRF{}
+		}
+	}
+
+	return nil
+}
+
 func planLoopbackWorkaround(agent *agentapi.Agent, spec *dozer.Spec, loWReq string) (string, string, string, string, error) {
 	vlan := agent.Spec.Catalog.LoopbackWorkaroundVLANs[loWReq]
 	if vlan == 0 {
@@ -3836,6 +4103,34 @@ func extImportPrefixListName(external string) string {
 
 func extOutboundRouteMapName(external string) string {
 	return fmt.Sprintf("ext-outbound--%s", external)
+}
+
+func rpBFDProfileName(rp string, link int) string {
+	return fmt.Sprintf("rp--%s--%d", rp, link)
+}
+
+func rpCommListName(rp string) string {
+	return fmt.Sprintf("rp--%s", rp)
+}
+
+func rpLocalPrefixListName(rp string) string {
+	return fmt.Sprintf("rp-local--%s", rp)
+}
+
+func rpRemotePrefixListName(rp string) string {
+	return fmt.Sprintf("rp-remote--%s", rp)
+}
+
+func rpImportRouteMapName(rp string) string {
+	return fmt.Sprintf("rp-import--%s", rp)
+}
+
+func rpInboundRouteMapName(rp string) string {
+	return fmt.Sprintf("rp-inbound--%s", rp)
+}
+
+func rpOutboundRouteMapName(rp string) string {
+	return fmt.Sprintf("rp-outbound--%s", rp)
 }
 
 func ipNsNoExtPeeringACLName(ipns string) string {

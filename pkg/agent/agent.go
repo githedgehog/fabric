@@ -1120,6 +1120,7 @@ func prepareSONiC(ctx context.Context) error {
 		{iface: "Vrf+", port: 443, proto: "tcp", reject: "tcp-reset"},              // REST API
 		{iface: "Vrf+", port: 8080, proto: "tcp", reject: "tcp-reset"},             // GNMI API
 		{iface: "VrfE+", port: 67, proto: "udp", reject: "icmp-port-unreachable"},  // DHCP (for externals only)
+		{iface: "VrfR+", port: 67, proto: "udp", reject: "icmp-port-unreachable"},  // DHCP (for remote peerings only)
 		{iface: "Vrf+", port: 161, proto: "udp", reject: "icmp-port-unreachable"},  // SNMP
 		{iface: "Vrf+", port: 4789, proto: "udp", reject: "icmp-port-unreachable"}, // VXLAN (only makes sense on VS)
 	} {

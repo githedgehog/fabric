@@ -167,6 +167,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.RemotePeerings != nil {
+		in, out := &in.RemotePeerings, &out.RemotePeerings
+		*out = make(map[string]vpcv1beta1.RemotePeeringSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
 	if in.ConfiguredVPCSubnets != nil {
 		in, out := &in.ConfiguredVPCSubnets, &out.ConfiguredVPCSubnets
 		*out = make(map[string]bool, len(*in))

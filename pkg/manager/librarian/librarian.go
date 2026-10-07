@@ -48,6 +48,7 @@ const (
 	PortChannelMax    = 249
 	ReqPrefixVPC      = "vpc@"
 	ReqPrefixExt      = "ext@"
+	ReqPrefixRP       = "rp@"
 )
 
 type Manager struct {
@@ -164,10 +165,10 @@ func (m *Manager) UpdateConnections(ctx context.Context, kube kclient.Client, co
 	return true, nil
 }
 
-// EnsureVNIs makes sure the given VPCs (incl. their subnets) and externals have VNIs allocated: if any of them doesn't,
-// the VNIs of all VPCs and externals are reallocated, which also releases the VNIs of the deleted ones. Reports
+// EnsureVNIs makes sure the given VPCs (incl. their subnets), externals and remote peerings have VNIs allocated: if any
+// of them doesn't, the VNIs of all of them are reallocated, which also releases the VNIs of the deleted ones. Reports
 // whether the catalog changed.
-func (m *Manager) EnsureVNIs(ctx context.Context, kube kclient.Client, vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) (bool, error) {
+func (m *Manager) EnsureVNIs(ctx context.Context, kube kclient.Client, vpcs map[string]vpcapi.VPCSpec, externals, remotePeerings map[string]bool) (bool, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -176,12 +177,12 @@ func (m *Manager) EnsureVNIs(ctx context.Context, kube kclient.Client, vpcs map[
 		return false, err
 	}
 
-	return m.ensureVNIs(ctx, kube, cat, vpcs, externals)
+	return m.ensureVNIs(ctx, kube, cat, vpcs, externals, remotePeerings)
 }
 
 // ensureVNIs is EnsureVNIs for an already loaded VNIs catalog, which is updated in place. The mutex has to be held.
-func (m *Manager) ensureVNIs(ctx context.Context, kube kclient.Client, cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) (bool, error) {
-	if vnisAllocated(cat, vpcs, externals) {
+func (m *Manager) ensureVNIs(ctx context.Context, kube kclient.Client, cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, externals, remotePeerings map[string]bool) (bool, error) {
+	if vnisAllocated(cat, vpcs, externals, remotePeerings) {
 		return false, nil
 	}
 
@@ -195,12 +196,20 @@ func (m *Manager) ensureVNIs(ctx context.Context, kube kclient.Client, cat *agen
 		return false, fmt.Errorf("listing externals: %w", err)
 	}
 
+	rpList := &vpcapi.RemotePeeringList{}
+	if err := kube.List(ctx, rpList); err != nil {
+		return false, fmt.Errorf("listing remote peerings: %w", err)
+	}
+
 	reqs := map[string]bool{}
 	for _, vpc := range vpcList.Items {
 		reqs[vpc.Name] = true
 	}
 	for _, ext := range externalList.Items {
 		reqs[ReqForExt(ext.Name)] = true
+	}
+	for _, rp := range rpList.Items {
+		reqs[ReqForRP(rp.Name)] = true
 	}
 
 	a := &Allocator[uint32]{
@@ -209,7 +218,7 @@ func (m *Manager) ensureVNIs(ctx context.Context, kube kclient.Client, cat *agen
 
 	vnis, err := a.Allocate(cat.Spec.VPCVNIs, reqs)
 	if err != nil {
-		return false, fmt.Errorf("allocating VPC/External VNIs: %w", err)
+		return false, fmt.Errorf("allocating VPC/External/RemotePeering VNIs: %w", err)
 	}
 
 	// the subnet VNI maps are replaced, never modified, so a shallow copy is enough to compare
@@ -243,8 +252,9 @@ func (m *Manager) ensureVNIs(ctx context.Context, kube kclient.Client, cat *agen
 	return true, nil
 }
 
-// vnisAllocated reports whether the VPCs, all of their subnets and the externals have VNIs in the catalog
-func vnisAllocated(cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, externals map[string]bool) bool {
+// vnisAllocated reports whether the VPCs, all of their subnets, the externals and the remote peerings have VNIs in the
+// catalog
+func vnisAllocated(cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, externals, remotePeerings map[string]bool) bool {
 	for name, vpc := range vpcs {
 		if _, ok := cat.Spec.VPCVNIs[name]; !ok {
 			return false
@@ -259,6 +269,11 @@ func vnisAllocated(cat *agentapi.Catalog, vpcs map[string]vpcapi.VPCSpec, extern
 
 	for name := range externals {
 		if _, ok := cat.Spec.VPCVNIs[ReqForExt(name)]; !ok {
+			return false
+		}
+	}
+	for name := range remotePeerings {
+		if _, ok := cat.Spec.VPCVNIs[ReqForRP(name)]; !ok {
 			return false
 		}
 	}
@@ -310,7 +325,9 @@ func setRedundancyCatalogOwner(ctx context.Context, kube kclient.Client, sw *wir
 	return setCatalogOwner(kube, sg, cat)
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
+// CatalogForRedundancyGroup fills in the redundancy group's part of the switch catalog. It gets the VNIs of all
+// remotePeerings, which their communities are derived from, but IRB VLANs only for attachedRemotePeerings
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns map[string]bool, externals, remotePeerings, attachedRemotePeerings map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -333,6 +350,9 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		irbVLANReqs := maps.Clone(vpcs)
 		for ext := range externals {
 			irbVLANReqs[ReqPrefixExt+ext] = true
+		}
+		for rp := range attachedRemotePeerings {
+			irbVLANReqs[ReqForRP(rp)] = true
 		}
 		cat.Spec.IRBVLANs, err = a.Allocate(cat.Spec.IRBVLANs, irbVLANReqs)
 		if err != nil {
@@ -390,6 +410,13 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			return fmt.Errorf("failed to find external VNI for external %s", name) //nolint:err113
 		}
 	}
+	for name := range remotePeerings {
+		if vni, exists := vnisCat.Spec.VPCVNIs[ReqForRP(name)]; exists {
+			ret.VPCVNIs[ReqForRP(name)] = vni
+		} else {
+			return fmt.Errorf("failed to find remote peering VNI for remote peering %s", name) //nolint:err113
+		}
+	}
 
 	ret.IRBVLANs = map[string]uint16{}
 	for name := range vpcs {
@@ -406,6 +433,13 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			return fmt.Errorf("failed to find IRB VLAN for external %s", name) //nolint:err113
 		}
 	}
+	for name := range attachedRemotePeerings {
+		if vlan, exists := cat.Spec.IRBVLANs[ReqForRP(name)]; exists {
+			ret.IRBVLANs[ReqForRP(name)] = vlan
+		} else {
+			return fmt.Errorf("failed to find IRB VLAN for remote peering %s", name) //nolint:err113
+		}
+	}
 
 	ret.PortChannelIDs = map[string]uint16{}
 	for name := range portChanConns {
@@ -419,7 +453,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, loWorkaroundLinks []string, loWorkaroundReqs, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, loWorkaroundLinks []string, loWorkaroundReqs, externals, attachedRemotePeerings, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -459,7 +493,13 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		a := Allocator[uint16]{
 			Values: NewNextFreeValueFromRanges([][2]uint16{{10, math.MaxUint16}}, 1),
 		}
-		cat.Spec.ExternalIDs, err = a.Allocate(cat.Spec.ExternalIDs, externals)
+		// remote peerings share the range, as both pick statements of the VPCs' import-vrf route maps by it
+		reqs := map[string]bool{}
+		maps.Copy(reqs, externals)
+		for rp := range attachedRemotePeerings {
+			reqs[ReqForRP(rp)] = true
+		}
+		cat.Spec.ExternalIDs, err = a.Allocate(cat.Spec.ExternalIDs, reqs)
 		if err != nil {
 			return fmt.Errorf("allocating external IDs for %s: %w", key, err)
 		}
@@ -513,6 +553,11 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 			return fmt.Errorf("failed to find external ID for %s", ext) //nolint:err113
 		}
 	}
+	for rp := range attachedRemotePeerings {
+		if _, exists := ret.ExternalIDs[ReqForRP(rp)]; !exists {
+			return fmt.Errorf("failed to find external ID for remote peering %s", rp) //nolint:err113
+		}
+	}
 
 	ret.StaticExternalSubnetOffsets = cat.Spec.StaticExternalSubnetOffsets
 	for attach := range proxyStaticExtAttachments {
@@ -547,6 +592,10 @@ func ReqForExt(extPeeringName string) string {
 	return ReqPrefixExt + extPeeringName
 }
 
+func ReqForRP(rpName string) string {
+	return ReqPrefixRP + rpName
+}
+
 // GetOrEnsureVPCVNI returns the VNI of the VPC, allocating the VNIs of it and its subnets first if any is missing
 func (m *Manager) GetOrEnsureVPCVNI(ctx context.Context, kube kclient.Client, vpc *vpcapi.VPC) (uint32, error) {
 	m.mutex.Lock()
@@ -557,7 +606,7 @@ func (m *Manager) GetOrEnsureVPCVNI(ctx context.Context, kube kclient.Client, vp
 		return 0, err
 	}
 
-	if _, err := m.ensureVNIs(ctx, kube, cat, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil); err != nil {
+	if _, err := m.ensureVNIs(ctx, kube, cat, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil, nil); err != nil {
 		return 0, err
 	}
 
@@ -579,7 +628,7 @@ func (m *Manager) GetOrEnsureExternalVNI(ctx context.Context, kube kclient.Clien
 		return 0, err
 	}
 
-	if _, err := m.ensureVNIs(ctx, kube, cat, nil, map[string]bool{external: true}); err != nil {
+	if _, err := m.ensureVNIs(ctx, kube, cat, nil, map[string]bool{external: true}, nil); err != nil {
 		return 0, err
 	}
 

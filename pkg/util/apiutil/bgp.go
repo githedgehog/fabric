@@ -65,17 +65,21 @@ var bgpConnTypes = []string{
 	wiringapi.ConnectionTypeGateway,
 }
 
-// externalsData is the Externals and their BGP attachments any switch may peer with, loaded once for all of them
+// externalsData is the Externals and their BGP attachments any switch may peer with, and the RemotePeerings, loaded once
+// for all of them
 type externalsData struct {
 	externals map[string]*vpcapi.External
 	// only the BGP ones (not static), by connection
 	attachments map[string][]*vpcapi.ExternalAttachment
+	// by connection of their links
+	remotePeerings map[string][]*vpcapi.RemotePeering
 }
 
 func loadExternals(ctx context.Context, kube kclient.Reader, filter SwitchFilter) (*externalsData, error) {
 	data := &externalsData{
-		externals:   map[string]*vpcapi.External{},
-		attachments: map[string][]*vpcapi.ExternalAttachment{},
+		externals:      map[string]*vpcapi.External{},
+		attachments:    map[string][]*vpcapi.ExternalAttachment{},
+		remotePeerings: map[string][]*vpcapi.RemotePeering{},
 	}
 
 	// externals and their attachments are per fabric, but the domain is only on the externals and attachments are
@@ -103,6 +107,21 @@ func loadExternals(ctx context.Context, kube kclient.Reader, filter SwitchFilter
 		}
 
 		data.attachments[attach.Spec.Connection] = append(data.attachments[attach.Spec.Connection], attach)
+	}
+
+	rpList := &vpcapi.RemotePeeringList{}
+	if err := kube.List(ctx, rpList, kclient.InNamespace(kmetav1.NamespaceDefault), sel); err != nil {
+		return nil, fmt.Errorf("listing remotepeerings: %w", err)
+	}
+	for idx := range rpList.Items {
+		rp := &rpList.Items[idx]
+		seen := map[string]bool{}
+		for _, link := range rp.Spec.Links {
+			if !seen[link.Connection] {
+				seen[link.Connection] = true
+				data.remotePeerings[link.Connection] = append(data.remotePeerings[link.Connection], rp)
+			}
+		}
 	}
 
 	return data, nil
@@ -317,6 +336,10 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 		if conn.Spec.External.Link.Switch.DeviceName() != sw.Name {
 			continue
 		}
+		port, err := sp.Spec.NormalizePortName(conn.Spec.External.Link.Switch.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("external connection %s: %w", conn.Name, err)
+		}
 
 		for _, extAtt := range exts.attachments[conn.Name] {
 			ext, ok := exts.externals[extAtt.Spec.External]
@@ -328,10 +351,6 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 			vrf := "VrfE" + ext.Name
 			if _, ok := out[vrf]; !ok {
 				out[vrf] = map[string]BGPNeighborStatus{}
-			}
-			port, err := sp.Spec.NormalizePortName(conn.Spec.External.Link.Switch.LocalPortName())
-			if err != nil {
-				return nil, fmt.Errorf("external connection %s: %w", conn.Name, err)
 			}
 
 			// the agent reports an unnumbered neighbor by the interface it runs over
@@ -354,6 +373,33 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 			neigh.ConnectionType = conn.Spec.Type()
 
 			out[vrf][key] = neigh
+		}
+
+		for _, rp := range exts.remotePeerings[conn.Name] {
+			// TODO dedup with agent code
+			vrf := "VrfR" + rp.Name
+			if _, ok := out[vrf]; !ok {
+				out[vrf] = map[string]BGPNeighborStatus{}
+			}
+			for _, link := range rp.Spec.Links {
+				if link.Connection != conn.Name {
+					continue
+				}
+
+				key := port
+				if link.VLAN != 0 {
+					key = fmt.Sprintf("%s.%d", port, link.VLAN)
+				}
+				neigh := out[vrf][key]
+				neigh.RemoteName = rp.Name
+				neigh.Unnumbered = true
+				neigh.Expected = true
+				neigh.Type = BGPNeighborTypeExternal
+				neigh.Port = port
+				neigh.ConnectionName = conn.Name
+				neigh.ConnectionType = conn.Spec.Type()
+				out[vrf][key] = neigh
+			}
 		}
 	}
 

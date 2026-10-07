@@ -212,6 +212,7 @@ rules:
   - externalpeerings/status
   - externals/status
   - ipv4namespaces/status
+  - remotepeerings/status
   - vpcattachments/status
   - vpcpeerings/status
   - vpcs/status

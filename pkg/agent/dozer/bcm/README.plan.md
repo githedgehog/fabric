@@ -1291,3 +1291,86 @@ them through:
      !
     !
     ```
+
+## Remote peerings
+A `RemotePeering` is planned much like a BGP external with unnumbered attachments and an
+external peering per local VPC, but in one object and with exact filters in both directions.
+Every switch gets all remote peerings of its fabric, and only the ones with a link on one of its
+connections are configured there.
+
+Each remote peering has a community derived from its VNI with the same formula as VPCs
+(`baseVPCCommunity` ASN : base + VNI/100). The VNI comes from the pool VPCs and externals share,
+so the community can never be a VPC's. It replaces whatever communities a route carries in both
+directions, so no VPC community crosses the link either way, and it is added to `all-externals`
+on every leaf so that routes from the remote side get local preference 150, as external routes do.
+
+1. A VRF `VrfR<NAME>` with an IRB VLAN and VNI from the catalog (key `rp@<NAME>`), the
+`no-ipns-peering--<IPV4NAMESPACE>` ACL on the IRB, and per link on this switch an unnumbered
+sub-interface with the `ipns-egress--<IPV4NAMESPACE>` ACL, as for externals. A link with an
+`inboundACL` also gets it as `rp-inbound--<NAME>--<LINK INDEX>` on ingress, with only the user's
+statements: there is no switch IPv4 address for the reserved rules of externals to protect.
+1. Two prefix lists with exact matches: `rp-local--<NAME>` with the local VPC subnets and
+`rp-remote--<NAME>` with the remote prefixes, plus a community list `rp--<NAME>`:
+    ```
+    ip prefix-list rp-local--b1 seq 100 permit 10.0.3.0/24
+    ip prefix-list rp-remote--b1 seq 101 permit 0.0.0.0/0
+    ip prefix-list rp-remote--b1 seq 102 permit 10.1.1.0/24
+    bgp community-list standard rp--b1 permit 50000:5
+    ```
+1. Route maps. `rp-import--<NAME>` is the VRF's import policy, so it only takes the local subnets
+from the local VPCs. `rp-inbound--<NAME>` is the session's import policy and the EVPN advertise
+policy: the local subnets leaked in are in the fabric already. `rp-outbound--<NAME>` sends the
+local subnets and the gateway routes:
+    ```
+    route-map rp-import--b1 permit 10
+     match ip address prefix-list rp-local--b1
+    !
+    route-map rp-inbound--b1 deny 5
+     match as-path fabric-gw-aspath
+    !
+    route-map rp-inbound--b1 permit 10
+     match ip address prefix-list rp-remote--b1
+     set community 50000:5
+     set local-preference 150
+    !
+    route-map rp-outbound--b1 permit 10
+     match ip address prefix-list rp-local--b1
+     set community 50000:5
+    !
+    route-map rp-outbound--b1 permit 20
+     match community all-gw-prios
+     set community 50000:5
+    !
+    ```
+1. One unnumbered session per link on this switch, with BFD if the link asks for it:
+    ```
+    router bgp 65103 vrf VrfRb1
+     neighbor interface Ethernet0.101
+      description "Remote peering b1"
+      remote-as 64801
+      capability extended-nexthop
+      bfd profile rp--b1--0
+      address-family ipv4 unicast
+       route-map rp-inbound--b1 in
+       route-map rp-outbound--b1 out
+    ```
+1. Each local VPC imports `VrfR<NAME>`, and only takes the remote prefixes from it, so local VPCs
+don't reach each other through it. The statement number comes from the external IDs, which
+remote peerings share with externals:
+    ```
+    route-map import-vrf--vpc-03 permit 50011
+     match ip address prefix-list rp-remote--b1
+     match community rp--b1
+     match source-vrf VrfRb1
+     set local-preference 150
+    !
+    router bgp 65103 vrf VrfRb1
+     address-family ipv4 unicast
+      import vrf VrfVvpc-03
+    !
+    router bgp 65103 vrf VrfVvpc-03
+     address-family ipv4 unicast
+      import vrf VrfRb1
+    ```
+
+The loopback workaround is not supported.

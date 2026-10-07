@@ -103,7 +103,7 @@ func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl
 		return kctrl.Result{}, nil
 	}
 
-	updated, err := r.libr.EnsureVNIs(ctx, r.Client, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil)
+	updated, err := r.libr.EnsureVNIs(ctx, r.Client, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil, nil)
 	if err != nil {
 		return kctrl.Result{}, fmt.Errorf("updating VNIs catalog: %w", err)
 	}
