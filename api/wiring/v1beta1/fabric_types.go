@@ -181,12 +181,6 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 		return nil, fmt.Errorf("failed to validate metadata: %w", err)
 	}
 
-	// the name becomes a label key segment, which Kubernetes caps at 63 characters. Without this
-	// the failure surfaces as an opaque label error on every object that references the fabric
-	if len(fabric.Name) > 63 {
-		return nil, fmt.Errorf("name %s is too long, must be <= 63 characters", fabric.Name) //nolint:err113
-	}
-
 	if fabric.Spec.LeafASNStart == 0 || fabric.Spec.LeafASNEnd == 0 {
 		return nil, fmt.Errorf("leafASNStart and leafASNEnd are required") //nolint:err113
 	}
@@ -201,6 +195,9 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 		// the name becomes a label key segment
 		if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
 			return nil, fmt.Errorf("invalid domain name %s: %s", name, strings.Join(errs, ", ")) //nolint:err113
+		}
+		if len(name) > meta.MaxNameLength {
+			return nil, fmt.Errorf("domain name %s is too long, must be <= %d characters", name, meta.MaxNameLength) //nolint:err113
 		}
 	}
 

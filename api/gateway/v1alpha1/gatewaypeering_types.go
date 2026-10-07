@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"maps"
 	"net/netip"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,9 +29,6 @@ const (
 	DefaultMasqueradeIdleTimeout  = 2 * time.Minute
 	DefaultPortForwardIdleTimeout = 2 * time.Minute
 )
-
-// TODO: deduplicate and expose from fabric meta package
-var nameChecker = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -332,8 +329,8 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
 		return fmt.Errorf("gateway support is not enabled") //nolint:err113
 	}
-	if p.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("gatewaypeering namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	if err := meta.ValidateObjectMetadata(p); err != nil {
+		return fmt.Errorf("invalid gatewaypeering: %w", err)
 	}
 	if p.Spec.GatewayGroup == "" {
 		return fmt.Errorf("gateway group must be specified %s", p.Name) //nolint:err113
@@ -448,7 +445,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		for i, rule := range acl.Rules {
 			ruleBlob := ""
 			if rule.Name != "" {
-				if !nameChecker.MatchString(rule.Name) {
+				if len(kvalidation.IsDNS1123Subdomain(rule.Name)) > 0 {
 					return fmt.Errorf("invalid rule name %q in ACL rule %d", rule.Name, i) //nolint:err113
 				}
 				if len(rule.Name) > 64 {

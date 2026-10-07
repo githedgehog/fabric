@@ -103,8 +103,8 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
 		return fmt.Errorf("gateway support is not enabled") //nolint:err113
 	}
-	if gg.Namespace != kmetav1.NamespaceDefault {
-		return fmt.Errorf("gatewaygroup namespace must be %s", kmetav1.NamespaceDefault) //nolint:err113
+	if err := meta.ValidateObjectMetadata(gg); err != nil {
+		return fmt.Errorf("invalid gatewaygroup: %w", err)
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric); err != nil {

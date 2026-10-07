@@ -16,9 +16,10 @@ package meta
 
 import (
 	"fmt"
-	"regexp"
+	"strings"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,7 +28,9 @@ var (
 	ErrInvalidNamespace = fmt.Errorf("invalid resource namespace")
 )
 
-var nameChecker = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+// MaxNameLength caps object names, and the names of other objects referenced by them, below the 63 characters
+// Kubernetes allows for a label value or the name part of a label key, as the names are used in both
+const MaxNameLength = 62
 
 func DefaultObjectMetadata(obj kclient.Object) {
 	if obj.GetNamespace() == "" {
@@ -35,9 +38,28 @@ func DefaultObjectMetadata(obj kclient.Object) {
 	}
 }
 
+// IsValidName reports whether the name can be used for an object, and so in the labels built from object names
+func IsValidName(name string) bool {
+	return len(name) <= MaxNameLength && len(kvalidation.IsDNS1123Subdomain(name)) == 0
+}
+
+// ValidateName checks the name of an object, or of another object it refers to, what describes it in the error.
+// Object names are lowercase RFC 1123 subdomains, the same as Kubernetes requires, which are valid label values
+// and label key names as long as they fit the length.
+func ValidateName(what, name string) error {
+	if errs := kvalidation.IsDNS1123Subdomain(name); len(errs) > 0 {
+		return fmt.Errorf("%w: %s %q: %s", ErrInvalidName, what, name, strings.Join(errs, ", "))
+	}
+	if len(name) > MaxNameLength {
+		return fmt.Errorf("%w: %s %s is too long, must be <= %d characters", ErrInvalidName, what, name, MaxNameLength)
+	}
+
+	return nil
+}
+
 func ValidateObjectMetadata(obj kclient.Object) error {
-	if !nameChecker.MatchString(obj.GetName()) {
-		return fmt.Errorf("%w: name does not match a lowercase RFC 1123 subdomain", ErrInvalidName)
+	if err := ValidateName("name", obj.GetName()); err != nil {
+		return err
 	}
 
 	if obj.GetNamespace() != kmetav1.NamespaceDefault {
