@@ -170,3 +170,25 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 
 	return nil, errors.Wrapf(iputil.VerifyNoOverlapNetip(subnets), "subnets overlap with reserved subnets")
 }
+
+// CheckOutside checks that none of the prefixes is inside a subnet of the namespace, as an External drops the routes
+// within them silently. A prefix around the namespace, such as a default route, is fine
+func (ns *IPv4Namespace) CheckOutside(what string, prefixes []string) error {
+	for _, s := range ns.Spec.Subnets {
+		subnet, err := netip.ParsePrefix(s)
+		if err != nil {
+			return fmt.Errorf("invalid subnet %s in IPv4Namespace %s: %w", s, ns.Name, err)
+		}
+		for _, p := range prefixes {
+			prefix, err := netip.ParsePrefix(p)
+			if err != nil {
+				return fmt.Errorf("invalid %s %s: %w", what, p, err)
+			}
+			if iputil.IsSubset(prefix, subnet) {
+				return fmt.Errorf("%s %s is inside subnet %s of IPv4Namespace %s", what, prefix, subnet, ns.Name) //nolint:err113
+			}
+		}
+	}
+
+	return nil
+}

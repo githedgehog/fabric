@@ -17,7 +17,9 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/netip"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -87,6 +89,18 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		}
 
 		nsSubnets = append(nsSubnets, ipNet)
+	}
+
+	exts := &vpcapi.ExternalList{}
+	if err := w.Client.List(ctx, exts, kclient.InNamespace(newNs.Namespace), kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: newNs.Name,
+	}); err != nil {
+		return nil, fmt.Errorf("listing externals: %w", err) // TODO hide internal error
+	}
+	for _, ext := range exts.Items {
+		if err := newNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(ext.Spec.InboundPrefixes))); err != nil {
+			return nil, fmt.Errorf("external %s: %w", ext.Name, err)
+		}
 	}
 
 	vpcs := &vpcapi.VPCList{}
