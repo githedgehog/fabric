@@ -74,6 +74,7 @@ bfdProfiles:
 communityLists:
   all-externals:
     members:
+    - "50000:1"
     - 65102:1000
   all-gw-prios:
     members:
@@ -394,6 +395,9 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-inbound--ext-bgp-01
         result: accept
+        setCommunities:
+        - "50000:1"
+        - 65102:1000
         setLocalPreference: 150
   ext-outbound--ext-bgp-01:
     statements:
