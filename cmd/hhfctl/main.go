@@ -19,6 +19,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -396,6 +397,75 @@ func main() {
 								Name: name,
 								VPCs: cCtx.StringSlice("vpc"),
 							}), "failed to peer vpcs")
+						},
+					},
+					{
+						Name:    "interconnect",
+						Aliases: []string{"ic"},
+						Usage:   "Connect vpcs to a remote router that hands off per VRF, e.g. a border leaf of another fabric",
+						Flags: []cli.Flag{
+							verboseFlag,
+							nameFlag,
+							&cli.StringFlag{
+								Name:  "fabric",
+								Usage: "fabric the interconnect belongs to (default if not set)",
+							},
+							&cli.StringFlag{
+								Name:  "domain",
+								Usage: "fabric domain the interconnect is in (default if not set)",
+							},
+							&cli.StringFlag{
+								Name:    "ipv4-namespace",
+								Aliases: []string{"ipns"},
+								Usage:   "ipv4 namespace of the local vpcs (default if not set)",
+							},
+							&cli.StringSliceFlag{
+								Name:    "vpc-subnet",
+								Aliases: []string{"subnet"},
+								Usage:   "local vpc/subnet advertised to the remote side, repeatable (none for gateway use only)",
+							},
+							&cli.StringSliceFlag{
+								Name:     "connection",
+								Aliases:  []string{"conn"},
+								Usage:    "external connection to run a BGP session over, as connection[:vlan], repeatable",
+								Required: true,
+							},
+							&cli.UintFlag{
+								Name:  "remote-asn",
+								Usage: "ASN of the remote router on all links, any ASN other than the switch's own if not set",
+							},
+							&cli.BoolFlag{
+								Name:  "bfd",
+								Usage: "enable BFD with the fabric defaults on all links",
+							},
+							&cli.StringSliceFlag{
+								Name:     "remote-prefix",
+								Aliases:  []string{"prefix"},
+								Usage:    "ipv4 prefix accepted from the remote side (with any longer prefix within it), repeatable",
+								Required: true,
+							},
+							printYamlFlag,
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							remoteASN := cCtx.Uint("remote-asn")
+							if remoteASN > math.MaxUint32 {
+								return fmt.Errorf("remote-asn %d is out of range", remoteASN) //nolint:err113
+							}
+
+							return errors.Wrapf(hhfctl.VPCInterconnect(ctx, printYaml, &hhfctl.VPCInterconnectOptions{
+								Name:           name,
+								Fabric:         cCtx.String("fabric"),
+								Domain:         cCtx.String("domain"),
+								IPv4Namespace:  cCtx.String("ipv4-namespace"),
+								VPCSubnets:     cCtx.StringSlice("vpc-subnet"),
+								Links:          cCtx.StringSlice("connection"),
+								RemoteASN:      uint32(remoteASN),
+								BFD:            cCtx.Bool("bfd"),
+								RemotePrefixes: cCtx.StringSlice("remote-prefix"),
+							}), "failed to create vpc interconnect")
 						},
 					},
 					{
