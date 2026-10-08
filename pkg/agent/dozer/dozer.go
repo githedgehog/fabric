@@ -491,6 +491,12 @@ func (s *Spec) Normalize() {
 		slices.Sort(comm.Members)
 	}
 
+	for _, rmap := range s.RouteMaps {
+		for _, statement := range rmap.Statements {
+			slices.Sort(statement.SetCommunities)
+		}
+	}
+
 	// Normalize ACL entry protocols: SpecACLEntryProtocolUnset ("") and
 	// SpecACLEntryProtocolIP ("IP") are semantically identical for ACL_IPV4
 	// entries (both mean "match any IP protocol"). Normalize to IP so that
