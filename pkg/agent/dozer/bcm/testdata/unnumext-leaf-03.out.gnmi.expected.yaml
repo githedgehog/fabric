@@ -536,6 +536,12 @@ network-instances:
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
+                  ipv4-unicast:
+                    prefix-limit:
+                      config:
+                        max-prefixes: 1000
+                        restart-timer: 5
+                        warning-threshold-pct: 90
                 - afi-safi-name: L2VPN_EVPN
                   config:
                     afi-safi-name: L2VPN_EVPN
