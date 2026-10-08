@@ -223,9 +223,9 @@ func TestVPCInterconnectValidation(t *testing.T) {
 			warns: true,
 		},
 		{
-			name: "no local VPCs",
-			ic:   icGen("ic-01", func(ic *v1beta1.VPCInterconnect) { ic.Spec.Local = nil }),
-			err:  true,
+			name:  "no local VPCs",
+			ic:    icGen("ic-01", func(ic *v1beta1.VPCInterconnect) { ic.Spec.Local = nil }),
+			warns: true,
 		},
 		{
 			name: "local VPC without a name",
