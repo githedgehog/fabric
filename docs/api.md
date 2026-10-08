@@ -2728,7 +2728,8 @@ _Appears in:_
 
 VPCInterconnect connects local VPCs to a remote router that hands off per VRF, such as a border leaf of
 another fabric. Every local VPC reaches every remote prefix, and nothing else: local VPCs don't reach
-each other through it, and only the listed subnets and prefixes are exchanged. It is made of an External
+each other through it, and only the listed subnets and prefixes are exchanged. Without local VPCs, it is
+only reached through a GatewayPeering with ext.<name>, e.g. for Internet access. It is made of an External
 named after it, an ExternalAttachment per link and an ExternalPeering per local VPC, which the controller
 creates and keeps as specified here, and which can't be changed or deleted on their own.
 
@@ -2797,7 +2798,7 @@ _Appears in:_
 | `topology` _[VPCInterconnectTopology](#vpcinterconnecttopology)_ | Topology is where the VPCInterconnect sits in the fabric topology |  |  |
 | `ipv4Namespace` _string_ | IPv4Namespace is the IPv4Namespace of the local VPCs (if not specified, "default" is used) |  |  |
 | `links` _[VPCInterconnectLink](#vpcinterconnectlink) array_ | Links are the BGP sessions to the remote router |  |  |
-| `local` _object (keys:string, values:[VPCInterconnectVPC](#vpcinterconnectvpc))_ | Local are the local VPCs by name, with the subnets advertised to the remote side |  |  |
+| `local` _object (keys:string, values:[VPCInterconnectVPC](#vpcinterconnectvpc))_ | Local are the local VPCs by name, with the subnets advertised to the remote side. It can be empty when the<br />VPCInterconnect is only used by a GatewayPeering |  |  |
 | `remote` _[VPCInterconnectRemote](#vpcinterconnectremote)_ | Remote is what is accepted from the remote side |  |  |
 
 
