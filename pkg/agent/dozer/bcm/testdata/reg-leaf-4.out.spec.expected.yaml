@@ -24,6 +24,7 @@ bfdProfiles:
 communityLists:
   all-externals:
     members:
+    - "50000:1"
     - 65102:1000
   all-gw-prios:
     members:

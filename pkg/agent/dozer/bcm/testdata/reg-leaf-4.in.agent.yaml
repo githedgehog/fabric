@@ -40,6 +40,7 @@ spec:
         subnet-01: 401
         subnet-02: 402
     vpcVNIs:
+      ext@external-01: 100
       vpc-03: 300
       vpc-04: 400
   config:

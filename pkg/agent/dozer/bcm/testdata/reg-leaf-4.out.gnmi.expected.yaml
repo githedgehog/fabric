@@ -941,6 +941,7 @@ routing-policy:
           config:
             action: PERMIT
             community-member:
+            - "50000:1"
             - 65102:1000
             community-set-name: all-externals
             match-set-options: ANY
