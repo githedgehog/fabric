@@ -196,12 +196,13 @@ rules:
   - externalattachments
   - externalpeerings
   - externals
-  - ipv4namespaces
-  - vpcattachments
-  - vpcpeerings
+  - vpcs
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -212,6 +213,7 @@ rules:
   - externals/status
   - ipv4namespaces/status
   - vpcattachments/status
+  - vpcinterconnects/status
   - vpcpeerings/status
   - vpcs/status
   verbs:
@@ -228,13 +230,13 @@ rules:
 - apiGroups:
   - vpc.githedgehog.com
   resources:
-  - vpcs
+  - ipv4namespaces
+  - vpcattachments
+  - vpcinterconnects
+  - vpcpeerings
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
   - update
   - watch
 - apiGroups:

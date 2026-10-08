@@ -44,7 +44,7 @@ func SetupExternalPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, 
 
 	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalPeering{}).
 		WithDefaulter(w).
-		WithValidator(newLockedValidator[*vpcapi.ExternalPeering](w, lock)).
+		WithValidator(newLockedValidator[*vpcapi.ExternalPeering](newGeneratedValidator[*vpcapi.ExternalPeering](w, mgr.GetClient(), lock), lock)).
 		Complete(), "failed to setup external peering webhook")
 }
 

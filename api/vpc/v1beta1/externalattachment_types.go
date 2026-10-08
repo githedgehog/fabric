@@ -238,6 +238,23 @@ type ExternalAttachmentBFD struct {
 	Passive bool `json:"passive,omitempty"`
 }
 
+func (bfd *ExternalAttachmentBFD) Validate() error {
+	if bfd == nil {
+		return nil
+	}
+	if bfd.MinRX != 0 && (bfd.MinRX < BFDMinIntervalMS || bfd.MinRX > BFDMaxIntervalMS) {
+		return errors.Errorf("bfd.minRX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
+	}
+	if bfd.MinTX != 0 && (bfd.MinTX < BFDMinIntervalMS || bfd.MinTX > BFDMaxIntervalMS) {
+		return errors.Errorf("bfd.minTX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
+	}
+	if bfd.Multiplier != 0 && bfd.Multiplier < BFDMinMultiplier {
+		return errors.Errorf("bfd.multiplier must be at least %d", BFDMinMultiplier)
+	}
+
+	return nil
+}
+
 // ExternalAttachmentSwitch defines the switch port configuration for the external attachment
 type ExternalAttachmentSwitch struct {
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used
@@ -323,6 +340,14 @@ func (extAttachList *ExternalAttachmentList) GetItems() []meta.Object {
 	}
 
 	return items
+}
+
+func (attach *ExternalAttachment) VLAN() uint16 {
+	if attach.Spec.Static != nil {
+		return attach.Spec.Static.VLAN
+	}
+
+	return attach.Spec.Switch.VLAN
 }
 
 func (attach *ExternalAttachment) Default() {
@@ -454,14 +479,8 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 				warns = append(warns, "bfd is ignored because disableBFD is set for the whole fabric")
 			}
 		}
-		if bfd.MinRX != 0 && (bfd.MinRX < BFDMinIntervalMS || bfd.MinRX > BFDMaxIntervalMS) {
-			return nil, errors.Errorf("bfd.minRX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
-		}
-		if bfd.MinTX != 0 && (bfd.MinTX < BFDMinIntervalMS || bfd.MinTX > BFDMaxIntervalMS) {
-			return nil, errors.Errorf("bfd.minTX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
-		}
-		if bfd.Multiplier != 0 && bfd.Multiplier < BFDMinMultiplier {
-			return nil, errors.Errorf("bfd.multiplier must be at least %d", BFDMinMultiplier)
+		if err := bfd.Validate(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -477,6 +496,10 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			}
 
 			return nil, errors.Wrapf(err, "failed to read external %s", attach.Spec.External) // TODO replace with some internal error to not expose to the user
+		}
+		// a user attachment would hold the External back when its VPC interconnect is deleted
+		if owner := VPCInterconnectOwner(ext); owner != "" && VPCInterconnectOwner(attach) != owner {
+			return nil, fmt.Errorf("external %s is generated for VPC interconnect %s, add the link there instead", ext.Name, owner) //nolint:err113
 		}
 		// the reverse is allowed: an external with static prefixes may also have BGP attachments,
 		// which is how a static uplink is migrated to BGP without an outage
@@ -533,20 +556,26 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if err := kube.List(ctx, attaches, kclient.MatchingLabels{wiringapi.LabelName("connection"): attach.Spec.Connection}); err != nil {
 			return nil, errors.Wrapf(err, "failed to list external attachments for %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
 		}
-		ourVLAN := attach.Spec.Switch.VLAN
-		if attach.Spec.Static != nil {
-			ourVLAN = attach.Spec.Static.VLAN
-		}
 		for _, other := range attaches.Items {
 			if other.Name == attach.Name {
 				continue
 			}
-			otherVLAN := other.Spec.Switch.VLAN
-			if other.Spec.Static != nil {
-				otherVLAN = other.Spec.Static.VLAN
+			if other.VLAN() == attach.VLAN() {
+				return nil, errors.Errorf("connection %s already has an external attachment with VLAN %d", attach.Spec.Connection, attach.VLAN())
 			}
-			if otherVLAN == ourVLAN {
-				return nil, errors.Errorf("connection %s already has an external attachment with VLAN %d", attach.Spec.Connection, ourVLAN)
+		}
+		ics := &VPCInterconnectList{}
+		if err := kube.List(ctx, ics, kclient.InNamespace(attach.Namespace), kclient.MatchingLabels{wiringapi.ListLabelConnection(attach.Spec.Connection): ListLabelValue}); err != nil {
+			return nil, fmt.Errorf("failed to list VPC interconnects for %s: %w", attach.Spec.Connection, err) // TODO replace with some internal error to not expose to the user
+		}
+		for _, ic := range ics.Items {
+			if VPCInterconnectOwner(attach) == ic.Name {
+				continue
+			}
+			for _, link := range ic.Spec.Links {
+				if link.Connection == attach.Spec.Connection && link.VLAN == attach.VLAN() {
+					return nil, fmt.Errorf("connection %s already has VPC interconnect %s with VLAN %d", attach.Spec.Connection, ic.Name, link.VLAN) //nolint:err113
+				}
 			}
 		}
 	}

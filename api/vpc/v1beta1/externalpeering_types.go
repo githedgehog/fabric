@@ -219,6 +219,10 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 
 			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
 		}
+		// a user peering would let another VPC in, and hold the External back when its VPC interconnect is deleted
+		if owner := VPCInterconnectOwner(ext); owner != "" && VPCInterconnectOwner(peering) != owner {
+			return nil, fmt.Errorf("external %s is generated for VPC interconnect %s, add the VPC there instead", ext.Name, owner) //nolint:err113
+		}
 
 		peeringFabric := peering.Spec.Topology.Fabric
 		if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != peeringFabric {

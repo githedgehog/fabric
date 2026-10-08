@@ -314,6 +314,17 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 			Namespace: kmetav1.NamespaceDefault,
 		},
 	}
+	// delete all gateway peerings
+	if err := kube.DeleteAllOf(ctx, &gwapi.GatewayPeering{}, &delAllOpts); err != nil && !kmeta.IsNoMatchError(err) {
+		return errors.Wrap(err, "cannot delete gateway peerings")
+	}
+
+	// after the gateway peerings, which they can't be deleted under, and before the external peerings, as the ones
+	// generated for them can't be deleted while they exist
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCInterconnect{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete VPC interconnects")
+	}
+
 	// delete all external peerings
 	if err := kube.DeleteAllOf(ctx, &vpcapi.ExternalPeering{}, &delAllOpts); err != nil {
 		return errors.Wrap(err, "cannot delete external peerings")
@@ -322,11 +333,6 @@ func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
 	// delete all regular peerings
 	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCPeering{}, &delAllOpts); err != nil {
 		return errors.Wrap(err, "cannot delete vpc peerings")
-	}
-
-	// delete all gateway peerings
-	if err := kube.DeleteAllOf(ctx, &gwapi.GatewayPeering{}, &delAllOpts); err != nil && !kmeta.IsNoMatchError(err) {
-		return errors.Wrap(err, "cannot delete gateway peerings")
 	}
 
 	// delete all attachments

@@ -134,6 +134,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 		ObjectMeta: kmetav1.ObjectMeta{Name: "external-03", Namespace: kmetav1.NamespaceDefault},
 		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", Topology: v1beta1.ExternalTopology{Domain: "plane-b"}},
 	})
+	generatedExt := extGen("ic-01", func(ext *v1beta1.External) { ext.OwnerReferences = ownedBy("ic-01") })
 	withNeighborASN := func(asn uint32) func(*v1beta1.ExternalAttachment) {
 		return func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.ASN = asn }
 	}
@@ -229,6 +230,38 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			objects: withObjs(baseObjs,
 				staticExtAttGen("no-clash")),
 			err: false,
+		},
+		{
+			name:    "VLAN used by a VPC interconnect",
+			extAtt:  l3ExtAttGen("ext-att-07b"),
+			objects: withObjs(baseObjs, icGen("ic-01", func(ic *v1beta1.VPCInterconnect) { ic.Spec.Links[0].VLAN = 100 })),
+			err:     true,
+		},
+		{
+			name:    "VLAN next to a VPC interconnect",
+			extAtt:  l3ExtAttGen("ext-att-07c"),
+			objects: withObjs(baseObjs, icGen("ic-01")),
+		},
+		{
+			name: "generated for the VPC interconnect on its VLAN",
+			extAtt: l3ExtAttGen("ic-01--leaf-01--external--100", func(att *v1beta1.ExternalAttachment) {
+				att.OwnerReferences = ownedBy("ic-01")
+			}),
+			objects: withObjs(baseObjs, icGen("ic-01", func(ic *v1beta1.VPCInterconnect) { ic.Spec.Links[0].VLAN = 100 })),
+		},
+		{
+			name:    "user attachment to a generated external",
+			extAtt:  l3ExtAttGen("ext-att-07d", func(att *v1beta1.ExternalAttachment) { att.Spec.External = generatedExt.Name }),
+			objects: withObjs(baseObjs, generatedExt),
+			err:     true,
+		},
+		{
+			name: "attachment generated with the external",
+			extAtt: l3ExtAttGen("ext-att-07e", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.External = generatedExt.Name
+				att.OwnerReferences = generatedExt.OwnerReferences
+			}),
+			objects: withObjs(baseObjs, generatedExt),
 		},
 		{
 			name:    "switch outside the external's domain",

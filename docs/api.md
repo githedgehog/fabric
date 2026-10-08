@@ -1975,6 +1975,7 @@ and Externals APIs. Intended to be used by the user.
 - [IPv4Namespace](#ipv4namespace)
 - [VPC](#vpc)
 - [VPCAttachment](#vpcattachment)
+- [VPCInterconnect](#vpcinterconnect)
 - [VPCPeering](#vpcpeering)
 
 
@@ -2027,6 +2028,7 @@ ACLSpec defines an IPv4 Access Control List applied to inbound traffic on an ext
 
 _Appears in:_
 - [ExternalAttachmentSpec](#externalattachmentspec)
+- [VPCInterconnectLink](#vpcinterconnectlink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2138,6 +2140,7 @@ Unset values fall back to the fabric defaults.
 
 _Appears in:_
 - [ExternalAttachmentSpec](#externalattachmentspec)
+- [VPCInterconnectLink](#vpcinterconnectlink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2698,6 +2701,131 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `ip` _string_ | IP is the assigned static IP address |  |  |
+
+
+#### VPCInterconnect
+
+
+
+VPCInterconnect connects local VPCs to a remote router that hands off per VRF, such as a border leaf of
+another fabric. Every local VPC reaches every remote prefix, and nothing else: local VPCs don't reach
+each other through it, and only the listed subnets and prefixes are exchanged. It is made of an External
+named after it, an ExternalAttachment per link and an ExternalPeering per local VPC, which the controller
+creates and keeps as specified here, and which can't be changed or deleted on their own.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `VPCInterconnect` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[VPCInterconnectSpec](#vpcinterconnectspec)_ | Spec is the desired state of the VPCInterconnect |  |  |
+| `status` _[VPCInterconnectStatus](#vpcinterconnectstatus)_ | Status is the observed state of the VPCInterconnect |  |  |
+
+
+#### VPCInterconnectLink
+
+
+
+VPCInterconnectLink is a BGP unnumbered session to the remote router on an External connection
+
+
+
+_Appears in:_
+- [VPCInterconnectSpec](#vpcinterconnectspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `connection` _string_ | Connection is the name of the External Connection the session runs over |  |  |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID of the subinterface on the connection's switch port, 0 for no VLAN.<br />The remote end must use the same one |  |  |
+| `remoteASN` _integer_ | RemoteASN (optional) is the ASN of the remote router, if not set any ASN other than the switch's own is accepted |  |  |
+| `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the session, an empty object uses the fabric defaults |  |  |
+| `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL (optional) defines the ACL statements to apply to inbound traffic on this link |  |  |
+
+
+#### VPCInterconnectRemote
+
+
+
+VPCInterconnectRemote is what is accepted from the remote side
+
+
+
+_Appears in:_
+- [VPCInterconnectSpec](#vpcinterconnectspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefixes` _string array_ | Prefixes are the IPv4 prefixes accepted from the remote side, each with any longer prefix within it as<br />in an ExternalPeering, so 0.0.0.0/0 accepts everything |  |  |
+
+
+#### VPCInterconnectSpec
+
+
+
+VPCInterconnectSpec defines the desired state of VPCInterconnect
+
+
+
+_Appears in:_
+- [VPCInterconnect](#vpcinterconnect)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[VPCInterconnectTopology](#vpcinterconnecttopology)_ | Topology is where the VPCInterconnect sits in the fabric topology |  |  |
+| `ipv4Namespace` _string_ | IPv4Namespace is the IPv4Namespace of the local VPCs (if not specified, "default" is used) |  |  |
+| `links` _[VPCInterconnectLink](#vpcinterconnectlink) array_ | Links are the BGP sessions to the remote router |  |  |
+| `local` _object (keys:string, values:[VPCInterconnectVPC](#vpcinterconnectvpc))_ | Local are the local VPCs by name, with the subnets advertised to the remote side |  |  |
+| `remote` _[VPCInterconnectRemote](#vpcinterconnectremote)_ | Remote is what is accepted from the remote side |  |  |
+
+
+#### VPCInterconnectStatus
+
+
+
+VPCInterconnectStatus defines the observed state of VPCInterconnect
+
+
+
+_Appears in:_
+- [VPCInterconnect](#vpcinterconnect)
+
+
+
+#### VPCInterconnectTopology
+
+
+
+VPCInterconnectTopology is where a VPCInterconnect sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCInterconnectSpec](#vpcinterconnectspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCInterconnect belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain the VPCInterconnect is in (if not specified, "default" is used). Its links<br />must be on switches of that domain and its VPCs must be in it, and it is immutable |  |  |
+
+
+#### VPCInterconnectVPC
+
+
+
+VPCInterconnectVPC is a local VPC taking part in a VPCInterconnect
+
+
+
+_Appears in:_
+- [VPCInterconnectSpec](#vpcinterconnectspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subnets` _string array_ | Subnets are the names of the VPC subnets advertised to the remote side |  |  |
 
 
 #### VPCMode
