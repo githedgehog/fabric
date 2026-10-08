@@ -17,6 +17,7 @@ package bcm
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -234,6 +235,26 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 
 		actualNeighbors, desiredNeighbors := ValueOrNil(actual, desired,
 			func(value *dozer.SpecVRFBGP) map[string]*dozer.SpecVRFBGPNeighbor { return value.Neighbors })
+		// the switch refuses a neighbor replace that swaps the prefix limit restart timer for warning-only or
+		// back, as it checks the result merged with the actual config. Without the limit it accepts either.
+		for _, name := range slices.Sorted(maps.Keys(desiredNeighbors)) {
+			actualNeigh, desiredNeigh := actualNeighbors[name], desiredNeighbors[name]
+			if actualNeigh == nil || desiredNeigh == nil || actualNeigh.IPv4MaxPrefixes == nil || desiredNeigh.IPv4MaxPrefixes == nil {
+				continue
+			}
+			if (actualNeigh.IPv4MaxPrefixesWarnOnly != nil && *actualNeigh.IPv4MaxPrefixesWarnOnly) ==
+				(desiredNeigh.IPv4MaxPrefixesWarnOnly != nil && *desiredNeigh.IPv4MaxPrefixesWarnOnly) {
+				continue
+			}
+			if err := actions.Add(&Action{
+				Weight:   ActionWeightVRFBGPNeighborDelete,
+				ASummary: fmt.Sprintf("Delete VRF BGP neighbor %s prefix limit", name),
+				Type:     ActionTypeDelete,
+				Path:     basePath + fmt.Sprintf("/neighbors/neighbor[neighbor-address=%s]/afi-safis/afi-safi[afi-safi-name=IPV4_UNICAST]/ipv4-unicast/prefix-limit", name),
+			}); err != nil {
+				return fmt.Errorf("adding prefix limit delete action for neighbor %s: %w", name, err)
+			}
+		}
 		if err := specVRFBGPNeighborsEnforcer.Handle(basePath, actualNeighbors, desiredNeighbors, actions); err != nil {
 			return errors.Wrap(err, "failed to handle vrf bgp neighbors")
 		}
@@ -395,6 +416,20 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			}
 		}
 
+		var ipv4Unicast *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Ipv4Unicast
+		if value.IPv4MaxPrefixes != nil {
+			ipv4Unicast = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Ipv4Unicast{
+				PrefixLimit: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Ipv4Unicast_PrefixLimit{
+					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_Ipv4Unicast_PrefixLimit_Config{
+						MaxPrefixes:         value.IPv4MaxPrefixes,
+						RestartTimer:        value.IPv4MaxPrefixesRestart,
+						WarningThresholdPct: value.IPv4MaxPrefixesWarnPct,
+						PreventTeardown:     value.IPv4MaxPrefixesWarnOnly,
+					},
+				},
+			}
+		}
+
 		var l2VPNEVPNAllowOwnAS *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs
 		if value.L2VPNEVPNAllowOwnAS != nil {
 			l2VPNEVPNAllowOwnAS = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs{
@@ -459,6 +494,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 									AsOverride:  value.IPv4ASOverride,
 								},
 								ApplyPolicy: ipApplyPolicy,
+								Ipv4Unicast: ipv4Unicast,
 							},
 							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN: {
 								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
@@ -849,6 +885,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						var ipv4ImportPolicies []string
 						var ipv4ExportPolicies []string
 						var ipv4ASOverride *bool
+						var ipv4MaxPrefixes *uint32
+						var ipv4MaxPrefixesRestart *uint16
+						var ipv4MaxPrefixesWarnPct *uint8
+						var ipv4MaxPrefixesWarnOnly *bool
 						var l2vpnEVPN *bool
 						var l2ImportPolicies []string
 						var l2VPNEVPNAllowOwnAS *bool
@@ -861,6 +901,13 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 									ipv4ExportPolicies = ocIPv4Unicast.ApplyPolicy.Config.ExportPolicy
 								}
 								ipv4ASOverride = ocIPv4Unicast.Config.AsOverride
+							}
+							if ocIPv4Unicast != nil && ocIPv4Unicast.Ipv4Unicast != nil && ocIPv4Unicast.Ipv4Unicast.PrefixLimit != nil &&
+								ocIPv4Unicast.Ipv4Unicast.PrefixLimit.Config != nil {
+								ipv4MaxPrefixes = ocIPv4Unicast.Ipv4Unicast.PrefixLimit.Config.MaxPrefixes
+								ipv4MaxPrefixesRestart = ocIPv4Unicast.Ipv4Unicast.PrefixLimit.Config.RestartTimer
+								ipv4MaxPrefixesWarnPct = ocIPv4Unicast.Ipv4Unicast.PrefixLimit.Config.WarningThresholdPct
+								ipv4MaxPrefixesWarnOnly = ocIPv4Unicast.Ipv4Unicast.PrefixLimit.Config.PreventTeardown
 							}
 
 							ocL2VPNEVPN := neighbor.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN]
@@ -929,6 +976,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							IPv4UnicastImportPolicies: ipv4ImportPolicies,
 							IPv4UnicastExportPolicies: ipv4ExportPolicies,
 							IPv4ASOverride:            ipv4ASOverride,
+							IPv4MaxPrefixes:           ipv4MaxPrefixes,
+							IPv4MaxPrefixesRestart:    ipv4MaxPrefixesRestart,
+							IPv4MaxPrefixesWarnPct:    ipv4MaxPrefixesWarnPct,
+							IPv4MaxPrefixesWarnOnly:   ipv4MaxPrefixesWarnOnly,
 							L2VPNEVPN:                 l2vpnEVPN,
 							L2VPNEVPNImportPolicies:   l2ImportPolicies,
 							L2VPNEVPNAllowOwnAS:       l2VPNEVPNAllowOwnAS,

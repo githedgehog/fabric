@@ -1198,6 +1198,23 @@ advertised and accepted.
     If the attachment has no neighbor ASN we use `remote-as external` instead, which accepts any
     ASN other than our own.
 
+    If the attachment has `neighbor.prefixLimit`, the session is closed when the external sends more
+    than `max` prefixes, after the inbound route-map, and opened again after `restartMinutes` (5 by
+    default), as nothing else would clear it. The switch logs a warning from `warningThresholdPct`
+    of `max` (75% by default):
+    ```
+    router bgp 65101 vrf VrfEext-name
+     neighbor 100.1.10.6
+      address-family ipv4 unicast
+       maximum-prefix 1000 90 restart 5
+    ```
+    With `warningOnly` the session stays open and going above `max` is only logged. The switch
+    refuses a restart timer together with it, so there is none, and it refuses to swap one for the
+    other on an existing limit, so a change of mode deletes the limit first:
+    ```
+       maximum-prefix 1000 90 warning-only
+    ```
+
 #### Unnumbered attachments
 
 An attachment with neither `switch.ip` nor `neighbor.ip` runs BGP unnumbered, as

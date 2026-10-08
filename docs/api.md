@@ -2180,6 +2180,26 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  |  |
 | `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
+| `prefixLimit` _[ExternalAttachmentPrefixLimit](#externalattachmentprefixlimit)_ | PrefixLimit (optional) limits the prefixes accepted from the neighbor |  |  |
+
+
+#### ExternalAttachmentPrefixLimit
+
+
+
+ExternalAttachmentPrefixLimit limits the prefixes accepted from a BGP neighbor, counted after the inbound filters
+
+
+
+_Appears in:_
+- [ExternalAttachmentNeighbor](#externalattachmentneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `max` _integer_ | Max is the most prefixes accepted. Above it the session is closed, unless warningOnly is set |  | Minimum: 1 <br /> |
+| `restartMinutes` _integer_ | RestartMinutes (optional) is how long the session stays closed after going above max, 5 by default.<br />Raising max doesn't open the session earlier, removing the limit does. Can't be set with warningOnly |  | Minimum: 1 <br /> |
+| `warningThresholdPct` _integer_ | WarningThresholdPct (optional) is the percentage of max from which the switch logs a warning, 75 by default |  | Maximum: 100 <br />Minimum: 1 <br /> |
+| `warningOnly` _boolean_ | WarningOnly (optional) keeps the session open above max, so that going above it is only logged |  |  |
 
 
 #### ExternalAttachmentSpec
