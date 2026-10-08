@@ -536,6 +536,11 @@ network-instances:
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
+                  ipv4-unicast:
+                    prefix-limit:
+                      config:
+                        max-prefixes: 1000
+                        restart-timer: 5
                 - afi-safi-name: L2VPN_EVPN
                   config:
                     afi-safi-name: L2VPN_EVPN
@@ -896,6 +901,7 @@ routing-policy:
           config:
             action: PERMIT
             community-member:
+            - "50000:1"
             - 65102:1000
             community-set-name: all-externals
             match-set-options: ANY
@@ -1050,6 +1056,36 @@ routing-policy:
             masklength-range: 24..32
             sequence-number: 100
         name: ext-import--ext-bgp-01
+      - config:
+          mode: IPV4
+          name: ext-inbound--ext-bgp-01
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 0.0.0.0/0
+              masklength-range: exact
+              sequence-number: 10
+            ip-prefix: 0.0.0.0/0
+            masklength-range: exact
+            sequence-number: 10
+          - config:
+              action: PERMIT
+              ip-prefix: 10.1.0.0/16
+              masklength-range: 16..24
+              sequence-number: 20
+            ip-prefix: 10.1.0.0/16
+            masklength-range: 16..24
+            sequence-number: 20
+          - config:
+              action: PERMIT
+              ip-prefix: 172.16.0.0/12
+              masklength-range: 16..32
+              sequence-number: 30
+            ip-prefix: 172.16.0.0/12
+            masklength-range: 16..32
+            sequence-number: 30
+        name: ext-inbound--ext-bgp-01
       - config:
           mode: IPV4
           name: import-vrf--vpc-03--ext-bgp-01
@@ -1218,12 +1254,24 @@ routing-policy:
             bgp-actions:
               config:
                 set-local-pref: 150
+              set-community:
+                config:
+                  method: INLINE
+                  options: ADD
+                inline:
+                  config:
+                    communities:
+                    - "50000:1"
+                    - 65102:1000
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
             bgp-conditions:
               config:
                 community-set: ext-inbound--ext-bgp-01
+            match-prefix-set:
+              config:
+                prefix-set: ext-inbound--ext-bgp-01
           config:
             name: "15"
           name: "15"

@@ -217,6 +217,8 @@ type SpecVRFBGPNeighbor struct {
 	IPv4UnicastImportPolicies []string `json:"ipv4UnicastImportPolicies,omitempty"`
 	IPv4UnicastExportPolicies []string `json:"ipv4UnicastExportPolicies,omitempty"`
 	IPv4ASOverride            *bool    `json:"ipv4ASOverride,omitempty"`
+	IPv4MaxPrefixes           *uint32  `json:"ipv4MaxPrefixes,omitempty"`
+	IPv4MaxPrefixesRestart    *uint16  `json:"ipv4MaxPrefixesRestart,omitempty"`
 	L2VPNEVPN                 *bool    `json:"l2vpnEvpn,omitempty"`
 	L2VPNEVPNImportPolicies   []string `json:"l2vpnEvpnImportPolicies,omitempty"`
 	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
@@ -489,6 +491,12 @@ func (s *Spec) Normalize() {
 
 	for _, comm := range s.CommunityLists {
 		slices.Sort(comm.Members)
+	}
+
+	for _, rmap := range s.RouteMaps {
+		for _, statement := range rmap.Statements {
+			slices.Sort(statement.SetCommunities)
+		}
 	}
 
 	// Normalize ACL entry protocols: SpecACLEntryProtocolUnset ("") and

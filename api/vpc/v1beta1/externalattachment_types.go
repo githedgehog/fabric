@@ -271,6 +271,12 @@ type ExternalAttachmentNeighbor struct {
 	// IP is the IP address of the BGP neighbor to peer with (without prefix length).
 	// Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses
 	IP string `json:"ip,omitempty"`
+	// MaxPrefixes (optional) is the most prefixes accepted from the neighbor after the inbound filters. Above
+	// it the session is closed, and opened again after 5 minutes. Raising it doesn't open the session earlier,
+	// removing it does
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	MaxPrefixes uint32 `json:"maxPrefixes,omitempty"`
 }
 
 // ExternalAttachmentStatic defines parameters used for staticexternal attachments
@@ -443,7 +449,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.Switch.IP != "" || attach.Spec.Switch.VLAN != 0 {
 			return nil, errors.Errorf("switch parameters must not be set for static external attachment")
 		}
-		if attach.Spec.Neighbor.ASN != 0 || attach.Spec.Neighbor.IP != "" {
+		if attach.Spec.Neighbor.ASN != 0 || attach.Spec.Neighbor.IP != "" || attach.Spec.Neighbor.MaxPrefixes != 0 {
 			return nil, errors.Errorf("neighbor parameters must not be set for static external attachment")
 		}
 		if attach.Spec.Static.RemoteIP == "" {

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -228,6 +229,108 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 		out, err := kyaml.Marshal(peering)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal vpc peering")
+		}
+
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
+type VPCInterconnectOptions struct {
+	Name           string
+	Fabric         string
+	Domain         string
+	IPv4Namespace  string
+	VPCSubnets     []string
+	Links          []string
+	RemoteASN      uint32
+	BFD            bool
+	RemotePrefixes []string
+}
+
+func VPCInterconnect(ctx context.Context, printYaml bool, options *VPCInterconnectOptions) error {
+	if options.Name == "" {
+		return fmt.Errorf("name is required") //nolint:err113
+	}
+
+	ic := &vpcapi.VPCInterconnect{
+		ObjectMeta: kmetav1.ObjectMeta{
+			Name:      options.Name,
+			Namespace: kmetav1.NamespaceDefault,
+		},
+		Spec: vpcapi.VPCInterconnectSpec{
+			Topology: vpcapi.VPCInterconnectTopology{
+				Fabric: options.Fabric,
+				Domain: options.Domain,
+			},
+			IPv4Namespace: options.IPv4Namespace,
+			Local:         map[string]vpcapi.VPCInterconnectVPC{},
+			Remote: vpcapi.VPCInterconnectRemote{
+				Prefixes: options.RemotePrefixes,
+			},
+		},
+	}
+
+	for _, vpcSubnet := range options.VPCSubnets {
+		vpcName, subnet, ok := strings.Cut(vpcSubnet, "/")
+		if !ok || vpcName == "" || subnet == "" {
+			return fmt.Errorf("invalid vpc subnet %s, expected vpc/subnet", vpcSubnet) //nolint:err113
+		}
+		local := ic.Spec.Local[vpcName]
+		local.Subnets = append(local.Subnets, subnet)
+		ic.Spec.Local[vpcName] = local
+	}
+
+	for _, rawLink := range options.Links {
+		conn, rawVLAN, hasVLAN := strings.Cut(rawLink, ":")
+		link := vpcapi.VPCInterconnectLink{
+			Connection: conn,
+			RemoteASN:  options.RemoteASN,
+		}
+		if hasVLAN {
+			vlan, err := strconv.ParseUint(rawVLAN, 10, 16)
+			if err != nil {
+				return fmt.Errorf("invalid link %s, expected connection[:vlan]: %w", rawLink, err)
+			}
+			link.VLAN = uint16(vlan)
+		}
+		if options.BFD {
+			link.BFD = &vpcapi.ExternalAttachmentBFD{}
+		}
+		ic.Spec.Links = append(ic.Spec.Links, link)
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
+	if err != nil {
+		return fmt.Errorf("creating kube client: %w", err)
+	}
+
+	ic.Default()
+	warnings, err := ic.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+
+		return fmt.Errorf("validation failed") //nolint:err113
+	}
+	if warnings != nil {
+		slog.Warn("Validation", "warnings", warnings)
+	}
+
+	if err := kube.Create(ctx, ic); err != nil {
+		return fmt.Errorf("creating vpc interconnect: %w", err)
+	}
+
+	slog.Info("VPCInterconnect created", "name", ic.Name)
+
+	if printYaml {
+		ic.ObjectMeta.ManagedFields = nil
+		ic.ObjectMeta.Generation = 0
+		ic.ObjectMeta.ResourceVersion = ""
+
+		out, err := kyaml.Marshal(ic)
+		if err != nil {
+			return fmt.Errorf("marshaling vpc interconnect: %w", err)
 		}
 
 		fmt.Println(string(out))

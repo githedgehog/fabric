@@ -93,8 +93,9 @@ This route-map serves multiple purposes:
     advertised by a gateway will always win over prefixes advertised by an external; this is on purpose
     to avoid route flaps when a gateway route is advertised to an external via an attachment and later
     learned on another leaf via another attachment, where it would win over the shorter gateway route.
-    Additionally, routes that come from static externals or from BGP externals with no inbound community
-    will not be matched and their preference will not be increased.
+    The `all-externals` community list holds the community of every External of the fabric (see
+    [Externals](#externals)) and their inbound communities, so this covers the routes of every External,
+    static ones and ones without an inbound community included.
     - it allows any other non-matched prefix through.
 
     The gateway priority statements are only created on leaves.
@@ -1029,10 +1030,22 @@ Even though there's a single `External` object and a single `ExternalAttachment`
 we support two types of externals. BGP speaking externals will optionally have non-nil inbound and outbound
 communities, while Static externals will have non-nil static configuration.
 
-Creating an `External` object does not affect the switches in any major way; it is only when they are
-attached to a particular leaf via an `ExternalAttachment` that that leaf configuration is impacted.
-For this reason, even though some of the relevant config comes from information that lives in the
-`External`, in terms of config changes we'll only refer to the creation or deletion of an attachment.
+Each External has a community of its own, derived from its VNI as for VPCs (`<base>:<vni/100>`, see
+[VPCs](#vpcs)); as VPCs and Externals share the VNI pool, it is never a VPC's community. Routes
+learned from the External carry it instead of whatever the external system sent, so that no community
+from outside means anything in the fabric.
+
+Creating an `External` object does not affect the switches in any major way: every leaf of the fabric
+adds its community, and its inbound one if any, to the `all-externals` community list (see the
+`l2vpn-neighbors` route-map in [Switch Invariants](#switch-invariants)):
+```
+bgp community-list standard all-externals permit 50000:3
+bgp community-list standard all-externals permit 65102:1000
+```
+Otherwise, it is only when an External is attached to a particular leaf via an `ExternalAttachment`
+that that leaf configuration is impacted. For this reason, even though some of the relevant config
+comes from information that lives in the `External`, in terms of config changes we'll only refer to
+the creation or deletion of an attachment.
 
 ### Common external config
 The following config is applied for all externals, regardless of their type:
@@ -1118,8 +1131,19 @@ in the external attachment:
 1. We create several route-maps. In the inbound route-map, used in the import direction from the external:
   - we deny routes that match the `fabric-gw-aspath` AS-path list (see [Switch Invariants](#switch-invariants))
   - we deny routes that match the IPv4 namespace the external belongs to
-  - we allow routes that match the inbound community above (if specified), and set a local preference of 150. If no inbound community was specified, this applies to all routes.
-  - we deny everything else (assuming there was an inbound community)
+  - we allow routes that match the inbound community above (if specified) and the prefix list below (if the External
+  has `inboundPrefixes`), and set a local preference of 150. If neither was specified, this applies to all routes.
+  We also replace their communities with the External's own and its inbound community, which the VPCs'
+  `import-vrf` route-maps match on (see [External peerings](#external-peerings))
+  - we deny everything else (assuming there was an inbound community or inbound prefixes)
+
+If the External has `inboundPrefixes`, they go into the prefix list `ext-inbound--<EXT-NAME>`. Each matches
+exactly, unless `minPrefixLen` or `maxPrefixLen` widen it:
+    ```
+    ip prefix-list ext-inbound--ext-name seq 10 permit 0.0.0.0/0
+    ip prefix-list ext-inbound--ext-name seq 20 permit 10.1.0.0/16 le 24
+    ip prefix-list ext-inbound--ext-name seq 30 permit 172.16.0.0/12 ge 16 le 32
+    ```
 
 In the outbound route-map, used in the out direction with the external:
   - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community if specified
@@ -1135,6 +1159,8 @@ In the outbound route-map, used in the out direction with the external:
   !
   route-map ext-inbound--ext-name permit 15
    match community ext-inbound--ext-name
+   match ip address prefix-list ext-inbound--ext-name
+   set community 50000:3 65102:1000
    set local-preference 150
   !
   route-map ext-outbound--ext-name permit 10
@@ -1171,6 +1197,16 @@ advertised and accepted.
     ```
     If the attachment has no neighbor ASN we use `remote-as external` instead, which accepts any
     ASN other than our own.
+
+    If the attachment has `neighbor.maxPrefixes`, the session is closed when the external sends more
+    prefixes than that, after the inbound route-map, and opened again after 5 minutes, as nothing
+    else would clear it:
+    ```
+    router bgp 65101 vrf VrfEext-name
+     neighbor 100.1.10.6
+      address-family ipv4 unicast
+       maximum-prefix 1000 restart 5
+    ```
 
 #### Unnumbered attachments
 
@@ -1230,12 +1266,17 @@ to masquerade the private VPCs' IPs.
     ```
 1. In the BGP instance of the external VRF, static routes are redistributed,
 so that peers of the static external can learn how to reach the prefixes that
-are "advertised" by it:
+are "advertised" by it. They get the External's community on the way, as routes learned
+from a BGP external do, so that both kinds rank the same while an External has both
+static and BGP attachments:
     ```
+    route-map ext-static--ext-name permit 10
+     set community 50000:3
+    !
     router bgp 65101 vrf VrfEext-name
     [...]
      address-family ipv4 unicast
-      redistribute static
+      redistribute static route-map ext-static--ext-name
      !
     !
     ```

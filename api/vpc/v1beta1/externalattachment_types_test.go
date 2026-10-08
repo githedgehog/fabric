@@ -179,10 +179,21 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			name:    "BGP external attachment with max prefixes",
+			extAtt:  l3ExtAttGen("ext-att-01d", func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.MaxPrefixes = 1000 }),
+			objects: baseObjs,
+		},
+		{
 			name:    "valid static external attachment",
 			extAtt:  staticExtAttGen("ext-att-02"),
 			objects: baseObjs,
 			err:     false,
+		},
+		{
+			name:    "static external attachment with max prefixes",
+			extAtt:  staticExtAttGen("ext-att-02a", func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.MaxPrefixes = 1000 }),
+			objects: baseObjs,
+			err:     true,
 		},
 		{
 			name:    "external does not exist",

@@ -121,12 +121,19 @@ func (r *VPCInterconnectReconciler) Reconcile(ctx context.Context, req kctrl.Req
 		return kctrl.Result{}, fmt.Errorf("getting External %s: %w", ic.Name, err)
 	}
 
+	// remote prefixes match as in an ExternalPeering, including the longer prefixes within them
+	inboundPrefixes := map[string]vpcapi.ExternalInboundPrefix{}
+	for _, prefix := range ic.Spec.Remote.Prefixes {
+		inboundPrefixes[prefix] = vpcapi.ExternalInboundPrefix{MaxPrefixLen: 32}
+	}
+
 	ext = &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: ic.Name, Namespace: ic.Namespace}}
 	if err := r.createOrUpdate(ctx, ic, ext, func() {
 		ext.Spec = vpcapi.ExternalSpec{
 			Topology:          vpcapi.ExternalTopology{Fabric: ic.Spec.Topology.Fabric, Domain: ic.Spec.Topology.Domain},
 			IPv4Namespace:     ic.Spec.IPv4Namespace,
 			OutboundCommunity: comm,
+			InboundPrefixes:   inboundPrefixes,
 		}
 		ext.Default()
 	}); err != nil {

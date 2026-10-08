@@ -17,8 +17,10 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/netip"
 	"regexp"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -72,6 +74,33 @@ type ExternalSpec struct {
 	// external system has to change its remote-as to match. Static attachments ignore it.
 	// +optional
 	LocalASN uint32 `json:"localASN,omitempty"`
+	// InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,
+	// keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted
+	// +optional
+	InboundPrefixes map[string]ExternalInboundPrefix `json:"inboundPrefixes,omitempty"`
+}
+
+// ExternalInboundPrefix defines the prefix lengths accepted within an inbound prefix of an External
+type ExternalInboundPrefix struct {
+	// MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to its own length
+	// +kubebuilder:validation:Maximum=32
+	// +optional
+	MinPrefixLen uint8 `json:"minPrefixLen,omitempty"`
+	// MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so
+	// that a prefix without either matches exactly
+	// +kubebuilder:validation:Maximum=32
+	// +optional
+	MaxPrefixLen uint8 `json:"maxPrefixLen,omitempty"`
+}
+
+// PrefixLens returns the shortest and longest prefix length accepted within the given prefix
+func (p ExternalInboundPrefix) PrefixLens(prefix netip.Prefix) (uint8, uint8) {
+	minLen := max(p.MinPrefixLen, uint8(prefix.Bits())) //nolint:gosec
+	if p.MaxPrefixLen == 0 {
+		return minLen, minLen
+	}
+
+	return minLen, p.MaxPrefixLen
 }
 
 // ExternalStatus defines the observed state of External
@@ -185,14 +214,17 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		}
 	} else {
 		// While static prefixes are present the external may also have BGP attachments, and a
-		// static route carries no community. Any route-map that matches on the inbound community
-		// would then drop the static route outright rather than merely rank it lower: on a switch
-		// holding both kinds ext-inbound--<ext> is also the EVPN advertise policy, so the static
-		// route would never be re-originated as a type-5, and the same applies to the leak into a
-		// VPC VRF. Both stay untagged until the last static attachment is gone; tagging them too
-		// needs a fabric-owned identity community.
+		// static route only carries the External's own community, not the inbound one. Any
+		// route-map that matches on the inbound community would then drop the static route
+		// outright rather than merely rank it lower: on a switch holding both kinds
+		// ext-inbound--<ext> is also the EVPN advertise policy, so the static route would never be
+		// re-originated as a type-5, and the same applies to the leak into a VPC VRF.
 		if external.Spec.InboundCommunity != "" || external.Spec.OutboundCommunity != "" {
 			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when static configuration is present")
+		}
+
+		if len(external.Spec.InboundPrefixes) > 0 {
+			return nil, fmt.Errorf("inboundPrefixes must be empty when static configuration is present") //nolint:err113
 		}
 
 		if len(external.Spec.Static.Prefixes) == 0 {
@@ -212,6 +244,25 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 					return nil, fmt.Errorf("static prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String()) //nolint:goerr113
 				}
 			}
+		}
+	}
+
+	for prefixStr, lens := range external.Spec.InboundPrefixes {
+		prefix, err := netip.ParsePrefix(prefixStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid inbound prefix %s: %w", prefixStr, err)
+		}
+		if !prefix.Addr().Is4() {
+			return nil, fmt.Errorf("inbound prefix %s is not IPv4", prefixStr) //nolint:err113
+		}
+		if prefix.Masked() != prefix {
+			return nil, fmt.Errorf("inbound prefix %s has host bits set", prefixStr) //nolint:err113
+		}
+		if lens.MinPrefixLen != 0 && (int(lens.MinPrefixLen) < prefix.Bits() || lens.MinPrefixLen > 32) {
+			return nil, fmt.Errorf("inbound prefix %s: minPrefixLen %d is not between %d and 32", prefixStr, lens.MinPrefixLen, prefix.Bits()) //nolint:err113
+		}
+		if minLen, maxLen := lens.PrefixLens(prefix); maxLen < minLen || maxLen > 32 {
+			return nil, fmt.Errorf("inbound prefix %s: maxPrefixLen %d is not between %d and 32", prefixStr, lens.MaxPrefixLen, minLen) //nolint:err113
 		}
 	}
 
@@ -239,6 +290,10 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		extFabric := external.Spec.Topology.Fabric
 		if nsFabric := ipNs.Spec.Topology.Fabric; nsFabric != extFabric {
 			return nil, fmt.Errorf("external is in fabric %s but its IPv4Namespace %s is in fabric %s", extFabric, ipNs.Name, nsFabric) //nolint:err113
+		}
+
+		if err := ipNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(external.Spec.InboundPrefixes))); err != nil {
+			return nil, err
 		}
 
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, external.Namespace, external.Spec.Topology.Fabric)

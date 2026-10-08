@@ -82,6 +82,10 @@ func TestVPCInterconnectGenerates(t *testing.T) {
 		Topology:          vpcapi.ExternalTopology{Fabric: "default", Domain: "default"},
 		IPv4Namespace:     "default",
 		OutboundCommunity: comm,
+		InboundPrefixes: map[string]vpcapi.ExternalInboundPrefix{
+			"10.1.1.0/24": {MaxPrefixLen: 32},
+			"0.0.0.0/0":   {MaxPrefixLen: 32},
+		},
 	}, ext.Spec)
 
 	attach := &vpcapi.ExternalAttachment{}

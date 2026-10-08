@@ -2165,6 +2165,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  |  |
 | `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
+| `maxPrefixes` _integer_ | MaxPrefixes (optional) is the most prefixes accepted from the neighbor after the inbound filters. Above<br />it the session is closed, and opened again after 5 minutes. Raising it doesn't open the session earlier,<br />removing it does |  | Minimum: 1 <br /> |
 
 
 #### ExternalAttachmentSpec
@@ -2253,6 +2254,23 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this ExternalAttachment belongs to (if not specified, "default" is used) |  |  |
+
+
+#### ExternalInboundPrefix
+
+
+
+ExternalInboundPrefix defines the prefix lengths accepted within an inbound prefix of an External
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minPrefixLen` _integer_ | MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to its own length |  | Maximum: 32 <br /> |
+| `maxPrefixLen` _integer_ | MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so<br />that a prefix without either matches exactly |  | Maximum: 32 <br /> |
 
 
 #### ExternalPeering
@@ -2407,6 +2425,7 @@ _Appears in:_
 | `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
 | `static` _[ExternalStaticSpec](#externalstaticspec)_ | Static contains parameters specific to static externals |  |  |
 | `localASN` _integer_ | LocalASN makes every attachment to this External present the same ASN to the external system<br />instead of each border leaf's own. Changing it resets all sessions to this External, and the<br />external system has to change its remote-as to match. Static attachments ignore it. |  |  |
+| `inboundPrefixes` _object (keys:string, values:[ExternalInboundPrefix](#externalinboundprefix))_ | InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,<br />keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted |  |  |
 
 
 #### ExternalStaticSpec
@@ -2709,7 +2728,8 @@ _Appears in:_
 
 VPCInterconnect connects local VPCs to a remote router that hands off per VRF, such as a border leaf of
 another fabric. Every local VPC reaches every remote prefix, and nothing else: local VPCs don't reach
-each other through it, and only the listed subnets and prefixes are exchanged. It is made of an External
+each other through it, and only the listed subnets and prefixes are exchanged. Without local VPCs, it is
+only reached through a GatewayPeering with ext.<name>, e.g. for Internet access. It is made of an External
 named after it, an ExternalAttachment per link and an ExternalPeering per local VPC, which the controller
 creates and keeps as specified here, and which can't be changed or deleted on their own.
 
@@ -2778,7 +2798,7 @@ _Appears in:_
 | `topology` _[VPCInterconnectTopology](#vpcinterconnecttopology)_ | Topology is where the VPCInterconnect sits in the fabric topology |  |  |
 | `ipv4Namespace` _string_ | IPv4Namespace is the IPv4Namespace of the local VPCs (if not specified, "default" is used) |  |  |
 | `links` _[VPCInterconnectLink](#vpcinterconnectlink) array_ | Links are the BGP sessions to the remote router |  |  |
-| `local` _object (keys:string, values:[VPCInterconnectVPC](#vpcinterconnectvpc))_ | Local are the local VPCs by name, with the subnets advertised to the remote side |  |  |
+| `local` _object (keys:string, values:[VPCInterconnectVPC](#vpcinterconnectvpc))_ | Local are the local VPCs by name, with the subnets advertised to the remote side. It can be empty when the<br />VPCInterconnect is only used by a GatewayPeering |  |  |
 | `remote` _[VPCInterconnectRemote](#vpcinterconnectremote)_ | Remote is what is accepted from the remote side |  |  |
 
 

@@ -17,7 +17,9 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/netip"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -86,7 +88,7 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		return nil, errors.Wrapf(err, "error listing VPC interconnects") // TODO hide internal error
 	}
 	for _, ic := range ics.Items {
-		if err := ic.Spec.CheckNamespaceSubnets(newNs.Name, newNs.Spec.Subnets); err != nil {
+		if err := newNs.CheckOutside("remote prefix", ic.Spec.Remote.Prefixes); err != nil {
 			return nil, fmt.Errorf("VPC interconnect %s: %w", ic.Name, err)
 		}
 	}
@@ -99,6 +101,22 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		}
 
 		nsSubnets = append(nsSubnets, ipNet)
+	}
+
+	exts := &vpcapi.ExternalList{}
+	if err := w.Client.List(ctx, exts, kclient.InNamespace(newNs.Namespace), kclient.MatchingLabels{
+		vpcapi.LabelIPv4NS: newNs.Name,
+	}); err != nil {
+		return nil, fmt.Errorf("listing externals: %w", err) // TODO hide internal error
+	}
+	for _, ext := range exts.Items {
+		// a generated External has the remote prefixes of its VPC interconnect, checked above
+		if vpcapi.VPCInterconnectOwner(&ext) != "" {
+			continue
+		}
+		if err := newNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(ext.Spec.InboundPrefixes))); err != nil {
+			return nil, fmt.Errorf("external %s: %w", ext.Name, err)
+		}
 	}
 
 	vpcs := &vpcapi.VPCList{}

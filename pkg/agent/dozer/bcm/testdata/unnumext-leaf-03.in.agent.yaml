@@ -155,6 +155,7 @@ spec:
       external: ext-bgp-01
       neighbor:
         asn: 64102
+        maxPrefixes: 1000
       switch:
         vlan: 10
     leaf-03--ext-bgp-01-any-asn:
@@ -188,6 +189,13 @@ spec:
   externals:
     ext-bgp-01:
       inboundCommunity: 65102:1000
+      inboundPrefixes:
+        0.0.0.0/0: {}
+        10.1.0.0/16:
+          maxPrefixLen: 24
+        172.16.0.0/12:
+          minPrefixLen: 16
+          maxPrefixLen: 32
       ipv4Namespace: default
       outboundCommunity: 64102:1000
   ipv4Namespaces:

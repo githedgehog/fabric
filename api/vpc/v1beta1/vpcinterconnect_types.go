@@ -80,7 +80,8 @@ type VPCInterconnectSpec struct {
 	IPv4Namespace string `json:"ipv4Namespace,omitempty"`
 	// Links are the BGP sessions to the remote router
 	Links []VPCInterconnectLink `json:"links,omitempty"`
-	// Local are the local VPCs by name, with the subnets advertised to the remote side
+	// Local are the local VPCs by name, with the subnets advertised to the remote side. It can be empty when the
+	// VPCInterconnect is only used by a GatewayPeering
 	Local map[string]VPCInterconnectVPC `json:"local,omitempty"`
 	// Remote is what is accepted from the remote side
 	Remote VPCInterconnectRemote `json:"remote,omitempty"`
@@ -99,7 +100,8 @@ type VPCInterconnectStatus struct{}
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCInterconnect connects local VPCs to a remote router that hands off per VRF, such as a border leaf of
 // another fabric. Every local VPC reaches every remote prefix, and nothing else: local VPCs don't reach
-// each other through it, and only the listed subnets and prefixes are exchanged. It is made of an External
+// each other through it, and only the listed subnets and prefixes are exchanged. Without local VPCs, it is
+// only reached through a GatewayPeering with ext.<name>, e.g. for Internet access. It is made of an External
 // named after it, an ExternalAttachment per link and an ExternalPeering per local VPC, which the controller
 // creates and keeps as specified here, and which can't be changed or deleted on their own.
 type VPCInterconnect struct {
@@ -231,7 +233,7 @@ func (ic *VPCInterconnect) Validate(ctx context.Context, kube kclient.Reader, fa
 	}
 
 	if len(ic.Spec.Local) == 0 {
-		return nil, fmt.Errorf("at least one local VPC is required") //nolint:err113
+		warns = append(warns, fmt.Sprintf("no local VPCs, only a GatewayPeering with ext.%s will use it", ic.Name))
 	}
 	for vpcName, vpc := range ic.Spec.Local {
 		if vpcName == "" {
@@ -300,7 +302,7 @@ func (ic *VPCInterconnect) Validate(ctx context.Context, kube kclient.Reader, fa
 	if nsFabric := ipNs.Spec.Topology.Fabric; nsFabric != icFabric {
 		return nil, fmt.Errorf("VPC interconnect is in fabric %s but its IPv4Namespace %s is in fabric %s", icFabric, ipNs.Name, nsFabric) //nolint:err113
 	}
-	if err := ic.Spec.CheckNamespaceSubnets(ipNs.Name, ipNs.Spec.Subnets); err != nil {
+	if err := ipNs.CheckOutside("remote prefix", ic.Spec.Remote.Prefixes); err != nil {
 		return nil, err
 	}
 
@@ -413,29 +415,6 @@ func (spec *VPCInterconnectSpec) CheckLocalVPC(vpcName string, vpc *VPCSpec) err
 	for _, subnet := range spec.Local[vpcName].Subnets {
 		if _, exists := vpc.Subnets[subnet]; !exists {
 			return fmt.Errorf("vpc %s does not have subnet %s", vpcName, subnet) //nolint:err113
-		}
-	}
-
-	return nil
-}
-
-// CheckNamespaceSubnets checks that no remote prefix is inside a subnet of the IPv4Namespace, which the External would
-// drop silently. A prefix containing the namespace, such as a default route, is fine as the local routes are more
-// specific
-func (spec *VPCInterconnectSpec) CheckNamespaceSubnets(nsName string, subnets []string) error {
-	for _, s := range subnets {
-		nsSubnet, err := netip.ParsePrefix(s)
-		if err != nil {
-			return fmt.Errorf("invalid subnet %s in IPv4Namespace %s: %w", s, nsName, err)
-		}
-		for _, p := range spec.Remote.Prefixes {
-			prefix, err := netip.ParsePrefix(p)
-			if err != nil {
-				return fmt.Errorf("invalid remote prefix %s: %w", p, err)
-			}
-			if prefix.Bits() >= nsSubnet.Bits() && nsSubnet.Contains(prefix.Addr()) {
-				return fmt.Errorf("remote prefix %s is inside subnet %s of IPv4Namespace %s", prefix, nsSubnet, nsName) //nolint:err113
-			}
 		}
 	}
 
