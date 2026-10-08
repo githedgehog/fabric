@@ -216,7 +216,7 @@ func TestPlan(t *testing.T) {
 		{name: "unnum-mesh-leaf-01"}, // unnumbered mesh links next to a numbered gateway link
 		// group: unnumext
 		// mesh-leaf-03 with its external attachment unnumbered, plus a second unnumbered one on
-		// VLAN 11 of the same connection without a neighbor ASN
+		// VLAN 11 of the same connection without a neighbor ASN, and with inbound prefixes on ext-bgp-01
 		{name: "unnumext-leaf-03"}, // unnumbered external sessions, with BFD, with a user inbound ACL
 		// group: domains
 		// the reg group in a fabric with a second domain plane-b (spine ASN 65010, gateway ASN 65011)

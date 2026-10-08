@@ -1378,6 +1378,26 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 				locPrefStatement.Conditions = dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commList)}
 			}
+			if len(external.InboundPrefixes) > 0 {
+				prefixes := map[uint32]*dozer.SpecPrefixListEntry{}
+				// sorted so that the sequence numbers we assign don't depend on map iteration order
+				for idx, prefixStr := range slices.Sorted(maps.Keys(external.InboundPrefixes)) {
+					prefix, err := netip.ParsePrefix(prefixStr)
+					if err != nil {
+						return fmt.Errorf("parsing inbound prefix %s of external %s: %w", prefixStr, externalName, err)
+					}
+					minLen, maxLen := external.InboundPrefixes[prefixStr].PrefixLens(prefix)
+					entry := dozer.SpecPrefixListPrefix{Prefix: prefixStr}
+					if minLen != maxLen || int(maxLen) != prefix.Bits() {
+						entry.Ge = prefixListGe(prefix, minLen)
+						entry.Le = maxLen
+					}
+					prefixes[uint32(10*(idx+1))] = &dozer.SpecPrefixListEntry{Prefix: entry, Action: dozer.SpecPrefixListActionPermit} //nolint:gosec
+				}
+				prefixList := fmt.Sprintf("ext-inbound--%s", externalName)
+				spec.PrefixLists[prefixList] = &dozer.SpecPrefixList{Prefixes: prefixes}
+				locPrefStatement.Conditions.MatchPrefixList = pointer.To(prefixList)
+			}
 
 			inboundStatements := map[string]*dozer.SpecRouteMapStatement{
 				"10": {
