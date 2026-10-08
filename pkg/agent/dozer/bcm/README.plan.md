@@ -1198,6 +1198,16 @@ advertised and accepted.
     If the attachment has no neighbor ASN we use `remote-as external` instead, which accepts any
     ASN other than our own.
 
+    If the attachment has `neighbor.maxPrefixes`, the session is closed when the external sends more
+    prefixes than that, after the inbound route-map, and opened again after 5 minutes, as nothing
+    else would clear it:
+    ```
+    router bgp 65101 vrf VrfEext-name
+     neighbor 100.1.10.6
+      address-family ipv4 unicast
+       maximum-prefix 1000 restart 5
+    ```
+
 #### Unnumbered attachments
 
 An attachment with neither `switch.ip` nor `neighbor.ip` runs BGP unnumbered, as

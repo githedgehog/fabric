@@ -2165,6 +2165,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  |  |
 | `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
+| `maxPrefixes` _integer_ | MaxPrefixes (optional) is the most prefixes accepted from the neighbor after the inbound filters. Above<br />it the session is closed, and opened again after 5 minutes. Raising it doesn't open the session earlier,<br />removing it does |  | Minimum: 1 <br /> |
 
 
 #### ExternalAttachmentSpec

@@ -1120,6 +1120,14 @@ spec:
                             IP is the IP address of the BGP neighbor to peer with (without prefix length).
                             Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses
                           type: string
+                        maxPrefixes:
+                          description: |-
+                            MaxPrefixes (optional) is the most prefixes accepted from the neighbor after the inbound filters. Above
+                            it the session is closed, and opened again after 5 minutes. Raising it doesn't open the session earlier,
+                            removing it does
+                          format: int32
+                          minimum: 1
+                          type: integer
                       type: object
                     static:
                       description: Static contains parameters specific to a static

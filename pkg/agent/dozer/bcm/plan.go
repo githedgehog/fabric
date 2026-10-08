@@ -73,6 +73,8 @@ const (
 	MaxGWPrioLevels              = 100
 	GwPrioPreferenceBase         = 200
 	ExternalPreference           = 150
+	// without a restart the session stays down until cleared by hand
+	ExternalMaxPrefixesRestartMinutes = 5
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
@@ -1544,6 +1546,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastImportPolicies: []string{extInboundRouteMapName(attach.External)},
 				IPv4UnicastExportPolicies: []string{extOutboundRouteMapName(attach.External)},
 				BFDProfile:                bfdProfile,
+			}
+			if attach.Neighbor.MaxPrefixes != 0 {
+				neigh.IPv4MaxPrefixes = pointer.To(attach.Neighbor.MaxPrefixes)
+				neigh.IPv4MaxPrefixesRestart = pointer.To(uint16(ExternalMaxPrefixesRestartMinutes))
 			}
 			if attach.Neighbor.ASN != 0 {
 				neigh.RemoteAS = pointer.To(attach.Neighbor.ASN)

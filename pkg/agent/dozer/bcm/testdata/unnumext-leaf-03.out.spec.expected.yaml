@@ -628,6 +628,8 @@ vrfs:
           description: External attach leaf-03--ext-bgp-01
           enabled: true
           extendedNexthop: true
+          ipv4MaxPrefixes: 1000
+          ipv4MaxPrefixesRestart: 5
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - ext-outbound--ext-bgp-01
