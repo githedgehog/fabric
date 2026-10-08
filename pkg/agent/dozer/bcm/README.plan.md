@@ -1131,10 +1131,19 @@ in the external attachment:
 1. We create several route-maps. In the inbound route-map, used in the import direction from the external:
   - we deny routes that match the `fabric-gw-aspath` AS-path list (see [Switch Invariants](#switch-invariants))
   - we deny routes that match the IPv4 namespace the external belongs to
-  - we allow routes that match the inbound community above (if specified), and set a local preference of 150. If no inbound community was specified, this applies to all routes.
+  - we allow routes that match the inbound community above (if specified) and the prefix list below (if the External
+  has `inboundPrefixes`), and set a local preference of 150. If neither was specified, this applies to all routes.
   We also replace their communities with the External's own and its inbound community, which the VPCs'
   `import-vrf` route-maps match on (see [External peerings](#external-peerings))
-  - we deny everything else (assuming there was an inbound community)
+  - we deny everything else (assuming there was an inbound community or inbound prefixes)
+
+If the External has `inboundPrefixes`, they go into the prefix list `ext-inbound--<EXT-NAME>`. Each matches
+exactly, unless `minPrefixLen` or `maxPrefixLen` widen it:
+    ```
+    ip prefix-list ext-inbound--ext-name seq 10 permit 0.0.0.0/0
+    ip prefix-list ext-inbound--ext-name seq 20 permit 10.1.0.0/16 le 24
+    ip prefix-list ext-inbound--ext-name seq 30 permit 172.16.0.0/12 ge 16 le 32
+    ```
 
 In the outbound route-map, used in the out direction with the external:
   - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community if specified
@@ -1150,6 +1159,7 @@ In the outbound route-map, used in the out direction with the external:
   !
   route-map ext-inbound--ext-name permit 15
    match community ext-inbound--ext-name
+   match ip address prefix-list ext-inbound--ext-name
    set community 50000:3 65102:1000
    set local-preference 150
   !

@@ -75,6 +75,27 @@ spec:
                 description: InboundCommunity is the optional inbound community to
                   filter routes from the external system (e.g. 65102:5000)
                 type: string
+              inboundPrefixes:
+                additionalProperties:
+                  description: ExternalInboundPrefix defines the prefix lengths accepted
+                    within an inbound prefix of an External
+                  properties:
+                    maxPrefixLen:
+                      description: |-
+                        MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so
+                        that a prefix without either matches exactly
+                      maximum: 32
+                      type: integer
+                    minPrefixLen:
+                      description: MinPrefixLen is the shortest prefix length accepted
+                        within the prefix, defaults to its own length
+                      maximum: 32
+                      type: integer
+                  type: object
+                description: |-
+                  InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,
+                  keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted
+                type: object
               ipv4Namespace:
                 description: IPv4Namespace is the name of the IPv4Namespace this External
                   belongs to

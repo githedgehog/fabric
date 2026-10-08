@@ -84,6 +84,16 @@
         name: ext-import--ext-bgp-01
       name: ext-import--ext-bgp-01
   weight: 8
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-inbound--ext-bgp-01]
+  summary: Create Prefix List Base ext-inbound--ext-bgp-01
+  type: update
+  value:
+    prefix-set:
+    - config:
+        mode: IPV4
+        name: ext-inbound--ext-bgp-01
+      name: ext-inbound--ext-bgp-01
+  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=import-vrf--vpc-03--ext-bgp-01]
   summary: Create Prefix List Base import-vrf--vpc-03--ext-bgp-01
   type: update
@@ -235,6 +245,48 @@
       ip-prefix: 10.0.3.0/24
       masklength-range: 24..32
       sequence-number: 100
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-inbound--ext-bgp-01]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=0.0.0.0/0][masklength-range=exact]
+  summary: Create Prefix Lists Entry 10
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 0.0.0.0/0
+        masklength-range: exact
+        sequence-number: 10
+      ip-prefix: 0.0.0.0/0
+      masklength-range: exact
+      sequence-number: 10
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-inbound--ext-bgp-01]/extended-prefixes/extended-prefix[sequence-number=20][ip-prefix=10.1.0.0/16][masklength-range=16..24]
+  summary: Create Prefix Lists Entry 20
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 10.1.0.0/16
+        masklength-range: 16..24
+        sequence-number: 20
+      ip-prefix: 10.1.0.0/16
+      masklength-range: 16..24
+      sequence-number: 20
+  weight: 10
+- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ext-inbound--ext-bgp-01]/extended-prefixes/extended-prefix[sequence-number=30][ip-prefix=172.16.0.0/12][masklength-range=16..32]
+  summary: Create Prefix Lists Entry 30
+  type: update
+  value:
+    extended-prefix:
+    - config:
+        action: PERMIT
+        ip-prefix: 172.16.0.0/12
+        masklength-range: 16..32
+        sequence-number: 30
+      ip-prefix: 172.16.0.0/12
+      masklength-range: 16..32
+      sequence-number: 30
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=import-vrf--vpc-03--ext-bgp-01]/extended-prefixes/extended-prefix[sequence-number=101][ip-prefix=0.0.0.0/0][masklength-range=0..32]
   summary: Create Prefix Lists Entry 101
@@ -956,6 +1008,9 @@
         bgp-conditions:
           config:
             community-set: ext-inbound--ext-bgp-01
+        match-prefix-set:
+          config:
+            prefix-set: ext-inbound--ext-bgp-01
       config:
         name: "15"
       name: "15"

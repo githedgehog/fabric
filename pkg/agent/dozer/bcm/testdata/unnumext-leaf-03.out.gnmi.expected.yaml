@@ -1053,6 +1053,36 @@ routing-policy:
         name: ext-import--ext-bgp-01
       - config:
           mode: IPV4
+          name: ext-inbound--ext-bgp-01
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 0.0.0.0/0
+              masklength-range: exact
+              sequence-number: 10
+            ip-prefix: 0.0.0.0/0
+            masklength-range: exact
+            sequence-number: 10
+          - config:
+              action: PERMIT
+              ip-prefix: 10.1.0.0/16
+              masklength-range: 16..24
+              sequence-number: 20
+            ip-prefix: 10.1.0.0/16
+            masklength-range: 16..24
+            sequence-number: 20
+          - config:
+              action: PERMIT
+              ip-prefix: 172.16.0.0/12
+              masklength-range: 16..32
+              sequence-number: 30
+            ip-prefix: 172.16.0.0/12
+            masklength-range: 16..32
+            sequence-number: 30
+        name: ext-inbound--ext-bgp-01
+      - config:
+          mode: IPV4
           name: import-vrf--vpc-03--ext-bgp-01
         extended-prefixes:
           extended-prefix:
@@ -1234,6 +1264,9 @@ routing-policy:
             bgp-conditions:
               config:
                 community-set: ext-inbound--ext-bgp-01
+            match-prefix-set:
+              config:
+                prefix-set: ext-inbound--ext-bgp-01
           config:
             name: "15"
           name: "15"

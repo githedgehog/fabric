@@ -301,6 +301,23 @@ prefixLists:
         prefix:
           le: 32
           prefix: 10.0.3.0/24
+  ext-inbound--ext-bgp-01:
+    prefixes:
+      "10":
+        action: permit
+        prefix:
+          prefix: 0.0.0.0/0
+      "20":
+        action: permit
+        prefix:
+          le: 24
+          prefix: 10.1.0.0/16
+      "30":
+        action: permit
+        prefix:
+          ge: 16
+          le: 32
+          prefix: 172.16.0.0/12
   import-vrf--vpc-03--ext-bgp-01:
     prefixes:
       "101":
@@ -385,6 +402,7 @@ routeMaps:
       "15":
         conditions:
           matchCommunityLists: ext-inbound--ext-bgp-01
+          matchPrefixLists: ext-inbound--ext-bgp-01
         result: accept
         setCommunities:
         - "50000:1"
