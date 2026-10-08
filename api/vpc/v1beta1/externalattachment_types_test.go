@@ -178,10 +178,56 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			name: "BGP external attachment with prefix limit",
+			extAtt: l3ExtAttGen("ext-att-01d", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, RestartMinutes: 10, WarningThresholdPct: 90}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "BGP external attachment with warning-only prefix limit",
+			extAtt: l3ExtAttGen("ext-att-01e", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, WarningOnly: true}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "BGP external attachment with prefix limit without max",
+			extAtt: l3ExtAttGen("ext-att-01f", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{WarningOnly: true}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BGP external attachment with warning-only prefix limit and restart",
+			extAtt: l3ExtAttGen("ext-att-01g", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, WarningOnly: true, RestartMinutes: 5}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BGP external attachment with prefix limit threshold above 100",
+			extAtt: l3ExtAttGen("ext-att-01h", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, WarningThresholdPct: 101}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
 			name:    "valid static external attachment",
 			extAtt:  staticExtAttGen("ext-att-02"),
 			objects: baseObjs,
 			err:     false,
+		},
+		{
+			name: "static external attachment with prefix limit",
+			extAtt: staticExtAttGen("ext-att-02a", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000}
+			}),
+			objects: baseObjs,
+			err:     true,
 		},
 		{
 			name:    "external does not exist",

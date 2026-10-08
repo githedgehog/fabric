@@ -1120,6 +1120,36 @@ spec:
                             IP is the IP address of the BGP neighbor to peer with (without prefix length).
                             Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses
                           type: string
+                        prefixLimit:
+                          description: PrefixLimit (optional) limits the prefixes
+                            accepted from the neighbor
+                          properties:
+                            max:
+                              description: Max is the most prefixes accepted. Above
+                                it the session is closed, unless warningOnly is set
+                              format: int32
+                              minimum: 1
+                              type: integer
+                            restartMinutes:
+                              description: |-
+                                RestartMinutes (optional) is how long the session stays closed after going above max, 5 by default.
+                                Raising max doesn't open the session earlier, removing the limit does. Can't be set with warningOnly
+                              minimum: 1
+                              type: integer
+                            warningOnly:
+                              description: WarningOnly (optional) keeps the session
+                                open above max, so that going above it is only logged
+                              type: boolean
+                            warningThresholdPct:
+                              description: WarningThresholdPct (optional) is the percentage
+                                of max from which the switch logs a warning, 75 by
+                                default
+                              maximum: 100
+                              minimum: 1
+                              type: integer
+                          required:
+                          - max
+                          type: object
                       type: object
                     static:
                       description: Static contains parameters specific to a static
