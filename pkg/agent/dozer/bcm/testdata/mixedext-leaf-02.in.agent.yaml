@@ -36,6 +36,7 @@ spec:
       vpc-03:
         default: 501
     vpcVNIs:
+      ext@ext-snp-02: 100
       ext@ext-sp-01: 200
       vpc-01: 300
       vpc-02: 400

@@ -1251,13 +1251,29 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	for externalName, external := range agent.Spec.Externals {
 		extVrfName := extVrfName(externalName)
 
-		if external.Static == nil && external.InboundCommunity != "" {
-			if agent.IsSpineLeaf() && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity) {
-				spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, external.InboundCommunity)
+		// routes from an External replace what the external system sent with this community, so that
+		// no community from outside means anything in the fabric. A controller from before this only
+		// gave a switch the VNIs of the externals attached to it.
+		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
+		extComm := ""
+		if extVNI != 0 {
+			var err error
+			if extComm, err = librarian.VNICommunity(agent.Spec.Config.BaseVPCCommunity, extVNI); err != nil {
+				return fmt.Errorf("community for external %s: %w", externalName, err)
+			}
+		}
+		if agent.IsSpineLeaf() {
+			for _, comm := range []string{extComm, external.InboundCommunity} {
+				if comm != "" && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, comm) {
+					spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, comm)
+				}
 			}
 		}
 		if !attachedExternals[externalName] {
 			continue
+		}
+		if extVNI == 0 {
+			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:err113
 		}
 
 		spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)] = &dozer.SpecACL{
@@ -1330,18 +1346,32 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			if extHasStatic[externalName] {
 				vrfSpec.TableConnections = map[string]*dozer.SpecVRFTableConnection{
-					string(dozer.SpecVRFBGPTableConnectionStatic): {},
+					string(dozer.SpecVRFBGPTableConnectionStatic): {ImportPolicies: []string{extStaticRouteMapName(externalName)}},
 				}
 			}
 			spec.VRFs[extVrfName] = vrfSpec
 		}
 
+		if extHasStatic[externalName] {
+			spec.RouteMaps[extStaticRouteMapName(externalName)] = &dozer.SpecRouteMap{
+				Statements: map[string]*dozer.SpecRouteMapStatement{
+					"10": {
+						SetCommunities: []string{extComm},
+						Result:         dozer.SpecRouteMapResultAccept,
+					},
+				},
+			}
+		}
+
 		if extHasBGP[externalName] {
+			// inboundCommunity stays on the routes, as the VPCs' import-vrf route maps match it
 			locPrefStatement := &dozer.SpecRouteMapStatement{
 				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
+				SetCommunities:     []string{extComm},
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 			if external.InboundCommunity != "" {
+				locPrefStatement.SetCommunities = append(locPrefStatement.SetCommunities, external.InboundCommunity)
 				commList := extInboundCommListName(externalName)
 				spec.CommunityLists[commList] = &dozer.SpecCommunityList{
 					Members: []string{external.InboundCommunity},
@@ -1394,12 +1424,8 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
-		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
 		if irbVLAN == 0 {
 			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:goerr113
-		}
-		if extVNI == 0 {
-			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:goerr113
 		}
 		irbIface := vlanName(irbVLAN)
 		spec.Interfaces[irbIface] = &dozer.SpecInterface{
@@ -3831,6 +3857,10 @@ func extImportRouteMapName(external string) string {
 // prefix list with all the VPC subnets that have been peered with a given external, to filter what we import in the external's VRF
 func extImportPrefixListName(external string) string {
 	return fmt.Sprintf("ext-import--%s", external)
+}
+
+func extStaticRouteMapName(external string) string {
+	return fmt.Sprintf("ext-static--%s", external)
 }
 
 func extOutboundRouteMapName(external string) string {

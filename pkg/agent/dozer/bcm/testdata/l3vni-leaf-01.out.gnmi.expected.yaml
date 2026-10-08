@@ -670,6 +670,8 @@ network-instances:
         config:
           address-family: IPV4
           dst-protocol: BGP
+          import-policy:
+          - ext-static--ext-snp-02
           src-protocol: STATIC
         dst-protocol: BGP
         src-protocol: STATIC
@@ -752,6 +754,8 @@ network-instances:
         config:
           address-family: IPV4
           dst-protocol: BGP
+          import-policy:
+          - ext-static--ext-sp-01
           src-protocol: STATIC
         dst-protocol: BGP
         src-protocol: STATIC
@@ -1319,6 +1323,9 @@ routing-policy:
         - community-set-name: all-externals
           config:
             action: PERMIT
+            community-member:
+            - "50000:1"
+            - "50000:2"
             community-set-name: all-externals
             match-set-options: ANY
         - community-set-name: all-gw-prios
@@ -1814,6 +1821,46 @@ routing-policy:
             match-prefix-set:
               config:
                 prefix-set: ext-import--ext-sp-01
+          config:
+            name: "10"
+          name: "10"
+    - config:
+        name: ext-static--ext-snp-02
+      name: ext-static--ext-snp-02
+      statements:
+        statement:
+        - actions:
+            bgp-actions:
+              set-community:
+                config:
+                  method: INLINE
+                  options: ADD
+                inline:
+                  config:
+                    communities:
+                    - "50000:1"
+            config:
+              policy-result: ACCEPT_ROUTE
+          config:
+            name: "10"
+          name: "10"
+    - config:
+        name: ext-static--ext-sp-01
+      name: ext-static--ext-sp-01
+      statements:
+        statement:
+        - actions:
+            bgp-actions:
+              set-community:
+                config:
+                  method: INLINE
+                  options: ADD
+                inline:
+                  config:
+                    communities:
+                    - "50000:2"
+            config:
+              policy-result: ACCEPT_ROUTE
           config:
             name: "10"
           name: "10"

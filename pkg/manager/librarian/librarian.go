@@ -312,7 +312,9 @@ func setRedundancyCatalogOwner(ctx context.Context, kube kclient.Client, sw *wir
 	return setCatalogOwner(kube, sg, cat)
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
+// CatalogForRedundancyGroup allocates IRB VLANs for the externals attached to the switch, and returns the VNIs of all
+// fabricExternals, as every leaf matches the communities derived from them
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns, externals, fabricExternals map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -385,7 +387,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			return fmt.Errorf("failed to find VPC VNI for vpc %s", name) //nolint:err113
 		}
 	}
-	for name := range externals {
+	for name := range fabricExternals {
 		if vni, exists := vnisCat.Spec.VPCVNIs[ReqForExt(name)]; exists {
 			ret.VPCVNIs[ReqForExt(name)] = vni
 		} else {
