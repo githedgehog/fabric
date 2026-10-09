@@ -597,8 +597,6 @@ routeMaps:
 suppressVLANNeighs:
   Vlan1001: {}
   Vlan1002: {}
-  Vlan3000: {}
-  Vlan3001: {}
 users:
   admin:
     authorizedKeys:
