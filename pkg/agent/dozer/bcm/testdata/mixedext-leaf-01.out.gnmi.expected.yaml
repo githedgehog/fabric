@@ -429,7 +429,7 @@ interfaces:
             address:
             - config:
                 ip: 100.1.20.2
-                prefix-length: 24
+                prefix-length: 30
                 secondary: false
               ip: 100.1.20.2
         vlan:
@@ -781,15 +781,15 @@ network-instances:
             next-hops:
               next-hop:
               - config:
-                  index: Eth0.20_100.1.20.1
-                  next-hop: 100.1.20.1
-                index: Eth0.20_100.1.20.1
+                  index: Eth0.20_100.1.20.9
+                  next-hop: 100.1.20.9
+                index: Eth0.20_100.1.20.9
                 interface-ref:
                   config:
                     interface: Eth0.20
             prefix: 0.0.0.0/0
           - config:
-              prefix: 100.1.20.1/32
+              prefix: 100.1.20.9/32
             next-hops:
               next-hop:
               - config:
@@ -798,7 +798,7 @@ network-instances:
                 interface-ref:
                   config:
                     interface: Eth0.20
-            prefix: 100.1.20.1/32
+            prefix: 100.1.20.9/32
     table-connections:
       table-connection:
       - address-family: IPV4

@@ -234,7 +234,7 @@ interfaces:
       "20":
         ips:
           100.1.20.2:
-            prefixLen: 24
+            prefixLen: 30
         vlan: 20
       "30":
         ips:
@@ -922,8 +922,8 @@ vrfs:
       0.0.0.0/0:
         nextHops:
         - interface: Eth0.20
-          ip: 100.1.20.1
-      100.1.20.1/32:
+          ip: 100.1.20.9
+      100.1.20.9/32:
         nextHops:
         - interface: Eth0.20
     tableConnections:

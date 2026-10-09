@@ -1574,12 +1574,20 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 			spec.Interfaces[port].Subinterfaces[uint32(attach.Static.VLAN)] = subIfaceSpec
 			spec.VRFs[extVrfName].Interfaces[ifaceName] = &dozer.SpecVRFInterface{}
-			spec.VRFs[extVrfName].StaticRoutes[fmt.Sprintf("%s/32", attach.Static.RemoteIP)] = &dozer.SpecVRFStaticRoute{
-				NextHops: []dozer.SpecVRFStaticRouteNextHop{
-					{
-						Interface: pointer.To(ifaceName),
+
+			remoteIP, err := netip.ParseAddr(attach.Static.RemoteIP)
+			if err != nil {
+				return fmt.Errorf("parsing static external attach remote IP %s: %w", attach.Static.RemoteIP, err)
+			}
+			// always the case with proxy-ARP, where the switch only has a /31 from the reserved range
+			if !fabricEdgeIP.Contains(remoteIP) {
+				spec.VRFs[extVrfName].StaticRoutes[remoteIP.String()+"/32"] = &dozer.SpecVRFStaticRoute{
+					NextHops: []dozer.SpecVRFStaticRouteNextHop{
+						{
+							Interface: pointer.To(ifaceName),
+						},
 					},
-				},
+				}
 			}
 
 			// spec.static can be removed from the external concurrently with this attachment being

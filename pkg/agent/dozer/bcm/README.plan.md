@@ -1192,8 +1192,9 @@ to masquerade the private VPCs' IPs.
     !
     ```
 1. Static routes are added to the VRF of the external:
-  - a direct route to reach the /32 address of the external device (**FIXME: not needed for the non-proxy version**)
   - one route per prefix reachable via the external, as defined by the `Prefixes` list in the external itself
+  - a direct route to the /32 address of the external device, only if that address is not in the
+    subnet of the sub-interface; this is always the case with proxy-ARP, where the switch only has the /31
     ```
     ip route vrf VrfEext-name 0.0.0.0/0 100.1.10.1 interface Ethernet0.10
     ip route vrf VrfEext-name 100.1.10.1/32 interface Ethernet0.10

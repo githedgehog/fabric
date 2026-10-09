@@ -2947,23 +2947,6 @@
               interface: Eth0.20
       prefix: 0.0.0.0/0
   weight: 63
-- path: /network-instances/network-instance[name=VrfEext-snp-02]/protocols/protocol[identifier=STATIC][name=static]/static-routes/static[prefix=100.1.20.1/32]
-  summary: Create VRF static route 100.1.20.1/32
-  type: update
-  value:
-    static:
-    - config:
-        prefix: 100.1.20.1/32
-      next-hops:
-        next-hop:
-        - config:
-            index: Eth0.20
-          index: Eth0.20
-          interface-ref:
-            config:
-              interface: Eth0.20
-      prefix: 100.1.20.1/32
-  weight: 63
 - path: /network-instances/network-instance[name=VrfEext-sp-01]/protocols/protocol[identifier=STATIC][name=static]/static-routes/static[prefix=0.0.0.0/0]
   summary: Create VRF static route 0.0.0.0/0
   type: update

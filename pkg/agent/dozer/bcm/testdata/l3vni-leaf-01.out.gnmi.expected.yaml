@@ -653,17 +653,6 @@ network-instances:
                   config:
                     interface: Eth0.20
             prefix: 0.0.0.0/0
-          - config:
-              prefix: 100.1.20.1/32
-            next-hops:
-              next-hop:
-              - config:
-                  index: Eth0.20
-                index: Eth0.20
-                interface-ref:
-                  config:
-                    interface: Eth0.20
-            prefix: 100.1.20.1/32
     table-connections:
       table-connection:
       - address-family: IPV4
