@@ -482,13 +482,6 @@ routing-policy:
             action: PERMIT
             community-set-name: all-externals
             match-set-options: ANY
-        - community-set-name: no-community
-          config:
-            action: PERMIT
-            community-member:
-            - REGEX:^$
-            community-set-name: no-community
-            match-set-options: ANY
     prefix-sets:
       prefix-set:
       - config:
