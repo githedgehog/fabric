@@ -531,8 +531,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-03
         result: accept
-        setCommunities:
-        - "50000:4"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03

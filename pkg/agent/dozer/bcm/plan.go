@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/netip"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -2568,11 +2567,6 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 		}
 	}
 
-	vpcComm, err := communityForVPC(agent, vpcName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get community for VPC %s", vpcName)
-	}
-
 	vpcRedistributeConnectedRouteMap := vpcRedistributeConnectedRouteMapName(vpcName)
 	spec.RouteMaps[vpcRedistributeConnectedRouteMap] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
@@ -2586,8 +2580,7 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchPrefixList: pointer.To(vpcSubnetsPrefixListName(vpcName)),
 				},
-				SetCommunities: []string{vpcComm},
-				Result:         dozer.SpecRouteMapResultAccept,
+				Result: dozer.SpecRouteMapResultAccept,
 			},
 			"6": {
 				Conditions: dozer.SpecRouteMapConditions{
@@ -3857,32 +3850,6 @@ func vpcSubnetVIPsOnlyPrefixListName(vpc string, subnet string) string {
 
 func vpcSubnetVIPsOnlyRouteMapName(vpc string, subnet string) string {
 	return fmt.Sprintf("vips-only--%s--%s", vpc, subnet)
-}
-
-func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
-	baseParts := strings.Split(agent.Spec.Config.BaseVPCCommunity, ":")
-	if len(baseParts) != 2 {
-		return "", errors.Errorf("invalid base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
-	}
-	base, err := strconv.ParseUint(baseParts[1], 10, 16)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse base VPC community %s", agent.Spec.Config.BaseVPCCommunity)
-	}
-
-	vni, exists := agent.Spec.Catalog.VPCVNIs[vpc]
-	if !exists {
-		return "", errors.Errorf("VNI for VPC %s not found", vpc)
-	}
-	if vni%100 != 0 {
-		return "", errors.Errorf("VNI for VPC %s is not a multiple of 100", vpc)
-	}
-
-	id := base + uint64(vni)/100
-	if id >= 65535 {
-		return "", errors.Errorf("VPC %s community id is too large", vpc)
-	}
-
-	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
 }
 
 func planAllPortsUp(agent *agentapi.Agent, spec *dozer.Spec) error {
