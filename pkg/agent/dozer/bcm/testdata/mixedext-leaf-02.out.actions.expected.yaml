@@ -134,36 +134,6 @@
         name: vips-only--vpc-02--default
       name: vips-only--vpc-02--default
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-01]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-01
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-01
-      name: vpc-ext-prefixes--vpc-01
-  weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-02]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-02
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-02
-      name: vpc-ext-prefixes--vpc-02
-  weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-03]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-03
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-03
-      name: vpc-ext-prefixes--vpc-03
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]
   summary: Create Prefix List Base vpc-loopback-prefix
   type: update
@@ -2092,22 +2062,6 @@
         name: "1"
       name: "1"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-01
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=5]
   summary: Create Route Map Statement 5
   type: update
@@ -2140,22 +2094,6 @@
         name: "1"
       name: "1"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-02]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-02
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-02]/statements/statement[name=5]
   summary: Create Route Map Statement 5
   type: update
@@ -2187,22 +2125,6 @@
       config:
         name: "1"
       name: "1"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-03
-      config:
-        name: "10"
-      name: "10"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=5]
   summary: Create Route Map Statement 5

@@ -807,7 +807,8 @@ or flooded ARP requests for it to act on.
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC [static external](#static-externals) subnets
-    - we permit any route that matches the prefix list of the VPC external prefixes (see the [Externals section](#externals))
+    - only with the loopback workaround enabled, we permit any route that matches the prefix list of the
+      VPC external prefixes (see [External peerings](#external-peerings))
     - we implicitly deny everything else
    ```
    route-map vpc-redistribute-static--vpc-01 deny 1
@@ -815,9 +816,6 @@ or flooded ARP requests for it to act on.
    !
    route-map vpc-redistribute-static--vpc-01 permit 5
     match ip address prefix-list vpc-static-ext-subnets--vpc-01
-   !
-   route-map vpc-redistribute-static--vpc-01 permit 10
-    match ip address prefix-list vpc-ext-prefixes--vpc-01
    !
    ```
 1. We create a route map to filter routes imported in the VPC VRF, e.g. from VPC we are peering with:
@@ -1217,11 +1215,18 @@ the prefixes we allow for that external:
     ```
     ip prefix-list import-vrf--vpc-01--ext-name seq 102 permit 0.0.0.0/0 le 32
     ```
-1. We create another prefix list `vpc-ext-prefixes--<VPC-NAME>` with the same thing;
-this appears to be used in the route-map to allow redistribution of static routes from
-a VPC VRF. **TODO: why a separate prefix-list?**
+1. Only with the loopback workaround enabled, and for a VPC attached to the leaf, we also add the
+same prefixes to `vpc-ext-prefixes--<VPC-NAME>`, and permit them in the VPC's redistribute-static route-map.
+With the workaround the external routes reach the VPC VRF as static routes over the loopback link
+rather than through `import vrf`, and need redistributing for the VPC's other leaves to learn them.
+This is a separate prefix list because the route-map is per VPC, so it needs the prefixes of all of the
+VPC's externals. It goes away together with the workaround.
     ```
     ip prefix-list vpc-ext-prefixes--vpc-01 seq 102 permit 0.0.0.0/0 le 32
+    !
+    route-map vpc-redistribute-static--vpc-01 permit 10
+     match ip address prefix-list vpc-ext-prefixes--vpc-01
+    !
     ```
 1. We add entries to the route-map filtering routes leaked into the VPC VRF;
 one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,

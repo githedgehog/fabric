@@ -2499,7 +2499,7 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 	}
 
 	extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
-	if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
+	if _, exists := spec.PrefixLists[extPrefixesName]; !exists && agent.Spec.Config.LoopbackWorkaround {
 		spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
 			Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 		}
@@ -2616,13 +2616,15 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 				},
 				Result: dozer.SpecRouteMapResultAccept,
 			},
-			"10": {
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchPrefixList: pointer.To(vpcExtPrefixesPrefixListName(vpcName)),
-				},
-				Result: dozer.SpecRouteMapResultAccept,
-			},
 		},
+	}
+	if agent.Spec.Config.LoopbackWorkaround {
+		spec.RouteMaps[vpcRedistributeStaticRouteMap].Statements["10"] = &dozer.SpecRouteMapStatement{
+			Conditions: dozer.SpecRouteMapConditions{
+				MatchPrefixList: pointer.To(extPrefixesName),
+			},
+			Result: dozer.SpecRouteMapResultAccept,
+		}
 	}
 
 	protocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
@@ -3477,31 +3479,6 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
-		if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
-			spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
-				Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
-			}
-		}
-
-		for _, prefix := range peering.Permit.External.Prefixes {
-			idx := agent.Spec.Catalog.SubnetIDs[prefix.Prefix]
-			if idx == 0 {
-				return errors.Errorf("no external peering prefix id for prefix %s in peering %s", prefix.Prefix, name)
-			}
-			if idx >= 65000 {
-				return errors.Errorf("external peering prefix id for prefix %s in peering %s is too large", prefix.Prefix, name)
-			}
-
-			spec.PrefixLists[extPrefixesName].Prefixes[idx] = &dozer.SpecPrefixListEntry{
-				Prefix: dozer.SpecPrefixListPrefix{
-					Prefix: prefix.Prefix,
-					Le:     32,
-				},
-				Action: dozer.SpecPrefixListActionPermit,
-			}
-		}
-
 		extVrf := extVrfName(externalName)
 		vpcVrf := vpcVrfName(vpcName)
 
@@ -3565,6 +3542,33 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.VRFs[extVrf].BGP.IPv4Unicast.ImportVRFs[vpcVrf] = &dozer.SpecVRFBGPImportVRF{}
 			spec.VRFs[vpcVrf].BGP.IPv4Unicast.ImportVRFs[extVrf] = &dozer.SpecVRFBGPImportVRF{}
 		} else {
+			// the external prefixes reach the VPC VRF as static routes here, so they have to be
+			// redistributed for the VPC's other leaves to learn them
+			extPrefixesName := vpcExtPrefixesPrefixListName(vpcName)
+			if _, exists := spec.PrefixLists[extPrefixesName]; !exists {
+				spec.PrefixLists[extPrefixesName] = &dozer.SpecPrefixList{
+					Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
+				}
+			}
+
+			for _, prefix := range peering.Permit.External.Prefixes {
+				idx := agent.Spec.Catalog.SubnetIDs[prefix.Prefix]
+				if idx == 0 {
+					return errors.Errorf("no external peering prefix id for prefix %s in peering %s", prefix.Prefix, name)
+				}
+				if idx >= 65000 {
+					return errors.Errorf("external peering prefix id for prefix %s in peering %s is too large", prefix.Prefix, name)
+				}
+
+				spec.PrefixLists[extPrefixesName].Prefixes[idx] = &dozer.SpecPrefixListEntry{
+					Prefix: dozer.SpecPrefixListPrefix{
+						Prefix: prefix.Prefix,
+						Le:     32,
+					},
+					Action: dozer.SpecPrefixListActionPermit,
+				}
+			}
+
 			sub1, sub2, ip1, ip2, err := planLoopbackWorkaround(agent, spec, librarian.ReqForExt(name))
 			if err != nil {
 				return errors.Wrapf(err, "failed to plan loopback workaround for external peering %s", name)

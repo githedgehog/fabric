@@ -124,16 +124,6 @@
         name: static-ext-subnets
       name: static-ext-subnets
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-03]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-03
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-03
-      name: vpc-ext-prefixes--vpc-03
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]
   summary: Create Prefix List Base vpc-loopback-prefix
   type: update
@@ -277,20 +267,6 @@
       ip-prefix: 172.30.8.2/32
       masklength-range: 32..32
       sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-03]/extended-prefixes/extended-prefix[sequence-number=101][ip-prefix=0.0.0.0/0][masklength-range=0..32]
-  summary: Create Prefix Lists Entry 101
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 0.0.0.0/0
-        masklength-range: 0..32
-        sequence-number: 101
-      ip-prefix: 0.0.0.0/0
-      masklength-range: 0..32
-      sequence-number: 101
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.96.0/19][masklength-range=19..32]
   summary: Create Prefix Lists Entry 10
@@ -1505,22 +1481,6 @@
       config:
         name: "1"
       name: "1"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-03
-      config:
-        name: "10"
-      name: "10"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=5]
   summary: Create Route Map Statement 5
