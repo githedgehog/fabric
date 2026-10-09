@@ -407,7 +407,7 @@ neighbor interface Ethernet3
  address-family l2vpn evpn
 !
 ```
-A deliberate differences from the [host-BGP](#host-bgp-subnets) sessions, which are also
+A deliberate difference from the [host-BGP](#host-bgp-subnets) sessions, which are also
 unnumbered: `remote-as` stays explicit rather than `remote-as external`. The peer ASN is
 what keeps a miscabled link from establishing and forming a topology we never intended.
 
@@ -688,7 +688,7 @@ interface Ethernet513
 Mostly, the connection serves as a base for external attachments, which we will cover
 in the [Externals](#externals) section.
 
-### Static Externals
+### Static External Connections
 
 For each static external object we configure the corresponding switch interface,
 with some nuances:
@@ -806,7 +806,7 @@ or flooded ARP requests for it to act on.
 1. We create a similar route map for static routes redistribution:
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
-    - we permit any route that matches the prefix list of the VPC [static external](#static-externals) subnets
+    - we permit any route that matches the prefix list of the VPC [static external](#static-external-connections) subnets
     - only with the loopback workaround enabled, we permit any route that matches the prefix list of the
       VPC external prefixes (see [External peerings](#external-peerings))
     - we implicitly deny everything else
@@ -1004,7 +1004,8 @@ ip access-list vpc-filtering--vpc-01--subnet-01
 interface Vlan1001
  ip access-group vpc-filtering--vpc-01--subnet-01 in
 ```
-And the following ACL to VLAN 1002 of `vpc-02/subnet-02`:
+And the following ACL to VLAN 1002 of `vpc-01/subnet-02`, which is not in the permit list and so
+may reach neither of the `vpc-02` subnets:
 ```
 ip access-list vpc-filtering--vpc-01--subnet-02
  remark vpc-filtering--vpc-01--subnet-02
