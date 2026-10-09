@@ -766,8 +766,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-01
         result: accept
-        setCommunities:
-        - "50000:3"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-01
@@ -785,8 +783,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-02
         result: accept
-        setCommunities:
-        - "50000:4"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-02
@@ -804,8 +800,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-03
         result: accept
-        setCommunities:
-        - "50000:5"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03

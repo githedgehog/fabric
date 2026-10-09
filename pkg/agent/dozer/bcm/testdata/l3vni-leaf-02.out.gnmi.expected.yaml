@@ -1709,15 +1709,6 @@ routing-policy:
             name: "10"
           name: "10"
         - actions:
-            bgp-actions:
-              set-community:
-                config:
-                  method: INLINE
-                  options: ADD
-                inline:
-                  config:
-                    communities:
-                    - "50000:3"
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
@@ -1759,15 +1750,6 @@ routing-policy:
             name: "10"
           name: "10"
         - actions:
-            bgp-actions:
-              set-community:
-                config:
-                  method: INLINE
-                  options: ADD
-                inline:
-                  config:
-                    communities:
-                    - "50000:4"
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
@@ -1809,15 +1791,6 @@ routing-policy:
             name: "10"
           name: "10"
         - actions:
-            bgp-actions:
-              set-community:
-                config:
-                  method: INLINE
-                  options: ADD
-                inline:
-                  config:
-                    communities:
-                    - "50000:5"
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
