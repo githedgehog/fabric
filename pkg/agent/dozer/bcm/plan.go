@@ -2644,11 +2644,6 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 		}
 	}
 
-	vpcComm, err := communityForVPC(agent, vpcName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get community for VPC %s", vpcName)
-	}
-
 	vpcRedistributeConnectedRouteMap := vpcRedistributeConnectedRouteMapName(vpcName)
 	spec.RouteMaps[vpcRedistributeConnectedRouteMap] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
@@ -2662,8 +2657,7 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchPrefixList: pointer.To(vpcSubnetsPrefixListName(vpcName)),
 				},
-				SetCommunities: []string{vpcComm},
-				Result:         dozer.SpecRouteMapResultAccept,
+				Result: dozer.SpecRouteMapResultAccept,
 			},
 			"6": {
 				Conditions: dozer.SpecRouteMapConditions{
@@ -3937,20 +3931,6 @@ func vpcSubnetVIPsOnlyPrefixListName(vpc string, subnet string) string {
 
 func vpcSubnetVIPsOnlyRouteMapName(vpc string, subnet string) string {
 	return fmt.Sprintf("vips-only--%s--%s", vpc, subnet)
-}
-
-func communityForVPC(agent *agentapi.Agent, vpc string) (string, error) {
-	vni, exists := agent.Spec.Catalog.VPCVNIs[vpc]
-	if !exists {
-		return "", errors.Errorf("VNI for VPC %s not found", vpc)
-	}
-
-	comm, err := librarian.VNICommunity(agent.Spec.Config.BaseVPCCommunity, vni)
-	if err != nil {
-		return "", fmt.Errorf("community for VPC %s: %w", vpc, err)
-	}
-
-	return comm, nil
 }
 
 func planAllPortsUp(agent *agentapi.Agent, spec *dozer.Spec) error {
