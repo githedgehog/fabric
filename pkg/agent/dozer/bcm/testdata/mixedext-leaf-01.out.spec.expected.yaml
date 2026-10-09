@@ -873,9 +873,6 @@ routeMaps:
         result: accept
 suppressVLANNeighs:
   Vlan1003: {}
-  Vlan3002: {}
-  Vlan3003: {}
-  Vlan3004: {}
 users:
   admin:
     authorizedKeys:

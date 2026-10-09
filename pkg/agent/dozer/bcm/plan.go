@@ -2678,8 +2678,6 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 	spec.VRFs[vrfName].Interfaces[irbIface] = &dozer.SpecVRFInterface{}
 
 	if agent.IsSpineLeaf() {
-		spec.SuppressVLANNeighs[irbIface] = &dozer.SpecSuppressVLANNeigh{}
-
 		vpcVNI := agent.Spec.Catalog.VPCVNIs[vpcName]
 		if vpcVNI == 0 {
 			return errors.Errorf("VNI for VPC %s not found", vpcName)

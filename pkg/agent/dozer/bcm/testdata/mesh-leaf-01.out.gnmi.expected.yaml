@@ -1727,10 +1727,6 @@ sonic-vxlan:
       suppress: "on"
     - name: Vlan1002
       suppress: "on"
-    - name: Vlan3000
-      suppress: "on"
-    - name: Vlan3001
-      suppress: "on"
   VXLAN_EVPN_NVO:
     VXLAN_EVPN_NVO_LIST:
     - name: nvo1
