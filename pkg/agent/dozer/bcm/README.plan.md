@@ -755,13 +755,12 @@ to a connection which belongs to it (i.e. where one of the two endpoints is a po
       [..]
       switchport trunk allowed Vlan 1001
     ```
-1. We create an IRB VLAN interface for this VPC:
-    - the IRB interface is placed in the VRF of the VPC
-    - neighbor suppression is enabled on the interface with default parameters (**TODO: is this needed?**)
+1. We create an IRB VLAN interface for this VPC and place it in the VRF of the VPC. Unlike the subnet
+VLANs it has no neighbor suppression: it only carries the L3VNI, so there are no hosts, type-2 routes
+or flooded ARP requests for it to act on.
     ```
     interface Vlan3000
       description "VPC vpc-01 IRB"
-      neigh-suppress
       ip vrf forwarding VrfVvpc-01
     ```
 1. Under the vtep interface configuration, we map the Subnet VLAN to an L2VNI, and the IRB VLAN + VPC VRF to an L3VNI:

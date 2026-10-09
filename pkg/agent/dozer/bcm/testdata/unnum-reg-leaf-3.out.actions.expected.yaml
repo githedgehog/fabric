@@ -3063,30 +3063,6 @@
     - name: Vlan1007
       suppress: "on"
   weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3000
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3000
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3001
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3001
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3002
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3002
-      suppress: "on"
-  weight: 61
 - path: /network-instances/network-instance[name=VrfEexternal-01]/global-sag/config
   summary: Create VRF VrfEexternal-01 SAG
   type: update
