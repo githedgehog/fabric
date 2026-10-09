@@ -545,10 +545,10 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
 1. create a BGP session with the other host in that /31 range. The ASN of the
 gateway is the gateway ASN of the switch's domain, from the `Fabric` (a switch with a gateway
 connection is in exactly one domain; note: we could use `remote-as external` instead).
-We set `allowas-in` in the L2VPN AF as we used to do for other BGP sessions; **TODO:
-verify whether this still makes any sense, I suspect the answer is no**.
-We also set the `l2vpn-neighbors` route-map in the import direction, which ensures
+We set the `l2vpn-neighbors` route-map in the import direction, which ensures
 that the correct gateway route will be picked based on priorities/communities.
+There is no `allowas-in`: the gateway originates the routes it advertises, so their AS path
+is just the gateway ASN and never contains the switch's own.
     ```
     neighbor 172.30.128.13
      description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
@@ -559,7 +559,6 @@ that the correct gateway route will be picked based on priorities/communities.
      !
      address-family l2vpn evpn
       activate
-      allowas-in
       route-map l2vpn-neighbors in
     ```
 
