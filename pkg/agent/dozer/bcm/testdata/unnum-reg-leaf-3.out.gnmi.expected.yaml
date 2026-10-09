@@ -1393,38 +1393,6 @@ routing-policy:
         name: static-ext-subnets
       - config:
           mode: IPV4
-          name: vpc-ext-prefixes--vpc-01
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 0.0.0.0/0
-              masklength-range: 0..32
-              sequence-number: 106
-            ip-prefix: 0.0.0.0/0
-            masklength-range: 0..32
-            sequence-number: 106
-        name: vpc-ext-prefixes--vpc-01
-      - config:
-          mode: IPV4
-          name: vpc-ext-prefixes--vpc-03
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 0.0.0.0/0
-              masklength-range: 0..32
-              sequence-number: 106
-            ip-prefix: 0.0.0.0/0
-            masklength-range: 0..32
-            sequence-number: 106
-        name: vpc-ext-prefixes--vpc-03
-      - config:
-          mode: IPV4
-          name: vpc-ext-prefixes--vpc-04
-        name: vpc-ext-prefixes--vpc-04
-      - config:
-          mode: IPV4
           name: vpc-loopback-prefix
         extended-prefixes:
           extended-prefix:
@@ -2369,16 +2337,6 @@ routing-policy:
           conditions:
             match-prefix-set:
               config:
-                prefix-set: vpc-ext-prefixes--vpc-01
-          config:
-            name: "10"
-          name: "10"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
                 prefix-set: vpc-static-ext-subnets--vpc-01
           config:
             name: "5"
@@ -2404,16 +2362,6 @@ routing-policy:
           conditions:
             match-prefix-set:
               config:
-                prefix-set: vpc-ext-prefixes--vpc-03
-          config:
-            name: "10"
-          name: "10"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
                 prefix-set: vpc-static-ext-subnets--vpc-03
           config:
             name: "5"
@@ -2433,16 +2381,6 @@ routing-policy:
           config:
             name: "1"
           name: "1"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-ext-prefixes--vpc-04
-          config:
-            name: "10"
-          name: "10"
         - actions:
             config:
               policy-result: ACCEPT_ROUTE
