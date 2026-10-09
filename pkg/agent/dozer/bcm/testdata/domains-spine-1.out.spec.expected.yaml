@@ -28,9 +28,6 @@ communityLists:
   all-externals:
     members:
     - 65102:1000
-  no-community:
-    members:
-    - REGEX:^$
 ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300
