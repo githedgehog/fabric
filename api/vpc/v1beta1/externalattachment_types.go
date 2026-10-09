@@ -242,15 +242,17 @@ type ExternalAttachmentBFD struct {
 type ExternalAttachmentSwitch struct {
 	// VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used
 	VLAN uint16 `json:"vlan,omitempty"`
-	// IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length
+	// IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length.
+	// Leave it and neighbor.ip empty for a BGP unnumbered session over IPv6 link-local addresses
 	IP string `json:"ip,omitempty"`
 }
 
 // ExternalAttachmentNeighbor defines the BGP neighbor configuration for the external attachment
 type ExternalAttachmentNeighbor struct {
-	// ASN is the ASN of the BGP neighbor
+	// ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted
 	ASN uint32 `json:"asn,omitempty"`
-	// IP is the IP address of the BGP neighbor to peer with (without prefix length)
+	// IP is the IP address of the BGP neighbor to peer with (without prefix length).
+	// Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses
 	IP string `json:"ip,omitempty"`
 }
 
@@ -372,25 +374,23 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		return nil, errors.Errorf("connection is required")
 	}
 	if attach.Spec.Static == nil {
-		if attach.Spec.Switch.IP == "" {
-			return nil, errors.Errorf("switch.ip is required")
+		// no IPs on either side means BGP unnumbered
+		if (attach.Spec.Switch.IP == "") != (attach.Spec.Neighbor.IP == "") {
+			return nil, errors.Errorf("switch.ip and neighbor.ip must be either both set or both empty (unnumbered)")
 		}
-		if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
-			return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
-		}
-		if attach.Spec.Neighbor.ASN == 0 {
-			return nil, errors.Errorf("neighbor.asn is required")
-		}
-		if attach.Spec.Neighbor.IP == "" {
-			return nil, errors.Errorf("neighbor.ip is required")
-		}
-		if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
-			return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
+		if attach.Spec.Switch.IP != "" {
+			if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
+				return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
+			}
+			if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
+				return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
+			}
 		}
 
 		// the border leaf drops external routes carrying its fabric's spine or gateway ASN, and a
-		// leaf drops those carrying its own ASN through BGP loop detection
-		if fabricCfg != nil && kube != nil {
+		// leaf drops those carrying its own ASN through BGP loop detection. Without an ASN the
+		// session accepts any external one, so there is nothing to check.
+		if attach.Spec.Neighbor.ASN != 0 && fabricCfg != nil && kube != nil {
 			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get fabric: %w", err)
@@ -400,7 +400,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			}
 		}
 		// the same happens in another fabric only if the two exchange routes through externals
-		if kube != nil {
+		if attach.Spec.Neighbor.ASN != 0 && kube != nil {
 			fabrics := &wiringapi.FabricList{}
 			if err := kube.List(ctx, fabrics, kclient.InNamespace(attach.Namespace)); err != nil {
 				return nil, fmt.Errorf("failed to list fabrics: %w", err) // TODO hide internal error
@@ -483,8 +483,15 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		if attach.Spec.Static != nil && ext.Spec.Static == nil {
 			return nil, errors.Errorf("external attachment is static but external %s has no static prefixes", attach.Spec.External)
 		}
-		if attach.Spec.Static == nil && ext.Spec.LocalASN != 0 && attach.Spec.Neighbor.ASN == ext.Spec.LocalASN {
-			return nil, fmt.Errorf("neighbor.asn %d is the localASN of external %s", attach.Spec.Neighbor.ASN, attach.Spec.External) //nolint:err113
+		if attach.Spec.Static == nil && ext.Spec.LocalASN != 0 {
+			// with remote-as external FRR only refuses a neighbor with the switch's own ASN, not with the
+			// localASN it presents instead, so a neighbor with the localASN would be taken as external
+			if attach.Spec.Neighbor.ASN == 0 {
+				return nil, fmt.Errorf("neighbor.asn is required, external %s has a localASN", attach.Spec.External) //nolint:err113
+			}
+			if attach.Spec.Neighbor.ASN == ext.Spec.LocalASN {
+				return nil, fmt.Errorf("neighbor.asn %d is the localASN of external %s", attach.Spec.Neighbor.ASN, attach.Spec.External) //nolint:err113
+			}
 		}
 
 		conn := &wiringapi.Connection{}

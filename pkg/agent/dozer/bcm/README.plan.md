@@ -1169,6 +1169,34 @@ advertised and accepted.
      !
     !
     ```
+    If the attachment has no neighbor ASN we use `remote-as external` instead, which accepts any
+    ASN other than our own.
+
+#### Unnumbered attachments
+
+An attachment with neither `switch.ip` nor `neighbor.ip` runs BGP unnumbered, as
+[unnumbered fabric links](#unnumbered-links) do: the sub-interface gets `ipv6 enable` instead of
+an address, and the session is keyed by the sub-interface:
+```
+interface Ethernet0.10
+ encapsulation dot1q vlan-id 10
+ ip vrf forwarding VrfEext-name
+ ipv6 enable
+ [...]
+!
+router bgp 65101 vrf VrfEext-name
+ neighbor interface Ethernet0.10
+  description "External attach leaf-01--ext-name"
+  remote-as 64102
+  capability extended-nexthop
+  [...]
+```
+The agent reports the session under the port and VLAN, e.g. `E1/1.10`.
+
+With no IPv4 address on the sub-interface, the attachment's inbound ACL has no switch address
+to protect, so it only carries the user's statements (or the default permit). The ACL is IPv4
+only and does not cover the link-local address, through which the neighbor can reach the
+switch's REST and gNMI ports.
 
 ### Static externals
 For static externals, the following configuration is added on top of the common one:
