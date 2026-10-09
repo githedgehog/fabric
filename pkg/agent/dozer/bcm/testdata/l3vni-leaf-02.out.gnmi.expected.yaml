@@ -1104,18 +1104,6 @@ routing-policy:
         name: vips-only--vpc-02--default
       - config:
           mode: IPV4
-          name: vpc-ext-prefixes--vpc-01
-        name: vpc-ext-prefixes--vpc-01
-      - config:
-          mode: IPV4
-          name: vpc-ext-prefixes--vpc-02
-        name: vpc-ext-prefixes--vpc-02
-      - config:
-          mode: IPV4
-          name: vpc-ext-prefixes--vpc-03
-        name: vpc-ext-prefixes--vpc-03
-      - config:
-          mode: IPV4
           name: vpc-loopback-prefix
         extended-prefixes:
           extended-prefix:
@@ -1870,16 +1858,6 @@ routing-policy:
           conditions:
             match-prefix-set:
               config:
-                prefix-set: vpc-ext-prefixes--vpc-01
-          config:
-            name: "10"
-          name: "10"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
                 prefix-set: vpc-static-ext-subnets--vpc-01
           config:
             name: "5"
@@ -1905,16 +1883,6 @@ routing-policy:
           conditions:
             match-prefix-set:
               config:
-                prefix-set: vpc-ext-prefixes--vpc-02
-          config:
-            name: "10"
-          name: "10"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
                 prefix-set: vpc-static-ext-subnets--vpc-02
           config:
             name: "5"
@@ -1934,16 +1902,6 @@ routing-policy:
           config:
             name: "1"
           name: "1"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-ext-prefixes--vpc-03
-          config:
-            name: "10"
-          name: "10"
         - actions:
             config:
               policy-result: ACCEPT_ROUTE

@@ -328,8 +328,6 @@ prefixLists:
           le: 32
           prefix: 172.30.8.5/32
   static-ext-subnets: {}
-  vpc-ext-prefixes--vpc-03: {}
-  vpc-ext-prefixes--vpc-04: {}
   vpc-loopback-prefix:
     prefixes:
       "10":
@@ -597,10 +595,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
         result: accept
-      "10":
-        conditions:
-          matchPrefixLists: vpc-ext-prefixes--vpc-03
-        result: accept
   vpc-redistribute-static--vpc-04:
     statements:
       "1":
@@ -610,10 +604,6 @@ routeMaps:
       "5":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-04
-        result: accept
-      "10":
-        conditions:
-          matchPrefixLists: vpc-ext-prefixes--vpc-04
         result: accept
 suppressVLANNeighs:
   Vlan1005: {}
