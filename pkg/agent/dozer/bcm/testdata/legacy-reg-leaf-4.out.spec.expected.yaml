@@ -640,8 +640,6 @@ suppressVLANNeighs:
   Vlan1005: {}
   Vlan1006: {}
   Vlan1008: {}
-  Vlan3000: {}
-  Vlan3002: {}
 users:
   admin:
     authorizedKeys:
