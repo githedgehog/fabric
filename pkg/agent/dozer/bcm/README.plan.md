@@ -783,10 +783,7 @@ or flooded ARP requests for it to act on.
 1. We create a route map to filter the redistribution of connected routes:
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
-    - we permit any route that matches the prefix list of the VPC subnets, and we set the community
-      for the VPC on these routes, to tag them as originating from this VPC. The community uses a base
-      from the agent config (in our vlabs this is going to be `50000`) and the VNI of the VPC divided
-      by 100, e.g. for VNI `100` it is `50000:1`. Nothing on the switch matches on it.
+    - we permit any route that matches the prefix list of the VPC subnets
     - we permit any route that matches the prefix list of the VPC static external subnets
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
@@ -795,7 +792,6 @@ or flooded ARP requests for it to act on.
     !
     route-map vpc-redistribute-connected--vpc-01 permit 5
      match ip address prefix-list vpc-subnets--vpc-01
-     set community 50000:1
     !
     route-map vpc-redistribute-connected--vpc-01 permit 6
      match ip address prefix-list vpc-static-ext-subnets--vpc-01
@@ -822,9 +818,8 @@ or flooded ARP requests for it to act on.
     - we deny any route whose next-hop matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC peers, which holds the subnets of every
-      VPC peered with this one (see [VPC Peerings](#vpc-peerings)). It is a prefix list rather than the
-      VPC communities because host routes, both attached-host /32s and host-BGP VIPs, carry no community,
-      and in L3VNI mode they are the only way to reach the hosts.
+      VPC peered with this one (see [VPC Peerings](#vpc-peerings)), with `le 32` so that it also covers host
+      routes, i.e. attached-host /32s and host-BGP VIPs; in L3VNI mode these are the only way to reach the hosts.
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
     route-map import-vrf--vpc-01 deny 1
