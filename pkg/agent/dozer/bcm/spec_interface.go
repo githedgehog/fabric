@@ -494,7 +494,7 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 	Summary: "Interface %s Ethernet Base", // TODO better summary
 	Skip:    func(name string, _, _ *dozer.SpecInterface) bool { return !isPhysical(name) },
 	Getter: func(_ string, value *dozer.SpecInterface) any {
-		return []any{value.PortChannel, value.Speed, value.AutoNegotiate} // , value.TrunkVLANs, value.AccessVLAN}
+		return []any{value.PortChannel, value.Speed, value.AutoNegotiate, value.LinkTraining} // , value.TrunkVLANs, value.AccessVLAN}
 	},
 	Path:      "/ethernet",
 	NoReplace: true,
@@ -518,9 +518,10 @@ var specInterfaceEthernetBaseEnforcer = &DefaultValueEnforcer[string, *dozer.Spe
 		return &oc.OpenconfigInterfaces_Interfaces_Interface{
 			Ethernet: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet{
 				Config: &oc.OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config{
-					AggregateId:   value.PortChannel,
-					PortSpeed:     speed,
-					AutoNegotiate: autoNeg,
+					AggregateId:            value.PortChannel,
+					PortSpeed:              speed,
+					AutoNegotiate:          autoNeg,
+					StandaloneLinkTraining: value.LinkTraining,
 				},
 			},
 		}, nil
@@ -953,6 +954,10 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 				}
 
 				iface.AutoNegotiate = ocIface.Ethernet.Config.AutoNegotiate
+				if !isManagement(name) {
+					lt := ocIface.Ethernet.Config.StandaloneLinkTraining
+					iface.LinkTraining = pointer.To(lt != nil && *lt)
+				}
 				if managedFEC[name] {
 					// Only read FEC for fabric-managed ports; UNSET/DEFAULT (or an unmanaged
 					// port) leaves iface.FEC nil so it never shows a spurious diff.

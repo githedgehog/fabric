@@ -550,6 +550,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet1]/ethernet
   summary: Create Interface Ethernet1 Ethernet Base
@@ -558,6 +559,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet10]/ethernet
   summary: Create Interface Ethernet10 Ethernet Base
@@ -566,6 +568,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet2]/ethernet
   summary: Create Interface Ethernet2 Ethernet Base
@@ -574,6 +577,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet3]/ethernet
   summary: Create Interface Ethernet3 Ethernet Base
@@ -582,6 +586,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet4]/ethernet
   summary: Create Interface Ethernet4 Ethernet Base
@@ -590,6 +595,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet5]/ethernet
   summary: Create Interface Ethernet5 Ethernet Base
@@ -598,6 +604,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet6]/ethernet
   summary: Create Interface Ethernet6 Ethernet Base
@@ -606,6 +613,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet7]/ethernet
   summary: Create Interface Ethernet7 Ethernet Base
@@ -614,6 +622,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet8]/ethernet
   summary: Create Interface Ethernet8 Ethernet Base
@@ -622,6 +631,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet9]/ethernet
   summary: Create Interface Ethernet9 Ethernet Base
@@ -630,6 +640,7 @@
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
   weight: 25
 - path: /interfaces/interface[name=Ethernet0]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
