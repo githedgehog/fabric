@@ -407,7 +407,7 @@ neighbor interface Ethernet3
  address-family l2vpn evpn
 !
 ```
-A deliberate differences from the [host-BGP](#host-bgp-subnets) sessions, which are also
+A deliberate difference from the [host-BGP](#host-bgp-subnets) sessions, which are also
 unnumbered: `remote-as` stays explicit rather than `remote-as external`. The peer ASN is
 what keeps a miscabled link from establishing and forming a topology we never intended.
 
@@ -545,10 +545,10 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
 1. create a BGP session with the other host in that /31 range. The ASN of the
 gateway is the gateway ASN of the switch's domain, from the `Fabric` (a switch with a gateway
 connection is in exactly one domain; note: we could use `remote-as external` instead).
-We set `allowas-in` in the L2VPN AF as we used to do for other BGP sessions; **TODO:
-verify whether this still makes any sense, I suspect the answer is no**.
-We also set the `l2vpn-neighbors` route-map in the import direction, which ensures
+We set the `l2vpn-neighbors` route-map in the import direction, which ensures
 that the correct gateway route will be picked based on priorities/communities.
+There is no `allowas-in`: the gateway originates the routes it advertises, so their AS path
+is just the gateway ASN and never contains the switch's own.
     ```
     neighbor 172.30.128.13
      description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
@@ -559,7 +559,6 @@ that the correct gateway route will be picked based on priorities/communities.
      !
      address-family l2vpn evpn
       activate
-      allowas-in
       route-map l2vpn-neighbors in
     ```
 
@@ -689,7 +688,7 @@ interface Ethernet513
 Mostly, the connection serves as a base for external attachments, which we will cover
 in the [Externals](#externals) section.
 
-### Static Externals
+### Static External Connections
 
 For each static external object we configure the corresponding switch interface,
 with some nuances:
@@ -756,13 +755,12 @@ to a connection which belongs to it (i.e. where one of the two endpoints is a po
       [..]
       switchport trunk allowed Vlan 1001
     ```
-1. We create an IRB VLAN interface for this VPC:
-    - the IRB interface is placed in the VRF of the VPC
-    - neighbor suppression is enabled on the interface with default parameters (**TODO: is this needed?**)
+1. We create an IRB VLAN interface for this VPC and place it in the VRF of the VPC. Unlike the subnet
+VLANs it has no neighbor suppression: it only carries the L3VNI, so there are no hosts, type-2 routes
+or flooded ARP requests for it to act on.
     ```
     interface Vlan3000
       description "VPC vpc-01 IRB"
-      neigh-suppress
       ip vrf forwarding VrfVvpc-01
     ```
 1. Under the vtep interface configuration, we map the Subnet VLAN to an L2VNI, and the IRB VLAN + VPC VRF to an L3VNI:
@@ -782,18 +780,10 @@ to a connection which belongs to it (i.e. where one of the two endpoints is a po
     ```
     ip prefix-list vpc-subnets--vpc-01 seq 1 permit 10.0.1.0/24 le 32
     ```
-1. We create a BGP community list for peers of this VPC. At first it will contain a single element, which is
-the community for the VPC itself. These communities use a base from the agent config (in our vlabs this is
-going to be `50000`) and an index which is the VNI of the VPC divided by 100. The community will then be
-in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:1`.
-    ```
-    bgp community-list standard vpc-peers--vpc-01 permit 50000:1
-    ```
 1. We create a route map to filter the redistribution of connected routes:
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
-    - we permit any route that matches the prefix list of the VPC subnets, and we set the community
-      for the VPC on these routes, to tag them as originating from this VPC.
+    - we permit any route that matches the prefix list of the VPC subnets
     - we permit any route that matches the prefix list of the VPC static external subnets
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
@@ -802,7 +792,6 @@ in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:
     !
     route-map vpc-redistribute-connected--vpc-01 permit 5
      match ip address prefix-list vpc-subnets--vpc-01
-     set community 50000:1
     !
     route-map vpc-redistribute-connected--vpc-01 permit 6
      match ip address prefix-list vpc-static-ext-subnets--vpc-01
@@ -813,8 +802,9 @@ in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:
 1. We create a similar route map for static routes redistribution:
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
-    - we permit any route that matches the prefix list of the VPC [static external](#static-externals) subnets
-    - we permit any route that matches the prefix list of the VPC external prefixes (see the [Externals section](#externals))
+    - we permit any route that matches the prefix list of the VPC [static external](#static-external-connections) subnets
+    - only with the loopback workaround enabled, we permit any route that matches the prefix list of the
+      VPC external prefixes (see [External peerings](#external-peerings))
     - we implicitly deny everything else
    ```
    route-map vpc-redistribute-static--vpc-01 deny 1
@@ -823,30 +813,20 @@ in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:
    route-map vpc-redistribute-static--vpc-01 permit 5
     match ip address prefix-list vpc-static-ext-subnets--vpc-01
    !
-   route-map vpc-redistribute-static--vpc-01 permit 10
-    match ip address prefix-list vpc-ext-prefixes--vpc-01
-   !
    ```
 1. We create a route map to filter routes imported in the VPC VRF, e.g. from VPC we are peering with:
     - we deny any route whose next-hop matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
-    - we permit any route that matches the community list for peers of this VPC (which includes the VPC itself).
-      As shown in the redistribute connected route map, this will include the subnets of all the peered VPCs.
-    - we also permit any route that matches the prefix list of the VPC peers and that has no community.
-      This prefix list so far only contains the prefixes of the VPC subnets peered with this VPC, so they
-      should already be covered by the previous statement. **TODO: understand why we are using this two
-      rules in a chain.**
+    - we permit any route that matches the prefix list of the VPC peers, which holds the subnets of every
+      VPC peered with this one (see [VPC Peerings](#vpc-peerings)), with `le 32` so that it also covers host
+      routes, i.e. attached-host /32s and host-BGP VIPs; in L3VNI mode these are the only way to reach the hosts.
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
     route-map import-vrf--vpc-01 deny 1
      match ip next-hop prefix-list vpc-loopback-prefix
     !
     route-map import-vrf--vpc-01 permit 50000
-     match community vpc-peers--vpc-01
-    !
-    route-map import-vrf--vpc-01 permit 50001
      match ip address prefix-list vpc-peers--vpc-01
-     match community no-community
     !
     route-map import-vrf--vpc-01 deny 65535
     !
@@ -969,18 +949,26 @@ Here is what happens when we peer a VPC subnet attached on our leaf (e.g. `vpc-0
 with another VPC subnet (`vpc-02/subnet-01` with prefix `10.0.2.0/24`):
 1. If a subnet of `vpc-02` is not already attached to this leaf, we go through all of the steps described
    above for the L2VNI VPC attachment, **with the exception of the subnets VLANs** (steps 2 and 3). In other words,
-   we create the VRF, the IRB VLAN interface, the VNI mappings, the prefix lists and route-maps, the community list,
+   we create the VRF, the IRB VLAN interface, the VNI mappings, the prefix lists and route-maps,
    and the BGP instance for `vpc-02`.
-1. We update the community list for peers of `vpc-01` to include also the community for `vpc-02`, and viceversa:
-    ```
-    bgp community-list standard vpc-peers--vpc-01 permit 50000:2
-    bgp community-list standard vpc-peers--vpc-02 permit 50000:1
-    ```
 1. We add the prefixes of the peered subnets to the prefix list of VPC peers for both VPCs, where
    the index used is the VNI associated with the subnet's VLAN:
     ```
     ip prefix-list vpc-peers--vpc-01 seq 201 permit 10.0.2.0/24 le 32
     ip prefix-list vpc-peers--vpc-02 seq 101 permit 10.0.1.0/24 le 32
+    ```
+1. In the import route map of each VPC, we deny anything coming from the other VPC's VRF that is not one of
+   its subnets, using its `vpc-not-subnets` prefix list. This keeps out whatever else that VRF holds, e.g. a
+   default route from an external or a gateway. The statement index is 10000 plus the other VPC's VNI divided by 100:
+    ```
+    route-map import-vrf--vpc-01 deny 10002
+     match ip address prefix-list vpc-not-subnets--vpc-02
+     match source-vrf VrfVvpc-02
+    !
+    route-map import-vrf--vpc-02 deny 10001
+     match ip address prefix-list vpc-not-subnets--vpc-01
+     match source-vrf VrfVvpc-01
+    !
     ```
 1. We configure route leaking between the two VPC VRFs by adding an import VRF statement in each
    of the two BGP instances:
@@ -1011,7 +999,8 @@ ip access-list vpc-filtering--vpc-01--subnet-01
 interface Vlan1001
  ip access-group vpc-filtering--vpc-01--subnet-01 in
 ```
-And the following ACL to VLAN 1002 of `vpc-02/subnet-02`:
+And the following ACL to VLAN 1002 of `vpc-01/subnet-02`, which is not in the permit list and so
+may reach neither of the `vpc-02` subnets:
 ```
 ip access-list vpc-filtering--vpc-01--subnet-02
  remark vpc-filtering--vpc-01--subnet-02
@@ -1054,13 +1043,15 @@ The following config is applied for all externals, regardless of their type:
     !
     ```
 1. We create a sub-interface to connect to the external device, place it in the VRF
-of the external, and apply an access-list to prevent traffic destined to the fabric
-from going out via the external attachment:
+of the external, and apply the [inbound ACL](#inbound-acl) of the attachment. For BGP attachments
+only, we also apply an access-list to prevent traffic destined to the fabric from going out via
+the external attachment; static attachments do not get it:
     ```
     interface Ethernet0.10
      encapsulation dot1q vlan-id 10
      no shutdown
      ip vrf forwarding VrfEext-name
+     ip access-group ext-inbound--leaf-01--ext-name in
      ip access-group ipns-egress--default out
     !
     ip access-list ipns-egress--default
@@ -1194,8 +1185,9 @@ to masquerade the private VPCs' IPs.
     !
     ```
 1. Static routes are added to the VRF of the external:
-  - a direct route to reach the /32 address of the external device (**FIXME: not needed for the non-proxy version**)
   - one route per prefix reachable via the external, as defined by the `Prefixes` list in the external itself
+  - a direct route to the /32 address of the external device, only if that address is not in the
+    subnet of the sub-interface; this is always the case with proxy-ARP, where the switch only has the /31
     ```
     ip route vrf VrfEext-name 0.0.0.0/0 100.1.10.1 interface Ethernet0.10
     ip route vrf VrfEext-name 100.1.10.1/32 interface Ethernet0.10
@@ -1212,6 +1204,37 @@ are "advertised" by it:
     !
     ```
 
+### Inbound ACL
+Each attachment gets an access-list `ext-inbound--<ATTACHMENT-NAME>`, applied in the ingress direction
+on its sub-interface:
+- for BGP attachments and non-proxied static ones, sequence numbers 1 to 6 are reserved for rules
+that always discard traffic addressed to the switch's own IP on the sub-interface: TCP 22 (SSH),
+443 (REST API) and 8080 (gNMI), and UDP 67 (DHCP), 161 (SNMP) and 4789 (VXLAN). They keep the external
+from reaching the switch's management services and from injecting VXLAN traffic.
+- the statements in the attachment's `inboundACL` follow, with the sequence number given by the user,
+which the webhook requires to be 10 or more. The `permit`, `deny`, `discard` and `transit` actions map
+to the SONiC ACL actions of the same name.
+- if the user gave no statements, a final `permit ip any any` lets everything else through. If they
+did, there is no such statement, so the list ends with SONiC's implicit deny.
+
+Proxied static attachments have no IP of their own on the sub-interface (only the /31 from the reserved
+range), so they get no reserved rules and no added permit: an ACL is only created if the user specified
+one, and it holds just their statements.
+
+E.g. for a BGP attachment with no user statements:
+```
+ip access-list ext-inbound--leaf-01--ext-name
+ remark "Inbound ACL leaf-01--ext-name"
+ seq 1 discard tcp any host 100.1.10.1 eq 443
+ seq 2 discard tcp any host 100.1.10.1 eq 8080
+ seq 3 discard udp any host 100.1.10.1 eq 67
+ seq 4 discard udp any host 100.1.10.1 eq 161
+ seq 5 discard udp any host 100.1.10.1 eq 4789
+ seq 6 discard tcp any host 100.1.10.1 eq 22
+ seq 65535 permit ip any any
+!
+```
+
 ### External peerings
 The configuration applied on an external peering is roughly the same
 regardless of the external type, with one minor caveat I will point out.
@@ -1221,11 +1244,18 @@ the prefixes we allow for that external:
     ```
     ip prefix-list import-vrf--vpc-01--ext-name seq 102 permit 0.0.0.0/0 le 32
     ```
-1. We create another prefix list `vpc-ext-prefixes--<VPC-NAME>` with the same thing;
-this appears to be used in the route-map to allow redistribution of static routes from
-a VPC VRF. **TODO: why a separate prefix-list?**
+1. Only with the loopback workaround enabled, and for a VPC attached to the leaf, we also add the
+same prefixes to `vpc-ext-prefixes--<VPC-NAME>`, and permit them in the VPC's redistribute-static route-map.
+With the workaround the external routes reach the VPC VRF as static routes over the loopback link
+rather than through `import vrf`, and need redistributing for the VPC's other leaves to learn them.
+This is a separate prefix list because the route-map is per VPC, so it needs the prefixes of all of the
+VPC's externals. It goes away together with the workaround.
     ```
     ip prefix-list vpc-ext-prefixes--vpc-01 seq 102 permit 0.0.0.0/0 le 32
+    !
+    route-map vpc-redistribute-static--vpc-01 permit 10
+     match ip address prefix-list vpc-ext-prefixes--vpc-01
+    !
     ```
 1. We add entries to the route-map filtering routes leaked into the VPC VRF;
 one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,

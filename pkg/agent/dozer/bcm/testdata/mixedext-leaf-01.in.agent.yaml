@@ -176,8 +176,9 @@ spec:
       external: ext-snp-02
       neighbor: {}
       static:
-        ip: 100.1.20.2/24
-        remoteIP: 100.1.20.1
+        ip: 100.1.20.2/30
+        # next hop outside the subnet, so it still gets a /32 route
+        remoteIP: 100.1.20.9
         vlan: 20
       switch: {}
       inboundACL:

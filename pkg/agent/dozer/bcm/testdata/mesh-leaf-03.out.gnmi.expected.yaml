@@ -984,20 +984,6 @@ routing-policy:
             - "50001:9"
             community-set-name: gw-prio-9
             match-set-options: ANY
-        - community-set-name: no-community
-          config:
-            action: PERMIT
-            community-member:
-            - REGEX:^$
-            community-set-name: no-community
-            match-set-options: ANY
-        - community-set-name: vpc-peers--vpc-03
-          config:
-            action: PERMIT
-            community-member:
-            - "50000:4"
-            community-set-name: vpc-peers--vpc-03
-            match-set-options: ANY
     prefix-sets:
       prefix-set:
       - config:
@@ -1088,20 +1074,6 @@ routing-policy:
           mode: IPV4
           name: static-ext-subnets
         name: static-ext-subnets
-      - config:
-          mode: IPV4
-          name: vpc-ext-prefixes--vpc-03
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 0.0.0.0/0
-              masklength-range: 0..32
-              sequence-number: 101
-            ip-prefix: 0.0.0.0/0
-            masklength-range: 0..32
-            sequence-number: 101
-        name: vpc-ext-prefixes--vpc-03
       - config:
           mode: IPV4
           name: vpc-loopback-prefix
@@ -1313,25 +1285,12 @@ routing-policy:
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
-            bgp-conditions:
-              config:
-                community-set: vpc-peers--vpc-03
-          config:
-            name: "50000"
-          name: "50000"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            bgp-conditions:
-              config:
-                community-set: no-community
             match-prefix-set:
               config:
                 prefix-set: vpc-peers--vpc-03
           config:
-            name: "50001"
-          name: "50001"
+            name: "50000"
+          name: "50000"
         - actions:
             bgp-actions:
               config:
@@ -1623,15 +1582,6 @@ routing-policy:
             name: "10"
           name: "10"
         - actions:
-            bgp-actions:
-              set-community:
-                config:
-                  method: INLINE
-                  options: ADD
-                inline:
-                  config:
-                    communities:
-                    - "50000:4"
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
@@ -1672,16 +1622,6 @@ routing-policy:
           conditions:
             match-prefix-set:
               config:
-                prefix-set: vpc-ext-prefixes--vpc-03
-          config:
-            name: "10"
-          name: "10"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
                 prefix-set: vpc-static-ext-subnets--vpc-03
           config:
             name: "5"
@@ -1702,8 +1642,6 @@ sonic-vxlan:
   SUPPRESS_VLAN_NEIGH:
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan1003
-      suppress: "on"
-    - name: Vlan3001
       suppress: "on"
   VXLAN_EVPN_NVO:
     VXLAN_EVPN_NVO_LIST:
