@@ -1043,13 +1043,15 @@ The following config is applied for all externals, regardless of their type:
     !
     ```
 1. We create a sub-interface to connect to the external device, place it in the VRF
-of the external, and apply an access-list to prevent traffic destined to the fabric
-from going out via the external attachment:
+of the external, and apply the [inbound ACL](#inbound-acl) of the attachment. For BGP attachments
+only, we also apply an access-list to prevent traffic destined to the fabric from going out via
+the external attachment; static attachments do not get it:
     ```
     interface Ethernet0.10
      encapsulation dot1q vlan-id 10
      no shutdown
      ip vrf forwarding VrfEext-name
+     ip access-group ext-inbound--leaf-01--ext-name in
      ip access-group ipns-egress--default out
     !
     ip access-list ipns-egress--default
@@ -1201,6 +1203,37 @@ are "advertised" by it:
      !
     !
     ```
+
+### Inbound ACL
+Each attachment gets an access-list `ext-inbound--<ATTACHMENT-NAME>`, applied in the ingress direction
+on its sub-interface:
+- for BGP attachments and non-proxied static ones, sequence numbers 1 to 6 are reserved for rules
+that always discard traffic addressed to the switch's own IP on the sub-interface: TCP 22 (SSH),
+443 (REST API) and 8080 (gNMI), and UDP 67 (DHCP), 161 (SNMP) and 4789 (VXLAN). They keep the external
+from reaching the switch's management services and from injecting VXLAN traffic.
+- the statements in the attachment's `inboundACL` follow, with the sequence number given by the user,
+which the webhook requires to be 10 or more. The `permit`, `deny`, `discard` and `transit` actions map
+to the SONiC ACL actions of the same name.
+- if the user gave no statements, a final `permit ip any any` lets everything else through. If they
+did, there is no such statement, so the list ends with SONiC's implicit deny.
+
+Proxied static attachments have no IP of their own on the sub-interface (only the /31 from the reserved
+range), so they get no reserved rules and no added permit: an ACL is only created if the user specified
+one, and it holds just their statements.
+
+E.g. for a BGP attachment with no user statements:
+```
+ip access-list ext-inbound--leaf-01--ext-name
+ remark "Inbound ACL leaf-01--ext-name"
+ seq 1 discard tcp any host 100.1.10.1 eq 443
+ seq 2 discard tcp any host 100.1.10.1 eq 8080
+ seq 3 discard udp any host 100.1.10.1 eq 67
+ seq 4 discard udp any host 100.1.10.1 eq 161
+ seq 5 discard udp any host 100.1.10.1 eq 4789
+ seq 6 discard tcp any host 100.1.10.1 eq 22
+ seq 65535 permit ip any any
+!
+```
 
 ### External peerings
 The configuration applied on an external peering is roughly the same
