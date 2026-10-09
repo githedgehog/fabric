@@ -197,19 +197,6 @@
         community-set-name: all-externals
         match-set-options: ANY
   weight: 11
-- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=no-community]
-  summary: Create Community Lists no-community
-  type: update
-  value:
-    community-set:
-    - community-set-name: no-community
-      config:
-        action: PERMIT
-        community-member:
-        - REGEX:^$
-        community-set-name: no-community
-        match-set-options: ANY
-  weight: 11
 - path: /routing-policy/defined-sets/bgp-defined-sets/as-path-sets/as-path-set[as-path-set-name=fabric-gw-aspath]
   summary: Create AS Path Lists fabric-gw-aspath
   type: update

@@ -23,9 +23,6 @@ bfdProfiles:
     requiredMinimumReceive: 300
 communityLists:
   all-externals: {}
-  no-community:
-    members:
-    - REGEX:^$
 ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300
