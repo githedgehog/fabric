@@ -3431,6 +3431,26 @@
         sequence-id: 65535
       sequence-id: 65535
   weight: 78
+- path: /acl/interfaces/interface[id=Ethernet0.10]
+  summary: Create ACL interface Ethernet0.10
+  type: update
+  value:
+    interface:
+    - config:
+        id: Ethernet0.10
+      egress-acl-sets:
+        egress-acl-set:
+        - config:
+            set-name: ipns-egress--default
+            type: ACL_IPV4
+          set-name: ipns-egress--default
+          type: ACL_IPV4
+      id: Ethernet0.10
+      interface-ref:
+        config:
+          interface: Ethernet0
+          subinterface: 10
+  weight: 79
 - path: /acl/interfaces/interface[id=Ethernet0.20]
   summary: Create ACL interface Ethernet0.20
   type: update
@@ -3438,6 +3458,13 @@
     interface:
     - config:
         id: Ethernet0.20
+      egress-acl-sets:
+        egress-acl-set:
+        - config:
+            set-name: ipns-egress--default
+            type: ACL_IPV4
+          set-name: ipns-egress--default
+          type: ACL_IPV4
       id: Ethernet0.20
       interface-ref:
         config:

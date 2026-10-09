@@ -1,5 +1,8 @@
 aclInterfaces:
+  Ethernet0.10:
+    egress: ipns-egress--default
   Ethernet0.20:
+    egress: ipns-egress--default
     ingress: ext-inbound--leaf-01--ext-snp-02
   Vlan3000:
     ingress: no-ipns-peering--default
