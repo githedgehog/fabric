@@ -1002,7 +1002,6 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				RemoteAS:                pointer.To(gatewayASN), // TODO load peer GW and get ASN from it
 				IPv4Unicast:             pointer.To(true),
 				L2VPNEVPN:               pointer.To(true),
-				L2VPNEVPNAllowOwnAS:     pointer.To(true), // TODO: is this still needed?
 				L2VPNEVPNImportPolicies: []string{RouteMapL2VPNNeighbors},
 				BFDProfile:              bfdProfile,
 			}
