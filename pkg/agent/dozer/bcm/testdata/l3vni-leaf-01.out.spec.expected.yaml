@@ -870,9 +870,6 @@ vrfs:
         nextHops:
         - interface: Eth0.20
           ip: 100.1.20.1
-      100.1.20.1/32:
-        nextHops:
-        - interface: Eth0.20
     tableConnections:
       static:
         importPolicies:
