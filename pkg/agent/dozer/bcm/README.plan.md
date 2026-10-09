@@ -780,18 +780,13 @@ or flooded ARP requests for it to act on.
     ```
     ip prefix-list vpc-subnets--vpc-01 seq 1 permit 10.0.1.0/24 le 32
     ```
-1. We create a BGP community list for peers of this VPC. At first it will contain a single element, which is
-the community for the VPC itself. These communities use a base from the agent config (in our vlabs this is
-going to be `50000`) and an index which is the VNI of the VPC divided by 100. The community will then be
-in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:1`.
-    ```
-    bgp community-list standard vpc-peers--vpc-01 permit 50000:1
-    ```
 1. We create a route map to filter the redistribution of connected routes:
     - we deny any route that matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC subnets, and we set the community
-      for the VPC on these routes, to tag them as originating from this VPC.
+      for the VPC on these routes, to tag them as originating from this VPC. The community uses a base
+      from the agent config (in our vlabs this is going to be `50000`) and the VNI of the VPC divided
+      by 100, e.g. for VNI `100` it is `50000:1`. Nothing on the switch matches on it.
     - we permit any route that matches the prefix list of the VPC static external subnets
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
@@ -828,23 +823,17 @@ in the form `<base>:<vni/100>`, e.g. for VNI `100` the community will be `50000:
 1. We create a route map to filter routes imported in the VPC VRF, e.g. from VPC we are peering with:
     - we deny any route whose next-hop matches the prefix list of the VPC loopback addresses, used
       for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
-    - we permit any route that matches the community list for peers of this VPC (which includes the VPC itself).
-      As shown in the redistribute connected route map, this will include the subnets of all the peered VPCs.
-    - we also permit any route that matches the prefix list of the VPC peers and that has no community.
-      This prefix list so far only contains the prefixes of the VPC subnets peered with this VPC, so they
-      should already be covered by the previous statement. **TODO: understand why we are using this two
-      rules in a chain.**
+    - we permit any route that matches the prefix list of the VPC peers, which holds the subnets of every
+      VPC peered with this one (see [VPC Peerings](#vpc-peerings)). It is a prefix list rather than the
+      VPC communities because host routes, both attached-host /32s and host-BGP VIPs, carry no community,
+      and in L3VNI mode they are the only way to reach the hosts.
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
     route-map import-vrf--vpc-01 deny 1
      match ip next-hop prefix-list vpc-loopback-prefix
     !
     route-map import-vrf--vpc-01 permit 50000
-     match community vpc-peers--vpc-01
-    !
-    route-map import-vrf--vpc-01 permit 50001
      match ip address prefix-list vpc-peers--vpc-01
-     match community no-community
     !
     route-map import-vrf--vpc-01 deny 65535
     !
@@ -967,18 +956,26 @@ Here is what happens when we peer a VPC subnet attached on our leaf (e.g. `vpc-0
 with another VPC subnet (`vpc-02/subnet-01` with prefix `10.0.2.0/24`):
 1. If a subnet of `vpc-02` is not already attached to this leaf, we go through all of the steps described
    above for the L2VNI VPC attachment, **with the exception of the subnets VLANs** (steps 2 and 3). In other words,
-   we create the VRF, the IRB VLAN interface, the VNI mappings, the prefix lists and route-maps, the community list,
+   we create the VRF, the IRB VLAN interface, the VNI mappings, the prefix lists and route-maps,
    and the BGP instance for `vpc-02`.
-1. We update the community list for peers of `vpc-01` to include also the community for `vpc-02`, and viceversa:
-    ```
-    bgp community-list standard vpc-peers--vpc-01 permit 50000:2
-    bgp community-list standard vpc-peers--vpc-02 permit 50000:1
-    ```
 1. We add the prefixes of the peered subnets to the prefix list of VPC peers for both VPCs, where
    the index used is the VNI associated with the subnet's VLAN:
     ```
     ip prefix-list vpc-peers--vpc-01 seq 201 permit 10.0.2.0/24 le 32
     ip prefix-list vpc-peers--vpc-02 seq 101 permit 10.0.1.0/24 le 32
+    ```
+1. In the import route map of each VPC, we deny anything coming from the other VPC's VRF that is not one of
+   its subnets, using its `vpc-not-subnets` prefix list. This keeps out whatever else that VRF holds, e.g. a
+   default route from an external or a gateway. The statement index is 10000 plus the other VPC's VNI divided by 100:
+    ```
+    route-map import-vrf--vpc-01 deny 10002
+     match ip address prefix-list vpc-not-subnets--vpc-02
+     match source-vrf VrfVvpc-02
+    !
+    route-map import-vrf--vpc-02 deny 10001
+     match ip address prefix-list vpc-not-subnets--vpc-01
+     match source-vrf VrfVvpc-01
+    !
     ```
 1. We configure route leaking between the two VPC VRFs by adding an import VRF statement in each
    of the two BGP instances:

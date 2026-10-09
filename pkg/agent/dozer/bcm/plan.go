@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/netip"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -61,7 +60,6 @@ const (
 	PrefixListVTEPPrefix         = "vtep-prefix"
 	PrefixListProtocolLoopback   = "protocol-loopback-prefix"
 	PrefixListStaticExternals    = "static-ext-subnets"
-	NoCommunity                  = "no-community"
 	LSTGroupSpineLink            = "spinelink"
 	AsPathListFabricGW           = "fabric-gw-aspath"
 	AsPathListOtherDomainSpines  = "other-domain-spines"
@@ -2243,10 +2241,6 @@ func planVPCs(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	spec.CommunityLists[NoCommunity] = &dozer.SpecCommunityList{
-		Members: []string{"REGEX:^$"},
-	}
-
 	spec.RouteMaps[RouteMapFilterAttachedHost] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			"100": {
@@ -2496,16 +2490,6 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 		spec.VRFs[vrfName].AttachedHosts = map[string]*dozer.SpecVRFAttachedHost{}
 	}
 
-	peerComm, err := communityForVPC(agent, vpcName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get community for VPC %s", vpcName)
-	}
-
-	vpcPeersCommList := vpcPeersCommListName(vpcName)
-	spec.CommunityLists[vpcPeersCommList] = &dozer.SpecCommunityList{
-		Members: []string{peerComm},
-	}
-
 	spec.PrefixLists[vpcPeersPrefixListName(vpcName)] = &dozer.SpecPrefixList{
 		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{},
 	}
@@ -2573,14 +2557,7 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 				},
 				"50000": {
 					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: pointer.To(vpcPeersCommList),
-					},
-					Result: dozer.SpecRouteMapResultAccept,
-				},
-				"50001": {
-					Conditions: dozer.SpecRouteMapConditions{
-						MatchCommunityList: pointer.To(NoCommunity),
-						MatchPrefixList:    pointer.To(vpcPeersPrefixListName(vpcName)),
+						MatchPrefixList: pointer.To(vpcPeersPrefixListName(vpcName)),
 					},
 					Result: dozer.SpecRouteMapResultAccept,
 				},
@@ -2738,24 +2715,6 @@ func planL3FlatVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 }
 
 func planVNIVPCPeering(agent *agentapi.Agent, spec *dozer.Spec, peeringName string, peering vpcapi.VPCPeeringSpec, vpc1Name, vpc2Name string, vpc1, vpc2 vpcapi.VPCSpec) error {
-	peerComm, err := communityForVPC(agent, vpc2Name)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get community for VPC %s", vpc2Name)
-	}
-	if !slices.Contains(spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members, peerComm) {
-		spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members = append(spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members, peerComm)
-		sort.Strings(spec.CommunityLists[vpcPeersCommListName(vpc1Name)].Members)
-	}
-
-	peerComm, err = communityForVPC(agent, vpc1Name)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get community for VPC %s", vpc1Name)
-	}
-	if !slices.Contains(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members, peerComm) {
-		spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members = append(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members, peerComm)
-		sort.Strings(spec.CommunityLists[vpcPeersCommListName(vpc2Name)].Members)
-	}
-
 	peersPrefixList := vpcPeersPrefixListName(vpc2Name)
 	for subnetName, subnet := range vpc1.Subnets {
 		vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpc1Name, subnetName)
@@ -3838,10 +3797,6 @@ func vpcExtImportVrfPrefixListName(vpc, ext string) string {
 
 func vpcExtImportVrfRouteMapName(vpc string) string {
 	return fmt.Sprintf("import-vrf--%s", vpc)
-}
-
-func vpcPeersCommListName(vpc string) string {
-	return fmt.Sprintf("vpc-peers--%s", vpc)
 }
 
 func vpcPeersPrefixListName(vpc string) string {
