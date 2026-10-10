@@ -1603,21 +1603,21 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				}
 			}
 
+			aclIface := &dozer.SpecACLInterface{
+				Egress: pointer.To(ipnsEgressAccessList(ipns)),
+			}
 			if !attach.Static.Proxy {
 				if err := planHardenedInboundACL(spec, name, switchIP, attach.InboundACL); err != nil {
 					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 				}
-				spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
-					Ingress: pointer.To(extInboundACLName(name)),
-				}
+				aclIface.Ingress = pointer.To(extInboundACLName(name))
 			} else if attach.InboundACL != nil {
 				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
 					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 				}
-				spec.ACLInterfaces[ifaceName] = &dozer.SpecACLInterface{
-					Ingress: pointer.To(extInboundACLName(name)),
-				}
+				aclIface.Ingress = pointer.To(extInboundACLName(name))
 			}
+			spec.ACLInterfaces[ifaceName] = aclIface
 		}
 	}
 
