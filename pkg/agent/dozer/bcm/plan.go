@@ -1611,7 +1611,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 				}
 				aclIface.Ingress = pointer.To(extInboundACLName(name))
-			} else if attach.InboundACL != nil {
+			} else if attach.InboundACL != nil && len(attach.InboundACL.Statements) > 0 {
 				if err := planInboundACL(spec, name, attach.InboundACL); err != nil {
 					return errors.Wrapf(err, "failed to plan inbound ACL for external attach %s", name)
 				}
@@ -1775,7 +1775,7 @@ func planHardenedInboundACL(spec *dozer.Spec, attachName string, switchIP string
 		},
 	}
 
-	if userACL != nil {
+	if userACL != nil && len(userACL.Statements) > 0 {
 		for _, stmt := range userACL.Statements {
 			if stmt.Seq < 10 {
 				return fmt.Errorf("invalid user ACL statement with sequence number %d in the reserved range", stmt.Seq) //nolint:err113
