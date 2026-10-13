@@ -353,6 +353,7 @@ func swp(in string) string {
 	if portStr, ok := strings.CutPrefix(in, "E1/"); ok {
 		port, err := strconv.ParseUint(portStr, 10, 16)
 		if err != nil {
+			slog.Warn("invalid ParseUint", "portStr", portStr)
 			return "port-invalid-uint"
 		}
 
