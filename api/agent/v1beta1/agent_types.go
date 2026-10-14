@@ -389,6 +389,12 @@ type SwitchStateBGPNeighborPrefixes struct {
 	Received          uint32 `json:"rec,omitempty"`
 	ReceivedPrePolicy uint32 `json:"recPre,omitempty"`
 	Sent              uint32 `json:"sent,omitempty"`
+	// Limit is the most prefixes accepted, if there is a limit
+	Limit uint32 `json:"limit,omitempty"`
+	// LimitWarnPct is the percentage of the limit from which the switch logs a warning
+	LimitWarnPct uint8 `json:"limitWarnPct,omitempty"`
+	// LimitWarnOnly is set if the session stays open above the limit
+	LimitWarnOnly bool `json:"limitWarnOnly,omitempty"`
 }
 
 type BGPNeighborSessionState string
