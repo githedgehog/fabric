@@ -901,6 +901,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		return kctrl.Result{}, fmt.Errorf("getting redundancy group peers: %w", err)
 	}
 
+	peerConns := map[string]wiringapi.ConnectionSpec{}
 	for _, rgPeerName := range rgPeers {
 		connList := &wiringapi.ConnectionList{}
 		err = r.List(ctx, connList, kclient.InNamespace(sw.Namespace), wiringapi.MatchingLabelsForListLabelSwitch(rgPeerName))
@@ -909,6 +910,11 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 
 		for _, conn := range connList.Items {
+			if !r.cfg.LoopbackWorkaround && conn.Spec.VPCLoopback != nil {
+				continue
+			}
+			peerConns[conn.Name] = conn.Spec
+
 			if conn.Spec.Bundled == nil && conn.Spec.ESLAG == nil {
 				continue
 			}
@@ -916,6 +922,21 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			portChanConns[conn.Name] = true
 		}
 	}
+
+	peerAttachList := &vpcapi.VPCAttachmentList{}
+	if err := r.listByConnections(ctx, sw.Namespace, peerAttachList, peerConns); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing rg peer vpc attachments: %w", err)
+	}
+	peerExtAttachList := &vpcapi.ExternalAttachmentList{}
+	if err := r.listByConnections(ctx, sw.Namespace, peerExtAttachList, peerConns); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing rg peer external attachments: %w", err)
+	}
+	// the IRB VLANs are shared by the group, so they're requested for the switch and its peers together (#1649)
+	groupConns := maps.Clone(peerConns)
+	maps.Copy(groupConns, conns)
+	groupIRBVLANReqs := irbVLANReqs(sw.Spec.Topology.Fabric, groupConns, slices.Concat(attachList.Items, peerAttachList.Items),
+		vpcList.Items, peeringsList.Items, slices.Concat(externalAttachList.Items, peerExtAttachList.Items), externalList.Items,
+		externalPeeringList.Items)
 
 	idConns := map[string]bool{}
 	for name, conn := range conns {
@@ -932,7 +953,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	cat := &agentapi.CatalogSpec{}
 
-	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq)
+	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq, groupIRBVLANReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
@@ -1411,6 +1432,81 @@ func (r *AgentReconciler) redundancyGroupPeers(ctx context.Context, sw *wiringap
 	slices.Sort(peers)
 
 	return peers, nil
+}
+
+// irbVLANReqs returns the IRB VLAN requests of the switches with the given connections: the VPCs and externals that
+// Reconcile configures on them, picked the same way. If it misses one for the reconciled switch, building its catalog
+// fails; if it misses one for a peer, the entry gets released and renumbered by the peer's reconcile (#1649).
+func irbVLANReqs(fabric string, conns map[string]wiringapi.ConnectionSpec, attaches []vpcapi.VPCAttachment, vpcs []vpcapi.VPC,
+	peerings []vpcapi.VPCPeering, extAttaches []vpcapi.ExternalAttachment, externals []vpcapi.External, extPeerings []vpcapi.ExternalPeering,
+) map[string]bool {
+	used := map[string]bool{}
+	subnets := map[string]bool{}
+	for _, attach := range attaches {
+		if _, exists := conns[attach.Spec.Connection]; !exists {
+			continue
+		}
+
+		used[attach.Spec.VPCName()] = true
+		subnets[attach.Spec.Subnet] = true
+	}
+	for _, conn := range conns {
+		if conn.StaticExternal != nil && conn.StaticExternal.WithinVPC != "" {
+			used[conn.StaticExternal.WithinVPC] = true
+		}
+	}
+	for _, vpc := range vpcs {
+		for subnetName, subnet := range vpc.Spec.Subnets {
+			if subnets[vpc.Name+"/"+subnetName] && subnet.DHCP.RelayVPC != "" {
+				used[subnet.DHCP.RelayVPC] = true
+			}
+		}
+	}
+
+	existing := map[string]bool{}
+	for _, vpc := range vpcs {
+		existing[vpc.Name] = true
+	}
+	maps.DeleteFunc(used, func(name string, _ bool) bool { return !existing[name] })
+
+	// only peerings of the VPCs attached so far, not of the ones they bring in
+	peered := map[string]bool{}
+	for _, peering := range peerings {
+		vpc1, vpc2, err := peering.Spec.VPCs()
+		if err != nil || !used[vpc1] && !used[vpc2] {
+			continue
+		}
+
+		peered[vpc1] = true
+		peered[vpc2] = true
+	}
+
+	attachedExts := map[string]bool{}
+	for _, attach := range extAttaches {
+		if _, exists := conns[attach.Spec.Connection]; exists {
+			attachedExts[attach.Spec.External] = true
+		}
+	}
+
+	reqs := map[string]bool{}
+	for _, ext := range externals {
+		if ext.Spec.Topology.Fabric == fabric && attachedExts[ext.Name] {
+			reqs[librarian.ReqForExt(ext.Name)] = true
+		}
+	}
+	for _, peering := range extPeerings {
+		if reqs[librarian.ReqForExt(peering.Spec.Permit.External.Name)] {
+			peered[peering.Spec.Permit.VPC.Name] = true
+		}
+	}
+
+	for name := range existing {
+		if used[name] || peered[name] {
+			reqs[name] = true
+		}
+	}
+
+	return reqs
 }
 
 // listByConnections lists the objects labeled with one of the connections, as VPC and external attachments are, so

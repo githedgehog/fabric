@@ -4,6 +4,7 @@
 package librarian_test
 
 import (
+	"maps"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -180,7 +181,7 @@ func TestCatalogOwners(t *testing.T) {
 		s := get(&wiringapi.Switch{}, name).(*wiringapi.Switch)
 		// something to allocate, as a catalog left without an owner is otherwise unchanged and never saved
 		portChanConns := map[string]bool{name + "--bundled": true}
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil, nil))
 		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil))
 	}
 
@@ -219,7 +220,7 @@ func TestSwitchCatalogsNotRewritten(t *testing.T) {
 	build := func(portChanConns, subnets map[string]bool) {
 		t.Helper()
 
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil, nil))
 		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, nil, nil, subnets, nil))
 	}
 
@@ -288,4 +289,85 @@ func TestGetOrEnsureVPCInfoID(t *testing.T) {
 	// a VPCInfo that doesn't exist can't get an ID
 	_, err = libr.GetOrEnsureVPCInfoID(t.Context(), kube, 100, "vpc-3")
 	require.ErrorContains(t, err, "failed to find VPCInfo ID for vpcInfo vpc-3")
+}
+
+// TestRedundancyGroupIRBVLANs covers the IRB VLANs of a redundancy group with entries only one of the switches uses:
+// reconciling them in turn used to renumber those entries (#1649)
+func TestRedundancyGroupIRBVLANs(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	sw := func(name string) *wiringapi.Switch {
+		return &wiringapi.Switch{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Spec:       wiringapi.SwitchSpec{Redundancy: wiringapi.SwitchRedundancy{Type: meta.RedundancyTypeESLAG, Group: "eslag-1"}},
+		}
+	}
+	leaf1, leaf2 := sw("leaf-1"), sw("leaf-2")
+
+	vpcs1, exts1 := map[string]bool{"vpc-shared": true, "vpc-a1": true, "vpc-a2": true, "vpc-a3": true}, map[string]bool{"ext-1": true}
+	vpcs2 := map[string]bool{"vpc-shared": true, "vpc-b1": true, "vpc-b2": true}
+	reqs1 := map[string]bool{librarian.ReqForExt("ext-1"): true}
+	maps.Copy(reqs1, vpcs1)
+
+	vnis := &agentapi.Catalog{
+		ObjectMeta: kmetav1.ObjectMeta{Name: librarian.CatVNIs, Namespace: librarian.Namespace},
+		Spec:       agentapi.CatalogSpec{VPCVNIs: map[string]uint32{}},
+	}
+	for name := range reqs1 {
+		vnis.Spec.VPCVNIs[name] = 100
+	}
+	for name := range vpcs2 {
+		vnis.Spec.VPCVNIs[name] = 100
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(leaf1, leaf2, vnis).Build()
+	libr := librarian.NewManager(&meta.FabricConfig{VPCIRBVLANRanges: []meta.VLANRange{{From: 3000, To: 3099}}})
+
+	groupReqs := func() map[string]bool {
+		reqs := maps.Clone(reqs1)
+		maps.Copy(reqs, vpcs2)
+
+		return reqs
+	}
+	build := func(s *wiringapi.Switch, vpcs, exts map[string]bool) map[string]uint16 {
+		t.Helper()
+
+		cat := &agentapi.CatalogSpec{}
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, cat, s, vpcs, nil, nil, exts, groupReqs()))
+
+		return cat.IRBVLANs
+	}
+
+	irb1, irb2 := build(leaf1, vpcs1, exts1), build(leaf2, vpcs2, nil)
+	for range 5 {
+		require.Equal(t, irb1, build(leaf1, vpcs1, exts1))
+		require.Equal(t, irb2, build(leaf2, vpcs2, nil))
+	}
+
+	// unique across the group
+	vlans := map[uint16]bool{}
+	for _, vlan := range irb1 {
+		vlans[vlan] = true
+	}
+	for name, vlan := range irb2 {
+		if name != "vpc-shared" {
+			require.False(t, vlans[vlan], name)
+		}
+	}
+	require.Equal(t, irb1["vpc-shared"], irb2["vpc-shared"])
+
+	// what neither switch uses any more is released, the rest stays
+	delete(vpcs2, "vpc-b2")
+	require.Equal(t, irb1, build(leaf1, vpcs1, exts1))
+	cat := &agentapi.Catalog{}
+	require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Name: "redundancy.eslag-1", Namespace: librarian.Namespace}, cat))
+	require.NotContains(t, cat.Spec.IRBVLANs, "vpc-b2")
+	require.Equal(t, irb2["vpc-b1"], cat.Spec.IRBVLANs["vpc-b1"])
+
+	// a VPC of the switch missing from the group requests fails rather than being released
+	err := libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, leaf2,
+		map[string]bool{"vpc-shared": true, "vpc-b1": true, "vpc-b2": true}, nil, nil, nil, groupReqs())
+	require.ErrorContains(t, err, "failed to find IRB VLAN for vpc vpc-b2")
 }
