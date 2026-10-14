@@ -1168,21 +1168,37 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 
 			if neighbor.AfiSafis != nil {
 				for afiSafiName, afiSafi := range neighbor.AfiSafis.AfiSafi {
-					if afiSafi.State == nil || afiSafi.State.Prefixes == nil {
+					hasCounters := afiSafi.State != nil && afiSafi.State.Prefixes != nil
+					hasLimit := afiSafi.Ipv4Unicast != nil && afiSafi.Ipv4Unicast.PrefixLimit != nil && afiSafi.Ipv4Unicast.PrefixLimit.State != nil
+					if !hasCounters && !hasLimit {
 						continue
 					}
 
 					afiSafiName := afiSafiName.String()
 
-					st.Prefixes[afiSafiName] = agentapi.SwitchStateBGPNeighborPrefixes{
-						Received:          unptrUint32(afiSafi.State.Prefixes.Received),
-						ReceivedPrePolicy: unptrUint32(afiSafi.State.Prefixes.ReceivedPrePolicy),
-						Sent:              unptrUint32(afiSafi.State.Prefixes.Sent),
-					}
+					prefixes := agentapi.SwitchStateBGPNeighborPrefixes{}
+					if hasCounters {
+						prefixes.Received = unptrUint32(afiSafi.State.Prefixes.Received)
+						prefixes.ReceivedPrePolicy = unptrUint32(afiSafi.State.Prefixes.ReceivedPrePolicy)
+						prefixes.Sent = unptrUint32(afiSafi.State.Prefixes.Sent)
 
-					reg.BGPNeighborMetrics.Prefixes.Received.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(unptrUint32(afiSafi.State.Prefixes.Received)))
-					reg.BGPNeighborMetrics.Prefixes.ReceivedPrePolicy.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(unptrUint32(afiSafi.State.Prefixes.ReceivedPrePolicy)))
-					reg.BGPNeighborMetrics.Prefixes.Sent.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(unptrUint32(afiSafi.State.Prefixes.Sent)))
+						reg.BGPNeighborMetrics.Prefixes.Received.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(prefixes.Received))
+						reg.BGPNeighborMetrics.Prefixes.ReceivedPrePolicy.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(prefixes.ReceivedPrePolicy))
+						reg.BGPNeighborMetrics.Prefixes.Sent.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(prefixes.Sent))
+					}
+					if hasLimit {
+						limit := afiSafi.Ipv4Unicast.PrefixLimit.State
+						prefixes.Limit = unptrUint32(limit.MaxPrefixes)
+						if limit.WarningThresholdPct != nil {
+							prefixes.LimitWarnPct = *limit.WarningThresholdPct
+						}
+						prefixes.LimitWarnOnly = limit.PreventTeardown != nil && *limit.PreventTeardown
+					}
+					st.Prefixes[afiSafiName] = prefixes
+
+					if afiSafiName == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST.String() {
+						reg.BGPNeighborMetrics.Prefixes.Limit.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(prefixes.Limit))
+					}
 				}
 			}
 
