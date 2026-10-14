@@ -310,7 +310,10 @@ func setRedundancyCatalogOwner(ctx context.Context, kube kclient.Client, sw *wir
 	return setCatalogOwner(kube, sg, cat)
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
+// CatalogForRedundancyGroup allocates from the catalog shared by the switch's redundancy group, so groupIRBVLANReqs has
+// to hold the IRB VLAN requests of all switches of the group (VPC names and ReqForExt of externals): anything missing
+// from the requests is released (#1649).
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns, externals, groupIRBVLANReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -330,11 +333,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 		a := &Allocator[uint16]{
 			Values: NewNextFreeValueFromVLANRanges(m.cfg.VPCIRBVLANRanges),
 		}
-		irbVLANReqs := maps.Clone(vpcs)
-		for ext := range externals {
-			irbVLANReqs[ReqPrefixExt+ext] = true
-		}
-		cat.Spec.IRBVLANs, err = a.Allocate(cat.Spec.IRBVLANs, irbVLANReqs)
+		cat.Spec.IRBVLANs, err = a.Allocate(cat.Spec.IRBVLANs, groupIRBVLANReqs)
 		if err != nil {
 			return fmt.Errorf("allocating IRB VLANs for %s: %w", key, err)
 		}

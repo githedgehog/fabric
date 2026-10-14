@@ -15,7 +15,9 @@
 package librarian
 
 import (
+	"maps"
 	"math"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -34,14 +36,15 @@ type Allocator[Value comparable] struct {
 func (a *Allocator[Value]) Allocate(known map[string]Value, updates map[string]bool) (map[string]Value, error) {
 	updated := map[string]Value{}
 
-	for key, val := range known {
-		if updates[key] && a.Values.Add(val) {
-			updated[key] = val
+	// sorted, so that the same inputs always give the same values (#1649)
+	for _, key := range slices.Sorted(maps.Keys(known)) {
+		if updates[key] && a.Values.Add(known[key]) {
+			updated[key] = known[key]
 		}
 	}
 
-	for key, present := range updates {
-		if !present {
+	for _, key := range slices.Sorted(maps.Keys(updates)) {
+		if !updates[key] {
 			continue
 		}
 		if _, ok := updated[key]; ok {

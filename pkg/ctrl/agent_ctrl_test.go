@@ -190,3 +190,55 @@ func TestAgentKubeconfigSecret(t *testing.T) {
 	require.NoError(t, kube.Get(t.Context(), objKey(AgentKubeconfigSecret("leaf-1")), again))
 	require.Equal(t, secret.ResourceVersion, again.ResourceVersion)
 }
+
+func TestIRBVLANReqs(t *testing.T) {
+	vpc := func(name, relayVPC string) vpcapi.VPC {
+		return vpcapi.VPC{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name},
+			Spec:       vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{"subnet-1": {DHCP: vpcapi.VPCDHCP{RelayVPC: relayVPC}}}},
+		}
+	}
+	attach := func(conn, subnet string) vpcapi.VPCAttachment {
+		return vpcapi.VPCAttachment{Spec: vpcapi.VPCAttachmentSpec{Connection: conn, Subnet: subnet}}
+	}
+	peering := func(vpc1, vpc2 string) vpcapi.VPCPeering {
+		return vpcapi.VPCPeering{Spec: vpcapi.VPCPeeringSpec{Permit: []map[string]vpcapi.VPCPeer{{vpc1: {}, vpc2: {}}}}}
+	}
+	ext := func(name, fabric string) vpcapi.External {
+		return vpcapi.External{
+			ObjectMeta: kmetav1.ObjectMeta{Name: name},
+			Spec:       vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Fabric: fabric}},
+		}
+	}
+	extAttach := func(conn, ext string) vpcapi.ExternalAttachment {
+		return vpcapi.ExternalAttachment{Spec: vpcapi.ExternalAttachmentSpec{Connection: conn, External: ext}}
+	}
+	extPeering := func(ext, vpc string) vpcapi.ExternalPeering {
+		return vpcapi.ExternalPeering{Spec: vpcapi.ExternalPeeringSpec{Permit: vpcapi.ExternalPeeringSpecPermit{
+			External: vpcapi.ExternalPeeringSpecExternal{Name: ext},
+			VPC:      vpcapi.ExternalPeeringSpecVPC{Name: vpc},
+		}}}
+	}
+
+	conns := map[string]wiringapi.ConnectionSpec{
+		"conn-1":      {},
+		"conn-static": {StaticExternal: &wiringapi.ConnStaticExternal{WithinVPC: "vpc-static"}},
+	}
+
+	reqs := irbVLANReqs("fabric-1", conns,
+		[]vpcapi.VPCAttachment{attach("conn-1", "vpc-1/subnet-1"), attach("conn-1", "vpc-missing/subnet-1"), attach("conn-other", "vpc-other/subnet-1")},
+		[]vpcapi.VPC{
+			vpc("vpc-1", "vpc-relay"), vpc("vpc-relay", ""), vpc("vpc-static", ""), vpc("vpc-peer", ""), vpc("vpc-far", ""),
+			vpc("vpc-ext", ""), vpc("vpc-other", ""), vpc("vpc-other-ext", ""),
+		},
+		[]vpcapi.VPCPeering{peering("vpc-1", "vpc-peer"), peering("vpc-peer", "vpc-far"), peering("vpc-missing", "vpc-far")},
+		[]vpcapi.ExternalAttachment{extAttach("conn-1", "ext-1"), extAttach("conn-1", "ext-other-fabric"), extAttach("conn-other", "ext-other")},
+		[]vpcapi.External{ext("ext-1", "fabric-1"), ext("ext-other-fabric", "fabric-2"), ext("ext-other", "fabric-1")},
+		[]vpcapi.ExternalPeering{extPeering("ext-1", "vpc-ext"), extPeering("ext-other", "vpc-other-ext")},
+	)
+
+	// only the direct peerings of the attached VPCs that exist count, as for the switch's own config
+	require.Equal(t, map[string]bool{
+		"vpc-1": true, "vpc-relay": true, "vpc-static": true, "vpc-peer": true, "vpc-ext": true, "ext@ext-1": true,
+	}, reqs)
+}
