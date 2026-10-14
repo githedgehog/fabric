@@ -2565,6 +2565,19 @@ spec:
                           prefixes:
                             additionalProperties:
                               properties:
+                                limit:
+                                  description: Limit is the most prefixes accepted,
+                                    if there is a limit
+                                  format: int32
+                                  type: integer
+                                limitWarnOnly:
+                                  description: LimitWarnOnly is set if the session
+                                    stays open above the limit
+                                  type: boolean
+                                limitWarnPct:
+                                  description: LimitWarnPct is the percentage of the
+                                    limit from which the switch logs a warning
+                                  type: integer
                                 rec:
                                   format: int32
                                   type: integer

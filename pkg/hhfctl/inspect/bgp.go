@@ -4,6 +4,7 @@
 package inspect
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -21,6 +22,13 @@ import (
 	coreapi "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
+)
+
+const (
+	// as the agent reports it
+	ipv4UnicastAFISafi = "IPV4_UNICAST"
+	// the switch logs INFO messages, such as the prefix limit ones, only here and not in /var/log/syslog
+	switchInfoLog = "/var/log/ramfs/in-memory-syslog-info.log"
 )
 
 type BGPIn struct {
@@ -41,8 +49,10 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 	noColor := !isatty.IsTerminal(os.Stdout.Fd())
 
 	red := color.New(color.FgRed).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
 	if noColor {
 		red = fmt.Sprint
+		yellow = fmt.Sprint
 	}
 
 	str := &strings.Builder{}
@@ -82,6 +92,21 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 					neighbor += " IPv6 LL"
 				}
 
+				limit := "-"
+				if pfx := n.Prefixes[ipv4UnicastAFISafi]; pfx.Limit != 0 {
+					limit = fmt.Sprintf("%d/%d", pfx.Received, pfx.Limit)
+					if pfx.LimitWarnOnly {
+						limit += " warn-only"
+					}
+					// the switch warns from 75% unless told otherwise
+					warnPct := cmp.Or(uint64(pfx.LimitWarnPct), 75)
+					if pfx.Received > pfx.Limit {
+						limit = red(limit)
+					} else if uint64(pfx.Received)*100 >= uint64(pfx.Limit)*warnPct {
+						limit = yellow(limit)
+					}
+				}
+
 				data = append(data, []string{
 					t,
 					n.Port,
@@ -92,6 +117,7 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 					s,
 					last,
 					fmt.Sprintf("%d", n.EstablishedTransitions),
+					limit,
 				})
 			}
 		}
@@ -109,7 +135,7 @@ func (out *BGPOut) MarshalText(_ BGPIn, now time.Time) (string, error) {
 		})
 
 		str.WriteString(RenderTable(
-			[]string{"Type", "Port", "VRF", "Neighbor", "RemoteName", "Connection", "State", "LastEstab", "Trans"},
+			[]string{"Type", "Port", "VRF", "Neighbor", "RemoteName", "Connection", "State", "LastEstab", "Trans", "PrefixLimit"},
 			data,
 		))
 	}
@@ -146,8 +172,17 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", swName, vrf, name)) //nolint:goerr113
 					}
 
+					pfx := neighbor.Prefixes[ipv4UnicastAFISafi]
 					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", swName, vrf, name)) //nolint:goerr113
+						// gNMI doesn't say whether the limit closed the session, only the switch log does
+						if pfx.Limit != 0 && !pfx.LimitWarnOnly {
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established (it has a prefix limit of %d, if it went above it the switch logged %%MAXPFXEXCEED in %s)", swName, vrf, name, pfx.Limit, switchInfoLog)) //nolint:goerr113
+						} else {
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", swName, vrf, name)) //nolint:goerr113
+						}
+					}
+					if pfx.LimitWarnOnly && pfx.Received > pfx.Limit {
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q receives %d prefixes, above its warning-only limit of %d", swName, vrf, name, pfx.Received, pfx.Limit)) //nolint:goerr113
 					}
 				}
 			}
