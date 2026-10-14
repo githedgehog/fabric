@@ -196,6 +196,7 @@ func (p *BroadcomProcessor) CalculateActions(_ context.Context, actual, desired 
 	// subinterfaces that need a rebuild are deleted along with everything else that goes first,
 	// and only created again in a second, separately ordered set of actions
 	if intermediate := withoutRebuiltSubinterfaces(actual, desired); intermediate != nil {
+		slog.Info("Rebuilding subinterfaces to avoid ports loosing VLANs")
 		first, err := calculateActions(actual, intermediate)
 		if err != nil {
 			return nil, err
