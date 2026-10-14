@@ -161,6 +161,7 @@ type BGPNeighborMetricsPrefixes struct {
 	Received          *prometheus.GaugeVec
 	ReceivedPrePolicy *prometheus.GaugeVec
 	Sent              *prometheus.GaugeVec
+	Limit             *prometheus.GaugeVec
 }
 
 type BGPNeighborMetricsMessagesCounters struct {
@@ -520,6 +521,7 @@ func NewRegistry() *Registry {
 				Received:          newBGPNeighborPrefixesGaugeVec("bgp_neighbor_prefixes_received", "Number of received BGP prefixes"),
 				ReceivedPrePolicy: newBGPNeighborPrefixesGaugeVec("bgp_neighbor_prefixes_received_pre_policy", "Number of received BGP prefixes pre-policy"),
 				Sent:              newBGPNeighborPrefixesGaugeVec("bgp_neighbor_prefixes_sent", "Number of sent BGP prefixes"),
+				Limit:             newBGPNeighborPrefixesGaugeVec("bgp_neighbor_prefixes_limit", "Most BGP prefixes accepted, 0 without a limit"),
 			},
 		},
 		BFDPeerMetrics: BFDPeerMetrics{

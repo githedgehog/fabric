@@ -304,6 +304,9 @@ _Appears in:_
 | `rec` _integer_ |  |  |  |
 | `recPre` _integer_ |  |  |  |
 | `sent` _integer_ |  |  |  |
+| `limit` _integer_ | Limit is the most prefixes accepted, if there is a limit |  |  |
+| `limitWarnPct` _integer_ | LimitWarnPct is the percentage of the limit from which the switch logs a warning |  |  |
+| `limitWarnOnly` _boolean_ | LimitWarnOnly is set if the session stays open above the limit |  |  |
 
 
 #### SwitchStateBreakout
