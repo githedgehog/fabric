@@ -26,6 +26,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	const (
 		self     = "leaf-01"
 		spine    = "spine-01"
+		gw       = "gateway-1"
 		spineASN = uint32(65100)
 		wVLAN    = uint16(3123)
 	)
@@ -64,7 +65,19 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 		},
 	}
 
-	// E1/1 and E1/2 are plain SFP28 ports on the S5248F, E1/53 a breakout-capable QSFP28
+	gwConn := &wiringapi.Connection{
+		ObjectMeta: kmetav1.ObjectMeta{Name: self + "--gateway--" + gw, Namespace: kmetav1.NamespaceDefault},
+		Spec: wiringapi.ConnectionSpec{
+			Gateway: &wiringapi.ConnGateway{
+				Links: []wiringapi.GatewayLink{{
+					Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(self + "/E1/3")},
+					Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.NewBasePortName(gw + "/enp2s1")},
+				}},
+			},
+		},
+	}
+
+	// E1/1, E1/2 and E1/3 are plain SFP28 ports on the S5248F, E1/53 a breakout-capable QSFP28
 	newProfile := func(silicon string) *wiringapi.SwitchProfile {
 		sp := switchprofile.DellS5248FON.DeepCopy()
 		sp.Namespace = kmetav1.NamespaceDefault
@@ -75,7 +88,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 
 	newAgent := func() *agentapi.Agent {
 		ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
-		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1, "E1/53": wVLAN + 2}
+		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1, "E1/53": wVLAN + 2, "E1/3": wVLAN + 3}
 
 		return ag
 	}
@@ -102,13 +115,14 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 		expected map[string]neighbor // neighbor key -> connection and port it belongs to
 	}{
 		{
-			name:     "fabric links",
+			name:     "fabric and gateway links",
 			silicon:  switchprofile.SiliconVS,
-			reported: []string{"E1/1", "E1/2", "E1/53/1", "172.30.11.2"},
+			reported: []string{"E1/1", "E1/2", "E1/53/1", "E1/3", "172.30.11.2"},
 			expected: map[string]neighbor{
 				"E1/1":        {conn: fabricConn.Name, port: "E1/1"},
 				"E1/2":        {conn: fabricConn.Name, port: "E1/2"},
 				"E1/53/1":     {conn: fabricConn.Name, port: "E1/53/1"},
+				"E1/3":        {conn: gwConn.Name, port: "E1/3"},
 				"172.30.11.2": {port: "Lo"},
 			},
 		},
@@ -117,11 +131,12 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			// VLAN was allocated for
 			name:     "on TH5",
 			silicon:  switchprofile.SiliconBroadcomTH5,
-			reported: []string{"E1/1.3123", "E1/2.3124", "E1/53.3125", "172.30.11.2"},
+			reported: []string{"E1/1.3123", "E1/2.3124", "E1/53.3125", "E1/3.3126", "172.30.11.2"},
 			expected: map[string]neighbor{
 				"E1/1.3123":   {conn: fabricConn.Name, port: "E1/1"},
 				"E1/2.3124":   {conn: fabricConn.Name, port: "E1/2"},
 				"E1/53.3125":  {conn: fabricConn.Name, port: "E1/53/1"},
+				"E1/3.3126":   {conn: gwConn.Name, port: "E1/3"},
 				"172.30.11.2": {port: "Lo"},
 			},
 		},
@@ -136,7 +151,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			ag.Status.State.BGPNeighbors = reported(tt.reported...)
 
 			objs := []kclient.Object{sw, spineSw, newProfile(tt.silicon), ag}
-			for _, conn := range []*wiringapi.Connection{fabricConn} {
+			for _, conn := range []*wiringapi.Connection{fabricConn, gwConn} {
 				conn := conn.DeepCopy()
 				conn.Default()
 				objs = append(objs, conn)
