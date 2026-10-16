@@ -4,6 +4,7 @@
 package v1beta1_test
 
 import (
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -174,6 +175,69 @@ func TestExternalValidation(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
+	}
+}
+
+func TestExternalInboundPrefixes(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}), ipv4NamespaceObj(),
+	).Build()
+
+	for _, tt := range []struct {
+		name     string
+		prefixes map[string]v1beta1.ExternalInboundPrefix
+		static   bool
+		err      string
+	}{
+		{name: "exact", prefixes: map[string]v1beta1.ExternalInboundPrefix{"0.0.0.0/0": {}, "10.1.1.0/24": {}}},
+		{name: "ranges", prefixes: map[string]v1beta1.ExternalInboundPrefix{
+			"10.1.0.0/16": {MaxPrefixLen: 24}, "172.16.0.0/12": {MinPrefixLen: 16, MaxPrefixLen: 32}, "192.168.0.0/16": {MinPrefixLen: 24},
+		}},
+		{name: "around the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.0.0/8": {MaxPrefixLen: 32}}},
+		{name: "inside the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.1.0/24": {}}, err: "inbound prefix 10.0.1.0/24 is inside subnet 10.0.0.0/16"},
+		{name: "invalid", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.0/33": {}}, err: "invalid inbound prefix"},
+		{name: "IPv6", prefixes: map[string]v1beta1.ExternalInboundPrefix{"fd00::/64": {}}, err: "is not IPv4"},
+		{name: "host bits", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.1/24": {}}, err: "has host bits set"},
+		{name: "min shorter than the prefix", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 8}}, err: "minPrefixLen 8 is not between 16 and 32"},
+		{name: "min above 32", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 33}}, err: "minPrefixLen 33 is not between 16 and 32"},
+		{name: "max below min", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 24, MaxPrefixLen: 20}}, err: "maxPrefixLen 20 is not between 24 and 32"},
+		{name: "max below the prefix", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MaxPrefixLen: 8}}, err: "maxPrefixLen 8 is not between 16 and 32"},
+		{name: "max above 32", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MaxPrefixLen: 33}}, err: "maxPrefixLen 33 is not between 16 and 32"},
+		{name: "static", static: true, prefixes: map[string]v1beta1.ExternalInboundPrefix{"0.0.0.0/0": {}}, err: "inboundPrefixes must be empty"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ext := extGen("ext-01", func(ext *v1beta1.External) {
+				ext.Spec.InboundPrefixes = tt.prefixes
+				if tt.static {
+					ext.Spec.Static = &v1beta1.ExternalStaticSpec{Prefixes: []string{"0.0.0.0/0"}}
+				}
+			})
+			_, err := ext.Validate(t.Context(), kube, &meta.FabricConfig{})
+			if tt.err != "" {
+				require.ErrorContains(t, err, tt.err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestExternalInboundPrefixLens(t *testing.T) {
+	for _, tt := range []struct {
+		prefix   string
+		lens     v1beta1.ExternalInboundPrefix
+		min, max uint8
+	}{
+		{prefix: "10.1.0.0/16", min: 16, max: 16},
+		{prefix: "10.1.0.0/16", lens: v1beta1.ExternalInboundPrefix{MaxPrefixLen: 24}, min: 16, max: 24},
+		{prefix: "10.1.0.0/16", lens: v1beta1.ExternalInboundPrefix{MinPrefixLen: 24}, min: 24, max: 24},
+		{prefix: "0.0.0.0/0", lens: v1beta1.ExternalInboundPrefix{MaxPrefixLen: 32}, min: 0, max: 32},
+	} {
+		minLen, maxLen := tt.lens.PrefixLens(netip.MustParsePrefix(tt.prefix))
+		require.Equal(t, [2]uint8{tt.min, tt.max}, [2]uint8{minLen, maxLen}, "%s %+v", tt.prefix, tt.lens)
 	}
 }
 

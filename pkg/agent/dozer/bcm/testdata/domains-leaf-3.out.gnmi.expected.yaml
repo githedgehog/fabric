@@ -1199,6 +1199,7 @@ routing-policy:
           config:
             action: PERMIT
             community-member:
+            - "50000:1"
             - 65102:1000
             community-set-name: all-externals
             match-set-options: ANY
@@ -1749,6 +1750,15 @@ routing-policy:
             bgp-actions:
               config:
                 set-local-pref: 150
+              set-community:
+                config:
+                  method: INLINE
+                  options: ADD
+                inline:
+                  config:
+                    communities:
+                    - "50000:1"
+                    - 65102:1000
             config:
               policy-result: ACCEPT_ROUTE
           conditions:

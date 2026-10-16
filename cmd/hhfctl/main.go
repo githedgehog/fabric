@@ -1364,6 +1364,11 @@ Examples:
 								Name:  "strict",
 								Usage: "strict BGP check (will fail if any neighbor is missing, not expected or not established)",
 							},
+							&cli.BoolFlag{
+								Name:    "prefix-limits",
+								Aliases: []string{"p"},
+								Usage:   "show received prefixes against each neighbor's prefix limit, if configured",
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
@@ -1373,10 +1378,11 @@ Examples:
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.BGPIn{
-								Switches: cCtx.StringSlice("switch-name"),
-								Fabric:   cCtx.String("fabric"),
-								Domain:   cCtx.String("domain"),
-								Strict:   cCtx.Bool("strict"),
+								Switches:     cCtx.StringSlice("switch-name"),
+								Fabric:       cCtx.String("fabric"),
+								Domain:       cCtx.String("domain"),
+								Strict:       cCtx.Bool("strict"),
+								PrefixLimits: cCtx.Bool("prefix-limits"),
 							}, os.Stdout), "failed to inspect BGP")
 						},
 					},

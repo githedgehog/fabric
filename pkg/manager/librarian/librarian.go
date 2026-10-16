@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -310,7 +312,9 @@ func setRedundancyCatalogOwner(ctx context.Context, kube kclient.Client, sw *wir
 	return setCatalogOwner(kube, sg, cat)
 }
 
-func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns map[string]bool, externals map[string]bool) error {
+// CatalogForRedundancyGroup allocates IRB VLANs for the externals attached to the switch, and returns the VNIs of all
+// fabricExternals, as every leaf matches the communities derived from them
+func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, vpcs, portChanConns, idConns, externals, fabricExternals map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -383,7 +387,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 			return fmt.Errorf("failed to find VPC VNI for vpc %s", name) //nolint:err113
 		}
 	}
-	for name := range externals {
+	for name := range fabricExternals {
 		if vni, exists := vnisCat.Spec.VPCVNIs[ReqForExt(name)]; exists {
 			ret.VPCVNIs[ReqForExt(name)] = vni
 		} else {
@@ -635,4 +639,28 @@ func (m *Manager) GetOrEnsureVPCInfoID(ctx context.Context, kube kclient.Client,
 	}
 
 	return id, nil
+}
+
+// VNICommunity is the community of the VPC, or the External, with the given VNI. VNIs come from a single pool in
+// steps of VPCVNIOffset, so no two of them share it.
+func VNICommunity(baseVPCCommunity string, vni uint32) (string, error) {
+	baseParts := strings.Split(baseVPCCommunity, ":")
+	if len(baseParts) != 2 {
+		return "", fmt.Errorf("invalid base VPC community %s", baseVPCCommunity) //nolint:err113
+	}
+	base, err := strconv.ParseUint(baseParts[1], 10, 16)
+	if err != nil {
+		return "", fmt.Errorf("parsing base VPC community %s: %w", baseVPCCommunity, err)
+	}
+
+	if vni%VPCVNIOffset != 0 {
+		return "", fmt.Errorf("VNI %d is not a multiple of %d", vni, VPCVNIOffset) //nolint:err113
+	}
+
+	id := base + uint64(vni)/VPCVNIOffset
+	if id >= 65535 {
+		return "", fmt.Errorf("community id for VNI %d is too large", vni) //nolint:err113
+	}
+
+	return fmt.Sprintf("%s:%d", baseParts[0], id), nil
 }

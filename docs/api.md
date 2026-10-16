@@ -304,6 +304,9 @@ _Appears in:_
 | `rec` _integer_ |  |  |  |
 | `recPre` _integer_ |  |  |  |
 | `sent` _integer_ |  |  |  |
+| `limit` _integer_ | Limit is the most prefixes accepted, if there is a limit |  |  |
+| `limitWarnPct` _integer_ | LimitWarnPct is the percentage of the limit from which the switch logs a warning |  |  |
+| `limitWarnOnly` _boolean_ | LimitWarnOnly is set if the session stays open above the limit |  |  |
 
 
 #### SwitchStateBreakout
@@ -2162,6 +2165,26 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  |  |
 | `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
+| `prefixLimit` _[ExternalAttachmentPrefixLimit](#externalattachmentprefixlimit)_ | PrefixLimit (optional) limits the prefixes accepted from the neighbor |  |  |
+
+
+#### ExternalAttachmentPrefixLimit
+
+
+
+ExternalAttachmentPrefixLimit limits the prefixes accepted from a BGP neighbor, counted after the inbound filters
+
+
+
+_Appears in:_
+- [ExternalAttachmentNeighbor](#externalattachmentneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `max` _integer_ | Max is the most prefixes accepted. Above it the session is closed, unless warningOnly is set |  | Minimum: 1 <br /> |
+| `restartMinutes` _integer_ | RestartMinutes (optional) is how long the session stays closed after going above max, 5 by default.<br />Raising max doesn't open the session earlier, removing the limit does. Can't be set with warningOnly |  | Minimum: 1 <br /> |
+| `warningThresholdPct` _integer_ | WarningThresholdPct (optional) is the percentage of max from which the switch logs a warning, 75 by default |  | Maximum: 100 <br />Minimum: 1 <br /> |
+| `warningOnly` _boolean_ | WarningOnly (optional) keeps the session open above max, so that going above it is only logged |  |  |
 
 
 #### ExternalAttachmentSpec
@@ -2250,6 +2273,23 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `fabric` _string_ | Fabric is the name of the Fabric this ExternalAttachment belongs to (if not specified, "default" is used) |  |  |
+
+
+#### ExternalInboundPrefix
+
+
+
+ExternalInboundPrefix defines the prefix lengths accepted within an inbound prefix of an External
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minPrefixLen` _integer_ | MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to its own length |  | Maximum: 32 <br /> |
+| `maxPrefixLen` _integer_ | MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so<br />that a prefix without either matches exactly |  | Maximum: 32 <br /> |
 
 
 #### ExternalPeering
@@ -2404,6 +2444,7 @@ _Appears in:_
 | `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
 | `static` _[ExternalStaticSpec](#externalstaticspec)_ | Static contains parameters specific to static externals |  |  |
 | `localASN` _integer_ | LocalASN makes every attachment to this External present the same ASN to the external system<br />instead of each border leaf's own. Changing it resets all sessions to this External, and the<br />external system has to change its remote-as to match. Static attachments ignore it. |  |  |
+| `inboundPrefixes` _object (keys:string, values:[ExternalInboundPrefix](#externalinboundprefix))_ | InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,<br />keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted |  |  |
 
 
 #### ExternalStaticSpec
