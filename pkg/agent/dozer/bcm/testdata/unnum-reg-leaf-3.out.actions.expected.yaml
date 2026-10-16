@@ -134,36 +134,6 @@
         name: static-ext-subnets
       name: static-ext-subnets
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-01]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-01
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-01
-      name: vpc-ext-prefixes--vpc-01
-  weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-03]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-03
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-03
-      name: vpc-ext-prefixes--vpc-03
-  weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-04]
-  summary: Create Prefix List Base vpc-ext-prefixes--vpc-04
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-ext-prefixes--vpc-04
-      name: vpc-ext-prefixes--vpc-04
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]
   summary: Create Prefix List Base vpc-loopback-prefix
   type: update
@@ -415,34 +385,6 @@
       ip-prefix: 172.30.8.4/32
       masklength-range: 32..32
       sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-01]/extended-prefixes/extended-prefix[sequence-number=106][ip-prefix=0.0.0.0/0][masklength-range=0..32]
-  summary: Create Prefix Lists Entry 106
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 0.0.0.0/0
-        masklength-range: 0..32
-        sequence-number: 106
-      ip-prefix: 0.0.0.0/0
-      masklength-range: 0..32
-      sequence-number: 106
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-ext-prefixes--vpc-03]/extended-prefixes/extended-prefix[sequence-number=106][ip-prefix=0.0.0.0/0][masklength-range=0..32]
-  summary: Create Prefix Lists Entry 106
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 0.0.0.0/0
-        masklength-range: 0..32
-        sequence-number: 106
-      ip-prefix: 0.0.0.0/0
-      masklength-range: 0..32
-      sequence-number: 106
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.96.0/19][masklength-range=19..32]
   summary: Create Prefix Lists Entry 10
@@ -914,60 +856,6 @@
         community-member:
         - "50001:9"
         community-set-name: gw-prio-9
-        match-set-options: ANY
-  weight: 11
-- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=no-community]
-  summary: Create Community Lists no-community
-  type: update
-  value:
-    community-set:
-    - community-set-name: no-community
-      config:
-        action: PERMIT
-        community-member:
-        - REGEX:^$
-        community-set-name: no-community
-        match-set-options: ANY
-  weight: 11
-- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=vpc-peers--vpc-01]
-  summary: Create Community Lists vpc-peers--vpc-01
-  type: update
-  value:
-    community-set:
-    - community-set-name: vpc-peers--vpc-01
-      config:
-        action: PERMIT
-        community-member:
-        - "50000:2"
-        community-set-name: vpc-peers--vpc-01
-        match-set-options: ANY
-  weight: 11
-- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=vpc-peers--vpc-03]
-  summary: Create Community Lists vpc-peers--vpc-03
-  type: update
-  value:
-    community-set:
-    - community-set-name: vpc-peers--vpc-03
-      config:
-        action: PERMIT
-        community-member:
-        - "50000:3"
-        - "50000:4"
-        community-set-name: vpc-peers--vpc-03
-        match-set-options: ANY
-  weight: 11
-- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=vpc-peers--vpc-04]
-  summary: Create Community Lists vpc-peers--vpc-04
-  type: update
-  value:
-    community-set:
-    - community-set-name: vpc-peers--vpc-04
-      config:
-        action: PERMIT
-        community-member:
-        - "50000:3"
-        - "50000:4"
-        community-set-name: vpc-peers--vpc-04
         match-set-options: ANY
   weight: 11
 - path: /routing-policy/defined-sets/bgp-defined-sets/as-path-sets/as-path-set[as-path-set-name=fabric-gw-aspath]
@@ -1619,31 +1507,12 @@
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
-        bgp-conditions:
-          config:
-            community-set: vpc-peers--vpc-01
-      config:
-        name: "50000"
-      name: "50000"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=50001]
-  summary: Create Route Map Statement 50001
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        bgp-conditions:
-          config:
-            community-set: no-community
         match-prefix-set:
           config:
             prefix-set: vpc-peers--vpc-01
       config:
-        name: "50001"
-      name: "50001"
+        name: "50000"
+      name: "50000"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-01]/statements/statement[name=50010]
   summary: Create Route Map Statement 50010
@@ -1742,31 +1611,12 @@
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
-        bgp-conditions:
-          config:
-            community-set: vpc-peers--vpc-03
-      config:
-        name: "50000"
-      name: "50000"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-03]/statements/statement[name=50001]
-  summary: Create Route Map Statement 50001
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        bgp-conditions:
-          config:
-            community-set: no-community
         match-prefix-set:
           config:
             prefix-set: vpc-peers--vpc-03
       config:
-        name: "50001"
-      name: "50001"
+        name: "50000"
+      name: "50000"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-03]/statements/statement[name=50010]
   summary: Create Route Map Statement 50010
@@ -1865,31 +1715,12 @@
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
-        bgp-conditions:
-          config:
-            community-set: vpc-peers--vpc-04
-      config:
-        name: "50000"
-      name: "50000"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-04]/statements/statement[name=50001]
-  summary: Create Route Map Statement 50001
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        bgp-conditions:
-          config:
-            community-set: no-community
         match-prefix-set:
           config:
             prefix-set: vpc-peers--vpc-04
       config:
-        name: "50001"
-      name: "50001"
+        name: "50000"
+      name: "50000"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-04]/statements/statement[name=65535]
   summary: Create Route Map Statement 65535
@@ -2254,15 +2085,6 @@
   value:
     statement:
     - actions:
-        bgp-actions:
-          set-community:
-            config:
-              method: INLINE
-              options: ADD
-            inline:
-              config:
-                communities:
-                - "50000:2"
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2323,15 +2145,6 @@
   value:
     statement:
     - actions:
-        bgp-actions:
-          set-community:
-            config:
-              method: INLINE
-              options: ADD
-            inline:
-              config:
-                communities:
-                - "50000:3"
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2392,15 +2205,6 @@
   value:
     statement:
     - actions:
-        bgp-actions:
-          set-community:
-            config:
-              method: INLINE
-              options: ADD
-            inline:
-              config:
-                communities:
-                - "50000:4"
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2443,22 +2247,6 @@
         name: "1"
       name: "1"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-01
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-01]/statements/statement[name=5]
   summary: Create Route Map Statement 5
   type: update
@@ -2491,22 +2279,6 @@
         name: "1"
       name: "1"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-03
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=5]
   summary: Create Route Map Statement 5
   type: update
@@ -2538,22 +2310,6 @@
       config:
         name: "1"
       name: "1"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-04]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-ext-prefixes--vpc-04
-      config:
-        name: "10"
-      name: "10"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-04]/statements/statement[name=5]
   summary: Create Route Map Statement 5
@@ -3061,30 +2817,6 @@
   value:
     SUPPRESS_VLAN_NEIGH_LIST:
     - name: Vlan1007
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3000
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3000
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3001
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3001
-      suppress: "on"
-  weight: 61
-- path: /sonic-vxlan/SUPPRESS_VLAN_NEIGH/SUPPRESS_VLAN_NEIGH_LIST
-  summary: Create Suppress VLAN neigh Vlan3002
-  type: update
-  value:
-    SUPPRESS_VLAN_NEIGH_LIST:
-    - name: Vlan3002
       suppress: "on"
   weight: 61
 - path: /network-instances/network-instance[name=VrfEexternal-01]/global-sag/config

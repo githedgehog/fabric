@@ -120,12 +120,6 @@ communityLists:
   gw-prio-9:
     members:
     - "50001:9"
-  no-community:
-    members:
-    - REGEX:^$
-  vpc-peers--vpc-03:
-    members:
-    - "50000:4"
 dhcpRelays:
   Vlan1003:
     linkSelect: true
@@ -331,13 +325,6 @@ prefixLists:
           le: 32
           prefix: 172.30.8.2/32
   static-ext-subnets: {}
-  vpc-ext-prefixes--vpc-03:
-    prefixes:
-      "101":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 0.0.0.0/0
   vpc-loopback-prefix:
     prefixes:
       "10":
@@ -431,11 +418,6 @@ routeMaps:
         result: reject
       "50000":
         conditions:
-          matchCommunityLists: vpc-peers--vpc-03
-        result: accept
-      "50001":
-        conditions:
-          matchCommunityLists: no-community
           matchPrefixLists: vpc-peers--vpc-03
         result: accept
       "50010":
@@ -549,8 +531,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-03
         result: accept
-        setCommunities:
-        - "50000:4"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
@@ -568,13 +548,8 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
         result: accept
-      "10":
-        conditions:
-          matchPrefixLists: vpc-ext-prefixes--vpc-03
-        result: accept
 suppressVLANNeighs:
   Vlan1003: {}
-  Vlan3001: {}
 users:
   admin:
     authorizedKeys:

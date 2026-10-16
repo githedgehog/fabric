@@ -67,17 +67,6 @@ communityLists:
   gw-prio-9:
     members:
     - "50001:9"
-  no-community:
-    members:
-    - REGEX:^$
-  vpc-peers--vpc-03:
-    members:
-    - "50000:3"
-    - "50000:4"
-  vpc-peers--vpc-04:
-    members:
-    - "50000:3"
-    - "50000:4"
 dhcpRelays:
   Vlan1005:
     linkSelect: true
@@ -339,8 +328,6 @@ prefixLists:
           le: 32
           prefix: 172.30.8.5/32
   static-ext-subnets: {}
-  vpc-ext-prefixes--vpc-03: {}
-  vpc-ext-prefixes--vpc-04: {}
   vpc-loopback-prefix:
     prefixes:
       "10":
@@ -455,11 +442,6 @@ routeMaps:
         result: reject
       "50000":
         conditions:
-          matchCommunityLists: vpc-peers--vpc-03
-        result: accept
-      "50001":
-        conditions:
-          matchCommunityLists: no-community
           matchPrefixLists: vpc-peers--vpc-03
         result: accept
       "65535":
@@ -478,11 +460,6 @@ routeMaps:
         result: reject
       "50000":
         conditions:
-          matchCommunityLists: vpc-peers--vpc-04
-        result: accept
-      "50001":
-        conditions:
-          matchCommunityLists: no-community
           matchPrefixLists: vpc-peers--vpc-04
         result: accept
       "65535":
@@ -580,8 +557,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-03
         result: accept
-        setCommunities:
-        - "50000:3"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
@@ -599,8 +574,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-subnets--vpc-04
         result: accept
-        setCommunities:
-        - "50000:4"
       "6":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-04
@@ -618,10 +591,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
         result: accept
-      "10":
-        conditions:
-          matchPrefixLists: vpc-ext-prefixes--vpc-03
-        result: accept
   vpc-redistribute-static--vpc-04:
     statements:
       "1":
@@ -632,16 +601,10 @@ routeMaps:
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-04
         result: accept
-      "10":
-        conditions:
-          matchPrefixLists: vpc-ext-prefixes--vpc-04
-        result: accept
 suppressVLANNeighs:
   Vlan1005: {}
   Vlan1006: {}
   Vlan1008: {}
-  Vlan3000: {}
-  Vlan3002: {}
 users:
   admin:
     authorizedKeys:
@@ -785,7 +748,6 @@ vrfs:
           enabled: true
           ipv4Unicast: true
           l2vpnEvpn: true
-          l2vpnEvpnAllowOwnAS: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65011
