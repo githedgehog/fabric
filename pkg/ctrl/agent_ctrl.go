@@ -1488,21 +1488,25 @@ func irbVLANReqs(fabric string, conns map[string]wiringapi.ConnectionSpec, attac
 		}
 	}
 
-	reqs := map[string]bool{}
+	exts := map[string]bool{}
 	for _, ext := range externals {
 		if ext.Spec.Topology.Fabric == fabric && attachedExts[ext.Name] {
-			reqs[librarian.ReqForExt(ext.Name)] = true
+			exts[ext.Name] = true
 		}
 	}
 	for _, peering := range extPeerings {
-		if reqs[librarian.ReqForExt(peering.Spec.Permit.External.Name)] {
+		if exts[peering.Spec.Permit.External.Name] {
 			peered[peering.Spec.Permit.VPC.Name] = true
 		}
 	}
 
-	for name := range existing {
-		if used[name] || peered[name] {
-			reqs[name] = true
+	reqs := map[string]bool{}
+	for name := range exts {
+		reqs[librarian.ReqForExt(name)] = true
+	}
+	for _, vpc := range vpcs {
+		if used[vpc.Name] || peered[vpc.Name] {
+			reqs[vpc.Name] = true
 		}
 	}
 
