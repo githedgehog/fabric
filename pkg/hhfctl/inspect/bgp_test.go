@@ -43,7 +43,7 @@ func TestBGPPrefixLimitColumn(t *testing.T) {
 		}},
 	}}
 
-	text, err := out.MarshalText(BGPIn{}, time.Now())
+	text, err := out.MarshalText(BGPIn{PrefixLimits: true}, time.Now())
 	require.NoError(t, err)
 
 	lines := strings.Split(text, "\n")
@@ -62,4 +62,11 @@ func TestBGPPrefixLimitColumn(t *testing.T) {
 		"10.0.0.3": "2/1000",
 		"10.0.0.4": "-",
 	}, limits)
+
+	// check that everything is fine if prefix limits are not shown
+	text, err = out.MarshalText(BGPIn{}, time.Now())
+	require.NoError(t, err)
+	lines = strings.Split(text, "\n")
+	col = strings.Index(lines[1], "PREFIX LIMIT")
+	require.EqualValues(t, col, -1)
 }
