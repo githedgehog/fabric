@@ -81,7 +81,7 @@ func TestHandleCumulusZTP(t *testing.T) {
 		WithObjects(
 			&fcintapi.SwitchBoot{
 				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-				Spec:       fcintapi.SwitchBootSpec{Serial: "sn-0001", NOSType: meta.NOSTypeCumulusVX, AgentVersion: "v1.2.3"},
+				Spec:       fcintapi.SwitchBootSpec{Serial: "sn-0001", MAC: "0c:20:12:fe:01:00", NOSType: meta.NOSTypeCumulusVX, AgentVersion: "v1.2.3"},
 			},
 			&agentapi.Agent{
 				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
@@ -103,10 +103,11 @@ func TestHandleCumulusZTP(t *testing.T) {
 		cacheDir: t.TempDir(),
 	}
 
-	ztp := func() *httptest.ResponseRecorder {
+	ztp := func(serial, mac string) *httptest.ResponseRecorder {
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, CumulusZTPURLSuffix, nil)
 		req.Header.Set("CUMULUS-ARCH", "x86_64")
-		req.Header.Set("CUMULUS-SERIAL", "SN-0001")
+		req.Header.Set("CUMULUS-SERIAL", serial)
+		req.Header.Set("CUMULUS-MGMT-MAC", mac)
 		rec := httptest.NewRecorder()
 
 		svc.handleCumulusZTP(rec, req)
@@ -115,14 +116,21 @@ func TestHandleCumulusZTP(t *testing.T) {
 	}
 
 	// the script would fail to download the agent
-	rec := ztp()
+	rec := ztp(" SN-0001 ", "")
 	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
 	require.Equal(t, "10", rec.Header().Get("Retry-After"))
 	require.Empty(t, rec.Body.String())
 
 	cacheTestAgent(t, svc, "v1.2.3")
 
-	rec = ztp()
+	rec = ztp(" SN-0001 ", "")
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), `/agent?version=v1.2.3"`)
+
+	// the MAC matches in any format
+	require.Equal(t, http.StatusOK, ztp("", "0C-20-12-FE-01-00").Code)
+
+	require.Equal(t, http.StatusBadRequest, ztp("sn-0001", "not-a-mac").Code)
+	require.Equal(t, http.StatusBadRequest, ztp("", "").Code)
+	require.Equal(t, http.StatusNotFound, ztp("sn-ffff", "").Code)
 }

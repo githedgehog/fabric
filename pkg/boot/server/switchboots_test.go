@@ -52,7 +52,6 @@ func TestFindSwitchBoot(t *testing.T) {
 	}{
 		{name: "serial", serial: "sn-0002", want: "leaf-1"},
 		{name: "mac", mac: "0c:20:12:fe:03:00", want: "leaf-3"},
-		{name: "case and whitespace", serial: " SN-0002\t", mac: "0C:20:12:FE:03:00 ", want: "leaf-1"},
 		{name: "duplicate serial, first by name", serial: "sn-0001", want: "leaf-2"},
 		{name: "serial or mac, first by name", serial: "sn-0001", mac: "0c:20:12:fe:01:00", want: "leaf-1"},
 		{name: "unknown mac with known serial", serial: "sn-0002", mac: "0c:20:12:fe:ff:00", want: "leaf-1"},

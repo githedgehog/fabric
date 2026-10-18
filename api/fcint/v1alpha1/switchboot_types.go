@@ -4,8 +4,6 @@
 package v1alpha1
 
 import (
-	"strings"
-
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,10 +59,4 @@ func init() {
 
 		return nil
 	})
-}
-
-// NormalizeBootID normalizes a serial number or MAC address used to identify a switch during the bootstrap, so they
-// match regardless of surrounding whitespace and case
-func NormalizeBootID(id string) string {
-	return strings.ToLower(strings.TrimSpace(id))
 }

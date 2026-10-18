@@ -121,6 +121,26 @@ func TestHydrationValidation(t *testing.T) {
 
 		return sw
 	}
+	// otherLeaf collides with nothing on leafSwitch but the boot serial and MAC
+	otherLeaf := func(serial, mac string) *wiringapi.Switch {
+		return &wiringapi.Switch{
+			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf5", Namespace: "default"},
+			Spec: wiringapi.SwitchSpec{
+				Role:       wiringapi.SwitchRoleServerLeaf,
+				ASN:        65102,
+				IP:         "172.30.0.5/21",
+				VTEPIP:     "172.30.12.2/32",
+				ProtocolIP: "172.30.8.5/32",
+				Boot:       wiringapi.SwitchBoot{Serial: serial, MAC: mac},
+			},
+		}
+	}
+	withBoot := func(serial, mac string) *wiringapi.Switch {
+		sw := leafSwitch.DeepCopy()
+		sw.Spec.Boot = wiringapi.SwitchBoot{Serial: serial, MAC: mac}
+
+		return sw
+	}
 
 	for _, test := range []struct {
 		name        string
@@ -383,6 +403,37 @@ func TestHydrationValidation(t *testing.T) {
 			dut:         mclagSwitch,
 			expectError: false,
 		},
+		{
+			name:        "bootSerialCollision",
+			objects:     []kclient.Object{otherLeaf("sn-0001", "")},
+			dut:         withBoot(" SN-0001 ", ""),
+			expectError: true,
+		},
+		{
+			name:        "bootMACCollision",
+			objects:     []kclient.Object{otherLeaf("", "0c:20:12:fe:01:00")},
+			dut:         withBoot("", "0C-20-12-FE-01-00"),
+			expectError: true,
+		},
+		{
+			name:        "bootNoCollision",
+			objects:     []kclient.Object{otherLeaf("sn-0002", "0c:20:12:fe:02:00")},
+			dut:         withBoot("sn-0001", "0c:20:12:fe:01:00"),
+			expectError: false,
+		},
+		{
+			// e.g. VLAB, where switches only have MACs
+			name:        "bootNoSerials",
+			objects:     []kclient.Object{otherLeaf("", "0c:20:12:fe:02:00")},
+			dut:         withBoot("", "0c:20:12:fe:01:00"),
+			expectError: false,
+		},
+		{
+			name:        "bootInvalidMAC",
+			objects:     []kclient.Object{},
+			dut:         withBoot("", "not-a-mac"),
+			expectError: true,
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			// stored objects carry their defaults and the default fabric always exists
@@ -635,6 +686,14 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			}()},
 			err: "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains []",
 		},
+		{
+			name: "invalid boot MAC", err: `invalid boot MAC: parsing MAC "not-a-mac"`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "not-a-mac" }),
+		},
+		{
+			name: "boot MAC in another format",
+			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
@@ -675,4 +734,45 @@ func TestSwitchDefaultDomains(t *testing.T) {
 	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-a", ""}}}}
 	sw.Default()
 	require.NotContains(t, sw.Labels, wiringapi.ListLabelDomain(""))
+}
+
+func TestNormalizeBootMAC(t *testing.T) {
+	for _, test := range []struct {
+		in          string
+		expected    string
+		expectError bool
+	}{
+		{in: "", expected: ""},
+		{in: "  ", expected: ""},
+		{in: "0c:20:12:fe:01:00", expected: "0c:20:12:fe:01:00"},
+		{in: " 0C:20:12:FE:01:00\t", expected: "0c:20:12:fe:01:00"},
+		{in: "0C-20-12-FE-01-00", expected: "0c:20:12:fe:01:00"},
+		{in: "0c20.12fe.0100", expected: "0c:20:12:fe:01:00"},
+		{in: "not-a-mac", expectError: true},
+		{in: "0c:20:12:fe:01", expectError: true},
+		{in: "0c:20:12:fe:01:00:00:01", expectError: true},
+	} {
+		t.Run(test.in, func(t *testing.T) {
+			mac, err := wiringapi.NormalizeBootMAC(test.in)
+			if test.expectError {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, test.expected, mac)
+		})
+	}
+}
+
+func TestSwitchDefaultBoot(t *testing.T) {
+	sw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Boot: wiringapi.SwitchBoot{Serial: " SN-0001 ", MAC: "0C-20-12-FE-01-00"}}}
+	sw.Default()
+	require.Equal(t, wiringapi.SwitchBoot{Serial: "sn-0001", MAC: "0c:20:12:fe:01:00"}, sw.Spec.Boot)
+
+	// kept as is for the validation to reject
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Boot: wiringapi.SwitchBoot{MAC: "not-a-mac"}}}
+	sw.Default()
+	require.Equal(t, "not-a-mac", sw.Spec.Boot.MAC)
 }
