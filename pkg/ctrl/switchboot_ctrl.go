@@ -84,10 +84,12 @@ func (r *SwitchBootReconciler) Reconcile(ctx context.Context, req kctrl.Request)
 		return kctrl.Result{}, fmt.Errorf("getting switch profile %s: %w", sw.Spec.Profile, err)
 	}
 
-	// normalized by the defaulting as well, but the switch may not be defaulted by this version yet
 	mac, err := wiringapi.NormalizeBootMAC(sw.Spec.Boot.MAC)
 	if err != nil {
-		return kctrl.Result{}, fmt.Errorf("switch boot: %w", err)
+		// stored before the validation rejected it, it's still found by serial; any change to the switch is
+		// rejected until it's fixed
+		l.Info("Ignoring invalid switch boot MAC", "error", err.Error())
+		mac = ""
 	}
 
 	sb := &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: sw.Name}}

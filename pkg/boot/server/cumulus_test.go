@@ -130,7 +130,9 @@ func TestHandleCumulusZTP(t *testing.T) {
 	// the MAC matches in any format
 	require.Equal(t, http.StatusOK, ztp("", "0C-20-12-FE-01-00").Code)
 
-	require.Equal(t, http.StatusBadRequest, ztp("sn-0001", "not-a-mac").Code)
+	// an invalid MAC is ignored, it's still found by serial
+	require.Equal(t, http.StatusOK, ztp("sn-0001", "not-a-mac").Code)
+	require.Equal(t, http.StatusBadRequest, ztp("", "not-a-mac").Code)
 	require.Equal(t, http.StatusBadRequest, ztp("", "").Code)
 	require.Equal(t, http.StatusNotFound, ztp("sn-ffff", "").Code)
 }
