@@ -1,0 +1,88 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+  name: switchboots.fcint.githedgehog.com
+spec:
+  group: fcint.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    kind: SwitchBoot
+    listKind: SwitchBootList
+    plural: switchboots
+    shortNames:
+    - swboot
+    singular: switchboot
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.serial
+      name: Serial
+      type: string
+    - jsonPath: .spec.mac
+      name: MAC
+      type: string
+    - jsonPath: .spec.nosType
+      name: NOS
+      type: string
+    - jsonPath: .spec.agentVersion
+      name: Agent
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          SwitchBoot is the Schema for the switchboots API. It's managed by the fabric controller for each switch and holds
+          everything needed to bootstrap it (ONIE NOS install or ZTP): how to identify the switch and what to install on it.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SwitchBootSpec defines the desired state of SwitchBoot.
+            properties:
+              agentVersion:
+                description: AgentVersion is the version of the agent the switch should
+                  be installed with
+                type: string
+              mac:
+                description: MAC is the normalized MAC address of the switch management
+                  port to identify it during the bootstrap
+                type: string
+              nosType:
+                description: NOSType is the NOS type the switch should be installed
+                  with
+                type: string
+              serial:
+                description: Serial is the normalized serial number of the switch
+                  to identify it during the bootstrap
+                type: string
+            type: object
+          status:
+            description: SwitchBootStatus defines the observed state of SwitchBoot.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
