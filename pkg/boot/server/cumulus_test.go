@@ -12,20 +12,35 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot"
+	"go.githedgehog.com/fabric/pkg/ctrl"
+	corev1 "k8s.io/api/core/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestHandleAgent(t *testing.T) {
-	agentRef := "127.0.0.1:1/fabric/agent"
+const testAgentRef = "127.0.0.1:1/fabric/agent"
 
-	svc := &service{
-		cfg:      &boot.ServerConfig{AgentRef: agentRef},
-		cacheDir: t.TempDir(),
-	}
+// cacheTestAgent puts the agent version into the cache as if it was pre-cached
+func cacheTestAgent(t *testing.T, svc *service, version string) {
+	t.Helper()
 
-	cached := filepath.Join(svc.cacheDir, getCacheName(agentRef, "v1.2.3"))
+	cached := filepath.Join(svc.cacheDir, getCacheName(testAgentRef, version))
 	require.NoError(t, os.MkdirAll(cached, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(cached, "agent"), []byte("bin"), 0o600))
+}
+
+func TestHandleAgent(t *testing.T) {
+	svc := &service{
+		cfg:      &boot.ServerConfig{AgentRef: testAgentRef},
+		cacheDir: t.TempDir(),
+	}
+	cacheTestAgent(t, svc, "v1.2.3")
 
 	for _, tt := range []struct {
 		name    string
@@ -52,4 +67,62 @@ func TestHandleAgent(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleCumulusZTP(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).
+		WithIndex(&fcintapi.SwitchBoot{}, switchBootSerialField, indexSwitchBootSerial).
+		WithIndex(&fcintapi.SwitchBoot{}, switchBootMACField, indexSwitchBootMAC).
+		WithObjects(
+			&fcintapi.SwitchBoot{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+				Spec:       fcintapi.SwitchBootSpec{Serial: "sn-0001", NOSType: meta.NOSTypeCumulusVX, AgentVersion: "v1.2.3"},
+			},
+			&agentapi.Agent{
+				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+				Spec: agentapi.AgentSpec{
+					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
+					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
+				},
+			},
+			&corev1.Secret{
+				ObjectMeta: kmetav1.ObjectMeta{Name: ctrl.AgentKubeconfigSecret("leaf-1"), Namespace: kmetav1.NamespaceDefault},
+				Data:       map[string][]byte{ctrl.AgentKubeconfigKey: []byte("kubeconfig")},
+			},
+		).Build()
+
+	svc := &service{
+		cfg:      &boot.ServerConfig{AgentRef: testAgentRef},
+		kube:     kube,
+		boots:    kube,
+		cacheDir: t.TempDir(),
+	}
+
+	ztp := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, CumulusZTPURLSuffix, nil)
+		req.Header.Set("CUMULUS-ARCH", "x86_64")
+		req.Header.Set("CUMULUS-SERIAL", "SN-0001")
+		rec := httptest.NewRecorder()
+
+		svc.handleCumulusZTP(rec, req)
+
+		return rec
+	}
+
+	// the script would fail to download the agent
+	rec := ztp()
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	require.Equal(t, "10", rec.Header().Get("Retry-After"))
+	require.Empty(t, rec.Body.String())
+
+	cacheTestAgent(t, svc, "v1.2.3")
+
+	rec = ztp()
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `/agent?version=v1.2.3"`)
 }
