@@ -3584,7 +3584,8 @@ Switch is the Schema for the switches API
 
 
 
-
+SwitchBoot identifies the switch when it's booted to install the NOS, by serial number or MAC address. Each of them
+must be unique across switches.
 
 
 
@@ -3593,8 +3594,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `serial` _string_ | Identify switch by serial number |  |  |
-| `mac` _string_ | Identify switch by MAC address of the management port |  |  |
+| `serial` _string_ | Identify switch by serial number, compared case-insensitively |  |  |
+| `mac` _string_ | Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case<br />colon-separated form, e.g. 0c:20:12:fe:01:00 |  |  |
 
 
 #### SwitchECMP
