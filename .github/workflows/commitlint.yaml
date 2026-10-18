@@ -16,6 +16,7 @@ permissions:
 jobs:
   commitlint:
     runs-on: lab
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
@@ -31,6 +32,13 @@ jobs:
 
       - name: Block Merge Commits
         if: ${{ always() }}
-        uses: Morishiri/block-merge-commits-action@v1.0.1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # needs full history (fetch-depth: 0 above); rev-list fails loudly if either SHA is missing
+          merges=$(git rev-list --merges "$BASE_SHA..$HEAD_SHA")
+          if [ -n "$merges" ]; then
+            for c in $merges; do echo "::error::Commit $c is a merge commit"; done
+            exit 1
+          fi
