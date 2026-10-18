@@ -1355,11 +1355,12 @@ spec:
                       switch
                     properties:
                       mac:
-                        description: Identify switch by MAC address of the management
-                          port
+                        description: |-
+                          Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case
+                          colon-separated form, e.g. 0c:20:12:fe:01:00
                         type: string
                       serial:
-                        description: Identify switch by serial number
+                        description: Identify switch by serial number, compared case-insensitively
                         type: string
                     type: object
                   description:
@@ -1746,11 +1747,13 @@ spec:
                         switch
                       properties:
                         mac:
-                          description: Identify switch by MAC address of the management
-                            port
+                          description: |-
+                            Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case
+                            colon-separated form, e.g. 0c:20:12:fe:01:00
                           type: string
                         serial:
-                          description: Identify switch by serial number
+                          description: Identify switch by serial number, compared
+                            case-insensitively
                           type: string
                       type: object
                     description:

@@ -769,7 +769,7 @@ func TestNormalizeBootMAC(t *testing.T) {
 func TestSwitchDefaultBoot(t *testing.T) {
 	sw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Boot: wiringapi.SwitchBoot{Serial: " SN-0001 ", MAC: "0C-20-12-FE-01-00"}}}
 	sw.Default()
-	require.Equal(t, wiringapi.SwitchBoot{Serial: "sn-0001", MAC: "0c:20:12:fe:01:00"}, sw.Spec.Boot)
+	require.Equal(t, wiringapi.SwitchBoot{Serial: "SN-0001", MAC: "0c:20:12:fe:01:00"}, sw.Spec.Boot)
 
 	// kept as is for the validation to reject
 	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Boot: wiringapi.SwitchBoot{MAC: "not-a-mac"}}}

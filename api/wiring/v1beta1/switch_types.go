@@ -101,10 +101,13 @@ type SwitchRedundancy struct {
 	Type meta.RedundancyType `json:"type,omitempty"`
 }
 
+// SwitchBoot identifies the switch when it's booted to install the NOS, by serial number or MAC address. Each of them
+// must be unique across switches.
 type SwitchBoot struct {
-	// Identify switch by serial number
+	// Identify switch by serial number, compared case-insensitively
 	Serial string `json:"serial,omitempty"`
-	// Identify switch by MAC address of the management port
+	// Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case
+	// colon-separated form, e.g. 0c:20:12:fe:01:00
 	MAC string `json:"mac,omitempty"`
 }
 
@@ -302,7 +305,8 @@ func (sw *Switch) Default() {
 
 	CleanupFabricLabels(sw.Labels)
 
-	sw.Spec.Boot.Serial = NormalizeBootSerial(sw.Spec.Boot.Serial)
+	// the case is kept as written, it's compared case-insensitively
+	sw.Spec.Boot.Serial = strings.TrimSpace(sw.Spec.Boot.Serial)
 	// an invalid one is rejected by the validation
 	if mac, err := NormalizeBootMAC(sw.Spec.Boot.MAC); err == nil {
 		sw.Spec.Boot.MAC = mac
