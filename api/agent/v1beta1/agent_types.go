@@ -118,8 +118,9 @@ type AgentVersion struct {
 	Password string `json:"password,omitempty"`
 
 	// Agent information
-	Repo     string `json:"repo,omitempty"`
-	Default  string `json:"default,omitempty"`
+	Repo    string `json:"repo,omitempty"`
+	Default string `json:"default,omitempty"`
+	// TODO: remove after 26.05 release
 	Override string `json:"override,omitempty"`
 
 	// Alloy information
