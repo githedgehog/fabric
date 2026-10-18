@@ -7,9 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
 	"os"
-	"slices"
 	"time"
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
@@ -129,37 +127,38 @@ func normalizeBootIDs(l *slog.Logger, serial, mac string) (string, string) {
 	return wiringapi.NormalizeBootSerial(serial), normMAC
 }
 
-// findSwitchBoot expects the serial and MAC normalized, see normalizeBootIDs
+// findSwitchBoot expects the serial and MAC normalized, see normalizeBootIDs. The validation rejects switches sharing
+// a serial or MAC, but it can't fully prevent them, e.g. created at the same time, so more than one switch matching
+// is an error instead of booting one of them as the other.
 func findSwitchBoot(ctx context.Context, boots kclient.Reader, serial, mac string) (*fcintapi.SwitchBoot, error) {
-	found := map[string]*fcintapi.SwitchBoot{}
-	for field, value := range map[string]string{
-		switchBootSerialField: serial,
-		switchBootMACField:    mac,
+	var found *fcintapi.SwitchBoot
+	for _, by := range []struct{ field, value string }{
+		{switchBootSerialField, serial},
+		{switchBootMACField, mac},
 	} {
-		if value == "" {
+		if by.value == "" {
 			continue
 		}
 
 		sbs := &fcintapi.SwitchBootList{}
-		if err := boots.List(ctx, sbs, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingFields{field: value}); err != nil {
-			return nil, fmt.Errorf("listing switch boots by %s: %w", field, err)
+		if err := boots.List(ctx, sbs, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingFields{by.field: by.value}); err != nil {
+			return nil, fmt.Errorf("listing switch boots by %s: %w", by.field, err)
 		}
 
-		for _, sb := range sbs.Items {
-			found[sb.Name] = &sb
+		for idx := range sbs.Items {
+			sb := &sbs.Items[idx]
+			if found != nil && found.Name != sb.Name {
+				return nil, fmt.Errorf("both switches %s and %s match serial %q or MAC %q", found.Name, sb.Name, serial, mac) //nolint:err113
+			}
+			found = sb
 		}
 	}
 
-	if len(found) == 0 {
+	if found == nil {
 		return nil, fmt.Errorf("switch boot: %w", ErrNotFound)
 	}
 
-	names := slices.Sorted(maps.Keys(found))
-	if len(names) > 1 {
-		slog.Warn("Multiple switch boots found, using the first one", "serial", serial, "mac", mac, "names", names)
-	}
-
-	return found[names[0]], nil
+	return found, nil
 }
 
 // preCacheAgentFor runs in the informer's goroutine for this handler, which buffers the events in the meantime, so a

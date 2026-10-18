@@ -45,21 +45,29 @@ func TestFindSwitchBoot(t *testing.T) {
 		).Build()
 
 	for _, tt := range []struct {
-		name   string
-		serial string
-		mac    string
-		want   string
+		name     string
+		serial   string
+		mac      string
+		want     string
+		conflict bool
 	}{
 		{name: "serial", serial: "sn-0002", want: "leaf-1"},
 		{name: "mac", mac: "0c:20:12:fe:03:00", want: "leaf-3"},
-		{name: "duplicate serial, first by name", serial: "sn-0001", want: "leaf-2"},
-		{name: "serial or mac, first by name", serial: "sn-0001", mac: "0c:20:12:fe:01:00", want: "leaf-1"},
+		{name: "serial and mac", serial: "sn-0002", mac: "0c:20:12:fe:01:00", want: "leaf-1"},
 		{name: "unknown mac with known serial", serial: "sn-0002", mac: "0c:20:12:fe:ff:00", want: "leaf-1"},
+		{name: "duplicate serial", serial: "sn-0001", conflict: true},
+		{name: "serial of one and mac of another", serial: "sn-0002", mac: "0c:20:12:fe:03:00", conflict: true},
 		{name: "unknown", serial: "sn-ffff", mac: "0c:20:12:fe:ff:00"},
 		{name: "empty"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := findSwitchBoot(t.Context(), boots, tt.serial, tt.mac)
+			if tt.conflict {
+				require.ErrorContains(t, err, "match serial")
+				require.NotErrorIs(t, err, ErrNotFound)
+
+				return
+			}
 			if tt.want == "" {
 				require.ErrorIs(t, err, ErrNotFound)
 
