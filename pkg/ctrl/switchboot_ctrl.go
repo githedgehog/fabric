@@ -84,6 +84,12 @@ func (r *SwitchBootReconciler) Reconcile(ctx context.Context, req kctrl.Request)
 		return kctrl.Result{}, fmt.Errorf("getting switch profile %s: %w", sw.Spec.Profile, err)
 	}
 
+	// normalized by the defaulting as well, but the switch may not be defaulted by this version yet
+	mac, err := wiringapi.NormalizeBootMAC(sw.Spec.Boot.MAC)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("switch boot: %w", err)
+	}
+
 	sb := &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: sw.Name}}
 	res, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sb, func() error {
 		if err := setOwner(sw, sb, r.Scheme()); err != nil {
@@ -91,8 +97,8 @@ func (r *SwitchBootReconciler) Reconcile(ctx context.Context, req kctrl.Request)
 		}
 
 		sb.Spec = fcintapi.SwitchBootSpec{
-			Serial:       fcintapi.NormalizeBootID(sw.Spec.Boot.Serial),
-			MAC:          fcintapi.NormalizeBootID(sw.Spec.Boot.MAC),
+			Serial:       wiringapi.NormalizeBootSerial(sw.Spec.Boot.Serial),
+			MAC:          mac,
 			NOSType:      sp.Spec.NOSType,
 			AgentVersion: version.Version,
 		}

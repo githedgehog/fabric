@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
@@ -73,8 +74,14 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serial := strings.TrimSpace(r.Header.Get("CUMULUS-SERIAL"))
-	mac := strings.TrimSpace(r.Header.Get("CUMULUS-MGMT-MAC"))
+	serial := wiringapi.NormalizeBootSerial(r.Header.Get("CUMULUS-SERIAL"))
+	mac, err := wiringapi.NormalizeBootMAC(r.Header.Get("CUMULUS-MGMT-MAC"))
+	if err != nil {
+		l.Info("Invalid MAC", "error", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
 
 	if serial == "" && mac == "" {
 		l.Info("Both serial and mac are empty")

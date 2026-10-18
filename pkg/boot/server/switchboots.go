@@ -117,11 +117,12 @@ func fatalWatchError(err error) bool {
 	return kapierrors.IsForbidden(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsNotFound(err)
 }
 
+// findSwitchBoot expects the serial and MAC normalized, see wiringapi.NormalizeBootSerial and NormalizeBootMAC
 func findSwitchBoot(ctx context.Context, boots kclient.Reader, serial, mac string) (*fcintapi.SwitchBoot, error) {
 	found := map[string]*fcintapi.SwitchBoot{}
 	for field, value := range map[string]string{
-		switchBootSerialField: fcintapi.NormalizeBootID(serial),
-		switchBootMACField:    fcintapi.NormalizeBootID(mac),
+		switchBootSerialField: serial,
+		switchBootMACField:    mac,
 	} {
 		if value == "" {
 			continue

@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/netip"
 	"slices"
 	"sort"
@@ -105,6 +106,31 @@ type SwitchBoot struct {
 	Serial string `json:"serial,omitempty"`
 	// Identify switch by MAC address of the management port
 	MAC string `json:"mac,omitempty"`
+}
+
+// NormalizeBootSerial normalizes a serial number used to identify a switch during the bootstrap, so it matches
+// regardless of surrounding whitespace and case
+func NormalizeBootSerial(serial string) string {
+	return strings.ToLower(strings.TrimSpace(serial))
+}
+
+// NormalizeBootMAC parses a MAC address used to identify a switch during the bootstrap in any format supported by
+// net.ParseMAC and returns it in the canonical form, so it matches regardless of how it's written. Empty stays empty.
+func NormalizeBootMAC(mac string) (string, error) {
+	mac = strings.TrimSpace(mac)
+	if mac == "" {
+		return "", nil
+	}
+
+	hw, err := net.ParseMAC(mac)
+	if err != nil {
+		return "", fmt.Errorf("parsing MAC %q: %w", mac, err)
+	}
+	if len(hw) != 6 {
+		return "", fmt.Errorf("MAC %q is not a 48-bit MAC address", mac) //nolint:err113
+	}
+
+	return hw.String(), nil
 }
 
 // SwitchTopology is where a Switch sits in the fabric topology
@@ -276,6 +302,12 @@ func (sw *Switch) Default() {
 
 	CleanupFabricLabels(sw.Labels)
 
+	sw.Spec.Boot.Serial = NormalizeBootSerial(sw.Spec.Boot.Serial)
+	// an invalid one is rejected by the validation
+	if mac, err := NormalizeBootMAC(sw.Spec.Boot.MAC); err == nil {
+		sw.Spec.Boot.MAC = mac
+	}
+
 	for name, value := range sw.Spec.PortGroupSpeeds {
 		sw.Spec.PortGroupSpeeds[name], _ = strings.CutPrefix(value, "SPEED_")
 	}
@@ -397,9 +429,19 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	}
 	mgmtIPs[controlVIP.Addr()] = true
 
+	// switches are identified by them during the bootstrap, compared normalized as the stored ones may not be yet
+	bootSerials := map[string]string{}
+	bootMACs := map[string]string{}
+
 	for _, other := range switches.Items {
 		if other.Name == sw.Name && other.Namespace == sw.Namespace {
 			continue
+		}
+		if serial := NormalizeBootSerial(other.Spec.Boot.Serial); serial != "" {
+			bootSerials[serial] = other.Name
+		}
+		if mac, err := NormalizeBootMAC(other.Spec.Boot.MAC); err == nil && mac != "" {
+			bootMACs[mac] = other.Name
 		}
 		if other.Spec.ASN != 0 && other.Spec.Role.IsLeaf() {
 			leafASNs[other.Spec.ASN] = true
@@ -440,6 +482,19 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 				protocolIPs[protoIP] = true
 			}
 		}
+	}
+
+	if serial := NormalizeBootSerial(sw.Spec.Boot.Serial); serial != "" {
+		if other, exist := bootSerials[serial]; exist {
+			return fmt.Errorf("switch %s boot serial %s is already used by switch %s", sw.Name, serial, other) //nolint:err113
+		}
+	}
+	mac, err := NormalizeBootMAC(sw.Spec.Boot.MAC)
+	if err != nil {
+		return fmt.Errorf("switch %s boot MAC: %w", sw.Name, err)
+	}
+	if other, exist := bootMACs[mac]; exist && mac != "" {
+		return fmt.Errorf("switch %s boot MAC %s is already used by switch %s", sw.Name, mac, other) //nolint:err113
 	}
 
 	if sw.Spec.IP != "" {
@@ -575,6 +630,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 
 	if sw.Spec.Profile == "" {
 		return nil, errors.Errorf("profile is required")
+	}
+
+	if _, err := NormalizeBootMAC(sw.Spec.Boot.MAC); err != nil {
+		return nil, fmt.Errorf("invalid boot MAC: %w", err)
 	}
 
 	if !slices.Contains(meta.RedundancyTypes, sw.Spec.Redundancy.Type) {
