@@ -97,10 +97,23 @@ rules:
   - fcint.githedgehog.com
   resources:
   - fabriccontrollers/status
+  - switchboots/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - switchboots
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - gateway.githedgehog.com
   resources:

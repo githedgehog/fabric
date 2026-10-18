@@ -253,6 +253,9 @@ func run(ctx context.Context) error {
 	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles, lock); err != nil {
 		return fmt.Errorf("setting up switch profile controller: %w", err)
 	}
+	if err := ctrl.SetupSwitchBootReconcilerWith(mgr, lock); err != nil {
+		return fmt.Errorf("setting up switch boot controller: %w", err)
+	}
 	if err = ctrl.SetupFabricControllerInitializerWith(mgr, ctrlNamespace, cfg, profiles); err != nil {
 		return fmt.Errorf("setting up fabric controller initializer: %w", err)
 	}
