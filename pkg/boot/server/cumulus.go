@@ -102,6 +102,15 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 
 	l = l.With("switch", sb.Name)
 
+	// the script downloads the agent right away, so it's only served once the agent is pre-cached
+	if _, err := svc.getCachedOrDownload(ctx, svc.cfg.AgentRef, sb.Spec.AgentVersion, false); err != nil {
+		l.Info("Agent not pre-cached yet", "version", sb.Spec.AgentVersion, "error", err.Error())
+		w.Header().Set("Retry-After", "10")
+		w.WriteHeader(http.StatusServiceUnavailable)
+
+		return
+	}
+
 	l.Info("Cumulus ZTP")
 
 	if err := svc.writeCumulusZTP(w, sb, agent, secret); err != nil {
