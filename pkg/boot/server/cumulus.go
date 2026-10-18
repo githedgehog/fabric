@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
@@ -24,7 +25,18 @@ func (svc *service) handleAgent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	l := slog.With("rid", middleware.GetReqID(ctx))
 
-	if err := svc.streamAgentBinary(ctx, w); err != nil {
+	version := r.URL.Query().Get("version")
+	// it's a part of the cache path
+	if version == "" || strings.Contains(version, "..") || strings.ContainsAny(version, `/\`) {
+		l.Info("Agent version is missing or invalid", "version", version)
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	l = l.With("version", version)
+
+	if err := svc.streamAgentBinary(ctx, version, w); err != nil {
 		l.Error("Streaming agent bin", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -32,8 +44,8 @@ func (svc *service) handleAgent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (svc *service) streamAgentBinary(ctx context.Context, w io.Writer) error {
-	agentPath, err := svc.getCachedOrDownload(ctx, svc.cfg.AgentRef, svc.cfg.AgentVersion, false)
+func (svc *service) streamAgentBinary(ctx context.Context, version string, w io.Writer) error {
+	agentPath, err := svc.getCachedOrDownload(ctx, svc.cfg.AgentRef, version, false)
 	if err != nil {
 		return fmt.Errorf("getting agent bin path: %w", err)
 	}
@@ -73,7 +85,7 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 
 	l = l.With("serial", serial, "mac", mac)
 
-	agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
+	sb, agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			l.Info("NOS not found", "error", err.Error())
@@ -88,11 +100,11 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	l = l.With("switch", agent.Name)
+	l = l.With("switch", sb.Name)
 
 	l.Info("Cumulus ZTP")
 
-	if err := svc.writeCumulusZTP(w, agent, secret); err != nil {
+	if err := svc.writeCumulusZTP(w, sb, agent, secret); err != nil {
 		l.Error("Failed to write response", "error", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -100,13 +112,13 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (svc *service) writeCumulusZTP(w http.ResponseWriter, agent *agentapi.Agent, secret *corev1.Secret) error {
+func (svc *service) writeCumulusZTP(w http.ResponseWriter, sb *fcintapi.SwitchBoot, agent *agentapi.Agent, secret *corev1.Secret) error {
 	kubeConfig, ok := secret.Data[ctrl.AgentKubeconfigKey]
 	if !ok {
 		return fmt.Errorf("kubeconfig not found") //nolint:err113
 	}
 
-	ztpBuf, err := cmls.BuildZTPFor(agent, kubeConfig)
+	ztpBuf, err := cmls.BuildZTPFor(agent, kubeConfig, sb.Spec.AgentVersion)
 	if err != nil {
 		return fmt.Errorf("building ztp: %w", err)
 	}
