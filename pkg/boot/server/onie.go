@@ -28,7 +28,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
@@ -89,17 +88,9 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 	op := r.Header.Get("ONIE-OPERATION")
 	switch op {
 	case "os-install":
-		serial := wiringapi.NormalizeBootSerial(r.Header.Get("ONIE-SERIAL-NUMBER"))
-		mac, err := wiringapi.NormalizeBootMAC(r.Header.Get("ONIE-ETH-ADDR"))
-		if err != nil {
-			l.Info("Invalid MAC", "error", err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-
+		serial, mac := normalizeBootIDs(l, r.Header.Get("ONIE-SERIAL-NUMBER"), r.Header.Get("ONIE-ETH-ADDR"))
 		if serial == "" && mac == "" {
-			l.Info("Both serial and mac are empty")
+			l.Info("Both serial and mac are empty or invalid")
 			w.WriteHeader(http.StatusBadRequest)
 
 			return

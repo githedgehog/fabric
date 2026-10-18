@@ -47,10 +47,12 @@ func TestSwitchBootReconcile(t *testing.T) {
 		switchBootTestProfile("prof-2", meta.NOSTypeCumulusMlx),
 		switchBootTestSwitch("leaf-1", "prof-1", wiringapi.SwitchBoot{Serial: " SN-0001 ", MAC: "0C:20:12:FE:01:00"}),
 		switchBootTestSwitch("leaf-2", "prof-2", wiringapi.SwitchBoot{}),
+		// stored before the MAC validation existed
+		switchBootTestSwitch("leaf-3", "prof-2", wiringapi.SwitchBoot{Serial: "SN-0003", MAC: "not-a-mac"}),
 	)
 	r := &SwitchBootReconciler{Client: kube, lock: unlockedLock()}
 
-	for _, name := range []string{"leaf-1", "leaf-2"} {
+	for _, name := range []string{"leaf-1", "leaf-2", "leaf-3"} {
 		_, err := r.Reconcile(t.Context(), reconcileReq(name))
 		require.NoError(t, err)
 	}
@@ -67,6 +69,14 @@ func TestSwitchBootReconcile(t *testing.T) {
 	// also produced without serial and MAC, it can't be booted but carries the status later
 	requireOwnedBy(t, kube, sb, "leaf-2", "Switch", "leaf-2")
 	require.Equal(t, fcintapi.SwitchBootSpec{NOSType: meta.NOSTypeCumulusMlx, AgentVersion: version.Version}, sb.Spec)
+
+	// an invalid MAC is left out, it's still found by serial
+	requireOwnedBy(t, kube, sb, "leaf-3", "Switch", "leaf-3")
+	require.Equal(t, fcintapi.SwitchBootSpec{
+		Serial:       "sn-0003",
+		NOSType:      meta.NOSTypeCumulusMlx,
+		AgentVersion: version.Version,
+	}, sb.Spec)
 
 	// a profile change reconciles the switches using it
 	sp := &wiringapi.SwitchProfile{}
@@ -97,8 +107,6 @@ func TestSwitchBootReconcileErrors(t *testing.T) {
 		switchBootTestSwitch("leaf-1", "missing", wiringapi.SwitchBoot{Serial: "sn-0001"}),
 		switchBootTestSwitch("leaf-2", "", wiringapi.SwitchBoot{Serial: "sn-0002"}),
 		switchBootTestSwitch("leaf-3", "prof-1", wiringapi.SwitchBoot{Serial: "sn-0003"}),
-		// stored before the MAC validation existed
-		switchBootTestSwitch("leaf-5", "prof-1", wiringapi.SwitchBoot{MAC: "not-a-mac"}),
 		switchBootTestProfile("prof-1", meta.NOSTypeSONiCBCMBase),
 	)
 	r := &SwitchBootReconciler{Client: kube, lock: unlockedLock()}
@@ -110,10 +118,6 @@ func TestSwitchBootReconcileErrors(t *testing.T) {
 	_, err = r.Reconcile(t.Context(), reconcileReq("leaf-2"))
 	require.ErrorContains(t, err, "switch has no profile")
 	requireNotFound(t, kube, &fcintapi.SwitchBoot{}, kmetav1.NamespaceDefault, "leaf-2")
-
-	_, err = r.Reconcile(t.Context(), reconcileReq("leaf-5"))
-	require.ErrorContains(t, err, `switch boot: parsing MAC "not-a-mac"`)
-	requireNotFound(t, kube, &fcintapi.SwitchBoot{}, kmetav1.NamespaceDefault, "leaf-5")
 
 	// nothing is produced for a switch being deleted
 	sw := &wiringapi.Switch{}

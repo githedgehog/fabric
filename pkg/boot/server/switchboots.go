@@ -13,6 +13,7 @@ import (
 	"time"
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -117,7 +118,18 @@ func fatalWatchError(err error) bool {
 	return kapierrors.IsForbidden(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsNotFound(err)
 }
 
-// findSwitchBoot expects the serial and MAC normalized, see wiringapi.NormalizeBootSerial and NormalizeBootMAC
+// normalizeBootIDs normalizes the serial and MAC of a boot request the same way the SwitchBoots are. An invalid MAC
+// is left out, so the switch is still found by serial.
+func normalizeBootIDs(l *slog.Logger, serial, mac string) (string, string) {
+	normMAC, err := wiringapi.NormalizeBootMAC(mac)
+	if err != nil {
+		l.Info("Ignoring invalid MAC", "error", err.Error())
+	}
+
+	return wiringapi.NormalizeBootSerial(serial), normMAC
+}
+
+// findSwitchBoot expects the serial and MAC normalized, see normalizeBootIDs
 func findSwitchBoot(ctx context.Context, boots kclient.Reader, serial, mac string) (*fcintapi.SwitchBoot, error) {
 	found := map[string]*fcintapi.SwitchBoot{}
 	for field, value := range map[string]string{
