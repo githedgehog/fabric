@@ -109,9 +109,6 @@ retry:
 
 					agentRepo := agent.Spec.Version.Repo
 					agentVersion := agent.Spec.Version.Default
-					if agent.Spec.Version.Override != "" {
-						agentVersion = agent.Spec.Version.Override
-					}
 
 					if _, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, true); err != nil {
 						return fmt.Errorf("pre-caching agent %s %s: %w", agentRepo, agentVersion, err)
@@ -284,9 +281,6 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 
 	agentRepo := agent.Spec.Version.Repo
 	agentVersion := agent.Spec.Version.Default
-	if agent.Spec.Version.Override != "" {
-		agentVersion = agent.Spec.Version.Override
-	}
 
 	agentPath, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, false)
 	if err != nil {

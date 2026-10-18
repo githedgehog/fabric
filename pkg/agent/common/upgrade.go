@@ -41,14 +41,7 @@ var (
 )
 
 func AgentUpgrade(ctx context.Context, currentVersion string, version agentapi.AgentVersion, dryRun bool, testArgs []string) (bool, error) {
-	desiredVersion := ""
-	if version.Default != "" {
-		desiredVersion = version.Default
-	}
-	if version.Override != "" {
-		desiredVersion = version.Override
-	}
-
+	desiredVersion := version.Default
 	if desiredVersion == "" || currentVersion == desiredVersion {
 		return false, nil
 	}

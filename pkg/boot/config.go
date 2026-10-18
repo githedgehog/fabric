@@ -12,5 +12,6 @@ type ServerConfig struct {
 	ONIERepos            map[string]string       `json:"onieRepos,omitempty"`
 	ONIEPlatformVersions map[string]string       `json:"oniePlatformVersions,omitempty"`
 	AgentRef             string                  `json:"agentRef,omitempty"`
-	AgentVersion         string                  `json:"agentVersion,omitempty"`
+	// TODO: remove after 26.05 release
+	AgentVersion string `json:"agentVersion,omitempty"`
 }
