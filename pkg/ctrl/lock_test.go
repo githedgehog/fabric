@@ -47,6 +47,7 @@ func TestLockedReconcilers(t *testing.T) {
 		"vpcinfo":     func() (kctrl.Result, error) { return (&VPCInfoReconciler{lock: lock}).Reconcile(t.Context(), req) },
 		"gw-vpc-sync": func() (kctrl.Result, error) { return (&GwVPCSync{lock: lock}).Reconcile(t.Context(), req) },
 		"gw-ext-sync": func() (kctrl.Result, error) { return (&GwExternalSync{lock: lock}).Reconcile(t.Context(), req) },
+		"switch-boot": func() (kctrl.Result, error) { return (&SwitchBootReconciler{lock: lock}).Reconcile(t.Context(), req) },
 		"switch-profiles": func() (kctrl.Result, error) {
 			return (&SwitchProfileReconciler{lock: lock, profiles: switchprofile.NewDefaultSwitchProfiles()}).Reconcile(t.Context(), req)
 		},
@@ -61,6 +62,7 @@ func TestLockedReconcilers(t *testing.T) {
 	agent := &AgentReconciler{Client: kube, cfg: cfg, libr: libr, lock: lock}
 	require.Empty(t, agent.enqueueAllSwitches(t.Context(), sw), "fan-out is dropped while locked")
 	require.Empty(t, agent.enqueueByFabric(t.Context(), &wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}}))
+	require.Empty(t, enqueueSwitchesByProfile(kube, lock)(t.Context(), &wiringapi.SwitchProfile{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "any"}}))
 
 	lock.unlocked.Store(true)
 	require.Len(t, agent.enqueueAllSwitches(t.Context(), sw), 1, "fan-out is back once unlocked")

@@ -124,7 +124,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Owns(&rbacv1.RoleBinding{}, builder.WithPredicates(onlyDeletes)).
 		Owns(&corev1.Secret{}, builder.WithPredicates(onlyDeletes)).
 		Watches(&wiringapi.Connection{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchListLabelsAndSpines)).
-		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(r.enqueueBySwitchProfileLabel)).
+		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(enqueueSwitchesByProfile(r, lock))).
 		Watches(&vpcapi.VPC{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&vpcapi.VPCAttachment{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByAttachment)).
 		Watches(&vpcapi.VPCPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
@@ -193,16 +193,6 @@ func switchesOfConnection(conn kclient.Object) map[string]bool {
 	}
 
 	return switches
-}
-
-// switchRequests turns switch names into requests, sorted for a stable order
-func switchRequests(namespace string, switches map[string]bool) []reconcile.Request {
-	res := make([]reconcile.Request, 0, len(switches))
-	for _, name := range slices.Sorted(maps.Keys(switches)) {
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{Namespace: namespace, Name: name}})
-	}
-
-	return res
 }
 
 // enqueueByAttachment reconciles the switches of the connection a VPC or external attachment is on, they're the only
@@ -432,36 +422,6 @@ func (r *AgentReconciler) enqueueByExternalPeering(ctx context.Context, obj kcli
 	}
 
 	return switchRequests(peering.Namespace, switches)
-}
-
-func (r *AgentReconciler) enqueueBySwitchProfileLabel(ctx context.Context, obj kclient.Object) []reconcile.Request {
-	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter
-	if r.lock.Locked() {
-		return nil
-	}
-
-	res := []reconcile.Request{}
-
-	sws := &wiringapi.SwitchList{}
-	err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
-	if err != nil {
-		kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile by profile")
-
-		return res
-	}
-
-	for _, sw := range sws.Items {
-		if sw.Spec.Profile != obj.GetName() {
-			continue
-		}
-
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
-			Namespace: sw.Namespace,
-			Name:      sw.Name,
-		}})
-	}
-
-	return res
 }
 
 func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Object) []reconcile.Request {
