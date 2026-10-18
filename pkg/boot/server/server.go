@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -26,10 +27,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot"
 	ni "go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
@@ -53,7 +53,8 @@ const (
 
 type service struct {
 	cfg          *boot.ServerConfig
-	kube         kclient.WithWatch
+	kube         kclient.Reader // uncached, only to get the agent and its secret for a switch being installed
+	boots        kclient.Reader // cached switch boots, see startSwitchBootCache
 	cacheDir     string
 	orasClient   *auth.Client
 	downloadLock *sync.Mutex
@@ -64,11 +65,20 @@ func Run(ctx context.Context) error {
 	// TODO think about cache cleanup
 
 	if err := os.MkdirAll(CacheDir, 0o755); err != nil {
-		return errors.Wrapf(err, "creating cache dir %s", CacheDir)
+		return fmt.Errorf("creating cache dir %s: %w", CacheDir, err)
 	}
 
-	// TODO we probably need to cache client? only for switches and secrets in default namespace?
-	kube, err := kubeutil.NewClientWithCore(ctx, "", agentapi.AddToScheme, wiringapi.AddToScheme)
+	restCfg, err := kubeutil.NewClientConfig(ctx, "")
+	if err != nil {
+		return fmt.Errorf("creating kube config: %w", err)
+	}
+
+	scheme, err := kubeutil.NewScheme(corev1.AddToScheme, agentapi.AddToScheme, fcintapi.AddToScheme)
+	if err != nil {
+		return fmt.Errorf("creating scheme: %w", err)
+	}
+
+	kube, err := kclient.New(restCfg, kclient.Options{Scheme: scheme})
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
@@ -88,7 +98,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("unmarshalling config: %w", err)
 	}
 	if cfg.ControlVIP == "" {
-		return errors.New("ControlVIP is required")
+		return errors.New("ControlVIP is required") //nolint:err113
 	}
 	controlVIP, err := netip.ParsePrefix(cfg.ControlVIP)
 	if err != nil {
@@ -107,6 +117,10 @@ func Run(ctx context.Context) error {
 		cfg.ONIEPlatformVersions = map[string]string{}
 	}
 
+	if cfg.AgentRef == "" {
+		return errors.New("AgentRef is required") //nolint:err113
+	}
+
 	svc := &service{
 		cfg:          cfg,
 		kube:         kube,
@@ -115,6 +129,12 @@ func Run(ctx context.Context) error {
 		downloadLock: &sync.Mutex{},
 		sf:           &singleflight.Group{},
 	}
+
+	boots, err := svc.startSwitchBootCache(ctx, restCfg, scheme)
+	if err != nil {
+		return fmt.Errorf("starting switch boot cache: %w", err)
+	}
+	svc.boots = boots
 
 	go func() {
 		if err := svc.preCacheBackground(ctx); err != nil {
@@ -154,7 +174,7 @@ func Run(ctx context.Context) error {
 		Handler:           r,
 	}
 	if err := srv.ListenAndServe(); err != nil {
-		return errors.Wrapf(err, "error running server")
+		return fmt.Errorf("running server: %w", err)
 	}
 
 	return nil

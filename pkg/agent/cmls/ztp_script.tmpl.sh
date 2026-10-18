@@ -59,7 +59,7 @@ EOF
   # Install agent config and agent itself as a systemd unit
 
   mkdir -p /opt/hedgehog/bin
-  wget http://{{ $.ControlVIP }}:32000/agent
+  wget -O agent "http://{{ $.ControlVIP }}:32000/agent?version={{ urlquery $.AgentVersion }}"
   mv agent /opt/hedgehog/bin/
   chmod +x /opt/hedgehog/bin/agent
 

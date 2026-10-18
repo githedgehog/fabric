@@ -29,20 +29,16 @@ rules:
   - secrets
   verbs:
   - get
-  - list
-  - watch
 - apiGroups:
   - agent.githedgehog.com
   resources:
   - agents
   verbs:
   - get
-  - list
-  - watch
 - apiGroups:
-  - wiring.githedgehog.com
+  - fcint.githedgehog.com
   resources:
-  - switches
+  - switchboots
   verbs:
   - get
   - list

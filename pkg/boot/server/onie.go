@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -25,18 +26,14 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-	kyaml "sigs.k8s.io/yaml"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -72,53 +69,7 @@ func (svc *service) preCacheBackground(ctx context.Context) error {
 
 	l.Info("ONIE pre-caching done")
 
-retry:
-	for ctx.Err() == nil {
-		w, err := svc.kube.Watch(ctx, &agentapi.AgentList{})
-		if err != nil {
-			l.Error("Failed to watch agents", "error", err.Error())
-
-			continue
-		}
-		defer w.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("context done: %w", ctx.Err())
-			case event, ok := <-w.ResultChan():
-				if !ok || event.Object == nil {
-					l.Warn("Watch channel closed, retrying")
-
-					continue retry
-				}
-
-				if event.Type == watch.Error {
-					l.Warn("Watch error, retrying", "error", event.Object)
-
-					continue retry
-				}
-
-				if event.Type == watch.Added || event.Type == watch.Modified || event.Type == watch.Bookmark {
-					agent, ok := event.Object.(*agentapi.Agent)
-					if !ok {
-						l.Warn("Failed to cast agent", "object", event.Object)
-
-						continue
-					}
-
-					agentRepo := agent.Spec.Version.Repo
-					agentVersion := agent.Spec.Version.Default
-
-					if _, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, true); err != nil {
-						return fmt.Errorf("pre-caching agent %s %s: %w", agentRepo, agentVersion, err)
-					}
-				}
-			}
-		}
-	}
-
-	return fmt.Errorf("context done (pre-cache finished): %w", ctx.Err())
+	return nil
 }
 
 func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +101,7 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 
 		l = l.With("serial", serial, "mac", mac)
 
-		agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
+		sb, agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				l.Info("NOS not found", "error", err.Error())
@@ -165,9 +116,9 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		l.Info("NOS install")
-		if err := svc.streamNOSInstaller(ctx, agent, secret, w); err != nil {
-			l.Error("Failed to stream nos-install", "switch", agent.Name, "error", err.Error())
+		l.Info("NOS install", "switch", sb.Name)
+		if err := svc.streamNOSInstaller(ctx, sb, agent, secret, w); err != nil {
+			l.Error("Failed to stream nos-install", "switch", sb.Name, "error", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 
 			return
@@ -201,51 +152,36 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (*agentapi.Agent, *corev1.Secret, error) {
-	serial = strings.TrimSpace(serial)
-	mac = strings.TrimSpace(mac)
-
-	if serial != "" || mac != "" {
-		switches := &wiringapi.SwitchList{}
-		if err := svc.kube.List(ctx, switches, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
-			return nil, nil, fmt.Errorf("listing switches: %w", err)
-		}
-
-		for _, sw := range switches.Items {
-			bootSerial := strings.TrimSpace(sw.Spec.Boot.Serial)
-			bootMAC := strings.TrimSpace(sw.Spec.Boot.MAC)
-
-			if serial != "" && strings.EqualFold(bootSerial, serial) || mac != "" && strings.EqualFold(bootMAC, mac) {
-				agent := &agentapi.Agent{}
-				if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: sw.Name, Namespace: sw.Namespace}, agent); err != nil {
-					if kapierrors.IsNotFound(err) {
-						return nil, nil, fmt.Errorf("agent %s: %w", sw.Name, ErrNotFound)
-					}
-
-					return nil, nil, fmt.Errorf("agent %s: %w", sw.Name, err)
-				}
-
-				secretName := ctrl.AgentKubeconfigSecret(sw.Name)
-				agentSecret := &corev1.Secret{}
-				if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: secretName, Namespace: agent.Namespace}, agentSecret); err != nil {
-					if kapierrors.IsNotFound(err) {
-						return nil, nil, fmt.Errorf("agent %s secret %s: %w", sw.Name, secretName, ErrNotFound)
-					}
-
-					return nil, nil, fmt.Errorf("agent %s secret %s: %w", sw.Name, secretName, err)
-				}
-
-				return agent, agentSecret, nil
-			}
-		}
+func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (*fcintapi.SwitchBoot, *agentapi.Agent, *corev1.Secret, error) {
+	sb, err := findSwitchBoot(ctx, svc.boots, serial, mac)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	return nil, nil, fmt.Errorf("switch: %w", ErrNotFound)
+	agent := &agentapi.Agent{}
+	if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: sb.Name, Namespace: sb.Namespace}, agent); err != nil {
+		if kapierrors.IsNotFound(err) {
+			return nil, nil, nil, fmt.Errorf("agent %s: %w", sb.Name, ErrNotFound)
+		}
+
+		return nil, nil, nil, fmt.Errorf("agent %s: %w", sb.Name, err)
+	}
+
+	secretName := ctrl.AgentKubeconfigSecret(sb.Name)
+	agentSecret := &corev1.Secret{}
+	if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: secretName, Namespace: sb.Namespace}, agentSecret); err != nil {
+		if kapierrors.IsNotFound(err) {
+			return nil, nil, nil, fmt.Errorf("agent %s secret %s: %w", sb.Name, secretName, ErrNotFound)
+		}
+
+		return nil, nil, nil, fmt.Errorf("agent %s secret %s: %w", sb.Name, secretName, err)
+	}
+
+	return sb, agent, agentSecret, nil
 }
 
-func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agent, secret *corev1.Secret, w io.Writer) error {
-	agent.SetGroupVersionKind(agentapi.GroupVersion.WithKind(agentapi.KindAgent))
-	agentConfig, err := kyaml.Marshal(agent)
+func (svc *service) streamNOSInstaller(ctx context.Context, sb *fcintapi.SwitchBoot, agent *agentapi.Agent, secret *corev1.Secret, w io.Writer) error {
+	agentConfig, err := agent.MarshalInstallConfig()
 	if err != nil {
 		return fmt.Errorf("marshaling agent: %w", err)
 	}
@@ -255,13 +191,9 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 		return fmt.Errorf("kubeconfig not found") //nolint:goerr113
 	}
 
-	if agent.Spec.SwitchProfile == nil {
-		return fmt.Errorf("switch profile is missing") //nolint:goerr113
-	}
-
-	nosType := agent.Spec.SwitchProfile.NOSType
+	nosType := sb.Spec.NOSType
 	if nosType == "" || !slices.Contains(meta.NOSTypes, nosType) {
-		return fmt.Errorf("invalid NOS type") //nolint:goerr113
+		return fmt.Errorf("invalid NOS type %q", nosType) //nolint:goerr113
 	}
 
 	nosRepo, ok := svc.cfg.NOSRepos[nosType]
@@ -279,10 +211,7 @@ func (svc *service) streamNOSInstaller(ctx context.Context, agent *agentapi.Agen
 		return fmt.Errorf("getting NOS: %w", err)
 	}
 
-	agentRepo := agent.Spec.Version.Repo
-	agentVersion := agent.Spec.Version.Default
-
-	agentPath, err := svc.getCachedOrDownload(ctx, agentRepo, agentVersion, false)
+	agentPath, err := svc.getCachedOrDownload(ctx, svc.cfg.AgentRef, sb.Spec.AgentVersion, false)
 	if err != nil {
 		return fmt.Errorf("getting agent: %w", err)
 	}

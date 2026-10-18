@@ -26,7 +26,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
-	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -368,9 +367,14 @@ type ZTPIn struct {
 	InitialConfig string
 	KubeConfig    string
 	AgentConfig   string
+	AgentVersion  string
 }
 
-func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte) (*bytes.Buffer, error) {
+func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) (*bytes.Buffer, error) {
+	if agentVersion == "" {
+		return nil, fmt.Errorf("agent version is empty") //nolint:err113
+	}
+
 	controlVIP, err := netip.ParsePrefix(agent.Spec.Config.ControlVIP)
 	if err != nil {
 		return nil, fmt.Errorf("parsing control VIP: %w", err)
@@ -381,8 +385,7 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte) (*bytes.Buffer, error
 		return nil, fmt.Errorf("building config: %w", err)
 	}
 
-	agent.Status = agentapi.AgentStatus{}
-	agentConfig, err := kyaml.Marshal(agent)
+	agentConfig, err := agent.MarshalInstallConfig()
 	if err != nil {
 		return nil, fmt.Errorf("marshaling agent config: %w", err)
 	}
@@ -392,6 +395,7 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte) (*bytes.Buffer, error
 		InitialConfig: cfgBuf.String(),
 		KubeConfig:    string(kubeConfig),
 		AgentConfig:   string(agentConfig),
+		AgentVersion:  agentVersion,
 	}
 
 	// TODO cache template

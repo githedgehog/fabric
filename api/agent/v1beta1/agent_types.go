@@ -15,6 +15,7 @@
 package v1beta1
 
 import (
+	"fmt"
 	"slices"
 	"sort"
 
@@ -25,6 +26,7 @@ import (
 	"go.githedgehog.com/libmeta/pkg/alloy"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -668,6 +670,24 @@ func init() {
 
 		return nil
 	})
+}
+
+// MarshalInstallConfig marshals the agent config a switch is installed with (ONIE NOS install or Cumulus ZTP). It only
+// has the metadata without managed fields and the spec, the status isn't needed for the agent to start.
+func (a *Agent) MarshalInstallConfig() ([]byte, error) {
+	cfg := &Agent{
+		TypeMeta:   kmetav1.TypeMeta{APIVersion: GroupVersion.String(), Kind: KindAgent},
+		ObjectMeta: a.ObjectMeta,
+		Spec:       a.Spec,
+	}
+	cfg.ManagedFields = nil
+
+	data, err := kyaml.Marshal(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling agent install config: %w", err)
+	}
+
+	return data, nil
 }
 
 func (s *AgentSpec) IsVS() bool {
