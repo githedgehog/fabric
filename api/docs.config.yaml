@@ -12,6 +12,7 @@ processor:
     - "VPCInfoData$"
     - "GatewayGroupInfo$"
     - "GatewayGroupMember$"
+    - "fcint/v1alpha1\\.SwitchBoot"
 
   # RE2 regular expressions describing type fields that should be excluded from the generated documentation.
   ignoreFields:

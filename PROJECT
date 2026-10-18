@@ -274,4 +274,13 @@ resources:
   kind: FabricController
   path: go.githedgehog.com/fabric/api/fcint/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: githedgehog.com
+  group: fcint
+  kind: SwitchBoot
+  path: go.githedgehog.com/fabric/api/fcint/v1alpha1
+  version: v1alpha1
 version: "3"
