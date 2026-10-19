@@ -60,6 +60,8 @@ type service struct {
 	downloadLock *sync.Mutex
 	sf           *singleflight.Group
 	bootAttempts sync.WaitGroup // boot attempts being recorded, see recordBootAttempt
+	// bootAttemptLocks has a *sync.Mutex per switch boot key to write its attempts one at a time
+	bootAttemptLocks sync.Map
 }
 
 func Run(ctx context.Context) error {
