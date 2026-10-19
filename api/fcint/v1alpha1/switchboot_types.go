@@ -23,8 +23,50 @@ type SwitchBootSpec struct {
 	AgentVersion string `json:"agentVersion,omitempty"`
 }
 
-// SwitchBootStatus defines the observed state of SwitchBoot.
-type SwitchBootStatus struct{}
+// +kubebuilder:validation:Enum=onie;cumulus-ztp
+// SwitchBootAttemptType is how the switch attempted to boot
+type SwitchBootAttemptType string
+
+const (
+	// SwitchBootAttemptTypeONIE is an ONIE NOS install
+	SwitchBootAttemptTypeONIE SwitchBootAttemptType = "onie"
+	// SwitchBootAttemptTypeCumulusZTP is a Cumulus ZTP script request
+	SwitchBootAttemptTypeCumulusZTP SwitchBootAttemptType = "cumulus-ztp"
+)
+
+// +kubebuilder:validation:Enum=served;agent-not-cached;error
+// SwitchBootAttemptResult is what the switch got for its boot attempt
+type SwitchBootAttemptResult string
+
+const (
+	// SwitchBootAttemptResultServed means the NOS installer or ZTP script was sent completely, it doesn't mean the
+	// switch installed it successfully
+	SwitchBootAttemptResultServed SwitchBootAttemptResult = "served"
+	// SwitchBootAttemptResultAgentNotCached means the switch was asked to retry later as the agent version isn't
+	// pre-cached yet
+	SwitchBootAttemptResultAgentNotCached SwitchBootAttemptResult = "agent-not-cached"
+	// SwitchBootAttemptResultError means serving failed, the boot server logs have the details
+	SwitchBootAttemptResultError SwitchBootAttemptResult = "error"
+)
+
+// SwitchBootAttempt is a boot attempt of the switch, i.e. a request to the boot server matching it
+type SwitchBootAttempt struct {
+	// Time is when the request was received, precise enough to order the attempts
+	Time kmetav1.MicroTime `json:"time"`
+	// Type is how the switch attempted to boot
+	Type SwitchBootAttemptType `json:"type"`
+	// Result is what the switch got
+	Result SwitchBootAttemptResult `json:"result"`
+	// Remote is the IP address the request came from
+	Remote string `json:"remote,omitempty"`
+}
+
+// SwitchBootStatus defines the observed state of SwitchBoot. It's written by the boot server only, as a whole.
+type SwitchBootStatus struct {
+	// LastAttempt is the last boot attempt of the switch. Repeated attempts with the same outcome, e.g. while waiting
+	// for the agent to be pre-cached, are only recorded every 30 seconds.
+	LastAttempt *SwitchBootAttempt `json:"lastAttempt,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
@@ -33,7 +75,10 @@ type SwitchBootStatus struct{}
 // +kubebuilder:printcolumn:name="MAC",type=string,JSONPath=`.spec.mac`,priority=0
 // +kubebuilder:printcolumn:name="NOS",type=string,JSONPath=`.spec.nosType`,priority=0
 // +kubebuilder:printcolumn:name="Agent",type=string,JSONPath=`.spec.agentVersion`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Attempt",type=string,JSONPath=`.status.lastAttempt.type`,priority=0
+// +kubebuilder:printcolumn:name="Result",type=string,JSONPath=`.status.lastAttempt.result`,priority=0
+// +kubebuilder:printcolumn:name="Attempted",type=date,JSONPath=`.status.lastAttempt.time`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=1
 // SwitchBoot is the Schema for the switchboots API. It's managed by the fabric controller for each switch and holds
 // everything needed to bootstrap it (ONIE NOS install or ZTP): how to identify the switch and what to install on it.
 type SwitchBoot struct {
