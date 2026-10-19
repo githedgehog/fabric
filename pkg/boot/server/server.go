@@ -59,9 +59,7 @@ type service struct {
 	orasClient   *auth.Client
 	downloadLock *sync.Mutex
 	sf           *singleflight.Group
-	bootAttempts sync.WaitGroup // boot attempts being recorded, see recordBootAttempt
-	// bootAttemptLocks has a *sync.Mutex per switch boot key to write its attempts one at a time
-	bootAttemptLocks sync.Map
+	bootAttempts chan func() // boot attempts to record, see recordBootAttempt
 }
 
 func Run(ctx context.Context) error {
@@ -131,6 +129,15 @@ func Run(ctx context.Context) error {
 		orasClient:   orasClient,
 		downloadLock: &sync.Mutex{},
 		sf:           &singleflight.Group{},
+		bootAttempts: make(chan func(), bootAttemptQueue),
+	}
+
+	for range bootAttemptWriters {
+		go func() {
+			for write := range svc.bootAttempts {
+				write()
+			}
+		}()
 	}
 
 	boots, err := svc.startSwitchBootCache(ctx, restCfg, scheme)

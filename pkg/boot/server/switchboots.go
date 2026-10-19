@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"sync"
 	"time"
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
@@ -34,8 +33,8 @@ const (
 	agentPreCacheAttemptTimeout = 5 * time.Minute
 	agentPreCacheRetryDelay     = 10 * time.Second
 
-	// bootAttemptThrottle is how often repeated boot attempts with the same outcome are recorded
-	bootAttemptThrottle     = 30 * time.Second
+	bootAttemptWriters      = 4
+	bootAttemptQueue        = 2048
 	bootAttemptWriteTimeout = 10 * time.Second
 )
 
@@ -180,48 +179,40 @@ func switchBootSpecChanged(oldObj, obj any) bool {
 
 func (svc *service) recordBootAttempt(ctx context.Context, l *slog.Logger, sb *fcintapi.SwitchBoot, attempt fcintapi.SwitchBootAttempt) {
 	ctx = context.WithoutCancel(ctx)
-	key := kclient.ObjectKeyFromObject(sb)
-
-	svc.bootAttempts.Go(func() {
-		if err := svc.writeBootAttempt(ctx, key, attempt); err != nil {
+	write := func() {
+		if err := svc.writeBootAttempt(ctx, sb, attempt); err != nil {
 			l.Warn("Failed to record boot attempt", "error", err.Error())
 		}
-	})
-}
-
-func skipBootAttempt(last *fcintapi.SwitchBootAttempt, attempt fcintapi.SwitchBootAttempt) bool {
-	if last == nil {
-		return false
-	}
-	if last.Time.After(attempt.Time.Time) {
-		return true
 	}
 
-	return last.Type == attempt.Type && last.Result == attempt.Result && last.Remote == attempt.Remote &&
-		attempt.Time.Sub(last.Time.Time) < bootAttemptThrottle
+	select {
+	case svc.bootAttempts <- write:
+	default:
+		l.Warn("Too many boot attempts queued, skipping", "result", attempt.Result)
+	}
 }
 
-func (svc *service) writeBootAttempt(ctx context.Context, key kclient.ObjectKey, attempt fcintapi.SwitchBootAttempt) error {
-	mu, _ := svc.bootAttemptLocks.LoadOrStore(key, &sync.Mutex{})
-	mu.(*sync.Mutex).Lock()
-	defer mu.(*sync.Mutex).Unlock()
-
+func (svc *service) writeBootAttempt(ctx context.Context, sb *fcintapi.SwitchBoot, attempt fcintapi.SwitchBootAttempt) error {
 	ctx, cancel := context.WithTimeout(ctx, bootAttemptWriteTimeout)
 	defer cancel()
 
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error { //nolint:wrapcheck
-		sb := &fcintapi.SwitchBoot{}
-		if err := svc.kube.Get(ctx, key, sb); err != nil {
-			return fmt.Errorf("getting switch boot: %w", err)
-		}
+	key := kclient.ObjectKeyFromObject(sb)
 
-		if skipBootAttempt(sb.Status.LastAttempt, attempt) {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error { //nolint:wrapcheck
+		if last := sb.Status.LastAttempt; last != nil && last.Time.After(attempt.Time.Time) {
 			return nil
 		}
 
 		sb.Status = fcintapi.SwitchBootStatus{LastAttempt: attempt.DeepCopy()}
+		err := svc.kube.Status().Update(ctx, sb)
+		if kapierrors.IsConflict(err) {
+			sb = &fcintapi.SwitchBoot{}
+			if err := svc.kube.Get(ctx, key, sb); err != nil {
+				return fmt.Errorf("getting switch boot: %w", err)
+			}
+		}
 
-		return svc.kube.Status().Update(ctx, sb)
+		return err //nolint:wrapcheck
 	})
 }
 

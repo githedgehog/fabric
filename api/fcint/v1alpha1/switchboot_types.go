@@ -63,8 +63,7 @@ type SwitchBootAttempt struct {
 
 // SwitchBootStatus defines the observed state of SwitchBoot. It's written by the boot server only, as a whole.
 type SwitchBootStatus struct {
-	// LastAttempt is the last boot attempt of the switch. Repeated attempts with the same outcome, e.g. while waiting
-	// for the agent to be pre-cached, are only recorded every 30 seconds.
+	// LastAttempt is the last boot attempt of the switch
 	LastAttempt *SwitchBootAttempt `json:"lastAttempt,omitempty"`
 }
 

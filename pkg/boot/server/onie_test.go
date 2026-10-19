@@ -35,7 +35,7 @@ func TestHandleONIEInstallError(t *testing.T) {
 			Spec:       fcintapi.SwitchBootSpec{Serial: "sn-0001"},
 		}).Build()
 
-	svc := &service{kube: kube, boots: kube}
+	svc := &service{kube: kube, boots: kube, bootAttempts: make(chan func(), bootAttemptQueue)}
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, ni.OnieURLSuffix, nil)
 	req.Header.Set("ONIE-ARCH", "x86_64")
@@ -44,7 +44,7 @@ func TestHandleONIEInstallError(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	middleware.ClientIPFromRemoteAddr(http.HandlerFunc(svc.handleONIE)).ServeHTTP(rec, req)
-	svc.bootAttempts.Wait()
+	processBootAttempts(svc)
 
 	require.Equal(t, http.StatusNotFound, rec.Code)
 	requireLastBootAttempt(t, kube, fcintapi.SwitchBootAttemptTypeONIE, fcintapi.SwitchBootAttemptResultError)

@@ -93,9 +93,7 @@ spec:
               It's written by the boot server only, as a whole.
             properties:
               lastAttempt:
-                description: |-
-                  LastAttempt is the last boot attempt of the switch. Repeated attempts with the same outcome, e.g. while waiting
-                  for the agent to be pre-cached, are only recorded every 30 seconds.
+                description: LastAttempt is the last boot attempt of the switch
                 properties:
                   remote:
                     description: Remote is the IP address the request came from
