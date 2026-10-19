@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
@@ -178,14 +179,11 @@ func switchBootSpecChanged(oldObj, obj any) bool {
 }
 
 func (svc *service) recordBootAttempt(ctx context.Context, l *slog.Logger, sb *fcintapi.SwitchBoot, attempt fcintapi.SwitchBootAttempt) {
-	if skipBootAttempt(sb.Status.LastAttempt, attempt) {
-		return
-	}
-
 	ctx = context.WithoutCancel(ctx)
+	key := kclient.ObjectKeyFromObject(sb)
 
 	svc.bootAttempts.Go(func() {
-		if err := svc.writeBootAttempt(ctx, sb, attempt); err != nil {
+		if err := svc.writeBootAttempt(ctx, key, attempt); err != nil {
 			l.Warn("Failed to record boot attempt", "error", err.Error())
 		}
 	})
@@ -203,24 +201,27 @@ func skipBootAttempt(last *fcintapi.SwitchBootAttempt, attempt fcintapi.SwitchBo
 		attempt.Time.Sub(last.Time.Time) < bootAttemptThrottle
 }
 
-func (svc *service) writeBootAttempt(ctx context.Context, sb *fcintapi.SwitchBoot, attempt fcintapi.SwitchBootAttempt) error {
+func (svc *service) writeBootAttempt(ctx context.Context, key kclient.ObjectKey, attempt fcintapi.SwitchBootAttempt) error {
+	mu, _ := svc.bootAttemptLocks.LoadOrStore(key, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	defer mu.(*sync.Mutex).Unlock()
+
 	ctx, cancel := context.WithTimeout(ctx, bootAttemptWriteTimeout)
 	defer cancel()
 
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error { //nolint:wrapcheck
+		sb := &fcintapi.SwitchBoot{}
+		if err := svc.kube.Get(ctx, key, sb); err != nil {
+			return fmt.Errorf("getting switch boot: %w", err)
+		}
+
 		if skipBootAttempt(sb.Status.LastAttempt, attempt) {
 			return nil
 		}
 
 		sb.Status = fcintapi.SwitchBootStatus{LastAttempt: attempt.DeepCopy()}
-		err := svc.kube.Status().Update(ctx, sb)
-		if kapierrors.IsConflict(err) {
-			if err := svc.kube.Get(ctx, kclient.ObjectKeyFromObject(sb), sb); err != nil {
-				return fmt.Errorf("getting switch boot: %w", err)
-			}
-		}
 
-		return err //nolint:wrapcheck
+		return svc.kube.Status().Update(ctx, sb)
 	})
 }
 
