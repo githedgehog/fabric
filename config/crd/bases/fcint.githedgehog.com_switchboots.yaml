@@ -31,8 +31,18 @@ spec:
     - jsonPath: .spec.agentVersion
       name: Agent
       type: string
+    - jsonPath: .status.lastAttempt.type
+      name: Attempt
+      type: string
+    - jsonPath: .status.lastAttempt.result
+      name: Result
+      type: string
+    - jsonPath: .status.lastAttempt.time
+      name: Attempted
+      type: date
     - jsonPath: .metadata.creationTimestamp
       name: Age
+      priority: 1
       type: date
     name: v1alpha1
     schema:
@@ -80,6 +90,39 @@ spec:
             type: object
           status:
             description: SwitchBootStatus defines the observed state of SwitchBoot.
+              It's written by the boot server only, as a whole.
+            properties:
+              lastAttempt:
+                description: |-
+                  LastAttempt is the last boot attempt of the switch. Repeated attempts with the same outcome, e.g. while waiting
+                  for the agent to be pre-cached, are only recorded every 30 seconds.
+                properties:
+                  remote:
+                    description: Remote is the IP address the request came from
+                    type: string
+                  result:
+                    description: Result is what the switch got
+                    enum:
+                    - served
+                    - agent-not-cached
+                    - error
+                    type: string
+                  time:
+                    description: Time is when the request was received, precise enough
+                      to order the attempts
+                    format: date-time
+                    type: string
+                  type:
+                    description: Type is how the switch attempted to boot
+                    enum:
+                    - onie
+                    - cumulus-ztp
+                    type: string
+                required:
+                - result
+                - time
+                - type
+                type: object
             type: object
         type: object
     served: true
