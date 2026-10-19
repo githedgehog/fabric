@@ -101,10 +101,11 @@ func TestHandleCumulusZTP(t *testing.T) {
 		).Build()
 
 	svc := &service{
-		cfg:      &boot.ServerConfig{AgentRef: testAgentRef},
-		kube:     kube,
-		boots:    kube,
-		cacheDir: t.TempDir(),
+		cfg:          &boot.ServerConfig{AgentRef: testAgentRef},
+		kube:         kube,
+		boots:        kube,
+		cacheDir:     t.TempDir(),
+		bootAttempts: make(chan func(), bootAttemptQueue),
 	}
 
 	ztp := func(serial, mac string) *httptest.ResponseRecorder {
@@ -115,7 +116,7 @@ func TestHandleCumulusZTP(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		middleware.ClientIPFromRemoteAddr(http.HandlerFunc(svc.handleCumulusZTP)).ServeHTTP(rec, req)
-		svc.bootAttempts.Wait()
+		processBootAttempts(svc)
 
 		return rec
 	}
@@ -129,17 +130,13 @@ func TestHandleCumulusZTP(t *testing.T) {
 
 	cacheTestAgent(t, svc, "v1.2.3")
 
-	// a different outcome is recorded right away
 	rec = ztp(" SN-0001 ", "")
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), `/agent?version=v1.2.3"`)
-	sb := requireLastBootAttempt(t, kube, fcintapi.SwitchBootAttemptTypeCumulusZTP, fcintapi.SwitchBootAttemptResultServed)
+	requireLastBootAttempt(t, kube, fcintapi.SwitchBootAttemptTypeCumulusZTP, fcintapi.SwitchBootAttemptResultServed)
 
 	// the MAC matches in any format
 	require.Equal(t, http.StatusOK, ztp("", "0C-20-12-FE-01-00").Code)
-
-	// the same outcome isn't recorded again that soon
-	require.Equal(t, sb.ResourceVersion, requireLastBootAttempt(t, kube, fcintapi.SwitchBootAttemptTypeCumulusZTP, fcintapi.SwitchBootAttemptResultServed).ResourceVersion)
 
 	// an invalid MAC is ignored, it's still found by serial
 	require.Equal(t, http.StatusOK, ztp("sn-0001", "not-a-mac").Code)
@@ -150,7 +147,7 @@ func TestHandleCumulusZTP(t *testing.T) {
 
 // requireLastBootAttempt checks the last boot attempt recorded for the test switch leaf-1, made from the test
 // request's address
-func requireLastBootAttempt(t *testing.T, kube kclient.Reader, typ fcintapi.SwitchBootAttemptType, result fcintapi.SwitchBootAttemptResult) *fcintapi.SwitchBoot {
+func requireLastBootAttempt(t *testing.T, kube kclient.Reader, typ fcintapi.SwitchBootAttemptType, result fcintapi.SwitchBootAttemptResult) {
 	t.Helper()
 
 	sb := &fcintapi.SwitchBoot{}
@@ -160,6 +157,4 @@ func requireLastBootAttempt(t *testing.T, kube kclient.Reader, typ fcintapi.Swit
 	require.Equal(t, result, sb.Status.LastAttempt.Result)
 	require.Equal(t, "192.0.2.1", sb.Status.LastAttempt.Remote)
 	require.WithinDuration(t, time.Now(), sb.Status.LastAttempt.Time.Time, time.Minute)
-
-	return sb
 }

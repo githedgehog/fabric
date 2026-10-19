@@ -6,7 +6,7 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -136,48 +136,74 @@ func TestWriteBootAttempt(t *testing.T) {
 
 	// the first one is recorded despite a conflict with nothing recorded yet
 	first := attempt(0, fcintapi.SwitchBootAttemptResultAgentNotCached)
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, first))
+	require.NoError(t, svc.writeBootAttempt(t.Context(), get(), first))
 	require.Zero(t, conflicts)
 	requireLast(first)
 
-	// the same outcome isn't recorded again that soon, but later on
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, attempt(10*time.Second, fcintapi.SwitchBootAttemptResultAgentNotCached)))
-	requireLast(first)
-	later := attempt(bootAttemptThrottle+time.Second, fcintapi.SwitchBootAttemptResultAgentNotCached)
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, later))
-	requireLast(later)
+	// every attempt is recorded, the same outcome too
+	again := attempt(10*time.Second, fcintapi.SwitchBootAttemptResultAgentNotCached)
+	require.NoError(t, svc.writeBootAttempt(t.Context(), get(), again))
+	requireLast(again)
 
-	// overlapping requests: a failed one is recorded right away, and the newer one succeeding after it as well,
-	// though it has the outcome recorded before both of them
-	served := attempt(bootAttemptThrottle+2*time.Second, fcintapi.SwitchBootAttemptResultServed)
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, served))
-	failed := attempt(bootAttemptThrottle+3*time.Second, fcintapi.SwitchBootAttemptResultError)
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, failed))
+	// overlapping requests, both read before either is recorded: the newer one is recorded even if it's the second
+	// one to finish
+	before := get()
+	failed := attempt(20*time.Second, fcintapi.SwitchBootAttemptResultError)
+	require.NoError(t, svc.writeBootAttempt(t.Context(), before.DeepCopy(), failed))
 	requireLast(failed)
-	servedAgain := attempt(bootAttemptThrottle+4*time.Second, fcintapi.SwitchBootAttemptResultServed)
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, servedAgain))
-	requireLast(servedAgain)
+	served := attempt(21*time.Second, fcintapi.SwitchBootAttemptResultServed)
+	require.NoError(t, svc.writeBootAttempt(t.Context(), before.DeepCopy(), served))
+	requireLast(served)
 
-	// an older attempt finishing late doesn't replace a newer one
-	require.NoError(t, svc.writeBootAttempt(t.Context(), key, attempt(bootAttemptThrottle+3*time.Second+time.Millisecond, fcintapi.SwitchBootAttemptResultError)))
-	requireLast(servedAgain)
+	// and the older one isn't if it's the second one to finish
+	require.NoError(t, svc.writeBootAttempt(t.Context(), before.DeepCopy(), attempt(20*time.Second+time.Millisecond, fcintapi.SwitchBootAttemptResultError)))
+	requireLast(served)
 
-	// concurrent attempts of a switch (from different addresses, so none is throttled) are written one at a time,
-	// the newest one wins regardless of the order
+	// concurrent attempts of a switch, as many as there are writers: the newest one wins regardless of the order
+	before = get()
 	wg := sync.WaitGroup{}
-	for idx := range 10 {
+	for idx := range bootAttemptWriters {
 		wg.Go(func() {
-			concurrent := attempt(time.Minute+time.Duration(idx)*time.Second, fcintapi.SwitchBootAttemptResultServed)
-			concurrent.Remote = fmt.Sprintf("192.0.2.%d", 10+idx)
-			assert.NoError(t, svc.writeBootAttempt(t.Context(), key, concurrent))
+			assert.NoError(t, svc.writeBootAttempt(t.Context(), before.DeepCopy(), attempt(time.Minute+time.Duration(idx)*time.Second, fcintapi.SwitchBootAttemptResultServed)))
 		})
 	}
 	wg.Wait()
-	requireLast(attempt(time.Minute+9*time.Second, fcintapi.SwitchBootAttemptResultServed))
+	requireLast(attempt(time.Minute+(bootAttemptWriters-1)*time.Second, fcintapi.SwitchBootAttemptResultServed))
 
 	// gone already
 	require.NoError(t, kube.Delete(t.Context(), get()))
-	require.True(t, kapierrors.IsNotFound(svc.writeBootAttempt(t.Context(), key, attempt(time.Hour, fcintapi.SwitchBootAttemptResultServed))))
+	require.True(t, kapierrors.IsNotFound(svc.writeBootAttempt(t.Context(), before.DeepCopy(), attempt(time.Hour, fcintapi.SwitchBootAttemptResultServed))))
+}
+
+func TestRecordBootAttemptQueueFull(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	sb := &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}}
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(sb).WithObjects(sb).Build()
+	svc := &service{kube: kube, bootAttempts: make(chan func(), 1)}
+
+	attempt := func(result fcintapi.SwitchBootAttemptResult) fcintapi.SwitchBootAttempt {
+		return fcintapi.SwitchBootAttempt{Time: kmetav1.NowMicro(), Type: fcintapi.SwitchBootAttemptTypeONIE, Result: result}
+	}
+
+	// the second one doesn't fit and is dropped instead of blocking
+	svc.recordBootAttempt(t.Context(), slog.Default(), sb.DeepCopy(), attempt(fcintapi.SwitchBootAttemptResultServed))
+	svc.recordBootAttempt(t.Context(), slog.Default(), sb.DeepCopy(), attempt(fcintapi.SwitchBootAttemptResultError))
+	require.Len(t, svc.bootAttempts, 1)
+
+	processBootAttempts(svc)
+	stored := &fcintapi.SwitchBoot{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(sb), stored))
+	require.NotNil(t, stored.Status.LastAttempt)
+	require.Equal(t, fcintapi.SwitchBootAttemptResultServed, stored.Status.LastAttempt.Result)
+}
+
+// processBootAttempts writes the queued boot attempts as the writers would
+func processBootAttempts(svc *service) {
+	for len(svc.bootAttempts) > 0 {
+		(<-svc.bootAttempts)()
+	}
 }
 
 func TestSwitchBootSpecChanged(t *testing.T) {
