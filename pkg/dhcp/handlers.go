@@ -148,7 +148,7 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 
 			// only use dhcp for onie and cumulus in the management subnet unless all devices are allowed
 			mgmtSkip := false
-			if !s.AnyDeviceOnMgmt && ok && subnet.Name == dhcpapi.ManagementSubnet {
+			if !s.Config.AnyDeviceOnMgmt && ok && subnet.Name == dhcpapi.ManagementSubnet {
 				classID := req.ClassIdentifier()
 				if !strings.HasPrefix(classID, onieClassIDPrefix) && classID != cumulusClassID {
 					mgmtSkip = true

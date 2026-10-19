@@ -46,7 +46,7 @@ func (s *Server) checkHealth() error {
 	// boundIfIndex is 0 when listening on an IP rather than a named interface;
 	// there is no SO_BINDTODEVICE binding to go stale in that case.
 	if s.boundIfIndex != 0 {
-		listenHost := listenInterfaceName(s.ListenInterface)
+		listenHost := listenInterfaceName(s.Config.ListenInterface)
 		iface, err := net.InterfaceByName(listenHost)
 		if err != nil {
 			return fmt.Errorf("listen interface %s not found: %w", listenHost, err)

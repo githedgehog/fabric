@@ -52,7 +52,16 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["--listen={{ .Values.listenInterface }}", "--any-device-on-mgmt={{ .Values.anyDeviceOnMgmt }}", "--health-listen=:{{ .Values.healthPort }}"]
+          {{- /* deprecated values passed by older fabricator, the config file is used otherwise */}}
+          {{- if or .Values.listenInterface .Values.anyDeviceOnMgmt }}
+          args:
+            {{- with .Values.listenInterface }}
+            - "--listen={{ . }}"
+            {{- end }}
+            {{- if .Values.anyDeviceOnMgmt }}
+            - "--any-device-on-mgmt=true"
+            {{- end }}
+          {{- end }}
           ports:
             - name: healthz
               containerPort: {{ .Values.healthPort }}
@@ -75,6 +84,16 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "fabric-dhcpd.fullname" . }}-config
+            # dhcpd falls back to defaults if the config is missing
+            optional: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

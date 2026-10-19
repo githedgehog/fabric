@@ -38,7 +38,7 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 
 	cfgFile := "/etc/coredhcp.conf"
 
-	if err := os.WriteFile(cfgFile, fmt.Appendf(nil, cfgTmpl, "%"+s.ListenInterface), 0o600); err != nil {
+	if err := os.WriteFile(cfgFile, fmt.Appendf(nil, cfgTmpl, "%"+s.Config.ListenInterface), 0o600); err != nil {
 		return fmt.Errorf("writing config") //nolint:err113
 	}
 
@@ -60,7 +60,7 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 		}
 	}
 
-	slog.Info("Starting DHCP server", "iface", s.ListenInterface)
+	slog.Info("Starting DHCP server", "iface", s.Config.ListenInterface)
 
 	srv, err := server.Start(config)
 	if err != nil {

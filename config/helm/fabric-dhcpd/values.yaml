@@ -27,12 +27,16 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-listenInterface: "eth0"
-anyDeviceOnMgmt: false
+# Deprecated, set only by older fabricator versions: listenInterface and
+# anyDeviceOnMgmt are passed as flags that override the fabric-dhcpd-config
+# ConfigMap. Leave them unset otherwise.
+# listenInterface: ""
+# anyDeviceOnMgmt: false
 
-# Port for the liveness/readiness HTTP server (/healthz, /readyz). Bound on the
-# node since the pod uses hostNetwork, so it must not collide with other host
-# services.
+# Port for the liveness/readiness probes (/healthz, /readyz). The server itself
+# is configured with healthListen in the fabric-dhcpd-config ConfigMap (":8080"
+# by default), so they must match. Bound on the node since the pod uses
+# hostNetwork, so it must not collide with other host services.
 healthPort: 8080
 
 serviceAccount:

@@ -10,7 +10,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 )
+
+func listenOn(iface string) dhcpcfg.ServerConfig {
+	return dhcpcfg.ServerConfig{ListenInterface: iface}
+}
 
 func TestListenInterfaceName(t *testing.T) {
 	for _, tt := range []struct {
@@ -38,7 +43,7 @@ func TestCheckHealth(t *testing.T) {
 	}
 	loUp := lo.Flags&net.FlagUp != 0
 
-	serveStopped := &Server{ListenInterface: "lo", boundIfIndex: lo.Index}
+	serveStopped := &Server{Config: listenOn("lo"), boundIfIndex: lo.Index}
 	serveStopped.serveStopped.Store(true)
 
 	for _, tt := range []struct {
@@ -54,29 +59,29 @@ func TestCheckHealth(t *testing.T) {
 		},
 		{
 			name:    "listening on an IP skips the ifindex check",
-			server:  &Server{ListenInterface: "127.0.0.1"}, // boundIfIndex 0
+			server:  &Server{Config: listenOn("127.0.0.1")}, // boundIfIndex 0
 			wantErr: false,
 		},
 		{
 			name:     "matching ifindex is healthy",
-			server:   &Server{ListenInterface: "lo", boundIfIndex: lo.Index},
+			server:   &Server{Config: listenOn("lo"), boundIfIndex: lo.Index},
 			needLoUp: true,
 			wantErr:  false,
 		},
 		{
 			name:     "port suffix is normalized away",
-			server:   &Server{ListenInterface: "lo:67", boundIfIndex: lo.Index},
+			server:   &Server{Config: listenOn("lo:67"), boundIfIndex: lo.Index},
 			needLoUp: true,
 			wantErr:  false,
 		},
 		{
 			name:    "stale ifindex is unhealthy",
-			server:  &Server{ListenInterface: "lo", boundIfIndex: lo.Index + 1000},
+			server:  &Server{Config: listenOn("lo"), boundIfIndex: lo.Index + 1000},
 			wantErr: true,
 		},
 		{
 			name:    "missing interface is unhealthy",
-			server:  &Server{ListenInterface: "hh-nonexistent0", boundIfIndex: 1},
+			server:  &Server{Config: listenOn("hh-nonexistent0"), boundIfIndex: 1},
 			wantErr: true,
 		},
 	} {
@@ -96,7 +101,7 @@ func TestCheckHealth(t *testing.T) {
 
 func TestHealthzHandler(t *testing.T) {
 	t.Run("healthy returns 200", func(t *testing.T) {
-		s := &Server{ListenInterface: "127.0.0.1"} // boundIfIndex 0 => no ifindex check
+		s := &Server{Config: listenOn("127.0.0.1")} // boundIfIndex 0 => no ifindex check
 		rec := httptest.NewRecorder()
 		s.healthzHandler(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 		assert.Equal(t, http.StatusOK, rec.Code)
