@@ -225,6 +225,39 @@ func TestExternalInboundPrefixes(t *testing.T) {
 	}
 }
 
+func TestExternalInboundCommunityInVPCRange(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}), ipv4NamespaceObj(),
+	).Build()
+	cfg := &meta.FabricConfig{BaseVPCCommunity: "50000:100"}
+
+	for _, tt := range []struct {
+		community string
+		warns     bool
+	}{
+		{community: "50000:101", warns: true},
+		{community: "50000:65535", warns: true},
+		{community: "50000:100"},
+		{community: "50000:99"},
+		{community: "65102:5000"},
+		{community: ""},
+	} {
+		t.Run(tt.community, func(t *testing.T) {
+			ext := extGen("ext-01", func(ext *v1beta1.External) { ext.Spec.InboundCommunity = tt.community })
+			warns, err := ext.Validate(t.Context(), kube, cfg)
+			require.NoError(t, err)
+			if tt.warns {
+				require.NotEmpty(t, warns)
+			} else {
+				require.Empty(t, warns)
+			}
+		})
+	}
+}
+
 func TestExternalInboundPrefixLens(t *testing.T) {
 	for _, tt := range []struct {
 		prefix   string
