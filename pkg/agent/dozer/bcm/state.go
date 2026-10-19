@@ -1170,10 +1170,6 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 				for afiSafiName, afiSafi := range neighbor.AfiSafis.AfiSafi {
 					hasCounters := afiSafi.State != nil && afiSafi.State.Prefixes != nil
 					hasLimit := afiSafi.Ipv4Unicast != nil && afiSafi.Ipv4Unicast.PrefixLimit != nil && afiSafi.Ipv4Unicast.PrefixLimit.State != nil
-					if !hasCounters && !hasLimit {
-						continue
-					}
-
 					afiSafiName := afiSafiName.String()
 
 					prefixes := agentapi.SwitchStateBGPNeighborPrefixes{}
@@ -1194,8 +1190,11 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 						}
 						prefixes.LimitWarnOnly = limit.PreventTeardown != nil && *limit.PreventTeardown
 					}
-					st.Prefixes[afiSafiName] = prefixes
+					if hasCounters || hasLimit {
+						st.Prefixes[afiSafiName] = prefixes
+					}
 
+					// also without counters or limit state, so that a removed limit reads 0
 					if afiSafiName == oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST.String() {
 						reg.BGPNeighborMetrics.Prefixes.Limit.WithLabelValues(vrfName, neighborAddress, afiSafiName).Set(float64(prefixes.Limit))
 					}
