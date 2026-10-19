@@ -16,13 +16,12 @@ import (
 	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Server struct {
-	ListenInterface  string
-	AnyDeviceOnMgmt  bool
-	HealthListenAddr string // address for the liveness/readiness HTTP server; empty disables it
+	Config dhcpcfg.ServerConfig
 
 	kube           kclient.WithWatch
 	subnets        map[string]*dhcpapi.DHCPSubnet
@@ -56,7 +55,7 @@ func (s *Server) Run(ctx context.Context) error {
 	// the socket being left bound to a stale interface after a teardown/recreate.
 	// When listening on an IP rather than a named interface there is no
 	// SO_BINDTODEVICE binding to go stale, so the check is skipped (boundIfIndex 0).
-	listenHost := listenInterfaceName(s.ListenInterface)
+	listenHost := listenInterfaceName(s.Config.ListenInterface)
 	if net.ParseIP(listenHost) == nil {
 		iface, err := net.InterfaceByName(listenHost)
 		if err != nil {
@@ -78,14 +77,12 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	})
 
-	if s.HealthListenAddr != "" {
-		wg.Go(func() {
-			if err := s.startHealthz(ctx, s.HealthListenAddr); err != nil {
-				slog.Error("Healthz server failed", "err", err)
-				os.Exit(4) // TODO graceful handling
-			}
-		})
-	}
+	wg.Go(func() {
+		if err := s.startHealthz(ctx, s.Config.HealthListen); err != nil {
+			slog.Error("Healthz server failed", "err", err)
+			os.Exit(4) // TODO graceful handling
+		}
+	})
 
 	wg.Go(func() {
 		if err := s.startPeriodicCleanup(ctx); err != nil {

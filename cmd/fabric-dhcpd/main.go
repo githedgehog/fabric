@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"log/slog"
 	"os"
 	"runtime/debug"
@@ -30,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/dhcp"
+	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -94,29 +96,29 @@ func main() {
 		Destination: &verbose,
 	}
 
+	// Deprecated flags are kept so the chart rendered by an older fabricator (which passes them) keeps working, they
+	// override the config file values only when set explicitly
+	// TODO: remove after 26.05 release
 	var listenInterface string
 	listenInterfaceFlag := &cli.StringFlag{
 		Name:        "listen",
 		Aliases:     []string{"l"},
-		Usage:       "listen interface",
-		Value:       "127.0.0.1",
+		Usage:       "listen interface (deprecated, use listenInterface in the config file)",
 		Destination: &listenInterface,
 	}
 
 	var anyDeviceOnMgmt bool
 	anyDeviceOnMgmtFlag := &cli.BoolFlag{
 		Name:        "any-device-on-mgmt",
-		Usage:       "allow any device on management subnet",
-		Value:       false,
+		Usage:       "allow any device on management subnet (deprecated, use anyDeviceOnMgmt in the config file)",
 		Destination: &anyDeviceOnMgmt,
 	}
 
-	var healthListenAddr string
-	healthListenAddrFlag := &cli.StringFlag{
+	var healthListen string
+	healthListenFlag := &cli.StringFlag{
 		Name:        "health-listen",
-		Usage:       "address for the liveness/readiness HTTP server (empty to disable)",
-		Value:       ":8080",
-		Destination: &healthListenAddr,
+		Usage:       "address for the liveness/readiness HTTP server (deprecated, use healthListen in the config file)",
+		Destination: &healthListen,
 	}
 
 	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
@@ -135,17 +137,40 @@ func main() {
 					verboseFlag,
 					listenInterfaceFlag,
 					anyDeviceOnMgmtFlag,
-					healthListenAddrFlag,
+					healthListenFlag,
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
 				},
-				Action: func(_ *cli.Context) error {
-					return errors.Wrapf((&dhcp.Server{
-						ListenInterface:  listenInterface,
-						AnyDeviceOnMgmt:  anyDeviceOnMgmt,
-						HealthListenAddr: healthListenAddr,
-					}).Run(ctx), "failed to run dhcp server")
+				Action: func(cliCtx *cli.Context) error {
+					cfg, err := dhcpcfg.Load(dhcpcfg.Path)
+					if err != nil {
+						return fmt.Errorf("loading config: %w", err)
+					}
+
+					for _, flag := range []string{listenInterfaceFlag.Name, anyDeviceOnMgmtFlag.Name, healthListenFlag.Name} {
+						if cliCtx.IsSet(flag) {
+							slog.Warn("Deprecated flag overrides config file", "flag", flag)
+						}
+					}
+					if cliCtx.IsSet(listenInterfaceFlag.Name) {
+						cfg.ListenInterface = listenInterface
+					}
+					if cliCtx.IsSet(anyDeviceOnMgmtFlag.Name) {
+						cfg.AnyDeviceOnMgmt = anyDeviceOnMgmt
+					}
+					if cliCtx.IsSet(healthListenFlag.Name) {
+						cfg.HealthListen = healthListen
+					}
+					if err := cfg.Validate(); err != nil {
+						return fmt.Errorf("validating config with flags: %w", err)
+					}
+
+					if err := (&dhcp.Server{Config: *cfg}).Run(ctx); err != nil {
+						return fmt.Errorf("running dhcp server: %w", err)
+					}
+
+					return nil
 				},
 			},
 		},
