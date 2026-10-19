@@ -1373,7 +1373,9 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 			if external.InboundCommunity != "" {
-				locPrefStatement.SetCommunities = append(locPrefStatement.SetCommunities, external.InboundCommunity)
+				if external.InboundCommunity != extComm {
+					locPrefStatement.SetCommunities = append(locPrefStatement.SetCommunities, external.InboundCommunity)
+				}
 				commList := extInboundCommListName(externalName)
 				spec.CommunityLists[commList] = &dozer.SpecCommunityList{
 					Members: []string{external.InboundCommunity},
