@@ -93,6 +93,8 @@ func (s *Server) checkRelayedRequest(giaddr net.IP) error {
 	return nil
 }
 
+// setupDHCP4Plugin sets up the coredhcp handler. Any non-nil response is sent to the client, so every path that can't
+// produce a proper reply returns nil to drop the request instead of sending an empty OFFER/ACK (yiaddr 0.0.0.0)
 func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 	return func(args ...string) (handler.Handler4, error) {
 		return func(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
@@ -116,7 +118,7 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 					append(reqSummary(req, vrf, circuitID, remoteID),
 						"giaddr", req.GatewayIPAddr.String(), "reason", violation)...)
 
-				return resp, false
+				return nil, true
 			}
 
 			s.m.RLock()
@@ -162,25 +164,32 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 
 			s.m.RUnlock()
 
-			if ok {
-				slog.Info("Handling", reqSummary(req, vrf, circuitID, remoteID)...)
-				if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID, remoteID); err != nil {
-					slog.Error("Error handling", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+			if !ok {
+				// We aren't printing anything if mgmtSkip here because we don't want to spam the logs with unnecessary information
+				if !mgmtSkip {
+					slog.Info("No subnet found", reqSummary(req, vrf, circuitID, remoteID)...)
 				}
-			} else if !mgmtSkip {
-				slog.Info("No subnet found", reqSummary(req, vrf, circuitID, remoteID)...)
+
+				return nil, true
 			}
-			// We aren't printing anything if !ok && mgmtSkip here because we don't want to spam the logs with unnecessary information
+
+			slog.Info("Handling", reqSummary(req, vrf, circuitID, remoteID)...)
+			if err := s.handleDHCP4(ctx, subnet, req, resp, vrf, circuitID, remoteID); err != nil {
+				slog.Error("Error handling, dropping", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+
+				return nil, true
+			}
 
 			return resp, false
 		}, nil
 	}
 }
 
-func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, req, resp *dhcpv4.DHCPv4, vrf, circuitID, remoteID string) error {
+func (s *Server) handleDHCP4(ctx context.Context, subnet *dhcpapi.DHCPSubnet, req, resp *dhcpv4.DHCPv4, vrf, circuitID, remoteID string) (err error) {
 	defer func() {
-		if err := recover(); err != nil {
-			slog.Warn("Panicked", append(reqSummary(req, vrf, circuitID, remoteID), "err", err)...)
+		if r := recover(); r != nil {
+			slog.Warn("Panicked", append(reqSummary(req, vrf, circuitID, remoteID), "err", r)...)
+			err = fmt.Errorf("panicked: %v", r) //nolint:err113
 		}
 	}()
 

@@ -33,7 +33,8 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
 		log.Logger.SetLevel(logrus.DebugLevel)
 	} else {
-		log.Logger.SetLevel(logrus.InfoLevel)
+		// coredhcp logs every dropped request at info level, our plugin already logs why it's dropped
+		log.Logger.SetLevel(logrus.WarnLevel)
 	}
 
 	cfgFile := "/etc/coredhcp.conf"
