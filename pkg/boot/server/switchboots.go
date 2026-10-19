@@ -197,6 +197,7 @@ func (svc *service) writeBootAttempt(ctx context.Context, sb *fcintapi.SwitchBoo
 	defer cancel()
 
 	key := kclient.ObjectKeyFromObject(sb)
+	uid := sb.UID
 
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error { //nolint:wrapcheck
 		if last := sb.Status.LastAttempt; last != nil && last.Time.After(attempt.Time.Time) {
@@ -209,6 +210,11 @@ func (svc *service) writeBootAttempt(ctx context.Context, sb *fcintapi.SwitchBoo
 			sb = &fcintapi.SwitchBoot{}
 			if err := svc.kube.Get(ctx, key, sb); err != nil {
 				return fmt.Errorf("getting switch boot: %w", err)
+			}
+
+			// recreated meanwhile, possibly for another switch, the attempt was for the one that's gone
+			if sb.UID != uid {
+				return nil
 			}
 		}
 
