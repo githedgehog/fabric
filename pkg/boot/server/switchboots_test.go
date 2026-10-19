@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"oras.land/oras-go/v2/registry/remote/auth"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -78,6 +80,77 @@ func TestFindSwitchBoot(t *testing.T) {
 			require.Equal(t, tt.want, got.Name)
 		})
 	}
+}
+
+func TestWriteBootAttempt(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).
+		WithStatusSubresource(&fcintapi.SwitchBoot{}).
+		WithObjects(&fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}}).
+		Build()
+	svc := &service{kube: kube}
+
+	get := func() *fcintapi.SwitchBoot {
+		sb := &fcintapi.SwitchBoot{}
+		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Namespace: kmetav1.NamespaceDefault, Name: "leaf-1"}, sb))
+
+		return sb
+	}
+	now := time.Now()
+	attempt := func(at time.Duration, result fcintapi.SwitchBootAttemptResult) fcintapi.SwitchBootAttempt {
+		return fcintapi.SwitchBootAttempt{
+			Time:   kmetav1.NewMicroTime(now.Add(at)),
+			Type:   fcintapi.SwitchBootAttemptTypeCumulusZTP,
+			Result: result,
+			Remote: "192.0.2.1",
+		}
+	}
+	requireLast := func(want fcintapi.SwitchBootAttempt) {
+		t.Helper()
+
+		last := get().Status.LastAttempt
+		require.NotNil(t, last)
+		require.True(t, want.Time.Equal(&last.Time), "time %s, want %s", last.Time, want.Time)
+		require.Equal(t, want.Result, last.Result)
+	}
+
+	stale := get()
+
+	first := attempt(0, fcintapi.SwitchBootAttemptResultAgentNotCached)
+	require.NoError(t, svc.writeBootAttempt(t.Context(), get(), first))
+	requireLast(first)
+
+	// the same outcome isn't recorded again that soon, but later on
+	require.NoError(t, svc.writeBootAttempt(t.Context(), get(), attempt(10*time.Second, fcintapi.SwitchBootAttemptResultAgentNotCached)))
+	requireLast(first)
+	later := attempt(bootAttemptThrottle+time.Second, fcintapi.SwitchBootAttemptResultAgentNotCached)
+	require.NoError(t, svc.writeBootAttempt(t.Context(), get(), later))
+	requireLast(later)
+
+	// a different outcome is recorded right away, from an outdated copy too as it's read again on conflict
+	served := attempt(bootAttemptThrottle+2*time.Second, fcintapi.SwitchBootAttemptResultServed)
+	require.NoError(t, svc.writeBootAttempt(t.Context(), stale.DeepCopy(), served))
+	requireLast(served)
+
+	// an older attempt finishing late doesn't replace a newer one
+	require.NoError(t, svc.writeBootAttempt(t.Context(), stale.DeepCopy(), attempt(bootAttemptThrottle+time.Second+time.Millisecond, fcintapi.SwitchBootAttemptResultError)))
+	requireLast(served)
+
+	// gone already
+	require.NoError(t, kube.Delete(t.Context(), get()))
+	require.True(t, kapierrors.IsNotFound(svc.writeBootAttempt(t.Context(), stale.DeepCopy(), attempt(time.Hour, fcintapi.SwitchBootAttemptResultServed))))
+}
+
+func TestSwitchBootSpecChanged(t *testing.T) {
+	sb := func(generation int64) *fcintapi.SwitchBoot {
+		return &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Generation: generation}}
+	}
+
+	require.False(t, switchBootSpecChanged(sb(1), sb(1)))
+	require.True(t, switchBootSpecChanged(sb(1), sb(2)))
+	require.True(t, switchBootSpecChanged(nil, sb(1)))
 }
 
 func TestFatalWatchError(t *testing.T) {

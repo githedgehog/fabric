@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -83,28 +82,31 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 
 	l = l.With("serial", serial, "mac", mac)
 
-	sb, agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
+	sb, err := findSwitchBoot(ctx, svc.boots, serial, mac)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			l.Info("NOS not found", "error", err.Error())
-			w.WriteHeader(http.StatusNotFound)
-
-			return
-		}
-
-		l.Error("Failed to get switch", "error", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		writeSwitchError(l, w, err)
 
 		return
 	}
 
 	l = l.With("switch", sb.Name)
 
+	attempt := newBootAttempt(ctx, fcintapi.SwitchBootAttemptTypeCumulusZTP)
+	defer func() { svc.recordBootAttempt(ctx, l, sb, attempt) }()
+
+	agent, secret, err := svc.getAgentAndSecret(ctx, sb)
+	if err != nil {
+		writeSwitchError(l, w, err)
+
+		return
+	}
+
 	// the script downloads the agent right away, so it's only served once the agent is pre-cached
 	if _, err := svc.getCachedOrDownload(ctx, svc.cfg.AgentRef, sb.Spec.AgentVersion, false); err != nil {
 		l.Info("Agent not pre-cached yet", "version", sb.Spec.AgentVersion, "error", err.Error())
 		w.Header().Set("Retry-After", "10")
 		w.WriteHeader(http.StatusServiceUnavailable)
+		attempt.Result = fcintapi.SwitchBootAttemptResultAgentNotCached
 
 		return
 	}
@@ -117,6 +119,8 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	attempt.Result = fcintapi.SwitchBootAttemptResultServed
 }
 
 func (svc *service) writeCumulusZTP(w http.ResponseWriter, sb *fcintapi.SwitchBoot, agent *agentapi.Agent, secret *corev1.Secret) error {

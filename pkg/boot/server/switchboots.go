@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -31,6 +32,10 @@ const (
 	agentPreCacheAttempts       = 3
 	agentPreCacheAttemptTimeout = 5 * time.Minute
 	agentPreCacheRetryDelay     = 10 * time.Second
+
+	// bootAttemptThrottle is how often repeated boot attempts with the same outcome are recorded
+	bootAttemptThrottle     = 30 * time.Second
+	bootAttemptWriteTimeout = 10 * time.Second
 )
 
 func indexSwitchBootSerial(obj kclient.Object) []string {
@@ -80,8 +85,12 @@ func (svc *service) startSwitchBootCache(ctx context.Context, cfg *rest.Config, 
 		return nil, fmt.Errorf("getting switch boot informer: %w", err)
 	}
 	if _, err := inf.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj any) { svc.preCacheAgentFor(ctx, obj) },
-		UpdateFunc: func(_, obj any) { svc.preCacheAgentFor(ctx, obj) },
+		AddFunc: func(obj any) { svc.preCacheAgentFor(ctx, obj) },
+		UpdateFunc: func(oldObj, obj any) {
+			if switchBootSpecChanged(oldObj, obj) {
+				svc.preCacheAgentFor(ctx, obj)
+			}
+		},
 	}); err != nil {
 		return nil, fmt.Errorf("adding switch boot event handler: %w", err)
 	}
@@ -159,6 +168,60 @@ func findSwitchBoot(ctx context.Context, boots kclient.Reader, serial, mac strin
 	}
 
 	return found, nil
+}
+
+func switchBootSpecChanged(oldObj, obj any) bool {
+	oldSB, oldOk := oldObj.(*fcintapi.SwitchBoot)
+	sb, ok := obj.(*fcintapi.SwitchBoot)
+
+	return !oldOk || !ok || oldSB.Generation != sb.Generation
+}
+
+func (svc *service) recordBootAttempt(ctx context.Context, l *slog.Logger, sb *fcintapi.SwitchBoot, attempt fcintapi.SwitchBootAttempt) {
+	if skipBootAttempt(sb.Status.LastAttempt, attempt) {
+		return
+	}
+
+	ctx = context.WithoutCancel(ctx)
+
+	svc.bootAttempts.Go(func() {
+		if err := svc.writeBootAttempt(ctx, sb, attempt); err != nil {
+			l.Warn("Failed to record boot attempt", "error", err.Error())
+		}
+	})
+}
+
+func skipBootAttempt(last *fcintapi.SwitchBootAttempt, attempt fcintapi.SwitchBootAttempt) bool {
+	if last == nil {
+		return false
+	}
+	if last.Time.After(attempt.Time.Time) {
+		return true
+	}
+
+	return last.Type == attempt.Type && last.Result == attempt.Result && last.Remote == attempt.Remote &&
+		attempt.Time.Sub(last.Time.Time) < bootAttemptThrottle
+}
+
+func (svc *service) writeBootAttempt(ctx context.Context, sb *fcintapi.SwitchBoot, attempt fcintapi.SwitchBootAttempt) error {
+	ctx, cancel := context.WithTimeout(ctx, bootAttemptWriteTimeout)
+	defer cancel()
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error { //nolint:wrapcheck
+		if skipBootAttempt(sb.Status.LastAttempt, attempt) {
+			return nil
+		}
+
+		sb.Status = fcintapi.SwitchBootStatus{LastAttempt: attempt.DeepCopy()}
+		err := svc.kube.Status().Update(ctx, sb)
+		if kapierrors.IsConflict(err) {
+			if err := svc.kube.Get(ctx, kclient.ObjectKeyFromObject(sb), sb); err != nil {
+				return fmt.Errorf("getting switch boot: %w", err)
+			}
+		}
+
+		return err //nolint:wrapcheck
+	})
 }
 
 // preCacheAgentFor runs in the informer's goroutine for this handler, which buffers the events in the meantime, so a
