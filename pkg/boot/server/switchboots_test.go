@@ -22,6 +22,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -173,6 +174,57 @@ func TestWriteBootAttempt(t *testing.T) {
 	// gone already
 	require.NoError(t, kube.Delete(t.Context(), get()))
 	require.True(t, kapierrors.IsNotFound(svc.writeBootAttempt(t.Context(), before.DeepCopy(), attempt(time.Hour, fcintapi.SwitchBootAttemptResultServed))))
+}
+
+func TestWriteBootAttemptRecreated(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	key := kclient.ObjectKey{Namespace: kmetav1.NamespaceDefault, Name: "leaf-1"}
+	newSB := func(uid ktypes.UID) *fcintapi.SwitchBoot {
+		return &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace, UID: uid}}
+	}
+	recreated := false
+	kube := fake.NewClientBuilder().WithScheme(scheme).
+		WithStatusSubresource(&fcintapi.SwitchBoot{}).
+		WithObjects(newSB("uid-1")).
+		WithInterceptorFuncs(interceptor.Funcs{
+			// the switch is recreated while the attempt is being written
+			SubResourceUpdate: func(ctx context.Context, c kclient.Client, sub string, obj kclient.Object, opts ...kclient.SubResourceUpdateOption) error {
+				if !recreated {
+					recreated = true
+					if err := c.Delete(ctx, newSB("")); err != nil {
+						return err //nolint:wrapcheck
+					}
+					if err := c.Create(ctx, newSB("uid-2")); err != nil {
+						return err //nolint:wrapcheck
+					}
+
+					return kapierrors.NewConflict(schema.GroupResource{Group: fcintapi.GroupVersion.Group, Resource: "switchboots"}, obj.GetName(), errors.New("modified")) //nolint:err113
+				}
+
+				return c.SubResource(sub).Update(ctx, obj, opts...)
+			},
+		}).
+		Build()
+	svc := &service{kube: kube}
+
+	before := &fcintapi.SwitchBoot{}
+	require.NoError(t, kube.Get(t.Context(), key, before))
+	require.Equal(t, ktypes.UID("uid-1"), before.UID)
+
+	// the attempt was for the switch that's gone, it's not recorded on the new one
+	require.NoError(t, svc.writeBootAttempt(t.Context(), before, fcintapi.SwitchBootAttempt{
+		Time:   kmetav1.NowMicro(),
+		Type:   fcintapi.SwitchBootAttemptTypeONIE,
+		Result: fcintapi.SwitchBootAttemptResultServed,
+	}))
+	require.True(t, recreated)
+
+	after := &fcintapi.SwitchBoot{}
+	require.NoError(t, kube.Get(t.Context(), key, after))
+	require.Equal(t, ktypes.UID("uid-2"), after.UID)
+	require.Nil(t, after.Status.LastAttempt)
 }
 
 func TestRecordBootAttemptQueueFull(t *testing.T) {
