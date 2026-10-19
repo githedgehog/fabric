@@ -43,3 +43,9 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - switchboots/status
+  verbs:
+  - update

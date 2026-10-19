@@ -53,12 +53,13 @@ const (
 
 type service struct {
 	cfg          *boot.ServerConfig
-	kube         kclient.Reader // uncached, only to get the agent and its secret for a switch being installed
+	kube         kclient.Client // uncached, to get the agent and its secret for a switch being installed and record its boot attempts
 	boots        kclient.Reader // cached switch boots, see startSwitchBootCache
 	cacheDir     string
 	orasClient   *auth.Client
 	downloadLock *sync.Mutex
 	sf           *singleflight.Group
+	bootAttempts sync.WaitGroup // boot attempts being recorded, see recordBootAttempt
 }
 
 func Run(ctx context.Context) error {

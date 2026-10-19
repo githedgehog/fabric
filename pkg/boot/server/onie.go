@@ -32,6 +32,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl"
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -98,28 +99,34 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 
 		l = l.With("serial", serial, "mac", mac)
 
-		sb, agent, secret, err := svc.getAgentAndSecret(ctx, serial, mac)
+		sb, err := findSwitchBoot(ctx, svc.boots, serial, mac)
 		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				l.Info("NOS not found", "error", err.Error())
-				w.WriteHeader(http.StatusNotFound)
-
-				return
-			}
-
-			l.Error("Failed to get switch", "error", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
+			writeSwitchError(l, w, err)
 
 			return
 		}
 
-		l.Info("NOS install", "switch", sb.Name)
+		l = l.With("switch", sb.Name)
+
+		attempt := newBootAttempt(ctx, fcintapi.SwitchBootAttemptTypeONIE)
+		defer func() { svc.recordBootAttempt(ctx, l, sb, attempt) }()
+
+		agent, secret, err := svc.getAgentAndSecret(ctx, sb)
+		if err != nil {
+			writeSwitchError(l, w, err)
+
+			return
+		}
+
+		l.Info("NOS install")
 		if err := svc.streamNOSInstaller(ctx, sb, agent, secret, w); err != nil {
-			l.Error("Failed to stream nos-install", "switch", sb.Name, "error", err.Error())
+			l.Error("Failed to stream nos-install", "error", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 
 			return
 		}
+
+		attempt.Result = fcintapi.SwitchBootAttemptResultServed
 	case "onie-update":
 		if platform == "" {
 			l.Info("Platform is missing")
@@ -149,32 +156,48 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (svc *service) getAgentAndSecret(ctx context.Context, serial, mac string) (*fcintapi.SwitchBoot, *agentapi.Agent, *corev1.Secret, error) {
-	sb, err := findSwitchBoot(ctx, svc.boots, serial, mac)
-	if err != nil {
-		return nil, nil, nil, err
+func writeSwitchError(l *slog.Logger, w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrNotFound) {
+		l.Info("NOS not found", "error", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+
+		return
 	}
 
+	l.Error("Failed to get switch", "error", err.Error())
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func newBootAttempt(ctx context.Context, typ fcintapi.SwitchBootAttemptType) fcintapi.SwitchBootAttempt {
+	return fcintapi.SwitchBootAttempt{
+		Time:   kmetav1.NowMicro(),
+		Type:   typ,
+		Result: fcintapi.SwitchBootAttemptResultError,
+		Remote: middleware.GetClientIP(ctx),
+	}
+}
+
+func (svc *service) getAgentAndSecret(ctx context.Context, sb *fcintapi.SwitchBoot) (*agentapi.Agent, *corev1.Secret, error) {
 	agent := &agentapi.Agent{}
 	if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: sb.Name, Namespace: sb.Namespace}, agent); err != nil {
 		if kapierrors.IsNotFound(err) {
-			return nil, nil, nil, fmt.Errorf("agent %s: %w", sb.Name, ErrNotFound)
+			return nil, nil, fmt.Errorf("agent %s: %w", sb.Name, ErrNotFound)
 		}
 
-		return nil, nil, nil, fmt.Errorf("agent %s: %w", sb.Name, err)
+		return nil, nil, fmt.Errorf("agent %s: %w", sb.Name, err)
 	}
 
 	secretName := ctrl.AgentKubeconfigSecret(sb.Name)
 	agentSecret := &corev1.Secret{}
 	if err := svc.kube.Get(ctx, kclient.ObjectKey{Name: secretName, Namespace: sb.Namespace}, agentSecret); err != nil {
 		if kapierrors.IsNotFound(err) {
-			return nil, nil, nil, fmt.Errorf("agent %s secret %s: %w", sb.Name, secretName, ErrNotFound)
+			return nil, nil, fmt.Errorf("agent %s secret %s: %w", sb.Name, secretName, ErrNotFound)
 		}
 
-		return nil, nil, nil, fmt.Errorf("agent %s secret %s: %w", sb.Name, secretName, err)
+		return nil, nil, fmt.Errorf("agent %s secret %s: %w", sb.Name, secretName, err)
 	}
 
-	return sb, agent, agentSecret, nil
+	return agent, agentSecret, nil
 }
 
 func (svc *service) streamNOSInstaller(ctx context.Context, sb *fcintapi.SwitchBoot, agent *agentapi.Agent, secret *corev1.Secret, w io.Writer) error {
