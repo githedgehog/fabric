@@ -61,6 +61,7 @@ func TestHandler4Drops(t *testing.T) {
 			s := &Server{
 				subnets:        subnets,
 				relayAllowlist: map[string]struct{}{"10.0.0.1": {}},
+				controlVIP:     net.ParseIP("172.30.0.1"),
 			}
 
 			req, err := dhcpv4.NewDiscovery(mac)

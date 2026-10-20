@@ -19,15 +19,25 @@ import (
 	"go.githedgehog.com/fabric/pkg/util/netlinkutil"
 )
 
-func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet *net.IPNet) error {
-	routes, err := netlinkutil.RouteGet(req.GatewayIPAddr)
-	if err != nil {
-		return fmt.Errorf("getting route: %w", err)
-	}
-	if len(routes) == 0 {
-		return fmt.Errorf("no route found") //nolint:err113
+// serverIdentifier returns the DHCP server identifier (option 54) for a request relayed via giaddr: the control VIP if
+// configured, otherwise the source address of the route to the relay (the control node management IP)
+func (s *Server) serverIdentifier(giaddr net.IP) (net.IP, error) {
+	if s.controlVIP != nil {
+		return s.controlVIP, nil
 	}
 
+	routes, err := netlinkutil.RouteGet(giaddr)
+	if err != nil {
+		return nil, fmt.Errorf("getting route to %s: %w", giaddr, err)
+	}
+	if len(routes) == 0 {
+		return nil, fmt.Errorf("no route found to %s", giaddr) //nolint:err113
+	}
+
+	return routes[0].Src, nil
+}
+
+func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet *net.IPNet, serverID net.IP) error {
 	// With l3vni VPCs, send a short lease time on the first request to trigger
 	// a renewal, which will carry the IP address and MAC of the server and make the
 	// leaf learn it. On renewals (and in other VPC modes), send the configured lease time.
@@ -49,7 +59,7 @@ func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet 
 		len(subnet.Spec.AdvertisedRoutes) == 0) {
 		resp.Options.Update(dhcpv4.OptRouter(net.ParseIP(subnet.Spec.Gateway)))
 	}
-	resp.Options.Update(dhcpv4.OptServerIdentifier(routes[0].Src))
+	resp.Options.Update(dhcpv4.OptServerIdentifier(serverID))
 
 	switch {
 	case subnet.Spec.L3Mode:
