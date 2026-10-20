@@ -157,8 +157,10 @@ jobs:
             matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
         }}
-      fabricatorref: master
-      prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
+      fabricatorref: pr/qmonnet/acl-proto-blocks
+      prebuild: |
+        just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}
+        just bump dataplane v0-254043f93-release 254043f93d56d03709ba2ab66f506a642aa707b3
       fabricmode: spine-leaf
       mesh: ${{ matrix.mesh }}
       gateway: ${{ matrix.gateway }}
