@@ -168,6 +168,27 @@ func TestSwitchHandler(t *testing.T) {
 		assert.Contains(t, s.relayAllowlist, "172.30.0.9")
 	})
 
+	for _, tt := range []struct {
+		name string
+		sw   *wiringapi.Switch
+	}{
+		{"leaf becomes spine", testSwitch("leaf-01", wiringapi.SwitchRoleSpine, "172.30.0.8/21")},
+		{"ip removed", testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "")},
+		{"ip becomes unparseable", testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "garbage")},
+	} {
+		t.Run(tt.name+" removes the entry", func(t *testing.T) {
+			s := newTestServer()
+			h := s.switchHandler()
+
+			old := testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21")
+			h.OnAdd(old, true)
+			h.OnUpdate(old, tt.sw)
+
+			assert.Empty(t, s.relayAllowlist)
+			assert.Empty(t, s.switchToIP)
+		})
+	}
+
 	t.Run("delete", func(t *testing.T) {
 		s := newTestServer()
 		h := s.switchHandler()
