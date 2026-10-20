@@ -10,6 +10,8 @@ import (
 	"maps"
 	"slices"
 	"time"
+
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
 func (s *Server) startPeriodicCleanup(ctx context.Context) error {
@@ -26,7 +28,9 @@ func (s *Server) startPeriodicCleanup(ctx context.Context) error {
 			s.mu.RUnlock()
 
 			for _, sn := range subnets {
-				if _, err := sn.persist(ctx, s.kube, cleanup); err != nil && !errors.Is(err, errSubnetDeleted) {
+				if err := sn.persist(ctx, s.kube, func(*dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
+					return cleanup, nil
+				}); err != nil && !errors.Is(err, errSubnetDeleted) {
 					slog.Warn("Failed to update cleaned up subnet", "subnet", sn.obj.Load().Name, "err", err)
 				}
 			}

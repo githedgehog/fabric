@@ -6,6 +6,7 @@ package dhcp
 import (
 	"context"
 	"math/rand/v2"
+	"net/netip"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -138,20 +139,53 @@ func getStored(t *testing.T, kube kclient.Client) *dhcpapi.DHCPSubnet {
 	return stored
 }
 
+func TestSubnetSpecFor(t *testing.T) {
+	v1 := testLeaseSubnet()
+	v1.Generation = 1
+	v1.ResourceVersion = "1"
+	sn := newSubnet(v1)
+
+	sp1 := sn.specFor(v1)
+	require.NoError(t, sp1.err)
+
+	// status write: new version, same generation
+	v2 := v1.DeepCopy()
+	v2.ResourceVersion = "2"
+	v2.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(0): {IP: "10.0.0.100"}}
+	assert.Same(t, sp1, sn.specFor(v2), "same generation reuses the spec")
+
+	// spec change
+	v3 := v2.DeepCopy()
+	v3.ResourceVersion = "3"
+	v3.Generation = 2
+	v3.Spec.StartIP = "10.0.0.150"
+	sp3 := sn.specFor(v3)
+	assert.NotSame(t, sp1, sp3, "new generation rebuilds the spec")
+	require.NoError(t, sp3.err)
+	assert.Equal(t, netip.MustParseAddr("10.0.0.150"), sp3.parsed.Start)
+
+	v4 := v3.DeepCopy()
+	v4.ResourceVersion = "4"
+	v4.Generation = 3
+	v4.Spec.StartIP = "garbage"
+	require.ErrorContains(t, sn.specFor(v4).err, "invalid subnet")
+}
+
 func TestSubnetPersist(t *testing.T) {
 	t.Run("writes and stores the result", func(t *testing.T) {
 		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 		before := sn.obj.Load()
 
-		ip, obj, err := sn.lease(t.Context(), kube, req(0))
+		ip, sp, err := sn.lease(t.Context(), kube, req(0))
 		require.NoError(t, err)
 		assert.Equal(t, "10.0.0.100", ip.String())
+		assert.NotNil(t, sp)
 		assert.EqualValues(t, 1, calls.updates.Load())
 		assert.EqualValues(t, 0, calls.gets.Load())
 
 		stored := getStored(t, kube)
+		obj := sn.obj.Load()
 		assert.Equal(t, stored.ResourceVersion, obj.ResourceVersion)
-		assert.Same(t, obj, sn.obj.Load())
 		assert.Equal(t, "10.0.0.100", stored.Status.Allocated[mac(0)].IP)
 		assert.Empty(t, before.Status.Allocated, "previous object must not be modified")
 
@@ -187,7 +221,7 @@ func TestSubnetPersist(t *testing.T) {
 			require.NoError(t, kube.Status().Update(ctx, latest))
 		})
 
-		ip, obj, err := sn.lease(t.Context(), kube, req(0))
+		ip, _, err := sn.lease(t.Context(), kube, req(0))
 		require.NoError(t, err)
 		assert.Equal(t, "10.0.0.101", ip.String(), "decision is redone on the refetched subnet")
 		assert.EqualValues(t, 2, calls.updates.Load())
@@ -195,7 +229,6 @@ func TestSubnetPersist(t *testing.T) {
 
 		stored := getStored(t, kube)
 		assert.Equal(t, stored.ResourceVersion, sn.obj.Load().ResourceVersion)
-		assert.Same(t, obj, sn.obj.Load())
 		assert.Len(t, stored.Status.Allocated, 2)
 	})
 
@@ -268,7 +301,7 @@ func TestSubnetPersist(t *testing.T) {
 		assert.Empty(t, getStored(t, kube).Status.Allocated)
 	})
 
-	t.Run("mutate error makes no API calls", func(t *testing.T) {
+	t.Run("invalid subnet makes no API calls", func(t *testing.T) {
 		obj := testLeaseSubnet()
 		obj.Spec.StartIP = "garbage"
 		kube, sn, calls := newFakeKube(t, obj, nil)
