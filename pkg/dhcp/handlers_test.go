@@ -54,9 +54,9 @@ func TestHandler4Drops(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			subnets := tt.subnets
-			if subnets == nil {
-				subnets = map[string]*dhcpapi.DHCPSubnet{}
+			subnets := map[string]*subnet{}
+			for key, obj := range tt.subnets {
+				subnets[key] = newSubnet(obj)
 			}
 			s := &Server{
 				subnets:        subnets,
