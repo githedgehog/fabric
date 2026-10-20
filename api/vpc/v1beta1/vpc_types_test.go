@@ -582,6 +582,56 @@ func TestVPCValidation(t *testing.T) {
 			err: true,
 		},
 		{
+			name: "static ip assigned twice",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].DHCP.Enable = true
+				vpc.Spec.Subnets["default"].DHCP.Static = map[string]v1beta1.VPCDHCPStatic{
+					"aa:bb:cc:dd:ee:01": {IP: "10.0.1.50"},
+					"aa:bb:cc:dd:ee:02": {IP: "10.0.1.50"},
+				}
+			}),
+			err: true,
+		},
+		{
+			name: "dhcp options",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].DHCP.Enable = true
+				vpc.Spec.Subnets["default"].DHCP.Options = &v1beta1.VPCDHCPOptions{
+					PXEURL:           "http://10.0.1.4/boot.efi",
+					DNSServers:       []string{"1.1.1.1"},
+					TimeServers:      []string{"10.0.1.2"},
+					AdvertisedRoutes: []v1beta1.VPCDHCPRoute{{Destination: "192.168.0.0/16", Gateway: "10.0.1.3"}},
+				}
+			}),
+			err: false,
+		},
+		{
+			name: "dhcp ipv6 dns server",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].DHCP.Enable = true
+				vpc.Spec.Subnets["default"].DHCP.Options = &v1beta1.VPCDHCPOptions{DNSServers: []string{"fd00::1"}}
+			}),
+			err: true,
+		},
+		{
+			name: "dhcp ipv6 advertised route",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].DHCP.Enable = true
+				vpc.Spec.Subnets["default"].DHCP.Options = &v1beta1.VPCDHCPOptions{
+					AdvertisedRoutes: []v1beta1.VPCDHCPRoute{{Destination: "fd00::/8", Gateway: "10.0.1.3"}},
+				}
+			}),
+			err: true,
+		},
+		{
+			name: "dhcp pxe url without scheme",
+			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
+				vpc.Spec.Subnets["default"].DHCP.Enable = true
+				vpc.Spec.Subnets["default"].DHCP.Options = &v1beta1.VPCDHCPOptions{PXEURL: "10.0.1.4/boot.efi"}
+			}),
+			err: true,
+		},
+		{
 			name: "static route missing prefix",
 			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
 				vpc.Spec.StaticRoutes = []v1beta1.VPCStaticRoute{

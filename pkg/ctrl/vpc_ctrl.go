@@ -34,10 +34,8 @@ import (
 )
 
 const (
-	VPCVNIOffset     = 100
-	VPCVNIMax        = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
-	DefaultMTU       = 9036
-	DefaultLeaseTime = 3600
+	VPCVNIOffset = 100
+	VPCVNIMax    = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
 )
 
 type VPCReconciler struct {
@@ -144,72 +142,11 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 				return err
 			}
 
-			pxeURL := ""
-			dnsServers := []string{}
-			timeServers := []string{}
-			mtu := uint16(DefaultMTU)
-			leaseTime := uint32(DefaultLeaseTime)
-			advertisedRoutes := []dhcpapi.DHCPRoute{}
-			disableDefaultRoute := false
-
-			if subnet.DHCP.Options != nil {
-				pxeURL = subnet.DHCP.Options.PXEURL
-				dnsServers = subnet.DHCP.Options.DNSServers
-				timeServers = subnet.DHCP.Options.TimeServers
-				for _, route := range subnet.DHCP.Options.AdvertisedRoutes {
-					advertisedRoutes = append(advertisedRoutes, dhcpapi.DHCPRoute{
-						Destination: route.Destination,
-						Gateway:     route.Gateway,
-					})
-				}
-				disableDefaultRoute = subnet.DHCP.Options.DisableDefaultRoute
-
-				if subnet.DHCP.Options.InterfaceMTU > 0 {
-					mtu = subnet.DHCP.Options.InterfaceMTU
-				}
-
-				if subnet.DHCP.Options.LeaseTimeSeconds > 0 {
-					leaseTime = subnet.DHCP.Options.LeaseTimeSeconds
-				}
-			}
-
-			vrf := ""
-			switch vpc.Spec.Mode {
-			case vpcapi.VPCModeL2VNI, vpcapi.VPCModeL3VNI:
-				vrf = strings.ToLower(vpc.Name)
-			case vpcapi.VPCModeL3Flat:
-				vrf = "default"
-			}
-
-			statics := map[string]dhcpapi.DHCPSubnetStatic{}
-			for mac, static := range subnet.DHCP.Static {
-				statics[mac] = dhcpapi.DHCPSubnetStatic{
-					IP: static.IP,
-				}
-			}
-
 			dhcp.Labels = map[string]string{
 				vpcapi.LabelVPC:    vpc.Name,
 				vpcapi.LabelSubnet: subnetName,
 			}
-			dhcp.Spec = dhcpapi.DHCPSubnetSpec{
-				Subnet:              fmt.Sprintf("%s/%s", vpc.Name, subnetName),
-				CIDRBlock:           subnet.Subnet,
-				Gateway:             subnet.Gateway,
-				StartIP:             subnet.DHCP.Range.Start,
-				EndIP:               subnet.DHCP.Range.End,
-				LeaseTimeSeconds:    leaseTime,
-				VRF:                 vrf,
-				CircuitID:           fmt.Sprintf("vlan%d", subnet.VLAN), // TODO move to utils
-				PXEURL:              pxeURL,
-				DNSServers:          dnsServers,
-				TimeServers:         timeServers,
-				InterfaceMTU:        mtu,
-				L3Mode:              vpc.Spec.Mode == vpcapi.VPCModeL3Flat || vpc.Spec.Mode == vpcapi.VPCModeL3VNI,
-				DisableDefaultRoute: disableDefaultRoute,
-				AdvertisedRoutes:    advertisedRoutes,
-				Static:              statics,
-			}
+			dhcp.Spec = vpc.DHCPSubnetSpec(subnetName, subnet)
 
 			return nil
 		})

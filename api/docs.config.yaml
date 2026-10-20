@@ -13,6 +13,8 @@ processor:
     - "GatewayGroupInfo$"
     - "GatewayGroupMember$"
     - "fcint/v1alpha1\\.SwitchBoot"
+    - "DHCPSubnetParsed$"
+    - "DHCPRouteParsed$"
 
   # RE2 regular expressions describing type fields that should be excluded from the generated documentation.
   ignoreFields:
