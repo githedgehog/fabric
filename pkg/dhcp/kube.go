@@ -5,7 +5,9 @@ package dhcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/netip"
 	"time"
@@ -13,128 +15,208 @@ import (
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
+	kcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (s *Server) setupKube(ctx context.Context) error {
-	kube, err := kubeutil.NewClient(ctx, "", dhcpapi.AddToScheme, wiringapi.AddToScheme)
+func newKube(ctx context.Context) (kclient.Client, kcache.Cache, error) {
+	cfg, err := kubeutil.NewClientConfig(ctx, "")
 	if err != nil {
-		return fmt.Errorf("creating kube client: %w", err)
+		return nil, nil, fmt.Errorf("creating kube config: %w", err)
 	}
-	s.kube = kube
 
-	return nil
-}
-
-// watchList is the shared event loop for all K8s watches. handle is called for
-// Added, Modified and Deleted events with the event type and object.
-func (s *Server) watchList(
-	ctx context.Context,
-	name string,
-	list kclient.ObjectList,
-	handle func(watch.EventType, kruntime.Object),
-) error {
-	watcher, err := s.kube.Watch(ctx, list, kclient.InNamespace(kmetav1.NamespaceDefault))
+	scheme, err := kubeutil.NewScheme(dhcpapi.AddToScheme, wiringapi.AddToScheme)
 	if err != nil {
-		return fmt.Errorf("starting %s watcher: %w", name, err)
+		return nil, nil, fmt.Errorf("creating scheme: %w", err)
 	}
-	defer watcher.Stop()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case event, ok := <-watcher.ResultChan():
-			if !ok {
-				return fmt.Errorf("%s watch channel closed", name) //nolint:err113
-			}
-			if event.Object == nil {
-				return fmt.Errorf("received nil object from %s watch", name) //nolint:err113
-			}
-
-			switch event.Type {
-			case watch.Error:
-				if err, ok := event.Object.(error); ok {
-					return fmt.Errorf("%s watch error: %w", name, err)
-				}
-
-				return fmt.Errorf("%s watch error", name) //nolint:err113
-			case watch.Bookmark:
-				continue
-			case watch.Added, watch.Modified, watch.Deleted:
-				handle(event.Type, event.Object)
-			default:
-				slog.Warn("Unexpected watch event", "resource", name, "event", event.Type)
-			}
-		}
+	kube, err := kclient.New(cfg, kclient.Options{Scheme: scheme})
+	if err != nil {
+		return nil, nil, fmt.Errorf("creating kube client: %w", err)
 	}
-}
 
-func (s *Server) watchDHCPSubnets(ctx context.Context) error {
-	slog.Debug("Starting DHCPSubnet watcher")
-
-	return s.watchList(ctx, "DHCPSubnet", &dhcpapi.DHCPSubnetList{}, func(et watch.EventType, obj kruntime.Object) {
-		subnet := obj.(*dhcpapi.DHCPSubnet)
-		key := subnetKeyFrom(subnet)
-		slog.Debug("Received", "event", et, "subnet", subnet.Name, "key", key)
-
-		s.m.Lock()
-		if et == watch.Deleted {
-			delete(s.subnets, key)
-		} else {
-			if subnet.Status.Allocated == nil {
-				subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
-			}
-			s.subnets[key] = subnet
-		}
-		s.m.Unlock()
+	cache, err := kcache.New(cfg, kcache.Options{
+		Scheme:                   scheme,
+		DefaultNamespaces:        map[string]kcache.Config{kmetav1.NamespaceDefault: {}},
+		DefaultWatchErrorHandler: watchErrorHandler,
 	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("creating kube cache: %w", err)
+	}
+
+	return kube, cache, nil
 }
 
-func (s *Server) watchSwitches(ctx context.Context) error {
-	slog.Debug("Starting Switch watcher")
+func watchErrorHandler(ctx context.Context, r *toolscache.Reflector, err error) {
+	switch {
+	case errors.Is(err, io.EOF):
+		// watch closed normally
+	case kapierrors.IsResourceExpired(err) || kapierrors.IsGone(err) || errors.Is(err, io.ErrUnexpectedEOF):
+		slog.Debug("Watch closed, informer will relist", "type", r.TypeDescription(), "err", err)
+	default:
+		slog.Warn("Watch failed, informer will retry", "type", r.TypeDescription(), "err", err)
+	}
 
-	return s.watchList(ctx, "Switch", &wiringapi.SwitchList{}, func(et watch.EventType, obj kruntime.Object) {
-		sw := obj.(*wiringapi.Switch)
-		slog.Debug("Switch received", "event", et, "switch", sw.Name)
+	toolscache.DefaultWatchErrorHandler(ctx, r, err)
+}
 
-		if et == watch.Deleted {
-			s.m.Lock()
-			if oldIP := s.switchToIP[sw.Name]; oldIP != "" {
-				delete(s.switchToIP, sw.Name)
-				delete(s.relayAllowlist, oldIP)
-			}
-			s.m.Unlock()
+func (s *Server) addInformerHandlers(ctx context.Context, cache kcache.Cache) ([]toolscache.InformerSynced, error) {
+	synced := []toolscache.InformerSynced{}
 
-			return
-		}
-
-		if !sw.Spec.Role.IsLeaf() || sw.Spec.IP == "" {
-			return
-		}
-
-		prefix, err := netip.ParsePrefix(sw.Spec.IP)
+	for _, h := range []struct {
+		obj     kclient.Object
+		handler toolscache.ResourceEventHandler
+	}{
+		{&dhcpapi.DHCPSubnet{}, s.subnetHandler()},
+		{&wiringapi.Switch{}, s.switchHandler()},
+	} {
+		informer, err := cache.GetInformer(ctx, h.obj)
 		if err != nil {
-			slog.Warn("Switch has unparseable IP, skipping relay allowlist update",
-				"switch", sw.Name, "ip", sw.Spec.IP)
-
-			return
+			return nil, fmt.Errorf("getting %T informer: %w", h.obj, err)
 		}
-		newIP := prefix.Addr().String()
 
-		s.m.Lock()
-		if oldIP := s.switchToIP[sw.Name]; oldIP != "" && oldIP != newIP {
-			delete(s.relayAllowlist, oldIP)
+		// no periodic resync, it would only redeliver the objects we already have
+		reg, err := informer.AddEventHandlerWithResyncPeriod(h.handler, 0)
+		if err != nil {
+			return nil, fmt.Errorf("adding %T event handler: %w", h.obj, err)
 		}
-		s.switchToIP[sw.Name] = newIP
-		s.relayAllowlist[newIP] = struct{}{}
-		s.m.Unlock()
-	})
+
+		synced = append(synced, reg.HasSynced)
+	}
+
+	return synced, nil
+}
+
+func unwrapTombstone(obj any) any {
+	if tombstone, ok := obj.(toolscache.DeletedFinalStateUnknown); ok {
+		return tombstone.Obj
+	}
+
+	return obj
+}
+
+func (s *Server) subnetHandler() toolscache.ResourceEventHandlerFuncs {
+	return toolscache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj any) { s.upsertSubnet(nil, obj) },
+		UpdateFunc: s.upsertSubnet,
+		DeleteFunc: s.deleteSubnet,
+	}
+}
+
+func (s *Server) upsertSubnet(oldObj, obj any) {
+	subnet, ok := obj.(*dhcpapi.DHCPSubnet)
+	if !ok {
+		slog.Warn("Unexpected object in DHCPSubnet informer, ignoring", "type", fmt.Sprintf("%T", obj))
+
+		return
+	}
+
+	// objects are shared with the informer cache and must not be modified
+	subnet = subnet.DeepCopy()
+	if subnet.Status.Allocated == nil {
+		subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
+	}
+	key := subnetKeyFrom(subnet)
+	slog.Debug("DHCPSubnet updated", "subnet", subnet.Name, "key", key, "rv", subnet.ResourceVersion)
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	// VRF or circuit ID changed, so the subnet isn't reachable under the old key anymore
+	if old, ok := oldObj.(*dhcpapi.DHCPSubnet); ok {
+		if oldKey := subnetKeyFrom(old); oldKey != key {
+			s.deleteSubnetKeyLocked(oldKey, old.Name)
+		}
+	}
+	s.subnets[key] = subnet
+}
+
+func (s *Server) deleteSubnet(obj any) {
+	obj = unwrapTombstone(obj)
+	subnet, ok := obj.(*dhcpapi.DHCPSubnet)
+	if !ok {
+		slog.Warn("Unexpected deleted object in DHCPSubnet informer, ignoring", "type", fmt.Sprintf("%T", obj))
+
+		return
+	}
+
+	key := subnetKeyFrom(subnet)
+	slog.Debug("DHCPSubnet deleted", "subnet", subnet.Name, "key", key)
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	s.deleteSubnetKeyLocked(key, subnet.Name)
+}
+
+func (s *Server) deleteSubnetKeyLocked(key, name string) {
+	if cur, ok := s.subnets[key]; ok && cur.Name == name {
+		delete(s.subnets, key)
+	}
+}
+
+func (s *Server) switchHandler() toolscache.ResourceEventHandlerFuncs {
+	return toolscache.ResourceEventHandlerFuncs{
+		AddFunc:    s.upsertSwitch,
+		UpdateFunc: func(_, obj any) { s.upsertSwitch(obj) },
+		DeleteFunc: s.deleteSwitch,
+	}
+}
+
+func (s *Server) upsertSwitch(obj any) {
+	sw, ok := obj.(*wiringapi.Switch)
+	if !ok {
+		slog.Warn("Unexpected object in Switch informer, ignoring", "type", fmt.Sprintf("%T", obj))
+
+		return
+	}
+	slog.Debug("Switch updated", "switch", sw.Name)
+
+	if !sw.Spec.Role.IsLeaf() || sw.Spec.IP == "" {
+		return
+	}
+
+	prefix, err := netip.ParsePrefix(sw.Spec.IP)
+	if err != nil {
+		slog.Warn("Switch has unparseable IP, skipping relay allowlist update",
+			"switch", sw.Name, "ip", sw.Spec.IP)
+
+		return
+	}
+	newIP := prefix.Addr().String()
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if oldIP := s.switchToIP[sw.Name]; oldIP != "" && oldIP != newIP {
+		delete(s.relayAllowlist, oldIP)
+	}
+	s.switchToIP[sw.Name] = newIP
+	s.relayAllowlist[newIP] = struct{}{}
+}
+
+func (s *Server) deleteSwitch(obj any) {
+	obj = unwrapTombstone(obj)
+	sw, ok := obj.(*wiringapi.Switch)
+	if !ok {
+		slog.Warn("Unexpected deleted object in Switch informer, ignoring", "type", fmt.Sprintf("%T", obj))
+
+		return
+	}
+	slog.Debug("Switch deleted", "switch", sw.Name)
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if oldIP := s.switchToIP[sw.Name]; oldIP != "" {
+		delete(s.switchToIP, sw.Name)
+		delete(s.relayAllowlist, oldIP)
+	}
 }
 
 func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, mutate func(subnet *dhcpapi.DHCPSubnet) error) error {
