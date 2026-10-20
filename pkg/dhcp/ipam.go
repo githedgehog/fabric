@@ -4,6 +4,7 @@
 package dhcp
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/netip"
@@ -39,8 +40,27 @@ func subnetKeyFrom(subnet *dhcpapi.DHCPSubnet) string {
 	return subnetKey(subnet.Spec.VRF, subnet.Spec.CircuitID)
 }
 
-var ErrNoAvailableIP = fmt.Errorf("no available IP address")
+var (
+	ErrNoAvailableIP          = fmt.Errorf("no available IP address")
+	ErrRequestedIPUnavailable = errors.New("requested IP unavailable")
+)
 
+func wantedIP(req *dhcpv4.DHCPv4) (netip.Addr, bool) {
+	ip := req.RequestedIPAddress()
+	if (ip == nil || ip.IsUnspecified()) && req.MessageType() == dhcpv4.MessageTypeRequest {
+		ip = req.ClientIPAddr
+	}
+	if ip == nil || ip.IsUnspecified() {
+		return netip.Addr{}, false
+	}
+
+	addr, ok := netip.AddrFromSlice(ip)
+
+	return addr.Unmap(), ok
+}
+
+// allocate picks an IP for the client and records it in the subnet. A DISCOVER gets another IP if the wanted one isn't
+// available, while a REQUEST gets ErrRequestedIPUnavailable and nothing is recorded.
 func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error) {
 	if subnet.Status.Allocated == nil {
 		subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
@@ -116,20 +136,33 @@ func allocate(subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error
 		return netip.Addr{}, fmt.Errorf("parsing subnet end ip: %s: %w", subnet.Spec.EndIP, err)
 	}
 
+	isRequest := req.MessageType() == dhcpv4.MessageTypeRequest
+	wanted, hasWanted := wantedIP(req)
+
+	if res.Is4() && isRequest && hasWanted && wanted != res {
+		return netip.Addr{}, fmt.Errorf("%w: %s, static IP is %s", ErrRequestedIPUnavailable, wanted, res)
+	}
+
 	// if requested IP is valid, not in use, and within the subnet start/end range, use it
-	if !res.Is4() {
-		if requested := req.RequestedIPAddress(); requested != nil {
-			ip, ok := netip.AddrFromSlice(requested)
-			switch {
-			case !ok:
-				slog.Warn("Invalid requested IP address, ignoring", "ip", requested.String())
-			case used[ip.String()] != "" && used[ip.String()] != mac:
-				slog.Warn("Requested IP is already used, ignoring", "ip", requested.String(), "mac", mac, "usedBy", used[ip.String()])
-			case ip.Compare(startIP) < 0 || ip.Compare(endIP) > 0:
-				slog.Warn("Requested IP is outside start-end range, ignoring", "ip", requested.String(), "mac", mac)
-			default:
-				res = ip
+	if !res.Is4() && hasWanted {
+		reason := ""
+		switch {
+		case !wanted.Is4():
+			reason = "not an IPv4 address"
+		case used[wanted.String()] != "" && used[wanted.String()] != mac:
+			reason = "used by " + used[wanted.String()]
+		case wanted.Compare(startIP) < 0 || wanted.Compare(endIP) > 0:
+			reason = "outside of the start-end range"
+		default:
+			res = wanted
+		}
+
+		if reason != "" {
+			if isRequest {
+				return netip.Addr{}, fmt.Errorf("%w: %s %s", ErrRequestedIPUnavailable, wanted, reason)
 			}
+
+			slog.Warn("Requested IP is unavailable, ignoring", "ip", wanted.String(), "mac", mac, "reason", reason)
 		}
 	}
 

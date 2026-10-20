@@ -5,6 +5,7 @@ package dhcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -194,6 +195,12 @@ func (s *Server) handleDHCP4(ctx context.Context, sn *subnet, req, resp *dhcpv4.
 		}
 
 		ip, subnet, err := sn.lease(ctx, s.kube, req)
+		if errors.Is(err, ErrRequestedIPUnavailable) {
+			slog.Info("NAK", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+			nakResponse(req, resp, serverID)
+
+			return nil
+		}
 		if err != nil {
 			return fmt.Errorf("updating subnet %s to allocate: %w", sn.obj.Load().Name, err)
 		}

@@ -14,6 +14,30 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func TestHandler4NAK(t *testing.T) {
+	obj := testLeaseSubnet()
+	obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(9): {IP: "10.0.0.100"}}
+	vip := net.ParseIP("172.30.0.1").To4()
+	s := &Server{
+		subnets:    map[string]*subnet{subnetKey("", ""): newSubnet(obj)},
+		controlVIP: vip,
+	}
+
+	req := request(t, 0, "10.0.0.100", "")
+	resp, err := dhcpv4.NewReplyFromRequest(req)
+	require.NoError(t, err)
+
+	handler, err := s.setupDHCP4Plugin(t.Context())()
+	require.NoError(t, err)
+
+	got, _ := handler(req, resp)
+	require.NotNil(t, got)
+	assert.Equal(t, dhcpv4.MessageTypeNak, got.MessageType())
+	assert.True(t, got.YourIPAddr.IsUnspecified())
+	assert.Equal(t, vip, got.ServerIdentifier())
+	assert.Len(t, s.subnets[subnetKey("", "")].obj.Load().Status.Allocated, 1, "nothing is recorded on NAK")
+}
+
 func TestHandler4Drops(t *testing.T) {
 	mac, err := net.ParseMAC("0c:20:12:fe:00:01")
 	require.NoError(t, err)
