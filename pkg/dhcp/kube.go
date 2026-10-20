@@ -177,27 +177,27 @@ func (s *Server) upsertSwitch(obj any) {
 	}
 	slog.Debug("Switch updated", "switch", sw.Name)
 
-	if !sw.Spec.Role.IsLeaf() || sw.Spec.IP == "" {
-		return
+	newIP := ""
+	if sw.Spec.Role.IsLeaf() && sw.Spec.IP != "" {
+		prefix, err := netip.ParsePrefix(sw.Spec.IP)
+		if err != nil {
+			slog.Warn("Switch has unparseable IP, removing from relay allowlist", "switch", sw.Name, "ip", sw.Spec.IP)
+		} else {
+			newIP = prefix.Addr().String()
+		}
 	}
-
-	prefix, err := netip.ParsePrefix(sw.Spec.IP)
-	if err != nil {
-		slog.Warn("Switch has unparseable IP, skipping relay allowlist update",
-			"switch", sw.Name, "ip", sw.Spec.IP)
-
-		return
-	}
-	newIP := prefix.Addr().String()
 
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	if oldIP := s.switchToIP[sw.Name]; oldIP != "" && oldIP != newIP {
+		delete(s.switchToIP, sw.Name)
 		delete(s.relayAllowlist, oldIP)
 	}
-	s.switchToIP[sw.Name] = newIP
-	s.relayAllowlist[newIP] = struct{}{}
+	if newIP != "" {
+		s.switchToIP[sw.Name] = newIP
+		s.relayAllowlist[newIP] = struct{}{}
+	}
 }
 
 func (s *Server) deleteSwitch(obj any) {
