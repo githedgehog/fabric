@@ -13,17 +13,17 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
+	toolscache "k8s.io/client-go/tools/cache"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Server struct {
 	Config dhcpcfg.ServerConfig
 
-	kube           kclient.WithWatch
+	kube           kclient.Client
 	subnets        map[string]*dhcpapi.DHCPSubnet
 	switchToIP     map[string]string   // switch name → relay IP (for cleanup)
 	relayAllowlist map[string]struct{} // known leaf relay IPs
@@ -47,7 +47,14 @@ func (s *Server) Run(ctx context.Context) error {
 		s.relayAllowlist = map[string]struct{}{}
 	}
 
-	if err := s.setupKube(ctx); err != nil {
+	kube, cache, err := newKube(ctx)
+	if err != nil {
+		return err
+	}
+	s.kube = kube
+
+	synced, err := s.addInformerHandlers(ctx, cache)
+	if err != nil {
 		return err
 	}
 
@@ -66,14 +73,10 @@ func (s *Server) Run(ctx context.Context) error {
 
 	wg := sync.WaitGroup{}
 
-	wg.Go(func() { s.watchWithRetry(ctx, "DHCPSubnet", s.watchDHCPSubnets) })
-	wg.Go(func() { s.watchWithRetry(ctx, "Switch", s.watchSwitches) })
-
 	wg.Go(func() {
-		if err := s.startCoreDHCP(ctx); err != nil {
-			s.serveStopped.Store(true)
-			slog.Error("Start CoreDHCP failed", "err", err)
-			os.Exit(2) // TODO graceful handling
+		if err := cache.Start(ctx); err != nil {
+			slog.Error("Kube cache failed", "err", err)
+			os.Exit(1) // TODO graceful handling
 		}
 	})
 
@@ -81,6 +84,20 @@ func (s *Server) Run(ctx context.Context) error {
 		if err := s.startHealthz(ctx, s.Config.HealthListen); err != nil {
 			slog.Error("Healthz server failed", "err", err)
 			os.Exit(4) // TODO graceful handling
+		}
+	})
+
+	slog.Info("Waiting for DHCPSubnets and Switches to sync")
+	if !toolscache.WaitForCacheSync(ctx.Done(), synced...) {
+		return fmt.Errorf("waiting for DHCPSubnets and Switches to sync: %w", ctx.Err())
+	}
+	slog.Info("DHCPSubnets and Switches synced")
+
+	wg.Go(func() {
+		if err := s.startCoreDHCP(ctx); err != nil {
+			s.serveStopped.Store(true)
+			slog.Error("Start CoreDHCP failed", "err", err)
+			os.Exit(2) // TODO graceful handling
 		}
 	})
 
@@ -94,22 +111,4 @@ func (s *Server) Run(ctx context.Context) error {
 	wg.Wait()
 
 	return nil
-}
-
-func (s *Server) watchWithRetry(ctx context.Context, name string, fn func(context.Context) error) {
-	first := true
-	for {
-		if !first {
-			select {
-			case <-ctx.Done():
-				os.Exit(1) // TODO graceful handling
-			case <-time.After(1 * time.Second):
-			}
-		}
-		first = false
-
-		if err := fn(ctx); err != nil {
-			slog.Debug("Watch failed, will retry", "name", name, "err", err)
-		}
-	}
 }
