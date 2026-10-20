@@ -11,6 +11,7 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
@@ -30,6 +31,142 @@ func req(id int) *dhcpv4.DHCPv4 {
 	}
 
 	return req
+}
+
+func request(t *testing.T, id int, requested, ciaddr string) *dhcpv4.DHCPv4 {
+	t.Helper()
+
+	hwAddr, err := net.ParseMAC(mac(id))
+	require.NoError(t, err)
+
+	mods := []dhcpv4.Modifier{dhcpv4.WithMessageType(dhcpv4.MessageTypeRequest), dhcpv4.WithHwAddr(hwAddr)}
+	if requested != "" {
+		mods = append(mods, dhcpv4.WithOption(dhcpv4.OptRequestedIPAddress(net.ParseIP(requested))))
+	}
+	if ciaddr != "" {
+		mods = append(mods, dhcpv4.WithClientIP(net.ParseIP(ciaddr)))
+	}
+
+	req, err := dhcpv4.New(mods...)
+	require.NoError(t, err)
+
+	return req
+}
+
+func TestAllocateRequest(t *testing.T) {
+	newSubnet := func() *dhcpapi.DHCPSubnet {
+		return &dhcpapi.DHCPSubnet{
+			Spec: dhcpapi.DHCPSubnetSpec{
+				LeaseTimeSeconds: 3600,
+				CIDRBlock:        "10.0.0.0/24",
+				Gateway:          "10.0.0.1",
+				StartIP:          "10.0.0.100",
+				EndIP:            "10.0.0.199",
+				Static: map[string]dhcpapi.DHCPSubnetStatic{
+					mac(5): {IP: "10.0.0.222"},
+				},
+			},
+			Status: dhcpapi.DHCPSubnetStatus{
+				Allocated: map[string]dhcpapi.DHCPAllocated{
+					mac(0): {IP: "10.0.0.100"},
+					mac(1): {IP: "10.0.0.101"},
+				},
+			},
+		}
+	}
+
+	for _, tt := range []struct {
+		name string
+		req  func(t *testing.T) *dhcpv4.DHCPv4
+		want string // empty means NAK
+	}{
+		{
+			name: "requested ip after offer",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "10.0.0.100", "") },
+			want: "10.0.0.100",
+		},
+		{
+			name: "requested ip free in range",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "10.0.0.150", "") },
+			want: "10.0.0.150",
+		},
+		{
+			name: "requested ip used by another mac",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "10.0.0.101", "") },
+		},
+		{
+			name: "requested ip outside of the range",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "10.0.0.50", "") },
+		},
+		{
+			name: "requested ip is the gateway",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "10.0.0.1", "") },
+		},
+		{
+			name: "requested ip is another mac's static",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "10.0.0.222", "") },
+		},
+		{
+			name: "renewal of own ip",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 1, "", "10.0.0.101") },
+			want: "10.0.0.101",
+		},
+		{
+			name: "renewal of an ip now used by another mac",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "", "10.0.0.101") },
+		},
+		{
+			name: "static mac requests its static ip outside of the range",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 5, "10.0.0.222", "") },
+			want: "10.0.0.222",
+		},
+		{
+			name: "static mac renews a dynamic ip",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 5, "", "10.0.0.150") },
+		},
+		{
+			name: "request without requested ip and ciaddr falls back to own ip",
+			req:  func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 1, "", "") },
+			want: "10.0.0.101",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			subnet := newSubnet()
+
+			got, err := allocate(subnet, tt.req(t))
+			if tt.want == "" {
+				require.ErrorIs(t, err, ErrRequestedIPUnavailable)
+				assert.Equal(t, newSubnet().Status, subnet.Status, "nothing is recorded on NAK")
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got.String())
+		})
+	}
+}
+
+func TestAllocateDiscoverIgnoresUnavailableRequestedIP(t *testing.T) {
+	subnet := &dhcpapi.DHCPSubnet{
+		Spec: dhcpapi.DHCPSubnetSpec{
+			LeaseTimeSeconds: 3600,
+			CIDRBlock:        "10.0.0.0/24",
+			Gateway:          "10.0.0.1",
+			StartIP:          "10.0.0.100",
+			EndIP:            "10.0.0.199",
+		},
+		Status: dhcpapi.DHCPSubnetStatus{
+			Allocated: map[string]dhcpapi.DHCPAllocated{mac(0): {IP: "10.0.0.100"}},
+		},
+	}
+
+	discover := req(1)
+	discover.UpdateOption(dhcpv4.OptRequestedIPAddress(net.ParseIP("10.0.0.100")))
+
+	got, err := allocate(subnet, discover)
+	require.NoError(t, err)
+	assert.Equal(t, "10.0.0.101", got.String())
 }
 
 func TestAllocate(t *testing.T) {

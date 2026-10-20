@@ -37,6 +37,19 @@ func (s *Server) serverIdentifier(giaddr net.IP) (net.IP, error) {
 	return routes[0].Src, nil
 }
 
+func nakResponse(req, resp *dhcpv4.DHCPv4, serverID net.IP) {
+	resp.UpdateOption(dhcpv4.OptMessageType(dhcpv4.MessageTypeNak))
+	resp.UpdateOption(dhcpv4.OptServerIdentifier(serverID))
+	resp.UpdateOption(dhcpv4.OptMessage("requested address not available"))
+	resp.YourIPAddr = net.IPv4zero
+	resp.ClientIPAddr = net.IPv4zero
+
+	// the relay has to broadcast it as the client may not have the address anymore (RFC 2131 4.1)
+	if !req.GatewayIPAddr.IsUnspecified() {
+		resp.SetBroadcast()
+	}
+}
+
 func updateResponse(req, resp *dhcpv4.DHCPv4, subnet *dhcpapi.DHCPSubnet, ipnet *net.IPNet, serverID net.IP) error {
 	// With l3vni VPCs, send a short lease time on the first request to trigger
 	// a renewal, which will carry the IP address and MAC of the server and make the
