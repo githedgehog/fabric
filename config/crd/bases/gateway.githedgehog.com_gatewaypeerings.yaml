@@ -115,9 +115,21 @@ spec:
                                 type: object
                               type: array
                             proto:
-                              description: Protocol to match ("tcp", "udp", or numeric),
-                                omit to match any protocol
-                              type: string
+                              description: Protocol to match, omit to match any protocol
+                              properties:
+                                number:
+                                  description: Match packets with the given IP protocol
+                                    number
+                                  maximum: 255
+                                  minimum: 0
+                                  type: integer
+                                tcp:
+                                  description: Match TCP packets
+                                  type: object
+                                udp:
+                                  description: Match UDP packets
+                                  type: object
+                              type: object
                             src:
                               description: From-side native addresses and/or source
                                 ports

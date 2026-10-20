@@ -998,24 +998,6 @@ _Appears in:_
 | `deny` |  |
 
 
-#### ACLMatchProtocol
-
-_Underlying type:_ _string_
-
-
-
-
-
-_Appears in:_
-- [PeeringACLMatch](#peeringaclmatch)
-
-| Field | Description |
-| --- | --- |
-| `tcp` |  |
-| `udp` |  |
-| `` |  |
-
-
 #### ACLScope
 
 _Underlying type:_ _string_
@@ -1369,7 +1351,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `src` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | From-side native addresses and/or source ports |  |  |
 | `dst` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | To-side advertised addresses and/or destination ports |  |  |
-| `proto` _[ACLMatchProtocol](#aclmatchprotocol)_ | Protocol to match ("tcp", "udp", or numeric), omit to match any protocol |  |  |
+| `proto` _[PeeringACLMatchProtocol](#peeringaclmatchprotocol)_ | Protocol to match, omit to match any protocol |  |  |
 
 
 #### PeeringACLMatchEndpoint
@@ -1388,6 +1370,50 @@ _Appears in:_
 | `cidr` _string_ | CIDR to match, at most one of cidr and vpcSubnet can be set |  |  |
 | `vpcSubnet` _string_ | VPC subnet to match, at most one of cidr and vpcSubnet can be set |  |  |
 | `ports` _string array_ | List of ports or port ranges to match, omit to match all ports |  |  |
+
+
+#### PeeringACLMatchProtocol
+
+
+
+Protocol to match, at most one of tcp, udp, and number can be set
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `tcp` _[PeeringACLMatchTCP](#peeringaclmatchtcp)_ | Match TCP packets |  |  |
+| `udp` _[PeeringACLMatchUDP](#peeringaclmatchudp)_ | Match UDP packets |  |  |
+| `number` _integer_ | Match packets with the given IP protocol number |  | Maximum: 255 <br />Minimum: 0 <br /> |
+
+
+#### PeeringACLMatchTCP
+
+
+
+TCP-specific match parameters
+
+
+
+_Appears in:_
+- [PeeringACLMatchProtocol](#peeringaclmatchprotocol)
+
+
+
+#### PeeringACLMatchUDP
+
+
+
+UDP-specific match parameters
+
+
+
+_Appears in:_
+- [PeeringACLMatchProtocol](#peeringaclmatchprotocol)
+
 
 
 #### PeeringACLRule

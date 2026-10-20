@@ -75,8 +75,6 @@ var PeeringNATProtocols = []PeeringNATProtocol{
 	PeeringNATProtocolUDP,
 }
 
-type ACLMatchProtocol string
-
 // +kubebuilder:validation:Enum=deny;deny-unless-exposed;""
 type ACLDefaultAction string
 
@@ -87,9 +85,6 @@ type ACLAction string
 type ACLScope string
 
 const (
-	ACLMatchProtocolTCP         ACLMatchProtocol = "tcp"
-	ACLMatchProtocolUDP         ACLMatchProtocol = "udp"
-	ACLMatchProtocolAny         ACLMatchProtocol = ""
 	ACLDefaultDenyUnlessExposed ACLDefaultAction = "deny-unless-exposed"
 	ACLDefaultDeny              ACLDefaultAction = "deny"
 	ACLActionDeny               ACLAction        = "deny"
@@ -97,12 +92,6 @@ const (
 	ACLScopeFlow                ACLScope         = "flow"
 	ACLScopePacket              ACLScope         = "packet"
 )
-
-var ACLMatchProtocols = []ACLMatchProtocol{
-	ACLMatchProtocolTCP,
-	ACLMatchProtocolUDP,
-	ACLMatchProtocolAny,
-}
 
 var ACLDefaultActions = []ACLDefaultAction{
 	ACLDefaultDeny,
@@ -128,13 +117,31 @@ type PeeringACLMatchEndpoint struct {
 	Ports []string `json:"ports,omitempty"`
 }
 
+// TCP-specific match parameters
+type PeeringACLMatchTCP struct{}
+
+// UDP-specific match parameters
+type PeeringACLMatchUDP struct{}
+
+// Protocol to match, at most one of tcp, udp, and number can be set
+type PeeringACLMatchProtocol struct {
+	// Match TCP packets
+	TCP *PeeringACLMatchTCP `json:"tcp,omitempty"`
+	// Match UDP packets
+	UDP *PeeringACLMatchUDP `json:"udp,omitempty"`
+	// Match packets with the given IP protocol number
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=255
+	Number *uint8 `json:"number,omitempty"`
+}
+
 type PeeringACLMatch struct {
 	// From-side native addresses and/or source ports
 	Source []PeeringACLMatchEndpoint `json:"src,omitempty"`
 	// To-side advertised addresses and/or destination ports
 	Destination []PeeringACLMatchEndpoint `json:"dst,omitempty"`
-	// Protocol to match ("tcp", "udp", or numeric), omit to match any protocol
-	Protocol ACLMatchProtocol `json:"proto,omitempty"`
+	// Protocol to match, omit to match any protocol
+	Protocol *PeeringACLMatchProtocol `json:"proto,omitempty"`
 }
 
 type PeeringACLRule struct {
@@ -496,11 +503,6 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					if err := validatePort(port); err != nil {
 						return fmt.Errorf("invalid destination port %q in ACL rule %d%s: %w", port, i, ruleBlob, err)
 					}
-				}
-			}
-			if !slices.Contains(ACLMatchProtocols, rule.Match.Protocol) {
-				if _, err := strconv.Atoi(string(rule.Match.Protocol)); err != nil {
-					return fmt.Errorf("invalid protocol %q in ACL rule %d%s: %w", rule.Match.Protocol, i, ruleBlob, err)
 				}
 			}
 		}
