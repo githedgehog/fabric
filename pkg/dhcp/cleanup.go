@@ -5,7 +5,10 @@ package dhcp
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"maps"
+	"slices"
 	"time"
 )
 
@@ -18,14 +21,15 @@ func (s *Server) startPeriodicCleanup(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			s.m.RLock()
-			for _, subnet := range s.subnets {
-				subnet = subnet.DeepCopy()
-				if err := s.updateSubnet(ctx, subnet, cleanup); err != nil {
-					slog.Warn("Failed to update cleaned up subnet", "subnet", subnet.Name, "err", err)
+			s.mu.RLock()
+			subnets := slices.Collect(maps.Values(s.subnets))
+			s.mu.RUnlock()
+
+			for _, sn := range subnets {
+				if _, err := sn.persist(ctx, s.kube, cleanup); err != nil && !errors.Is(err, errSubnetDeleted) {
+					slog.Warn("Failed to update cleaned up subnet", "subnet", sn.obj.Load().Name, "err", err)
 				}
 			}
-			s.m.RUnlock()
 		}
 	}
 }

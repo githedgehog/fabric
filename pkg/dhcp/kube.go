@@ -10,16 +10,13 @@ import (
 	"io"
 	"log/slog"
 	"net/netip"
-	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	toolscache "k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/retry"
 	kcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -108,55 +105,78 @@ func (s *Server) subnetHandler() toolscache.ResourceEventHandlerFuncs {
 	}
 }
 
-func (s *Server) upsertSubnet(oldObj, obj any) {
-	subnet, ok := obj.(*dhcpapi.DHCPSubnet)
+func (s *Server) upsertSubnet(oldObj, newObj any) {
+	obj, ok := newObj.(*dhcpapi.DHCPSubnet)
 	if !ok {
-		slog.Warn("Unexpected object in DHCPSubnet informer, ignoring", "type", fmt.Sprintf("%T", obj))
+		slog.Warn("Unexpected object in DHCPSubnet informer, ignoring", "type", fmt.Sprintf("%T", newObj))
 
 		return
 	}
 
 	// objects are shared with the informer cache and must not be modified
-	subnet = subnet.DeepCopy()
-	if subnet.Status.Allocated == nil {
-		subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
+	obj = obj.DeepCopy()
+	if obj.Status.Allocated == nil {
+		obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
 	}
-	key := subnetKeyFrom(subnet)
-	slog.Debug("DHCPSubnet updated", "subnet", subnet.Name, "key", key, "rv", subnet.ResourceVersion)
+	key := subnetKeyFrom(obj)
+	slog.Debug("DHCPSubnet updated", "subnet", obj.Name, "key", key, "rv", obj.ResourceVersion)
 
-	s.m.Lock()
-	defer s.m.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var sn *subnet
 
 	// VRF or circuit ID changed, so the subnet isn't reachable under the old key anymore
 	if old, ok := oldObj.(*dhcpapi.DHCPSubnet); ok {
 		if oldKey := subnetKeyFrom(old); oldKey != key {
-			s.deleteSubnetKeyLocked(oldKey, old.Name)
+			if cur := s.subnets[oldKey]; cur != nil && cur.uid == old.UID {
+				delete(s.subnets, oldKey)
+				if cur.uid == obj.UID {
+					sn = cur
+				} else {
+					cur.deleted.Store(true)
+				}
+			}
 		}
 	}
-	s.subnets[key] = subnet
-}
 
-func (s *Server) deleteSubnet(obj any) {
-	obj = unwrapTombstone(obj)
-	subnet, ok := obj.(*dhcpapi.DHCPSubnet)
-	if !ok {
-		slog.Warn("Unexpected deleted object in DHCPSubnet informer, ignoring", "type", fmt.Sprintf("%T", obj))
+	if cur := s.subnets[key]; cur != nil && cur != sn {
+		if sn == nil && cur.uid == obj.UID {
+			sn = cur
+		} else {
+			// recreated with the same name or another subnet now uses the same VRF and circuit ID
+			cur.deleted.Store(true)
+		}
+	}
+
+	if sn == nil {
+		s.subnets[key] = newSubnet(obj)
 
 		return
 	}
 
-	key := subnetKeyFrom(subnet)
-	slog.Debug("DHCPSubnet deleted", "subnet", subnet.Name, "key", key)
-
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	s.deleteSubnetKeyLocked(key, subnet.Name)
+	s.subnets[key] = sn
+	sn.set(obj)
 }
 
-func (s *Server) deleteSubnetKeyLocked(key, name string) {
-	if cur, ok := s.subnets[key]; ok && cur.Name == name {
+func (s *Server) deleteSubnet(deletedObj any) {
+	deletedObj = unwrapTombstone(deletedObj)
+	obj, ok := deletedObj.(*dhcpapi.DHCPSubnet)
+	if !ok {
+		slog.Warn("Unexpected deleted object in DHCPSubnet informer, ignoring", "type", fmt.Sprintf("%T", deletedObj))
+
+		return
+	}
+
+	key := subnetKeyFrom(obj)
+	slog.Debug("DHCPSubnet deleted", "subnet", obj.Name, "key", key)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if cur := s.subnets[key]; cur != nil && cur.uid == obj.UID {
 		delete(s.subnets, key)
+		cur.deleted.Store(true)
 	}
 }
 
@@ -187,8 +207,8 @@ func (s *Server) upsertSwitch(obj any) {
 		}
 	}
 
-	s.m.Lock()
-	defer s.m.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if oldIP := s.switchToIP[sw.Name]; oldIP != "" && oldIP != newIP {
 		delete(s.switchToIP, sw.Name)
@@ -210,54 +230,11 @@ func (s *Server) deleteSwitch(obj any) {
 	}
 	slog.Debug("Switch deleted", "switch", sw.Name)
 
-	s.m.Lock()
-	defer s.m.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if oldIP := s.switchToIP[sw.Name]; oldIP != "" {
 		delete(s.switchToIP, sw.Name)
 		delete(s.relayAllowlist, oldIP)
 	}
-}
-
-func (s *Server) updateSubnet(ctx context.Context, subnet *dhcpapi.DHCPSubnet, mutate func(subnet *dhcpapi.DHCPSubnet) error) error {
-	uid := subnet.UID
-	subnetName := subnet.Name
-
-	attempt := 0
-	if err := retry.RetryOnConflict(wait.Backoff{
-		Steps:    10,
-		Duration: 10 * time.Millisecond,
-		Factor:   1.0,
-		Jitter:   0.1,
-	}, func() error {
-		// skip log on a first retry
-		if attempt > 1 {
-			slog.Debug("Fetching latest to update status", "subnet", subnetName)
-		}
-		// fetch latest subnet if it's a retry
-		if attempt > 0 {
-			if err := s.kube.Get(ctx, kclient.ObjectKeyFromObject(subnet), subnet); err != nil {
-				return fmt.Errorf("fetching latest subnet %s: %w", subnetName, err)
-			}
-
-			if subnet.UID != uid {
-				return fmt.Errorf("subnet %s UID mismatch", subnetName) //nolint:err113
-			}
-		}
-		attempt++
-
-		if err := mutate(subnet); err != nil {
-			return fmt.Errorf("mutating subnet %s: %w", subnetName, err)
-		}
-
-		if err := s.kube.Status().Update(ctx, subnet); err != nil {
-			return fmt.Errorf("updating subnet %s (res %s gen %d): %w", subnetName, subnet.ResourceVersion, subnet.Generation, err)
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("retrying subnet %s update: %w", subnetName, err)
-	}
-
-	return nil
 }

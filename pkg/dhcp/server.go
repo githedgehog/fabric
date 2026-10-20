@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	toolscache "k8s.io/client-go/tools/cache"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,10 +23,10 @@ type Server struct {
 	Config dhcpcfg.ServerConfig
 
 	kube           kclient.Client
-	subnets        map[string]*dhcpapi.DHCPSubnet
+	subnets        map[string]*subnet
 	switchToIP     map[string]string   // switch name → relay IP (for cleanup)
 	relayAllowlist map[string]struct{} // known leaf relay IPs
-	m              sync.RWMutex
+	mu             sync.RWMutex        // guards the maps only, never held while taking subnet.mu
 
 	boundIfIndex int         // ifindex of ListenInterface at startup (0 when listening on an IP)
 	serveStopped atomic.Bool // set when the coredhcp serve loop exits
@@ -38,7 +37,7 @@ func (s *Server) Run(ctx context.Context) error {
 	defer cancel()
 
 	if s.subnets == nil {
-		s.subnets = map[string]*dhcpapi.DHCPSubnet{}
+		s.subnets = map[string]*subnet{}
 	}
 	if s.switchToIP == nil {
 		s.switchToIP = map[string]string{}
