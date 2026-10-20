@@ -44,12 +44,23 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "all fields set",
-			data: new("listenInterface: enp2s1:67\nanyDeviceOnMgmt: true\nhealthListen: 127.0.0.1:9090\n"),
+			data: new("listenInterface: enp2s1:67\nanyDeviceOnMgmt: true\nhealthListen: 127.0.0.1:9090\ncontrolVIP: 172.30.0.1/32\n"),
 			want: &config.ServerConfig{
 				ListenInterface: "enp2s1:67",
 				AnyDeviceOnMgmt: true,
 				HealthListen:    "127.0.0.1:9090",
+				ControlVIP:      "172.30.0.1/32",
 			},
+		},
+		{
+			name:    "control vip without prefix length",
+			data:    new("controlVIP: 172.30.0.1\n"),
+			wantErr: true,
+		},
+		{
+			name:    "control vip ipv6",
+			data:    new("controlVIP: fd00::1/128\n"),
+			wantErr: true,
 		},
 		{
 			name:    "unknown field",

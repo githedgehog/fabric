@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net"
+	"net/netip"
 	"os"
 	"strconv"
 
@@ -31,6 +32,9 @@ type ServerConfig struct {
 	AnyDeviceOnMgmt bool `json:"anyDeviceOnMgmt,omitempty"`
 	// HealthListen is the address for the liveness/readiness HTTP server, ":8080" if not set
 	HealthListen string `json:"healthListen,omitempty"`
+	// ControlVIP is the control VIP prefix (e.g. "172.30.0.1/32"), the relay target on all leaves, used as the DHCP server
+	// identifier. If not set, the source address of the route to the relay is looked up for every request.
+	ControlVIP string `json:"controlVIP,omitempty"`
 }
 
 // Load reads the config from path. A missing file means all defaults, while a file that can't be read or parsed, or
@@ -84,5 +88,28 @@ func (cfg *ServerConfig) Validate() error {
 		return fmt.Errorf("%w: healthListen %q: port must be 1-65535", ErrInvalidConfig, cfg.HealthListen)
 	}
 
+	if cfg.ControlVIP != "" {
+		if _, err := cfg.ControlVIPAddr(); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// ControlVIPAddr returns the control VIP address, or an invalid netip.Addr if it isn't set
+func (cfg *ServerConfig) ControlVIPAddr() (netip.Addr, error) {
+	if cfg.ControlVIP == "" {
+		return netip.Addr{}, nil
+	}
+
+	prefix, err := netip.ParsePrefix(cfg.ControlVIP)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("%w: controlVIP %q: %w", ErrInvalidConfig, cfg.ControlVIP, err)
+	}
+	if !prefix.Addr().Is4() {
+		return netip.Addr{}, fmt.Errorf("%w: controlVIP %q: must be IPv4", ErrInvalidConfig, cfg.ControlVIP)
+	}
+
+	return prefix.Addr(), nil
 }

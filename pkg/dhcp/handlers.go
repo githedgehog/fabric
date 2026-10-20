@@ -187,6 +187,12 @@ func (s *Server) handleDHCP4(ctx context.Context, sn *subnet, req, resp *dhcpv4.
 
 	switch req.MessageType() { //nolint:exhaustive
 	case dhcpv4.MessageTypeDiscover, dhcpv4.MessageTypeRequest:
+		// before the write, so a failure doesn't leave a lease the client never gets offered
+		serverID, err := s.serverIdentifier(req.GatewayIPAddr)
+		if err != nil {
+			return fmt.Errorf("getting server identifier: %w", err)
+		}
+
 		ip, subnet, err := sn.lease(ctx, s.kube, req)
 		if err != nil {
 			return fmt.Errorf("updating subnet %s to allocate: %w", sn.obj.Load().Name, err)
@@ -200,7 +206,7 @@ func (s *Server) handleDHCP4(ctx context.Context, sn *subnet, req, resp *dhcpv4.
 		}
 		ipNet.IP = net.IP(ip.AsSlice())
 
-		if err := updateResponse(req, resp, subnet, ipNet); err != nil {
+		if err := updateResponse(req, resp, subnet, ipNet, serverID); err != nil {
 			return fmt.Errorf("updating response: %w", err)
 		}
 	case dhcpv4.MessageTypeRelease, dhcpv4.MessageTypeDecline:
