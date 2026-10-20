@@ -53,6 +53,26 @@ func request(t *testing.T, id int, requested, ciaddr string) *dhcpv4.DHCPv4 {
 	return req
 }
 
+// allocateIn allocates and records the entry the way a write would
+func allocateIn(t *testing.T, subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (netip.Addr, error) {
+	t.Helper()
+
+	sp := newSubnetSpec(subnet)
+	require.NoError(t, sp.err)
+
+	ip, entry, err := allocate(subnet, sp, req)
+	if err != nil {
+		return netip.Addr{}, err
+	}
+
+	if subnet.Status.Allocated == nil {
+		subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
+	}
+	subnet.Status.Allocated[req.ClientHWAddr.String()] = entry
+
+	return ip, nil
+}
+
 func TestAllocateRequest(t *testing.T) {
 	newSubnet := func() *dhcpapi.DHCPSubnet {
 		return &dhcpapi.DHCPSubnet{
@@ -133,7 +153,7 @@ func TestAllocateRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			subnet := newSubnet()
 
-			got, err := allocate(subnet, tt.req(t))
+			got, err := allocateIn(t, subnet, tt.req(t))
 			if tt.want == "" {
 				require.ErrorIs(t, err, ErrRequestedIPUnavailable)
 				assert.Equal(t, newSubnet().Status, subnet.Status, "nothing is recorded on NAK")
@@ -164,7 +184,7 @@ func TestAllocateDiscoverIgnoresUnavailableRequestedIP(t *testing.T) {
 	discover := req(1)
 	discover.UpdateOption(dhcpv4.OptRequestedIPAddress(net.ParseIP("10.0.0.100")))
 
-	got, err := allocate(subnet, discover)
+	got, err := allocateIn(t, subnet, discover)
 	require.NoError(t, err)
 	assert.Equal(t, "10.0.0.101", got.String())
 }
@@ -382,7 +402,7 @@ func TestAllocate(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			for idx, expectedIP := range tt.expected {
-				allocatedIP, err := allocate(tt.subnet, req(idx))
+				allocatedIP, err := allocateIn(t, tt.subnet, req(idx))
 				assert.NoError(t, err)
 				assert.Equalf(t, expectedIP.String(), allocatedIP.String(), "ips for mac %s", mac(idx))
 			}

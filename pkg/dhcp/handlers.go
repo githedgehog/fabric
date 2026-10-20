@@ -194,7 +194,7 @@ func (s *Server) handleDHCP4(ctx context.Context, sn *subnet, req, resp *dhcpv4.
 			return fmt.Errorf("getting server identifier: %w", err)
 		}
 
-		ip, subnet, err := sn.lease(ctx, s.kube, req)
+		ip, sp, err := sn.lease(ctx, s.kube, req)
 		if errors.Is(err, ErrRequestedIPUnavailable) {
 			slog.Info("NAK", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
 			nakResponse(req, resp, serverID)
@@ -207,20 +207,11 @@ func (s *Server) handleDHCP4(ctx context.Context, sn *subnet, req, resp *dhcpv4.
 
 		slog.Info("Allocated", append(reqSummary(req, vrf, circuitID, remoteID), "ip", ip)...)
 
-		_, ipNet, err := net.ParseCIDR(subnet.Spec.CIDRBlock)
-		if err != nil {
-			return fmt.Errorf("parsing subnet %s: %w", subnet.Name, err)
-		}
-		ipNet.IP = net.IP(ip.AsSlice())
-
-		if err := updateResponse(req, resp, subnet, ipNet, serverID); err != nil {
-			return fmt.Errorf("updating response: %w", err)
-		}
+		sp.respond(req, resp, ip, serverID)
 	case dhcpv4.MessageTypeRelease, dhcpv4.MessageTypeDecline:
-		if _, err := sn.persist(ctx, s.kube, func(obj *dhcpapi.DHCPSubnet) error {
-			delete(obj.Status.Allocated, req.ClientHWAddr.String())
-
-			return nil
+		mac := req.ClientHWAddr.String()
+		if err := sn.persist(ctx, s.kube, func(*dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
+			return func(upd *dhcpapi.DHCPSubnet) { delete(upd.Status.Allocated, mac) }, nil
 		}); err != nil {
 			return fmt.Errorf("updating subnet %s to release: %w", sn.obj.Load().Name, err)
 		}

@@ -43,6 +43,7 @@ type subnet struct {
 	mu      sync.Mutex
 	obj     atomic.Pointer[dhcpapi.DHCPSubnet]
 	deleted atomic.Bool
+	spec    *subnetSpec // guarded by mu
 }
 
 func newSubnet(obj *dhcpapi.DHCPSubnet) *subnet {
@@ -74,13 +75,15 @@ func (sn *subnet) set(obj *dhcpapi.DHCPSubnet) bool {
 	}
 }
 
-// persist applies mutate to a copy of the latest known subnet and writes it, refetching and reapplying on conflicts
-// with other writers. It returns the stored subnet.
-func (sn *subnet) persist(ctx context.Context, kube kclient.Client, mutate func(*dhcpapi.DHCPSubnet) error) (*dhcpapi.DHCPSubnet, error) {
+// decideFunc looks at the latest known subnet, which must not be modified, and returns the change to write
+type decideFunc func(cur *dhcpapi.DHCPSubnet) (apply func(upd *dhcpapi.DHCPSubnet), err error)
+
+// persist writes the change decided on the latest known subnet, refetching and deciding again on conflicts with other
+// writers
+func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decideFunc) error {
 	sn.mu.Lock()
 	defer sn.mu.Unlock()
 
-	var res *dhcpapi.DHCPSubnet
 	attempt := 0
 	if err := retry.RetryOnConflict(updateBackoff, func() error {
 		if sn.deleted.Load() {
@@ -101,13 +104,16 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, mutate func(
 		}
 		attempt++
 
+		apply, err := decide(base)
+		if err != nil {
+			return fmt.Errorf("deciding on subnet %s: %w", base.Name, err)
+		}
+
 		upd := base.DeepCopy()
 		if upd.Status.Allocated == nil {
 			upd.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
 		}
-		if err := mutate(upd); err != nil {
-			return fmt.Errorf("mutating subnet %s: %w", upd.Name, err)
-		}
+		apply(upd)
 
 		if err := kube.Status().Update(ctx, upd); err != nil {
 			if kapierrors.IsConflict(err) {
@@ -119,29 +125,46 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, mutate func(
 
 		// upd now holds the stored object
 		sn.set(upd)
-		res = upd
 
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("retrying subnet update: %w", err)
+		return fmt.Errorf("retrying subnet update: %w", err)
 	}
 
-	return res, nil
+	return nil
 }
 
-func (sn *subnet) lease(ctx context.Context, kube kclient.Client, req *dhcpv4.DHCPv4) (netip.Addr, *dhcpapi.DHCPSubnet, error) {
+// specFor must be called with mu held
+func (sn *subnet) specFor(obj *dhcpapi.DHCPSubnet) *subnetSpec {
+	// status writes don't bump the generation, generation 0 is only in tests
+	if sn.spec == nil || obj.Generation == 0 || sn.spec.gen != obj.Generation {
+		sn.spec = newSubnetSpec(obj)
+	}
+
+	return sn.spec
+}
+
+// lease allocates an IP for the client and returns it with the spec of the subnet version it was stored in
+func (sn *subnet) lease(ctx context.Context, kube kclient.Client, req *dhcpv4.DHCPv4) (netip.Addr, *subnetSpec, error) {
 	var ip netip.Addr
-	obj, err := sn.persist(ctx, kube, func(obj *dhcpapi.DHCPSubnet) error {
-		var err error
-		if ip, err = allocate(obj, req); err != nil {
-			return fmt.Errorf("allocating ip: %w", err)
+	var sp *subnetSpec
+	if err := sn.persist(ctx, kube, func(cur *dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
+		sp = sn.specFor(cur)
+		if sp.err != nil {
+			return nil, sp.err
 		}
 
-		return nil
-	})
-	if err != nil {
+		var entry dhcpapi.DHCPAllocated
+		var err error
+		if ip, entry, err = allocate(cur, sp, req); err != nil {
+			return nil, fmt.Errorf("allocating ip: %w", err)
+		}
+		mac := req.ClientHWAddr.String()
+
+		return func(upd *dhcpapi.DHCPSubnet) { upd.Status.Allocated[mac] = entry }, nil
+	}); err != nil {
 		return netip.Addr{}, nil, err
 	}
 
-	return ip, obj, nil
+	return ip, sp, nil
 }
