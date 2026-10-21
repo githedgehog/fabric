@@ -59,13 +59,14 @@ securityContext:
   runAsUser: 0
 
 # The memory limit leaves headroom for request bursts: every request waiting for
-# a lease write (up to requestTimeout) holds some memory.
+# a lease write (up to requestTimeout) holds some memory. The CPU limit leaves
+# headroom for a restore storm, so it isn't throttled.
 resources:
   requests:
     cpu: 100m
     memory: 256Mi
   limits:
-    cpu: 1000m
+    cpu: 2000m
     memory: 2Gi
 
 nodeSelector: {}
