@@ -7,6 +7,7 @@ import (
 	"context"
 	"math/rand/v2"
 	"net/netip"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -353,6 +354,117 @@ func TestSubnetLease(t *testing.T) {
 				assert.Equal(t, tt.static, stored.Expiry.IsZero())
 			})
 		}
+	})
+}
+
+func TestSubnetCleanup(t *testing.T) {
+	live := dhcpapi.DHCPAllocated{IP: "10.0.0.100", Expiry: kmetav1.NewTime(time.Now().Add(time.Hour))}
+	expired := dhcpapi.DHCPAllocated{IP: "10.0.0.101", Expiry: kmetav1.NewTime(time.Now().Add(-time.Second))}
+	static := dhcpapi.DHCPAllocated{IP: "10.0.0.50"}
+
+	for _, tt := range []struct {
+		name     string
+		stored   map[string]dhcpapi.DHCPAllocated
+		statics  map[string]dhcpapi.DHCPSubnetStatic
+		invalid  bool
+		expired  []string
+		unstatic []string
+	}{
+		{
+			name:    "nothing to clean up",
+			stored:  map[string]dhcpapi.DHCPAllocated{mac(0): live, mac(1): static},
+			statics: map[string]dhcpapi.DHCPSubnetStatic{mac(1): {IP: "10.0.0.50"}},
+		},
+		{
+			name:    "expired lease",
+			stored:  map[string]dhcpapi.DHCPAllocated{mac(0): live, mac(1): expired},
+			expired: []string{mac(1)},
+		},
+		{
+			name:     "static removed",
+			stored:   map[string]dhcpapi.DHCPAllocated{mac(0): live, mac(1): static},
+			unstatic: []string{mac(1)},
+		},
+		{
+			name:     "static changed",
+			stored:   map[string]dhcpapi.DHCPAllocated{mac(1): static},
+			statics:  map[string]dhcpapi.DHCPSubnetStatic{mac(1): {IP: "10.0.0.51"}},
+			unstatic: []string{mac(1)},
+		},
+		{
+			name:    "invalid subnet keeps entries without expiry",
+			stored:  map[string]dhcpapi.DHCPAllocated{mac(1): expired, mac(2): static},
+			invalid: true,
+			expired: []string{mac(1)},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := testLeaseSubnet()
+			obj.Status.Allocated = tt.stored
+			obj.Spec.Static = tt.statics
+			if tt.invalid {
+				obj.Spec.StartIP = "not-an-ip"
+			}
+			kube, sn, calls := newFakeKube(t, obj, nil)
+
+			start := time.Now()
+			gotExpired, gotUnstatic, err := sn.cleanup(t.Context(), kube, testCfg)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tt.expired, gotExpired)
+			assert.ElementsMatch(t, tt.unstatic, gotUnstatic)
+
+			if len(tt.expired) == 0 && len(tt.unstatic) == 0 {
+				assert.EqualValues(t, 0, calls.updates.Load())
+
+				return
+			}
+			assert.EqualValues(t, 1, calls.updates.Load())
+
+			allocated := getStored(t, kube).Status.Allocated
+			assert.Len(t, allocated, len(tt.stored)-len(tt.expired))
+			for _, mac := range tt.expired {
+				assert.NotContains(t, allocated, mac)
+			}
+			for _, mac := range tt.unstatic {
+				assert.WithinDuration(t, start.Add(time.Hour+5*time.Minute), allocated[mac].Expiry.Time, 2*time.Second)
+			}
+			for mac, entry := range tt.stored {
+				if !slices.Contains(tt.expired, mac) && !slices.Contains(tt.unstatic, mac) {
+					assert.Equal(t, entry.Expiry.Unix(), allocated[mac].Expiry.Unix(), "%s is untouched", mac)
+				}
+			}
+		})
+	}
+
+	t.Run("expired offers are dropped", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		cfg := &dhcpcfg.ServerConfig{OfferTTL: kmetav1.Duration{Duration: time.Nanosecond}}
+
+		_, _, err := sn.lease(t.Context(), kube, cfg, req(0))
+		require.NoError(t, err)
+		time.Sleep(time.Millisecond)
+		_, _, err = sn.cleanup(t.Context(), kube, testCfg)
+		require.NoError(t, err)
+
+		assert.Empty(t, sn.offers)
+		assert.EqualValues(t, 0, calls.updates.Load())
+	})
+
+	t.Run("write has the request timeout", func(t *testing.T) {
+		obj := testLeaseSubnet()
+		obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(0): expired}
+		kube, sn, calls := newFakeKube(t, obj, func(ctx context.Context, _ kclient.Client) error {
+			deadline, ok := ctx.Deadline()
+			assert.True(t, ok, "has a deadline")
+			assert.WithinDuration(t, time.Now().Add(testCfg.RequestTimeout.Duration), deadline, time.Second)
+
+			return nil
+		})
+		s := &Server{Config: *testCfg, kube: kube}
+
+		s.cleanupSubnet(t.Context(), sn)
+		assert.EqualValues(t, 1, calls.updates.Load())
+		assert.Empty(t, getStored(t, kube).Status.Allocated)
 	})
 }
 
