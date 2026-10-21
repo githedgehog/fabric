@@ -4,7 +4,10 @@
 package dhcp
 
 import (
+	"context"
+	"log/slog"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,7 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	"golang.org/x/time/rate"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestHandler4NAK(t *testing.T) {
@@ -60,6 +65,188 @@ func TestHandler4Timeout(t *testing.T) {
 	assert.Nil(t, got, "request should be dropped instead of replying")
 	assert.True(t, stop)
 	assert.EqualValues(t, 1, s.budget.expired.Load())
+}
+
+type logRecords struct {
+	mu      sync.Mutex
+	records []slog.Record
+}
+
+func (h *logRecords) Enabled(context.Context, slog.Level) bool { return true }
+func (h *logRecords) WithAttrs([]slog.Attr) slog.Handler       { return h }
+func (h *logRecords) WithGroup(string) slog.Handler            { return h }
+
+func (h *logRecords) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.records = append(h.records, r.Clone())
+
+	return nil
+}
+
+func (h *logRecords) take() []slog.Record {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	res := h.records
+	h.records = nil
+
+	return res
+}
+
+func captureLogs(t *testing.T) *logRecords {
+	t.Helper()
+
+	h := &logRecords{}
+	prev := slog.Default()
+	slog.SetDefault(slog.New(h))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	return h
+}
+
+func recordAttrs(r slog.Record) map[string]string {
+	res := map[string]string{}
+	r.Attrs(func(a slog.Attr) bool {
+		res[a.Key] = a.Value.String()
+
+		return true
+	})
+
+	return res
+}
+
+func TestHandler4Log(t *testing.T) {
+	kube, sn, _ := newFakeKube(t, testLeaseSubnet(), nil)
+	newServer := func(kube kclient.Client) *Server {
+		return &Server{
+			Config:     *testCfg,
+			kube:       kube,
+			subnets:    map[string]*subnet{subnetKey("", ""): sn},
+			controlVIP: net.ParseIP("172.30.0.1").To4(),
+		}
+	}
+	logs := captureLogs(t)
+
+	handle := func(t *testing.T, s *Server, req *dhcpv4.DHCPv4) (slog.Record, map[string]string) {
+		t.Helper()
+
+		handler, err := s.setupDHCP4Plugin(t.Context())()
+		require.NoError(t, err)
+		resp, err := dhcpv4.NewReplyFromRequest(req)
+		require.NoError(t, err)
+
+		logs.take()
+		handler(req, resp)
+		records := logs.take()
+		require.Len(t, records, 1, "exactly one line per request")
+
+		return records[0], recordAttrs(records[0])
+	}
+
+	s := newServer(kube)
+	for _, tt := range []struct {
+		name  string
+		req   func(t *testing.T) *dhcpv4.DHCPv4
+		msg   string
+		level slog.Level
+		attrs map[string]string
+	}{
+		{
+			name:  "offer",
+			req:   func(*testing.T) *dhcpv4.DHCPv4 { return req(0) },
+			msg:   "Offered",
+			attrs: map[string]string{"type": "discover", "subnet": "a", "ip": "10.0.0.100"},
+		},
+		{
+			name:  "ack with a write",
+			req:   func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "10.0.0.100", "") },
+			msg:   "Acked",
+			attrs: map[string]string{"type": "request", "ip": "10.0.0.100", "written": "true"},
+		},
+		{
+			name:  "ack covered by the stored lease",
+			req:   func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "", "10.0.0.100") },
+			msg:   "Acked",
+			attrs: map[string]string{"ip": "10.0.0.100", "written": "false"},
+		},
+		{
+			name: "offer of another IP than requested",
+			req: func(*testing.T) *dhcpv4.DHCPv4 {
+				discover := req(1)
+				discover.UpdateOption(dhcpv4.OptRequestedIPAddress(net.ParseIP("10.0.0.100")))
+
+				return discover
+			},
+			msg:   "Offered",
+			attrs: map[string]string{"ip": "10.0.0.101", "reason": "requested 10.0.0.100 used by " + mac(0)},
+		},
+		{
+			name:  "nak",
+			req:   func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 2, "10.0.0.100", "") },
+			msg:   "NAKed",
+			attrs: map[string]string{"subnet": "a", "reason": "requested IP unavailable: 10.0.0.100 used by " + mac(0)},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			record, attrs := handle(t, s, tt.req(t))
+			assert.Equal(t, tt.msg, record.Message)
+			assert.Equal(t, slog.LevelInfo, record.Level)
+			assert.Contains(t, attrs, "took")
+			for key, value := range tt.attrs {
+				assert.Equal(t, value, attrs[key], key)
+			}
+		})
+	}
+
+	t.Run("over the update budget", func(t *testing.T) {
+		s := newServer(withUpdateBudget(kube, rate.NewLimiter(rate.Every(time.Hour), 0), &budgetStats{}))
+
+		record, attrs := handle(t, s, request(t, 3, "", ""))
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelDebug, record.Level)
+		assert.Equal(t, "over the update budget", attrs["reason"])
+	})
+
+	t.Run("no subnet", func(t *testing.T) {
+		s := newServer(kube)
+		s.subnets = map[string]*subnet{}
+
+		record, attrs := handle(t, s, req(0))
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelInfo, record.Level)
+		assert.Equal(t, "no subnet", attrs["reason"])
+	})
+
+	t.Run("unknown relay", func(t *testing.T) {
+		discover := req(0)
+		discover.GatewayIPAddr = net.ParseIP("192.168.99.1")
+
+		record, attrs := handle(t, newServer(kube), discover)
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelError, record.Level)
+		assert.Equal(t, "relay validation failed", attrs["reason"])
+		assert.Equal(t, "192.168.99.1", attrs["giaddr"])
+	})
+
+	t.Run("duplicate subnets for a Cumulus relay", func(t *testing.T) {
+		s := newServer(kube)
+		s.subnets = map[string]*subnet{
+			"a": newSubnet(testSubnet("a", "Vlan1000", "1")),
+			"b": newSubnet(testSubnet("b", "Vlan1000", "1")),
+		}
+		discover := req(0)
+		discover.UpdateOption(dhcpv4.OptRelayAgentInfo(
+			dhcpv4.OptGeneric(dhcpv4.AgentCircuitIDSubOption, []byte("vlan1000")),
+			dhcpv4.OptGeneric(dhcpv4.AgentRemoteIDSubOption, []byte("cumulus:leaf-01")),
+		))
+
+		record, attrs := handle(t, s, discover)
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelWarn, record.Level)
+		assert.Contains(t, attrs["reason"], "duplicate subnets for Cumulus dhcp-relay")
+	})
 }
 
 func TestHandler4Drops(t *testing.T) {

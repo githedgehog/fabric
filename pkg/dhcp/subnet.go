@@ -217,14 +217,23 @@ func (sn *subnet) specFor(obj *dhcpapi.DHCPSubnet) *subnetSpec {
 	return sn.spec
 }
 
-// lease picks an IP for the client and returns it with the spec of the subnet version it was decided on. A DISCOVER
-// only records an offer in memory. A REQUEST stores the lease with a padded expiry, and skips the write if the stored
-// entry has the same IP and hostname and doesn't expire before the lease given to the client ends.
-func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.ServerConfig, req *dhcpv4.DHCPv4) (netip.Addr, *subnetSpec, error) {
+// leaseInfo is how a lease was decided, for the reply and the request log
+type leaseInfo struct {
+	spec      *subnetSpec // of the subnet version it was decided on
+	written   bool        // the lease was stored, it isn't if the stored entry already covers it
+	notWanted string      // why the IP the client asked for wasn't given (DISCOVER)
+}
+
+// lease picks an IP for the client and returns it with how it was decided. A DISCOVER only records an offer in memory.
+// A REQUEST stores the lease with a padded expiry, and skips the write if the stored entry has the same IP and
+// hostname and doesn't expire before the lease given to the client ends.
+func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.ServerConfig, req *dhcpv4.DHCPv4) (netip.Addr, leaseInfo, error) {
 	var ip netip.Addr
-	var sp *subnetSpec
+	info := leaseInfo{}
 	if err := sn.persist(ctx, kube, func(cur *dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
-		sp = sn.specFor(cur)
+		info.written = false
+		sp := sn.specFor(cur)
+		info.spec = sp
 		if sp.err != nil {
 			return nil, sp.err
 		}
@@ -234,7 +243,7 @@ func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.S
 
 		var static bool
 		var err error
-		if ip, static, err = allocate(cur, sp, sn.offers, req); err != nil {
+		if ip, static, info.notWanted, err = allocate(cur, sp, sn.offers, req); err != nil {
 			return nil, fmt.Errorf("allocating ip: %w", err)
 		}
 
@@ -253,12 +262,15 @@ func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.S
 			return nil, errNoChange
 		}
 
-		return func(upd *dhcpapi.DHCPSubnet) { upd.Status.Allocated[mac] = entry }, nil
+		return func(upd *dhcpapi.DHCPSubnet) {
+			upd.Status.Allocated[mac] = entry
+			info.written = true
+		}, nil
 	}); err != nil {
-		return netip.Addr{}, nil, err
+		return netip.Addr{}, leaseInfo{}, err
 	}
 
-	return ip, sp, nil
+	return ip, info, nil
 }
 
 // cleanup removes the expired leases and gives a normal expiry to the entries stored without one that aren't the MAC's

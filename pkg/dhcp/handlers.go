@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/coredhcp/coredhcp/handler"
 	"github.com/coredhcp/coredhcp/plugins"
@@ -128,7 +129,15 @@ func (s *Server) checkRelayedRequest(giaddr net.IP) error {
 func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 	return func(args ...string) (handler.Handler4, error) {
 		return func(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
-			if !s.handleRequest(ctx, req, resp) {
+			start := time.Now()
+			relay := relayInfoFrom(req)
+
+			out := s.handleRequest(ctx, req, resp, relay)
+			if out.msg != "" {
+				attrs := append(reqSummary(req, relay), out.attrs...)
+				slog.Log(ctx, out.level, out.msg, append(attrs, "took", time.Since(start))...)
+			}
+			if !out.reply {
 				return nil, true
 			}
 
@@ -137,14 +146,24 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 	}
 }
 
-// handleRequest fills in the reply and reports whether to send it
-func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4) bool {
-	relay := relayInfoFrom(req)
+// outcome is what happened to a request, logged as a single line once it's handled
+type outcome struct {
+	level slog.Level
+	msg   string // nothing is logged if empty
+	attrs []any
+	reply bool
+}
 
-	// returns false after a panic, so the request is dropped
+func drop(level slog.Level, reason string, attrs ...any) outcome {
+	return outcome{level: level, msg: "Dropped", attrs: append([]any{"reason", reason}, attrs...)}
+}
+
+// handleRequest fills in the reply and returns the outcome
+func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4, relay relayInfo) outcome {
+	// returns the zero outcome after a panic, so the request is dropped without another log line
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("Panicked, dropping", append(reqSummary(req, relay), "err", r)...)
+			slog.Error("Dropped", append(reqSummary(req, relay), "reason", "panicked", "err", r)...)
 		}
 	}()
 
@@ -153,15 +172,12 @@ func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4) bo
 	defer cancel()
 
 	if violation := s.checkRelayedRequest(req.GatewayIPAddr); violation != nil {
-		slog.Error("DHCP relay validation failed, dropping",
-			append(reqSummary(req, relay), "giaddr", req.GatewayIPAddr.String(), "reason", violation)...)
-
-		return false
+		return drop(slog.LevelError, "relay validation failed", "giaddr", req.GatewayIPAddr.String(), "err", violation)
 	}
 
 	sn, err := s.findSubnet(relay)
 	if err != nil {
-		slog.Warn("Duplicate subnet found for Cumulus dhcp-relay, ignoring request", append(reqSummary(req, relay), "err", err)...)
+		return drop(slog.LevelWarn, err.Error())
 	}
 
 	// only use dhcp for onie and cumulus in the management subnet unless all devices are allowed
@@ -169,56 +185,69 @@ func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4) bo
 		classID := req.ClassIdentifier()
 		if !strings.HasPrefix(classID, onieClassIDPrefix) && classID != cumulusClassID {
 			// not logged to not spam the logs
-			return false
+			return outcome{}
 		}
 	}
 
 	if sn == nil {
-		slog.Info("No subnet found", reqSummary(req, relay)...)
-
-		return false
+		return drop(slog.LevelInfo, "no subnet")
 	}
 
-	slog.Info("Handling", reqSummary(req, relay)...)
+	name := sn.obj.Load().Name
+	withSubnet := func(out outcome) outcome {
+		out.attrs = append([]any{"subnet", name}, out.attrs...)
+
+		return out
+	}
 
 	switch req.MessageType() { //nolint:exhaustive
 	case dhcpv4.MessageTypeDiscover, dhcpv4.MessageTypeRequest:
 		// before the write, so a failure doesn't leave a lease the client never gets offered
 		serverID, err := s.serverIdentifier(req.GatewayIPAddr)
 		if err != nil {
-			return s.dropped(req, relay, fmt.Errorf("getting server identifier: %w", err))
+			return withSubnet(drop(slog.LevelError, "no server identifier", "err", err))
 		}
 
-		ip, sp, err := sn.lease(ctx, s.kube, &s.Config, req)
+		ip, info, err := sn.lease(ctx, s.kube, &s.Config, req)
 		if errors.Is(err, ErrRequestedIPUnavailable) {
-			slog.Info("NAK", append(reqSummary(req, relay), "err", err.Error())...)
 			nakResponse(req, resp, serverID)
 
-			return true
+			// without the wrapping context, the subnet is logged anyway
+			reason := err.Error()
+			if idx := strings.Index(reason, ErrRequestedIPUnavailable.Error()); idx > 0 {
+				reason = reason[idx:]
+			}
+
+			return withSubnet(outcome{level: slog.LevelInfo, msg: "NAKed", attrs: []any{"reason", reason}, reply: true})
 		}
 		if err != nil {
-			return s.dropped(req, relay, fmt.Errorf("updating subnet %s to allocate: %w", sn.obj.Load().Name, err))
+			return withSubnet(s.dropOnError(err))
 		}
 
-		slog.Info("Allocated", append(reqSummary(req, relay), "ip", ip)...)
+		info.spec.respond(req, resp, ip, serverID)
 
-		sp.respond(req, resp, ip, serverID)
+		attrs := []any{"ip", ip.String()}
+		if info.notWanted != "" {
+			attrs = append(attrs, "reason", info.notWanted)
+		}
+		if req.MessageType() == dhcpv4.MessageTypeDiscover {
+			return withSubnet(outcome{level: slog.LevelInfo, msg: "Offered", attrs: attrs, reply: true})
+		}
+
+		return withSubnet(outcome{level: slog.LevelInfo, msg: "Acked", attrs: append(attrs, "written", info.written), reply: true})
 	case dhcpv4.MessageTypeRelease, dhcpv4.MessageTypeDecline:
 		mac := req.ClientHWAddr.String()
 		if err := sn.persist(ctx, s.kube, func(*dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
 			return func(upd *dhcpapi.DHCPSubnet) { delete(upd.Status.Allocated, mac) }, nil
 		}); err != nil {
-			return s.dropped(req, relay, fmt.Errorf("updating subnet %s to release: %w", sn.obj.Load().Name, err))
+			return withSubnet(s.dropOnError(err))
 		}
 
-		slog.Info("Released", reqSummary(req, relay)...)
-
 		// TODO update response? wasn't done in a previous implementation
+		return withSubnet(outcome{level: slog.LevelInfo, msg: "Released", reply: true})
 	default:
-		return s.dropped(req, relay, fmt.Errorf("unsupported DHCP request type")) //nolint:err113
+		return withSubnet(drop(slog.LevelError, "unsupported message type"))
 	}
-
-	return true
 }
 
 var errDuplicateCumulusSubnet = errors.New("duplicate subnets for Cumulus dhcp-relay")
@@ -246,18 +275,18 @@ func (s *Server) findSubnet(relay relayInfo) (*subnet, error) {
 	return res, nil
 }
 
-// dropped logs why the request is dropped and returns false to drop it
-func (s *Server) dropped(req *dhcpv4.DHCPv4, relay relayInfo, err error) bool {
-	// overload drops are counted and reported periodically by reportBudget
+func (s *Server) dropOnError(err error) outcome {
 	switch {
+	// overload drops are counted and reported periodically by reportBudget
 	case errors.Is(err, errUpdateBudget):
-		slog.Debug("Over the update budget, dropping", append(reqSummary(req, relay), "err", err.Error())...)
+		return drop(slog.LevelDebug, "over the update budget", "err", err)
 	case errors.Is(err, context.DeadlineExceeded):
 		s.budget.expired.Add(1)
-		slog.Debug("Request timed out, dropping", append(reqSummary(req, relay), "err", err.Error())...)
-	default:
-		slog.Error("Error handling, dropping", append(reqSummary(req, relay), "err", err.Error())...)
-	}
 
-	return false
+		return drop(slog.LevelDebug, "timed out", "err", err)
+	case errors.Is(err, errSubnetDeleted):
+		return drop(slog.LevelInfo, "subnet deleted")
+	default:
+		return drop(slog.LevelError, "failed", "err", err)
+	}
 }
