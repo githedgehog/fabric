@@ -58,6 +58,8 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("starting coredhcp") //nolint:err113
 	}
+	s.serving.Store(true)
+
 	if err := srv.Wait(); err != nil {
 		return fmt.Errorf("waiting for coredhcp") //nolint:err113
 	}

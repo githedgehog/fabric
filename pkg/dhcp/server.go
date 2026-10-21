@@ -31,6 +31,7 @@ type Server struct {
 	budget         budgetStats
 
 	boundIfIndex int         // ifindex of ListenInterface at startup (0 when listening on an IP)
+	serving      atomic.Bool // set once coredhcp started after the initial sync, readiness waits for it
 	serveStopped atomic.Bool // set when the coredhcp serve loop exits
 }
 

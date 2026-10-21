@@ -117,3 +117,21 @@ func TestHealthzHandler(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), "unhealthy")
 	})
 }
+
+func TestReadyzHandler(t *testing.T) {
+	s := &Server{Config: listenOn("127.0.0.1")}
+
+	rec := httptest.NewRecorder()
+	s.readyzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	assert.Equal(t, http.StatusServiceUnavailable, rec.Code, "not ready before serving")
+
+	s.serving.Store(true)
+	rec = httptest.NewRecorder()
+	s.readyzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	assert.Equal(t, http.StatusOK, rec.Code, "ready once serving")
+
+	s.serveStopped.Store(true)
+	rec = httptest.NewRecorder()
+	s.readyzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	assert.Equal(t, http.StatusServiceUnavailable, rec.Code, "not ready once stopped")
+}
