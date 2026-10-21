@@ -20,6 +20,9 @@ func TestLoad(t *testing.T) {
 		HealthListen:       config.DefaultHealthListen,
 		LeaseExpiryPadding: kmetav1.Duration{Duration: config.DefaultLeaseExpiryPadding},
 		OfferTTL:           kmetav1.Duration{Duration: config.DefaultOfferTTL},
+		RequestTimeout:     kmetav1.Duration{Duration: config.DefaultRequestTimeout},
+		UpdateQPS:          config.DefaultUpdateQPS,
+		UpdateBurst:        config.DefaultUpdateQPS,
 	}
 
 	for _, tt := range []struct {
@@ -46,12 +49,15 @@ func TestLoad(t *testing.T) {
 				HealthListen:       config.DefaultHealthListen,
 				LeaseExpiryPadding: kmetav1.Duration{Duration: config.DefaultLeaseExpiryPadding},
 				OfferTTL:           kmetav1.Duration{Duration: config.DefaultOfferTTL},
+				RequestTimeout:     kmetav1.Duration{Duration: config.DefaultRequestTimeout},
+				UpdateQPS:          config.DefaultUpdateQPS,
+				UpdateBurst:        config.DefaultUpdateQPS,
 			},
 		},
 		{
 			name: "all fields set",
 			data: new("listenInterface: enp2s1:67\nanyDeviceOnMgmt: true\nhealthListen: 127.0.0.1:9090\ncontrolVIP: 172.30.0.1/32\n" +
-				"leaseExpiryPadding: 10m\nofferTTL: 1m30s\n"),
+				"leaseExpiryPadding: 10m\nofferTTL: 1m30s\nrequestTimeout: 3s\nupdateQPS: 75\nupdateBurst: 100\n"),
 			want: &config.ServerConfig{
 				ListenInterface:    "enp2s1:67",
 				AnyDeviceOnMgmt:    true,
@@ -59,7 +65,36 @@ func TestLoad(t *testing.T) {
 				ControlVIP:         "172.30.0.1/32",
 				LeaseExpiryPadding: kmetav1.Duration{Duration: 10 * time.Minute},
 				OfferTTL:           kmetav1.Duration{Duration: 90 * time.Second},
+				RequestTimeout:     kmetav1.Duration{Duration: 3 * time.Second},
+				UpdateQPS:          75,
+				UpdateBurst:        100,
 			},
+		},
+		{
+			name: "update burst defaults to update qps rounded up",
+			data: new("updateQPS: 2.5\n"),
+			want: func() *config.ServerConfig {
+				cfg := *defaults
+				cfg.UpdateQPS = 2.5
+				cfg.UpdateBurst = 3
+
+				return &cfg
+			}(),
+		},
+		{
+			name:    "negative request timeout",
+			data:    new("requestTimeout: -1s\n"),
+			wantErr: true,
+		},
+		{
+			name:    "negative update qps",
+			data:    new("updateQPS: -1\n"),
+			wantErr: true,
+		},
+		{
+			name:    "negative update burst",
+			data:    new("updateBurst: -1\n"),
+			wantErr: true,
 		},
 		{
 			name:    "negative lease expiry padding",

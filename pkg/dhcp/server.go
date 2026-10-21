@@ -28,6 +28,7 @@ type Server struct {
 	relayAllowlist map[string]struct{} // known leaf relay IPs
 	mu             sync.RWMutex        // guards the maps only, never held while taking subnet.mu
 	controlVIP     net.IP              // DHCP server identifier, looked up per request if nil
+	budget         budgetStats
 
 	boundIfIndex int         // ifindex of ListenInterface at startup (0 when listening on an IP)
 	serveStopped atomic.Bool // set when the coredhcp serve loop exits
@@ -57,7 +58,7 @@ func (s *Server) Run(ctx context.Context) error {
 		slog.Warn("Control VIP isn't configured, looking up the DHCP server identifier for every request")
 	}
 
-	kube, cache, err := newKube(ctx)
+	kube, cache, err := newKube(ctx, &s.Config, &s.budget)
 	if err != nil {
 		return err
 	}
@@ -117,6 +118,8 @@ func (s *Server) Run(ctx context.Context) error {
 			os.Exit(3) // TODO graceful handling
 		}
 	})
+
+	wg.Go(func() { s.reportBudget(ctx) })
 
 	wg.Wait()
 

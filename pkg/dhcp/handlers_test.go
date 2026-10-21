@@ -6,6 +6,7 @@ package dhcp
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +20,7 @@ func TestHandler4NAK(t *testing.T) {
 	obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(9): {IP: "10.0.0.100"}}
 	vip := net.ParseIP("172.30.0.1").To4()
 	s := &Server{
+		Config:     *testCfg,
 		subnets:    map[string]*subnet{subnetKey("", ""): newSubnet(obj)},
 		controlVIP: vip,
 	}
@@ -36,6 +38,28 @@ func TestHandler4NAK(t *testing.T) {
 	assert.True(t, got.YourIPAddr.IsUnspecified())
 	assert.Equal(t, vip, got.ServerIdentifier())
 	assert.Len(t, s.subnets[subnetKey("", "")].obj.Load().Status.Allocated, 1, "nothing is recorded on NAK")
+}
+
+func TestHandler4Timeout(t *testing.T) {
+	cfg := *testCfg
+	cfg.RequestTimeout.Duration = time.Nanosecond
+	s := &Server{
+		Config:     cfg,
+		subnets:    map[string]*subnet{subnetKey("", ""): newSubnet(testLeaseSubnet())},
+		controlVIP: net.ParseIP("172.30.0.1").To4(),
+	}
+
+	handler, err := s.setupDHCP4Plugin(t.Context())()
+	require.NoError(t, err)
+
+	req := request(t, 0, "", "")
+	resp, err := dhcpv4.NewReplyFromRequest(req)
+	require.NoError(t, err)
+
+	got, stop := handler(req, resp)
+	assert.Nil(t, got, "request should be dropped instead of replying")
+	assert.True(t, stop)
+	assert.EqualValues(t, 1, s.budget.expired.Load())
 }
 
 func TestHandler4Drops(t *testing.T) {
@@ -83,6 +107,7 @@ func TestHandler4Drops(t *testing.T) {
 				subnets[key] = newSubnet(obj)
 			}
 			s := &Server{
+				Config:         *testCfg,
 				subnets:        subnets,
 				relayAllowlist: map[string]struct{}{"10.0.0.1": {}},
 				controlVIP:     net.ParseIP("172.30.0.1"),

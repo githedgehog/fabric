@@ -4,15 +4,19 @@
 package dhcp
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"golang.org/x/time/rate"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	toolscache "k8s.io/client-go/tools/cache"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func newTestServer() *Server {
@@ -295,5 +299,42 @@ func TestSwitchHandler(t *testing.T) {
 
 		assert.Empty(t, s.relayAllowlist)
 		assert.Empty(t, s.switchToIP)
+	})
+}
+
+func TestUpdateBudget(t *testing.T) {
+	t.Run("update over the budget fails right away", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		stats := &budgetStats{}
+		kube := withUpdateBudget(fake, rate.NewLimiter(rate.Every(time.Hour), 1), stats)
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
+		start := time.Now()
+		_, _, err = sn.lease(ctx, kube, testCfg, request(t, 1, "", ""))
+		require.ErrorIs(t, err, errUpdateBudget)
+		assert.Less(t, time.Since(start), 100*time.Millisecond, "doesn't wait for a token it can't get in time")
+		assert.EqualValues(t, 1, calls.updates.Load())
+		assert.EqualValues(t, 1, stats.dropped.Load())
+
+		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(sn.obj.Load()), &dhcpapi.DHCPSubnet{}), "reads don't use the budget")
+	})
+
+	t.Run("update waits for the budget", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		stats := &budgetStats{}
+		kube := withUpdateBudget(fake, rate.NewLimiter(rate.Every(50*time.Millisecond), 1), stats)
+
+		for idx := range 2 {
+			_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, idx, "", ""))
+			require.NoError(t, err)
+		}
+
+		assert.EqualValues(t, 2, calls.updates.Load())
+		assert.EqualValues(t, 1, stats.delayed.Load())
+		assert.EqualValues(t, 0, stats.dropped.Load())
 	})
 }

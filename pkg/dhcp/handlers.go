@@ -98,6 +98,10 @@ func (s *Server) checkRelayedRequest(giaddr net.IP) error {
 func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 	return func(args ...string) (handler.Handler4, error) {
 		return func(req, resp *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, bool) {
+			// a reply is only useful while the client still waits for it, so the request is dropped after that
+			ctx, cancel := context.WithTimeout(ctx, s.Config.RequestTimeout.Duration)
+			defer cancel()
+
 			vrf, circuitID, remoteID := "", "", ""
 			if relayAgentInfo := req.RelayAgentInfo(); relayAgentInfo != nil {
 				vrf = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption))))
@@ -168,7 +172,16 @@ func (s *Server) setupDHCP4Plugin(ctx context.Context) plugins.SetupFunc4 {
 
 			slog.Info("Handling", reqSummary(req, vrf, circuitID, remoteID)...)
 			if err := s.handleDHCP4(ctx, sn, req, resp, vrf, circuitID, remoteID); err != nil {
-				slog.Error("Error handling, dropping", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+				// overload drops are counted and reported periodically by reportBudget
+				switch {
+				case errors.Is(err, errUpdateBudget):
+					slog.Debug("Over the update budget, dropping", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+				case errors.Is(err, context.DeadlineExceeded):
+					s.budget.expired.Add(1)
+					slog.Debug("Request timed out, dropping", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+				default:
+					slog.Error("Error handling, dropping", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
+				}
 
 				return nil, true
 			}

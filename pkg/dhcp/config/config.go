@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net"
 	"net/netip"
 	"os"
@@ -25,6 +26,8 @@ const (
 	DefaultHealthListen       = ":8080"
 	DefaultLeaseExpiryPadding = 5 * time.Minute
 	DefaultOfferTTL           = 5 * time.Minute
+	DefaultRequestTimeout     = 5 * time.Second
+	DefaultUpdateQPS          = 50
 )
 
 // ServerConfig is the fabric-dhcpd configuration, fabricator renders it into the fabric-dhcpd-config ConfigMap. Any
@@ -43,6 +46,12 @@ type ServerConfig struct {
 	LeaseExpiryPadding kmetav1.Duration `json:"leaseExpiryPadding,omitzero"`
 	// OfferTTL is how long an IP offered in reply to a DISCOVER is held for the client (in memory), 5m if not set
 	OfferTTL kmetav1.Duration `json:"offerTTL,omitzero"`
+	// RequestTimeout is how long a DHCP request can wait (e.g. for the update budget) before it's dropped, 5s if not set
+	RequestTimeout kmetav1.Duration `json:"requestTimeout,omitzero"`
+	// UpdateQPS is the rate of DHCPSubnet status updates (lease writes), 50 if not set
+	UpdateQPS float64 `json:"updateQPS,omitempty"`
+	// UpdateBurst is the burst of DHCPSubnet status updates, UpdateQPS rounded up if not set
+	UpdateBurst int `json:"updateBurst,omitempty"`
 }
 
 // Load reads the config from path. A missing file means all defaults, while a file that can't be read or parsed, or
@@ -84,6 +93,15 @@ func (cfg *ServerConfig) Default() {
 	if cfg.OfferTTL.Duration == 0 {
 		cfg.OfferTTL.Duration = DefaultOfferTTL
 	}
+	if cfg.RequestTimeout.Duration == 0 {
+		cfg.RequestTimeout.Duration = DefaultRequestTimeout
+	}
+	if cfg.UpdateQPS == 0 {
+		cfg.UpdateQPS = DefaultUpdateQPS
+	}
+	if cfg.UpdateBurst == 0 {
+		cfg.UpdateBurst = int(math.Ceil(cfg.UpdateQPS))
+	}
 }
 
 var ErrInvalidConfig = errors.New("invalid config")
@@ -113,6 +131,15 @@ func (cfg *ServerConfig) Validate() error {
 	}
 	if cfg.OfferTTL.Duration < 0 {
 		return fmt.Errorf("%w: offerTTL %s must not be negative", ErrInvalidConfig, cfg.OfferTTL.Duration)
+	}
+	if cfg.RequestTimeout.Duration < 0 {
+		return fmt.Errorf("%w: requestTimeout %s must not be negative", ErrInvalidConfig, cfg.RequestTimeout.Duration)
+	}
+	if cfg.UpdateQPS < 0 {
+		return fmt.Errorf("%w: updateQPS %g must not be negative", ErrInvalidConfig, cfg.UpdateQPS)
+	}
+	if cfg.UpdateBurst < 0 {
+		return fmt.Errorf("%w: updateBurst %d must not be negative", ErrInvalidConfig, cfg.UpdateBurst)
 	}
 
 	return nil

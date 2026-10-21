@@ -21,17 +21,24 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/retry"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var errSubnetDeleted = errors.New("subnet deleted")
 
+// short, as the sleeps hold the subnet lock: it only rides out blips, the client retransmitting is the longer retry
 var updateBackoff = wait.Backoff{
-	Steps:    10,
+	Steps:    5,
 	Duration: 10 * time.Millisecond,
-	Factor:   1.0,
+	Factor:   2.0,
 	Jitter:   0.1,
+	Cap:      100 * time.Millisecond,
+}
+
+// retriable errors are conflicts with other writers and transient API server errors
+func retriable(err error) bool {
+	return kapierrors.IsConflict(err) || kapierrors.IsTooManyRequests(err) || kapierrors.IsServerTimeout(err) ||
+		kapierrors.IsTimeout(err) || kapierrors.IsServiceUnavailable(err)
 }
 
 // subnet tracks a single DHCPSubnet. All API writes for it go through persist:
@@ -90,20 +97,23 @@ var errNoChange = errors.New("no change")
 // decideFunc looks at the latest known subnet, which must not be modified, and returns the change to write
 type decideFunc func(cur *dhcpapi.DHCPSubnet) (apply func(upd *dhcpapi.DHCPSubnet), err error)
 
-// persist writes the change decided on the latest known subnet, refetching and deciding again on conflicts with other
-// writers. No API call is made if there's nothing to write.
+// persist writes the change decided on the latest known subnet, retrying transient errors and refetching and deciding
+// again on conflicts with other writers. No API call is made if there's nothing to write.
 func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decideFunc) error {
 	sn.mu.Lock()
 	defer sn.mu.Unlock()
 
-	attempt := 0
-	if err := retry.RetryOnConflict(updateBackoff, func() error {
+	refetch := false
+	try := func() error {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("request expired: %w", err)
+		}
 		if sn.deleted.Load() {
 			return errSubnetDeleted
 		}
 
 		base := sn.obj.Load()
-		if attempt > 0 {
+		if refetch {
 			latest := &dhcpapi.DHCPSubnet{}
 			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(base), latest); err != nil {
 				return fmt.Errorf("fetching latest subnet %s: %w", base.Name, err)
@@ -113,8 +123,8 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 			}
 			sn.set(latest)
 			base = sn.obj.Load() // could be even newer if the informer delivered it meanwhile
+			refetch = false
 		}
-		attempt++
 
 		apply, err := decide(base)
 		if errors.Is(err, errNoChange) {
@@ -131,9 +141,7 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 		apply(upd)
 
 		if err := kube.Status().Update(ctx, upd); err != nil {
-			if kapierrors.IsConflict(err) {
-				slog.Debug("Conflict updating subnet, refetching", "subnet", upd.Name, "rv", base.ResourceVersion)
-			}
+			refetch = kapierrors.IsConflict(err)
 
 			return fmt.Errorf("updating subnet %s (res %s gen %d): %w", upd.Name, base.ResourceVersion, upd.Generation, err)
 		}
@@ -142,11 +150,29 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 		sn.set(upd)
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("retrying subnet update: %w", err)
 	}
 
-	return nil
+	// not retry.OnError, it reports success if the last error wraps a context error
+	backoff := updateBackoff
+	for attempt := 1; ; attempt++ {
+		err := try()
+		if err == nil {
+			return nil
+		}
+		if !retriable(err) || attempt >= updateBackoff.Steps {
+			return err
+		}
+
+		slog.Debug("Retrying subnet update", "subnet", sn.obj.Load().Name, "attempt", attempt, "refetch", refetch, "err", err)
+		timer := time.NewTimer(backoff.Step())
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+
+			return fmt.Errorf("request expired while retrying: %w", ctx.Err())
+		case <-timer.C:
+		}
+	}
 }
 
 // specFor must be called with mu held
