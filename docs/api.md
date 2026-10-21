@@ -1391,6 +1391,7 @@ _Appears in:_
 | `src` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | From-side native addresses and/or source ports |  |  |
 | `dst` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | To-side advertised addresses and/or destination ports |  |  |
 | `proto` _[ACLMatchProtocol](#aclmatchprotocol)_ | Protocol to match ("tcp", "udp", or numeric), omit to match any protocol |  |  |
+| `tcpFilters` _[PeeringACLMatchTCPFilters](#peeringaclmatchtcpfilters)_ | TCP-specific filters, only valid with protocol "tcp" and scope "packet" |  |  |
 
 
 #### PeeringACLMatchEndpoint
@@ -1409,6 +1410,46 @@ _Appears in:_
 | `cidr` _string_ | CIDR to match, at most one of cidr and vpcSubnet can be set |  |  |
 | `vpcSubnet` _string_ | VPC subnet to match, at most one of cidr and vpcSubnet can be set |  |  |
 | `ports` _string array_ | List of ports or port ranges to match, omit to match all ports |  |  |
+
+
+#### PeeringACLMatchTCPFilters
+
+
+
+TCP-specific match filters
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `flags` _[PeeringACLMatchTCPFlags](#peeringaclmatchtcpflags)_ | TCP flags to match, omit to match all segments |  |  |
+
+
+#### PeeringACLMatchTCPFlags
+
+
+
+TCP flags to match. For each flag, true requires the flag to be set, false requires it to be
+clear, omit to accept both
+
+
+
+_Appears in:_
+- [PeeringACLMatchTCPFilters](#peeringaclmatchtcpfilters)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fin` _boolean_ | FIN flag |  |  |
+| `syn` _boolean_ | SYN flag |  |  |
+| `rst` _boolean_ | RST flag |  |  |
+| `psh` _boolean_ | PSH flag |  |  |
+| `ack` _boolean_ | ACK flag |  |  |
+| `urg` _boolean_ | URG flag |  |  |
+| `ece` _boolean_ | ECE flag |  |  |
+| `cwr` _boolean_ | CWR flag |  |  |
 
 
 #### PeeringACLRule

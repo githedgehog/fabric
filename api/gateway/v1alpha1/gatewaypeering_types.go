@@ -128,6 +128,33 @@ type PeeringACLMatchEndpoint struct {
 	Ports []string `json:"ports,omitempty"`
 }
 
+// TCP flags to match. For each flag, true requires the flag to be set, false requires it to be
+// clear, omit to accept both
+type PeeringACLMatchTCPFlags struct {
+	// FIN flag
+	FIN *bool `json:"fin,omitempty"`
+	// SYN flag
+	SYN *bool `json:"syn,omitempty"`
+	// RST flag
+	RST *bool `json:"rst,omitempty"`
+	// PSH flag
+	PSH *bool `json:"psh,omitempty"`
+	// ACK flag
+	ACK *bool `json:"ack,omitempty"`
+	// URG flag
+	URG *bool `json:"urg,omitempty"`
+	// ECE flag
+	ECE *bool `json:"ece,omitempty"`
+	// CWR flag
+	CWR *bool `json:"cwr,omitempty"`
+}
+
+// TCP-specific match filters
+type PeeringACLMatchTCPFilters struct {
+	// TCP flags to match, omit to match all segments
+	Flags *PeeringACLMatchTCPFlags `json:"flags,omitempty"`
+}
+
 type PeeringACLMatch struct {
 	// From-side native addresses and/or source ports
 	Source []PeeringACLMatchEndpoint `json:"src,omitempty"`
@@ -135,6 +162,8 @@ type PeeringACLMatch struct {
 	Destination []PeeringACLMatchEndpoint `json:"dst,omitempty"`
 	// Protocol to match ("tcp", "udp", or numeric), omit to match any protocol
 	Protocol ACLMatchProtocol `json:"proto,omitempty"`
+	// TCP-specific filters, only valid with protocol "tcp" and scope "packet"
+	TCPFilters *PeeringACLMatchTCPFilters `json:"tcpFilters,omitempty"`
 }
 
 type PeeringACLRule struct {
