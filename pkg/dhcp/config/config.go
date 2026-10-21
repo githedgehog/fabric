@@ -26,7 +26,7 @@ const (
 	DefaultHealthListen       = ":8080"
 	DefaultLeaseExpiryPadding = 5 * time.Minute
 	DefaultOfferTTL           = 5 * time.Minute
-	DefaultRequestTimeout     = 5 * time.Second
+	DefaultRequestTimeout     = 30 * time.Second
 	DefaultUpdateQPS          = 50
 )
 
@@ -46,7 +46,8 @@ type ServerConfig struct {
 	LeaseExpiryPadding kmetav1.Duration `json:"leaseExpiryPadding,omitzero"`
 	// OfferTTL is how long an IP offered in reply to a DISCOVER is held for the client (in memory), 5m if not set
 	OfferTTL kmetav1.Duration `json:"offerTTL,omitzero"`
-	// RequestTimeout is how long a DHCP request can wait (e.g. for the update budget) before it's dropped, 5s if not set
+	// RequestTimeout is how long a DHCP request can wait (e.g. for the update budget) before it's dropped, 30s if not set.
+	// Clients keep the transaction ID when retransmitting, so a late reply is still accepted.
 	RequestTimeout kmetav1.Duration `json:"requestTimeout,omitzero"`
 	// UpdateQPS is the rate of DHCPSubnet status updates (lease writes), 50 if not set
 	UpdateQPS float64 `json:"updateQPS,omitempty"`
