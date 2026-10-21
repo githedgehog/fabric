@@ -2183,8 +2183,9 @@ spec:
                                 - leaseTimeSeconds
                                 type: object
                               range:
-                                description: Range (optional) is the DHCP range for
-                                  the subnet if DHCP server is enabled
+                                description: |-
+                                  Range (optional) is the DHCP range for the subnet if DHCP server is enabled. The gateway, subnet and broadcast
+                                  addresses are never handed out, even if the range includes them (all addresses of a /31 or /32 are usable).
                                 properties:
                                   end:
                                     description: End is the end IP address of the

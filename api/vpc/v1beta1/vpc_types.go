@@ -175,7 +175,8 @@ type VPCDHCP struct {
 	RelayVPC string `json:"relayVPC,omitempty"`
 	// Enable enables DHCP server for the subnet
 	Enable bool `json:"enable,omitempty"`
-	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled
+	// Range (optional) is the DHCP range for the subnet if DHCP server is enabled. The gateway, subnet and broadcast
+	// addresses are never handed out, even if the range includes them (all addresses of a /31 or /32 are usable).
 	Range *VPCDHCPRange `json:"range,omitempty"`
 	// Options (optional) is the DHCP options for the subnet if DHCP server is enabled
 	Options *VPCDHCPOptions `json:"options,omitempty"`
