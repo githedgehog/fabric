@@ -56,7 +56,7 @@ type subnet struct {
 	offers  map[string]offer // by MAC, guarded by mu
 }
 
-// offer is an IP offered in reply to a DISCOVER, held for the client in memory until it's requested or expires
+// offer is an IP held for the client in memory after a DISCOVER or REQUEST until it expires, a stored lease takes over
 type offer struct {
 	ip     netip.Addr
 	expiry time.Time
@@ -206,13 +206,12 @@ func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.S
 			return nil, fmt.Errorf("allocating ip: %w", err)
 		}
 
+		// a REQUEST refreshes the offer too, so the IP stays held for the client's retransmit if the write fails
 		mac := req.ClientHWAddr.String()
+		sn.offers[mac] = offer{ip: ip, expiry: now.Add(cfg.OfferTTL.Duration)}
 		if req.MessageType() != dhcpv4.MessageTypeRequest {
-			sn.offers[mac] = offer{ip: ip, expiry: now.Add(cfg.OfferTTL.Duration)}
-
 			return nil, errNoChange
 		}
-		delete(sn.offers, mac)
 
 		entry := dhcpapi.DHCPAllocated{IP: ip.String(), Hostname: req.HostName()}
 		if !static {
