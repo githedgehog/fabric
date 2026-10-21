@@ -11,6 +11,10 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// ExperimentalAnnotationPrefix marks the annotations the controller passes to the dataplane as they are, for features
+// that are not part of the API yet. The dataplane interprets them, and refuses a configuration it cannot.
+const ExperimentalAnnotationPrefix = "experimental.dataplane.githedgehog.com/"
+
 type VPCInfoData struct {
 	gwapi.VPCInfoSpec   `json:",inline"`
 	gwapi.VPCInfoStatus `json:",inline"`
@@ -37,6 +41,13 @@ type GatewayAgentSpec struct {
 	Groups       map[string]GatewayGroupInfo  `json:"groups,omitempty"`
 	Communities  map[string]string            `json:"communities,omitempty"`
 	Config       GatewayAgentSpecConfig       `json:"config,omitempty"`
+	// Experimental carries the experimental annotations of the objects the agent is built from, unvalidated
+	Experimental GatewayAgentExperimental `json:"experimental,omitempty"`
+}
+
+type GatewayAgentExperimental struct {
+	// Peerings holds each peering's annotations with ExperimentalAnnotationPrefix, keyed by peering name
+	Peerings map[string]map[string]string `json:"peerings,omitempty"`
 }
 
 type GatewayAgentSpecConfig struct {

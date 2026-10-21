@@ -87,6 +87,19 @@ spec:
                       configured with BFD
                     type: boolean
                 type: object
+              experimental:
+                description: Experimental carries the experimental annotations of
+                  the objects the agent is built from, unvalidated
+                properties:
+                  peerings:
+                    additionalProperties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    description: Peerings holds each peering's annotations with ExperimentalAnnotationPrefix,
+                      keyed by peering name
+                    type: object
+                type: object
               gateway:
                 description: GatewaySpec defines the desired state of Gateway.
                 properties:

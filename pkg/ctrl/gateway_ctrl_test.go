@@ -194,6 +194,38 @@ func TestBuildGatewayAgentTopologyRequired(t *testing.T) {
 	require.ErrorContains(t, err, "peering vpc-1--vpc-2 has no fabric")
 }
 
+func TestBuildGatewayAgentExperimental(t *testing.T) {
+	const rateLimits = gwintapi.ExperimentalAnnotationPrefix + "rate-limits"
+	kube := gatewayTestKube(t)
+	cfg := &meta.FabricConfig{}
+	ctx := t.Context()
+
+	stored := &gwapi.GatewayPeering{}
+	require.NoError(t, kube.Get(ctx, kclient.ObjectKey{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}, stored))
+	stored.Annotations = map[string]string{rateLimits: "stored", "unrelated.example.com/note": "not copied"}
+	stored.Spec.GatewayGroup = "g1"
+	require.NoError(t, kube.Update(ctx, stored))
+
+	gw := &gwapi.Gateway{}
+	require.NoError(t, kube.Get(ctx, kclient.ObjectKey{Name: "gw-1", Namespace: kmetav1.NamespaceDefault}, gw))
+	ag, err := BuildGatewayAgent(ctx, kube, cfg, gw)
+	require.NoError(t, err)
+	// only the annotated peering, and only its experimental annotations
+	require.Equal(t, map[string]map[string]string{"vpc-1--vpc-2": {rateLimits: "stored"}}, ag.Spec.Experimental.Peerings)
+
+	// the webhook validates the peering being admitted, not the stored one it replaces
+	admitted := stored.DeepCopy()
+	admitted.Annotations = map[string]string{rateLimits: "admitted"}
+	ag, err = BuildGatewayAgentForPeering(ctx, kube, cfg, admitted)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{rateLimits: "admitted"}, ag.Spec.Experimental.Peerings["vpc-1--vpc-2"])
+
+	admitted.Annotations = nil
+	ag, err = BuildGatewayAgentForPeering(ctx, kube, cfg, admitted)
+	require.NoError(t, err)
+	require.NotContains(t, ag.Spec.Experimental.Peerings, "vpc-1--vpc-2")
+}
+
 func TestBuildGatewayAgentNotReadyElsewhere(t *testing.T) {
 	notReady := &gwapi.VPCInfo{
 		ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-6", Namespace: kmetav1.NamespaceDefault},
