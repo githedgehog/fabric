@@ -20,17 +20,31 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const testRelay = "10.0.0.1"
+
+// relayed makes req look like it came through the leaf relay for obj
+func relayed(req *dhcpv4.DHCPv4, obj *dhcpapi.DHCPSubnet) *dhcpv4.DHCPv4 {
+	req.GatewayIPAddr = net.ParseIP(testRelay)
+	req.UpdateOption(dhcpv4.OptRelayAgentInfo(
+		dhcpv4.OptGeneric(dhcpv4.AgentCircuitIDSubOption, []byte(obj.Spec.CircuitID)),
+		dhcpv4.OptGeneric(dhcpv4.VirtualSubnetSelectionSubOption, []byte("\x00"+vrfPrefix+obj.Spec.VRF)),
+	))
+
+	return req
+}
+
 func TestHandler4NAK(t *testing.T) {
 	obj := testLeaseSubnet()
 	obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(9): {IP: "10.0.0.100"}}
 	vip := net.ParseIP("172.30.0.1").To4()
 	s := &Server{
-		Config:     *testCfg,
-		subnets:    map[string]*subnet{subnetKey("", ""): newSubnet(obj)},
-		controlVIP: vip,
+		Config:         *testCfg,
+		subnets:        map[string]*subnet{subnetKeyFrom(obj): newSubnet(obj)},
+		relayAllowlist: map[string]struct{}{testRelay: {}},
+		controlVIP:     vip,
 	}
 
-	req := request(t, 0, "10.0.0.100", "")
+	req := relayed(request(t, 0, "10.0.0.100", ""), obj)
 	resp, err := dhcpv4.NewReplyFromRequest(req)
 	require.NoError(t, err)
 
@@ -42,22 +56,24 @@ func TestHandler4NAK(t *testing.T) {
 	assert.Equal(t, dhcpv4.MessageTypeNak, got.MessageType())
 	assert.True(t, got.YourIPAddr.IsUnspecified())
 	assert.Equal(t, vip, got.ServerIdentifier())
-	assert.Len(t, s.subnets[subnetKey("", "")].obj.Load().Status.Allocated, 1, "nothing is recorded on NAK")
+	assert.Len(t, s.subnets[subnetKeyFrom(obj)].obj.Load().Status.Allocated, 1, "nothing is recorded on NAK")
 }
 
 func TestHandler4Timeout(t *testing.T) {
 	cfg := *testCfg
 	cfg.RequestTimeout.Duration = time.Nanosecond
+	obj := testLeaseSubnet()
 	s := &Server{
-		Config:     cfg,
-		subnets:    map[string]*subnet{subnetKey("", ""): newSubnet(testLeaseSubnet())},
-		controlVIP: net.ParseIP("172.30.0.1").To4(),
+		Config:         cfg,
+		subnets:        map[string]*subnet{subnetKeyFrom(obj): newSubnet(obj)},
+		relayAllowlist: map[string]struct{}{testRelay: {}},
+		controlVIP:     net.ParseIP("172.30.0.1").To4(),
 	}
 
 	handler, err := s.setupDHCP4Plugin(t.Context())()
 	require.NoError(t, err)
 
-	req := request(t, 0, "", "")
+	req := relayed(request(t, 0, "", ""), obj)
 	resp, err := dhcpv4.NewReplyFromRequest(req)
 	require.NoError(t, err)
 
@@ -118,13 +134,15 @@ func recordAttrs(r slog.Record) map[string]string {
 }
 
 func TestHandler4Log(t *testing.T) {
+	obj := testLeaseSubnet()
 	kube, sn, _ := newFakeKube(t, testLeaseSubnet(), nil)
 	newServer := func(kube kclient.Client) *Server {
 		return &Server{
-			Config:     *testCfg,
-			kube:       kube,
-			subnets:    map[string]*subnet{subnetKey("", ""): sn},
-			controlVIP: net.ParseIP("172.30.0.1").To4(),
+			Config:         *testCfg,
+			kube:           kube,
+			subnets:        map[string]*subnet{subnetKeyFrom(obj): sn},
+			relayAllowlist: map[string]struct{}{testRelay: {}},
+			controlVIP:     net.ParseIP("172.30.0.1").To4(),
 		}
 	}
 	logs := captureLogs(t)
@@ -190,7 +208,7 @@ func TestHandler4Log(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			record, attrs := handle(t, s, tt.req(t))
+			record, attrs := handle(t, s, relayed(tt.req(t), obj))
 			assert.Equal(t, tt.msg, record.Message)
 			assert.Equal(t, slog.LevelInfo, record.Level)
 			assert.Contains(t, attrs, "took")
@@ -203,10 +221,36 @@ func TestHandler4Log(t *testing.T) {
 	t.Run("over the update budget", func(t *testing.T) {
 		s := newServer(withUpdateBudget(kube, rate.NewLimiter(rate.Every(time.Hour), 0), &budgetStats{}))
 
-		record, attrs := handle(t, s, request(t, 3, "", ""))
+		record, attrs := handle(t, s, relayed(request(t, 3, "", ""), obj))
 		assert.Equal(t, "Dropped", record.Message)
 		assert.Equal(t, slog.LevelDebug, record.Level)
 		assert.Equal(t, "over the update budget", attrs["reason"])
+	})
+
+	t.Run("management subnet over a relay", func(t *testing.T) {
+		s := newServer(kube)
+		s.subnets = map[string]*subnet{
+			subnetKey("", ""): newSubnet(&dhcpapi.DHCPSubnet{ObjectMeta: kmetav1.ObjectMeta{Name: dhcpapi.ManagementSubnet}}),
+		}
+		discover := req(0)
+		discover.GatewayIPAddr = net.ParseIP(testRelay)
+
+		record, attrs := handle(t, s, discover)
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelWarn, record.Level)
+		assert.Equal(t, "management subnet over a relay", attrs["reason"])
+		assert.Equal(t, testRelay, attrs["giaddr"])
+	})
+
+	t.Run("VPC subnet without a relay", func(t *testing.T) {
+		discover := relayed(req(0), obj)
+		discover.GatewayIPAddr = net.IPv4zero
+
+		record, attrs := handle(t, newServer(kube), discover)
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelWarn, record.Level)
+		assert.Equal(t, "VPC subnet without a relay", attrs["reason"])
+		assert.Equal(t, "a", attrs["subnet"])
 	})
 
 	t.Run("no subnet", func(t *testing.T) {
@@ -274,8 +318,22 @@ func TestHandler4Drops(t *testing.T) {
 			},
 		},
 		{
-			name:   "handling error",
+			name:   "management subnet over a relay",
+			giaddr: testRelay,
+			subnets: map[string]*dhcpapi.DHCPSubnet{
+				subnetKey("", ""): {ObjectMeta: kmetav1.ObjectMeta{Name: dhcpapi.ManagementSubnet}},
+			},
+		},
+		{
+			name:   "VPC subnet without a relay",
 			giaddr: "0.0.0.0",
+			subnets: map[string]*dhcpapi.DHCPSubnet{
+				subnetKey("", ""): testLeaseSubnet(),
+			},
+		},
+		{
+			name:   "handling error",
+			giaddr: testRelay,
 			subnets: map[string]*dhcpapi.DHCPSubnet{
 				subnetKey("", ""): {
 					ObjectMeta: kmetav1.ObjectMeta{Name: "broken"},
@@ -296,7 +354,7 @@ func TestHandler4Drops(t *testing.T) {
 			s := &Server{
 				Config:         *testCfg,
 				subnets:        subnets,
-				relayAllowlist: map[string]struct{}{"10.0.0.1": {}},
+				relayAllowlist: map[string]struct{}{testRelay: {}},
 				controlVIP:     net.ParseIP("172.30.0.1"),
 			}
 

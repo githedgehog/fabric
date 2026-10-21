@@ -180,6 +180,19 @@ func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4, re
 		return drop(slog.LevelWarn, err.Error())
 	}
 
+	// the management network is never relayed and VPCs are only reachable through the leaf relays, so anything else
+	// is a misconfigured relay or a forged relay agent info
+	if sn != nil {
+		relayed := !req.GatewayIPAddr.IsUnspecified()
+		mgmt := sn.obj.Load().Name == dhcpapi.ManagementSubnet
+		switch {
+		case relayed && mgmt:
+			return drop(slog.LevelWarn, "management subnet over a relay", "giaddr", req.GatewayIPAddr.String())
+		case !relayed && !mgmt:
+			return drop(slog.LevelWarn, "VPC subnet without a relay", "subnet", sn.obj.Load().Name)
+		}
+	}
+
 	// only use dhcp for onie and cumulus in the management subnet unless all devices are allowed
 	if !s.Config.AnyDeviceOnMgmt && sn != nil && sn.obj.Load().Name == dhcpapi.ManagementSubnet {
 		classID := req.ClassIdentifier()
