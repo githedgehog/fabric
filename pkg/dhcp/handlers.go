@@ -69,7 +69,7 @@ func relayInfoFrom(req *dhcpv4.DHCPv4) relayInfo {
 	// VSS (RFC 6607): leaves send type 0 with the VRF name, type 0xff alone is the global (default) VRF
 	switch vss := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption); {
 	case len(vss) == 0, len(vss) == 1 && vss[0] == 0xff:
-	case vss[0] == 0 && len(vss) > 1:
+	case vss[0] == 0 && strings.TrimSpace(string(vss[1:])) != "":
 		relay.vrf = strings.ToLower(strings.TrimSpace(string(vss[1:])))
 	default:
 		relay.unexpectedVSS = fmt.Sprintf("%x", vss)
