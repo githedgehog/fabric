@@ -340,6 +340,26 @@ func TestUpdateBudget(t *testing.T) {
 		assert.EqualValues(t, 0, stats.dropped.Load())
 	})
 
+	t.Run("write with a token is finished after the request expires", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), func(ctx context.Context, _ kclient.Client) error {
+			time.Sleep(100 * time.Millisecond)
+			assert.NoError(t, ctx.Err(), "not cancelled with the request")
+			deadline, ok := ctx.Deadline()
+			assert.True(t, ok, "has its own deadline")
+			assert.WithinDuration(t, time.Now().Add(updateTimeout), deadline, time.Second)
+
+			return nil
+		})
+		kube := withUpdateBudget(fake, rate.NewLimiter(rate.Inf, 0), &budgetStats{})
+
+		ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+		defer cancel()
+		ip, _, err := sn.lease(ctx, kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, calls.updates.Load())
+		assert.Equal(t, ip.String(), getStored(t, kube).Status.Allocated[mac(0)].IP)
+	})
+
 	t.Run("requests that write nothing don't wait for a write", func(t *testing.T) {
 		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 		limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)

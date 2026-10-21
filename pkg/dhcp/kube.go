@@ -56,6 +56,9 @@ func newKube(ctx context.Context, dhcpCfg *dhcpcfg.ServerConfig, stats *budgetSt
 
 var errUpdateBudget = errors.New("update budget exhausted")
 
+// updateTimeout bounds a lease write once it has an update budget token, independently of the request timeout
+const updateTimeout = 10 * time.Second
+
 // budgetStats counts the requests slowed down or dropped because of the update budget, they're logged periodically
 // instead of one by one so a storm doesn't flood the logs
 type budgetStats struct {
@@ -130,6 +133,11 @@ func (w *budgetStatusWriter) Update(ctx context.Context, obj kclient.Object, opt
 		}
 		w.stats.delayed.Add(1)
 	}
+
+	// a write that got a token is finished even if the request expires meanwhile: the token is spent anyway, and the
+	// stored lease makes the client's retransmit an ACK without a write
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), updateTimeout)
+	defer cancel()
 
 	return w.SubResourceWriter.Update(ctx, obj, opts...) //nolint:wrapcheck
 }
