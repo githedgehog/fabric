@@ -73,7 +73,10 @@ func usedIPs(obj *dhcpapi.DHCPSubnet, sp *subnetSpec) (map[netip.Addr]string, ma
 	for mac, entry := range obj.Status.Allocated {
 		// an unparseable IP can't collide with any candidate
 		if ip, err := netip.ParseAddr(entry.IP); err == nil {
-			used[ip] = mac
+			// a lease on a reserved address (from an older allocator or a changed gateway) doesn't keep it
+			if used[ip] != reservedIP {
+				used[ip] = mac
+			}
 			allocated[ip] = mac
 		}
 	}
