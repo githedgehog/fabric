@@ -4,6 +4,7 @@
 package dhcp
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -165,6 +166,43 @@ func TestAllocateRequest(t *testing.T) {
 			assert.Equal(t, tt.want, got.String())
 		})
 	}
+}
+
+func TestAllocateSkipsSubnetAndBroadcast(t *testing.T) {
+	subnet := &dhcpapi.DHCPSubnet{
+		Spec: dhcpapi.DHCPSubnetSpec{
+			CIDRBlock: "10.0.0.0/29",
+			Gateway:   "10.0.0.1",
+			StartIP:   "10.0.0.0",
+			EndIP:     "10.0.0.7",
+		},
+	}
+
+	for _, ip := range []string{"10.0.0.0", "10.0.0.7"} {
+		_, err := allocateIn(t, subnet, request(t, 9, ip, ""))
+		require.ErrorIs(t, err, ErrRequestedIPUnavailable, ip)
+	}
+
+	got := []string{}
+	for id := range 6 {
+		ip, err := allocateIn(t, subnet, req(id))
+		if errors.Is(err, ErrNoAvailableIP) {
+			break
+		}
+		require.NoError(t, err)
+		got = append(got, ip.String())
+	}
+	assert.Equal(t, []string{"10.0.0.2", "10.0.0.3", "10.0.0.4", "10.0.0.5", "10.0.0.6"}, got)
+
+	t.Run("all of a /31 are usable", func(t *testing.T) {
+		subnet := &dhcpapi.DHCPSubnet{
+			Spec: dhcpapi.DHCPSubnetSpec{CIDRBlock: "10.0.0.0/31", Gateway: "10.0.0.0", StartIP: "10.0.0.1", EndIP: "10.0.0.1"},
+		}
+
+		got, err := allocateIn(t, subnet, req(0))
+		require.NoError(t, err)
+		assert.Equal(t, "10.0.0.1", got.String())
+	})
 }
 
 func TestAllocateDiscoverIgnoresUnavailableRequestedIP(t *testing.T) {

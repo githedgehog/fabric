@@ -12,6 +12,7 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
 )
 
 const (
@@ -64,6 +65,11 @@ func usedIPs(obj *dhcpapi.DHCPSubnet, sp *subnetSpec) (map[netip.Addr]string, ma
 	allocated := make(map[netip.Addr]string, len(obj.Status.Allocated))
 
 	used[sp.parsed.Gateway] = reservedIP
+	// a range may include the subnet and broadcast addresses, all addresses of a /31 or /32 are usable (RFC 3021)
+	if sp.parsed.Prefix.Bits() <= 30 {
+		used[sp.parsed.Prefix.Addr()] = reservedIP
+		used[iputil.LastIPNetip(sp.parsed.Prefix)] = reservedIP
+	}
 	for mac, entry := range obj.Status.Allocated {
 		// an unparseable IP can't collide with any candidate
 		if ip, err := netip.ParseAddr(entry.IP); err == nil {
