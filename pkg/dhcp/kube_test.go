@@ -5,6 +5,8 @@ package dhcp
 
 import (
 	"context"
+	"net/netip"
+	"sync"
 	"testing"
 	"time"
 
@@ -336,5 +338,68 @@ func TestUpdateBudget(t *testing.T) {
 		assert.EqualValues(t, 2, calls.updates.Load())
 		assert.EqualValues(t, 1, stats.delayed.Load())
 		assert.EqualValues(t, 0, stats.dropped.Load())
+	})
+
+	t.Run("requests that write nothing don't wait for a write", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
+		kube := withUpdateBudget(fake, limiter, &budgetStats{})
+
+		renewed, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+
+		var waiting netip.Addr
+		var waitErr error
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			waiting, _, waitErr = sn.lease(t.Context(), kube, testCfg, request(t, 1, "", ""))
+		}()
+		require.Eventually(t, func() bool { return limiter.Tokens() < 0 }, time.Second, time.Millisecond,
+			"request waits for the next token")
+
+		start := time.Now()
+		offered, _, err := sn.lease(t.Context(), kube, testCfg, req(2))
+		require.NoError(t, err)
+		again, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", renewed.String()))
+		require.NoError(t, err)
+		assert.Less(t, time.Since(start), 100*time.Millisecond)
+		assert.Equal(t, renewed, again)
+
+		<-done
+		require.NoError(t, waitErr)
+		assert.NotEqual(t, waiting, offered, "the IP is held for the waiting request")
+		assert.EqualValues(t, 2, calls.updates.Load())
+	})
+
+	t.Run("retransmit waiting for its own write doesn't write again", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		stats := &budgetStats{}
+		limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
+		kube := withUpdateBudget(fake, limiter, stats)
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+
+		wg := sync.WaitGroup{}
+		var first netip.Addr
+		wg.Go(func() {
+			var err error
+			first, _, err = sn.lease(t.Context(), kube, testCfg, request(t, 1, "", ""))
+			assert.NoError(t, err)
+		})
+		require.Eventually(t, func() bool { return limiter.Tokens() < 0 }, time.Second, time.Millisecond,
+			"first copy waits for the next token")
+
+		// nothing is stored yet, so the retransmit needs a write too and has to wait for the first copy's update
+		start := time.Now()
+		retransmit, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 1, "", ""))
+		require.NoError(t, err)
+		assert.Greater(t, time.Since(start), 200*time.Millisecond, "waited for the first copy's update")
+		wg.Wait()
+
+		assert.Equal(t, first, retransmit)
+		assert.EqualValues(t, 2, calls.updates.Load(), "no update for the retransmit")
+		assert.EqualValues(t, 1, stats.delayed.Load(), "no token for the retransmit")
 	})
 }

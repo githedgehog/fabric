@@ -26,7 +26,7 @@ type Server struct {
 	subnets        map[string]*subnet
 	switchToIP     map[string]string   // switch name → relay IP (for cleanup)
 	relayAllowlist map[string]struct{} // known leaf relay IPs
-	mu             sync.RWMutex        // guards the maps only, never held while taking subnet.mu
+	mu             sync.RWMutex        // guards the maps only, never held while taking the subnet locks
 	controlVIP     net.IP              // DHCP server identifier, looked up per request if nil
 	budget         budgetStats
 
