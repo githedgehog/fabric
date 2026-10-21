@@ -261,6 +261,58 @@ func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.S
 	return ip, sp, nil
 }
 
+// cleanup removes the expired leases and gives a normal expiry to the entries stored without one that aren't the MAC's
+// static IP anymore (the static was removed or changed), so they don't hold the IP forever. Expired offers are dropped
+// too. Nothing is written if nothing changed. It returns the MACs it removed and gave an expiry to.
+func (sn *subnet) cleanup(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.ServerConfig) ([]string, []string, error) {
+	var expired, unstatic []string
+	if err := sn.persist(ctx, kube, func(cur *dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
+		expired, unstatic = nil, nil
+
+		now := time.Now()
+		sn.pruneOffers(now)
+
+		sp := sn.specFor(cur)
+		for mac, entry := range cur.Status.Allocated {
+			if !entry.Expiry.IsZero() {
+				if entry.Expiry.Time.Before(now) {
+					expired = append(expired, mac)
+				}
+
+				continue
+			}
+
+			// statics are unknown for an invalid subnet
+			if sp.err != nil {
+				continue
+			}
+			if ip, err := netip.ParseAddr(entry.IP); err != nil || sp.statics[mac] != ip {
+				unstatic = append(unstatic, mac)
+			}
+		}
+		if len(expired) == 0 && len(unstatic) == 0 {
+			return nil, errNoChange
+		}
+
+		expiry := kmetav1.NewTime(now.Add(sp.leaseTime + cfg.LeaseExpiryPadding.Duration))
+
+		return func(upd *dhcpapi.DHCPSubnet) {
+			for _, mac := range expired {
+				delete(upd.Status.Allocated, mac)
+			}
+			for _, mac := range unstatic {
+				entry := upd.Status.Allocated[mac]
+				entry.Expiry = expiry
+				upd.Status.Allocated[mac] = entry
+			}
+		}, nil
+	}); err != nil {
+		return nil, nil, err
+	}
+
+	return expired, unstatic, nil
+}
+
 // covers reports whether the stored entry already has everything the new one would write, so the stored expiry is
 // never earlier than the end of the lease given to the client
 func covers(stored, entry dhcpapi.DHCPAllocated, leaseEnd time.Time) bool {

@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/netip"
 	"strings"
-	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
@@ -186,15 +185,4 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, 
 
 func inRange(sp *subnetSpec, ip netip.Addr) bool {
 	return ip.Compare(sp.parsed.Start) >= 0 && ip.Compare(sp.parsed.End) <= 0
-}
-
-func cleanup(subnet *dhcpapi.DHCPSubnet) {
-	now := time.Now()
-
-	for mac, allocated := range subnet.Status.Allocated {
-		if !allocated.Expiry.Time.IsZero() && allocated.Expiry.Time.Before(now) {
-			slog.Info("Removing entry for expired lease", "subnet", subnet.Name, "ip", allocated.IP, "mac", mac)
-			delete(subnet.Status.Allocated, mac)
-		}
-	}
 }

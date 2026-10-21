@@ -10,8 +10,6 @@ import (
 	"maps"
 	"slices"
 	"time"
-
-	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 )
 
 func (s *Server) startPeriodicCleanup(ctx context.Context) error {
@@ -28,12 +26,29 @@ func (s *Server) startPeriodicCleanup(ctx context.Context) error {
 			s.mu.RUnlock()
 
 			for _, sn := range subnets {
-				if err := sn.persist(ctx, s.kube, func(*dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
-					return cleanup, nil
-				}); err != nil && !errors.Is(err, errSubnetDeleted) {
-					slog.Warn("Failed to update cleaned up subnet", "subnet", sn.obj.Load().Name, "err", err)
-				}
+				s.cleanupSubnet(ctx, sn)
 			}
 		}
+	}
+}
+
+func (s *Server) cleanupSubnet(ctx context.Context, sn *subnet) {
+	// same as a request, so cleanup never holds the subnet's updates for longer
+	ctx, cancel := context.WithTimeout(ctx, s.Config.RequestTimeout.Duration)
+	defer cancel()
+
+	name := sn.obj.Load().Name
+	expired, unstatic, err := sn.cleanup(ctx, s.kube, &s.Config)
+	switch {
+	case errors.Is(err, errSubnetDeleted):
+	case errors.Is(err, errUpdateBudget):
+		slog.Debug("Over the update budget, cleanup postponed", "subnet", name, "err", err)
+	case errors.Is(err, context.DeadlineExceeded):
+		s.budget.expired.Add(1)
+		slog.Debug("Cleanup timed out, postponed", "subnet", name, "err", err)
+	case err != nil:
+		slog.Warn("Failed to clean up subnet", "subnet", name, "err", err)
+	case len(expired) > 0 || len(unstatic) > 0:
+		slog.Info("Cleaned up subnet", "subnet", name, "expired", expired, "noLongerStatic", unstatic)
 	}
 }
