@@ -51,13 +51,17 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- /* deprecated values passed by older fabricator, the config file is used otherwise */}}
-          {{- if or .Values.listenInterface .Values.anyDeviceOnMgmt }}
+          {{- $customHealthPort := ne (int .Values.healthPort) 8080 }}
+          {{- if or .Values.listenInterface .Values.anyDeviceOnMgmt $customHealthPort }}
           args:
             {{- with .Values.listenInterface }}
             - "--listen={{ . }}"
             {{- end }}
             {{- if .Values.anyDeviceOnMgmt }}
             - "--any-device-on-mgmt=true"
+            {{- end }}
+            {{- if $customHealthPort }}
+            - "--health-listen=:{{ .Values.healthPort }}"
             {{- end }}
           {{- end }}
           ports:

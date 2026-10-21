@@ -33,10 +33,11 @@ fullnameOverride: ""
 # listenInterface: ""
 # anyDeviceOnMgmt: false
 
-# Port for the liveness/readiness probes (/healthz, /readyz). The server itself
-# is configured with healthListen in the fabric-dhcpd-config ConfigMap (":8080"
-# by default), so they must match. Bound on the node since the pod uses
-# hostNetwork, so it must not collide with other host services.
+# Port for the liveness/readiness probes (/healthz, /readyz). The server listens
+# on healthListen from the fabric-dhcpd-config ConfigMap (":8080" by default);
+# any other port here is also passed to it as --health-listen, overriding the
+# ConfigMap. Bound on the node since the pod uses hostNetwork, so it must not
+# collide with other host services.
 healthPort: 8080
 
 serviceAccount:
