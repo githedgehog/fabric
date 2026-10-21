@@ -26,7 +26,7 @@ import (
 
 var errSubnetDeleted = errors.New("subnet deleted")
 
-// short, as the sleeps hold the subnet lock: it only rides out blips, the client retransmitting is the longer retry
+// short, as the sleeps hold updateMu: it only rides out blips, the client retransmitting is the longer retry
 var updateBackoff = wait.Backoff{
 	Steps:    5,
 	Duration: 10 * time.Millisecond,
@@ -41,19 +41,26 @@ func retriable(err error) bool {
 		kapierrors.IsTimeout(err) || kapierrors.IsServiceUnavailable(err)
 }
 
-// subnet tracks a single DHCPSubnet. All API writes for it go through persist:
-//   - persist holds mu from reading obj until the API update returns, so writes for a subnet are one at a time and
-//     never conflict with each other, other subnets aren't blocked
-//   - obj is never modified in place and only replaced with a newer version, so it's read without any lock (the
-//     informer never waits for an in-flight write)
-//   - Server.mu (subnets map) is never held while taking mu, so the two can't deadlock
+// subnet tracks a single DHCPSubnet. All decisions and API writes for it go through persist, so writes for a subnet
+// are one at a time and never conflict with each other, while requests that write nothing never wait for them.
+// Server.mu (subnets map) is never held while taking the subnet locks, so they can't deadlock.
 type subnet struct {
 	uid     ktypes.UID
-	mu      sync.Mutex
-	obj     atomic.Pointer[dhcpapi.DHCPSubnet]
 	deleted atomic.Bool
-	spec    *subnetSpec      // guarded by mu
-	offers  map[string]offer // by MAC, guarded by mu
+	// obj is never modified in place and only replaced with a newer version, so it's read without any lock (the
+	// informer never waits for a write in progress)
+	obj atomic.Pointer[dhcpapi.DHCPSubnet]
+
+	// updateMu serializes the API updates: persist holds it for a change that needs a status update, from deciding it
+	// again on the latest obj through the update budget wait, the update and its retries. Taken before decideMu,
+	// never while holding it.
+	updateMu sync.Mutex
+
+	// decideMu guards the in-memory state below and is held for every decide call (CPU only, never across API calls
+	// or waits). persist takes it on its own first, so requests that write nothing never wait for updateMu.
+	decideMu sync.Mutex
+	spec     *subnetSpec
+	offers   map[string]offer // by MAC
 }
 
 // offer is an IP held for the client in memory after a DISCOVER or REQUEST until it expires, a stored lease takes over
@@ -94,24 +101,49 @@ func (sn *subnet) set(obj *dhcpapi.DHCPSubnet) bool {
 // errNoChange is returned by a decideFunc when nothing needs to be written
 var errNoChange = errors.New("no change")
 
-// decideFunc looks at the latest known subnet, which must not be modified, and returns the change to write
+// decideFunc looks at the latest known subnet, which must not be modified, and returns the change to write. It's
+// called with decideMu held, possibly more than once per persist, so its side effects on the in-memory state must be
+// repeatable, and it must not call persist.
 type decideFunc func(cur *dhcpapi.DHCPSubnet) (apply func(upd *dhcpapi.DHCPSubnet), err error)
 
 // persist writes the change decided on the latest known subnet, retrying transient errors and refetching and deciding
-// again on conflicts with other writers. No API call is made if there's nothing to write.
+// again on conflicts with other writers. It decides without updateMu first, so a request that writes nothing (or
+// fails) doesn't wait for updates in progress. A change that needs a write is decided again after taking updateMu, as
+// an update made while waiting for it can make the write unnecessary, e.g. a retransmitted REQUEST whose first copy
+// has just stored the same lease.
 func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decideFunc) error {
-	sn.mu.Lock()
-	defer sn.mu.Unlock()
+	decideNow := func(base *dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("request expired: %w", err)
+		}
+		if sn.deleted.Load() {
+			return nil, errSubnetDeleted
+		}
+
+		sn.decideMu.Lock()
+		defer sn.decideMu.Unlock()
+
+		apply, err := decide(base)
+		if err != nil && !errors.Is(err, errNoChange) {
+			return nil, fmt.Errorf("deciding on subnet %s: %w", base.Name, err)
+		}
+
+		return apply, err
+	}
+
+	_, err := decideNow(sn.obj.Load())
+	if errors.Is(err, errNoChange) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	sn.updateMu.Lock()
+	defer sn.updateMu.Unlock()
 
 	refetch := false
 	try := func() error {
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("request expired: %w", err)
-		}
-		if sn.deleted.Load() {
-			return errSubnetDeleted
-		}
-
 		base := sn.obj.Load()
 		if refetch {
 			latest := &dhcpapi.DHCPSubnet{}
@@ -126,12 +158,12 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 			refetch = false
 		}
 
-		apply, err := decide(base)
+		apply, err := decideNow(base)
 		if errors.Is(err, errNoChange) {
 			return nil
 		}
 		if err != nil {
-			return fmt.Errorf("deciding on subnet %s: %w", base.Name, err)
+			return err
 		}
 
 		upd := base.DeepCopy()
@@ -175,7 +207,7 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 	}
 }
 
-// specFor must be called with mu held
+// specFor must be called with decideMu held
 func (sn *subnet) specFor(obj *dhcpapi.DHCPSubnet) *subnetSpec {
 	// status writes don't bump the generation, generation 0 is only in tests
 	if sn.spec == nil || obj.Generation == 0 || sn.spec.gen != obj.Generation {
@@ -243,7 +275,7 @@ func covers(stored, entry dhcpapi.DHCPAllocated, leaseEnd time.Time) bool {
 	return !stored.Expiry.IsZero() && !stored.Expiry.Time.Before(leaseEnd)
 }
 
-// pruneOffers must be called with mu held
+// pruneOffers must be called with decideMu held
 func (sn *subnet) pruneOffers(now time.Time) {
 	for mac, o := range sn.offers {
 		if now.After(o.expiry) {
