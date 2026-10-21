@@ -33,6 +33,48 @@ func relayed(req *dhcpv4.DHCPv4, obj *dhcpapi.DHCPSubnet) *dhcpv4.DHCPv4 {
 	return req
 }
 
+func TestRelayInfoFrom(t *testing.T) {
+	circuit := dhcpv4.OptGeneric(dhcpv4.AgentCircuitIDSubOption, []byte("Vlan1000"))
+	vss := func(data string) dhcpv4.Option {
+		return dhcpv4.OptGeneric(dhcpv4.VirtualSubnetSelectionSubOption, []byte(data))
+	}
+
+	for _, tt := range []struct {
+		name string
+		opts []dhcpv4.Option // nil means no relay agent info
+		want relayInfo
+	}{
+		{name: "unrelayed"},
+		{name: "vpc vrf", opts: []dhcpv4.Option{circuit, vss("\x00VrfVFoo")}, want: relayInfo{vrf: "foo", circuitID: "vlan1000"}},
+		{name: "no vss", opts: []dhcpv4.Option{circuit}, want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000"}},
+		{name: "global vss", opts: []dhcpv4.Option{circuit, vss("\xff")}, want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000"}},
+		{
+			name: "vpn id vss",
+			opts: []dhcpv4.Option{circuit, vss("\x01\x00\x00\x01\x00\x00\x00\x01")},
+			want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000", unexpectedVSS: "0100000100000001"},
+		},
+		{
+			name: "name vss without a name",
+			opts: []dhcpv4.Option{circuit, vss("\x00")},
+			want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000", unexpectedVSS: "00"},
+		},
+		{
+			name: "cumulus remote id",
+			opts: []dhcpv4.Option{circuit, dhcpv4.OptGeneric(dhcpv4.AgentRemoteIDSubOption, []byte("Cumulus:leaf-01"))},
+			want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000", remoteID: "cumulus:leaf-01"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			req := req(0)
+			if tt.opts != nil {
+				req.UpdateOption(dhcpv4.OptRelayAgentInfo(tt.opts...))
+			}
+
+			assert.Equal(t, tt.want, relayInfoFrom(req))
+		})
+	}
+}
+
 func TestHandler4NAK(t *testing.T) {
 	obj := testLeaseSubnet()
 	obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(9): {IP: "10.0.0.100"}}
@@ -225,6 +267,17 @@ func TestHandler4Log(t *testing.T) {
 		assert.Equal(t, "Dropped", record.Message)
 		assert.Equal(t, slog.LevelDebug, record.Level)
 		assert.Equal(t, "over the update budget", attrs["reason"])
+	})
+
+	t.Run("unexpected VSS", func(t *testing.T) {
+		discover := relayed(req(0), obj)
+		discover.UpdateOption(dhcpv4.OptRelayAgentInfo(dhcpv4.OptGeneric(dhcpv4.VirtualSubnetSelectionSubOption, []byte{0x01})))
+
+		record, attrs := handle(t, newServer(kube), discover)
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelWarn, record.Level)
+		assert.Equal(t, "unexpected VSS", attrs["reason"])
+		assert.Equal(t, "01", attrs["vss"])
 	})
 
 	t.Run("management subnet over a relay", func(t *testing.T) {
