@@ -15,7 +15,9 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -43,11 +45,18 @@ type subnet struct {
 	mu      sync.Mutex
 	obj     atomic.Pointer[dhcpapi.DHCPSubnet]
 	deleted atomic.Bool
-	spec    *subnetSpec // guarded by mu
+	spec    *subnetSpec      // guarded by mu
+	offers  map[string]offer // by MAC, guarded by mu
+}
+
+// offer is an IP offered in reply to a DISCOVER, held for the client in memory until it's requested or expires
+type offer struct {
+	ip     netip.Addr
+	expiry time.Time
 }
 
 func newSubnet(obj *dhcpapi.DHCPSubnet) *subnet {
-	sn := &subnet{uid: obj.UID}
+	sn := &subnet{uid: obj.UID, offers: map[string]offer{}}
 	sn.obj.Store(obj)
 
 	return sn
@@ -75,11 +84,14 @@ func (sn *subnet) set(obj *dhcpapi.DHCPSubnet) bool {
 	}
 }
 
+// errNoChange is returned by a decideFunc when nothing needs to be written
+var errNoChange = errors.New("no change")
+
 // decideFunc looks at the latest known subnet, which must not be modified, and returns the change to write
 type decideFunc func(cur *dhcpapi.DHCPSubnet) (apply func(upd *dhcpapi.DHCPSubnet), err error)
 
 // persist writes the change decided on the latest known subnet, refetching and deciding again on conflicts with other
-// writers
+// writers. No API call is made if there's nothing to write.
 func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decideFunc) error {
 	sn.mu.Lock()
 	defer sn.mu.Unlock()
@@ -105,6 +117,9 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 		attempt++
 
 		apply, err := decide(base)
+		if errors.Is(err, errNoChange) {
+			return nil
+		}
 		if err != nil {
 			return fmt.Errorf("deciding on subnet %s: %w", base.Name, err)
 		}
@@ -144,8 +159,10 @@ func (sn *subnet) specFor(obj *dhcpapi.DHCPSubnet) *subnetSpec {
 	return sn.spec
 }
 
-// lease allocates an IP for the client and returns it with the spec of the subnet version it was stored in
-func (sn *subnet) lease(ctx context.Context, kube kclient.Client, req *dhcpv4.DHCPv4) (netip.Addr, *subnetSpec, error) {
+// lease picks an IP for the client and returns it with the spec of the subnet version it was decided on. A DISCOVER
+// only records an offer in memory. A REQUEST stores the lease with a padded expiry, and skips the write if the stored
+// entry has the same IP and hostname and doesn't expire before the lease given to the client ends.
+func (sn *subnet) lease(ctx context.Context, kube kclient.Client, cfg *dhcpcfg.ServerConfig, req *dhcpv4.DHCPv4) (netip.Addr, *subnetSpec, error) {
 	var ip netip.Addr
 	var sp *subnetSpec
 	if err := sn.persist(ctx, kube, func(cur *dhcpapi.DHCPSubnet) (func(*dhcpapi.DHCPSubnet), error) {
@@ -154,12 +171,30 @@ func (sn *subnet) lease(ctx context.Context, kube kclient.Client, req *dhcpv4.DH
 			return nil, sp.err
 		}
 
-		var entry dhcpapi.DHCPAllocated
+		now := time.Now()
+		sn.pruneOffers(now)
+
+		var static bool
 		var err error
-		if ip, entry, err = allocate(cur, sp, req); err != nil {
+		if ip, static, err = allocate(cur, sp, sn.offers, req); err != nil {
 			return nil, fmt.Errorf("allocating ip: %w", err)
 		}
+
 		mac := req.ClientHWAddr.String()
+		if req.MessageType() != dhcpv4.MessageTypeRequest {
+			sn.offers[mac] = offer{ip: ip, expiry: now.Add(cfg.OfferTTL.Duration)}
+
+			return nil, errNoChange
+		}
+		delete(sn.offers, mac)
+
+		entry := dhcpapi.DHCPAllocated{IP: ip.String(), Hostname: req.HostName()}
+		if !static {
+			entry.Expiry = kmetav1.NewTime(now.Add(sp.leaseTime + cfg.LeaseExpiryPadding.Duration))
+		}
+		if stored, ok := cur.Status.Allocated[mac]; ok && covers(stored, entry, now.Add(sp.leaseTime)) {
+			return nil, errNoChange
+		}
 
 		return func(upd *dhcpapi.DHCPSubnet) { upd.Status.Allocated[mac] = entry }, nil
 	}); err != nil {
@@ -167,4 +202,27 @@ func (sn *subnet) lease(ctx context.Context, kube kclient.Client, req *dhcpv4.DH
 	}
 
 	return ip, sp, nil
+}
+
+// covers reports whether the stored entry already has everything the new one would write, so the stored expiry is
+// never earlier than the end of the lease given to the client
+func covers(stored, entry dhcpapi.DHCPAllocated, leaseEnd time.Time) bool {
+	if stored.IP != entry.IP || stored.Hostname != entry.Hostname || stored.Discover {
+		return false
+	}
+
+	if entry.Expiry.IsZero() {
+		return stored.Expiry.IsZero()
+	}
+
+	return !stored.Expiry.IsZero() && !stored.Expiry.Time.Before(leaseEnd)
+}
+
+// pruneOffers must be called with mu held
+func (sn *subnet) pruneOffers(now time.Time) {
+	for mac, o := range sn.offers {
+		if now.After(o.expiry) {
+			delete(sn.offers, mac)
+		}
+	}
 }

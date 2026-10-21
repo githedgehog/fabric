@@ -12,15 +12,19 @@ import (
 	"net/netip"
 	"os"
 	"strconv"
+	"time"
 
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
 	Path = "/config/config.yaml"
 
-	DefaultListenInterface = "eth0"
-	DefaultHealthListen    = ":8080"
+	DefaultListenInterface    = "eth0"
+	DefaultHealthListen       = ":8080"
+	DefaultLeaseExpiryPadding = 5 * time.Minute
+	DefaultOfferTTL           = 5 * time.Minute
 )
 
 // ServerConfig is the fabric-dhcpd configuration, fabricator renders it into the fabric-dhcpd-config ConfigMap. Any
@@ -35,6 +39,10 @@ type ServerConfig struct {
 	// ControlVIP is the control VIP prefix (e.g. "172.30.0.1/32"), the relay target on all leaves, used as the DHCP server
 	// identifier. If not set, the source address of the route to the relay is looked up for every request.
 	ControlVIP string `json:"controlVIP,omitempty"`
+	// LeaseExpiryPadding is added to the stored lease expiry, so renewals within it don't need a write, 5m if not set
+	LeaseExpiryPadding kmetav1.Duration `json:"leaseExpiryPadding,omitzero"`
+	// OfferTTL is how long an IP offered in reply to a DISCOVER is held for the client (in memory), 5m if not set
+	OfferTTL kmetav1.Duration `json:"offerTTL,omitzero"`
 }
 
 // Load reads the config from path. A missing file means all defaults, while a file that can't be read or parsed, or
@@ -70,6 +78,12 @@ func (cfg *ServerConfig) Default() {
 	if cfg.HealthListen == "" {
 		cfg.HealthListen = DefaultHealthListen
 	}
+	if cfg.LeaseExpiryPadding.Duration == 0 {
+		cfg.LeaseExpiryPadding.Duration = DefaultLeaseExpiryPadding
+	}
+	if cfg.OfferTTL.Duration == 0 {
+		cfg.OfferTTL.Duration = DefaultOfferTTL
+	}
 }
 
 var ErrInvalidConfig = errors.New("invalid config")
@@ -92,6 +106,13 @@ func (cfg *ServerConfig) Validate() error {
 		if _, err := cfg.ControlVIPAddr(); err != nil {
 			return err
 		}
+	}
+
+	if cfg.LeaseExpiryPadding.Duration < 0 {
+		return fmt.Errorf("%w: leaseExpiryPadding %s must not be negative", ErrInvalidConfig, cfg.LeaseExpiryPadding.Duration)
+	}
+	if cfg.OfferTTL.Duration < 0 {
+		return fmt.Errorf("%w: offerTTL %s must not be negative", ErrInvalidConfig, cfg.OfferTTL.Duration)
 	}
 
 	return nil

@@ -11,10 +11,13 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -171,12 +174,164 @@ func TestSubnetSpecFor(t *testing.T) {
 	require.ErrorContains(t, sn.specFor(v4).err, "invalid subnet")
 }
 
+var testCfg = func() *dhcpcfg.ServerConfig {
+	cfg := &dhcpcfg.ServerConfig{}
+	cfg.Default()
+
+	return cfg
+}()
+
+func TestSubnetLease(t *testing.T) {
+	withHostname := func(req *dhcpv4.DHCPv4, hostname string) *dhcpv4.DHCPv4 {
+		req.UpdateOption(dhcpv4.OptHostName(hostname))
+
+		return req
+	}
+
+	t.Run("discovers are offered different IPs without writes", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+
+		ip0, _, err := sn.lease(t.Context(), kube, testCfg, req(0))
+		require.NoError(t, err)
+		ip1, _, err := sn.lease(t.Context(), kube, testCfg, req(1))
+		require.NoError(t, err)
+		again, _, err := sn.lease(t.Context(), kube, testCfg, req(0))
+		require.NoError(t, err)
+
+		assert.Equal(t, "10.0.0.100", ip0.String())
+		assert.Equal(t, "10.0.0.101", ip1.String())
+		assert.Equal(t, ip0, again, "retransmitted discover gets the same offer")
+		assert.EqualValues(t, 0, calls.updates.Load())
+		assert.Len(t, sn.offers, 2)
+	})
+
+	t.Run("expired offer is free for others", func(t *testing.T) {
+		kube, sn, _ := newFakeKube(t, testLeaseSubnet(), nil)
+		cfg := &dhcpcfg.ServerConfig{OfferTTL: kmetav1.Duration{Duration: time.Nanosecond}}
+
+		ip0, _, err := sn.lease(t.Context(), kube, cfg, req(0))
+		require.NoError(t, err)
+		time.Sleep(time.Millisecond)
+		ip1, _, err := sn.lease(t.Context(), kube, cfg, req(1))
+		require.NoError(t, err)
+
+		assert.Equal(t, ip0, ip1)
+		assert.NotContains(t, sn.offers, mac(0))
+	})
+
+	t.Run("request for another client's offer is NAKed", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+
+		ip0, _, err := sn.lease(t.Context(), kube, testCfg, req(0))
+		require.NoError(t, err)
+		_, _, err = sn.lease(t.Context(), kube, testCfg, request(t, 1, ip0.String(), ""))
+		require.ErrorIs(t, err, ErrRequestedIPUnavailable)
+		assert.EqualValues(t, 0, calls.updates.Load())
+	})
+
+	t.Run("request writes the lease and drops the offer", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+
+		ip, _, err := sn.lease(t.Context(), kube, testCfg, req(0))
+		require.NoError(t, err)
+		start := time.Now()
+		got, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, ip.String(), ""))
+		require.NoError(t, err)
+
+		assert.Equal(t, ip, got)
+		assert.EqualValues(t, 1, calls.updates.Load())
+		assert.Empty(t, sn.offers)
+
+		stored := getStored(t, kube).Status.Allocated[mac(0)]
+		assert.Equal(t, ip.String(), stored.IP)
+		assert.False(t, stored.Discover)
+		assert.WithinDuration(t, start.Add(time.Hour+5*time.Minute), stored.Expiry.Time, 2*time.Second)
+	})
+
+	t.Run("renewals", func(t *testing.T) {
+		for _, tt := range []struct {
+			name   string
+			stored dhcpapi.DHCPAllocated
+			static bool
+			req    func(t *testing.T) *dhcpv4.DHCPv4
+			write  bool
+		}{
+			{
+				name:   "covered by the stored expiry",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.100", Expiry: kmetav1.NewTime(time.Now().Add(time.Hour + 4*time.Minute))},
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "", "10.0.0.100") },
+			},
+			{
+				name:   "stored expiry before the end of the new lease",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.100", Expiry: kmetav1.NewTime(time.Now().Add(30 * time.Minute))},
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "", "10.0.0.100") },
+				write:  true,
+			},
+			{
+				name:   "hostname changed",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.100", Expiry: kmetav1.NewTime(time.Now().Add(time.Hour + 4*time.Minute))},
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return withHostname(request(t, 0, "", "10.0.0.100"), "server-1") },
+				write:  true,
+			},
+			{
+				name:   "left from a discover before the upgrade",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.100", Expiry: kmetav1.NewTime(time.Now().Add(time.Hour + 4*time.Minute)), Discover: true},
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "10.0.0.100", "") },
+				write:  true,
+			},
+			{
+				name:   "static",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.50"},
+				static: true,
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "", "10.0.0.50") },
+			},
+			{
+				name:   "becomes static",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.50", Expiry: kmetav1.NewTime(time.Now().Add(2 * time.Hour))},
+				static: true,
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "", "10.0.0.50") },
+				write:  true,
+			},
+			{
+				name:   "no longer static",
+				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.150"},
+				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "", "10.0.0.150") },
+				write:  true,
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				obj := testLeaseSubnet()
+				obj.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(0): tt.stored}
+				if tt.static {
+					obj.Spec.Static = map[string]dhcpapi.DHCPSubnetStatic{mac(0): {IP: "10.0.0.50"}}
+				}
+				kube, sn, calls := newFakeKube(t, obj, nil)
+
+				ip, _, err := sn.lease(t.Context(), kube, testCfg, tt.req(t))
+				require.NoError(t, err)
+				assert.Equal(t, tt.stored.IP, ip.String())
+
+				if !tt.write {
+					assert.EqualValues(t, 0, calls.updates.Load())
+
+					return
+				}
+
+				assert.EqualValues(t, 1, calls.updates.Load())
+				stored := getStored(t, kube).Status.Allocated[mac(0)]
+				assert.False(t, stored.Discover)
+				assert.Equal(t, tt.static, stored.Expiry.IsZero())
+			})
+		}
+	})
+}
+
 func TestSubnetPersist(t *testing.T) {
 	t.Run("writes and stores the result", func(t *testing.T) {
 		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 		before := sn.obj.Load()
 
-		ip, sp, err := sn.lease(t.Context(), kube, req(0))
+		ip, sp, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.NoError(t, err)
 		assert.Equal(t, "10.0.0.100", ip.String())
 		assert.NotNil(t, sp)
@@ -198,7 +353,7 @@ func TestSubnetPersist(t *testing.T) {
 		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 
 		for idx := range 5 {
-			_, _, err := sn.lease(t.Context(), kube, req(idx))
+			_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, idx, "", ""))
 			require.NoError(t, err)
 		}
 
@@ -221,7 +376,7 @@ func TestSubnetPersist(t *testing.T) {
 			require.NoError(t, kube.Status().Update(ctx, latest))
 		})
 
-		ip, _, err := sn.lease(t.Context(), kube, req(0))
+		ip, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.NoError(t, err)
 		assert.Equal(t, "10.0.0.101", ip.String(), "decision is redone on the refetched subnet")
 		assert.EqualValues(t, 2, calls.updates.Load())
@@ -251,10 +406,14 @@ func TestSubnetPersist(t *testing.T) {
 		})
 
 		ips := make([]string, 50)
+		reqs := make([]*dhcpv4.DHCPv4, len(ips))
+		for idx := range reqs {
+			reqs[idx] = request(t, idx, "", "")
+		}
 		wg := sync.WaitGroup{}
 		for idx := range ips {
 			wg.Go(func() {
-				ip, _, err := sn.lease(t.Context(), kube, req(idx))
+				ip, _, err := sn.lease(t.Context(), kube, testCfg, reqs[idx])
 				assert.NoError(t, err)
 				ips[idx] = ip.String()
 			})
@@ -280,7 +439,7 @@ func TestSubnetPersist(t *testing.T) {
 		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 		sn.deleted.Store(true)
 
-		_, _, err := sn.lease(t.Context(), kube, req(0))
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.ErrorIs(t, err, errSubnetDeleted)
 		assert.EqualValues(t, 0, calls.updates.Load())
 		assert.EqualValues(t, 0, calls.gets.Load())
@@ -295,7 +454,7 @@ func TestSubnetPersist(t *testing.T) {
 		old.ResourceVersion = "1"
 		sn = newSubnet(old)
 
-		_, _, err := sn.lease(t.Context(), kube, req(0))
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.ErrorContains(t, err, "UID mismatch")
 		assert.EqualValues(t, 1, calls.updates.Load())
 		assert.Empty(t, getStored(t, kube).Status.Allocated)
@@ -306,7 +465,7 @@ func TestSubnetPersist(t *testing.T) {
 		obj.Spec.StartIP = "garbage"
 		kube, sn, calls := newFakeKube(t, obj, nil)
 
-		_, _, err := sn.lease(t.Context(), kube, req(0))
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.Error(t, err)
 		assert.EqualValues(t, 0, calls.updates.Load())
 		assert.EqualValues(t, 0, calls.gets.Load())
