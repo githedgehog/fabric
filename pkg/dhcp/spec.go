@@ -52,7 +52,7 @@ type pxeSpec struct {
 	serverName dhcpv4.Option // the URL host, for any scheme
 	httpURL    string        // boot file for http, https and ftp
 	bootFile   *dhcpv4.Option
-	serverID   *dhcpv4.Option
+	nextServer net.IP // siaddr, the TFTP server if the URL host is an IP
 }
 
 func newSubnetSpec(obj *dhcpapi.DHCPSubnet) *subnetSpec {
@@ -124,7 +124,7 @@ func newSubnetSpec(obj *dhcpapi.DHCPSubnet) *subnetSpec {
 	sp.cumulus = dhcpv4.Option{Code: dhcpv4.GenericOptionCode(239), Value: dhcpv4.OptionGeneric{Data: []byte(spec.ZTPBaseURL + server.CumulusZTPURLSuffix)}}
 
 	if u := parsed.PXEURL; u != nil {
-		sp.pxe = &pxeSpec{serverName: dhcpv4.OptTFTPServerName(u.Host)}
+		sp.pxe = &pxeSpec{serverName: dhcpv4.OptTFTPServerName(u.Hostname())}
 
 		switch u.Scheme {
 		case "http", "https", "ftp":
@@ -132,9 +132,8 @@ func newSubnetSpec(obj *dhcpapi.DHCPSubnet) *subnetSpec {
 		default:
 			bootFile := dhcpv4.OptBootFileName(strings.TrimPrefix(u.Path, "/"))
 			sp.pxe.bootFile = &bootFile
-			if ip := net.ParseIP(u.Host); ip != nil {
-				serverID := dhcpv4.OptServerIdentifier(ip)
-				sp.pxe.serverID = &serverID
+			if addr, err := netip.ParseAddr(u.Hostname()); err == nil && addr.Is4() {
+				sp.pxe.nextServer = addrIP(addr)
 			}
 		}
 	}

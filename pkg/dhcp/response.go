@@ -104,8 +104,9 @@ func (sp *subnetSpec) addPXE(req, resp *dhcpv4.DHCPv4) {
 			resp.Options.Update(dhcpv4.OptClassIdentifier(string(req.Options.Get(dhcpv4.OptionClassIdentifier))))
 		} else {
 			resp.Options.Update(*sp.pxe.bootFile)
-			if sp.pxe.serverID != nil {
-				resp.Options.Update(*sp.pxe.serverID)
+			// clients take the TFTP server from siaddr, option 54 stays the DHCP server identifier
+			if sp.pxe.nextServer != nil {
+				resp.ServerIPAddr = sp.pxe.nextServer
 			}
 		}
 	}
