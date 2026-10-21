@@ -52,9 +52,10 @@ func msgTypeString(req *dhcpv4.DHCPv4) string {
 
 // relayInfo is what the relay agent tells about the client (option 82)
 type relayInfo struct {
-	vrf       string
-	circuitID string
-	remoteID  string
+	vrf           string
+	circuitID     string
+	remoteID      string
+	unexpectedVSS string // hex of a VSS leaves never send, the request is dropped
 }
 
 func relayInfoFrom(req *dhcpv4.DHCPv4) relayInfo {
@@ -65,9 +66,13 @@ func relayInfoFrom(req *dhcpv4.DHCPv4) relayInfo {
 		return relay
 	}
 
-	relay.vrf = strings.ToLower(strings.TrimSpace(string(relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption))))
-	if len(relay.vrf) > 1 {
-		relay.vrf = relay.vrf[1:]
+	// VSS (RFC 6607): leaves send type 0 with the VRF name, type 0xff alone is the global (default) VRF
+	switch vss := relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption); {
+	case len(vss) == 0, len(vss) == 1 && vss[0] == 0xff:
+	case vss[0] == 0 && len(vss) > 1:
+		relay.vrf = strings.ToLower(strings.TrimSpace(string(vss[1:])))
+	default:
+		relay.unexpectedVSS = fmt.Sprintf("%x", vss)
 	}
 	relay.vrf = strings.TrimPrefix(relay.vrf, vrfPrefix)
 	if relay.vrf == "" {
@@ -173,6 +178,9 @@ func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4, re
 
 	if violation := s.checkRelayedRequest(req.GatewayIPAddr); violation != nil {
 		return drop(slog.LevelError, "relay validation failed", "giaddr", req.GatewayIPAddr.String(), "err", violation)
+	}
+	if relay.unexpectedVSS != "" {
+		return drop(slog.LevelWarn, "unexpected VSS", "vss", relay.unexpectedVSS)
 	}
 
 	sn, err := s.findSubnet(relay)
