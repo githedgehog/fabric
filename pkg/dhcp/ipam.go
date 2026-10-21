@@ -84,8 +84,8 @@ func usedIPs(obj *dhcpapi.DHCPSubnet, sp *subnetSpec) (map[netip.Addr]string, ma
 
 // allocate picks an IP for the client without modifying obj and reports whether it's the client's static IP. IPs
 // offered to other clients count as used, offers must be unexpired. A DISCOVER gets another IP if the wanted one isn't
-// available, while a REQUEST gets ErrRequestedIPUnavailable.
-func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, req *dhcpv4.DHCPv4) (netip.Addr, bool, error) {
+// available with the reason why, while a REQUEST gets ErrRequestedIPUnavailable.
+func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, req *dhcpv4.DHCPv4) (netip.Addr, bool, string, error) {
 	used, allocatedBy := usedIPs(obj, sp)
 	for offerMAC, o := range offers {
 		// a stored lease wins over an offer, it could only be written by another writer after the offer was made
@@ -115,10 +115,11 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, 
 	wanted, hasWanted := wantedIP(req)
 
 	if isStatic && isRequest && hasWanted && wanted != res {
-		return netip.Addr{}, false, fmt.Errorf("%w: %s, static IP is %s", ErrRequestedIPUnavailable, wanted, res)
+		return netip.Addr{}, false, "", fmt.Errorf("%w: %s, static IP is %s", ErrRequestedIPUnavailable, wanted, res)
 	}
 
 	// if requested IP is valid, not in use, and within the subnet start/end range, use it
+	notWanted := ""
 	if !res.IsValid() && hasWanted {
 		reason := ""
 		if !wanted.Is4() {
@@ -133,10 +134,10 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, 
 
 		if reason != "" {
 			if isRequest {
-				return netip.Addr{}, false, fmt.Errorf("%w: %s %s", ErrRequestedIPUnavailable, wanted, reason)
+				return netip.Addr{}, false, "", fmt.Errorf("%w: %s %s", ErrRequestedIPUnavailable, wanted, reason)
 			}
 
-			slog.Warn("Requested IP is unavailable, ignoring", "ip", wanted.String(), "mac", mac, "reason", reason)
+			notWanted = fmt.Sprintf("requested %s %s", wanted, reason)
 		}
 	}
 
@@ -177,10 +178,10 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, 
 	}
 
 	if !res.IsValid() {
-		return netip.Addr{}, false, ErrNoAvailableIP
+		return netip.Addr{}, false, "", ErrNoAvailableIP
 	}
 
-	return res, isStatic, nil
+	return res, isStatic, notWanted, nil
 }
 
 func inRange(sp *subnetSpec, ip netip.Addr) bool {

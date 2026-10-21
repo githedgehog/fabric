@@ -15,7 +15,6 @@ import (
 	"github.com/coredhcp/coredhcp/logger"
 	"github.com/coredhcp/coredhcp/plugins"
 	"github.com/coredhcp/coredhcp/server"
-	"github.com/sirupsen/logrus"
 )
 
 const cfgTmpl = `
@@ -27,15 +26,7 @@ server4:
 `
 
 func (s *Server) startCoreDHCP(ctx context.Context) error {
-	// TODO conf some facade to direct logrus to slog
-
-	log := logger.GetLogger("main")
-	if slog.Default().Enabled(ctx, slog.LevelDebug) {
-		log.Logger.SetLevel(logrus.DebugLevel)
-	} else {
-		// coredhcp logs every dropped request at info level, our plugin already logs why it's dropped
-		log.Logger.SetLevel(logrus.WarnLevel)
-	}
+	forwardToSlog(ctx, logger.GetLogger("main").Logger)
 
 	cfgFile := "/etc/coredhcp.conf"
 

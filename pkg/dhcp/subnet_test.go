@@ -338,9 +338,10 @@ func TestSubnetLease(t *testing.T) {
 				}
 				kube, sn, calls := newFakeKube(t, obj, nil)
 
-				ip, _, err := sn.lease(t.Context(), kube, testCfg, tt.req(t))
+				ip, info, err := sn.lease(t.Context(), kube, testCfg, tt.req(t))
 				require.NoError(t, err)
 				assert.Equal(t, tt.stored.IP, ip.String())
+				assert.Equal(t, tt.write, info.written)
 
 				if !tt.write {
 					assert.EqualValues(t, 0, calls.updates.Load())
@@ -473,10 +474,11 @@ func TestSubnetPersist(t *testing.T) {
 		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 		before := sn.obj.Load()
 
-		ip, sp, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		ip, info, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.NoError(t, err)
 		assert.Equal(t, "10.0.0.100", ip.String())
-		assert.NotNil(t, sp)
+		assert.NotNil(t, info.spec)
+		assert.True(t, info.written)
 		assert.EqualValues(t, 1, calls.updates.Load())
 		assert.EqualValues(t, 0, calls.gets.Load())
 
@@ -637,9 +639,9 @@ func TestSubnetPersist(t *testing.T) {
 			return context.DeadlineExceeded
 		})
 
-		_, sp, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		_, info, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
 		require.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.Nil(t, sp)
+		assert.Nil(t, info.spec)
 		assert.EqualValues(t, 1, calls.updates.Load())
 	})
 

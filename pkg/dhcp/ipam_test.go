@@ -60,7 +60,7 @@ func allocateIn(t *testing.T, subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (n
 	sp := newSubnetSpec(subnet)
 	require.NoError(t, sp.err)
 
-	ip, _, err := allocate(subnet, sp, nil, req)
+	ip, _, _, err := allocate(subnet, sp, nil, req)
 	if err != nil {
 		return netip.Addr{}, err
 	}
