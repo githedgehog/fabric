@@ -214,10 +214,11 @@ func respondCases() []respondCase {
 				dhcpv4.WithOption(dhcpv4.OptClassIdentifier("HTTPClient"))},
 			want: func(t *testing.T, resp *dhcpv4.DHCPv4) {
 				t.Helper()
-				assert.Equal(t, "10.0.0.5:8080", resp.TFTPServerName())
+				assert.Equal(t, "10.0.0.5", resp.TFTPServerName())
 				assert.Equal(t, "http://10.0.0.5:8080/boot.efi", resp.BootFileName)
 				assert.Equal(t, "HTTPClient", resp.ClassIdentifier())
 				assert.Equal(t, vip, resp.ServerIdentifier())
+				assert.True(t, resp.ServerIPAddr.IsUnspecified())
 			},
 		},
 		{
@@ -228,7 +229,31 @@ func respondCases() []respondCase {
 				t.Helper()
 				assert.Equal(t, "10.0.0.5", resp.TFTPServerName())
 				assert.Equal(t, "pxe/boot.efi", resp.BootFileNameOption())
-				assert.Equal(t, net.ParseIP("10.0.0.5").To4(), resp.ServerIdentifier())
+				assert.Equal(t, net.ParseIP("10.0.0.5").To4(), resp.ServerIPAddr)
+				assert.Equal(t, vip, resp.ServerIdentifier())
+			},
+		},
+		{
+			name: "pxe over tftp with a port",
+			spec: func(spec *dhcpapi.DHCPSubnetSpec) { spec.PXEURL = "tftp://10.0.0.5:69/pxe/boot.efi" },
+			req:  []dhcpv4.Modifier{relayed, wants(dhcpv4.OptionTFTPServerName, dhcpv4.OptionBootfileName)},
+			want: func(t *testing.T, resp *dhcpv4.DHCPv4) {
+				t.Helper()
+				assert.Equal(t, "10.0.0.5", resp.TFTPServerName())
+				assert.Equal(t, net.ParseIP("10.0.0.5").To4(), resp.ServerIPAddr)
+				assert.Equal(t, vip, resp.ServerIdentifier())
+			},
+		},
+		{
+			name: "pxe over tftp with a hostname",
+			spec: func(spec *dhcpapi.DHCPSubnetSpec) { spec.PXEURL = "tftp://boot.example.com/pxe/boot.efi" },
+			req:  []dhcpv4.Modifier{relayed, wants(dhcpv4.OptionTFTPServerName, dhcpv4.OptionBootfileName)},
+			want: func(t *testing.T, resp *dhcpv4.DHCPv4) {
+				t.Helper()
+				assert.Equal(t, "boot.example.com", resp.TFTPServerName())
+				assert.Equal(t, "pxe/boot.efi", resp.BootFileNameOption())
+				assert.True(t, resp.ServerIPAddr.IsUnspecified())
+				assert.Equal(t, vip, resp.ServerIdentifier())
 			},
 		},
 		{
@@ -239,6 +264,7 @@ func respondCases() []respondCase {
 				t.Helper()
 				assert.Nil(t, resp.Options.Get(dhcpv4.OptionTFTPServerName))
 				assert.Nil(t, resp.Options.Get(dhcpv4.OptionBootfileName))
+				assert.True(t, resp.ServerIPAddr.IsUnspecified())
 			},
 		},
 		{
@@ -249,6 +275,7 @@ func respondCases() []respondCase {
 				t.Helper()
 				assert.Nil(t, resp.Options.Get(dhcpv4.OptionTFTPServerName))
 				assert.Nil(t, resp.Options.Get(dhcpv4.OptionBootfileName))
+				assert.True(t, resp.ServerIPAddr.IsUnspecified(), "siaddr is the source IP of unrelayed replies")
 			},
 		},
 	}
