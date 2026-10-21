@@ -332,6 +332,40 @@ spec:
                                           type: string
                                       type: object
                                     type: array
+                                  tcpFilters:
+                                    description: TCP-specific filters, only valid
+                                      with protocol "tcp" and scope "packet"
+                                    properties:
+                                      flags:
+                                        description: TCP flags to match, omit to match
+                                          all segments
+                                        properties:
+                                          ack:
+                                            description: ACK flag
+                                            type: boolean
+                                          cwr:
+                                            description: CWR flag
+                                            type: boolean
+                                          ece:
+                                            description: ECE flag
+                                            type: boolean
+                                          fin:
+                                            description: FIN flag
+                                            type: boolean
+                                          psh:
+                                            description: PSH flag
+                                            type: boolean
+                                          rst:
+                                            description: RST flag
+                                            type: boolean
+                                          syn:
+                                            description: SYN flag
+                                            type: boolean
+                                          urg:
+                                            description: URG flag
+                                            type: boolean
+                                        type: object
+                                    type: object
                                 type: object
                               name:
                                 description: Optional name for logs and diagnostics
