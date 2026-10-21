@@ -127,9 +127,9 @@ lint-gha: _actionlint
 # KUBEBUILDER_ASSETS=`{{envtest}} use {{envtest_k8s_version}} --bin-dir {{localbinpath}} -p path` go test {{go_flags}} `go list {{path}} | grep -v /e2e` -coverprofile cover.out
 # and add _envtest to job deps
 
-# Run tests
-test path="./...": gen _gcov2lcov
-    go test {{ go_flags }} `go list {{ path }} | grep -v /e2e` -coverprofile cover.out
+# Run tests, e.g. `just test ./... true 10` for the race detector and 10 runs
+test path="./..." race="false" count="": gen _gcov2lcov
+    {{ if race == "true" { "env -u CGO_ENABLED go test -race" } else { "go test" } }} {{ go_flags }} {{ if count != "" { "-count=" + count } else { "" } }} `go list {{ path }} | grep -v /e2e` -coverprofile cover.out
     {{ gcov2lcov }} -infile cover.out -outfile lcov.info
 
 # Update golden files

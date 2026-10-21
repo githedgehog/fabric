@@ -83,6 +83,10 @@ jobs:
         run: |
           just --timestamp test
 
+      - name: Run tests with race detector
+        run: |
+          just --timestamp test ./... true 10
+
       - name: Run API tests
         run: |
           just --timestamp test-api-auto
