@@ -60,7 +60,7 @@ func allocateIn(t *testing.T, subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (n
 	sp := newSubnetSpec(subnet)
 	require.NoError(t, sp.err)
 
-	ip, entry, err := allocate(subnet, sp, req)
+	ip, _, err := allocate(subnet, sp, nil, req)
 	if err != nil {
 		return netip.Addr{}, err
 	}
@@ -68,7 +68,7 @@ func allocateIn(t *testing.T, subnet *dhcpapi.DHCPSubnet, req *dhcpv4.DHCPv4) (n
 	if subnet.Status.Allocated == nil {
 		subnet.Status.Allocated = map[string]dhcpapi.DHCPAllocated{}
 	}
-	subnet.Status.Allocated[req.ClientHWAddr.String()] = entry
+	subnet.Status.Allocated[req.ClientHWAddr.String()] = dhcpapi.DHCPAllocated{IP: ip.String()}
 
 	return ip, nil
 }

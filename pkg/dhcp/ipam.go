@@ -13,7 +13,6 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -84,21 +83,21 @@ func usedIPs(obj *dhcpapi.DHCPSubnet, sp *subnetSpec) (map[netip.Addr]string, ma
 	return used, allocated
 }
 
-// allocate picks an IP for the client and returns the entry to record for it, without modifying obj. A DISCOVER gets
-// another IP if the wanted one isn't available, while a REQUEST gets ErrRequestedIPUnavailable.
-func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, req *dhcpv4.DHCPv4) (netip.Addr, dhcpapi.DHCPAllocated, error) {
+// allocate picks an IP for the client without modifying obj and reports whether it's the client's static IP. IPs
+// offered to other clients count as used, offers must be unexpired. A DISCOVER gets another IP if the wanted one isn't
+// available, while a REQUEST gets ErrRequestedIPUnavailable.
+func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, offers map[string]offer, req *dhcpv4.DHCPv4) (netip.Addr, bool, error) {
 	used, allocatedBy := usedIPs(obj, sp)
+	for offerMAC, o := range offers {
+		// a stored lease wins over an offer, it could only be written by another writer after the offer was made
+		if _, ok := used[o.ip]; !ok {
+			used[o.ip] = offerMAC
+		}
+	}
 	usedByOther := func(ip netip.Addr, mac string) (string, bool) {
 		owner, ok := used[ip]
 
 		return owner, ok && owner != mac
-	}
-
-	expiry := time.Now()
-	if req.MessageType() == dhcpv4.MessageTypeDiscover {
-		expiry = expiry.Add(time.Minute) // TODO const
-	} else {
-		expiry = expiry.Add(time.Duration(obj.Spec.LeaseTimeSeconds) * time.Second)
 	}
 
 	var res netip.Addr
@@ -109,15 +108,15 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, req *dhcpv4.DHCPv4) (neti
 			slog.Warn("Static IP is already allocated for different MAC, ignoring", "ip", static.String(), "mac", mac, "usedBy", owner)
 		} else {
 			res = static
-			expiry = time.Time{}
 		}
 	}
+	isStatic := res.IsValid()
 
 	isRequest := req.MessageType() == dhcpv4.MessageTypeRequest
 	wanted, hasWanted := wantedIP(req)
 
-	if res.IsValid() && isRequest && hasWanted && wanted != res {
-		return netip.Addr{}, dhcpapi.DHCPAllocated{}, fmt.Errorf("%w: %s, static IP is %s", ErrRequestedIPUnavailable, wanted, res)
+	if isStatic && isRequest && hasWanted && wanted != res {
+		return netip.Addr{}, false, fmt.Errorf("%w: %s, static IP is %s", ErrRequestedIPUnavailable, wanted, res)
 	}
 
 	// if requested IP is valid, not in use, and within the subnet start/end range, use it
@@ -135,10 +134,19 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, req *dhcpv4.DHCPv4) (neti
 
 		if reason != "" {
 			if isRequest {
-				return netip.Addr{}, dhcpapi.DHCPAllocated{}, fmt.Errorf("%w: %s %s", ErrRequestedIPUnavailable, wanted, reason)
+				return netip.Addr{}, false, fmt.Errorf("%w: %s %s", ErrRequestedIPUnavailable, wanted, reason)
 			}
 
 			slog.Warn("Requested IP is unavailable, ignoring", "ip", wanted.String(), "mac", mac, "reason", reason)
+		}
+	}
+
+	// a retransmitted DISCOVER gets the same offer
+	if !res.IsValid() && !isRequest {
+		if o, ok := offers[mac]; ok {
+			if _, isUsed := usedByOther(o.ip, mac); !isUsed && inRange(sp, o.ip) {
+				res = o.ip
+			}
 		}
 	}
 
@@ -170,15 +178,10 @@ func allocate(obj *dhcpapi.DHCPSubnet, sp *subnetSpec, req *dhcpv4.DHCPv4) (neti
 	}
 
 	if !res.IsValid() {
-		return netip.Addr{}, dhcpapi.DHCPAllocated{}, ErrNoAvailableIP
+		return netip.Addr{}, false, ErrNoAvailableIP
 	}
 
-	return res, dhcpapi.DHCPAllocated{
-		IP:       res.String(),
-		Expiry:   kmetav1.Time{Time: expiry},
-		Hostname: req.HostName(),
-		Discover: req.MessageType() == dhcpv4.MessageTypeDiscover,
-	}, nil
+	return res, isStatic, nil
 }
 
 func inRange(sp *subnetSpec, ip netip.Addr) bool {

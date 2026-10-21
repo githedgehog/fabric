@@ -194,7 +194,7 @@ func (s *Server) handleDHCP4(ctx context.Context, sn *subnet, req, resp *dhcpv4.
 			return fmt.Errorf("getting server identifier: %w", err)
 		}
 
-		ip, sp, err := sn.lease(ctx, s.kube, req)
+		ip, sp, err := sn.lease(ctx, s.kube, &s.Config, req)
 		if errors.Is(err, ErrRequestedIPUnavailable) {
 			slog.Info("NAK", append(reqSummary(req, vrf, circuitID, remoteID), "err", err.Error())...)
 			nakResponse(req, resp, serverID)

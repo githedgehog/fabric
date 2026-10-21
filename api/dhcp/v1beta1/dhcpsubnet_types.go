@@ -98,7 +98,9 @@ type DHCPAllocated struct {
 	Expiry kmetav1.Time `json:"expiry"`
 	// Hostname from DHCP request
 	Hostname string `json:"hostname,omitempty"`
-	// Discover is true if the IP was offered to a client but not yet acked
+	// Discover is true if the IP was offered to a client but not yet acked, not set anymore as offers are only kept in
+	// memory by the DHCP server
+	// TODO: remove after 26.05 release
 	Discover bool `json:"discover,omitempty"`
 }
 

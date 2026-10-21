@@ -207,8 +207,9 @@ spec:
                     lease
                   properties:
                     discover:
-                      description: Discover is true if the IP was offered to a client
-                        but not yet acked
+                      description: |-
+                        Discover is true if the IP was offered to a client but not yet acked, not set anymore as offers are only kept in
+                        memory by the DHCP server
                       type: boolean
                     expiry:
                       description: Expiry time of the lease
