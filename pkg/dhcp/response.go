@@ -5,7 +5,6 @@ package dhcp
 
 import (
 	"fmt"
-	"log/slog"
 	"net"
 	"net/netip"
 	"strings"
@@ -92,24 +91,12 @@ func (sp *subnetSpec) respond(req, resp *dhcpv4.DHCPv4, ip netip.Addr, serverID 
 }
 
 func (sp *subnetSpec) addPXE(req, resp *dhcpv4.DHCPv4) {
-	relayAgentInfo := req.RelayAgentInfo()
-	if relayAgentInfo == nil {
+	if req.RelayAgentInfo() == nil || sp.pxeTFTPServer == nil {
 		return
 	}
 
 	wantsServer := req.IsOptionRequested(dhcpv4.OptionTFTPServerName)
 	wantsBootFile := req.IsOptionRequested(dhcpv4.OptionBootfileName)
-
-	if sp.pxeTFTPServer == nil {
-		if wantsServer || wantsBootFile {
-			slog.Error("Client Requested pxe but it is not configured",
-				"circuitID", string(relayAgentInfo.Get(dhcpv4.AgentCircuitIDSubOption)),
-				"vrfName", string(relayAgentInfo.Get(dhcpv4.VirtualSubnetSelectionSubOption)),
-				"macAddress", req.ClientHWAddr.String())
-		}
-
-		return
-	}
 
 	if wantsServer {
 		resp.Options.Update(*sp.pxeTFTPServer)
