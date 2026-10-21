@@ -59,6 +59,11 @@ func TestRelayInfoFrom(t *testing.T) {
 			want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000", unexpectedVSS: "00"},
 		},
 		{
+			name: "name vss with a blank name",
+			opts: []dhcpv4.Option{circuit, vss("\x00  ")},
+			want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000", unexpectedVSS: "002020"},
+		},
+		{
 			name: "cumulus remote id",
 			opts: []dhcpv4.Option{circuit, dhcpv4.OptGeneric(dhcpv4.AgentRemoteIDSubOption, []byte("Cumulus:leaf-01"))},
 			want: relayInfo{vrf: defaultVRF, circuitID: "vlan1000", remoteID: "cumulus:leaf-01"},
