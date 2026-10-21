@@ -23,11 +23,9 @@ spec:
   selector:
     matchLabels:
       {{- include "fabric-dhcpd.selectorLabels" . | nindent 6 }}
+  # never two instances at once: both would serve DHCP on the host network and allocate from the same subnets
   strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 1
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       {{- with .Values.podAnnotations }}
