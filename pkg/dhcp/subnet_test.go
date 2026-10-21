@@ -625,9 +625,18 @@ func TestSubnetPersist(t *testing.T) {
 		sn = newSubnet(old)
 
 		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
-		require.ErrorContains(t, err, "UID mismatch")
+		require.ErrorIs(t, err, errSubnetDeleted)
 		assert.EqualValues(t, 1, calls.updates.Load())
 		assert.Empty(t, getStored(t, kube).Status.Allocated)
+	})
+
+	t.Run("subnet deleted during the write", func(t *testing.T) {
+		kube, sn, _ := newFakeKube(t, testLeaseSubnet(), func(ctx context.Context, kube kclient.Client) error {
+			return kube.Delete(ctx, testLeaseSubnet())
+		})
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.ErrorIs(t, err, errSubnetDeleted)
 	})
 
 	t.Run("transient errors are retried without refetching", func(t *testing.T) {

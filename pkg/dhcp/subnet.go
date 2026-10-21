@@ -147,11 +147,14 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 		base := sn.obj.Load()
 		if refetch {
 			latest := &dhcpapi.DHCPSubnet{}
-			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(base), latest); err != nil {
+			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(base), latest); kapierrors.IsNotFound(err) {
+				return fmt.Errorf("fetching latest subnet %s: %w", base.Name, errSubnetDeleted)
+			} else if err != nil {
 				return fmt.Errorf("fetching latest subnet %s: %w", base.Name, err)
 			}
+			// the informer marks it deleted soon, nothing is written to the new object
 			if latest.UID != sn.uid {
-				return fmt.Errorf("subnet %s UID mismatch", base.Name) //nolint:err113
+				return fmt.Errorf("subnet %s recreated: %w", base.Name, errSubnetDeleted)
 			}
 			sn.set(latest)
 			base = sn.obj.Load() // could be even newer if the informer delivered it meanwhile
@@ -173,6 +176,9 @@ func (sn *subnet) persist(ctx context.Context, kube kclient.Client, decide decid
 		apply(upd)
 
 		if err := kube.Status().Update(ctx, upd); err != nil {
+			if kapierrors.IsNotFound(err) {
+				return fmt.Errorf("updating subnet %s: %w", upd.Name, errSubnetDeleted)
+			}
 			refetch = kapierrors.IsConflict(err)
 
 			return fmt.Errorf("updating subnet %s (res %s gen %d): %w", upd.Name, base.ResourceVersion, upd.Generation, err)
