@@ -45,10 +45,14 @@ type subnetSpec struct {
 	onie    dhcpv4.Option
 	cumulus dhcpv4.Option
 
-	pxeTFTPServer *dhcpv4.Option
-	pxeHTTPURL    string // boot file for http, https and ftp
-	pxeBootFile   *dhcpv4.Option
-	pxeServerID   *dhcpv4.Option
+	pxe *pxeSpec // nil if the subnet has no PXE URL
+}
+
+type pxeSpec struct {
+	serverName dhcpv4.Option // the URL host, for any scheme
+	httpURL    string        // boot file for http, https and ftp
+	bootFile   *dhcpv4.Option
+	serverID   *dhcpv4.Option
 }
 
 func newSubnetSpec(obj *dhcpapi.DHCPSubnet) *subnetSpec {
@@ -120,18 +124,17 @@ func newSubnetSpec(obj *dhcpapi.DHCPSubnet) *subnetSpec {
 	sp.cumulus = dhcpv4.Option{Code: dhcpv4.GenericOptionCode(239), Value: dhcpv4.OptionGeneric{Data: []byte(spec.ZTPBaseURL + server.CumulusZTPURLSuffix)}}
 
 	if u := parsed.PXEURL; u != nil {
-		tftpServer := dhcpv4.OptTFTPServerName(u.Host)
-		sp.pxeTFTPServer = &tftpServer
+		sp.pxe = &pxeSpec{serverName: dhcpv4.OptTFTPServerName(u.Host)}
 
 		switch u.Scheme {
 		case "http", "https", "ftp":
-			sp.pxeHTTPURL = u.String()
+			sp.pxe.httpURL = u.String()
 		default:
 			bootFile := dhcpv4.OptBootFileName(strings.TrimPrefix(u.Path, "/"))
-			sp.pxeBootFile = &bootFile
+			sp.pxe.bootFile = &bootFile
 			if ip := net.ParseIP(u.Host); ip != nil {
 				serverID := dhcpv4.OptServerIdentifier(ip)
-				sp.pxeServerID = &serverID
+				sp.pxe.serverID = &serverID
 			}
 		}
 	}

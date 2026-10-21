@@ -91,24 +91,21 @@ func (sp *subnetSpec) respond(req, resp *dhcpv4.DHCPv4, ip netip.Addr, serverID 
 }
 
 func (sp *subnetSpec) addPXE(req, resp *dhcpv4.DHCPv4) {
-	if req.RelayAgentInfo() == nil || sp.pxeTFTPServer == nil {
+	if req.RelayAgentInfo() == nil || sp.pxe == nil {
 		return
 	}
 
-	wantsServer := req.IsOptionRequested(dhcpv4.OptionTFTPServerName)
-	wantsBootFile := req.IsOptionRequested(dhcpv4.OptionBootfileName)
-
-	if wantsServer {
-		resp.Options.Update(*sp.pxeTFTPServer)
+	if req.IsOptionRequested(dhcpv4.OptionTFTPServerName) {
+		resp.Options.Update(sp.pxe.serverName)
 	}
-	if wantsBootFile {
-		if sp.pxeHTTPURL != "" {
-			resp.BootFileName = sp.pxeHTTPURL
+	if req.IsOptionRequested(dhcpv4.OptionBootfileName) {
+		if sp.pxe.httpURL != "" {
+			resp.BootFileName = sp.pxe.httpURL
 			resp.Options.Update(dhcpv4.OptClassIdentifier(string(req.Options.Get(dhcpv4.OptionClassIdentifier))))
 		} else {
-			resp.Options.Update(*sp.pxeBootFile)
-			if sp.pxeServerID != nil {
-				resp.Options.Update(*sp.pxeServerID)
+			resp.Options.Update(*sp.pxe.bootFile)
+			if sp.pxe.serverID != nil {
+				resp.Options.Update(*sp.pxe.serverID)
 			}
 		}
 	}
