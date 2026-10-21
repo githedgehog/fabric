@@ -19,6 +19,7 @@ import (
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,8 +82,8 @@ type fakeKubeCalls struct {
 }
 
 // newFakeKube returns a fake client holding the given subnet and the wrapper for it built from the stored object,
-// beforeUpdate is called with the underlying client on every status update before it's applied
-func newFakeKube(t *testing.T, obj *dhcpapi.DHCPSubnet, beforeUpdate func(ctx context.Context, kube kclient.Client)) (kclient.Client, *subnet, *fakeKubeCalls) {
+// beforeUpdate is called with the underlying client on every status update before it's applied and can fail it
+func newFakeKube(t *testing.T, obj *dhcpapi.DHCPSubnet, beforeUpdate func(ctx context.Context, kube kclient.Client) error) (kclient.Client, *subnet, *fakeKubeCalls) {
 	t.Helper()
 
 	scheme, err := kubeutil.NewScheme(dhcpapi.AddToScheme)
@@ -102,7 +103,9 @@ func newFakeKube(t *testing.T, obj *dhcpapi.DHCPSubnet, beforeUpdate func(ctx co
 			SubResourceUpdate: func(ctx context.Context, kube kclient.Client, subResource string, obj kclient.Object, opts ...kclient.SubResourceUpdateOption) error {
 				calls.updates.Add(1)
 				if beforeUpdate != nil {
-					beforeUpdate(ctx, kube)
+					if err := beforeUpdate(ctx, kube); err != nil {
+						return err
+					}
 				}
 
 				return kube.SubResource(subResource).Update(ctx, obj, opts...)
@@ -364,9 +367,9 @@ func TestSubnetPersist(t *testing.T) {
 
 	t.Run("outside write is refetched and kept", func(t *testing.T) {
 		outside := true
-		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), func(ctx context.Context, kube kclient.Client) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), func(ctx context.Context, kube kclient.Client) error {
 			if !outside {
-				return
+				return nil
 			}
 			outside = false
 
@@ -374,6 +377,8 @@ func TestSubnetPersist(t *testing.T) {
 			require.NoError(t, kube.Get(ctx, kclient.ObjectKey{Namespace: kmetav1.NamespaceDefault, Name: "a"}, latest))
 			latest.Status.Allocated = map[string]dhcpapi.DHCPAllocated{mac(9): {IP: "10.0.0.100"}}
 			require.NoError(t, kube.Status().Update(ctx, latest))
+
+			return nil
 		})
 
 		ip, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
@@ -458,6 +463,57 @@ func TestSubnetPersist(t *testing.T) {
 		require.ErrorContains(t, err, "UID mismatch")
 		assert.EqualValues(t, 1, calls.updates.Load())
 		assert.Empty(t, getStored(t, kube).Status.Allocated)
+	})
+
+	t.Run("transient errors are retried without refetching", func(t *testing.T) {
+		failures := 2
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), func(context.Context, kclient.Client) error {
+			if failures == 0 {
+				return nil
+			}
+			failures--
+
+			return kapierrors.NewTooManyRequests("slow down", 0)
+		})
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+		assert.EqualValues(t, 3, calls.updates.Load())
+		assert.EqualValues(t, 0, calls.gets.Load())
+		assert.Len(t, getStored(t, kube).Status.Allocated, 1)
+	})
+
+	t.Run("other errors aren't retried", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), func(context.Context, kclient.Client) error {
+			return kapierrors.NewForbidden(dhcpapi.GroupVersion.WithResource("dhcpsubnets").GroupResource(), "a", nil)
+		})
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.True(t, kapierrors.IsForbidden(err))
+		assert.EqualValues(t, 1, calls.updates.Load())
+	})
+
+	t.Run("update timing out isn't reported as success", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), func(context.Context, kclient.Client) error {
+			return context.DeadlineExceeded
+		})
+
+		_, sp, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.Nil(t, sp)
+		assert.EqualValues(t, 1, calls.updates.Load())
+	})
+
+	t.Run("expired request makes no API calls", func(t *testing.T) {
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Nanosecond)
+		defer cancel()
+		<-ctx.Done()
+
+		_, _, err := sn.lease(ctx, kube, testCfg, request(t, 0, "", ""))
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.EqualValues(t, 0, calls.updates.Load())
+		assert.EqualValues(t, 0, calls.gets.Load())
 	})
 
 	t.Run("invalid subnet makes no API calls", func(t *testing.T) {

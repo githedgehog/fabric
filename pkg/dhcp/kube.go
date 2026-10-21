@@ -10,10 +10,14 @@ import (
 	"io"
 	"log/slog"
 	"net/netip"
+	"sync/atomic"
+	"time"
 
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	"golang.org/x/time/rate"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	toolscache "k8s.io/client-go/tools/cache"
@@ -21,7 +25,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func newKube(ctx context.Context) (kclient.Client, kcache.Cache, error) {
+func newKube(ctx context.Context, dhcpCfg *dhcpcfg.ServerConfig, stats *budgetStats) (kclient.Client, kcache.Cache, error) {
 	cfg, err := kubeutil.NewClientConfig(ctx, "")
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating kube config: %w", err)
@@ -36,6 +40,7 @@ func newKube(ctx context.Context) (kclient.Client, kcache.Cache, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating kube client: %w", err)
 	}
+	kube = withUpdateBudget(kube, rate.NewLimiter(rate.Limit(dhcpCfg.UpdateQPS), dhcpCfg.UpdateBurst), stats)
 
 	cache, err := kcache.New(cfg, kcache.Options{
 		Scheme:                   scheme,
@@ -47,6 +52,86 @@ func newKube(ctx context.Context) (kclient.Client, kcache.Cache, error) {
 	}
 
 	return kube, cache, nil
+}
+
+var errUpdateBudget = errors.New("update budget exhausted")
+
+// budgetStats counts the requests slowed down or dropped because of the update budget, they're logged periodically
+// instead of one by one so a storm doesn't flood the logs
+type budgetStats struct {
+	delayed atomic.Int64 // lease writes that had to wait for the budget
+	dropped atomic.Int64 // lease writes that couldn't get the budget before the request timeout
+	expired atomic.Int64 // requests that timed out waiting for the subnet or retries
+}
+
+func (st *budgetStats) report(cfg *dhcpcfg.ServerConfig) {
+	delayed, dropped, expired := st.delayed.Swap(0), st.dropped.Swap(0), st.expired.Swap(0)
+	if delayed == 0 && dropped == 0 && expired == 0 {
+		return
+	}
+
+	attrs := []any{
+		"delayed", delayed, "dropped", dropped, "expired", expired, "period", budgetReportPeriod,
+		"updateQPS", cfg.UpdateQPS, "updateBurst", cfg.UpdateBurst, "requestTimeout", cfg.RequestTimeout.Duration,
+	}
+	if dropped > 0 || expired > 0 {
+		slog.Warn("Lease writes are over the update budget, dropping requests", attrs...)
+	} else {
+		slog.Info("Lease writes are rate limited by the update budget", attrs...)
+	}
+}
+
+const budgetReportPeriod = 30 * time.Second
+
+func (s *Server) reportBudget(ctx context.Context) {
+	ticker := time.NewTicker(budgetReportPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.budget.report(&s.Config)
+		}
+	}
+}
+
+// withUpdateBudget makes status updates (lease writes) wait for the limiter right before they're sent, so nothing else
+// (reads, skipped writes, the informers) uses the budget, while each retried update does
+func withUpdateBudget(kube kclient.Client, limiter *rate.Limiter, stats *budgetStats) kclient.Client {
+	return &budgetClient{Client: kube, limiter: limiter, stats: stats}
+}
+
+type budgetClient struct {
+	kclient.Client
+	limiter *rate.Limiter
+	stats   *budgetStats
+}
+
+func (c *budgetClient) Status() kclient.SubResourceWriter {
+	return &budgetStatusWriter{SubResourceWriter: c.Client.Status(), limiter: c.limiter, stats: c.stats}
+}
+
+type budgetStatusWriter struct {
+	kclient.SubResourceWriter
+	limiter *rate.Limiter
+	stats   *budgetStats
+}
+
+func (w *budgetStatusWriter) Update(ctx context.Context, obj kclient.Object, opts ...kclient.SubResourceUpdateOption) error {
+	// Allow only takes a token available right now (never one reserved by an earlier waiter), so a write that gets to Wait
+	// is delayed. Wait fails right away without using the budget if the next token comes after the request timeout.
+	if !w.limiter.Allow() {
+		if err := w.limiter.Wait(ctx); err != nil {
+			w.stats.dropped.Add(1)
+
+			return fmt.Errorf("%w: %w", errUpdateBudget, err)
+		}
+		w.stats.delayed.Add(1)
+	}
+
+	return w.SubResourceWriter.Update(ctx, obj, opts...) //nolint:wrapcheck
 }
 
 func watchErrorHandler(ctx context.Context, r *toolscache.Reflector, err error) {
