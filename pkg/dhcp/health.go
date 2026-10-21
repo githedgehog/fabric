@@ -63,9 +63,8 @@ func (s *Server) checkHealth() error {
 	return nil
 }
 
-// healthzHandler responds 200 when checkHealth passes and 503 otherwise. It
-// backs both /healthz and /readyz, so a wedged instance is restarted by the
-// kubelet.
+// healthzHandler responds 200 when checkHealth passes and 503 otherwise, so a
+// wedged instance is restarted by the kubelet.
 func (s *Server) healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	if err := s.checkHealth(); err != nil {
 		slog.Warn("Health check failed", "err", err)
@@ -78,12 +77,25 @@ func (s *Server) healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = fmt.Fprintln(w, "ok")
 }
 
+// readyzHandler is healthzHandler that also waits until DHCP is served, which is only after the initial sync. Liveness
+// doesn't wait for it, so a slow sync doesn't restart the pod.
+func (s *Server) readyzHandler(w http.ResponseWriter, r *http.Request) {
+	if !s.serving.Load() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = fmt.Fprintln(w, "not serving yet")
+
+		return
+	}
+
+	s.healthzHandler(w, r)
+}
+
 // startHealthz serves /healthz and /readyz for Kubernetes liveness/readiness
 // probes.
 func (s *Server) startHealthz(ctx context.Context, addr string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.healthzHandler)
-	mux.HandleFunc("/readyz", s.healthzHandler)
+	mux.HandleFunc("/readyz", s.readyzHandler)
 
 	srv := &http.Server{
 		Addr:              addr,
