@@ -232,7 +232,7 @@ func TestSubnetLease(t *testing.T) {
 		assert.EqualValues(t, 0, calls.updates.Load())
 	})
 
-	t.Run("request writes the lease and drops the offer", func(t *testing.T) {
+	t.Run("request writes the lease", func(t *testing.T) {
 		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
 
 		ip, _, err := sn.lease(t.Context(), kube, testCfg, req(0))
@@ -243,12 +243,39 @@ func TestSubnetLease(t *testing.T) {
 
 		assert.Equal(t, ip, got)
 		assert.EqualValues(t, 1, calls.updates.Load())
-		assert.Empty(t, sn.offers)
+		assert.Equal(t, ip, sn.offers[mac(0)].ip)
 
 		stored := getStored(t, kube).Status.Allocated[mac(0)]
 		assert.Equal(t, ip.String(), stored.IP)
 		assert.False(t, stored.Discover)
 		assert.WithinDuration(t, start.Add(time.Hour+5*time.Minute), stored.Expiry.Time, 2*time.Second)
+	})
+
+	t.Run("failed request write keeps the IP for the client", func(t *testing.T) {
+		fail := atomic.Bool{}
+		fail.Store(true)
+		kube, sn, calls := newFakeKube(t, testLeaseSubnet(), func(context.Context, kclient.Client) error {
+			if fail.Load() {
+				return errUpdateBudget
+			}
+
+			return nil
+		})
+
+		ip, _, err := sn.lease(t.Context(), kube, testCfg, req(0))
+		require.NoError(t, err)
+		_, _, err = sn.lease(t.Context(), kube, testCfg, request(t, 0, ip.String(), ""))
+		require.ErrorIs(t, err, errUpdateBudget)
+
+		other, _, err := sn.lease(t.Context(), kube, testCfg, req(1))
+		require.NoError(t, err)
+		assert.NotEqual(t, ip, other, "the IP is still held for the client")
+
+		fail.Store(false)
+		got, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, ip.String(), ""))
+		require.NoError(t, err, "retransmitted request is ACKed")
+		assert.Equal(t, ip, got)
+		assert.EqualValues(t, 2, calls.updates.Load())
 	})
 
 	t.Run("renewals", func(t *testing.T) {
