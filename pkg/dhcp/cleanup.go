@@ -40,7 +40,7 @@ func (s *Server) cleanupSubnet(ctx context.Context, sn *subnet) {
 	name := sn.obj.Load().Name
 	expired, unstatic, err := sn.cleanup(ctx, s.kube, &s.Config)
 	switch {
-	case errors.Is(err, errSubnetDeleted):
+	case errors.Is(err, errSubnetDeleted), errors.Is(err, context.Canceled):
 	case errors.Is(err, errUpdateBudget):
 		slog.Debug("Over the update budget, cleanup postponed", "subnet", name, "err", err)
 	case errors.Is(err, context.DeadlineExceeded):

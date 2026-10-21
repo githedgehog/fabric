@@ -307,6 +307,8 @@ func (s *Server) dropOnError(err error) outcome {
 		return drop(slog.LevelDebug, "timed out", "err", err)
 	case errors.Is(err, errSubnetDeleted):
 		return drop(slog.LevelInfo, "subnet deleted")
+	case errors.Is(err, context.Canceled):
+		return drop(slog.LevelDebug, "shutting down")
 	default:
 		return drop(slog.LevelError, "failed", "err", err)
 	}

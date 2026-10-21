@@ -105,13 +105,14 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 	slog.Info("DHCPSubnets and Switches synced")
 
-	wg.Go(func() {
+	// not waited for as coredhcp can't be stopped, the process exits once Run returns on shutdown
+	go func() {
 		if err := s.startCoreDHCP(ctx); err != nil {
 			s.serveStopped.Store(true)
 			slog.Error("Start CoreDHCP failed", "err", err)
 			os.Exit(2) // TODO graceful handling
 		}
-	})
+	}()
 
 	wg.Go(func() {
 		if err := s.startPeriodicCleanup(ctx); err != nil {
@@ -122,6 +123,8 @@ func (s *Server) Run(ctx context.Context) error {
 
 	wg.Go(func() { s.reportBudget(ctx) })
 
+	<-ctx.Done()
+	slog.Info("Shutting down")
 	wg.Wait()
 
 	return nil
