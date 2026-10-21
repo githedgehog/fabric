@@ -78,8 +78,9 @@ func TestSubnetSetConcurrent(t *testing.T) {
 }
 
 type fakeKubeCalls struct {
-	gets    atomic.Int32
-	updates atomic.Int32
+	gets      atomic.Int32
+	updates   atomic.Int32
+	conflicts atomic.Int32
 }
 
 // newFakeKube returns a fake client holding the given subnet and the wrapper for it built from the stored object,
@@ -87,13 +88,27 @@ type fakeKubeCalls struct {
 func newFakeKube(t *testing.T, obj *dhcpapi.DHCPSubnet, beforeUpdate func(ctx context.Context, kube kclient.Client) error) (kclient.Client, *subnet, *fakeKubeCalls) {
 	t.Helper()
 
+	kube, subnets, calls := newFakeKubeSubnets(t, []*dhcpapi.DHCPSubnet{obj}, beforeUpdate)
+
+	return kube, subnets[0], calls
+}
+
+// newFakeKubeSubnets is newFakeKube for several subnets
+func newFakeKubeSubnets(t *testing.T, objs []*dhcpapi.DHCPSubnet, beforeUpdate func(ctx context.Context, kube kclient.Client) error) (kclient.Client, []*subnet, *fakeKubeCalls) {
+	t.Helper()
+
 	scheme, err := kubeutil.NewScheme(dhcpapi.AddToScheme)
 	require.NoError(t, err)
+
+	initObjs := make([]kclient.Object, 0, len(objs))
+	for _, obj := range objs {
+		initObjs = append(initObjs, obj)
+	}
 
 	calls := &fakeKubeCalls{}
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(obj).
+		WithObjects(initObjs...).
 		WithStatusSubresource(&dhcpapi.DHCPSubnet{}).
 		WithInterceptorFuncs(interceptor.Funcs{
 			Get: func(ctx context.Context, kube kclient.WithWatch, key kclient.ObjectKey, obj kclient.Object, opts ...kclient.GetOption) error {
@@ -109,16 +124,25 @@ func newFakeKube(t *testing.T, obj *dhcpapi.DHCPSubnet, beforeUpdate func(ctx co
 					}
 				}
 
-				return kube.SubResource(subResource).Update(ctx, obj, opts...)
+				err := kube.SubResource(subResource).Update(ctx, obj, opts...)
+				if kapierrors.IsConflict(err) {
+					calls.conflicts.Add(1)
+				}
+
+				return err //nolint:wrapcheck
 			},
 		}).
 		Build()
 
-	stored := &dhcpapi.DHCPSubnet{}
-	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(obj), stored))
+	subnets := make([]*subnet, 0, len(objs))
+	for _, obj := range objs {
+		stored := &dhcpapi.DHCPSubnet{}
+		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(obj), stored))
+		subnets = append(subnets, newSubnet(stored))
+	}
 	calls.gets.Store(0)
 
-	return kube, newSubnet(stored), calls
+	return kube, subnets, calls
 }
 
 func testLeaseSubnet() *dhcpapi.DHCPSubnet {
