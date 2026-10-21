@@ -125,6 +125,34 @@ func TestHandler4Timeout(t *testing.T) {
 	assert.EqualValues(t, 1, s.budget.expired.Load())
 }
 
+func TestHandler4ShuttingDown(t *testing.T) {
+	obj := testLeaseSubnet()
+	s := &Server{
+		Config:         *testCfg,
+		subnets:        map[string]*subnet{subnetKeyFrom(obj): newSubnet(obj)},
+		relayAllowlist: map[string]struct{}{testRelay: {}},
+		controlVIP:     net.ParseIP("172.30.0.1").To4(),
+	}
+	logs := captureLogs(t)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	handler, err := s.setupDHCP4Plugin(ctx)()
+	require.NoError(t, err)
+
+	req := relayed(request(t, 0, "", ""), obj)
+	resp, err := dhcpv4.NewReplyFromRequest(req)
+	require.NoError(t, err)
+
+	got, _ := handler(req, resp)
+	assert.Nil(t, got)
+	records := logs.take()
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelDebug, records[0].Level)
+	assert.Equal(t, "shutting down", recordAttrs(records[0])["reason"])
+	assert.EqualValues(t, 0, s.budget.expired.Load(), "not counted as expired")
+}
+
 type logRecords struct {
 	mu      sync.Mutex
 	records []slog.Record
