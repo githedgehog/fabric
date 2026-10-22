@@ -254,11 +254,8 @@ rules:
   - wiring.githedgehog.com
   resources:
   - connections
-  - servers
-  - switches
-  - switchgroups
-  - vlannamespaces
   verbs:
+  - delete
   - get
   - list
   - update
@@ -282,6 +279,18 @@ rules:
   - fabrics
   verbs:
   - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - servers
+  - switches
+  - switchgroups
+  - vlannamespaces
+  verbs:
   - get
   - list
   - update

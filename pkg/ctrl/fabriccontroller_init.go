@@ -77,6 +77,7 @@ func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, c
 //+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=delete
 
 var (
 	_ manager.Runnable               = (*FabricControllerInitializer)(nil)
@@ -133,6 +134,10 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context) error {
 	l.Info("Initializing", "initialized", fc.Status.InitializedVersion)
 
 	if err := i.ensureFabricForUpgrade(ctx); err != nil {
+		return err
+	}
+
+	if err := i.deleteVPCLoopbackConnections(ctx); err != nil {
 		return err
 	}
 
@@ -270,6 +275,26 @@ func (i *FabricControllerInitializer) ensureFabricForUpgrade(ctx context.Context
 	}
 
 	kctrllog.FromContext(ctx).Info("Created the default fabric for a deployment that predates fabrics")
+
+	return nil
+}
+
+// deleteVPCLoopbackConnections deletes the Connections of the VPC loopback workaround, whose type is gone from the
+// API: what's stored of them has no spec left, only the type label their webhook set
+func (i *FabricControllerInitializer) deleteVPCLoopbackConnections(ctx context.Context) error {
+	conns := &wiringapi.ConnectionList{}
+	if err := i.List(ctx, conns, kclient.MatchingLabels{wiringapi.LabelConnectionType: "vpc-loopback"}); err != nil {
+		return fmt.Errorf("listing vpc-loopback connections: %w", err)
+	}
+
+	for idx := range conns.Items {
+		conn := &conns.Items[idx]
+		if err := i.Delete(ctx, conn); kclient.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting vpc-loopback connection %s: %w", conn.Name, err)
+		}
+
+		kctrllog.FromContext(ctx).Info("Deleted vpc-loopback connection", "name", conn.Name)
+	}
 
 	return nil
 }
