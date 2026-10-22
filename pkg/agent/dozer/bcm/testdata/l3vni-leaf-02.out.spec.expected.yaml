@@ -22,7 +22,9 @@ bfdProfiles:
     passiveMode: false
     requiredMinimumReceive: 300
 communityLists:
-  all-externals: {}
+  all-externals:
+    members:
+    - "50000:0"
   all-gw-prios:
     members:
     - "50001:0"

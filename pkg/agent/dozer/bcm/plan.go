@@ -1233,9 +1233,12 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
+	// routes from any External carry this community instead of what the external system sent, so that no
+	// community from outside means anything in the fabric, and other leaves know them for external routes
+	extComm := agent.Spec.Config.BaseVPCCommunity
 	if agent.IsSpineLeaf() {
 		spec.CommunityLists[BGPCommListAllExternals] = &dozer.SpecCommunityList{
-			Members: []string{},
+			Members: []string{extComm},
 		}
 
 		spec.RouteMaps[RouteMapL2VPNNeighbors].Statements[fmt.Sprintf("%d", RouteMapMaxStatement-10)] = &dozer.SpecRouteMapStatement{
@@ -1248,32 +1251,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	}
 
 	for externalName, external := range agent.Spec.Externals {
-		extVrfName := extVrfName(externalName)
-
-		// routes from an External replace what the external system sent with this community, so that
-		// no community from outside means anything in the fabric. A controller from before this only
-		// gave a switch the VNIs of the externals attached to it.
-		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
-		extComm := ""
-		if extVNI != 0 {
-			var err error
-			if extComm, err = librarian.VNICommunity(agent.Spec.Config.BaseVPCCommunity, extVNI); err != nil {
-				return fmt.Errorf("community for external %s: %w", externalName, err)
-			}
-		}
-		if agent.IsSpineLeaf() {
-			for _, comm := range []string{extComm, external.InboundCommunity} {
-				if comm != "" && !slices.Contains(spec.CommunityLists[BGPCommListAllExternals].Members, comm) {
-					spec.CommunityLists[BGPCommListAllExternals].Members = append(spec.CommunityLists[BGPCommListAllExternals].Members, comm)
-				}
-			}
-		}
 		if !attachedExternals[externalName] {
 			continue
 		}
-		if extVNI == 0 {
-			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:err113
-		}
+		extVrfName := extVrfName(externalName)
 
 		spec.ACLs[ipnsEgressAccessList(external.IPv4Namespace)] = &dozer.SpecACL{
 			Entries: map[uint32]*dozer.SpecACLEntry{
@@ -1445,8 +1426,12 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
+		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
 		if irbVLAN == 0 {
 			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:goerr113
+		}
+		if extVNI == 0 {
+			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:goerr113
 		}
 		irbIface := vlanName(irbVLAN)
 		spec.Interfaces[irbIface] = &dozer.SpecInterface{

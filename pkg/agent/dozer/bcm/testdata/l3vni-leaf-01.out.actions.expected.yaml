@@ -639,8 +639,7 @@
       config:
         action: PERMIT
         community-member:
-        - "50000:1"
-        - "50000:2"
+        - "50000:0"
         community-set-name: all-externals
         match-set-options: ANY
   weight: 11
@@ -1329,7 +1328,7 @@
             inline:
               config:
                 communities:
-                - "50000:1"
+                - "50000:0"
         config:
           policy-result: ACCEPT_ROUTE
       config:
@@ -1350,7 +1349,7 @@
             inline:
               config:
                 communities:
-                - "50000:2"
+                - "50000:0"
         config:
           policy-result: ACCEPT_ROUTE
       config:

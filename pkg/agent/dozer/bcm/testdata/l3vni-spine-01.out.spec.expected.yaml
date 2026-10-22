@@ -22,7 +22,9 @@ bfdProfiles:
     passiveMode: true
     requiredMinimumReceive: 300
 communityLists:
-  all-externals: {}
+  all-externals:
+    members:
+    - "50000:0"
 ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300

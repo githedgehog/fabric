@@ -869,7 +869,7 @@ routing-policy:
           config:
             action: PERMIT
             community-member:
-            - 65102:1000
+            - "50000:0"
             community-set-name: all-externals
             match-set-options: ANY
         - community-set-name: all-gw-prios

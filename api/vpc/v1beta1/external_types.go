@@ -21,8 +21,6 @@ import (
 	"net/netip"
 	"regexp"
 	"slices"
-	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -210,24 +208,12 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		if external.Spec.InboundCommunity != "" && !communityCheck.MatchString(external.Spec.InboundCommunity) {
 			return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 65102:5000", external.Spec.InboundCommunity)
 		}
-		// the inbound community stays on the routes, and the fabric derives one from base + VNI/100 for every
-		// VPC and External; a warning only, as the range takes the base's whole ASN half and existing configs use it
-		if fabricCfg != nil && external.Spec.InboundCommunity != "" {
-			baseASN, baseIDStr, _ := strings.Cut(fabricCfg.BaseVPCCommunity, ":")
-			asn, idStr, _ := strings.Cut(external.Spec.InboundCommunity, ":")
-			baseID, baseErr := strconv.ParseUint(baseIDStr, 10, 16)
-			id, err := strconv.ParseUint(idStr, 10, 16)
-			if asn == baseASN && baseErr == nil && err == nil && id > baseID {
-				warns = append(warns, fmt.Sprintf("inboundCommunity %s is in the range of communities the fabric assigns to VPCs (base %s): if a VPC gets the same one, routes from this external will be treated as that VPC's", external.Spec.InboundCommunity, fabricCfg.BaseVPCCommunity))
-			}
-		}
-
 		if external.Spec.OutboundCommunity != "" && !communityCheck.MatchString(external.Spec.OutboundCommunity) {
 			return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
 		}
 	} else {
 		// While static prefixes are present the external may also have BGP attachments, and a
-		// static route only carries the External's own community, not the inbound one. Any
+		// static route only carries baseVPCCommunity, not the inbound one. Any
 		// route-map that matches on the inbound community would then drop the static route
 		// outright rather than merely rank it lower: on a switch holding both kinds
 		// ext-inbound--<ext> is also the EVPN advertise policy, so the static route would never be

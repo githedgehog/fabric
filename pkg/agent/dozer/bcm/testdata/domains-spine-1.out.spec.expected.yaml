@@ -27,7 +27,7 @@ bfdProfiles:
 communityLists:
   all-externals:
     members:
-    - 65102:1000
+    - "50000:0"
 ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300

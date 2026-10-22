@@ -907,17 +907,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		idConns[name] = true
 	}
 
-	fabricExternals := map[string]bool{}
-	for name := range externals {
-		fabricExternals[name] = true
-	}
-	if _, err := r.libr.EnsureVNIs(ctx, r.Client, vpcs, fabricExternals); err != nil {
+	if _, err := r.libr.EnsureVNIs(ctx, r.Client, vpcs, externalsReq); err != nil {
 		return kctrl.Result{}, fmt.Errorf("updating VNIs catalog: %w", err)
 	}
 
 	cat := &agentapi.CatalogSpec{}
 
-	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq, groupIRBVLANReqs, fabricExternals)
+	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq, groupIRBVLANReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
 	}
