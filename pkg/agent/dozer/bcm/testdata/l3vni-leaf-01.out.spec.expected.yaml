@@ -553,6 +553,7 @@ routeMaps:
       "50010":
         conditions:
           matchPrefixLists: import-vrf--vpc-02--ext-snp-02
+          matchSourceVrf: VrfEext-snp-02
         result: accept
         setLocalPreference: 150
       "65535":

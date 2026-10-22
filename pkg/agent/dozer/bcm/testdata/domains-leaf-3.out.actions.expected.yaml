@@ -1541,6 +1541,9 @@
         match-prefix-set:
           config:
             prefix-set: import-vrf--vpc-01--external-01
+        match-src-network-instance:
+          config:
+            name: VrfEexternal-01
       config:
         name: "50010"
       name: "50010"
@@ -1645,6 +1648,9 @@
         match-prefix-set:
           config:
             prefix-set: import-vrf--vpc-03--external-01
+        match-src-network-instance:
+          config:
+            name: VrfEexternal-01
       config:
         name: "50010"
       name: "50010"

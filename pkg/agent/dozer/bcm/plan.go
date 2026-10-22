@@ -3585,10 +3585,13 @@ func planExternalPeerings(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if external.Static == nil && external.InboundCommunity != "" {
 				commListMatch = pointer.To(extInboundCommListName(externalName))
 			}
+			// matching the source VRF, or another External peered with the VPC could get its routes in
+			// for the prefixes this one permits
 			spec.RouteMaps[importVrfRouteMap].Statements[fmt.Sprintf("%d", 50000+idx)] = &dozer.SpecRouteMapStatement{
 				Conditions: dozer.SpecRouteMapConditions{
 					MatchCommunityList: commListMatch,
 					MatchPrefixList:    pointer.To(importVrfPrefixList),
+					MatchSourceVRF:     pointer.To(extVrf),
 				},
 				SetLocalPreference: pointer.To(uint32(ExternalPreference)),
 				Result:             dozer.SpecRouteMapResultAccept,

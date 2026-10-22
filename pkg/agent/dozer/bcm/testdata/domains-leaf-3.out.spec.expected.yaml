@@ -591,6 +591,7 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-inbound--external-01
           matchPrefixLists: import-vrf--vpc-01--external-01
+          matchSourceVrf: VrfEexternal-01
         result: accept
         setLocalPreference: 150
       "65535":
@@ -620,6 +621,7 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-inbound--external-01
           matchPrefixLists: import-vrf--vpc-03--external-01
+          matchSourceVrf: VrfEexternal-01
         result: accept
         setLocalPreference: 150
       "65535":
