@@ -82,8 +82,6 @@ spec:
         - name: config
           configMap:
             name: {{ include "fabric-dhcpd.fullname" . }}-config
-            # dhcpd falls back to defaults if the config is missing
-            optional: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

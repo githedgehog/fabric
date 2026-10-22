@@ -33,8 +33,8 @@ func TestLoad(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name: "no file means defaults",
-			want: defaults,
+			name:    "no file",
+			wantErr: true,
 		},
 		{
 			name: "empty file means defaults",
