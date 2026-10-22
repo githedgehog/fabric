@@ -37,8 +37,9 @@ type ServerConfig struct {
 	ListenInterface string `json:"listenInterface,omitempty"`
 	// AnyDeviceOnMgmt allows any device, not only ONIE and Cumulus, to get an IP from the management subnet
 	AnyDeviceOnMgmt bool `json:"anyDeviceOnMgmt,omitempty"`
-	// HealthListen is the address for the liveness/readiness HTTP server, ":8080" if not set
-	HealthListen string `json:"healthListen,omitempty"`
+	// HealthListen is the address for the liveness/readiness HTTP server, ":8080" if not set. It's not in the config file,
+	// the chart passes it as a flag from the same value as the probes port.
+	HealthListen string `json:"-"`
 	// ControlVIP is the control VIP prefix (e.g. "172.30.0.1/32"), the relay target on all leaves, used as the DHCP server
 	// identifier. If not set, the source address of the route to the relay is looked up for every request.
 	ControlVIP string `json:"controlVIP,omitempty"`
@@ -55,9 +56,9 @@ type ServerConfig struct {
 	UpdateBurst int `json:"updateBurst,omitempty"`
 }
 
-// Load reads the config from path. A missing file means all defaults, while a file that can't be read or parsed, or
-// an invalid value, is an error.
-func Load(path string) (*ServerConfig, error) {
+// Load reads the config from path and sets healthListen, which isn't in the file. A missing file means all defaults,
+// while a file that can't be read or parsed, or an invalid value, is an error.
+func Load(path, healthListen string) (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 
 	data, err := os.ReadFile(path)
@@ -71,6 +72,7 @@ func Load(path string) (*ServerConfig, error) {
 			return nil, fmt.Errorf("unmarshalling config file %s: %w", path, err)
 		}
 	}
+	cfg.HealthListen = healthListen
 
 	cfg.Default()
 	if err := cfg.Validate(); err != nil {

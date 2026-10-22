@@ -96,28 +96,12 @@ func main() {
 		Destination: &verbose,
 	}
 
-	// Deprecated flags are kept so the chart rendered by an older fabricator (which passes them) keeps working, they
-	// override the config file values only when set explicitly
-	// TODO: remove after 26.05 release
-	var listenInterface string
-	listenInterfaceFlag := &cli.StringFlag{
-		Name:        "listen",
-		Aliases:     []string{"l"},
-		Usage:       "listen interface (deprecated, use listenInterface in the config file)",
-		Destination: &listenInterface,
-	}
-
-	var anyDeviceOnMgmt bool
-	anyDeviceOnMgmtFlag := &cli.BoolFlag{
-		Name:        "any-device-on-mgmt",
-		Usage:       "allow any device on management subnet (deprecated, use anyDeviceOnMgmt in the config file)",
-		Destination: &anyDeviceOnMgmt,
-	}
-
+	// passed by the chart from the same value as the probes port, so it's not in the config file
 	var healthListen string
 	healthListenFlag := &cli.StringFlag{
 		Name:        "health-listen",
-		Usage:       "address for the liveness/readiness HTTP server (deprecated, use healthListen in the config file)",
+		Usage:       "address for the liveness/readiness HTTP server",
+		Value:       dhcpcfg.DefaultHealthListen,
 		Destination: &healthListen,
 	}
 
@@ -135,35 +119,15 @@ func main() {
 				Usage: "start dhcp server",
 				Flags: []cli.Flag{
 					verboseFlag,
-					listenInterfaceFlag,
-					anyDeviceOnMgmtFlag,
 					healthListenFlag,
 				},
 				Before: func(_ *cli.Context) error {
 					return setupLogger(verbose, true)
 				},
-				Action: func(cliCtx *cli.Context) error {
-					cfg, err := dhcpcfg.Load(dhcpcfg.Path)
+				Action: func(_ *cli.Context) error {
+					cfg, err := dhcpcfg.Load(dhcpcfg.Path, healthListen)
 					if err != nil {
 						return fmt.Errorf("loading config: %w", err)
-					}
-
-					for _, flag := range []string{listenInterfaceFlag.Name, anyDeviceOnMgmtFlag.Name, healthListenFlag.Name} {
-						if cliCtx.IsSet(flag) {
-							slog.Warn("Deprecated flag overrides config file", "flag", flag)
-						}
-					}
-					if cliCtx.IsSet(listenInterfaceFlag.Name) {
-						cfg.ListenInterface = listenInterface
-					}
-					if cliCtx.IsSet(anyDeviceOnMgmtFlag.Name) {
-						cfg.AnyDeviceOnMgmt = anyDeviceOnMgmt
-					}
-					if cliCtx.IsSet(healthListenFlag.Name) {
-						cfg.HealthListen = healthListen
-					}
-					if err := cfg.Validate(); err != nil {
-						return fmt.Errorf("validating config with flags: %w", err)
 					}
 
 					if err := (&dhcp.Server{Config: *cfg}).Run(ctx); err != nil {
