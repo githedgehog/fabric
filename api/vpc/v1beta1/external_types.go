@@ -208,6 +208,11 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		if external.Spec.InboundCommunity != "" && !communityCheck.MatchString(external.Spec.InboundCommunity) {
 			return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 65102:5000", external.Spec.InboundCommunity)
 		}
+		// the inbound community stays on the routes, which would then pass as a gateway's: preferred like one, and
+		// advertised to the other externals
+		if fabricCfg != nil && external.Spec.InboundCommunity != "" && slices.Contains(slices.Collect(maps.Values(fabricCfg.GatewayCommunities)), external.Spec.InboundCommunity) {
+			return nil, fmt.Errorf("inboundCommunity %s is one of the fabric's gateway communities", external.Spec.InboundCommunity) //nolint:err113
+		}
 		if external.Spec.OutboundCommunity != "" && !communityCheck.MatchString(external.Spec.OutboundCommunity) {
 			return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
 		}

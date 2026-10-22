@@ -225,6 +225,37 @@ func TestExternalInboundPrefixes(t *testing.T) {
 	}
 }
 
+func TestExternalInboundCommunityGateway(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}), ipv4NamespaceObj(),
+	).Build()
+	cfg := &meta.FabricConfig{GatewayCommunities: map[uint32]string{0: "50001:0", 1: "50001:1"}}
+
+	for _, tt := range []struct {
+		community string
+		err       bool
+	}{
+		{community: "50001:0", err: true},
+		{community: "50001:1", err: true},
+		{community: "50001:2"},
+		{community: "65102:5000"},
+		{community: ""},
+	} {
+		t.Run(tt.community, func(t *testing.T) {
+			ext := extGen("ext-01", func(ext *v1beta1.External) { ext.Spec.InboundCommunity = tt.community })
+			_, err := ext.Validate(t.Context(), kube, cfg)
+			if tt.err {
+				require.ErrorContains(t, err, "gateway communities")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestExternalInboundPrefixLens(t *testing.T) {
 	for _, tt := range []struct {
 		prefix   string
