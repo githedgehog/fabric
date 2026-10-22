@@ -402,7 +402,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 	if err := kube.List(ctx, peeringList, inFabric); err != nil {
 		return nil, fmt.Errorf("listing peerings: %w", err)
 	}
-	peerings := map[string]gwapi.PeeringSpec{}
+	peerings := map[string]gwintapi.PeeringSpecAnn{}
 	for _, peering := range peeringList.Items {
 		missingVPC := false
 
@@ -421,7 +421,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 			continue
 		}
 
-		peerings[peering.Name] = peering.Spec
+		peerings[peering.Name] = peeringSpecAnn(&peering)
 	}
 
 	comms := map[string]string{}
@@ -479,7 +479,7 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 				}
 
 				// make sure the peering that is currently being processed is added to the agent
-				ag.Spec.Peerings[peering.Name] = peering.Spec
+				ag.Spec.Peerings[peering.Name] = peeringSpecAnn(peering)
 
 				return ag, nil
 			}
@@ -487,6 +487,26 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 	}
 
 	return nil, fmt.Errorf("gateway not found for gateway group: %s", peering.Spec.GatewayGroup) //nolint:err113
+}
+
+func peeringSpecAnn(peering *gwapi.GatewayPeering) gwintapi.PeeringSpecAnn {
+	res := gwintapi.PeeringSpecAnn{PeeringSpec: peering.Spec}
+	for k, v := range peering.Annotations {
+		if !strings.Contains(k, "githedgehog.com/") {
+			continue
+		}
+		// set by the peering defaulting from its spec
+		if k == gwapi.LabelVPCs || k == gwapi.LabelNAT {
+			continue
+		}
+
+		if res.Annotations == nil {
+			res.Annotations = map[string]string{}
+		}
+		res.Annotations[k] = v
+	}
+
+	return res
 }
 
 func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {

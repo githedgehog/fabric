@@ -251,7 +251,6 @@ spec:
                 type: object
               peerings:
                 additionalProperties:
-                  description: PeeringSpec defines the desired state of Peering.
                   properties:
                     acl:
                       description: ACL is an optional, peering-scoped ACL
@@ -356,6 +355,10 @@ spec:
                           type: array
                       required:
                       - default
+                      type: object
+                    annotations:
+                      additionalProperties:
+                        type: string
                       type: object
                     gatewayGroup:
                       description: GatewayGroup is the name of the gateway group that
