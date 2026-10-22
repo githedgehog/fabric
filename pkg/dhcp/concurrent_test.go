@@ -24,7 +24,7 @@ import (
 // the regression test for the "concurrent map writes" crash of the Oct 2025 prototype, so run it with the race
 // detector:
 //
-//	GOTOOLCHAIN=go1.26.8 go test -race -run TestConcurrentLeases -count=10 ./pkg/dhcp/
+//	go test -race -run TestConcurrentLeases -count=10 ./pkg/dhcp/
 func TestConcurrentLeases(t *testing.T) {
 	const clientsPerSubnet = 40
 
