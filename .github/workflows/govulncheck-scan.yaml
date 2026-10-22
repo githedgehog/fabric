@@ -38,11 +38,19 @@ jobs:
         if: always()
         run: govulncheck -format=sarif ./... > govulncheck.sarif
 
+      # govulncheck emits identical call stacks twice for some stdlib results,
+      # which the SARIF schema (uniqueItems) rejects on upload, so dedupe them.
+      - name: Dedupe SARIF call stacks
+        if: always()
+        run: |
+          jq '.runs[].results[] |= (if .stacks then .stacks |= unique else . end)' \
+            govulncheck.sarif > govulncheck-deduped.sarif
+
       - name: Upload SARIF file
         if: always()
         uses: github/codeql-action/upload-sarif@v4.39.0
         with:
-          sarif_file: govulncheck.sarif
+          sarif_file: govulncheck-deduped.sarif
           category: govulncheck
 
       - name: Fail if vulnerabilities found
