@@ -262,3 +262,30 @@ func TestGatewayEnqueue(t *testing.T) {
 		})
 	}
 }
+
+func TestDataplaneIfaceArgs(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		driver gwapi.GatewayDriver
+		ifaces map[string]gwapi.GatewayInterface
+		want   []string
+	}{
+		{
+			name:   "dpdk",
+			driver: gwapi.GatewayDriverDPDK,
+			ifaces: map[string]gwapi.GatewayInterface{"port1": {PCI: "0000:21:00.1"}, "port0": {PCI: "0000:21:00.0"}},
+			want:   []string{"--interface", "port0=pci@0000:21:00.0", "--interface", "port1=pci@0000:21:00.1", "--driver", "dpdk"},
+		},
+		{
+			name:   "kernel",
+			driver: gwapi.GatewayDriverKernel,
+			ifaces: map[string]gwapi.GatewayInterface{"port0": {Kernel: "eth0", PCI: "0000:21:00.0"}, "eth1": {}, "eth2": {PCI: "0000:21:00.2"}},
+			want:   []string{"--interface", "eth1", "--interface", "eth2", "--interface", "port0=kernel@eth0", "--driver", "kernel"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			gw := &gwapi.Gateway{Spec: gwapi.GatewaySpec{Driver: tt.driver, Interfaces: tt.ifaces}}
+			require.Equal(t, tt.want, dataplaneIfaceArgs(gw))
+		})
+	}
+}

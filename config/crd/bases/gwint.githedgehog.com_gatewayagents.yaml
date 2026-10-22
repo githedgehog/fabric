@@ -94,6 +94,10 @@ spec:
                     description: ASN is the ASN of the gateway
                     format: int32
                     type: integer
+                  driver:
+                    description: Driver is the dataplane driver for the interfaces,
+                      kernel or dpdk
+                    type: string
                   flowTableCapacity:
                     description: FlowTableCapacity defines the maximum number of flow
                       entres
@@ -127,7 +131,7 @@ spec:
                           type: array
                         kernel:
                           description: Kernel is the kernel name of the interface
-                            to use (required for kernel driver), e.g. enp2s1
+                            to use (kernel driver only), e.g. enp2s1
                           type: string
                         mtu:
                           description: MTU for the interface
@@ -135,7 +139,7 @@ spec:
                           type: integer
                         pci:
                           description: PCI address of the interface (required for
-                            DPDK driver), e.g. 0000:00:01.0
+                            dpdk driver, optional for kernel driver), e.g. 0000:00:01.0
                           type: string
                       type: object
                     description: Interfaces is a map of interface names to their configurations
