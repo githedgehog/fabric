@@ -16,6 +16,11 @@ type VPCInfoData struct {
 	gwapi.VPCInfoStatus `json:",inline"`
 }
 
+type PeeringSpecAnn struct {
+	gwapi.PeeringSpec `json:",inline"`
+	Annotations       map[string]string `json:"annotations,omitempty"`
+}
+
 type GatewayGroupInfo struct {
 	// TODO inline gateway group config when it's added
 	Members []GatewayGroupMember `json:"members,omitempty"`
@@ -30,13 +35,13 @@ type GatewayGroupMember struct {
 // GatewayAgentSpec defines the desired state of GatewayAgent.
 type GatewayAgentSpec struct {
 	// AgentVersion is the desired version of the gateway agent to trigger generation changes on controller upgrades
-	AgentVersion string                       `json:"agentVersion,omitempty"`
-	Gateway      gwapi.GatewaySpec            `json:"gateway,omitempty"`
-	VPCs         map[string]VPCInfoData       `json:"vpcs,omitempty"`
-	Peerings     map[string]gwapi.PeeringSpec `json:"peerings,omitempty"`
-	Groups       map[string]GatewayGroupInfo  `json:"groups,omitempty"`
-	Communities  map[string]string            `json:"communities,omitempty"`
-	Config       GatewayAgentSpecConfig       `json:"config,omitempty"`
+	AgentVersion string                      `json:"agentVersion,omitempty"`
+	Gateway      gwapi.GatewaySpec           `json:"gateway,omitempty"`
+	VPCs         map[string]VPCInfoData      `json:"vpcs,omitempty"`
+	Peerings     map[string]PeeringSpecAnn   `json:"peerings,omitempty"`
+	Groups       map[string]GatewayGroupInfo `json:"groups,omitempty"`
+	Communities  map[string]string           `json:"communities,omitempty"`
+	Config       GatewayAgentSpecConfig      `json:"config,omitempty"`
 }
 
 type GatewayAgentSpecConfig struct {

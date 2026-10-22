@@ -10,6 +10,7 @@ processor:
     - "Catalog"
     - "GatewayAgentSpec"
     - "VPCInfoData$"
+    - "PeeringSpecAnn$"
     - "GatewayGroupInfo$"
     - "GatewayGroupMember$"
     - "fcint/v1alpha1\\.SwitchBoot"

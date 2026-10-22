@@ -289,3 +289,29 @@ func TestDataplaneIfaceArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildGatewayAgentPeeringAnnotations(t *testing.T) {
+	kube := gatewayTestKube(t)
+
+	peering := &gwapi.GatewayPeering{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}, peering))
+	peering.Spec.GatewayGroup = "g1"
+	peering.Annotations = map[string]string{
+		"fabric.githedgehog.com/foo":  "bar",
+		"gateway.githedgehog.com/baz": "qux",
+		"example.com/skip":            "me",
+		gwapi.LabelVPCs:               "vpc-1,vpc-2",
+		gwapi.LabelNAT:                "masquerade",
+	}
+
+	ag, err := BuildGatewayAgentForPeering(t.Context(), kube, &meta.FabricConfig{}, peering)
+	require.NoError(t, err)
+
+	require.Equal(t, map[string]string{
+		"fabric.githedgehog.com/foo":  "bar",
+		"gateway.githedgehog.com/baz": "qux",
+	}, ag.Spec.Peerings["vpc-1--vpc-2"].Annotations)
+	require.Equal(t, peering.Spec, ag.Spec.Peerings["vpc-1--vpc-2"].PeeringSpec)
+	// only has the ones set by the peering defaulting
+	require.Nil(t, ag.Spec.Peerings["vpc-1--vpc-4"].Annotations)
+}
