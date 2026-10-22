@@ -199,6 +199,8 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
 			}
 
+			// despite the ADD option this replaces the route's communities: BCM SONiC ignores the option and only
+			// adds when the list holds the ADDITIVE well-known community. It also always reads back ADD.
 			bgpActions.SetCommunity = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity{
 				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config{
 					Method:  oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Config_Method_INLINE,
