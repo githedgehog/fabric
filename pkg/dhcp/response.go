@@ -4,32 +4,12 @@
 package dhcp
 
 import (
-	"fmt"
 	"net"
 	"net/netip"
 	"strings"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
-	"go.githedgehog.com/fabric/pkg/util/netlinkutil"
 )
-
-// serverIdentifier returns the DHCP server identifier (option 54) for a request relayed via giaddr: the control VIP if
-// configured, otherwise the source address of the route to the relay (the control node management IP)
-func (s *Server) serverIdentifier(giaddr net.IP) (net.IP, error) {
-	if s.controlVIP != nil {
-		return s.controlVIP, nil
-	}
-
-	routes, err := netlinkutil.RouteGet(giaddr)
-	if err != nil {
-		return nil, fmt.Errorf("getting route to %s: %w", giaddr, err)
-	}
-	if len(routes) == 0 {
-		return nil, fmt.Errorf("no route found to %s", giaddr) //nolint:err113
-	}
-
-	return routes[0].Src, nil
-}
 
 // nakResponse turns resp into a DHCPNAK (RFC 2131 4.3.2), the client then restarts with a DISCOVER
 func nakResponse(req, resp *dhcpv4.DHCPv4, serverID net.IP) {
