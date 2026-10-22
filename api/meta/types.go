@@ -325,13 +325,11 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, errors.Errorf("config: baseVPCCommunity is required")
 	}
 	// set as-is on switches, which would refuse an invalid one
-	if asn, id, ok := strings.Cut(cfg.BaseVPCCommunity, ":"); !ok {
-		return nil, fmt.Errorf("config: baseVPCCommunity %s format is invalid", cfg.BaseVPCCommunity) //nolint:err113
-	} else if _, err := strconv.ParseUint(asn, 10, 16); err != nil {
-		return nil, fmt.Errorf("config: baseVPCCommunity %s is invalid: %w", cfg.BaseVPCCommunity, err)
-	} else if _, err := strconv.ParseUint(id, 10, 16); err != nil {
-		return nil, fmt.Errorf("config: baseVPCCommunity %s is invalid: %w", cfg.BaseVPCCommunity, err)
+	baseComm, err := canonicalCommunity(cfg.BaseVPCCommunity)
+	if err != nil {
+		return nil, fmt.Errorf("config: baseVPCCommunity: %w", err)
 	}
+	cfg.BaseVPCCommunity = baseComm
 	if cfg.VPCLoopbackSubnet == "" {
 		return nil, errors.Errorf("config: vpcLoopbackSubnet is required")
 	}
@@ -411,17 +409,12 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
 	}
 
-	for _, commStr := range cfg.GatewayCommunities {
-		parts := strings.Split(commStr, ":")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("config: gatewayCommunity community %s format is invalid", commStr) //nolint:err113
+	for idx, commStr := range cfg.GatewayCommunities {
+		commStr, err := canonicalCommunity(commStr)
+		if err != nil {
+			return nil, fmt.Errorf("config: gatewayCommunity: %w", err)
 		}
-		if _, err := strconv.ParseUint(parts[0], 10, 16); err != nil {
-			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)
-		}
-		if _, err := strconv.ParseUint(parts[1], 10, 16); err != nil {
-			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)
-		}
+		cfg.GatewayCommunities[idx] = commStr
 		// routes from externals carry baseVPCCommunity, and would pass as a gateway's
 		if commStr == cfg.BaseVPCCommunity {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s is the same as baseVPCCommunity", commStr) //nolint:err113
@@ -443,6 +436,24 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 	// slog.Debug("Loaded Fabric config", "data", spew.Sdump(cfg))
 
 	return cfg, nil
+}
+
+// canonicalCommunity drops any leading zeros, as communities are compared as strings
+func canonicalCommunity(comm string) (string, error) {
+	asn, id, ok := strings.Cut(comm, ":")
+	if !ok {
+		return "", fmt.Errorf("community %s format is invalid", comm) //nolint:err113
+	}
+	asnVal, err := strconv.ParseUint(asn, 10, 16)
+	if err != nil {
+		return "", fmt.Errorf("community %s is invalid: %w", comm, err)
+	}
+	idVal, err := strconv.ParseUint(id, 10, 16)
+	if err != nil {
+		return "", fmt.Errorf("community %s is invalid: %w", comm, err)
+	}
+
+	return fmt.Sprintf("%d:%d", asnVal, idVal), nil
 }
 
 func (cfg *FabricConfig) WithReservedSubnets() error {
