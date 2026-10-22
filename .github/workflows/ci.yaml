@@ -120,6 +120,9 @@ jobs:
           echo "version=v0-${commit_sha::9}" >> "$GITHUB_OUTPUT"
           echo "ref=${commit_sha}" >> "$GITHUB_OUTPUT"
 
+      - name: Setup ORAS
+        uses: oras-project/setup-oras@v1
+
       - name: Build all and push temp artifacts
         run: |
           just --timestamp oci_repo=ghcr.io version="${{ steps.version-gen.outputs.version }}" push push-multi
@@ -283,6 +286,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup ORAS
+        uses: oras-project/setup-oras@v1
 
       - name: Publish Images, Helm charts and Bins on release
         run: |
