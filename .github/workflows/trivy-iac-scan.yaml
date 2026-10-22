@@ -17,11 +17,11 @@ jobs:
   trivy-iac:
     # Skip on fork PRs: GITHUB_TOKEN lacks security-events:write, so SARIF upload would fail.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
 
       - name: Run Trivy config scan
         uses: aquasecurity/trivy-action@v0.36.0

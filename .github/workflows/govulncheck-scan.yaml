@@ -14,10 +14,10 @@ permissions:
 
 jobs:
   govulncheck:
-    runs-on: lab
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
 
       - name: Setup Go
         uses: actions/setup-go@v7
