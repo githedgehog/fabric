@@ -982,7 +982,7 @@ Examples:
 						Name:        "get",
 						Usage:       "Get connections",
 						ArgsUsage:   " <type>",
-						Description: "Available types: management, fabric, and vpc-loopback",
+						Description: "Available types: management and fabric",
 						Flags: []cli.Flag{
 							verboseFlag,
 						},

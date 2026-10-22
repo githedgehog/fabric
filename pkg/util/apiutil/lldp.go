@@ -219,10 +219,6 @@ func lldpNeighbors(ctx context.Context, data *lldpData, in *switchInput, opts LL
 	out := map[string]LLDPNeighborStatus{}
 
 	for _, conn := range in.conns {
-		if conn.Spec.VPCLoopback != nil {
-			continue
-		}
-
 		_, _, _, links, err := conn.Spec.Endpoints()
 		if err != nil {
 			return nil, fmt.Errorf("getting endpoints for %s: %w", conn.Name, err)

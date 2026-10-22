@@ -38,9 +38,6 @@ func ConnectionGet(ctx context.Context, options *ConnectionGetOptions) error {
 		if options.Type == "mgmt" {
 			options.Type = "management"
 		}
-		if options.Type == "loop" {
-			options.Type = "vpc-loopback"
-		}
 
 		var columns []string
 
@@ -62,15 +59,6 @@ func ConnectionGet(ctx context.Context, options *ConnectionGetOptions) error {
 					"GEN:.metadata.generation," +
 					"SPINE:.spec.fabric.links[*].spine.port," +
 					"LEAF:.spec.fabric.links[*].leaf.port",
-			}
-		}
-		if options.Type == "vpc-loopback" {
-			columns = []string{
-				"-o", "custom-columns=" +
-					"NAME:.metadata.name," +
-					"GEN:.metadata.generation," +
-					"PORT1:.spec.vpcLoopback.links[*].switch1.port," +
-					"PORT2:.spec.vpcLoopback.links[*].switch2.port",
 			}
 		}
 
