@@ -15,9 +15,15 @@ import (
 )
 
 func TestLoad(t *testing.T) {
+	const required = "listenInterface: enp2s1\ncontrolVIP: 172.30.0.1/32\n"
+	withRequired := func(data string) *string {
+		return new(required + data)
+	}
+
 	defaults := &config.ServerConfig{
-		ListenInterface:    config.DefaultListenInterface,
+		ListenInterface:    "enp2s1",
 		HealthListen:       config.DefaultHealthListen,
+		ControlVIP:         "172.30.0.1/32",
 		LeaseExpiryPadding: kmetav1.Duration{Duration: config.DefaultLeaseExpiryPadding},
 		OfferTTL:           kmetav1.Duration{Duration: config.DefaultOfferTTL},
 		RequestTimeout:     kmetav1.Duration{Duration: config.DefaultRequestTimeout},
@@ -37,23 +43,34 @@ func TestLoad(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "empty file means defaults",
-			data: new(""),
+			name:    "empty file",
+			data:    new(""),
+			wantErr: true,
+		},
+		{
+			name:    "no listen interface",
+			data:    new("controlVIP: 172.30.0.1/32\n"),
+			wantErr: true,
+		},
+		{
+			name:    "no control vip",
+			data:    new("listenInterface: enp2s1\n"),
+			wantErr: true,
+		},
+		{
+			name: "only required fields means defaults",
+			data: withRequired(""),
 			want: defaults,
 		},
 		{
 			name: "missing fields fall back to defaults",
-			data: new("listenInterface: enp2s1\nanyDeviceOnMgmt: true\n"),
-			want: &config.ServerConfig{
-				ListenInterface:    "enp2s1",
-				AnyDeviceOnMgmt:    true,
-				HealthListen:       config.DefaultHealthListen,
-				LeaseExpiryPadding: kmetav1.Duration{Duration: config.DefaultLeaseExpiryPadding},
-				OfferTTL:           kmetav1.Duration{Duration: config.DefaultOfferTTL},
-				RequestTimeout:     kmetav1.Duration{Duration: config.DefaultRequestTimeout},
-				UpdateQPS:          config.DefaultUpdateQPS,
-				UpdateBurst:        config.DefaultUpdateQPS,
-			},
+			data: withRequired("anyDeviceOnMgmt: true\n"),
+			want: func() *config.ServerConfig {
+				cfg := *defaults
+				cfg.AnyDeviceOnMgmt = true
+
+				return &cfg
+			}(),
 		},
 		{
 			name: "all fields set",
@@ -74,7 +91,7 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "update burst defaults to update qps rounded up",
-			data: new("updateQPS: 2.5\n"),
+			data: withRequired("updateQPS: 2.5\n"),
 			want: func() *config.ServerConfig {
 				cfg := *defaults
 				cfg.UpdateQPS = 2.5
@@ -85,47 +102,47 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name:    "negative request timeout",
-			data:    new("requestTimeout: -1s\n"),
+			data:    withRequired("requestTimeout: -1s\n"),
 			wantErr: true,
 		},
 		{
 			name:    "negative update qps",
-			data:    new("updateQPS: -1\n"),
+			data:    withRequired("updateQPS: -1\n"),
 			wantErr: true,
 		},
 		{
 			name:    "negative update burst",
-			data:    new("updateBurst: -1\n"),
+			data:    withRequired("updateBurst: -1\n"),
 			wantErr: true,
 		},
 		{
 			name:    "negative lease expiry padding",
-			data:    new("leaseExpiryPadding: -1m\n"),
+			data:    withRequired("leaseExpiryPadding: -1m\n"),
 			wantErr: true,
 		},
 		{
 			name:    "negative offer ttl",
-			data:    new("offerTTL: -1s\n"),
+			data:    withRequired("offerTTL: -1s\n"),
 			wantErr: true,
 		},
 		{
 			name:    "bad duration",
-			data:    new("offerTTL: 5\n"),
+			data:    withRequired("offerTTL: 5\n"),
 			wantErr: true,
 		},
 		{
 			name:    "control vip without prefix length",
-			data:    new("controlVIP: 172.30.0.1\n"),
+			data:    new("listenInterface: enp2s1\ncontrolVIP: 172.30.0.1\n"),
 			wantErr: true,
 		},
 		{
 			name:    "control vip ipv6",
-			data:    new("controlVIP: fd00::1/128\n"),
+			data:    new("listenInterface: enp2s1\ncontrolVIP: fd00::1/128\n"),
 			wantErr: true,
 		},
 		{
 			name:    "unknown field",
-			data:    new("listen: enp2s1\n"),
+			data:    withRequired("listen: enp2s1\n"),
 			wantErr: true,
 		},
 		{
@@ -135,24 +152,24 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name:    "health listen in the file",
-			data:    new("healthListen: :9090\n"),
+			data:    withRequired("healthListen: :9090\n"),
 			wantErr: true,
 		},
 		{
 			name:         "health listen without port",
-			data:         new(""),
+			data:         withRequired(""),
 			healthListen: "127.0.0.1",
 			wantErr:      true,
 		},
 		{
 			name:         "health listen with bad port",
-			data:         new(""),
+			data:         withRequired(""),
 			healthListen: ":http",
 			wantErr:      true,
 		},
 		{
 			name:         "health listen with zero port",
-			data:         new(""),
+			data:         withRequired(""),
 			healthListen: ":0",
 			wantErr:      true,
 		},

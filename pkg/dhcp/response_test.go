@@ -17,15 +17,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/boot/server"
 )
 
-func TestServerIdentifier(t *testing.T) {
-	vip := net.ParseIP("172.30.0.1").To4()
-	s := &Server{controlVIP: vip}
-
-	got, err := s.serverIdentifier(net.ParseIP("172.30.8.1"))
-	require.NoError(t, err)
-	assert.Equal(t, vip, got)
-}
-
 func TestNAKResponse(t *testing.T) {
 	vip := net.ParseIP("172.30.0.1").To4()
 

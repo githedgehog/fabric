@@ -223,11 +223,7 @@ func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4, re
 
 	switch req.MessageType() { //nolint:exhaustive
 	case dhcpv4.MessageTypeDiscover, dhcpv4.MessageTypeRequest:
-		// before the write, so a failure doesn't leave a lease the client never gets offered
-		serverID, err := s.serverIdentifier(req.GatewayIPAddr)
-		if err != nil {
-			return withSubnet(drop(slog.LevelError, "no server identifier", "err", err))
-		}
+		serverID := s.controlVIP
 
 		ip, info, err := sn.lease(ctx, s.kube, &s.Config, req)
 		if errors.Is(err, ErrRequestedIPUnavailable) {
