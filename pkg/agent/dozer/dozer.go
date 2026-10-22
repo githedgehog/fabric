@@ -155,7 +155,7 @@ type SpecInterfaceIPv6 struct {
 type SpecSubinterface struct {
 	VLAN            *uint16                     `json:"vlan,omitempty"`
 	IPs             map[string]*SpecInterfaceIP `json:"ips,omitempty"`
-	AnycastGateways []string                    `json:"anycastGateways,omitempty"`
+	AnycastGateways []string                    `json:"anycastGateways,omitempty"` // not planned since the VPC loopback workaround went, kept in case we need it
 	ProxyARP        *SpecProxyARP               `json:"proxyARP,omitempty"`
 	StaticARPs      map[string]*SpecStaticARP   `json:"staticARPs,omitempty"`
 	IPv6            *SpecInterfaceIPv6          `json:"ipv6,omitempty"`
@@ -276,7 +276,7 @@ type SpecRouteMapConditions struct {
 	MatchEVPNDefaultRoute  *bool   `json:"matchEvpnDefaultRoute,omitempty"`
 	MatchEVPNVNI           *uint32 `json:"matchEvpnVni,omitempty"`
 	MatchPrefixList        *string `json:"matchPrefixLists,omitempty"`
-	MatchNextHopPrefixList *string `json:"matchNextHopPrefixLists,omitempty"`
+	MatchNextHopPrefixList *string `json:"matchNextHopPrefixLists,omitempty"` // not planned since the VPC loopback workaround went, kept in case we need it
 	MatchCommunityList     *string `json:"matchCommunityLists,omitempty"`
 	MatchAsPathList        *string `json:"matchAsPathList,omitempty"`
 	MatchSourceVRF         *string `json:"matchSourceVrf,omitempty"`

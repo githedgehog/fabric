@@ -325,13 +325,6 @@ prefixLists:
           le: 32
           prefix: 172.30.8.2/32
   static-ext-subnets: {}
-  vpc-loopback-prefix:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 172.30.96.0/19
   vpc-not-subnets--vpc-03:
     prefixes:
       "1":
@@ -410,10 +403,6 @@ routeMaps:
         result: accept
   import-vrf--vpc-03:
     statements:
-      "1":
-        conditions:
-          matchNextHopPrefixLists: vpc-loopback-prefix
-        result: reject
       "5010":
         conditions:
           matchPrefixLists: ipns-subnets--default
@@ -527,10 +516,6 @@ routeMaps:
         result: accept
   vpc-redistribute-connected--vpc-03:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-subnets--vpc-03
@@ -544,10 +529,6 @@ routeMaps:
         result: reject
   vpc-redistribute-static--vpc-03:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03

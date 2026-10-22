@@ -124,16 +124,6 @@
         name: static-ext-subnets
       name: static-ext-subnets
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]
-  summary: Create Prefix List Base vpc-loopback-prefix
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-loopback-prefix
-      name: vpc-loopback-prefix
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-03]
   summary: Create Prefix List Base vpc-not-subnets--vpc-03
   type: update
@@ -266,20 +256,6 @@
         sequence-number: 10
       ip-prefix: 172.30.8.2/32
       masklength-range: 32..32
-      sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.96.0/19][masklength-range=19..32]
-  summary: Create Prefix Lists Entry 10
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 172.30.96.0/19
-        masklength-range: 19..32
-        sequence-number: 10
-      ip-prefix: 172.30.96.0/19
-      masklength-range: 19..32
       sequence-number: 10
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-not-subnets--vpc-03]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.3.0/24][masklength-range=24..32]
@@ -1004,22 +980,6 @@
         name: "100"
       name: "100"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-03]/statements/statement[name=1]
-  summary: Create Route Map Statement 1
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: REJECT_ROUTE
-      conditions:
-        bgp-conditions:
-          config:
-            next-hop-set: vpc-loopback-prefix
-      config:
-        name: "1"
-      name: "1"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=import-vrf--vpc-03]/statements/statement[name=50000]
   summary: Create Route Map Statement 50000
   type: update
@@ -1409,22 +1369,6 @@
         name: "10"
       name: "10"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-03]/statements/statement[name=1]
-  summary: Create Route Map Statement 1
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: REJECT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-loopback-prefix
-      config:
-        name: "1"
-      name: "1"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-connected--vpc-03]/statements/statement[name=10]
   summary: Create Route Map Statement 10
   type: update
@@ -1468,22 +1412,6 @@
       config:
         name: "6"
       name: "6"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=1]
-  summary: Create Route Map Statement 1
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: REJECT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: vpc-loopback-prefix
-      config:
-        name: "1"
-      name: "1"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=vpc-redistribute-static--vpc-03]/statements/statement[name=5]
   summary: Create Route Map Statement 5

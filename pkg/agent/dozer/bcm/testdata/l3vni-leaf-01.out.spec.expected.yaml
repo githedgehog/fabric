@@ -392,13 +392,6 @@ prefixLists:
         prefix:
           le: 32
           prefix: 10.100.2.0/24
-  vpc-loopback-prefix:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 172.30.96.0/19
   vpc-not-subnets--vpc-01:
     prefixes:
       "1":
@@ -519,10 +512,6 @@ routeMaps:
         result: accept
   import-vrf--vpc-01:
     statements:
-      "1":
-        conditions:
-          matchNextHopPrefixLists: vpc-loopback-prefix
-        result: reject
       "10005":
         conditions:
           matchPrefixLists: vpc-not-subnets--vpc-03
@@ -537,10 +526,6 @@ routeMaps:
         result: reject
   import-vrf--vpc-02:
     statements:
-      "1":
-        conditions:
-          matchNextHopPrefixLists: vpc-loopback-prefix
-        result: reject
       "5010":
         conditions:
           matchPrefixLists: ipns-subnets--default
@@ -561,10 +546,6 @@ routeMaps:
         result: reject
   import-vrf--vpc-03:
     statements:
-      "1":
-        conditions:
-          matchNextHopPrefixLists: vpc-loopback-prefix
-        result: reject
       "10003":
         conditions:
           matchPrefixLists: vpc-not-subnets--vpc-01
@@ -683,10 +664,6 @@ routeMaps:
         result: accept
   vpc-redistribute-connected--vpc-01:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-subnets--vpc-01
@@ -700,10 +677,6 @@ routeMaps:
         result: reject
   vpc-redistribute-connected--vpc-02:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-subnets--vpc-02
@@ -717,10 +690,6 @@ routeMaps:
         result: reject
   vpc-redistribute-connected--vpc-03:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-subnets--vpc-03
@@ -734,30 +703,18 @@ routeMaps:
         result: reject
   vpc-redistribute-static--vpc-01:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-01
         result: accept
   vpc-redistribute-static--vpc-02:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-02
         result: accept
   vpc-redistribute-static--vpc-03:
     statements:
-      "1":
-        conditions:
-          matchPrefixLists: vpc-loopback-prefix
-        result: reject
       "5":
         conditions:
           matchPrefixLists: vpc-static-ext-subnets--vpc-03
