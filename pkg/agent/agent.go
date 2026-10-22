@@ -874,6 +874,24 @@ func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 		return nil, errors.Wrapf(err, "failed to unmarshal config file %s to cleanup", svc.configFilePath())
 	}
 	delete(interim, "status")
+	// saved by an agent from before the VPC loopback workaround was dropped, the upgrade check loads it too
+	if spec, ok := interim["spec"].(map[string]any); ok {
+		if cfg, ok := spec["config"].(map[string]any); ok {
+			delete(cfg, "vpcLoopbackSubnet")
+			delete(cfg, "loopbackWorkaround")
+		}
+		if cat, ok := spec["catalog"].(map[string]any); ok {
+			delete(cat, "loopbackWorkaroundLinks")
+			delete(cat, "loopbackWorkaroundVLANs")
+		}
+		if conns, ok := spec["connections"].(map[string]any); ok {
+			for name, conn := range conns {
+				if conn, ok := conn.(map[string]any); ok && conn["vpcLoopback"] != nil {
+					delete(conns, name)
+				}
+			}
+		}
+	}
 
 	data, err = kyaml.Marshal(interim)
 	if err != nil {
