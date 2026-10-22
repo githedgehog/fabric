@@ -101,6 +101,8 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 		objs          []kclient.Object
 		initializes   bool
 		defaultFabric bool
+		deletedConns  []string
+		keptConns     []string
 	}{
 		{
 			name:        "fresh deployment",
@@ -121,6 +123,23 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"}},
 			},
 			initializes: true,
+		},
+		{
+			name: "upgrade with vpc-loopback connections",
+			objs: []kclient.Object{
+				&wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "other"}},
+				&wiringapi.Connection{ObjectMeta: kmetav1.ObjectMeta{
+					Namespace: kmetav1.NamespaceDefault, Name: "leaf-01--vpc-loopback",
+					Labels: map[string]string{wiringapi.LabelConnectionType: "vpc-loopback"},
+				}},
+				&wiringapi.Connection{ObjectMeta: kmetav1.ObjectMeta{
+					Namespace: kmetav1.NamespaceDefault, Name: "spine-01--fabric--leaf-01",
+					Labels: map[string]string{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeFabric},
+				}},
+			},
+			initializes:  true,
+			deletedConns: []string{"leaf-01--vpc-loopback"},
+			keptConns:    []string{"spine-01--fabric--leaf-01"},
 		},
 		{
 			name: "already initialized",
@@ -176,6 +195,14 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 			}
 
 			require.Equal(t, tt.initializes, kmeta.IsStatusConditionTrue(fc.Status.Conditions, fcintapi.ConditionInitialized))
+
+			for _, name := range tt.deletedConns {
+				err := kube.Get(t.Context(), ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}, &wiringapi.Connection{})
+				require.True(t, kapierrors.IsNotFound(err), "expected connection %s to be deleted, got %v", name, err)
+			}
+			for _, name := range tt.keptConns {
+				require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}, &wiringapi.Connection{}))
+			}
 
 			// built-in switch profiles are enforced on every start, an already initialized version included
 			sps := &wiringapi.SwitchProfileList{}
