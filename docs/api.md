@@ -3277,24 +3277,6 @@ _Appears in:_
 | `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
 
 
-#### ConnVPCLoopback
-
-
-
-ConnVPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) that enables automated
-workaround named "VPC Loopback" that allow to avoid switch hardware limitations and traffic going through CPU in some
-cases
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `links` _[SwitchToSwitchLink](#switchtoswitchlink) array_ | Links is the list of VPC loopback links |  | MinItems: 1 <br /> |
-
-
 #### Connection
 
 
@@ -3339,7 +3321,6 @@ _Appears in:_
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
 | `mesh` _[ConnMesh](#connmesh)_ | Mesh defines the mesh connection (direct leaf to leaf connection with at least one link) |  |  |
 | `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |
-| `vpcLoopback` _[ConnVPCLoopback](#connvpcloopback)_ | VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround |  |  |
 | `external` _[ConnExternal](#connexternal)_ | External defines the external connection (single switch to a single external device with a single link) |  |  |
 | `staticExternal` _[ConnStaticExternal](#connstaticexternal)_ | StaticExternal defines the static external connection (single switch to a single external device with a single link) |  |  |
 
@@ -4085,7 +4066,6 @@ SwitchToSwitchLink defines the switch-to-switch link
 
 _Appears in:_
 - [ConnMCLAGDomain](#connmclagdomain)
-- [ConnVPCLoopback](#connvpcloopback)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |

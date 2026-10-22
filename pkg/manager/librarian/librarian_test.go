@@ -182,7 +182,7 @@ func TestCatalogOwners(t *testing.T) {
 		// something to allocate, as a catalog left without an owner is otherwise unchanged and never saved
 		portChanConns := map[string]bool{name + "--bundled": true}
 		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil, nil))
-		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil))
 	}
 
 	// without a redundancy group both catalogs are the same one, owned by the switch
@@ -221,7 +221,7 @@ func TestSwitchCatalogsNotRewritten(t *testing.T) {
 		t.Helper()
 
 		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil, nil))
-		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, nil, nil, subnets, nil))
+		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, subnets, nil))
 	}
 
 	build(map[string]bool{"conn-1": true}, map[string]bool{"10.0.1.0/24": true})

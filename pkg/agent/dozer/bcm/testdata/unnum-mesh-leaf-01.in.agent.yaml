@@ -96,7 +96,6 @@ spec:
     proxyExternalSubnet: 172.30.16.0/22
     serverFacingMTUOffset: 64
     spineLeaf: {}
-    vpcLoopbackSubnet: 172.30.96.0/19
     vtepSubnet: 172.30.12.0/22
   configuredVPCSubnets:
     vpc-01/subnet-01: true

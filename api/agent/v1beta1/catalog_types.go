@@ -44,10 +44,6 @@ type CatalogSpec struct {
 
 	// Per switch
 
-	// LoopbackWorkaroundLinks stores loopback workaround "request" name (vpc@<vpc-peering> or ext@<external-peering>) -> loopback link name (<port1--port2>), unique per switch
-	LooopbackWorkaroundLinks map[string]string `json:"loopbackWorkaroundLinks,omitempty"`
-	// LoopbackWorkaroundVLANs stores loopback workaround "request" -> VLAN ID, unique per switch
-	LoopbackWorkaroundVLANs map[string]uint16 `json:"loopbackWorkaroundVLANs,omitempty"`
 	// TH5WorkaroundVLANs stores TH5 workaround mesh link -> VLAN ID, unique per switch
 	TH5WorkaroundVLANs map[string]uint16 `json:"th5WorkaroundVLANs,omitempty"`
 	// ExternalIDs stores external name -> ID, unique per switch

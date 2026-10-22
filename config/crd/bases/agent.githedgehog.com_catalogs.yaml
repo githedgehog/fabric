@@ -59,19 +59,6 @@ spec:
                 description: IRBVLANs stores VPC name -> IRB VLAN ID, unique per redundancy
                   group (or switch), it includes Externals too with ext@ prefix
                 type: object
-              loopbackWorkaroundLinks:
-                additionalProperties:
-                  type: string
-                description: LoopbackWorkaroundLinks stores loopback workaround "request"
-                  name (vpc@<vpc-peering> or ext@<external-peering>) -> loopback link
-                  name (<port1--port2>), unique per switch
-                type: object
-              loopbackWorkaroundVLANs:
-                additionalProperties:
-                  type: integer
-                description: LoopbackWorkaroundVLANs stores loopback workaround "request"
-                  -> VLAN ID, unique per switch
-                type: object
               portChannelIDs:
                 additionalProperties:
                   type: integer

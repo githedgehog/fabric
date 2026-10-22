@@ -22,7 +22,6 @@ import (
 	"maps"
 	"net"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -590,10 +589,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 
 	conns := map[string]wiringapi.ConnectionSpec{}
 	for _, conn := range connList.Items {
-		if !r.cfg.LoopbackWorkaround && conn.Spec.VPCLoopback != nil {
-			continue
-		}
-
 		conns[conn.Name] = conn.Spec
 		benchTouch = maxBenchTouch(benchTouch, &conn)
 	}
@@ -870,9 +865,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 
 		for _, conn := range connList.Items {
-			if !r.cfg.LoopbackWorkaround && conn.Spec.VPCLoopback != nil {
-				continue
-			}
 			peerConns[conn.Name] = conn.Spec
 
 			if conn.Spec.Bundled == nil && conn.Spec.ESLAG == nil {
@@ -916,48 +908,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	err = r.libr.CatalogForRedundancyGroup(ctx, r.Client, cat, sw, usedVPCs, portChanConns, idConns, externalsReq, groupIRBVLANReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting redundancy group catalog")
-	}
-
-	loWorkaroundLinks := []string{}
-	for name, conn := range conns {
-		if conn.VPCLoopback == nil {
-			continue
-		}
-
-		for linkID, link := range conn.VPCLoopback.Links {
-			ports := []string{link.Switch1.LocalPortName(), link.Switch2.LocalPortName()}
-			sort.Strings(ports)
-
-			if len(ports) != 2 {
-				return kctrl.Result{}, errors.Errorf("invalid vpc loopback %s link %d", name, linkID)
-			}
-
-			loRef := fmt.Sprintf("%s--%s", ports[0], ports[1])
-			loWorkaroundLinks = append(loWorkaroundLinks, loRef)
-		}
-	}
-
-	loWorkaroundReqs := map[string]bool{}
-	if r.cfg.LoopbackWorkaround {
-		for name, peering := range peerings {
-			vpc1, vpc2, err := peering.VPCs()
-			if err != nil {
-				return kctrl.Result{}, errors.Wrapf(err, "error getting vpcs for peering %s", name)
-			}
-
-			if !attachedVPCs[vpc1] || !attachedVPCs[vpc2] {
-				continue
-			}
-
-			loWorkaroundReqs[librarian.LoWReqForVPC(name)] = true
-		}
-		for name, peering := range externalPeerings {
-			if !attachedVPCs[peering.Permit.VPC.Name] {
-				continue
-			}
-
-			loWorkaroundReqs[librarian.ReqForExt(name)] = true
-		}
 	}
 
 	subnetsReq := map[string]bool{}
@@ -1020,7 +970,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		}
 	}
 
-	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw, loWorkaroundLinks, loWorkaroundReqs, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
+	err = r.libr.CatalogForSwitch(ctx, r.Client, cat, sw, externalsReq, proxyStaticExtAttachments, subnetsReq, th5WorkaroundReqs)
 	if err != nil {
 		return kctrl.Result{}, errors.Wrapf(err, "error getting switch catalog")
 	}
@@ -1143,7 +1093,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			DeploymentID:          r.cfg.DeploymentID,
 			ControlVIP:            r.cfg.ControlVIP,
 			BaseVPCCommunity:      r.cfg.BaseVPCCommunity,
-			VPCLoopbackSubnet:     r.cfg.VPCLoopbackSubnet,
 			FabricMTU:             r.cfg.FabricMTU,
 			ServerFacingMTUOffset: r.cfg.ServerFacingMTUOffset,
 			ESLAGMACBase:          r.cfg.ESLAGMACBase,
@@ -1152,7 +1101,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			GatewayASN:            domain.GatewayASN,
 			SpineASN:              domain.SpineASN,
 			Domains:               fabric.Domains,
-			LoopbackWorkaround:    r.cfg.LoopbackWorkaround,
 			ProtocolSubnet:        r.cfg.ProtocolSubnet,
 			VTEPSubnet:            r.cfg.VTEPSubnet,
 			FabricSubnet:          r.cfg.FabricSubnet,
