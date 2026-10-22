@@ -106,7 +106,6 @@ spec:
     serverFacingMTUOffset: 64
     spineASN: 65100
     spineLeaf: {}
-    vpcLoopbackSubnet: 172.30.96.0/19
     vtepSubnet: 172.30.12.0/22
   configuredVPCSubnets:
     vpc-03/subnet-01: true

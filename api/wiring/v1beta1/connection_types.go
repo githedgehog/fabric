@@ -45,7 +45,6 @@ const (
 	ConnectionTypeFabric         = "fabric"
 	ConnectionTypeMesh           = "mesh"
 	ConnectionTypeGateway        = "gateway"
-	ConnectionTypeVPCLoopback    = "vpc-loopback"
 	ConnectionTypeExternal       = "external"
 	ConnectionTypeStaticExternal = "static-external"
 )
@@ -204,15 +203,6 @@ type ConnMesh struct {
 	Links []MeshLink `json:"links,omitempty"`
 }
 
-// ConnVPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) that enables automated
-// workaround named "VPC Loopback" that allow to avoid switch hardware limitations and traffic going through CPU in some
-// cases
-type ConnVPCLoopback struct {
-	//+kubebuilder:validation:MinItems=1
-	// Links is the list of VPC loopback links
-	Links []SwitchToSwitchLink `json:"links,omitempty"`
-}
-
 // ConnExternalLink defines the external connection link
 type ConnExternalLink struct {
 	Switch BasePortName `json:"switch,omitempty"`
@@ -281,8 +271,6 @@ type ConnectionSpec struct {
 	Mesh *ConnMesh `json:"mesh,omitempty"`
 	// Gateway defines the gateway connection (single spine to a single gateway with at least one link)
 	Gateway *ConnGateway `json:"gateway,omitempty"`
-	// VPCLoopback defines the VPC loopback connection (multiple port pairs on a single switch) for automated workaround
-	VPCLoopback *ConnVPCLoopback `json:"vpcLoopback,omitempty"`
 	// External defines the external connection (single switch to a single external device with a single link)
 	External *ConnExternal `json:"external,omitempty"`
 	// StaticExternal defines the static external connection (single switch to a single external device with a single link)
@@ -423,9 +411,6 @@ func (connSpec *ConnectionSpec) GenerateName() string {
 			role = "gateway"
 			left = connSpec.Gateway.Links[0].Switch.DeviceName()
 			right = []string{connSpec.Gateway.Links[0].Gateway.DeviceName()}
-		} else if connSpec.VPCLoopback != nil {
-			role = "vpc-loopback"
-			left = connSpec.VPCLoopback.Links[0].Switch1.DeviceName()
 		} else if connSpec.External != nil {
 			role = "external"
 			left = connSpec.External.Link.Switch.DeviceName()
@@ -459,8 +444,6 @@ func (connSpec *ConnectionSpec) Type() string {
 		return ConnectionTypeMesh
 	} else if connSpec.Gateway != nil {
 		return ConnectionTypeGateway
-	} else if connSpec.VPCLoopback != nil {
-		return ConnectionTypeVPCLoopback
 	} else if connSpec.External != nil {
 		return ConnectionTypeExternal
 	} else if connSpec.StaticExternal != nil {
@@ -627,23 +610,6 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		if len(ports) != 2*len(connSpec.Gateway.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for gateway connection")
 		}
-	} else if connSpec.VPCLoopback != nil {
-		nonNills++
-
-		for _, link := range connSpec.VPCLoopback.Links {
-			switches[link.Switch1.DeviceName()] = struct{}{}
-			switches[link.Switch2.DeviceName()] = struct{}{}
-			ports[link.Switch1.PortName()] = struct{}{}
-			ports[link.Switch2.PortName()] = struct{}{}
-			links[link.Switch1.PortName()] = link.Switch2.PortName()
-		}
-
-		if len(switches) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one switches must be used for vpc-loopback connection")
-		}
-		if len(ports) != 2*len(connSpec.VPCLoopback.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for vpc-loopback connection")
-		}
 	} else if connSpec.External != nil {
 		nonNills++
 
@@ -697,10 +663,6 @@ func (connSpec *ConnectionSpec) LinkSummary(noColor bool) []string {
 	} else if connSpec.Gateway != nil {
 		for _, link := range connSpec.Gateway.Links {
 			out = append(out, fmt.Sprintf("%s%s%s", link.Switch.PortName(), sep, link.Gateway.PortName()))
-		}
-	} else if connSpec.VPCLoopback != nil {
-		for _, link := range connSpec.VPCLoopback.Links {
-			out = append(out, fmt.Sprintf("%s%s%s", link.Switch1.PortName(), sep, link.Switch2.PortName()))
 		}
 	} else if connSpec.External != nil {
 		out = append(out, connSpec.External.Link.Switch.PortName())

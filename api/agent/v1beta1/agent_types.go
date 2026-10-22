@@ -83,7 +83,6 @@ type AgentSpecConfig struct {
 	VPCPeeringDisabled    bool                      `json:"vpcPeeringDisabled,omitempty"`
 	SpineLeaf             *AgentSpecConfigSpineLeaf `json:"spineLeaf,omitempty"`
 	BaseVPCCommunity      string                    `json:"baseVPCCommunity,omitempty"` // TODO: rename? now only used to mark external prefixes
-	VPCLoopbackSubnet     string                    `json:"vpcLoopbackSubnet,omitempty"`
 	FabricMTU             uint16                    `json:"fabricMTU,omitempty"`
 	ServerFacingMTUOffset uint16                    `json:"serverFacingMTUOffset,omitempty"`
 	ESLAGMACBase          string                    `json:"eslagMACBase,omitempty"`
@@ -92,7 +91,6 @@ type AgentSpecConfig struct {
 	MCLAGSessionSubnet    string                    `json:"mclagSessionSubnet,omitempty"`
 	GatewayASN            uint32                    `json:"gatewayASN,omitempty"`
 	SpineASN              uint32                    `json:"spineASN,omitempty"`
-	LoopbackWorkaround    bool                      `json:"loopbackWorkaround,omitempty"`
 	ProtocolSubnet        string                    `json:"protocolSubnet,omitempty"`
 	VTEPSubnet            string                    `json:"vtepSubnet,omitempty"`
 	FabricSubnet          string                    `json:"fabricSubnet,omitempty"`

@@ -46,7 +46,6 @@ const (
 	VPCVNIMax         = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
 	PortChannelMin    = 1
 	PortChannelMax    = 249
-	ReqPrefixVPC      = "vpc@"
 	ReqPrefixExt      = "ext@"
 )
 
@@ -418,7 +417,7 @@ func (m *Manager) CatalogForRedundancyGroup(ctx context.Context, kube kclient.Cl
 	return nil
 }
 
-func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, loWorkaroundLinks []string, loWorkaroundReqs, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
+func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret *agentapi.CatalogSpec, sw *wiringapi.Switch, externals, proxyStaticExtAttachments, subnets, th5WorkaroundReqs map[string]bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -432,26 +431,6 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 
 	if err := setCatalogOwner(kube, sw, cat); err != nil {
 		return err
-	}
-
-	{
-		a := Allocator[string]{
-			Values: NewBalancedValues(loWorkaroundLinks),
-		}
-		cat.Spec.LooopbackWorkaroundLinks, err = a.Allocate(cat.Spec.LooopbackWorkaroundLinks, loWorkaroundReqs)
-		if err != nil {
-			return fmt.Errorf("allocating loopback workaround links for %s: %w", key, err)
-		}
-	}
-
-	{
-		a := Allocator[uint16]{
-			Values: NewNextFreeValueFromVLANRanges(m.cfg.VPCPeeringVLANRanges),
-		}
-		cat.Spec.LoopbackWorkaroundVLANs, err = a.Allocate(cat.Spec.LoopbackWorkaroundVLANs, loWorkaroundReqs)
-		if err != nil {
-			return fmt.Errorf("allocating loopback workaround VLANs for %s: %w", key, err)
-		}
 	}
 
 	{
@@ -498,14 +477,6 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 		return fmt.Errorf("saving switch catalog %s: %w", key, err)
 	}
 
-	ret.LooopbackWorkaroundLinks = cat.Spec.LooopbackWorkaroundLinks
-	ret.LoopbackWorkaroundVLANs = cat.Spec.LoopbackWorkaroundVLANs
-	for req := range loWorkaroundReqs {
-		if _, exists := ret.LooopbackWorkaroundLinks[req]; !exists {
-			return fmt.Errorf("failed to find loopback workaround link for %s", req) //nolint:err113
-		}
-	}
-
 	ret.ExternalIDs = cat.Spec.ExternalIDs
 	for ext := range externals {
 		if _, exists := ret.ExternalIDs[ext]; !exists {
@@ -535,11 +506,6 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 	}
 
 	return nil
-}
-
-// TODO drop with loopback workaround cleanup, only use vpc@ prefix for loopback workarounds
-func LoWReqForVPC(vpcPeeringName string) string {
-	return ReqPrefixVPC + vpcPeeringName
 }
 
 func ReqForExt(extPeeringName string) string {

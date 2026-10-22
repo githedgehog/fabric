@@ -80,14 +80,14 @@ type FabricConfig struct {
 	APIServer                string        `json:"apiServer,omitempty"`
 	AgentRepo                string        `json:"agentRepo,omitempty"`
 	VPCIRBVLANRanges         []VLANRange   `json:"vpcIRBVLANRange,omitempty"`
-	VPCPeeringVLANRanges     []VLANRange   `json:"vpcPeeringVLANRange,omitempty"` // TODO rename (loopback workaround)
+	VPCPeeringVLANRanges     []VLANRange   `json:"vpcPeeringVLANRange,omitempty"` // Deprecated: ignored, still set by fabricator
 	TH5WorkaroundVLANRange   []VLANRange   `json:"th5WorkaroundVLANRange"`
 	VPCPeeringDisabled       bool          `json:"vpcPeeringDisabled,omitempty"`
 	ReservedSubnets          []string      `json:"reservedSubnets,omitempty"`
 	Users                    []UserCreds   `json:"users,omitempty"`
 	FabricMode               FabricMode    `json:"fabricMode,omitempty"`
-	BaseVPCCommunity         string        `json:"baseVPCCommunity,omitempty"` // TODO: rename? now only used to mark external prefixes
-	VPCLoopbackSubnet        string        `json:"vpcLoopbackSubnet,omitempty"`
+	BaseVPCCommunity         string        `json:"baseVPCCommunity,omitempty"`  // TODO: rename? now only used to mark external prefixes
+	VPCLoopbackSubnet        string        `json:"vpcLoopbackSubnet,omitempty"` // Deprecated: ignored, still set by fabricator
 	FabricMTU                uint16        `json:"fabricMTU,omitempty"`
 	ServerFacingMTUOffset    uint16        `json:"serverFacingMTUOffset,omitempty"`
 	ESLAGMACBase             string        `json:"eslagMACBase,omitempty"`
@@ -103,7 +103,6 @@ type FabricConfig struct {
 	MCLAGSessionSubnet       string        `json:"mclagSessionSubnet,omitempty"` // TODO: deprecated, remove in future releases
 	GatewayASN               uint32        `json:"gatewayASN,omitempty"`         // Temporarily assuming that all GWs are in the same AS
 	GatewayAPISync           bool          `json:"gatewayAPISync,omitempty"`
-	LoopbackWorkaround       bool          `json:"loopbackWorkaround,omitempty"`
 	IncludeSONiCCLSPlus      bool          `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
 	IncludeCumulus           bool          `json:"includeCumulus,omitempty"`      // Include Cumulus
 	ProtocolSubnet           string        `json:"protocolSubnet,omitempty"`
@@ -276,16 +275,6 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		// TODO check total ranges size and expose as limit for API validation
 	}
 
-	if r, err := NormalizedVLANRanges(cfg.VPCPeeringVLANRanges); err != nil {
-		return nil, errors.Wrapf(err, "config: vpcPeeringVLANRange is invalid")
-	} else { //nolint:revive
-		if len(r) == 0 {
-			return nil, errors.Errorf("config: vpcPeeringVLANRange is required")
-		}
-		cfg.VPCPeeringVLANRanges = r
-		// TODO check total ranges size and expose as limit for API validation
-	}
-
 	if r, err := NormalizedVLANRanges(cfg.TH5WorkaroundVLANRange); err != nil {
 		return nil, errors.Wrapf(err, "config: th5WorkaroundVLANRange is invalid")
 	} else { //nolint:revive
@@ -330,9 +319,6 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, fmt.Errorf("config: baseVPCCommunity: %w", err)
 	}
 	cfg.BaseVPCCommunity = baseComm
-	if cfg.VPCLoopbackSubnet == "" {
-		return nil, errors.Errorf("config: vpcLoopbackSubnet is required")
-	}
 
 	if cfg.FabricMTU == 0 {
 		return nil, errors.Errorf("config: fabricMTU is required")
