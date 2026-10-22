@@ -403,6 +403,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		return nil, fmt.Errorf("listing peerings: %w", err)
 	}
 	peerings := map[string]gwapi.PeeringSpec{}
+	experimentalPeerings := map[string]map[string]string{}
 	for _, peering := range peeringList.Items {
 		missingVPC := false
 
@@ -422,6 +423,9 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		}
 
 		peerings[peering.Name] = peering.Spec
+		if annotations := experimentalAnnotations(&peering); annotations != nil {
+			experimentalPeerings[peering.Name] = annotations
+		}
 	}
 
 	comms := map[string]string{}
@@ -441,10 +445,28 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 			Config: gwintapi.GatewayAgentSpecConfig{
 				FabricBFD: !fabric.DisableBFD,
 			},
+			Experimental: gwintapi.GatewayAgentExperimental{
+				Peerings: experimentalPeerings,
+			},
 		},
 	}
 
 	return gwAg, nil
+}
+
+// experimentalAnnotations returns the annotations of obj with the experimental prefix, nil if there are none
+func experimentalAnnotations(obj kmetav1.Object) map[string]string {
+	var found map[string]string
+	for key, value := range obj.GetAnnotations() {
+		if strings.HasPrefix(key, gwintapi.ExperimentalAnnotationPrefix) {
+			if found == nil {
+				found = map[string]string{}
+			}
+			found[key] = value
+		}
+	}
+
+	return found
 }
 
 // BuildGatewayAgentForPeering builds a GatewayAgent for the first gateway that matches the peering gateway group.
@@ -480,6 +502,11 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 
 				// make sure the peering that is currently being processed is added to the agent
 				ag.Spec.Peerings[peering.Name] = peering.Spec
+				// and with its own annotations, not the ones of the stored version it replaces
+				delete(ag.Spec.Experimental.Peerings, peering.Name)
+				if annotations := experimentalAnnotations(peering); annotations != nil {
+					ag.Spec.Experimental.Peerings[peering.Name] = annotations
+				}
 
 				return ag, nil
 			}

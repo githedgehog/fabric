@@ -1883,6 +1883,8 @@ GatewayAgent is the Schema for the gatewayagents API.
 | `status` _[GatewayAgentStatus](#gatewayagentstatus)_ |  |  |  |
 
 
+
+
 #### GatewayAgentStatus
 
 
