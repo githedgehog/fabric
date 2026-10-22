@@ -1493,6 +1493,9 @@
         match-prefix-set:
           config:
             prefix-set: import-vrf--vpc-02--ext-snp-02
+        match-src-network-instance:
+          config:
+            name: VrfEext-snp-02
       config:
         name: "50010"
       name: "50010"

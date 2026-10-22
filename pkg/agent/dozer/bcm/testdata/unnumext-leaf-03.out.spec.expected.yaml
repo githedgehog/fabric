@@ -436,6 +436,7 @@ routeMaps:
         conditions:
           matchCommunityLists: ext-inbound--ext-bgp-01
           matchPrefixLists: import-vrf--vpc-03--ext-bgp-01
+          matchSourceVrf: VrfEext-bgp-01
         result: accept
         setLocalPreference: 150
       "65535":

@@ -1332,6 +1332,8 @@ VPC's externals. It goes away together with the workaround.
 1. We add entries to the route-map filtering routes leaked into the VPC VRF;
 one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,
 and another to set a local preference of 150 for routes imported from the external.
+Both match the external's VRF as source, so that another external peered with the same VPC can't
+get its routes in for the prefixes this one permits.
 Here is also the one difference between external types: for BGP externals, this second rule
 will also match on the inbound community of that external.
     ```
@@ -1342,6 +1344,7 @@ will also match on the inbound community of that external.
     route-map import-vrf--vpc-01 permit 50010
      match ip address prefix-list import-vrf--vpc-01--ext-name
      match community ext-inbound--ext-name
+     match source-vrf VrfEext-name
      set local-preference 150
     !
     ```
