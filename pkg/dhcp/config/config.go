@@ -6,8 +6,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"log/slog"
 	"math"
 	"net"
 	"net/netip"
@@ -31,7 +29,7 @@ const (
 )
 
 // ServerConfig is the fabric-dhcpd configuration, fabricator renders it into the fabric-dhcpd-config ConfigMap. Any
-// missing field falls back to its default, so an older or missing ConfigMap keeps working.
+// missing optional field falls back to its default.
 type ServerConfig struct {
 	// ListenInterface is the interface (optionally with ":port") to listen for DHCP requests on, "eth0" if not set
 	ListenInterface string `json:"listenInterface,omitempty"`
@@ -56,21 +54,17 @@ type ServerConfig struct {
 	UpdateBurst int `json:"updateBurst,omitempty"`
 }
 
-// Load reads the config from path and sets healthListen, which isn't in the file. A missing file means all defaults,
-// while a file that can't be read or parsed, or an invalid value, is an error.
+// Load reads the config from path and sets healthListen, which isn't in the file. A missing file, a file that can't be
+// parsed or an invalid value is an error.
 func Load(path, healthListen string) (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 
 	data, err := os.ReadFile(path)
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		slog.Info("Config file not found, using defaults", "path", path)
-	case err != nil:
+	if err != nil {
 		return nil, fmt.Errorf("reading config file %s: %w", path, err)
-	default:
-		if err := kyaml.UnmarshalStrict(data, cfg); err != nil {
-			return nil, fmt.Errorf("unmarshalling config file %s: %w", path, err)
-		}
+	}
+	if err := kyaml.UnmarshalStrict(data, cfg); err != nil {
+		return nil, fmt.Errorf("unmarshalling config file %s: %w", path, err)
 	}
 	cfg.HealthListen = healthListen
 
