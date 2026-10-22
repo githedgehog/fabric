@@ -18,14 +18,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/fatih/color"
-	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -53,7 +50,6 @@ type PortOut struct {
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
 	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`
 	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
-	LoopbackWorkarounds map[string]*OutLoopbackWorkaround         `json:"loopbackWorkarounds,omitempty"` // if VPCLoopback conn
 }
 
 func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
@@ -236,49 +232,6 @@ func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
 		str.WriteString("\n")
 	}
 
-	if len(out.LoopbackWorkarounds) > 0 {
-		str.WriteString("Loopback Workarounds:\n")
-
-		// TODO pass to a marshal func?
-		noColor := !isatty.IsTerminal(os.Stdout.Fd())
-
-		// TODO dedup
-		colored := color.New(color.FgCyan).SprintFunc()
-		if noColor {
-			colored = fmt.Sprint
-		}
-
-		sep := colored("←→")
-
-		loWoData := [][]string{}
-		for _, loWo := range out.LoopbackWorkarounds {
-			vpcPeerings := []string{}
-			for vpcPeeringName, vpcPeering := range loWo.VPCPeerings {
-				vpc1, vpc2, err := vpcPeering.VPCs()
-				if err != nil {
-					return "", errors.Wrapf(err, "failed to get VPCs for VPCPeering %s", vpcPeeringName)
-				}
-
-				vpcPeerings = append(vpcPeerings, fmt.Sprintf("%s (%s%s%s)", vpcPeeringName, vpc1, sep, vpc2))
-			}
-
-			extPeerings := []string{}
-			for extPeeringName, extPeering := range loWo.ExternalPeerings {
-				extPeerings = append(extPeerings, fmt.Sprintf("%s (%s%s%s)", extPeeringName, extPeering.Permit.VPC.Name, sep, extPeering.Permit.External.Name))
-			}
-
-			loWoData = append(loWoData, []string{
-				fmt.Sprintf("%s%s%s", loWo.Link.Switch1.PortName(), sep, loWo.Link.Switch2.PortName()),
-				strings.Join(vpcPeerings, "\n"),
-				strings.Join(extPeerings, "\n"),
-			})
-		}
-		str.WriteString(RenderTable(
-			[]string{"Link", "VPCPeerings", "ExternalPeerings"},
-			loWoData,
-		))
-	}
-
 	return str.String(), nil
 }
 
@@ -302,7 +255,6 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 		VPCAttachments:      map[string]*vpcapi.VPCAttachmentSpec{},
 		AttachedVPCs:        map[string]*vpcapi.VPCSpec{},
 		ExternalAttachments: map[string]*vpcapi.ExternalAttachmentSpec{},
-		LoopbackWorkarounds: map[string]*OutLoopbackWorkaround{},
 	}
 
 	conns := &wiringapi.ConnectionList{}
@@ -373,13 +325,7 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 
 	if out.Connection != nil && out.ConnectionName != nil {
 		conn := out.Connection
-		if conn.VPCLoopback != nil { //nolint:gocritic
-			var err error
-			out.LoopbackWorkarounds, err = loopbackWorkaroundInfo(ctx, kube, agent)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to get loopback workaround info")
-			}
-		} else if conn.Unbundled != nil || conn.Bundled != nil || conn.ESLAG != nil {
+		if conn.Unbundled != nil || conn.Bundled != nil || conn.ESLAG != nil {
 			vpcAttaches := &vpcapi.VPCAttachmentList{}
 			if err := kube.List(ctx, vpcAttaches, kclient.MatchingLabels{
 				wiringapi.LabelConnection: *out.ConnectionName,

@@ -17,18 +17,14 @@ package inspect
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,18 +46,11 @@ type ConnectionOut struct {
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`      // if server-facing conn
 	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`        // if server-facing conn
 	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
-	LoopbackWorkarounds map[string]*OutLoopbackWorkaround         `json:"loopbackWorkarounds,omitempty"` // if VPCLoopback conn
 }
 
 type ConnectionOutPort struct {
 	Name  string                         `json:"name,omitempty"`
 	State *agentapi.SwitchStateInterface `json:"state,omitempty"`
-}
-
-type OutLoopbackWorkaround struct {
-	Link             wiringapi.SwitchToSwitchLink           `json:"link,omitempty"`
-	VPCPeerings      map[string]*vpcapi.VPCPeeringSpec      `json:"vpcPeerings,omitempty"`
-	ExternalPeerings map[string]*vpcapi.ExternalPeeringSpec `json:"externalPeerings,omitempty"`
 }
 
 func (out *ConnectionOut) MarshalText(_ ConnectionIn, now time.Time) (string, error) {
@@ -129,49 +118,6 @@ func (out *ConnectionOut) MarshalText(_ ConnectionIn, now time.Time) (string, er
 		))
 	}
 
-	if len(out.LoopbackWorkarounds) > 0 {
-		str.WriteString("Loopback Workarounds:\n")
-
-		// TODO pass to a marshal func?
-		noColor := !isatty.IsTerminal(os.Stdout.Fd())
-
-		// TODO dedup
-		colored := color.New(color.FgCyan).SprintFunc()
-		if noColor {
-			colored = fmt.Sprint
-		}
-
-		sep := colored("←→")
-
-		loWoData := [][]string{}
-		for _, loWo := range out.LoopbackWorkarounds {
-			vpcPeerings := []string{}
-			for vpcPeeringName, vpcPeering := range loWo.VPCPeerings {
-				vpc1, vpc2, err := vpcPeering.VPCs()
-				if err != nil {
-					return "", errors.Wrapf(err, "failed to get VPCs for VPCPeering %s", vpcPeeringName)
-				}
-
-				vpcPeerings = append(vpcPeerings, fmt.Sprintf("%s (%s%s%s)", vpcPeeringName, vpc1, sep, vpc2))
-			}
-
-			extPeerings := []string{}
-			for extPeeringName, extPeering := range loWo.ExternalPeerings {
-				extPeerings = append(extPeerings, fmt.Sprintf("%s (%s%s%s)", extPeeringName, extPeering.Permit.VPC.Name, sep, extPeering.Permit.External.Name))
-			}
-
-			loWoData = append(loWoData, []string{
-				fmt.Sprintf("%s%s%s", loWo.Link.Switch1.PortName(), sep, loWo.Link.Switch2.PortName()),
-				strings.Join(vpcPeerings, "\n"),
-				strings.Join(extPeerings, "\n"),
-			})
-		}
-		str.WriteString(RenderTable(
-			[]string{"Link", "VPCPeerings", "ExternalPeerings"},
-			loWoData,
-		))
-	}
-
 	return str.String(), nil
 }
 
@@ -217,7 +163,7 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 		out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
 	}
 
-	switches, _, ports, _, err := conn.Spec.Endpoints()
+	_, _, ports, _, err := conn.Spec.Endpoints() //nolint:dogsled
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get connection %s endpoints", conn.Name)
 	}
@@ -263,22 +209,6 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 		out.Ports = append(out.Ports, port)
 	}
 
-	if conn.Spec.VPCLoopback != nil {
-		if len(switches) != 1 {
-			return nil, errors.New("VPCLoopback connection must have exactly one switch")
-		}
-
-		agent, exist := agents[switches[0]]
-		if !exist {
-			return nil, errors.Errorf("failed to get Agent %s for VPCLoopback", switches[0])
-		}
-
-		out.LoopbackWorkarounds, err = loopbackWorkaroundInfo(ctx, kube, agent)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get loopback workaround info")
-		}
-	}
-
 	if conn.Spec.External != nil {
 		extAttaches := &vpcapi.ExternalAttachmentList{}
 		if err := kube.List(ctx, extAttaches, kclient.MatchingLabels{
@@ -289,55 +219,6 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 
 		for _, extAttach := range extAttaches.Items {
 			out.ExternalAttachments[extAttach.Name] = pointer.To(extAttach.Spec)
-		}
-	}
-
-	return out, nil
-}
-
-func loopbackWorkaroundInfo(ctx context.Context, kube kclient.Reader, agent *agentapi.Agent) (map[string]*OutLoopbackWorkaround, error) {
-	out := map[string]*OutLoopbackWorkaround{}
-
-	for workaround, link := range agent.Spec.Catalog.LooopbackWorkaroundLinks {
-		loWo, exists := out[link]
-		if !exists {
-			ports := strings.Split(link, "--")
-			if len(ports) != 2 {
-				return nil, errors.Errorf("invalid switch link %s for workaround %s", link, workaround)
-			}
-
-			loWo = &OutLoopbackWorkaround{
-				Link: wiringapi.SwitchToSwitchLink{
-					Switch1: wiringapi.NewBasePortName(ports[0]),
-					Switch2: wiringapi.NewBasePortName(ports[1]),
-				},
-				VPCPeerings:      map[string]*vpcapi.VPCPeeringSpec{},
-				ExternalPeerings: map[string]*vpcapi.ExternalPeeringSpec{},
-			}
-
-			out[link] = loWo
-		}
-
-		if strings.HasPrefix(workaround, librarian.ReqPrefixVPC) { //nolint:gocritic
-			vpcPeeringName := strings.TrimPrefix(workaround, librarian.ReqPrefixVPC)
-
-			vpcPeering := &vpcapi.VPCPeering{}
-			if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcPeeringName, Namespace: kmetav1.NamespaceDefault}, vpcPeering); err != nil {
-				return nil, errors.Wrapf(err, "failed to get VPCPeering %s", vpcPeeringName)
-			}
-
-			loWo.VPCPeerings[vpcPeeringName] = &vpcPeering.Spec
-		} else if strings.HasPrefix(workaround, librarian.ReqPrefixExt) {
-			extPeeringName := strings.TrimPrefix(workaround, librarian.ReqPrefixExt)
-
-			extPeering := &vpcapi.ExternalPeering{}
-			if err := kube.Get(ctx, kclient.ObjectKey{Name: extPeeringName, Namespace: kmetav1.NamespaceDefault}, extPeering); err != nil {
-				return nil, errors.Wrapf(err, "failed to get ExternalPeering %s", extPeeringName)
-			}
-
-			loWo.ExternalPeerings[extPeeringName] = &extPeering.Spec
-		} else {
-			return nil, errors.Errorf("invalid loopback workaround %s", workaround)
 		}
 	}
 
