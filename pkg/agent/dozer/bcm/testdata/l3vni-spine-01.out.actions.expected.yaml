@@ -104,16 +104,6 @@
         name: static-ext-subnets
       name: static-ext-subnets
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]
-  summary: Create Prefix List Base vpc-loopback-prefix
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: vpc-loopback-prefix
-      name: vpc-loopback-prefix
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=all-vtep-prefixes]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.12.0/22][masklength-range=22..32]
   summary: Create Prefix Lists Entry 10
   type: update
@@ -168,20 +158,6 @@
         sequence-number: 10
       ip-prefix: 172.30.8.0/32
       masklength-range: 32..32
-      sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=vpc-loopback-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=172.30.96.0/19][masklength-range=19..32]
-  summary: Create Prefix Lists Entry 10
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 172.30.96.0/19
-        masklength-range: 19..32
-        sequence-number: 10
-      ip-prefix: 172.30.96.0/19
-      masklength-range: 19..32
       sequence-number: 10
   weight: 10
 - path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=all-externals]

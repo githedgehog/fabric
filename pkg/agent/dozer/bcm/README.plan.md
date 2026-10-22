@@ -782,15 +782,10 @@ or flooded ARP requests for it to act on.
     ip prefix-list vpc-subnets--vpc-01 seq 1 permit 10.0.1.0/24 le 32
     ```
 1. We create a route map to filter the redistribution of connected routes:
-    - we deny any route that matches the prefix list of the VPC loopback addresses, used
-      for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC subnets
     - we permit any route that matches the prefix list of the VPC static external subnets
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
-    route-map vpc-redistribute-connected--vpc-01 deny 1
-     match ip address prefix-list vpc-loopback-prefix
-    !
     route-map vpc-redistribute-connected--vpc-01 permit 5
      match ip address prefix-list vpc-subnets--vpc-01
     !
@@ -801,31 +796,19 @@ or flooded ARP requests for it to act on.
     !
     ```
 1. We create a similar route map for static routes redistribution:
-    - we deny any route that matches the prefix list of the VPC loopback addresses, used
-      for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC [static external](#static-external-connections) subnets
-    - only with the loopback workaround enabled, we permit any route that matches the prefix list of the
-      VPC external prefixes (see [External peerings](#external-peerings))
     - we implicitly deny everything else
    ```
-   route-map vpc-redistribute-static--vpc-01 deny 1
-    match ip address prefix-list vpc-loopback-prefix
-   !
    route-map vpc-redistribute-static--vpc-01 permit 5
     match ip address prefix-list vpc-static-ext-subnets--vpc-01
    !
    ```
 1. We create a route map to filter routes imported in the VPC VRF, e.g. from VPC we are peering with:
-    - we deny any route whose next-hop matches the prefix list of the VPC loopback addresses, used
-      for the deprecated loopback workaround. This should go as soon as we fully remove the workaround.
     - we permit any route that matches the prefix list of the VPC peers, which holds the subnets of every
       VPC peered with this one (see [VPC Peerings](#vpc-peerings)), with `le 32` so that it also covers host
       routes, i.e. attached-host /32s and host-BGP VIPs; in L3VNI mode these are the only way to reach the hosts.
     - we explicitly deny everything else. This is superfluous as the default action is to deny
     ```
-    route-map import-vrf--vpc-01 deny 1
-     match ip next-hop prefix-list vpc-loopback-prefix
-    !
     route-map import-vrf--vpc-01 permit 50000
      match ip address prefix-list vpc-peers--vpc-01
     !
@@ -1315,19 +1298,6 @@ regardless of the external type, with one minor caveat I will point out.
 the prefixes we allow for that external:
     ```
     ip prefix-list import-vrf--vpc-01--ext-name seq 102 permit 0.0.0.0/0 le 32
-    ```
-1. Only with the loopback workaround enabled, and for a VPC attached to the leaf, we also add the
-same prefixes to `vpc-ext-prefixes--<VPC-NAME>`, and permit them in the VPC's redistribute-static route-map.
-With the workaround the external routes reach the VPC VRF as static routes over the loopback link
-rather than through `import vrf`, and need redistributing for the VPC's other leaves to learn them.
-This is a separate prefix list because the route-map is per VPC, so it needs the prefixes of all of the
-VPC's externals. It goes away together with the workaround.
-    ```
-    ip prefix-list vpc-ext-prefixes--vpc-01 seq 102 permit 0.0.0.0/0 le 32
-    !
-    route-map vpc-redistribute-static--vpc-01 permit 10
-     match ip address prefix-list vpc-ext-prefixes--vpc-01
-    !
     ```
 1. We add entries to the route-map filtering routes leaked into the VPC VRF;
 one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,

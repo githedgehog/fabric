@@ -1571,20 +1571,6 @@ routing-policy:
         name: vips-only--vpc-02--default
       - config:
           mode: IPV4
-          name: vpc-loopback-prefix
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 172.30.96.0/19
-              masklength-range: 19..32
-              sequence-number: 10
-            ip-prefix: 172.30.96.0/19
-            masklength-range: 19..32
-            sequence-number: 10
-        name: vpc-loopback-prefix
-      - config:
-          mode: IPV4
           name: vpc-not-subnets--vpc-01
         extended-prefixes:
           extended-prefix:
@@ -1850,16 +1836,6 @@ routing-policy:
             config:
               policy-result: REJECT_ROUTE
           conditions:
-            bgp-conditions:
-              config:
-                next-hop-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
-          conditions:
             match-prefix-set:
               config:
                 prefix-set: vpc-not-subnets--vpc-03
@@ -1890,16 +1866,6 @@ routing-policy:
       name: import-vrf--vpc-02
       statements:
         statement:
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
-          conditions:
-            bgp-conditions:
-              config:
-                next-hop-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
         - actions:
             config:
               policy-result: ACCEPT_ROUTE
@@ -1950,16 +1916,6 @@ routing-policy:
       name: import-vrf--vpc-03
       statements:
         statement:
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
-          conditions:
-            bgp-conditions:
-              config:
-                next-hop-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
         - actions:
             config:
               policy-result: REJECT_ROUTE
@@ -2261,16 +2217,6 @@ routing-policy:
         - actions:
             config:
               policy-result: REJECT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
           config:
             name: "10"
           name: "10"
@@ -2299,16 +2245,6 @@ routing-policy:
       name: vpc-redistribute-connected--vpc-02
       statements:
         statement:
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
         - actions:
             config:
               policy-result: REJECT_ROUTE
@@ -2343,16 +2279,6 @@ routing-policy:
         - actions:
             config:
               policy-result: REJECT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
           config:
             name: "10"
           name: "10"
@@ -2383,16 +2309,6 @@ routing-policy:
         statement:
         - actions:
             config:
-              policy-result: REJECT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
-        - actions:
-            config:
               policy-result: ACCEPT_ROUTE
           conditions:
             match-prefix-set:
@@ -2408,16 +2324,6 @@ routing-policy:
         statement:
         - actions:
             config:
-              policy-result: REJECT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
-        - actions:
-            config:
               policy-result: ACCEPT_ROUTE
           conditions:
             match-prefix-set:
@@ -2431,16 +2337,6 @@ routing-policy:
       name: vpc-redistribute-static--vpc-03
       statements:
         statement:
-        - actions:
-            config:
-              policy-result: REJECT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: vpc-loopback-prefix
-          config:
-            name: "1"
-          name: "1"
         - actions:
             config:
               policy-result: ACCEPT_ROUTE

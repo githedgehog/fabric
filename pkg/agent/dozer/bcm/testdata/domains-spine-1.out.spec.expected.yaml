@@ -235,13 +235,6 @@ prefixLists:
           le: 32
           prefix: 172.30.8.0/32
   static-ext-subnets: {}
-  vpc-loopback-prefix:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 172.30.96.0/19
 routeMaps:
   filter-attached-hosts:
     statements:
