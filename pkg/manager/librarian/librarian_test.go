@@ -181,7 +181,7 @@ func TestCatalogOwners(t *testing.T) {
 		s := get(&wiringapi.Switch{}, name).(*wiringapi.Switch)
 		// something to allocate, as a catalog left without an owner is otherwise unchanged and never saved
 		portChanConns := map[string]bool{name + "--bundled": true}
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, portChanConns, nil, nil, nil))
 		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, s, nil, nil, nil, nil, nil, nil))
 	}
 
@@ -220,7 +220,7 @@ func TestSwitchCatalogsNotRewritten(t *testing.T) {
 	build := func(portChanConns, subnets map[string]bool) {
 		t.Helper()
 
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil, nil, nil))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, portChanConns, nil, nil, nil))
 		require.NoError(t, libr.CatalogForSwitch(t.Context(), kube, &agentapi.CatalogSpec{}, sw, nil, nil, nil, nil, subnets, nil))
 	}
 
@@ -335,7 +335,7 @@ func TestRedundancyGroupIRBVLANs(t *testing.T) {
 		t.Helper()
 
 		cat := &agentapi.CatalogSpec{}
-		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, cat, s, vpcs, nil, nil, exts, groupReqs(), exts))
+		require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, cat, s, vpcs, nil, nil, exts, groupReqs()))
 
 		return cat.IRBVLANs
 	}
@@ -368,36 +368,6 @@ func TestRedundancyGroupIRBVLANs(t *testing.T) {
 
 	// a VPC of the switch missing from the group requests fails rather than being released
 	err := libr.CatalogForRedundancyGroup(t.Context(), kube, &agentapi.CatalogSpec{}, leaf2,
-		map[string]bool{"vpc-shared": true, "vpc-b1": true, "vpc-b2": true}, nil, nil, nil, groupReqs(), nil)
+		map[string]bool{"vpc-shared": true, "vpc-b1": true, "vpc-b2": true}, nil, nil, nil, groupReqs())
 	require.ErrorContains(t, err, "failed to find IRB VLAN for vpc vpc-b2")
-}
-
-// every switch gets the VNIs of all externals of its fabric, but IRB VLANs only for the ones attached to it
-func TestCatalogForRedundancyGroupExternals(t *testing.T) {
-	scheme := runtime.NewScheme()
-	require.NoError(t, agentapi.AddToScheme(scheme))
-	require.NoError(t, vpcapi.AddToScheme(scheme))
-	require.NoError(t, wiringapi.AddToScheme(scheme))
-
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}},
-		&vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}},
-		&vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-2", Namespace: kmetav1.NamespaceDefault}},
-	).Build()
-	libr := librarian.NewManager(&meta.FabricConfig{VPCIRBVLANRanges: []meta.VLANRange{{From: 3000, To: 3999}}})
-
-	sw := &wiringapi.Switch{}
-	require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}, sw))
-
-	fabricExternals := map[string]bool{"ext-1": true, "ext-2": true}
-	_, err := libr.EnsureVNIs(t.Context(), kube, nil, fabricExternals)
-	require.NoError(t, err)
-
-	cat := &agentapi.CatalogSpec{}
-	require.NoError(t, libr.CatalogForRedundancyGroup(t.Context(), kube, cat, sw, map[string]bool{}, nil, nil, map[string]bool{"ext-1": true},
-		map[string]bool{librarian.ReqForExt("ext-1"): true}, fabricExternals))
-	require.Contains(t, cat.VPCVNIs, librarian.ReqForExt("ext-1"))
-	require.Contains(t, cat.VPCVNIs, librarian.ReqForExt("ext-2"))
-	require.Contains(t, cat.IRBVLANs, librarian.ReqForExt("ext-1"))
-	require.NotContains(t, cat.IRBVLANs, librarian.ReqForExt("ext-2"))
 }

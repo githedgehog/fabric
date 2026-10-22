@@ -94,8 +94,7 @@ bfdProfiles:
 communityLists:
   all-externals:
     members:
-    - "50000:1"
-    - "50000:2"
+    - "50000:0"
   all-gw-prios:
     members:
     - "50001:0"
@@ -501,14 +500,14 @@ routeMaps:
         conditions: {}
         result: accept
         setCommunities:
-        - "50000:1"
+        - "50000:0"
   ext-static--ext-sp-01:
     statements:
       "10":
         conditions: {}
         result: accept
         setCommunities:
-        - "50000:2"
+        - "50000:0"
   filter-attached-hosts:
     statements:
       "10":

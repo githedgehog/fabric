@@ -580,7 +580,8 @@
     - community-set-name: all-externals
       config:
         action: PERMIT
-        community-member: []
+        community-member:
+        - "50000:0"
         community-set-name: all-externals
         match-set-options: ANY
   weight: 11

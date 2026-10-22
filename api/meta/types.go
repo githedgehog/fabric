@@ -86,7 +86,7 @@ type FabricConfig struct {
 	ReservedSubnets          []string      `json:"reservedSubnets,omitempty"`
 	Users                    []UserCreds   `json:"users,omitempty"`
 	FabricMode               FabricMode    `json:"fabricMode,omitempty"`
-	BaseVPCCommunity         string        `json:"baseVPCCommunity,omitempty"`
+	BaseVPCCommunity         string        `json:"baseVPCCommunity,omitempty"` // TODO: rename? now only used to mark external prefixes
 	VPCLoopbackSubnet        string        `json:"vpcLoopbackSubnet,omitempty"`
 	FabricMTU                uint16        `json:"fabricMTU,omitempty"`
 	ServerFacingMTUOffset    uint16        `json:"serverFacingMTUOffset,omitempty"`
@@ -324,6 +324,14 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 	if cfg.BaseVPCCommunity == "" {
 		return nil, errors.Errorf("config: baseVPCCommunity is required")
 	}
+	// set as-is on switches, which would refuse an invalid one
+	if asn, id, ok := strings.Cut(cfg.BaseVPCCommunity, ":"); !ok {
+		return nil, fmt.Errorf("config: baseVPCCommunity %s format is invalid", cfg.BaseVPCCommunity) //nolint:err113
+	} else if _, err := strconv.ParseUint(asn, 10, 16); err != nil {
+		return nil, fmt.Errorf("config: baseVPCCommunity %s is invalid: %w", cfg.BaseVPCCommunity, err)
+	} else if _, err := strconv.ParseUint(id, 10, 16); err != nil {
+		return nil, fmt.Errorf("config: baseVPCCommunity %s is invalid: %w", cfg.BaseVPCCommunity, err)
+	}
 	if cfg.VPCLoopbackSubnet == "" {
 		return nil, errors.Errorf("config: vpcLoopbackSubnet is required")
 	}
@@ -413,6 +421,10 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		}
 		if _, err := strconv.ParseUint(parts[1], 10, 16); err != nil {
 			return nil, fmt.Errorf("config: gatewayCommunity community %s is invalid: %w", commStr, err)
+		}
+		// routes from externals carry baseVPCCommunity, and would pass as a gateway's
+		if commStr == cfg.BaseVPCCommunity {
+			return nil, fmt.Errorf("config: gatewayCommunity community %s is the same as baseVPCCommunity", commStr) //nolint:err113
 		}
 	}
 
