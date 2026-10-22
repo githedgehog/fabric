@@ -1071,6 +1071,23 @@ _Appears in:_
 | `asn` _integer_ | ASN is the remote ASN of the BGP neighbor |  |  |
 
 
+#### GatewayDriver
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description |
+| --- | --- |
+| `kernel` |  |
+| `dpdk` |  |
+
+
 #### GatewayGroup
 
 
@@ -1166,8 +1183,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `pci` _string_ | PCI address of the interface (required for DPDK driver), e.g. 0000:00:01.0 |  |  |
-| `kernel` _string_ | Kernel is the kernel name of the interface to use (required for kernel driver), e.g. enp2s1 |  |  |
+| `pci` _string_ | PCI address of the interface (required for dpdk driver, optional for kernel driver), e.g. 0000:00:01.0 |  |  |
+| `kernel` _string_ | Kernel is the kernel name of the interface to use (kernel driver only), e.g. enp2s1 |  |  |
 | `ips` _string array_ | IPs is the list of IP address to assign to the interface |  |  |
 | `mtu` _integer_ | MTU for the interface |  |  |
 
@@ -1305,6 +1322,7 @@ _Appears in:_
 | `workers` _integer_ | Workers defines the number of worker threads to use for dataplane |  |  |
 | `groups` _[GatewayGroupMembership](#gatewaygroupmembership) array_ | Groups is a list of group memberships for the gateway |  |  |
 | `flowTableCapacity` _integer_ | FlowTableCapacity defines the maximum number of flow entres |  |  |
+| `driver` _[GatewayDriver](#gatewaydriver)_ | Driver is the dataplane driver for the interfaces, kernel or dpdk |  |  |
 
 
 #### GatewayStatus

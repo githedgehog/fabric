@@ -489,6 +489,23 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 	return nil, fmt.Errorf("gateway not found for gateway group: %s", peering.Spec.GatewayGroup) //nolint:err113
 }
 
+func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
+	args := []string{}
+	for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
+		iface := gw.Spec.Interfaces[ifaceName]
+		val := ifaceName
+		switch {
+		case gw.Spec.Driver == gwapi.GatewayDriverDPDK:
+			val += "=pci@" + iface.PCI
+		case iface.Kernel != "":
+			val += "=kernel@" + iface.Kernel
+		}
+		args = append(args, "--interface", val)
+	}
+
+	return append(args, "--driver", string(gw.Spec.Driver))
+}
+
 func entityName(gwName string, t ...string) string {
 	if len(t) == 0 {
 		return fmt.Sprintf("gw-%s", gwName)
@@ -614,36 +631,11 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			args = append(args, "--pyroscope-url", "http://localhost:4040")
 		}
 
-		pcis, kernels := 0, 0
-		for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-			iface := gw.Spec.Interfaces[ifaceName]
-			val := ifaceName
-			switch {
-			case iface.PCI != "":
-				pcis++
-				val += "=pci@" + iface.PCI
-			case iface.Kernel != "":
-				kernels++
-				val += "=kernel@" + iface.Kernel
-				// TODO enable after migrating dataplane to a new interface format
-				// default:
-				// return nil
-			}
-			args = append(args, "--interface", val)
-		}
-
-		driver := "kernel"
-		if pcis > 0 {
-			driver = "dpdk"
-		}
-		if pcis > 0 && kernels > 0 {
-			return fmt.Errorf("cannot use mixed PCI address and kernel name interfaces") //nolint:err113
-		}
-		args = append(args, "--driver", driver)
+		args = append(args, dataplaneIfaceArgs(gw)...)
 
 		// tmp hack to make dp work
 		var initContainers []corev1.Container
-		if driver == "kernel" {
+		if gw.Spec.Driver == gwapi.GatewayDriverKernel {
 			iArgs := "set -ex && "
 			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
 				iface := gw.Spec.Interfaces[ifaceName]

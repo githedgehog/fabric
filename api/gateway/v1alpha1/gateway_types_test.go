@@ -381,6 +381,75 @@ func TestGatewayValidate(t *testing.T) {
 			gw:   *gwa("gw-1"),
 			objs: base,
 		},
+		{
+			name: "test-dpdk-pci",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverDPDK
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", IPs: []string{"172.30.128.3/31"}}
+				gw.Spec.Interfaces["port1"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.1", IPs: []string{"172.30.128.5/31"}}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-dpdk-no-pci",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverDPDK
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", IPs: []string{"172.30.128.3/31"}}
+				gw.Spec.Interfaces["port1"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.5/31"}}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-dpdk-kernel",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverDPDK
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", Kernel: "eth0", IPs: []string{"172.30.128.3/31"}}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-dpdk-duplicate-pci",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverDPDK
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", IPs: []string{"172.30.128.3/31"}}
+				gw.Spec.Interfaces["port1"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", IPs: []string{"172.30.128.5/31"}}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-dpdk-invalid-pci",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverDPDK
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.8", IPs: []string{"172.30.128.3/31"}}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-kernel-pci-and-kernel",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverKernel
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", Kernel: "eth0", IPs: []string{"172.30.128.3/31"}}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-kernel-no-pci-no-kernel",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverKernel
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-unknown-driver",
+			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Driver = "xdp" }),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
 	}
 
 	scheme := runtime.NewScheme()
@@ -429,6 +498,51 @@ func TestGatewayLogRateLimitDefaulting(t *testing.T) {
 		assert.Equal(t, uint32(100), gw.Spec.Logs.RateLimit.Burst)
 		assert.Equal(t, uint32(10), gw.Spec.Logs.RateLimit.ReplenishPerSecond)
 	})
+}
+
+func TestGatewayDriverDefaulting(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		driver v1alpha1.GatewayDriver
+		ifaces map[string]v1alpha1.GatewayInterface
+		want   v1alpha1.GatewayDriver
+	}{
+		{
+			name:   "pci-only",
+			ifaces: map[string]v1alpha1.GatewayInterface{"port0": {PCI: "0000:21:00.0"}, "port1": {PCI: "0000:21:00.1"}},
+			want:   v1alpha1.GatewayDriverDPDK,
+		},
+		{
+			name:   "kernel-only",
+			ifaces: map[string]v1alpha1.GatewayInterface{"port0": {Kernel: "eth0"}},
+			want:   v1alpha1.GatewayDriverKernel,
+		},
+		{
+			name:   "neither",
+			ifaces: map[string]v1alpha1.GatewayInterface{"eth0": {}},
+			want:   v1alpha1.GatewayDriverKernel,
+		},
+		{
+			name:   "mixed",
+			ifaces: map[string]v1alpha1.GatewayInterface{"port0": {PCI: "0000:21:00.0"}, "port1": {Kernel: "eth1"}},
+			want:   v1alpha1.GatewayDriverKernel,
+		},
+		{
+			name:   "explicit-kept",
+			driver: v1alpha1.GatewayDriverKernel,
+			ifaces: map[string]v1alpha1.GatewayInterface{"port0": {PCI: "0000:21:00.0"}},
+			want:   v1alpha1.GatewayDriverKernel,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			gw := gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = tt.driver
+				gw.Spec.Interfaces = tt.ifaces
+			})
+			gw.Default()
+			assert.Equal(t, tt.want, gw.Spec.Driver)
+		})
+	}
 }
 
 func TestGatewayGroupDomain(t *testing.T) {
