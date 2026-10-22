@@ -26,10 +26,11 @@ func TestLoad(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
-		name    string
-		data    *string // nil means no file
-		want    *config.ServerConfig
-		wantErr bool
+		name         string
+		data         *string // nil means no file
+		healthListen string
+		want         *config.ServerConfig
+		wantErr      bool
 	}{
 		{
 			name: "no file means defaults",
@@ -56,8 +57,9 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "all fields set",
-			data: new("listenInterface: enp2s1:67\nanyDeviceOnMgmt: true\nhealthListen: 127.0.0.1:9090\ncontrolVIP: 172.30.0.1/32\n" +
+			data: new("listenInterface: enp2s1:67\nanyDeviceOnMgmt: true\ncontrolVIP: 172.30.0.1/32\n" +
 				"leaseExpiryPadding: 10m\nofferTTL: 1m30s\nrequestTimeout: 3s\nupdateQPS: 75\nupdateBurst: 100\n"),
+			healthListen: "127.0.0.1:9090",
 			want: &config.ServerConfig{
 				ListenInterface:    "enp2s1:67",
 				AnyDeviceOnMgmt:    true,
@@ -132,19 +134,27 @@ func TestLoad(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "health listen without port",
-			data:    new("healthListen: 127.0.0.1\n"),
+			name:    "health listen in the file",
+			data:    new("healthListen: :9090\n"),
 			wantErr: true,
 		},
 		{
-			name:    "health listen with bad port",
-			data:    new("healthListen: :http\n"),
-			wantErr: true,
+			name:         "health listen without port",
+			data:         new(""),
+			healthListen: "127.0.0.1",
+			wantErr:      true,
 		},
 		{
-			name:    "health listen with zero port",
-			data:    new("healthListen: :0\n"),
-			wantErr: true,
+			name:         "health listen with bad port",
+			data:         new(""),
+			healthListen: ":http",
+			wantErr:      true,
+		},
+		{
+			name:         "health listen with zero port",
+			data:         new(""),
+			healthListen: ":0",
+			wantErr:      true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -153,7 +163,7 @@ func TestLoad(t *testing.T) {
 				require.NoError(t, os.WriteFile(path, []byte(*tt.data), 0o600))
 			}
 
-			got, err := config.Load(path)
+			got, err := config.Load(path, tt.healthListen)
 			if tt.wantErr {
 				require.Error(t, err)
 
