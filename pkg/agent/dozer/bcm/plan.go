@@ -484,7 +484,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 
 	vtepSubnet := agent.Spec.Config.VTEPSubnet
 	if vtepSubnet == "" {
-		return errors.New("VTEP subnet not set in agent config") //nolint: goerr113
+		return errors.New("VTEP subnet not set in agent config")
 	}
 
 	spec.PrefixLists[PrefixListAllVTEPPrefixes] = &dozer.SpecPrefixList{
@@ -809,7 +809,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				} else {
 					workaroundIface.VLANIPs = map[string]*dozer.SpecInterfaceIP{
 						ip.String(): {
-							PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+							PrefixLen: pointer.To(uint8(ipPrefixLen)),
 						},
 					}
 				}
@@ -819,7 +819,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			default:
 				meshBaseIface.Subinterfaces[0].IPs = map[string]*dozer.SpecInterfaceIP{
 					ip.String(): {
-						PrefixLen: pointer.To(uint8(ipPrefixLen)), //nolint:gosec
+						PrefixLen: pointer.To(uint8(ipPrefixLen)),
 					},
 				}
 			}
@@ -1147,7 +1147,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		for idx, subnet := range ipns.Subnets {
-			spec.PrefixLists[ipnsSubnetsPrefixListName(ipnsName)].Prefixes[uint32(idx+1)] = &dozer.SpecPrefixListEntry{ //nolint:gosec
+			spec.PrefixLists[ipnsSubnetsPrefixListName(ipnsName)].Prefixes[uint32(idx+1)] = &dozer.SpecPrefixListEntry{
 				Prefix: dozer.SpecPrefixListPrefix{
 					Prefix: subnet,
 					Le:     32,
@@ -1171,7 +1171,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		entries := map[uint32]*dozer.SpecACLEntry{}
 		for iSrc, src := range ipns.Subnets {
 			for iDst, dst := range ipns.Subnets {
-				entries[uint32(iSrc*100+iDst+1)] = &dozer.SpecACLEntry{ //nolint:gosec
+				entries[uint32(iSrc*100+iDst+1)] = &dozer.SpecACLEntry{
 					SourceAddress:      pointer.To(src),
 					DestinationAddress: pointer.To(dst),
 					Action:             dozer.SpecACLEntryActionDrop,
@@ -1343,7 +1343,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 						entry.Ge = prefixListGe(prefix, minLen)
 						entry.Le = maxLen
 					}
-					prefixes[uint32(10*(idx+1))] = &dozer.SpecPrefixListEntry{Prefix: entry, Action: dozer.SpecPrefixListActionPermit} //nolint:gosec
+					prefixes[uint32(10*(idx+1))] = &dozer.SpecPrefixListEntry{Prefix: entry, Action: dozer.SpecPrefixListActionPermit}
 				}
 				prefixList := fmt.Sprintf("ext-inbound--%s", externalName)
 				spec.PrefixLists[prefixList] = &dozer.SpecPrefixList{Prefixes: prefixes}
@@ -1397,10 +1397,10 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(externalName)]
 		extVNI := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(externalName)]
 		if irbVLAN == 0 {
-			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:goerr113
+			return fmt.Errorf("IRB VLAN for external %s not found in catalog", externalName) //nolint:err113
 		}
 		if extVNI == 0 {
-			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:goerr113
+			return fmt.Errorf("VNI for external %s not found in catalog", externalName) //nolint:err113
 		}
 		irbIface := vlanName(irbVLAN)
 		spec.Interfaces[irbIface] = &dozer.SpecInterface{
@@ -2898,7 +2898,7 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 			return errors.Wrapf(err, "failed to parse hostBGP extra prefix %s for subnet %s of VPC %s", extraPrefix, subnet.Subnet, vpcName)
 		}
 		extraMinLen, extraMaxLen := subnet.HostBGPExtraPrefixLens(subnet.HostBGPExtraPrefixes[extraPrefix])
-		pIdx := uint32(15 + 5*idx) //nolint:gosec
+		pIdx := uint32(15 + 5*idx)
 		prefixes[pIdx] = &dozer.SpecPrefixListEntry{
 			Prefix: dozer.SpecPrefixListPrefix{
 				Prefix: extraPrefix,

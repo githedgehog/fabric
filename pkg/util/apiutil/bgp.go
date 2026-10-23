@@ -298,7 +298,7 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 			return nil, fmt.Errorf("peer: %w", err)
 		}
 		if peerSw.Spec.ProtocolIP == "" {
-			return nil, fmt.Errorf("no protocol IP found for peer %s", peer) //nolint:goerr113
+			return nil, fmt.Errorf("no protocol IP found for peer %s", peer) //nolint:err113
 		}
 		ip := strings.Split(peerSw.Spec.ProtocolIP, "/")[0]
 		neigh, ok := out["default"][ip]
@@ -321,7 +321,7 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 		for _, extAtt := range exts.attachments[conn.Name] {
 			ext, ok := exts.externals[extAtt.Spec.External]
 			if !ok {
-				return nil, fmt.Errorf("external %s not found", extAtt.Spec.External) //nolint:goerr113
+				return nil, fmt.Errorf("external %s not found", extAtt.Spec.External) //nolint:err113
 			}
 
 			// TODO dedup with agent code

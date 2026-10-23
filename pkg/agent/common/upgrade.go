@@ -92,7 +92,7 @@ func UpgradeBin(ctx context.Context, source, version, ca, username, password, ta
 
 	rootCAs := x509.NewCertPool()
 	if !rootCAs.AppendCertsFromPEM([]byte(ca)) {
-		return fmt.Errorf("failed to append CA cert to rootCAs") //nolint:goerr113
+		return fmt.Errorf("failed to append CA cert to rootCAs") //nolint:err113
 	}
 
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()

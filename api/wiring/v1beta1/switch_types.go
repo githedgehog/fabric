@@ -508,13 +508,13 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 
 		if !mgmtSubnet.Contains(swIP.Addr()) {
-			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet) //nolint:goerr113
+			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet)
 		}
 		if swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
-			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart) //nolint:goerr113
+			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart)
 		}
 		if _, exist := mgmtIPs[swIP.Addr()]; exist {
-			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP) //nolint:goerr113
+			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP)
 		}
 	}
 
@@ -524,15 +524,15 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s protocol IP %s", sw.Name, sw.Spec.ProtocolIP)
 		}
 		if swProtoIP.Bits() != 32 {
-			return errors.Errorf("switch %s protocol IP %s must be a /32", sw.Name, swProtoIP) //nolint:goerr113
+			return errors.Errorf("switch %s protocol IP %s must be a /32", sw.Name, swProtoIP)
 		}
 
 		if !protocolSubnet.Contains(swProtoIP.Addr()) {
-			return errors.Errorf("switch %s protocol IP %s is not in the protocol subnet %s", sw.Name, swProtoIP, protocolSubnet) //nolint:goerr113
+			return errors.Errorf("switch %s protocol IP %s is not in the protocol subnet %s", sw.Name, swProtoIP, protocolSubnet)
 		}
 
 		if _, exist := protocolIPs[sw.Spec.ProtocolIP]; exist {
-			return errors.Errorf("switch %s protocol IP %s is already in use", sw.Name, swProtoIP) //nolint:goerr113
+			return errors.Errorf("switch %s protocol IP %s is already in use", sw.Name, swProtoIP)
 		}
 	}
 
@@ -540,7 +540,7 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if sw.Spec.Role.IsLeaf() {
 		// TODO: remove MCLAG exception once we don't need to worry about upgrading systems which still support it
 		if _, exist := leafASNs[sw.Spec.ASN]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
-			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN) //nolint:goerr113
+			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN)
 		}
 	}
 
@@ -573,16 +573,16 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			return errors.Wrapf(err, "parsing switch %s VTEP IP %s", sw.Name, sw.Spec.VTEPIP)
 		}
 		if swVTEPIP.Bits() != 32 {
-			return errors.Errorf("switch %s VTEP IP %s must be a /32", sw.Name, swVTEPIP) //nolint:goerr113
+			return errors.Errorf("switch %s VTEP IP %s must be a /32", sw.Name, swVTEPIP)
 		}
 
 		if !vtepSubnet.Contains(swVTEPIP.Addr()) {
-			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet) //nolint:goerr113
+			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet)
 		}
 
 		// TODO: remove MCLAG exception once we don't need to worry about upgrading systems which still support it
 		if _, exist := VTEPs[sw.Spec.VTEPIP]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
-			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP) //nolint:goerr113
+			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP)
 		}
 	}
 

@@ -687,7 +687,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 			slog.Info("Waiting for switch to reboot after RoCE change, it may take a while...")
 			time.Sleep(5 * time.Minute)
 
-			return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:goerr113
+			return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:err113
 		}
 	}
 
@@ -829,7 +829,7 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	} else if upgraded {
 		slog.Info("Agent upgraded, restarting")
 
-		os.Exit(0) //nolint:gocritic // TODO graceful agent restart
+		os.Exit(0) // TODO graceful agent restart
 	}
 
 	return nil

@@ -1,4 +1,26 @@
+version: "2"
+
+# Migrated from golangci-lint v1.64.8 keeping the v1 coverage. Everything the upgraded or new checks report on the
+# current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0):
+#
+#   1. Linters with no issues on the current code: nilnesserr, exptostd, fatcontext, iface, sloglint, gochecksumtype,
+#      iotamixing
+#   2. Single findings from the upgraded linters, see linters.exclusions.rules
+#   3. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
+#   4. gosec G118 and taint analysis G703 rules: 3 issues
+#   5. prealloc: 21 issues
+#   6. Default exclusions inherited from v1, see linters.exclusions.presets
+#   7. nolintlint require-explanation: 521 directives without explanation
+#   8. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
+#      forcetypeassert (28), recvcheck (1), mirror (1), dupword (1), gomoddirectives (1), godoclint (84),
+#      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
+#   9. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
+#
+# Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
+
 run:
+  # kept from the v1 config, v2 has no timeout by default
   timeout: 10m
   allow-parallel-runners: true
   build-tags:
@@ -6,16 +28,14 @@ run:
     - containers_image_storage_stub
 
 linters:
-  disable-all: true
-  # Look at this for details: https://golangci-lint.run/usage/linters/
+  default: none
+  # Look at this for details: https://golangci-lint.run/docs/linters/
   enable:
     # enabled by default
-    - typecheck
     - errcheck
-    - gosimple
     - govet
     - ineffassign
-    - staticcheck
+    - staticcheck # includes gosimple and stylecheck since v2
     - unused
     # disabled by default
     - asasalint
@@ -37,8 +57,6 @@ linters:
     - goconst
     - gocritic
     - err113
-    - gofmt
-    - goimports
     - goprintffuncname
     - gosec
     - importas
@@ -53,12 +71,14 @@ linters:
     - noctx
     - nolintlint
     - nonamedreturns
-    - prealloc
+    # TODO enable prealloc: 21 issues as it got rewritten in v1.1.0 (v1 had v1.0.0) and can't be configured back
+    # - prealloc
     - predeclared
     - promlinter
     - reassign
     - revive
-    - stylecheck
+    # Not planned: conflicts with the K8s API conventions (e.g. vtepIP instead of vtepIp) and external APIs field
+    # names, 130 issues
     # - tagliatelle
     - unconvert
     - unparam
@@ -67,87 +87,211 @@ linters:
     - whitespace
     - wrapcheck
 
-linters-settings:
-  exhaustive:
-    check:
-      - switch
-      - map
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-      - shadow
-  importas:
-    no-unaliased: true
-    alias:
-      - pkg: k8s.io/apimachinery/pkg/types
-        alias: ktypes
-      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
-        alias: kmetav1
-      - pkg: k8s.io/apimachinery/pkg/api/errors
-        alias: kapierrors
-      - pkg: k8s.io/apimachinery/pkg/util/errors
-        alias: kerrors
-      - pkg: k8s.io/apimachinery/pkg/api/meta
-        alias: kmeta
-      - pkg: sigs.k8s.io/controller-runtime/pkg/log
-        alias: kctrllog
-      - pkg: sigs.k8s.io/yaml
-        alias: kyaml
-      - pkg: sigs.k8s.io/controller-runtime
-        alias: kctrl
-      - pkg: sigs.k8s.io/controller-runtime/pkg/client
-        alias: kclient
-  depguard:
-    rules:
-      main:
-        deny:
-          # - pkg: "github.com/pkg/errors$"
-          #   desc: use stdlib errors package
-          - pkg: "golang.org/x/exp/maps$"
-            desc: use stdlib maps or samber/lo package
-          - pkg: "golang.org/x/exp/slices$"
-            desc: use stdlib slices or samber/lo package
-          - pkg: "golang.org/x/exp/slog$"
-            desc: use stdlib slog package
-          - pkg: "k8s.io/utils/strings/slices$"
-            desc: use stdlib slices or samber/lo package
-          - pkg: gopkg.in/yaml
-            desc: use sigs.k8s.io/yaml
-  reassign:
-    patterns:
-      - ".*"
-  revive:
-    # By default, revive will enable only the linting rules that are named in the configuration file.
-    # So, it's needed to explicitly enable all required rules here.
-    rules:
-      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: if-return
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: superfluous-else
-      - name: unreachable-code
-      - name: redefines-builtin-id
-      #
-      # Rules in addition to the recommended configuration above.
-      #
-      - name: bool-literal-in-expr
-      - name: constant-logical-expr
+  settings:
+    exhaustive:
+      check:
+        - switch
+        - mapliteral # renamed from map in v2
+    goconst:
+      exclude-types:
+        # TODO evaluate detection in function call arguments (v1 and v2 default to skip it): 471 issues
+        - Call
+        # TODO evaluate detection in composite literals added in goconst v1.11.0 (v1 had v1.7.1): 1522 issues, mostly
+        # the port names and speeds in the switch profiles, so it may be too noisy
+        - CompositeLit
+    gosec:
+      excludes:
+        # TODO enable the rules added after gosec v2.22.2 used by v1 (v2 has v2.29.0): 3 issues
+        - G118 # goroutine uses context.Background/TODO while request-scoped context is available
+        - G703 # path traversal via taint analysis
+    govet:
+      enable-all: true
+      disable:
+        # Not planned: optimizes struct memory layout at the cost of readable fields order, 50 issues
+        - fieldalignment
+        # Not planned: reports the idiomatic err shadowing, 111 of 118 issues are about err
+        - shadow
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: k8s.io/apimachinery/pkg/types
+          alias: ktypes
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: kmetav1
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: kapierrors
+        - pkg: k8s.io/apimachinery/pkg/util/errors
+          alias: kerrors
+        - pkg: k8s.io/apimachinery/pkg/api/meta
+          alias: kmeta
+        - pkg: sigs.k8s.io/controller-runtime/pkg/log
+          alias: kctrllog
+        - pkg: sigs.k8s.io/yaml
+          alias: kyaml
+        - pkg: sigs.k8s.io/controller-runtime
+          alias: kctrl
+        - pkg: sigs.k8s.io/controller-runtime/pkg/client
+          alias: kclient
+    depguard:
+      rules:
+        main:
+          deny:
+            # TODO deny github.com/pkg/errors in favor of the stdlib errors package: used in 95 files
+            # - pkg: "github.com/pkg/errors$"
+            #   desc: use stdlib errors package
+            - pkg: "golang.org/x/exp/maps$"
+              desc: use stdlib maps or samber/lo package
+            - pkg: "golang.org/x/exp/slices$"
+              desc: use stdlib slices or samber/lo package
+            - pkg: "golang.org/x/exp/slog$"
+              desc: use stdlib slog package
+            - pkg: "k8s.io/utils/strings/slices$"
+              desc: use stdlib slices or samber/lo package
+            - pkg: gopkg.in/yaml
+              desc: use sigs.k8s.io/yaml
+    predeclared:
+      # v1 behavior, v2 defaults to shadow only
+      mode:
+        - declare
+        - shadow
+    reassign:
+      patterns:
+        - ".*"
+    revive:
+      # By default, revive will enable only the linting rules that are named in the configuration file.
+      # So, it's needed to explicitly enable all required rules here.
+      rules:
+        # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: package-naming # split out of var-naming in revive v1.15.0, v1 had v1.7.0
+        - name: var-declaration
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        #
+        # Rules in addition to the recommended configuration above.
+        #
+        - name: bool-literal-in-expr
+        - name: constant-logical-expr
+    staticcheck:
+      # v1 ran all checks of staticcheck, gosimple and stylecheck while v2 defaults skip ST1000, ST1003, ST1016,
+      # ST1020, ST1021 and ST1022 (the ones about comments are still excluded by the comments preset)
+      checks:
+        - all
+        # TODO enable quickfix checks (new in v2): 84 issues, QF1008 x40, QF1012 x32, QF1003 x6, QF1001 x6
+        - -QF*
 
-issues:
-  exclude-files:
-    - vendor
+  exclusions:
+    # v1 default, v2 defaults to strict
+    generated: lax
+    # Default exclusions in v1 (exclude-use-default: true)
+    presets:
+      # TODO enable: 241 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
+      # (also revive exported and package-comments rules that aren't enabled)
+      - comments
+      # TODO enable: 29 issues, gosec G204 subprocess launched with variable x9, G304 file inclusion via variable x20
+      # (also G103 unsafe calls, no issues)
+      - common-false-positives
+      # TODO enable: 11 issues, gosec G104 unhandled errors (duplicates errcheck) x2, G301/G302 dir/file permissions
+      # x9 (also govet unsafe.Pointer and staticcheck SA4011, no issues)
+      - legacy
+      # TODO enable: 21 issues, errcheck on Close, Flush, os.Remove(All), fmt.Print*, os.(Un)Setenv and std streams
+      - std-error-handling
+    paths:
+      # Not planned: third-party code
+      - vendor
+    # Findings of the upgraded linters, reported by the versions in v2 but not by the ones in v1, each rule is limited
+    # to the current findings so that new code is still checked
+    rules:
+      # TODO fill or nolint the empty map literals (exhaustive v0.15.0, v1 had v0.12.0): 4 issues
+      - linters:
+          - exhaustive
+        path: (pkg/agent/dozer/bcm/spec_vrf|pkg/boot/server/server)\.go
+        text: "missing keys in map literal"
+        source: "\\{\\}$"
+      # TODO use the existing DefaultIPv4Namespace constant (goconst v1.11.0, v1 had v1.7.1): 1 issue
+      - linters:
+          - goconst
+        path: api/vpc/v1beta1/vpcattachment_types\.go
+        text: "string `default` has 3 occurrences, but such constant `DefaultIPv4Namespace` already exists"
+      # TODO nolint with justification as the bytes are truncated on purpose (gosec v2.29.0, v1 had v2.22.2): 3 issues
+      - linters:
+          - gosec
+        path: pkg/agent/dozer/bcm/plan\.go
+        text: "G115:"
+        source: "byte\\(val( >> (16|8))?\\),"
+      # TODO nolint as a weak random is fine for shuffling the test data (gosec v2.29.0, v1 had v2.22.2): 1 issue
+      - linters:
+          - gosec
+        path: pkg/dhcp/subnet_test\.go
+        text: "G404:"
+      # TODO use reflect.Pointer as reflect.Ptr is deprecated (govet inline analyzer added in golangci-lint v2.12.0):
+      # 2 issues
+      - linters:
+          - govet
+        path: pkg/agent/dozer/bcm/(enforcer|processor)\.go
+        text: "inline: Constant reflect.Ptr should be inlined"
+      # TODO use exec.CommandContext as os/exec is checked now (noctx v0.5.1, v1 had v0.1.0): 1 issue
+      - linters:
+          - noctx
+        path: pkg/agent/systemd/systemd\.go
+        text: "os/exec.Command must not be called"
+      # TODO use httptest.NewRequestWithContext as httptest is checked now (noctx v0.5.1, v1 had v0.1.0): 5 issues
+      - linters:
+          - noctx
+        path: pkg/dhcp/health_test\.go
+        text: "net/http/httptest.NewRequest must not be called"
+      # TODO rename the package or nolint, package names are checked by package-naming now (revive v1.17.1, v1 had
+      # v1.7.0): 1 issue
+      - linters:
+          - revive
+        path: pkg/agent/common/
+        text: "package-naming: don't use \"common\""
+      # TODO use RequeueAfter only as Requeue is deprecated (staticcheck v0.8.2, v1 had v0.6.1): 1 issue
+      - linters:
+          - staticcheck
+        path: pkg/ctrl/gateway_ctrl\.go
+        text: "SA1019: .*Result\\)\\.Requeue is deprecated"
+      # TODO use the new tablewriter alignment API as Alignment is deprecated (staticcheck v0.8.2, v1 had v0.6.1):
+      # 2 issues
+      - linters:
+          - staticcheck
+        path: pkg/hhfctl/inspect/inspect\.go
+        text: "SA1019: .*CellFormatting\\)\\.Alignment is deprecated"
+      # TODO nolint as cli.Exit is the error to return as is (wrapcheck v2.13.0, v1 had v2.10.0): 2 issues
+      - linters:
+          - wrapcheck
+        path: cmd/fabric-(boot|nos-install)/main\.go
+        text: "github.com/urfave/cli/v2.Exit"
+      # TODO nolint as the API status error is returned as is to the client (wrapcheck v2.13.0, v1 had v2.10.0):
+      # 1 issue
+      - linters:
+          - wrapcheck
+        path: pkg/ctrl/lock_wh\.go
+        text: "k8s.io/apimachinery/pkg/api/errors.NewServiceUnavailable"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    # v1 default, v2 defaults to strict
+    generated: lax
+    paths:
+      # Not planned: third-party code
+      - vendor

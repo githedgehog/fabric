@@ -264,7 +264,7 @@ func lldpNeighbors(ctx context.Context, data *lldpData, in *switchInput, opts LL
 
 			status, ok := out[kPort]
 			if ok {
-				return nil, fmt.Errorf("duplicate port %s", kPort) //nolint:goerr113
+				return nil, fmt.Errorf("duplicate port %s", kPort) //nolint:err113
 			}
 
 			expectedName := vDevice
@@ -306,7 +306,7 @@ func lldpNeighbors(ctx context.Context, data *lldpData, in *switchInput, opts LL
 				if status.Expected.Name != "" {
 					status.Expected.Description = wiringapi.SwitchLLDPDescription(ag.Spec.Config.DeploymentID)
 				} else {
-					return nil, fmt.Errorf("expected neighbor name not found for %s while type if fabric", ifaceName) //nolint:goerr113
+					return nil, fmt.Errorf("expected neighbor name not found for %s while type if fabric", ifaceName) //nolint:err113
 				}
 
 				ports, err := data.nos2APIPorts(ctx, in, status.Expected.Name)

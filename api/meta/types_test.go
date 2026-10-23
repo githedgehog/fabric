@@ -51,7 +51,7 @@ func TestFabricConfigCommunities(t *testing.T) {
 			GatewayCommunities:     map[uint32]string{},
 		}
 		for idx, comm := range gateway {
-			cfg.GatewayCommunities[uint32(idx)] = comm //nolint:gosec
+			cfg.GatewayCommunities[uint32(idx)] = comm
 		}
 
 		return cfg

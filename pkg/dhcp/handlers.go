@@ -123,7 +123,7 @@ func (s *Server) checkRelayedRequest(giaddr net.IP) error {
 	_, known := s.relayAllowlist[str]
 	s.mu.RUnlock()
 	if !known {
-		return fmt.Errorf("unknown GIADDR %s", str) //nolint:goerr113
+		return fmt.Errorf("unknown GIADDR %s", str) //nolint:err113
 	}
 
 	return nil
