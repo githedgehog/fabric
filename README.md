@@ -15,7 +15,7 @@ before changing the planner.
 
 ## Building
 
-Prerequisites: Go 1.26+ (see `go.mod`), [just](https://github.com/casey/just) 1.36+, Docker.
+Prerequisites: Go 1.27+ (see `go.mod`), [just](https://github.com/casey/just) 1.36+, Docker.
 
 ```sh
 just build      # generate, then build all binaries into bin/ (linux/amd64)
