@@ -3457,8 +3457,6 @@ _Appears in:_
 | `gateway` _[ConnGatewayLinkGateway](#conngatewaylinkgateway)_ | Gateway is the gateway side of the gateway link |  |  |
 
 
-
-
 #### MeshLink
 
 
