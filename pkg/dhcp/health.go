@@ -105,10 +105,10 @@ func (s *Server) startHealthz(ctx context.Context, addr string) error {
 
 	go func() {
 		<-ctx.Done()
-		// ctx is already done here; use a fresh context to bound the shutdown.
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		// ctx is already done here; drop its cancellation to bound the shutdown on its own.
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 		defer cancel()
-		_ = srv.Shutdown(shutdownCtx) //nolint:contextcheck
+		_ = srv.Shutdown(shutdownCtx)
 	}()
 
 	slog.Info("Starting healthz server", "addr", addr)
