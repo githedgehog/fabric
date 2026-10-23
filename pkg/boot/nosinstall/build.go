@@ -176,7 +176,7 @@ func NewCountingWriter(w io.Writer) *CountingWriter {
 func (cw *CountingWriter) Write(b []byte) (int, error) {
 	cw.n += uint64(len(b))
 
-	return cw.w.Write(b) //nolint: wrapcheck
+	return cw.w.Write(b) //nolint:wrapcheck
 }
 
 func (cw *CountingWriter) Bytes() uint64 {

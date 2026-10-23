@@ -74,10 +74,10 @@ func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, c
 	return nil
 }
 
-//+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch;create
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=delete
+// +kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=delete
 
 var (
 	_ manager.Runnable               = (*FabricControllerInitializer)(nil)

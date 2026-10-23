@@ -48,8 +48,8 @@ func SetupVPCPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock 
 		Complete(), "failed to setup vpc peering webhook")
 }
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update,versions=v1beta1,name=mvpcpeering.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update;delete,versions=v1beta1,name=vvpcpeering.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update,versions=v1beta1,name=mvpcpeering.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update;delete,versions=v1beta1,name=vvpcpeering.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpcpeering-webhook")
 

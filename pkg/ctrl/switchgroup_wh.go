@@ -41,8 +41,8 @@ func SetupSwitchGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock
 	return nil
 }
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchgroup,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchgroups,verbs=create;update,versions=v1beta1,name=mswitchgroup.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switchgroup,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchgroups,verbs=create;update;delete,versions=v1beta1,name=vswitchgroup.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-switchgroup,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchgroups,verbs=create;update,versions=v1beta1,name=mswitchgroup.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-switchgroup,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=switchgroups,verbs=create;update;delete,versions=v1beta1,name=vswitchgroup.kb.io,admissionReviewVersions=v1
 
 func (w *SwitchGroupWebhook) Default(_ context.Context, sg *wiringapi.SwitchGroup) error {
 	sg.Default()

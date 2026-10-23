@@ -55,8 +55,8 @@ func SetupSwitchProfileReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig,
 		Complete(r), "failed to setup switch profile controller")
 }
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
 
 func (r *SwitchProfileReconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)

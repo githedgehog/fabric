@@ -45,8 +45,8 @@ func SetupServerWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Loc
 		Complete(), "failed to setup server webhook")
 }
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-server,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update,versions=v1beta1,name=mserver.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-server,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update;delete,versions=v1beta1,name=vserver.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-server,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update,versions=v1beta1,name=mserver.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-server,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=servers,verbs=create;update;delete,versions=v1beta1,name=vserver.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("server-webhook")
 

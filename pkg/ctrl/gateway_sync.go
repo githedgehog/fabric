@@ -59,13 +59,13 @@ func SetupGwVPCSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lib
 	return nil
 }
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
 
 func (r *GwVPCSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
@@ -170,13 +170,13 @@ func SetupGwExternalSyncReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig
 	return nil
 }
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/finalizers,verbs=update
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos/finalizers,verbs=update
 
 func (r *GwExternalSync) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)

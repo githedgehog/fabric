@@ -21,11 +21,11 @@ import (
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-//+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=switchboots,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=switchboots/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=fcint.githedgehog.com,resources=switchboots,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=fcint.githedgehog.com,resources=switchboots/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch
 
 type SwitchBootReconciler struct {
 	kclient.Client

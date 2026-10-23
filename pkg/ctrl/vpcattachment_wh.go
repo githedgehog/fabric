@@ -48,8 +48,8 @@ func SetupVPCAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lo
 		Complete(), "failed to setup vpc attachment webhook")
 }
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update,versions=v1beta1,name=mvpcattachment.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update;delete,versions=v1beta1,name=vvpcattachment.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update,versions=v1beta1,name=mvpcattachment.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update;delete,versions=v1beta1,name=vvpcattachment.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpcattachment-webhook")
 

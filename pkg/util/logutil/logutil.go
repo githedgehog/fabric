@@ -29,7 +29,7 @@ func NewSink(ctx context.Context, log func(msg string, args ...any), msgPrefix s
 
 		go func() {
 			defer func() {
-				recover() //nolint: errcheck
+				recover() //nolint:errcheck
 			}()
 
 			s := bufio.NewScanner(r)

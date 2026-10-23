@@ -52,8 +52,8 @@ func SetupIPv4NamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lo
 		Complete(), "failed to setup ipv4namespace webhook")
 }
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1beta1,name=mipv4namespace.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1beta1,name=vipv4namespace.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update,versions=v1beta1,name=mipv4namespace.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-ipv4namespace,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=create;update;delete,versions=v1beta1,name=vipv4namespace.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("ipv4namespace-webhook")
 

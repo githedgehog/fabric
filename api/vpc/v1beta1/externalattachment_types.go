@@ -319,7 +319,7 @@ type ExternalAttachment struct {
 	Status ExternalAttachmentStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ExternalAttachmentList contains a list of ExternalAttachment
 type ExternalAttachmentList struct {

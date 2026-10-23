@@ -480,55 +480,55 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Ob
 	return res
 }
 
-//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/status,verbs=get;get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/finalizers,verbs=update
+// +kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/status,verbs=get;get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switches/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchprofiles/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=switchgroups/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=servers/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=vlannamespaces/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=vlannamespaces/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcattachments/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcpeerings/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externals/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalattachments,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalattachments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalattachments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalattachments/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings,verbs=get;list;watch
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings,verbs=get;list;watch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=externalpeerings/status,verbs=get;update;patch
 
-//+kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 
-//+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
@@ -1244,7 +1244,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 		return nil, fmt.Errorf("creating kubeconfig secret: %w", err)
 	}
 
-	return nil, nil //nolint: nilnil
+	return nil, nil //nolint:nilnil
 }
 
 var genKubeconfigTmpl *template.Template

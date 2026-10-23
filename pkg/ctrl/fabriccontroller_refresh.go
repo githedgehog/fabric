@@ -63,9 +63,9 @@ var refreshKinds = []refreshKind{
 	{"GatewayPeering", func() kclient.ObjectList { return &gwapi.GatewayPeeringList{} }},
 }
 
-//+kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics;switchprofiles;vlannamespaces;switchgroups;switches;servers;connections,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces;vpcs;vpcattachments;vpcpeerings;externals;externalattachments;externalpeerings,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups;gateways;vpcinfos;gatewaypeerings,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics;switchprofiles;vlannamespaces;switchgroups;switches;servers;connections,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=ipv4namespaces;vpcs;vpcattachments;vpcpeerings;externals;externalattachments;externalpeerings,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups;gateways;vpcinfos;gatewaypeerings,verbs=get;list;watch;update
 
 type refreshKind struct {
 	kind    string
