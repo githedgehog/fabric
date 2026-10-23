@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"maps"
 	"net/netip"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -127,7 +127,7 @@ func (ns *IPv4Namespace) Default() {
 
 	ns.Labels[wiringapi.ListLabelFabric(ns.Spec.Topology.Fabric)] = ListLabelValue
 
-	sort.Strings(ns.Spec.Subnets)
+	slices.Sort(ns.Spec.Subnets)
 }
 
 func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {

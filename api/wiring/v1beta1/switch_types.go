@@ -20,7 +20,6 @@ import (
 	"net"
 	"net/netip"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -390,9 +389,9 @@ func (sw *Switch) Default() {
 		}
 	}
 
-	sort.Strings(sw.Spec.Groups)
-	sort.Strings(sw.Spec.VLANNamespaces)
-	sort.Strings(sw.Spec.Topology.Domains)
+	slices.Sort(sw.Spec.Groups)
+	slices.Sort(sw.Spec.VLANNamespaces)
+	slices.Sort(sw.Spec.Topology.Domains)
 
 	sw.Labels[LabelProfile] = sw.Spec.Profile
 }

@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -156,9 +156,9 @@ func (peering *ExternalPeering) Default() {
 	peering.Labels[LabelExternal] = peering.Spec.Permit.External.Name
 	peering.Labels[wiringapi.ListLabelFabric(peering.Spec.Topology.Fabric)] = ListLabelValue
 
-	sort.Strings(peering.Spec.Permit.VPC.Subnets)
-	sort.Slice(peering.Spec.Permit.External.Prefixes, func(i, j int) bool {
-		return peering.Spec.Permit.External.Prefixes[i].Prefix < peering.Spec.Permit.External.Prefixes[j].Prefix
+	slices.Sort(peering.Spec.Permit.VPC.Subnets)
+	slices.SortFunc(peering.Spec.Permit.External.Prefixes, func(a, b ExternalPeeringSpecPrefix) int {
+		return strings.Compare(a.Prefix, b.Prefix)
 	})
 }
 

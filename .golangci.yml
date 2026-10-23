@@ -172,6 +172,8 @@ linters:
               desc: use stdlib slog package
             - pkg: "k8s.io/utils/strings/slices$"
               desc: use stdlib slices or samber/lo package
+            - pkg: "sort$"
+              desc: use stdlib slices package
             - pkg: gopkg.in/yaml
               desc: use sigs.k8s.io/yaml
     predeclared:

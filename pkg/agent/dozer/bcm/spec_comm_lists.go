@@ -18,7 +18,6 @@ import (
 	"context"
 	"log/slog"
 	"slices"
-	"sort"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -39,7 +38,7 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 	DeleteWeight: ActionWeightCommunityListDelete,
 	Marshal: func(name string, value *dozer.SpecCommunityList) (ygot.ValidatedGoStruct, error) {
 		memberStrs := slices.Clone(value.Members)
-		sort.Strings(memberStrs)
+		slices.Sort(memberStrs)
 		memberStrs = slices.Compact(memberStrs)
 
 		members := []oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config_CommunityMember_Union{} //nolint:prealloc

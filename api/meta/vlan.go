@@ -15,7 +15,8 @@
 package meta
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -26,12 +27,8 @@ type VLANRange struct {
 }
 
 func SortVLANRanges(ranges []VLANRange) {
-	sort.Slice(ranges, func(i, j int) bool {
-		if ranges[i].From == ranges[j].From {
-			return ranges[i].To < ranges[j].To
-		}
-
-		return ranges[i].From < ranges[j].From
+	slices.SortFunc(ranges, func(a, b VLANRange) int {
+		return cmp.Or(cmp.Compare(a.From, b.From), cmp.Compare(a.To, b.To))
 	})
 }
 

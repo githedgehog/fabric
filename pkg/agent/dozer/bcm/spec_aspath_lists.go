@@ -18,7 +18,6 @@ import (
 	"context"
 	"log/slog"
 	"slices"
-	"sort"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pkg/errors"
@@ -39,7 +38,7 @@ var specAsPathListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecAsPathList
 	DeleteWeight: ActionWeightAsPathListDelete,
 	Marshal: func(name string, value *dozer.SpecAsPathList) (ygot.ValidatedGoStruct, error) {
 		memberStrs := slices.Clone(value.Members)
-		sort.Strings(memberStrs)
+		slices.Sort(memberStrs)
 		memberStrs = slices.Compact(memberStrs)
 
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_AsPathSets{
