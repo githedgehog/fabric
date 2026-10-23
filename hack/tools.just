@@ -120,7 +120,13 @@ _goinstall PACKAGE VERSION BINNAME TARGET FLAGS="": _localbin
 #
 
 _license_headers: _addlicense
-    @{{ addlicense }} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -ignore "vendor/**" -y 2026 .
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # only files known to git (tracked or untracked but not ignored) to skip gitignored dirs and nested worktrees,
+    # -f skips the nested worktrees listed as dirs and the deleted files
+    git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do if [ -f "$f" ]; then printf '%s\0' "$f"; fi; done | \
+        xargs -0 {{ addlicense }} -l apache -s=only -c Hedgehog -ignore ".github/**" -ignore "config/**" -ignore "**/*.yaml" -ignore "**/*.yml" -ignore "vendor/**" -y 2026
 
 # Run linter for GitHub Actions
 lint-gha: _actionlint
