@@ -36,6 +36,9 @@ config/helm/*.tgz
 *~
 codebook.toml
 
+# Claude Code worktrees
+.claude/worktrees/
+
 # last agent config when running agent remotly from repo
 last-actual.yaml
 last-agent.yaml
