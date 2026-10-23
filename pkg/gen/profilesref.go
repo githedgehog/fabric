@@ -102,19 +102,19 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 
 		slog.Debug("Adding Profile to supported", "name", nameSummary, "silicon", sp.Spec.SwitchSilicon, "roles", roles, "ports", portSummary)
 
-		resSupported.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
+		fmt.Fprintf(&resSupported, "| %s | %s | %s | %s |\n",
 			nameSummary,
 			roles,
 			sp.Spec.SwitchSilicon,
 			portSummary,
-		))
+		)
 
-		resCatalogSwitches.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
+		fmt.Fprintf(&resCatalogSwitches, "| %s | %s | %s | %s |\n",
 			fmt.Sprintf("[%s](#%s)", nameSummary, strings.ToLower(strings.ReplaceAll(sp.Spec.DisplayName, " ", "-"))),
 			roles,
 			sp.Spec.SwitchSilicon,
 			portSummary,
-		))
+		)
 	}
 	resSupported.WriteString(roleNote)
 	resCatalogSwitches.WriteString(roleNote)
@@ -172,8 +172,8 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 
 		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) > 0 {
 			resCatalog.WriteString("**Hardware Resources:**\n\n")
-			resCatalog.WriteString(fmt.Sprintf("- Maximum ports supported: **%d**\n", sp.Spec.MaxPorts))
-			resCatalog.WriteString(fmt.Sprintf("- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines)))
+			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**\n", sp.Spec.MaxPorts)
+			fmt.Fprintf(&resCatalog, "- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines))
 
 			resCatalog.WriteString("**Pipelines:**\n\n")
 			resCatalog.WriteString("| Pipeline | Max Ports | Front Panel Ports |\n")
@@ -200,8 +200,8 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 				if portsStr == "" {
 					portsStr = "-"
 				}
-				resCatalog.WriteString(fmt.Sprintf("| %s | %d | %s |\n",
-					pipelineKey, pipeline.MaxPorts, portsStr))
+				fmt.Fprintf(&resCatalog, "| %s | %d | %s |\n",
+					pipelineKey, pipeline.MaxPorts, portsStr)
 			}
 			resCatalog.WriteString("\n")
 		}
@@ -216,8 +216,8 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		}
 
 		for _, port := range portsSummary {
-			resCatalog.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n",
-				port.Name, port.Label, port.Type, port.Group, port.Default, port.Supported))
+			fmt.Fprintf(&resCatalog, "| %s | %s | %s | %s | %s | %s |\n",
+				port.Name, port.Label, port.Type, port.Group, port.Default, port.Supported)
 		}
 
 		resCatalog.WriteString("\n\n")
@@ -308,7 +308,7 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 		nameSummary := sp.Spec.GetNameSummary()
 		anchor := strings.ToLower(strings.ReplaceAll(sp.Spec.DisplayName, " ", "-"))
 
-		result.WriteString(fmt.Sprintf("| [%s](#%s)", nameSummary, anchor))
+		fmt.Fprintf(&result, "| [%s](#%s)", nameSummary, anchor)
 
 		featuresValue := reflect.ValueOf(sp.Spec.Features)
 		for _, fieldName := range fieldNames {

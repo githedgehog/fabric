@@ -660,10 +660,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			iArgs.WriteString("set -ex && ")
 			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
 				iface := gw.Spec.Interfaces[ifaceName]
-				iArgs.WriteString(fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName))
-				iArgs.WriteString(fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName))
-				iArgs.WriteString(fmt.Sprintf("([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName))
-				iArgs.WriteString(fmt.Sprintf("ip l set dev %s up && ", ifaceName))
+				fmt.Fprintf(&iArgs, "(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
+				fmt.Fprintf(&iArgs, "ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
+				fmt.Fprintf(&iArgs, "([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
+				fmt.Fprintf(&iArgs, "ip l set dev %s up && ", ifaceName)
 			}
 			iArgs.WriteString("date && echo done")
 

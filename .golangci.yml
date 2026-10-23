@@ -1,9 +1,10 @@
 version: "2"
 
 # Migrated from golangci-lint v1.64.8 keeping the v1 coverage. Everything the upgraded or new checks report on the
-# current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0 on Linux):
+# current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0
+# on Linux):
 #
-#   1. staticcheck QF* quickfix checks (new in v2): 95 issues, auto-fixable with `just lint-fix`
+#   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
 #   3. nolintlint require-explanation: 501 directives without explanation
 #   4. modernize newexpr (520, mostly pointer.To) and embedlit (389, the promoted fields in composite literals
@@ -244,7 +245,7 @@ linters:
       # ST1020, ST1021 and ST1022 (the ones about comments are still excluded by the comments preset)
       checks:
         - all
-        # TODO enable quickfix checks (new in v2): 95 issues, QF1012 x43, QF1008 x40, QF1003 x6, QF1001 x6
+        # TODO enable quickfix checks (new in v2): 84 issues, QF1008 x40, QF1012 x32, QF1003 x6, QF1001 x6
         - -QF*
 
   exclusions:

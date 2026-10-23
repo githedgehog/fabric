@@ -243,8 +243,7 @@ func GetPowerInfo(sw *wiringapi.Switch) map[string]string {
 	powerInfo := make(map[string]string)
 	if annotations := sw.GetAnnotations(); annotations != nil {
 		for key, value := range annotations {
-			if after, ok := strings.CutPrefix(key, HHFabCfgPower+"/"); ok {
-				psuName := after
+			if psuName, ok := strings.CutPrefix(key, HHFabCfgPower+"/"); ok {
 				powerInfo[psuName] = value
 			}
 		}
