@@ -131,11 +131,15 @@ type FabricConfig struct {
 	GatewayNamespace      string              `json:"gatewayNamespace,omitempty"` // Namespace where pods for gateways are deployed
 	GatewayTolerations    []corev1.Toleration `json:"gatewayTolerations,omitempty"`
 	DataplaneRef          string              `json:"dataplaneRef,omitempty"`
-	FRRRef                string              `json:"frrRef,omitempty"`
-	ToolboxRef            string              `json:"toolboxRef,omitempty"`
+	FRRRef                string              `json:"frrRef,omitempty"`     // TODO: remove after 26.05 release
+	ToolboxRef            string              `json:"toolboxRef,omitempty"` // TODO: remove after 26.05 release
 	DataplaneMetricsPort  uint16              `json:"dataplaneMetricsPort,omitempty"`
 	FRRMetricsPort        uint16              `json:"frrMetricsPort,omitempty"`
 	DataplaneValidatorRef string              `json:"dataplaneValidatorRef,omitempty"`
+	// Hugepages requested by the gateway dataplane, the gateway nodes have to reserve them before k3s starts. The dataplane
+	// currently only uses 1G pages, 2M pages are just ignored by it. None are requested if neither is set.
+	GatewayHugePages1G int64 `json:"gatewayHugePages1G,omitempty"`
+	GatewayHugePages2M int64 `json:"gatewayHugePages2M,omitempty"`
 
 	ExtraValidators ExtraValidators `json:"-"`
 
@@ -396,6 +400,10 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 	}
 	if ipEnd := net.ParseIP(cfg.ManagementDHCPEnd); ipEnd == nil || !mgmtSubnet.Contains(ipEnd) {
 		return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
+	}
+
+	if cfg.GatewayHugePages1G < 0 || cfg.GatewayHugePages2M < 0 {
+		return nil, errors.Errorf("config: gatewayHugePages1G and gatewayHugePages2M must not be negative")
 	}
 
 	for idx, commStr := range cfg.GatewayCommunities {
