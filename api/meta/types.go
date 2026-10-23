@@ -34,10 +34,12 @@ import (
 	kyaml "sigs.k8s.io/yaml"
 )
 
+//nolint:iface // used outside of the package
 type Defaultable interface {
 	Default()
 }
 
+//nolint:iface // used outside of the package
 type Validatable interface {
 	Validate(ctx context.Context, kube kclient.Reader, fabricCfg *FabricConfig) (admission.Warnings, error)
 }
@@ -49,6 +51,7 @@ type Object interface {
 	Validatable
 }
 
+//nolint:iface // used outside of the package
 type ObjectList interface {
 	kclient.ObjectList
 

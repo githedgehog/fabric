@@ -27,6 +27,7 @@ import (
 	kyaml "sigs.k8s.io/yaml"
 )
 
+//nolint:iface // used outside of the package
 type Processor interface {
 	EnsureControlLink(ctx context.Context, agent *agentapi.Agent) error
 	WaitReady(ctx context.Context) error
@@ -42,6 +43,7 @@ type Processor interface {
 	SetRoCE(ctx context.Context, enable bool) error
 }
 
+//nolint:iface // used outside of the package
 type Action interface {
 	Summary() string
 }
@@ -554,6 +556,7 @@ func SpecTextDiff(actual, desired []byte) ([]byte, error) {
 	return []byte(diffText), nil
 }
 
+//nolint:iface // used outside of the package
 type SpecPart interface {
 	IsNil() bool
 }
