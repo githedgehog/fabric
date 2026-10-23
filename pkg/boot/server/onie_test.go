@@ -38,9 +38,9 @@ func TestHandleONIEInstallError(t *testing.T) {
 	svc := &service{kube: kube, boots: kube, bootAttempts: make(chan func(), bootAttemptQueue)}
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, ni.OnieURLSuffix, nil)
-	req.Header.Set("ONIE-ARCH", "x86_64")
-	req.Header.Set("ONIE-OPERATION", "os-install")
-	req.Header.Set("ONIE-SERIAL-NUMBER", "SN-0001")
+	req.Header.Set("Onie-Arch", "x86_64")
+	req.Header.Set("Onie-Operation", "os-install")
+	req.Header.Set("Onie-Serial-Number", "SN-0001")
 	rec := httptest.NewRecorder()
 
 	middleware.ClientIPFromRemoteAddr(http.HandlerFunc(svc.handleONIE)).ServeHTTP(rec, req)

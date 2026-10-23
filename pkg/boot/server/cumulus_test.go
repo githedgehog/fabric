@@ -53,7 +53,7 @@ func TestHandleAgent(t *testing.T) {
 		{name: "cached", version: "v1.2.3", code: http.StatusOK},
 		{name: "not cached", version: "v1.2.4", code: http.StatusInternalServerError},
 		{name: "missing", code: http.StatusBadRequest},
-		{name: "dot dot", version: "..", code: http.StatusBadRequest},
+		{name: "double dot", version: "..", code: http.StatusBadRequest},
 		{name: "traversal", version: "../../etc/passwd", code: http.StatusBadRequest},
 		{name: "slash", version: "v1/agent", code: http.StatusBadRequest},
 		{name: "backslash", version: `v1\agent`, code: http.StatusBadRequest},
@@ -110,9 +110,9 @@ func TestHandleCumulusZTP(t *testing.T) {
 
 	ztp := func(serial, mac string) *httptest.ResponseRecorder {
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, CumulusZTPURLSuffix, nil)
-		req.Header.Set("CUMULUS-ARCH", "x86_64")
-		req.Header.Set("CUMULUS-SERIAL", serial)
-		req.Header.Set("CUMULUS-MGMT-MAC", mac)
+		req.Header.Set("Cumulus-Arch", "x86_64")
+		req.Header.Set("Cumulus-Serial", serial)
+		req.Header.Set("Cumulus-Mgmt-Mac", mac)
 		rec := httptest.NewRecorder()
 
 		middleware.ClientIPFromRemoteAddr(http.HandlerFunc(svc.handleCumulusZTP)).ServeHTTP(rec, req)
