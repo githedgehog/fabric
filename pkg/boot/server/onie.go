@@ -76,20 +76,20 @@ func (svc *service) handleONIE(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	l := slog.With("rid", middleware.GetReqID(ctx))
 
-	if r.Header.Get("ONIE-ARCH") != "x86_64" {
+	if r.Header.Get("Onie-Arch") != "x86_64" {
 		w.WriteHeader(http.StatusNotFound)
 
 		return
 	}
 
-	platform := r.Header.Get("ONIE-ARCH") + "-" + r.Header.Get("ONIE-MACHINE") + "-r" + r.Header.Get("ONIE-MACHINE-REV")
+	platform := r.Header.Get("Onie-Arch") + "-" + r.Header.Get("Onie-Machine") + "-r" + r.Header.Get("Onie-Machine-Rev")
 
 	l = l.With("platform", platform)
 
-	op := r.Header.Get("ONIE-OPERATION")
+	op := r.Header.Get("Onie-Operation")
 	switch op {
 	case "os-install":
-		serial, mac := normalizeBootIDs(l, r.Header.Get("ONIE-SERIAL-NUMBER"), r.Header.Get("ONIE-ETH-ADDR"))
+		serial, mac := normalizeBootIDs(l, r.Header.Get("Onie-Serial-Number"), r.Header.Get("Onie-Eth-Addr"))
 		if serial == "" && mac == "" {
 			l.Info("Both serial and mac are empty or invalid")
 			w.WriteHeader(http.StatusBadRequest)

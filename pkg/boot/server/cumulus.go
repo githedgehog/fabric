@@ -66,13 +66,13 @@ func (svc *service) handleCumulusZTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	l := slog.With("rid", middleware.GetReqID(ctx))
 
-	if r.Header.Get("CUMULUS-ARCH") != "x86_64" {
+	if r.Header.Get("Cumulus-Arch") != "x86_64" {
 		w.WriteHeader(http.StatusNotFound)
 
 		return
 	}
 
-	serial, mac := normalizeBootIDs(l, r.Header.Get("CUMULUS-SERIAL"), r.Header.Get("CUMULUS-MGMT-MAC"))
+	serial, mac := normalizeBootIDs(l, r.Header.Get("Cumulus-Serial"), r.Header.Get("Cumulus-Mgmt-Mac"))
 	if serial == "" && mac == "" {
 		l.Info("Both serial and mac are empty or invalid")
 		w.WriteHeader(http.StatusBadRequest)

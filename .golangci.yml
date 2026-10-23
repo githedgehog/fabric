@@ -6,13 +6,14 @@ version: "2"
 #   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
 #   3. nolintlint require-explanation: 545 directives without explanation
-#   4. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
-#      forcetypeassert (28), recvcheck (1), mirror (1), dupword (1), gomoddirectives (1), godoclint (84),
+#   4. Linters with issues on the current code: modernize (562), intrange (5), forcetypeassert (28), godoclint (84),
 #      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
 #   5. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
+# wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
+# initializations like `x := ""` that are a matter of style.
 
 run:
   # kept from the v1 config, v2 has no timeout by default
@@ -37,10 +38,12 @@ linters:
     - asciicheck
     - bidichk
     - bodyclose
+    - canonicalheader
     - containedctx
     - contextcheck
     - depguard
     - dogsled
+    - dupword
     - durationcheck
     - errchkjson
     - errname
@@ -55,6 +58,7 @@ linters:
     - goconst
     - gocritic
     - err113
+    - gomoddirectives
     - goprintffuncname
     - gosec
     - iface
@@ -62,6 +66,7 @@ linters:
     - iotamixing
     - loggercheck
     - makezero
+    - mirror
     - misspell
     - musttag
     - nakedret
@@ -72,10 +77,12 @@ linters:
     - noctx
     - nolintlint
     - nonamedreturns
+    - nosprintfhostport
     - prealloc
     - predeclared
     - promlinter
     - reassign
+    - recvcheck
     - revive
     - sloglint
     # Not planned: conflicts with the K8s API conventions (e.g. vtepIP instead of vtepIp) and external APIs field
@@ -107,6 +114,10 @@ linters:
       config:
         # Allow 0755 instead of 0750 for dirs as the system ones have to be world-readable
         G301: "0755"
+    gomoddirectives:
+      replace-allow-list:
+        # our fork for performance improvements
+        - github.com/openconfig/ygot
     iface:
       # all analyzers, only identical is enabled by default
       enable:
@@ -165,6 +176,11 @@ linters:
     reassign:
       patterns:
         - ".*"
+    recvcheck:
+      exclusions:
+        # generated for the K8s API types next to their value receiver methods
+        - "*.DeepCopy"
+        - "*.DeepCopyInto"
     revive:
       # By default, revive will enable only the linting rules that are named in the configuration file.
       # So, it's needed to explicitly enable all required rules here.
@@ -196,6 +212,9 @@ linters:
         #
         - name: bool-literal-in-expr
         - name: constant-logical-expr
+    sloglint:
+      # key-value pairs only, no slog.Attr, as it's what's used everywhere
+      kv-only: true
     staticcheck:
       # v1 ran all checks of staticcheck, gosimple and stylecheck while v2 defaults skip ST1000, ST1003, ST1016,
       # ST1020, ST1021 and ST1022 (the ones about comments are still excluded by the comments preset)

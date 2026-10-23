@@ -62,7 +62,7 @@ func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
 		if err != nil {
 			return "", errors.Wrap(err, "failed to marshal Connection")
 		}
-		str.WriteString(string(data))
+		str.Write(data)
 	}
 
 	if out.InterfaceState != nil && out.InterfaceState.Counters != nil {
