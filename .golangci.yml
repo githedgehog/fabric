@@ -3,15 +3,13 @@ version: "2"
 # Migrated from golangci-lint v1.64.8 keeping the v1 coverage. Everything the upgraded or new checks report on the
 # current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0):
 #
-#   1. Linters with no issues on the current code: nilnesserr, exptostd, fatcontext, iface, sloglint, gochecksumtype,
-#      iotamixing
-#   2. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
-#   3. Default exclusions inherited from v1, see linters.exclusions.presets
-#   4. nolintlint require-explanation: 545 directives without explanation
-#   5. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
+#   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
+#   2. Default exclusions inherited from v1, see linters.exclusions.presets
+#   3. nolintlint require-explanation: 545 directives without explanation
+#   4. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
 #      forcetypeassert (28), recvcheck (1), mirror (1), dupword (1), gomoddirectives (1), godoclint (84),
 #      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   6. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#   5. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
@@ -48,21 +46,27 @@ linters:
     - errname
     - errorlint
     - exhaustive
+    - exptostd
     - copyloopvar
+    - fatcontext
     - ginkgolinter
     - gocheckcompilerdirectives
+    - gochecksumtype
     - goconst
     - gocritic
     - err113
     - goprintffuncname
     - gosec
+    - iface
     - importas
+    - iotamixing
     - loggercheck
     - makezero
     - misspell
     - musttag
     - nakedret
     - nilerr
+    - nilnesserr
     - nilnil
     - nlreturn
     - noctx
@@ -73,6 +77,7 @@ linters:
     - promlinter
     - reassign
     - revive
+    - sloglint
     # Not planned: conflicts with the K8s API conventions (e.g. vtepIP instead of vtepIp) and external APIs field
     # names, 130 issues
     # - tagliatelle
@@ -102,6 +107,14 @@ linters:
       config:
         # Allow 0755 instead of 0750 for dirs as the system ones have to be world-readable
         G301: "0755"
+    iface:
+      # all analyzers, only identical is enabled by default
+      enable:
+        - identical
+        - unused
+        - opaque
+        - unexported
+        - unusedmethod
     govet:
       enable-all: true
       disable:
@@ -137,10 +150,7 @@ linters:
             # TODO deny github.com/pkg/errors in favor of the stdlib errors package: used in 95 files
             # - pkg: "github.com/pkg/errors$"
             #   desc: use stdlib errors package
-            - pkg: "golang.org/x/exp/maps$"
-              desc: use stdlib maps or samber/lo package
-            - pkg: "golang.org/x/exp/slices$"
-              desc: use stdlib slices or samber/lo package
+            # golang.org/x/exp maps and slices are reported by exptostd, but not slog
             - pkg: "golang.org/x/exp/slog$"
               desc: use stdlib slog package
             - pkg: "k8s.io/utils/strings/slices$"
