@@ -126,7 +126,7 @@ func UpgradeBin(ctx context.Context, source, version, ca, username, password, ta
 
 	binPath := filepath.Join(tmpPath, name)
 
-	err = os.Chmod(binPath, 0o755)
+	err = os.Chmod(binPath, 0o755) //nolint:gosec // executable binary
 	if err != nil {
 		return fmt.Errorf("failed to chmod new %s bin in %s: %w", name, tmpPath, err)
 	}
