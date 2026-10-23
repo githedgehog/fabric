@@ -52,7 +52,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 const (
@@ -180,7 +180,7 @@ func run(ctx context.Context) error {
 	if err := fcintapi.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("adding fcintapi scheme: %w", err)
 	}
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	mgr, err := kctrl.NewManager(kctrl.GetConfigOrDie(), kctrl.Options{
 		Scheme: scheme,
@@ -329,7 +329,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("setting up vpc info webhook: %w", err)
 	}
 
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		return fmt.Errorf("setting up health check: %w", err)

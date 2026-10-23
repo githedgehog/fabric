@@ -114,7 +114,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 
 	for _, prefix := range options.ExternalPrefixes {
 		// Temporarty remove le/ge
-		/*le, ge := 0, 0
+		/* le, ge := 0, 0
 
 		prefixParts := strings.Split(rawPrefix, "_")
 		if len(prefixParts) > 3 {

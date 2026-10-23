@@ -193,7 +193,7 @@ type SwitchProfile struct {
 
 const KindSwitchProfile = "SwitchProfile"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // SwitchProfileList contains a list of SwitchProfile
 type SwitchProfileList struct {

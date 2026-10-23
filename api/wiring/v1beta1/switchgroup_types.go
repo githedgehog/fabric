@@ -60,7 +60,7 @@ type SwitchGroup struct {
 
 const KindSwitchGroup = "SwitchGroup"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // SwitchGroupList contains a list of SwitchGroup
 type SwitchGroupList struct {

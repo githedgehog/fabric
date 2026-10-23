@@ -57,7 +57,7 @@ func SetupFabricControllerReconcilerWith(mgr kctrl.Manager, namespace string, lo
 	return nil
 }
 
-//+kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers,verbs=get;list;watch
+// +kubebuilder:rbac:groups=fcint.githedgehog.com,resources=fabriccontrollers,verbs=get;list;watch
 
 func (r *FabricControllerReconciler) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
 	fc := &fcintapi.FabricController{}

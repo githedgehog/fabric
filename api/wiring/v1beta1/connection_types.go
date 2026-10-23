@@ -101,7 +101,7 @@ type ConnBundled struct {
 
 // Deprecated: ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
 type ConnMCLAG struct {
-	//+kubebuilder:validation:MinItems=2
+	// +kubebuilder:validation:MinItems=2
 	// Links is the list of server-to-switch links
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, mclag, etc.) configuration
@@ -112,7 +112,7 @@ type ConnMCLAG struct {
 
 // ConnESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
 type ConnESLAG struct {
-	//+kubebuilder:validation:MinItems=2
+	// +kubebuilder:validation:MinItems=2
 	// Links is the list of server-to-switch links
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, eslag, etc.) configuration
@@ -132,11 +132,11 @@ type SwitchToSwitchLink struct {
 // Deprecated: ConnMCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch or
 // redundancy group and allows to use MCLAG connections to connect servers in a multi-homed way.
 type ConnMCLAGDomain struct {
-	//+kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MinItems=1
 	// PeerLinks is the list of peer links between the switches, used to pass server traffic between switch
 	PeerLinks []SwitchToSwitchLink `json:"peerLinks,omitempty"`
 
-	//+kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MinItems=1
 	// SessionLinks is the list of session links between the switches, used only to pass MCLAG control plane and BGP
 	// traffic between switches
 	SessionLinks []SwitchToSwitchLink `json:"sessionLinks,omitempty"`
@@ -146,7 +146,7 @@ type ConnMCLAGDomain struct {
 type ConnFabricLinkSwitch struct {
 	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	// +kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
 	// IP is the IP address of the switch side of the fabric link (switch port configuration)
 	IP string `json:"ip,omitempty"`
 }
@@ -167,7 +167,7 @@ type MeshLink struct {
 
 // ConnFabric defines the fabric connection (single spine to a single leaf with at least one link)
 type ConnFabric struct {
-	//+kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MinItems=1
 	// Links is the list of spine-to-leaf links
 	Links []FabricLink `json:"links,omitempty"`
 }
@@ -176,7 +176,7 @@ type ConnFabric struct {
 type ConnGatewayLinkGateway struct {
 	// BasePortName defines the full name of the gateway port
 	BasePortName `json:",inline"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	// +kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
 	// IP is the IP address of the switch side of the fabric link (switch port configuration)
 	IP string `json:"ip,omitempty"`
 }
@@ -191,14 +191,14 @@ type GatewayLink struct {
 
 // ConnGateway defines the gateway connection (single spine to a single gateway with at least one link)
 type ConnGateway struct {
-	//+kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MinItems=1
 	// Links is the list of spine to gateway links
 	Links []GatewayLink `json:"links,omitempty"`
 }
 
 // ConnMesh defines the mesh connection (direct leaf to leaf connection with at least one link)
 type ConnMesh struct {
-	//+kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MinItems=1
 	// Links is the list of leaf to leaf links
 	Links []MeshLink `json:"links,omitempty"`
 }
@@ -218,10 +218,10 @@ type ConnExternal struct {
 type ConnStaticExternalLinkSwitch struct {
 	// BasePortName defines the full name of the switch port
 	BasePortName `json:",inline"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
+	// +kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$`
 	// IP is the IP address of the switch side of the static external connection link (switch port configuration)
 	IP string `json:"ip,omitempty"`
-	//+kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
+	// +kubebuilder:validation:Pattern=`^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$`
 	// NextHop is the next hop IP address for static routes that will be created for the subnets
 	NextHop string `json:"nextHop,omitempty"`
 	// Subnets is the list of subnets that will get static routes using the specified next hop
@@ -304,7 +304,7 @@ type Connection struct {
 
 const KindConnection = "Connection"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ConnectionList contains a list of Connection
 type ConnectionList struct {

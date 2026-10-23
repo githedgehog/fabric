@@ -49,8 +49,8 @@ func SetupVPCWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) 
 		Complete(), "failed to setup vpc webhook")
 }
 
-//+kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1beta1,name=mvpc.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpc,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update;delete,versions=v1beta1,name=vvpc.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1beta1,name=mvpc.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-vpc-githedgehog-com-v1beta1-vpc,mutating=false,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update;delete,versions=v1beta1,name=vvpc.kb.io,admissionReviewVersions=v1
 
 // var log = ctrl.Log.WithName("vpc-webhook")
 

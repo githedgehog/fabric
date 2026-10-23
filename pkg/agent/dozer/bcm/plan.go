@@ -453,7 +453,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			spec.CommunityLists[commName] = &dozer.SpecCommunityList{Members: []string{commVal}}
 			l2vpnNeighRMap.Statements[fmt.Sprintf("%d", idx+1)] = &dozer.SpecRouteMapStatement{
 				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: pointer.To(commName)},
-				SetLocalPreference: pointer.To(GwPrioPreferenceBase + uint32(numPrios-idx)), //nolint: gosec
+				SetLocalPreference: pointer.To(GwPrioPreferenceBase + uint32(numPrios-idx)), //nolint:gosec
 				Result:             dozer.SpecRouteMapResultAccept,
 			}
 		}
@@ -1982,7 +1982,7 @@ func planServerConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		// TODO remove when we have a way to configure MTU for port channels reliably
 		// if mtu == nil {
 		mtu = pointer.To(agent.Spec.Config.FabricMTU - agent.Spec.Config.ServerFacingMTUOffset)
-		//}
+		// }
 
 		if err := conn.ValidateServerFacingMTU(agent.Spec.Config.FabricMTU, agent.Spec.Config.ServerFacingMTUOffset); err != nil {
 			return errors.Wrapf(err, "failed to validate server facing MTU for conn %s", connName)

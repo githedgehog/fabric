@@ -45,15 +45,15 @@ type VPCPeeringSpec struct {
 	Topology VPCPeeringTopology `json:"topology,omitempty"`
 	// Deprecated and no longer supported
 	Remote string `json:"remote,omitempty"`
-	//+kubebuilder:validation:MinItems=1
-	//+kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
 	// Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets.
 	Permit []map[string]VPCPeer `json:"permit,omitempty"`
 }
 
 type VPCPeer struct {
-	//+kubebuilder:validation:MinItems=1
-	//+kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
 	// Subnets is the list of subnets to advertise from current VPC to the peer VPC
 	Subnets []string `json:"subnets,omitempty"`
 }
@@ -88,7 +88,7 @@ type VPCPeering struct {
 
 const KindVPCPeering = "VPCPeering"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // VPCPeeringList contains a list of VPCPeering
 type VPCPeeringList struct {

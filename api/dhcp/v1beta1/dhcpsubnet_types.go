@@ -134,7 +134,7 @@ type DHCPSubnet struct {
 	Status DHCPSubnetStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // DHCPSubnetList contains a list of DHCPSubnet
 type DHCPSubnetList struct {

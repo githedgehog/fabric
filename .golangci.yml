@@ -10,6 +10,7 @@ version: "2"
 #      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
 #   5. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
+#   6. More revive rules (from kubebuilder): unused-parameter (32, mostly to be renamed to _), import-shadowing (1)
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
 # wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
@@ -22,6 +23,11 @@ run:
   build-tags:
     - containers_image_openpgp
     - containers_image_storage_stub
+
+issues:
+  # report all issues instead of the first 50 per linter and 3 with the same text
+  max-issues-per-linter: 0
+  max-same-issues: 0
 
 linters:
   default: none
@@ -212,6 +218,8 @@ linters:
         #
         - name: bool-literal-in-expr
         - name: constant-logical-expr
+        - name: empty-block
+        - name: comment-spacings
     sloglint:
       # key-value pairs only, no slog.Attr, as it's what's used everywhere
       kv-only: true

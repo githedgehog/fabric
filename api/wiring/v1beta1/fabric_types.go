@@ -64,7 +64,7 @@ type Fabric struct {
 
 const KindFabric = "Fabric"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // FabricList contains a list of Fabric
 type FabricList struct {

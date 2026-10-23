@@ -31,8 +31,8 @@ import (
 
 // VLANNamespaceSpec defines the desired state of VLANNamespace
 type VLANNamespaceSpec struct {
-	//+kubebuilder:validation:MinItems=1
-	//+kubebuilder:validation:MaxItems=20
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=20
 	// Ranges is a list of VLAN ranges to be used in this namespace, couldn't overlap between each other and with Fabric reserved VLAN ranges
 	Ranges []meta.VLANRange `json:"ranges,omitempty"`
 }
@@ -57,7 +57,7 @@ type VLANNamespace struct {
 
 const KindVLANNamespace = "VLANNamespace"
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // VLANNamespaceList contains a list of VLANNamespace
 type VLANNamespaceList struct {

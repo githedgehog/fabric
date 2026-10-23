@@ -53,7 +53,7 @@ func (l *Lock) set(ctx context.Context, locked bool, reason string, keysAndValue
 	kctrllog.FromContext(ctx).Info(msg, append([]any{"reason", reason}, keysAndValues...)...)
 }
 
-//+kubebuilder:rbac:groups=authentication.k8s.io,resources=selfsubjectreviews,verbs=create
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=selfsubjectreviews,verbs=create
 
 // SelfUsername returns the username the API server sees for the fabric controller, the same one it puts into
 // admission requests, so own writes can be recognized without assembling a service account username

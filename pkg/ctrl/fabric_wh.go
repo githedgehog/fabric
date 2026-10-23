@@ -44,8 +44,8 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Loc
 	return nil
 }
 
-//+kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-fabric,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update,versions=v1beta1,name=mfabric.kb.io,admissionReviewVersions=v1
-//+kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-fabric,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update;delete,versions=v1beta1,name=vfabric.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-fabric,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update,versions=v1beta1,name=mfabric.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-wiring-githedgehog-com-v1beta1-fabric,mutating=false,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=fabrics,verbs=create;update;delete,versions=v1beta1,name=vfabric.kb.io,admissionReviewVersions=v1
 
 // The fabric and domain immutability checks, and the check for what still uses a fabric, treat an unset fabric or
 // domain as the default one. Stored objects are refreshed with the current defaults on initialization, but one the
