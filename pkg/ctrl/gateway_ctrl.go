@@ -517,6 +517,14 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 		switch {
 		case gw.Spec.Driver == gwapi.GatewayDriverDPDK:
 			val += "=pci@" + iface.PCI
+			// The DPDK driver has nowhere else to get the MTU: the kernel driver's comes from
+			// the init container's `ip l set mtu`, which DPDK ports never see. Without it they
+			// run at 1500, and on a 9100 fabric every full-size VXLAN packet is dropped while
+			// pings and handshakes pass. A slash, because the dataplane splits --interface on
+			// commas.
+			if iface.MTU > 0 {
+				val += fmt.Sprintf("/mtu=%d", iface.MTU)
+			}
 		case iface.Kernel != "":
 			val += "=kernel@" + iface.Kernel
 		}
