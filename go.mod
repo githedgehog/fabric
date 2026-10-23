@@ -1,5 +1,6 @@
 module go.githedgehog.com/fabric
 
+// Always use a full Go version (e.g. 1.27.3, not 1.27) as just uses it as GOTOOLCHAIN.
 go 1.27.3
 
 replace github.com/openconfig/ygot => github.com/githedgehog/ygot v0.32.0-hh1
