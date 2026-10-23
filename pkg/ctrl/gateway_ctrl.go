@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -534,6 +535,27 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 	return append(args, "--driver", string(gw.Spec.Driver))
 }
 
+// The hugepages a DPDK dataplane asks for. Placeholder sizing, from a VLAB gateway with one worker
+// and two ports; the dataplane's init reports what it needs.
+var (
+	dataplaneHugepages = resource.MustParse("1280Mi")
+	dataplaneMemory    = resource.MustParse("2Gi")
+)
+
+// dataplaneResources gives a DPDK dataplane the hugepages its EAL allocates from. Without a
+// request, the pod's hugetlb cgroup permits none, and the dataplane's init refuses to start.
+func dataplaneResources(gw *gwapi.Gateway) corev1.ResourceRequirements {
+	if gw.Spec.Driver != gwapi.GatewayDriverDPDK {
+		return corev1.ResourceRequirements{}
+	}
+	res := corev1.ResourceList{ //nolint:exhaustive // only what a DPDK dataplane needs
+		corev1.ResourceHugePagesPrefix + "2Mi": dataplaneHugepages,
+		corev1.ResourceMemory:                  dataplaneMemory,
+	}
+
+	return corev1.ResourceRequirements{Limits: res, Requests: res}
+}
+
 func entityName(gwName string, t ...string) string {
 	if len(t) == 0 {
 		return fmt.Sprintf("gw-%s", gwName)
@@ -718,9 +740,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						InitContainers:                initContainers,
 						Containers: []corev1.Container{
 							{
-								Name:  "dataplane",
-								Image: r.cfg.DataplaneRef,
-								Args:  args,
+								Name:      "dataplane",
+								Image:     r.cfg.DataplaneRef,
+								Args:      args,
+								Resources: dataplaneResources(gw),
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
