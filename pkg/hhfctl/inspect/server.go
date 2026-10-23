@@ -81,8 +81,7 @@ func (out *ServerOut) MarshalText(_ ServerIn, now time.Time) (string, error) {
 
 			subnet := ""
 			vlan := ""
-			vpcName, _, _ := strings.Cut(attach.Subnet, "/")
-			subnetName := strings.SplitN(attach.Subnet, "/", 2)[1]
+			vpcName, subnetName, _ := strings.Cut(attach.Subnet, "/")
 			if vpc, ok := out.AttachedVPCs[vpcName]; ok {
 				if vpcSubnet, ok := vpc.Subnets[subnetName]; ok {
 					subnet = vpcSubnet.Subnet
