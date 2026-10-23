@@ -81,7 +81,7 @@ func (out *ServerOut) MarshalText(_ ServerIn, now time.Time) (string, error) {
 
 			subnet := ""
 			vlan := ""
-			vpcName := strings.SplitN(attach.Subnet, "/", 2)[0]
+			vpcName, _, _ := strings.Cut(attach.Subnet, "/")
 			subnetName := strings.SplitN(attach.Subnet, "/", 2)[1]
 			if vpc, ok := out.AttachedVPCs[vpcName]; ok {
 				if vpcSubnet, ok := vpc.Subnets[subnetName]; ok {
@@ -151,7 +151,7 @@ func Server(ctx context.Context, kube kclient.Reader, in ServerIn) (*ServerOut, 
 		for _, vpcAttach := range vpcAttaches.Items {
 			out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
 
-			vpcName := strings.SplitN(vpcAttach.Spec.Subnet, "/", 2)[0]
+			vpcName, _, _ := strings.Cut(vpcAttach.Spec.Subnet, "/")
 
 			vpc := &vpcapi.VPC{}
 			if err := kube.Get(ctx, kclient.ObjectKey{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, vpc); err != nil {

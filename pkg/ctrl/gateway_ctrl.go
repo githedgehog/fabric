@@ -656,22 +656,23 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		// tmp hack to make dp work
 		var initContainers []corev1.Container
 		if gw.Spec.Driver == gwapi.GatewayDriverKernel {
-			iArgs := "set -ex && "
+			var iArgs strings.Builder
+			iArgs.WriteString("set -ex && ")
 			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
 				iface := gw.Spec.Interfaces[ifaceName]
-				iArgs += fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
-				iArgs += fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
-				iArgs += fmt.Sprintf("([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
-				iArgs += fmt.Sprintf("ip l set dev %s up && ", ifaceName)
+				iArgs.WriteString(fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName))
+				iArgs.WriteString(fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName))
+				iArgs.WriteString(fmt.Sprintf("([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName))
+				iArgs.WriteString(fmt.Sprintf("ip l set dev %s up && ", ifaceName))
 			}
-			iArgs += "date && echo done"
+			iArgs.WriteString("date && echo done")
 
 			initContainers = []corev1.Container{
 				{
 					Name:    "init-ifaces",
 					Image:   r.cfg.ToolboxRef,
 					Command: []string{"/bin/bash", "-c", "--"},
-					Args:    []string{iArgs},
+					Args:    []string{iArgs.String()},
 					SecurityContext: &corev1.SecurityContext{
 						Privileged: ptr.To(true),
 						RunAsUser:  ptr.To(int64(0)),

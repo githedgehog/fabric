@@ -34,7 +34,7 @@ var PasswdAlphabet = PasswdLower + PasswdUpper + PasswdDigits + PasswdSymbols
 
 func RandomPassword() (string, error) {
 	var res bytes.Buffer
-	for idx := 0; idx < PasswdLength; idx++ {
+	for range PasswdLength {
 		r, err := rand.Int(rand.Reader, big.NewInt(int64(len(PasswdAlphabet))))
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to generate random password")

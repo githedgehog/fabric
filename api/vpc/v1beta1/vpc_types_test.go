@@ -100,7 +100,7 @@ func renameDefaultSubnet(name string) func(*v1beta1.VPC) {
 
 func hostBGPPrefixes(count int) []string {
 	prefixes := make([]string, 0, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		prefixes = append(prefixes, fmt.Sprintf("10.100.%d.0/24", i))
 	}
 
@@ -175,7 +175,7 @@ func TestVPCValidation(t *testing.T) {
 		{
 			name: "too many subnets",
 			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
-				for i := uint16(0); i < 21; i++ {
+				for i := range uint16(21) {
 					vpc.Spec.Subnets[fmt.Sprintf("sub%d", i)] = &v1beta1.VPCSubnet{
 						Subnet:  fmt.Sprintf("10.0.%d.0/24", i+2),
 						Gateway: fmt.Sprintf("10.0.%d.1", i+2),

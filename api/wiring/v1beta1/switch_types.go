@@ -474,7 +474,7 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 
 		for _, gw := range gateways.Items {
-			spec, ok := gw.Object["spec"].(map[string]interface{})
+			spec, ok := gw.Object["spec"].(map[string]any)
 			if !ok {
 				continue
 			}

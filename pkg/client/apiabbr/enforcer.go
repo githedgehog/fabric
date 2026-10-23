@@ -72,8 +72,8 @@ func NewEnforcer(ignoreNotDefined bool) (*Enforcer, error) {
 
 func (e *Enforcer) Load(lines ...string) error {
 	for _, line := range lines {
-		abbrs := strings.Fields(line)
-		for _, abbr := range abbrs {
+		abbrs := strings.FieldsSeq(line)
+		for abbr := range abbrs {
 			if strings.HasPrefix(abbr, "#") {
 				continue
 			}
@@ -130,8 +130,7 @@ func (e *Enforcer) Load(lines ...string) error {
 }
 
 func (e *Enforcer) Enforce(ctx context.Context, kube kclient.Client) error {
-	for i := len(e.handlers) - 1; i >= 0; i-- {
-		handler := e.handlers[i]
+	for _, handler := range slices.Backward(e.handlers) {
 		if err := handler.PreProcess(ctx, kube); err != nil {
 			return errors.Wrapf(err, "failed to process deletes")
 		}

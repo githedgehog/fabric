@@ -6,11 +6,13 @@ version: "2"
 #   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
 #   3. nolintlint require-explanation: 545 directives without explanation
-#   4. Linters with issues on the current code: modernize (562), intrange (5), forcetypeassert (28), godoclint (84),
-#      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   5. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#   4. modernize newexpr (525, mostly pointer.To) and embedlit (390, the promoted fields in composite literals
+#      allowed since Go 1.27), auto-fixable with `just lint-fix`
+#   5. Linters with issues on the current code: intrange (5), forcetypeassert (28), godoclint (84), perfsprint (190),
+#      forbidigo (9, needs settings as it forbids fmt.Print* by default)
+#   6. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
-#   6. More revive rules (from kubebuilder): unused-parameter (32, mostly to be renamed to _), import-shadowing (1)
+#   7. More revive rules (from kubebuilder): unused-parameter (32, mostly to be renamed to _), import-shadowing (1)
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
 # wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
@@ -74,6 +76,7 @@ linters:
     - makezero
     - mirror
     - misspell
+    - modernize
     - musttag
     - nakedret
     - nilerr
@@ -132,6 +135,15 @@ linters:
         - opaque
         - unexported
         - unusedmethod
+    modernize:
+      disable:
+        # TODO enable: 525 issues, mostly pointer.To(x) that can be new(x)
+        - newexpr
+        # TODO enable: 390 issues, the promoted fields in composite literals allowed since Go 1.27
+        - embedlit
+        # Not planned: against the K8s API conventions that use omitempty for the optional fields (disabled by
+        # controller-runtime and kubebuilder as well)
+        - omitzero
     govet:
       enable-all: true
       disable:
