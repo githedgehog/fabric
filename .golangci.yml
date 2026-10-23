@@ -6,13 +6,12 @@ version: "2"
 #   1. Linters with no issues on the current code: nilnesserr, exptostd, fatcontext, iface, sloglint, gochecksumtype,
 #      iotamixing
 #   2. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
-#   3. gosec G118 and taint analysis G703 rules: 3 issues
-#   4. Default exclusions inherited from v1, see linters.exclusions.presets
-#   5. nolintlint require-explanation: 546 directives without explanation
-#   6. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
+#   3. Default exclusions inherited from v1, see linters.exclusions.presets
+#   4. nolintlint require-explanation: 545 directives without explanation
+#   5. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
 #      forcetypeassert (28), recvcheck (1), mirror (1), dupword (1), gomoddirectives (1), godoclint (84),
 #      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   7. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#   6. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
@@ -96,11 +95,6 @@ linters:
         # TODO evaluate detection in composite literals added in goconst v1.11.0 (v1 had v1.7.1): 1522 issues, mostly
         # the port names and speeds in the switch profiles, so it may be too noisy
         - CompositeLit
-    gosec:
-      excludes:
-        # TODO enable the rules added after gosec v2.22.2 used by v1 (v2 has v2.29.0): 3 issues
-        - G118 # goroutine uses context.Background/TODO while request-scoped context is available
-        - G703 # path traversal via taint analysis
     govet:
       enable-all: true
       disable:

@@ -71,7 +71,7 @@ func (svc *service) getCachedOrDownload(ctx context.Context, repo, version strin
 	cacheName := getCacheName(repo, version)
 	cachePath := filepath.Join(svc.cacheDir, cacheName)
 
-	if _, err := os.Stat(cachePath); err != nil {
+	if _, err := os.Stat(cachePath); err != nil { //nolint:gosec // the cache name has no path separators
 		if download && errors.Is(err, os.ErrNotExist) {
 			if err := svc.downloadFiles(ctx, svc.cacheDir, cacheName, repo, version); err != nil {
 				return "", fmt.Errorf("downloading files: %w", err)
@@ -132,7 +132,7 @@ func (svc *service) downloadFiles(ctx context.Context, cacheDir, cacheName, ref,
 	}
 
 	cachePath := filepath.Join(cacheDir, cacheName)
-	if err := os.Rename(tmp, cachePath); err != nil {
+	if err := os.Rename(tmp, cachePath); err != nil { //nolint:gosec // the cache name has no path separators
 		return fmt.Errorf("moving %s to %s: %w", tmp, cachePath, err)
 	}
 
