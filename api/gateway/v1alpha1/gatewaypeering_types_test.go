@@ -1032,6 +1032,64 @@ func TestValidateACLNoKube(t *testing.T) {
 			},
 		},
 		{
+			name: "valid tcp filters with numeric tcp protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "6",
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true)},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "tcp filters with udp protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolUDP,
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true)},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "tcp filters without protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true)},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
 			name: "valid numeric match protocol",
 			acl: &PeeringACL{
 				Rules: []PeeringACLRule{

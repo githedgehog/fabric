@@ -532,6 +532,10 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					return fmt.Errorf("invalid protocol %q in ACL rule %d%s: %w", rule.Match.Protocol, i, ruleBlob, err)
 				}
 			}
+			// "6" is the protocol number for TCP
+			if rule.Match.TCPFilters != nil && rule.Match.Protocol != ACLMatchProtocolTCP && rule.Match.Protocol != "6" {
+				return fmt.Errorf("TCP filters require protocol %q in ACL rule %d%s", ACLMatchProtocolTCP, i, ruleBlob) //nolint:err113
+			}
 		}
 	}
 	if kube != nil {
