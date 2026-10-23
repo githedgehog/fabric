@@ -244,7 +244,11 @@ linters:
 formatters:
   enable:
     - gofmt
+    # stricter gofmt, set "formatting.gofumpt": true in gopls to get it in the editor
+    - gofumpt
     - goimports
+    # Not planned: gci, goimports already separates the std imports, enforcing a group for our own imports would
+    # either fight the kubebuilder scaffolded files (and drop its +kubebuilder:scaffold:imports marker) or the rest
   exclusions:
     # v1 default, v2 defaults to strict
     generated: lax

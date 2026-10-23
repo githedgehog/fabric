@@ -34,8 +34,10 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type ACLProtocol string
-type ACLAction string
+type (
+	ACLProtocol string
+	ACLAction   string
+)
 
 const (
 	ACLProtocolIP    ACLProtocol = "ip"

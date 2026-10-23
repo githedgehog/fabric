@@ -201,8 +201,10 @@ func respondCases() []respondCase {
 		{
 			name: "pxe over http",
 			spec: func(spec *dhcpapi.DHCPSubnetSpec) { spec.PXEURL = "http://10.0.0.5:8080/boot.efi" },
-			req: []dhcpv4.Modifier{relayed, wants(dhcpv4.OptionTFTPServerName, dhcpv4.OptionBootfileName),
-				dhcpv4.WithOption(dhcpv4.OptClassIdentifier("HTTPClient"))},
+			req: []dhcpv4.Modifier{
+				relayed, wants(dhcpv4.OptionTFTPServerName, dhcpv4.OptionBootfileName),
+				dhcpv4.WithOption(dhcpv4.OptClassIdentifier("HTTPClient")),
+			},
 			want: func(t *testing.T, resp *dhcpv4.DHCPv4) {
 				t.Helper()
 				assert.Equal(t, "10.0.0.5", resp.TFTPServerName())
