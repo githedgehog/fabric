@@ -34,7 +34,7 @@ import (
 
 func setupLogger(verbose, brief bool) error {
 	if verbose && brief {
-		return cli.Exit("verbose and brief are mutually exclusive", 1)
+		return cli.Exit("verbose and brief are mutually exclusive", 1) //nolint:wrapcheck // cli exit error with the exit code, returned as is
 	}
 
 	logLevel := slog.LevelInfo

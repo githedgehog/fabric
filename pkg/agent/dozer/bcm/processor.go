@@ -249,7 +249,7 @@ func (p *BroadcomProcessor) ApplyActions(ctx context.Context, actions []dozer.Ac
 
 			var ocData map[string]any
 			var err error
-			if act.Value != nil && !(reflect.ValueOf(act.Value).Kind() == reflect.Ptr && reflect.ValueOf(act.Value).IsNil()) {
+			if act.Value != nil && !(reflect.ValueOf(act.Value).Kind() == reflect.Pointer && reflect.ValueOf(act.Value).IsNil()) {
 				ocData, err = gnmi.Marshal(act.Value)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to OC marshal gnmi action value")

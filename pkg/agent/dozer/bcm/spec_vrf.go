@@ -287,7 +287,7 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	DeleteWeight: ActionWeightVRFBGPBaseDelete,
 	NoReplace:    true, // it should be okay as we aren't expecting to remove any of the configs
 	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
-		afiSafi := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{}
+		afiSafi := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{} //nolint:exhaustive
 		if value.IPv4Unicast.Enabled {
 			ipv4Unicast := &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi{
 				AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
@@ -351,7 +351,7 @@ var specVRFBGPL2VPNEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	UpdateWeight: ActionWeightVRFBGPL2VPNUpdate,
 	DeleteWeight: ActionWeightVRFBGPL2VPNDelete,
 	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
-		routeAdvertise := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{}
+		routeAdvertise := map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{} //nolint:exhaustive
 		if value.L2VPNEVPN.AdvertiseIPv4Unicast != nil && *value.L2VPNEVPN.AdvertiseIPv4Unicast {
 			routeAdvertise[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST] = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_L2VpnEvpn_RouteAdvertise_RouteAdvertiseList{
 				AdvertiseAfiSafi: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,

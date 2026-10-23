@@ -5,15 +5,14 @@ version: "2"
 #
 #   1. Linters with no issues on the current code: nilnesserr, exptostd, fatcontext, iface, sloglint, gochecksumtype,
 #      iotamixing
-#   2. Single findings from the upgraded linters, see linters.exclusions.rules
-#   3. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
-#   4. gosec G118 and taint analysis G703 rules: 3 issues
-#   5. Default exclusions inherited from v1, see linters.exclusions.presets
-#   6. nolintlint require-explanation: 542 directives without explanation
-#   7. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
+#   2. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
+#   3. gosec G118 and taint analysis G703 rules: 3 issues
+#   4. Default exclusions inherited from v1, see linters.exclusions.presets
+#   5. nolintlint require-explanation: 546 directives without explanation
+#   6. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
 #      forcetypeassert (28), recvcheck (1), mirror (1), dupword (1), gomoddirectives (1), godoclint (84),
 #      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   8. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#   7. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
@@ -213,75 +212,6 @@ linters:
     paths:
       # Not planned: third-party code
       - vendor
-    # Findings of the upgraded linters, reported by the versions in v2 but not by the ones in v1, each rule is limited
-    # to the current findings so that new code is still checked
-    rules:
-      # TODO fill or nolint the empty map literals (exhaustive v0.15.0, v1 had v0.12.0): 4 issues
-      - linters:
-          - exhaustive
-        path: (pkg/agent/dozer/bcm/spec_vrf|pkg/boot/server/server)\.go
-        text: "missing keys in map literal"
-        source: "\\{\\}$"
-      # TODO use the existing DefaultIPv4Namespace constant (goconst v1.11.0, v1 had v1.7.1): 1 issue
-      - linters:
-          - goconst
-        path: api/vpc/v1beta1/vpcattachment_types\.go
-        text: "string `default` has 3 occurrences, but such constant `DefaultIPv4Namespace` already exists"
-      # TODO nolint with justification as the bytes are truncated on purpose (gosec v2.29.0, v1 had v2.22.2): 3 issues
-      - linters:
-          - gosec
-        path: pkg/agent/dozer/bcm/plan\.go
-        text: "G115:"
-        source: "byte\\(val( >> (16|8))?\\),"
-      # TODO nolint as a weak random is fine for shuffling the test data (gosec v2.29.0, v1 had v2.22.2): 1 issue
-      - linters:
-          - gosec
-        path: pkg/dhcp/subnet_test\.go
-        text: "G404:"
-      # TODO use reflect.Pointer as reflect.Ptr is deprecated (govet inline analyzer added in golangci-lint v2.12.0):
-      # 2 issues
-      - linters:
-          - govet
-        path: pkg/agent/dozer/bcm/(enforcer|processor)\.go
-        text: "inline: Constant reflect.Ptr should be inlined"
-      # TODO use exec.CommandContext as os/exec is checked now (noctx v0.5.1, v1 had v0.1.0): 1 issue
-      - linters:
-          - noctx
-        path: pkg/agent/systemd/systemd\.go
-        text: "os/exec.Command must not be called"
-      # TODO use httptest.NewRequestWithContext as httptest is checked now (noctx v0.5.1, v1 had v0.1.0): 5 issues
-      - linters:
-          - noctx
-        path: pkg/dhcp/health_test\.go
-        text: "net/http/httptest.NewRequest must not be called"
-      # TODO rename the package or nolint, package names are checked by package-naming now (revive v1.17.1, v1 had
-      # v1.7.0): 1 issue
-      - linters:
-          - revive
-        path: pkg/agent/common/
-        text: "package-naming: don't use \"common\""
-      # TODO use RequeueAfter only as Requeue is deprecated (staticcheck v0.8.2, v1 had v0.6.1): 1 issue
-      - linters:
-          - staticcheck
-        path: pkg/ctrl/gateway_ctrl\.go
-        text: "SA1019: .*Result\\)\\.Requeue is deprecated"
-      # TODO use the new tablewriter alignment API as Alignment is deprecated (staticcheck v0.8.2, v1 had v0.6.1):
-      # 2 issues
-      - linters:
-          - staticcheck
-        path: pkg/hhfctl/inspect/inspect\.go
-        text: "SA1019: .*CellFormatting\\)\\.Alignment is deprecated"
-      # TODO nolint as cli.Exit is the error to return as is (wrapcheck v2.13.0, v1 had v2.10.0): 2 issues
-      - linters:
-          - wrapcheck
-        path: cmd/fabric-(boot|nos-install)/main\.go
-        text: "github.com/urfave/cli/v2.Exit"
-      # TODO nolint as the API status error is returned as is to the client (wrapcheck v2.13.0, v1 had v2.10.0):
-      # 1 issue
-      - linters:
-          - wrapcheck
-        path: pkg/ctrl/lock_wh\.go
-        text: "k8s.io/apimachinery/pkg/api/errors.NewServiceUnavailable"
 
 formatters:
   enable:

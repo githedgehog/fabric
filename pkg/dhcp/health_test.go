@@ -103,7 +103,7 @@ func TestHealthzHandler(t *testing.T) {
 	t.Run("healthy returns 200", func(t *testing.T) {
 		s := &Server{Config: listenOn("127.0.0.1")} // boundIfIndex 0 => no ifindex check
 		rec := httptest.NewRecorder()
-		s.healthzHandler(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+		s.healthzHandler(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/healthz", nil))
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "ok")
 	})
@@ -112,7 +112,7 @@ func TestHealthzHandler(t *testing.T) {
 		s := &Server{}
 		s.serveStopped.Store(true)
 		rec := httptest.NewRecorder()
-		s.healthzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+		s.healthzHandler(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", nil))
 		assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 		assert.Contains(t, rec.Body.String(), "unhealthy")
 	})
@@ -122,16 +122,16 @@ func TestReadyzHandler(t *testing.T) {
 	s := &Server{Config: listenOn("127.0.0.1")}
 
 	rec := httptest.NewRecorder()
-	s.readyzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	s.readyzHandler(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", nil))
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code, "not ready before serving")
 
 	s.serving.Store(true)
 	rec = httptest.NewRecorder()
-	s.readyzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	s.readyzHandler(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", nil))
 	assert.Equal(t, http.StatusOK, rec.Code, "ready once serving")
 
 	s.serveStopped.Store(true)
 	rec = httptest.NewRecorder()
-	s.readyzHandler(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+	s.readyzHandler(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", nil))
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code, "not ready once stopped")
 }

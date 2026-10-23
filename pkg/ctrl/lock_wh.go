@@ -40,7 +40,7 @@ func (v *lockedValidator[T]) admitLocked(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 
-	return false, kapierrors.NewServiceUnavailable("fabric controller is initializing, retry shortly")
+	return false, kapierrors.NewServiceUnavailable("fabric controller is initializing, retry shortly") //nolint:wrapcheck // API status error returned to the client as is
 }
 
 func (v *lockedValidator[T]) ValidateCreate(ctx context.Context, obj T) (admission.Warnings, error) {

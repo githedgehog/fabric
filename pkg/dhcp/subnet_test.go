@@ -66,7 +66,7 @@ func TestSubnetSetConcurrent(t *testing.T) {
 	for rv := 2; rv <= 201; rv++ {
 		rvs = append(rvs, rv)
 	}
-	rand.Shuffle(len(rvs), func(i, j int) { rvs[i], rvs[j] = rvs[j], rvs[i] })
+	rand.Shuffle(len(rvs), func(i, j int) { rvs[i], rvs[j] = rvs[j], rvs[i] }) //nolint:gosec // weak random is fine for shuffling the test data
 
 	wg := sync.WaitGroup{}
 	for _, rv := range rvs {

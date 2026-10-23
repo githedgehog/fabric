@@ -16,6 +16,7 @@ package systemd
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -93,7 +94,7 @@ func Generate(cfg UnitConfig) (string, error) {
 	return unit.String(), nil
 }
 
-func Install(cfg UnitConfig) error {
+func Install(ctx context.Context, cfg UnitConfig) error {
 	unit := "hedgehog-agent.service"
 
 	slog.Info("Installing", "unit", unit, "config", cfg)
@@ -108,17 +109,17 @@ func Install(cfg UnitConfig) error {
 		return errors.Wrapf(err, "failed to write unit %s", unit)
 	}
 
-	err = run("systemctl", "daemon-reload")
+	err = run(ctx, "systemctl", "daemon-reload")
 	if err != nil {
 		return errors.Wrapf(err, "failed to reload systemd")
 	}
 
-	err = run("systemctl", "enable", unit)
+	err = run(ctx, "systemctl", "enable", unit)
 	if err != nil {
 		return errors.Wrapf(err, "failed to enable unit %s", unit)
 	}
 
-	err = run("systemctl", "start", unit)
+	err = run(ctx, "systemctl", "start", unit)
 	if err != nil {
 		return errors.Wrapf(err, "failed to start %s", unit)
 	}
@@ -126,10 +127,10 @@ func Install(cfg UnitConfig) error {
 	return nil
 }
 
-func run(command string, args ...string) error {
+func run(ctx context.Context, command string, args ...string) error {
 	slog.Debug("Running", "command", command, "args", strings.Join(args, " "))
 
-	cmd := exec.Command(command, args...)
+	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 

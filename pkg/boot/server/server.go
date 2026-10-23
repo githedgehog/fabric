@@ -106,13 +106,13 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("parsing ControlVIP: %w", err)
 	}
 	if cfg.NOSRepos == nil {
-		cfg.NOSRepos = map[meta.NOSType]string{}
+		cfg.NOSRepos = map[meta.NOSType]string{} //nolint:exhaustive
 	}
 	if cfg.ONIERepos == nil {
 		cfg.ONIERepos = map[string]string{}
 	}
 	if cfg.NOSVersions == nil {
-		cfg.NOSVersions = map[meta.NOSType]string{}
+		cfg.NOSVersions = map[meta.NOSType]string{} //nolint:exhaustive
 	}
 	if cfg.ONIEPlatformVersions == nil {
 		cfg.ONIEPlatformVersions = map[string]string{}

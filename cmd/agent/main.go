@@ -424,7 +424,7 @@ func main() {
 					return err
 				},
 				Action: func(cCtx *cli.Context) error {
-					return errors.Wrapf(systemd.Install(systemd.UnitConfig{
+					return errors.Wrapf(systemd.Install(cCtx.Context, systemd.UnitConfig{
 						BinPath: cCtx.String("bin-path"),
 						User:    cCtx.String("user"),
 						Control: cCtx.Bool("control"),
