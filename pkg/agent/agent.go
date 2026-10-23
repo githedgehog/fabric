@@ -673,7 +673,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 		if roce != agent.Spec.Switch.RoCE {
 			slog.Info("Requesting RoCE mode change, switch will reboot automatically...", "roce", agent.Spec.Switch.RoCE)
 
-			for attempt := 0; attempt < 5; attempt++ {
+			for range 5 {
 				if err := svc.processor.SetRoCE(ctx, agent.Spec.Switch.RoCE); err != nil {
 					slog.Warn("Failed to set RoCE state, retrying", "error", err, "desired", agent.Spec.Switch.RoCE)
 					time.Sleep(5 * time.Second)
@@ -1026,7 +1026,7 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 
 	if opts.AutoSSH != "" {
 		wg.Go(func() {
-			swIP := strings.Split(agent.Spec.Switch.IP, "/")[0]
+			swIP, _, _ := strings.Cut(agent.Spec.Switch.IP, "/")
 			slog.Info("Running SSH port forwarding for switch", "ip", swIP)
 
 			cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec

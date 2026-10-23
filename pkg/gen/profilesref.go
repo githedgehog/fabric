@@ -79,8 +79,10 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 
 	slog.Debug("Loaded Switch Profiles", "count", len(sps))
 
-	resSupported := switchTableHeader
-	resCatalogSwitches := switchTableHeader
+	var resSupported strings.Builder
+	resSupported.WriteString(switchTableHeader)
+	var resCatalogSwitches strings.Builder
+	resCatalogSwitches.WriteString(switchTableHeader)
 	for _, sp := range sps {
 		if sp.Name == switchprofile.VS.Name {
 			continue
@@ -100,81 +102,82 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 
 		slog.Debug("Adding Profile to supported", "name", nameSummary, "silicon", sp.Spec.SwitchSilicon, "roles", roles, "ports", portSummary)
 
-		resSupported += fmt.Sprintf("| %s | %s | %s | %s |\n",
+		resSupported.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
 			nameSummary,
 			roles,
 			sp.Spec.SwitchSilicon,
 			portSummary,
-		)
+		))
 
-		resCatalogSwitches += fmt.Sprintf("| %s | %s | %s | %s |\n",
+		resCatalogSwitches.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
 			fmt.Sprintf("[%s](#%s)", nameSummary, strings.ToLower(strings.ReplaceAll(sp.Spec.DisplayName, " ", "-"))),
 			roles,
 			sp.Spec.SwitchSilicon,
 			portSummary,
-		)
+		))
 	}
-	resSupported += roleNote
-	resCatalogSwitches += roleNote
+	resSupported.WriteString(roleNote)
+	resCatalogSwitches.WriteString(roleNote)
 	featureMatrix := generateFeatureMatrix(sps)
 
-	resCatalog := catalogPageHeader + resCatalogSwitches + "\n\n" + featureMatrix + "\n\n"
+	var resCatalog strings.Builder
+	resCatalog.WriteString(catalogPageHeader + resCatalogSwitches.String() + "\n\n" + featureMatrix + "\n\n")
 
-	resCatalog += "## Pipeline Configuration\n\n"
-	resCatalog += "Some switches use hardware pipelines to organize ports. Each pipeline has a maximum number of logical ports it can support. "
-	resCatalog += "When using port breakout modes, the total number of logical ports (after breakout) within a pipeline cannot exceed the pipeline's max ports limit. "
-	resCatalog += "For example, with MaxPorts=18, a pipeline with 4 physical ports cannot break out all 4 to 8x100G (requiring 32 ports total).\n\n"
+	resCatalog.WriteString("## Pipeline Configuration\n\n")
+	resCatalog.WriteString("Some switches use hardware pipelines to organize ports. Each pipeline has a maximum number of logical ports it can support. ")
+	resCatalog.WriteString("When using port breakout modes, the total number of logical ports (after breakout) within a pipeline cannot exceed the pipeline's max ports limit. ")
+	resCatalog.WriteString("For example, with MaxPorts=18, a pipeline with 4 physical ports cannot break out all 4 to 8x100G (requiring 32 ports total).\n\n")
 
 	for _, sp := range sps {
 		name := sp.Name
 
-		resCatalog += "## " + sp.Spec.DisplayName + "\n\n"
-		resCatalog += "Profile Name (to use in switch object `.spec.profile`): **" + name + "**\n\n"
+		resCatalog.WriteString("## " + sp.Spec.DisplayName + "\n\n")
+		resCatalog.WriteString("Profile Name (to use in switch object `.spec.profile`): **" + name + "**\n\n")
 
 		if len(sp.Spec.OtherNames) > 0 {
-			resCatalog += "Other names: " + strings.Join(sp.Spec.OtherNames, ", ") + "\n\n"
+			resCatalog.WriteString("Other names: " + strings.Join(sp.Spec.OtherNames, ", ") + "\n\n")
 		}
 
 		if sp.Name == switchprofile.VS.Name {
-			resCatalog += "This is a virtual switch profile. It's for testing/demo purpose only with limited features and performance.\n\n"
+			resCatalog.WriteString("This is a virtual switch profile. It's for testing/demo purpose only with limited features and performance.\n\n")
 		}
 
 		roles := getRolesHint(sp)
 		if len(roles) > 0 {
-			resCatalog += "**Supported roles**: " + roles + "\n\n"
+			resCatalog.WriteString("**Supported roles**: " + roles + "\n\n")
 		}
 
-		resCatalog += "Switch Silicon: **" + sp.Spec.SwitchSilicon + "**\n\n"
+		resCatalog.WriteString("Switch Silicon: **" + sp.Spec.SwitchSilicon + "**\n\n")
 
 		portSummary, err := sp.Spec.GetPortsShortSummary()
 		if err != nil {
 			return fmt.Errorf("getting ports summary: %w", err)
 		}
-		resCatalog += "Ports Summary: **" + portSummary + "**\n\n"
+		resCatalog.WriteString("Ports Summary: **" + portSummary + "**\n\n")
 
 		if sp.Spec.Notes != "" {
-			resCatalog += "Notes: " + sp.Spec.Notes + "\n\n"
+			resCatalog.WriteString("Notes: " + sp.Spec.Notes + "\n\n")
 		}
 
-		resCatalog += "**Supported features:**\n\n"
-		resCatalog += "- Subinterfaces: " + strconv.FormatBool(sp.Spec.Features.Subinterfaces) + "\n"
-		resCatalog += "- ACLs: " + strconv.FormatBool(sp.Spec.Features.ACLs) + "\n"
-		resCatalog += "- L2VNI: " + strconv.FormatBool(sp.Spec.Features.L2VNI) + "\n"
-		resCatalog += "- L3VNI: " + strconv.FormatBool(sp.Spec.Features.L3VNI) + "\n"
-		resCatalog += "- RoCE: " + strconv.FormatBool(sp.Spec.Features.RoCE) + "\n"
-		resCatalog += "- MCLAG: " + strconv.FormatBool(sp.Spec.Features.MCLAG) + "\n"
-		resCatalog += "- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n"
-		resCatalog += "- ECMP RoCE QPN hashing: " + strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN) + "\n"
-		resCatalog += "\n"
+		resCatalog.WriteString("**Supported features:**\n\n")
+		resCatalog.WriteString("- Subinterfaces: " + strconv.FormatBool(sp.Spec.Features.Subinterfaces) + "\n")
+		resCatalog.WriteString("- ACLs: " + strconv.FormatBool(sp.Spec.Features.ACLs) + "\n")
+		resCatalog.WriteString("- L2VNI: " + strconv.FormatBool(sp.Spec.Features.L2VNI) + "\n")
+		resCatalog.WriteString("- L3VNI: " + strconv.FormatBool(sp.Spec.Features.L3VNI) + "\n")
+		resCatalog.WriteString("- RoCE: " + strconv.FormatBool(sp.Spec.Features.RoCE) + "\n")
+		resCatalog.WriteString("- MCLAG: " + strconv.FormatBool(sp.Spec.Features.MCLAG) + "\n")
+		resCatalog.WriteString("- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n")
+		resCatalog.WriteString("- ECMP RoCE QPN hashing: " + strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN) + "\n")
+		resCatalog.WriteString("\n")
 
 		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) > 0 {
-			resCatalog += "**Hardware Resources:**\n\n"
-			resCatalog += fmt.Sprintf("- Maximum ports supported: **%d**\n", sp.Spec.MaxPorts)
-			resCatalog += fmt.Sprintf("- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines))
+			resCatalog.WriteString("**Hardware Resources:**\n\n")
+			resCatalog.WriteString(fmt.Sprintf("- Maximum ports supported: **%d**\n", sp.Spec.MaxPorts))
+			resCatalog.WriteString(fmt.Sprintf("- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines)))
 
-			resCatalog += "**Pipelines:**\n\n"
-			resCatalog += "| Pipeline | Max Ports | Front Panel Ports |\n"
-			resCatalog += "|----------|-----------|-------------------|\n"
+			resCatalog.WriteString("**Pipelines:**\n\n")
+			resCatalog.WriteString("| Pipeline | Max Ports | Front Panel Ports |\n")
+			resCatalog.WriteString("|----------|-----------|-------------------|\n")
 
 			pipelineKeys := lo.Keys(sp.Spec.Pipelines)
 			slices.SortFunc(pipelineKeys, natural.Compare)
@@ -197,15 +200,15 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 				if portsStr == "" {
 					portsStr = "-"
 				}
-				resCatalog += fmt.Sprintf("| %s | %d | %s |\n",
-					pipelineKey, pipeline.MaxPorts, portsStr)
+				resCatalog.WriteString(fmt.Sprintf("| %s | %d | %s |\n",
+					pipelineKey, pipeline.MaxPorts, portsStr))
 			}
-			resCatalog += "\n"
+			resCatalog.WriteString("\n")
 		}
 
-		resCatalog += "**Available Ports:**\n\n"
-		resCatalog += "Label column is a port label on a physical switch.\n"
-		resCatalog += portsTableHeader
+		resCatalog.WriteString("**Available Ports:**\n\n")
+		resCatalog.WriteString("Label column is a port label on a physical switch.\n")
+		resCatalog.WriteString(portsTableHeader)
 
 		portsSummary, err := sp.Spec.GetPortsSummary()
 		if err != nil {
@@ -213,22 +216,22 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		}
 
 		for _, port := range portsSummary {
-			resCatalog += fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n",
-				port.Name, port.Label, port.Type, port.Group, port.Default, port.Supported)
+			resCatalog.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n",
+				port.Name, port.Label, port.Type, port.Group, port.Default, port.Supported))
 		}
 
-		resCatalog += "\n\n"
+		resCatalog.WriteString("\n\n")
 	}
 
 	supportedDevicesFile := filepath.Join(targetDir, supportedDevicesFileName)
 	slog.Info("Writing supported-devices file", "file", supportedDevicesFile)
-	if err := os.WriteFile(supportedDevicesFile, []byte(resSupported), 0o600); err != nil {
+	if err := os.WriteFile(supportedDevicesFile, []byte(resSupported.String()), 0o600); err != nil {
 		return fmt.Errorf("writing to file %s: %w", supportedDevicesFile, err)
 	}
 
 	catalogFile := filepath.Join(targetDir, catalogFileName)
 	slog.Info("Writing profiles file", "file", catalogFile)
-	if err := os.WriteFile(catalogFile, []byte(resCatalog), 0o600); err != nil {
+	if err := os.WriteFile(catalogFile, []byte(resCatalog.String()), 0o600); err != nil {
 		return fmt.Errorf("writing to file %s: %w", catalogFile, err)
 	}
 
@@ -264,38 +267,38 @@ const (
 )
 
 func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
-	featuresType := reflect.TypeOf(wiringapi.SwitchProfileFeatures{})
+	featuresType := reflect.TypeFor[wiringapi.SwitchProfileFeatures]()
 
 	fieldDisplayNames := map[string]string{
 		"ECMPRoCEQPN": "QPN",
 	}
 
 	var fieldNames []string
-	for i := 0; i < featuresType.NumField(); i++ {
-		field := featuresType.Field(i)
+	for field := range featuresType.Fields() {
 		if field.Type.Kind() == reflect.Bool && field.PkgPath == "" {
 			fieldNames = append(fieldNames, field.Name)
 		}
 	}
 
-	result := "## Switch Feature Matrix\n\n"
-	result += "The following table shows which features are supported by each switch profile:\n\n"
+	var result strings.Builder
+	result.WriteString("## Switch Feature Matrix\n\n")
+	result.WriteString("The following table shows which features are supported by each switch profile:\n\n")
 
-	result += "| Switch Profile"
+	result.WriteString("| Switch Profile")
 	for _, fieldName := range fieldNames {
 		displayName := fieldDisplayNames[fieldName]
 		if displayName == "" {
 			displayName = fieldName
 		}
-		result += " | " + displayName
+		result.WriteString(" | " + displayName)
 	}
-	result += " |\n"
+	result.WriteString(" |\n")
 
-	result += "|---"
+	result.WriteString("|---")
 	for range fieldNames {
-		result += "|:---:"
+		result.WriteString("|:---:")
 	}
-	result += "|\n"
+	result.WriteString("|\n")
 
 	for _, sp := range sps {
 		if strings.HasSuffix(sp.Name, "-clsp") {
@@ -305,7 +308,7 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 		nameSummary := sp.Spec.GetNameSummary()
 		anchor := strings.ToLower(strings.ReplaceAll(sp.Spec.DisplayName, " ", "-"))
 
-		result += fmt.Sprintf("| [%s](#%s)", nameSummary, anchor)
+		result.WriteString(fmt.Sprintf("| [%s](#%s)", nameSummary, anchor))
 
 		featuresValue := reflect.ValueOf(sp.Spec.Features)
 		for _, fieldName := range fieldNames {
@@ -314,10 +317,10 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 			if fieldValue {
 				icon = materialCheckIcon
 			}
-			result += " | " + icon
+			result.WriteString(" | " + icon)
 		}
-		result += " |\n"
+		result.WriteString(" |\n")
 	}
 
-	return result + "\n\n"
+	return result.String() + "\n\n"
 }

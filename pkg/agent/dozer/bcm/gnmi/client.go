@@ -263,7 +263,7 @@ func Unmarshal(data []byte, dest ygot.ValidatedGoStruct, opts ...ytypes.Unmarsha
 		return errors.Errorf("no schema for type %s", typeName)
 	}
 
-	var jsonTree interface{}
+	var jsonTree any
 	if err := json.Unmarshal(data, &jsonTree); err != nil {
 		return errors.Wrapf(err, "can't json unmarshal for type %s", typeName)
 	}

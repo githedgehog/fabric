@@ -55,7 +55,7 @@ const (
 
 var OutputTypes = []OutputType{OutputTypeText, OutputTypeJSON, OutputTypeYAML}
 
-type In interface{}
+type In any
 
 type Out[TIn In] interface {
 	MarshalText(in TIn, now time.Time) (string, error)

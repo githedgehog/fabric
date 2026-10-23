@@ -64,8 +64,8 @@ func newExternalPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcap
 			}
 
 			for _, prefix := range params.GetStringSlice(ExtPeeringParamPrefixes) {
-				parts := strings.Split(prefix, ",")
-				for _, part := range parts {
+				parts := strings.SplitSeq(prefix, ",")
+				for part := range parts {
 					permit.External.Prefixes = append(permit.External.Prefixes, vpcapi.ExternalPeeringSpecPrefix{Prefix: part})
 				}
 			}

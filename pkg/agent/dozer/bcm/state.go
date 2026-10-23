@@ -2008,8 +2008,8 @@ func transceiverForPort(port string) string {
 
 func normBreakoutName(transceiverName string) (string, bool) {
 	if strings.Count(transceiverName, "/") == 2 {
-		if strings.HasSuffix(transceiverName, "/1") {
-			transceiverName = strings.TrimSuffix(transceiverName, "/1")
+		if before, ok := strings.CutSuffix(transceiverName, "/1"); ok {
+			transceiverName = before
 		} else {
 			return "", false
 		}

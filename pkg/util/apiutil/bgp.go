@@ -300,7 +300,7 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 		if peerSw.Spec.ProtocolIP == "" {
 			return nil, fmt.Errorf("no protocol IP found for peer %s", peer) //nolint:err113
 		}
-		ip := strings.Split(peerSw.Spec.ProtocolIP, "/")[0]
+		ip, _, _ := strings.Cut(peerSw.Spec.ProtocolIP, "/")
 		neigh, ok := out["default"][ip]
 		if !ok {
 			neigh = BGPNeighborStatus{}
