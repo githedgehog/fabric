@@ -95,6 +95,13 @@ linters:
         # TODO evaluate detection in composite literals added in goconst v1.11.0 (v1 had v1.7.1): 1522 issues, mostly
         # the port names and speeds in the switch profiles, so it may be too noisy
         - CompositeLit
+    gosec:
+      excludes:
+        # Not planned: unhandled errors duplicate errcheck
+        - G104
+      config:
+        # Allow 0755 instead of 0750 for dirs as the system ones have to be world-readable
+        G301: "0755"
     govet:
       enable-all: true
       disable:
@@ -195,12 +202,10 @@ linters:
       # TODO enable: 241 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
       # (also revive exported and package-comments rules that aren't enabled)
       - comments
-      # TODO enable: 29 issues, gosec G204 subprocess launched with variable x9, G304 file inclusion via variable x20
-      # (also G103 unsafe calls, no issues)
+      # Not planned: gosec G204 subprocess launched with variable x9 and G304 file inclusion via variable x20 as
+      # running the system commands and reading the own config and cache files is what the agent, installer and
+      # boot server do (also G103 unsafe calls, no issues)
       - common-false-positives
-      # TODO enable: 11 issues, gosec G104 unhandled errors (duplicates errcheck) x2, G301/G302 dir/file permissions
-      # x9 (also govet unsafe.Pointer and staticcheck SA4011, no issues)
-      - legacy
       # TODO enable: 21 issues, errcheck on Close, Flush, os.Remove(All), fmt.Print*, os.(Un)Setenv and std streams
       - std-error-handling
     paths:
