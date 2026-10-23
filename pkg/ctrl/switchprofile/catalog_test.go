@@ -105,7 +105,7 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 	actualList := &wiringapi.SwitchProfileList{}
 	require.NoError(t, kube.List(ctx, actualList))
 
-	expected := []wiringapi.SwitchProfile{}
+	expected := []wiringapi.SwitchProfile{} //nolint:prealloc
 	for _, sp := range profiles.List() {
 		expected = append(expected, *sp)
 	}
@@ -113,7 +113,7 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 		return expected[i].Name < expected[j].Name
 	})
 
-	actual := []wiringapi.SwitchProfile{}
+	actual := []wiringapi.SwitchProfile{} //nolint:prealloc
 	for _, sp := range actualList.Items {
 		sp.ResourceVersion = ""
 		sp.Default()

@@ -63,7 +63,7 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 
 	str.WriteString("Fabrics:\n")
 
-	fabData := [][]string{}
+	fabData := [][]string{} //nolint:prealloc
 	for _, fab := range out.Fabrics {
 		spineASNs, gatewayASNs := []string{}, []string{}
 		for name, domain := range fab.Spec.Domains {
@@ -87,7 +87,7 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 
 	str.WriteString("\nSwitches:\n")
 
-	swData := [][]string{}
+	swData := [][]string{} //nolint:prealloc
 	for _, sw := range out.Switches {
 		applied := ""
 		if !sw.State.LastAppliedTime.IsZero() {

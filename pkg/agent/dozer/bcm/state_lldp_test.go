@@ -496,7 +496,7 @@ func metricSeries(t *testing.T, reg *switchstate.Registry, name string) map[stri
 		}
 
 		for _, metric := range family.GetMetric() {
-			key := []string{}
+			key := []string{} //nolint:prealloc
 			for _, label := range metric.GetLabel() {
 				key = append(key, label.GetName()+"="+label.GetValue())
 			}

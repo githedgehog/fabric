@@ -118,7 +118,7 @@ func main() {
 		Destination: &printYaml,
 	}
 
-	outputTypes := []string{}
+	outputTypes := []string{} //nolint:prealloc
 	for _, t := range inspect.OutputTypes {
 		outputTypes = append(outputTypes, string(t))
 	}

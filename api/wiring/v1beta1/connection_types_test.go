@@ -164,7 +164,7 @@ func TestConnectionValidation(t *testing.T) {
 	}
 
 	// same switches, all of them in a fabric named "other" rather than in the default one
-	otherFabric := []kclient.Object{}
+	otherFabric := []kclient.Object{} //nolint:prealloc
 	for _, obj := range base {
 		sw, ok := obj.DeepCopyObject().(*wiringapi.Switch)
 		require.True(t, ok)

@@ -42,7 +42,7 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 		sort.Strings(memberStrs)
 		memberStrs = slices.Compact(memberStrs)
 
-		members := []oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config_CommunityMember_Union{}
+		members := []oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config_CommunityMember_Union{} //nolint:prealloc
 		for _, member := range memberStrs {
 			members = append(members, oc.UnionString(member))
 		}

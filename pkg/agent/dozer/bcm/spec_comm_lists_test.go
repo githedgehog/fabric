@@ -64,7 +64,7 @@ func TestSpecCommunityListEnforcerMarshal(t *testing.T) {
 			require.NotNil(t, commList)
 			require.NotNil(t, commList, commList.Config)
 
-			members := []string{}
+			members := []string{} //nolint:prealloc
 
 			for _, member := range commList.Config.CommunityMember {
 				str, ok := member.(oc.UnionString)
