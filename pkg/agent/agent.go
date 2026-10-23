@@ -36,12 +36,12 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/clsp"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
-	"go.githedgehog.com/fabric/pkg/agent/common"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/clsds5000"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/agent/upgrade"
 	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
@@ -809,14 +809,14 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 		}
 	}
 
-	upgraded, err := common.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true", "--basedir=" + svc.Basedir})
+	upgraded, err := upgrade.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true", "--basedir=" + svc.Basedir})
 	if err != nil {
-		if errors.Is(err, common.ErrAgentUpgradeDownloadFailed) { //nolint:gocritic
+		if errors.Is(err, upgrade.ErrAgentUpgradeDownloadFailed) { //nolint:gocritic
 			// TODO properly retry it without restarting the agent
 			slog.Warn("Failed to download new agent version, restarting agent to retry", "err", err)
 
 			return errors.New("failed to download new agent version")
-		} else if errors.Is(err, common.ErrAgentUpgradeCheckFailed) {
+		} else if errors.Is(err, upgrade.ErrAgentUpgradeCheckFailed) {
 			// TODO properly report it in the Agent object status
 			slog.Warn("Failed to check new agent version, skipping upgrade", "err", err)
 

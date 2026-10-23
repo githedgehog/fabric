@@ -14,7 +14,10 @@
 
 package v1beta1
 
-const DefaultIPv4Namespace = "default"
+const (
+	DefaultIPv4Namespace = "default"
+	DefaultSubnetName    = "default"
+)
 
 var (
 	LabelPrefix          = "fabric.githedgehog.com/"

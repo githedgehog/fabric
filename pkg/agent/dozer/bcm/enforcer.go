@@ -341,7 +341,7 @@ func (h *DefaultValueEnforcer[Key, Value]) processValue(key Key, value Value) an
 		}
 
 		if ret != nil {
-			if reflect.ValueOf(ret).Kind() == reflect.Ptr && reflect.ValueOf(ret).IsNil() {
+			if reflect.ValueOf(ret).Kind() == reflect.Pointer && reflect.ValueOf(ret).IsNil() {
 				ret = nil
 			}
 		} else {

@@ -56,7 +56,7 @@ func (vpc *VPC) DHCPSubnetSpec(subnetName string, subnet *VPCSubnet) dhcpapi.DHC
 	case VPCModeL2VNI, VPCModeL3VNI:
 		vrf = strings.ToLower(vpc.Name)
 	case VPCModeL3Flat:
-		vrf = "default" //nolint:goconst // the default VRF, not a namespace
+		vrf = "default" // default VRF
 	}
 
 	statics := map[string]dhcpapi.DHCPSubnetStatic{}

@@ -31,7 +31,7 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fmeta "go.githedgehog.com/fabric/api/meta"
-	"go.githedgehog.com/fabric/pkg/agent/common"
+	"go.githedgehog.com/fabric/pkg/agent/upgrade"
 	"go.githedgehog.com/libmeta/pkg/tmpl"
 )
 
@@ -139,7 +139,7 @@ func EnsureInstalled(ctx context.Context, agent *agentapi.Agent, baseDir string)
 	}
 
 	if needsBinUpgrade {
-		if err := common.UpgradeBin(ctx,
+		if err := upgrade.UpgradeBin(ctx,
 			agent.Spec.Version.AlloyRepo,
 			agent.Spec.Version.AlloyVersion,
 			agent.Spec.Version.CA,

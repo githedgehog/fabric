@@ -266,7 +266,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	newGwAg, err := BuildGatewayAgent(ctx, r.Client, r.cfg, gw)
 	if err != nil {
 		if errors.Is(err, ErrRetryLater) {
-			return kctrl.Result{Requeue: true, RequeueAfter: 1 * time.Second}, nil
+			return kctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
 		return kctrl.Result{}, fmt.Errorf("building gateway agent: %w", err)

@@ -119,10 +119,10 @@ func (s *VPCAttachmentSpec) VPCName() string {
 func (s *VPCAttachmentSpec) SubnetName() string {
 	parts := strings.SplitN(s.Subnet, "/", 2)
 	if len(parts) == 1 {
-		return "default"
+		return DefaultSubnetName
 	}
 	if parts[1] == "" {
-		return "default"
+		return DefaultSubnetName
 	}
 
 	return parts[1]
@@ -154,7 +154,7 @@ func (attach *VPCAttachment) Default() {
 		return // it'll be handled in validation stage
 	}
 	if len(parts) == 1 {
-		attach.Spec.Subnet = parts[0] + "/default"
+		attach.Spec.Subnet = parts[0] + "/" + DefaultSubnetName
 	}
 
 	if attach.Labels == nil {

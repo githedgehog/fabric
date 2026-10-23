@@ -1059,9 +1059,9 @@ func addToAddr(addr netip.Addr, n uint32) netip.Addr {
 	val += n
 	newIP := [4]byte{
 		byte(val >> 24),
-		byte(val >> 16),
-		byte(val >> 8),
-		byte(val),
+		byte(val >> 16), //nolint:gosec // truncated to bytes on purpose
+		byte(val >> 8),  //nolint:gosec // truncated to bytes on purpose
+		byte(val),       //nolint:gosec // truncated to bytes on purpose
 	}
 
 	return netip.AddrFrom4(newIP)

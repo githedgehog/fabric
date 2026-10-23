@@ -166,7 +166,7 @@ func (r *VPCReconciler) deleteDHCPSubnets(ctx context.Context, vpcKey kclient.Ob
 	}
 
 	for _, subnet := range dhcpSubnets.Items {
-		subnetName := "default"
+		subnetName := vpcapi.DefaultSubnetName
 		parts := strings.Split(subnet.Spec.Subnet, "/")
 		if len(parts) == 2 {
 			subnetName = parts[1]
