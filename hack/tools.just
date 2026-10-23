@@ -14,6 +14,16 @@ _is_clean:
     [ -z "`git status -s`" ] || exit 1
 
 #
+# Go toolchain
+#
+
+# Use exactly the Go version from go.mod for everything run through just (downloaded by go if needed), it should be a
+# full version as a toolchain name is required. Read with sed as go itself would fail to switch to a non-existing one.
+go_version := `sed -n 's/^go //p' go.mod`
+go_toolchain := if go_version =~ '^[0-9]+\.[0-9]+\.[0-9]+$' { "go" + go_version } else { error("go.mod must use a full Go version (e.g. 1.27.3), got: " + go_version) }
+export GOTOOLCHAIN := go_toolchain
+
+#
 # Downloading all tools locally
 #
 
@@ -46,11 +56,10 @@ envtest := localbin / "setup-envtest" + "-" + envtest_version
 # golangci-lint, keep version in sync with ci.yaml
 golangci_lint_version := "v2.15.0"
 # golangci-lint refuses to lint code targeting a newer Go than it was built with, so key the binary by the Go
-# version selected for the repo and build it with exactly that toolchain to get it rebuilt on every Go bump
-golangci_lint_go_version := `go env GOVERSION`
-golangci_lint := localbin / "golangci-lint" + "-" + golangci_lint_version + "-" + golangci_lint_go_version
+# toolchain it's built with to get it rebuilt on every Go bump
+golangci_lint := localbin / "golangci-lint" + "-" + golangci_lint_version + "-" + go_toolchain
 @_golangci_lint: _localbin
-    [ -f {{ golangci_lint }} ] || GOTOOLCHAIN={{ golangci_lint_go_version }} just _goinstall "github.com/golangci/golangci-lint/v2/cmd/golangci-lint" {{ golangci_lint_version }} "golangci-lint" {{ golangci_lint }}
+    [ -f {{ golangci_lint }} ] || just _goinstall "github.com/golangci/golangci-lint/v2/cmd/golangci-lint" {{ golangci_lint_version }} "golangci-lint" {{ golangci_lint }}
 
 # butane
 butane_version := "v0.23.0"
