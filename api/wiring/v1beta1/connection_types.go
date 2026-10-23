@@ -341,15 +341,6 @@ func NewBasePortName(name string) BasePortName {
 	}
 }
 
-// +kubebuilder:object:generate=false
-type IPort interface {
-	PortName() string
-	LocalPortName() string
-	DeviceName() string
-}
-
-var _ IPort = &BasePortName{}
-
 func (pn *BasePortName) PortName() string {
 	return pn.Port
 }
