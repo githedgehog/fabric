@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"sort"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -137,7 +136,7 @@ func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 		return "", "", errors.Errorf("VPCPeering must have exactly 2 VPCs")
 	}
 
-	sort.Strings(vpcs)
+	slices.Sort(vpcs)
 
 	return vpcs[0], vpcs[1], nil
 }

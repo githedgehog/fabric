@@ -17,7 +17,6 @@ package v1beta1
 import (
 	"fmt"
 	"slices"
-	"sort"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -705,7 +704,7 @@ func (a *Agent) IsFirstInRedundancyGroup() bool {
 	}
 
 	rg := append(slices.Clone(a.Spec.RedundancyGroupPeers), a.Name)
-	sort.Strings(rg)
+	slices.Sort(rg)
 
 	return rg[0] == a.Name
 }

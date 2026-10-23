@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -178,7 +177,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 			resCatalog += "|----------|-----------|-------------------|\n"
 
 			pipelineKeys := lo.Keys(sp.Spec.Pipelines)
-			sort.Sort(natural.StringSlice(pipelineKeys))
+			slices.SortFunc(pipelineKeys, natural.Compare)
 
 			pipelinePorts := make(map[string][]string)
 			for _, port := range sp.Spec.Ports {
@@ -188,7 +187,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 			}
 
 			for _, ports := range pipelinePorts {
-				sort.Sort(natural.StringSlice(ports))
+				slices.SortFunc(ports, natural.Compare)
 			}
 
 			for _, pipelineKey := range pipelineKeys {

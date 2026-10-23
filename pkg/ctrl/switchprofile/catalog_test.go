@@ -15,7 +15,8 @@
 package switchprofile_test
 
 import (
-	"sort"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -109,8 +110,8 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 	for _, sp := range profiles.List() {
 		expected = append(expected, *sp)
 	}
-	sort.Slice(expected, func(i, j int) bool {
-		return expected[i].Name < expected[j].Name
+	slices.SortFunc(expected, func(a, b wiringapi.SwitchProfile) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	actual := []wiringapi.SwitchProfile{} //nolint:prealloc
@@ -119,8 +120,8 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 		sp.Default()
 		actual = append(actual, sp)
 	}
-	sort.Slice(actual, func(i, j int) bool {
-		return actual[i].Name < actual[j].Name
+	slices.SortFunc(actual, func(a, b wiringapi.SwitchProfile) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	require.Equal(t, expected, actual, "only default switch profiles should be present")

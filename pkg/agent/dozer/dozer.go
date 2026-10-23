@@ -17,7 +17,6 @@ package dozer
 import (
 	"context"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -469,18 +468,16 @@ func (s *Spec) Normalize() {
 			continue
 		}
 
-		sort.Slice(user.AuthorizedKeys, func(i, j int) bool {
-			return user.AuthorizedKeys[i] < user.AuthorizedKeys[j]
-		})
+		slices.Sort(user.AuthorizedKeys)
 	}
 
 	for _, dhcp := range s.DHCPRelays {
-		sort.Strings(dhcp.RelayAddress)
+		slices.Sort(dhcp.RelayAddress)
 	}
 
 	for name, iface := range s.Interfaces {
 		if len(iface.TrunkVLANs) > 0 {
-			sort.Strings(iface.TrunkVLANs)
+			slices.Sort(iface.TrunkVLANs)
 		}
 
 		if strings.HasPrefix(name, "PortChannel") || strings.HasPrefix(name, "Ethernet") {

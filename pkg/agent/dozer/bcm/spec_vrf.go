@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -572,7 +571,7 @@ var specVRFImportVrfEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 	DeleteWeight: ActionWeightVRFBGPImportVRFDelete,
 	Marshal: func(_ string, value *dozer.SpecVRFBGP) (ygot.ValidatedGoStruct, error) {
 		imports := lo.Keys(value.IPv4Unicast.ImportVRFs)
-		sort.Strings(imports)
+		slices.Sort(imports)
 
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis_AfiSafi_ImportNetworkInstance_Config{
 			Name: imports,
