@@ -84,7 +84,7 @@ func gatewayTestKube(t *testing.T, extra ...kclient.Object) kclient.Client {
 		return p
 	}
 
-	objs := []kclient.Object{
+	objs := []kclient.Object{ //nolint:prealloc
 		&wiringapi.Fabric{
 			ObjectMeta: objMeta(wiringapi.DefaultFabric),
 			Spec:       wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}, "d2": {}}},

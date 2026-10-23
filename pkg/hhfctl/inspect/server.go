@@ -52,7 +52,7 @@ func (out *ServerOut) MarshalText(_ ServerIn, now time.Time) (string, error) {
 	if len(out.Connections) > 0 {
 		str.WriteString("Connections:\n")
 
-		connData := [][]string{}
+		connData := [][]string{} //nolint:prealloc
 		connNames := lo.Keys(out.Connections)
 		for _, connName := range connNames {
 			conn := out.Connections[connName]
@@ -74,7 +74,7 @@ func (out *ServerOut) MarshalText(_ ServerIn, now time.Time) (string, error) {
 	if len(out.VPCAttachments) > 0 {
 		str.WriteString("VPC Attachments:\n")
 
-		attachData := [][]string{}
+		attachData := [][]string{} //nolint:prealloc
 		attachNames := lo.Keys(out.VPCAttachments)
 		for _, attachName := range attachNames {
 			attach := out.VPCAttachments[attachName]

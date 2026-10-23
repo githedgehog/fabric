@@ -166,7 +166,7 @@ func TestCatalogOwners(t *testing.T) {
 	owners := func(key string) []string {
 		t.Helper()
 
-		res := []string{}
+		res := []string{} //nolint:prealloc
 		for _, ref := range get(&agentapi.Catalog{}, key).GetOwnerReferences() {
 			// plain owner references, the catalogs aren't reconciled from their owners
 			require.Nil(t, ref.Controller, key)

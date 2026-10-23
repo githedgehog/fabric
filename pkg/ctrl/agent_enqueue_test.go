@@ -49,7 +49,7 @@ func enqueueTestConn(name string, spec wiringapi.ConnectionSpec) *wiringapi.Conn
 func enqueuedNames(t *testing.T, enqueue func(context.Context, kclient.Object) []reconcile.Request, obj kclient.Object) []string {
 	t.Helper()
 
-	names := []string{}
+	names := []string{} //nolint:prealloc
 	for _, req := range enqueue(t.Context(), obj) {
 		names = append(names, req.Name)
 	}
@@ -74,7 +74,7 @@ func agentEnqueueTestKube(t *testing.T, extra ...kclient.Object) kclient.Client 
 		return wiringapi.ServerToSwitchLink{Server: wiringapi.NewBasePortName(server), Switch: wiringapi.NewBasePortName(sw)}
 	}
 
-	objs := []kclient.Object{
+	objs := []kclient.Object{ //nolint:prealloc
 		enqueueTestSwitch("leaf-1", wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabric, wiringapi.DefaultFabricDomain),
 		enqueueTestSwitch("leaf-2", wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabric, wiringapi.DefaultFabricDomain),
 		enqueueTestSwitch("leaf-3", wiringapi.SwitchRoleServerLeaf, wiringapi.DefaultFabric, "plane-b"),

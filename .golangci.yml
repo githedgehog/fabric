@@ -8,13 +8,12 @@ version: "2"
 #   2. Single findings from the upgraded linters, see linters.exclusions.rules
 #   3. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   4. gosec G118 and taint analysis G703 rules: 3 issues
-#   5. prealloc: 21 issues
-#   6. Default exclusions inherited from v1, see linters.exclusions.presets
-#   7. nolintlint require-explanation: 521 directives without explanation
-#   8. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
+#   5. Default exclusions inherited from v1, see linters.exclusions.presets
+#   6. nolintlint require-explanation: 542 directives without explanation
+#   7. Linters with issues on the current code: modernize (562), intrange (5), wastedassign (20), canonicalheader (12),
 #      forcetypeassert (28), recvcheck (1), mirror (1), dupword (1), gomoddirectives (1), godoclint (84),
 #      perfsprint (190), forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   9. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#   8. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
@@ -71,8 +70,7 @@ linters:
     - noctx
     - nolintlint
     - nonamedreturns
-    # TODO enable prealloc: 21 issues as it got rewritten in v1.1.0 (v1 had v1.0.0) and can't be configured back
-    # - prealloc
+    - prealloc
     - predeclared
     - promlinter
     - reassign

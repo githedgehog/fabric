@@ -135,7 +135,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			ag := newAgent()
 			ag.Status.State.BGPNeighbors = reported(tt.reported...)
 
-			objs := []kclient.Object{sw, spineSw, newProfile(tt.silicon), ag}
+			objs := []kclient.Object{sw, spineSw, newProfile(tt.silicon), ag} //nolint:prealloc
 			for _, conn := range []*wiringapi.Connection{fabricConn} {
 				conn := conn.DeepCopy()
 				conn.Default()

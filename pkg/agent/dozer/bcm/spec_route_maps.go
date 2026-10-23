@@ -190,7 +190,7 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 
 		var bgpActions *oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions
 		if len(statement.SetCommunities) > 0 {
-			comms := []oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config_Communities_Union{}
+			comms := []oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunity_Inline_Config_Communities_Union{} //nolint:prealloc
 			for _, comm := range statement.SetCommunities {
 				comms = append(comms, oc.UnionString(comm))
 			}

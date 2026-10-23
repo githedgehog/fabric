@@ -41,7 +41,7 @@ func TestFabricFilter(t *testing.T) {
 	).Build()
 
 	names := func(out *FabricOut) ([]string, []string) {
-		fabrics, switches := []string{}, []string{}
+		fabrics, switches := []string{}, []string{} //nolint:prealloc
 		for _, fab := range out.Fabrics {
 			fabrics = append(fabrics, fab.Name)
 		}

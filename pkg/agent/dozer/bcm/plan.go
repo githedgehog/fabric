@@ -1918,7 +1918,7 @@ func planStaticExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 
-		subnets := []string{ipNet.String()}
+		subnets := []string{ipNet.String()} //nolint:prealloc
 		subnets = append(subnets, cfg.Subnets...)
 		for _, subnet := range subnets {
 			subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
@@ -2680,7 +2680,7 @@ func planL3FlatVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc 
 
 	if agent.Spec.AttachedVPCs[vpcName] {
 		for _, route := range vpc.StaticRoutes {
-			nextHops := []dozer.SpecVRFStaticRouteNextHop{}
+			nextHops := []dozer.SpecVRFStaticRouteNextHop{} //nolint:prealloc
 			for _, nextHop := range route.NextHops {
 				nextHops = append(nextHops, dozer.SpecVRFStaticRouteNextHop{IP: nextHop})
 			}

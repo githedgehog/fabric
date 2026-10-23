@@ -108,7 +108,7 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 	if in.Details {
 		str.WriteString("\nFirmware:\n")
 
-		fwData := [][]string{}
+		fwData := [][]string{} //nolint:prealloc
 		for _, fwName := range slices.Sorted(maps.Keys(out.Firmware)) {
 			fwVersion := out.Firmware[fwName]
 			fwData = append(fwData, []string{fwName, fwVersion})
