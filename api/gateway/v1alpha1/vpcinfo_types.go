@@ -148,7 +148,7 @@ func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg
 	}
 
 	if vpc.Spec.VNI == 0 {
-		return fmt.Errorf("VPCInfo VNI must be set and non-zero") //nolint:goerr113
+		return fmt.Errorf("VPCInfo VNI must be set and non-zero") //nolint:err113
 	}
 
 	for name, subnet := range vpc.Spec.Subnets {

@@ -136,19 +136,19 @@ func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
 		found = true
 
 		if !strings.EqualFold(n.Expected.Port, actual.Port) {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", swName, port, n.Expected.Port, actual.Port)) //nolint:goerr113
+			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", swName, port, n.Expected.Port, actual.Port)) //nolint:err113
 		}
 
 		if n.Expected.Description != "" && !strings.EqualFold(n.Expected.Description, actual.Description) {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", swName, port, n.Expected.Description, actual.Description)) //nolint:goerr113
+			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", swName, port, n.Expected.Description, actual.Description)) //nolint:err113
 		}
 	}
 
 	if !found {
 		if len(unexpected) == 0 {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found", swName, port, n.Expected.Name)) //nolint:goerr113
+			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found", swName, port, n.Expected.Name)) //nolint:err113
 		} else {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found, but found: %v", swName, port, n.Expected.Name, unexpected)) //nolint:goerr113
+			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found, but found: %v", swName, port, n.Expected.Name, unexpected)) //nolint:err113
 		}
 	}
 

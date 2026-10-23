@@ -176,20 +176,20 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 			for vrf, vrfNeighbors := range neighs {
 				for name, neighbor := range vrfNeighbors {
 					if !neighbor.Expected {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", swName, vrf, name)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: unexpected neighbor %q", swName, vrf, name)) //nolint:err113
 					}
 
 					pfx := neighbor.Prefixes[ipv4UnicastAFISafi]
 					if neighbor.SessionState != v1beta1.BGPNeighborSessionStateEstablished {
 						// gNMI doesn't say whether the limit closed the session, only the switch log does
 						if pfx.Limit != 0 && !pfx.LimitWarnOnly {
-							out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established (it has a prefix limit of %d, check the switch logs to verify if it went above it)", swName, vrf, name, pfx.Limit)) //nolint:goerr113
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established (it has a prefix limit of %d, check the switch logs to verify if it went above it)", swName, vrf, name, pfx.Limit)) //nolint:err113
 						} else {
-							out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", swName, vrf, name)) //nolint:goerr113
+							out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q is not established", swName, vrf, name)) //nolint:err113
 						}
 					}
 					if pfx.LimitWarnOnly && pfx.Received > pfx.Limit {
-						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q receives %d prefixes, above its warning-only limit of %d", swName, vrf, name, pfx.Received, pfx.Limit)) //nolint:goerr113
+						out.Errs = append(out.Errs, fmt.Errorf("switch %s: vrf %s: neighbor %q receives %d prefixes, above its warning-only limit of %d", swName, vrf, name, pfx.Received, pfx.Limit)) //nolint:err113
 					}
 				}
 			}

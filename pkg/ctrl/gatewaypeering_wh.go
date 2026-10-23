@@ -39,7 +39,7 @@ func SetupGatewayPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, v
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*gwapi.GatewayPeering](w, lock)).
 		Complete(); err != nil {
-		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
+		return fmt.Errorf("creating webhook: %w", err)
 	}
 
 	return nil

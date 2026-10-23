@@ -1060,7 +1060,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			for idx, link := range cf.Links {
 				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
 				if (link.Spine.IP == "") != (link.Leaf.IP == "") {
-					return nil, errors.Errorf("fabric connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx)
 				}
 				if link.Spine.IP == "" {
 					continue
@@ -1071,15 +1071,15 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Wrapf(err, "parsing fabric connection %s link %d spine IP %s", conn.Name, idx, link.Spine.IP)
 				}
 				if spinePrefix.Bits() != 31 {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is not a /31", conn.Name, idx, spinePrefix) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is not a /31", conn.Name, idx, spinePrefix)
 				}
 
 				spineIP := spinePrefix.Addr()
 				if !fabricSubnet.Contains(spineIP) {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is not in the fabric subnet %s", conn.Name, idx, spineIP, fabricSubnet) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is not in the fabric subnet %s", conn.Name, idx, spineIP, fabricSubnet)
 				}
 				if _, exist := fabricIPs[spineIP]; exist {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is already in use", conn.Name, idx, spineIP) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is already in use", conn.Name, idx, spineIP)
 				}
 				fabricIPs[spineIP] = true
 
@@ -1088,20 +1088,20 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Wrapf(err, "parsing fabric connection %s link %d leaf IP %s", conn.Name, idx, link.Leaf.IP)
 				}
 				if leafPrefix.Bits() != 31 {
-					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is not a /31", conn.Name, idx, leafPrefix) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is not a /31", conn.Name, idx, leafPrefix)
 				}
 
 				leafIP := leafPrefix.Addr()
 				if !fabricSubnet.Contains(leafIP) {
-					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is not in the fabric subnet %s", conn.Name, idx, leafIP, fabricSubnet) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is not in the fabric subnet %s", conn.Name, idx, leafIP, fabricSubnet)
 				}
 				if _, exist := fabricIPs[leafIP]; exist {
-					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is already in use", conn.Name, idx, leafIP) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is already in use", conn.Name, idx, leafIP)
 				}
 				fabricIPs[leafIP] = true
 
 				if spinePrefix.Masked() != leafPrefix.Masked() {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s and leaf IP %s are not in the same subnet", conn.Name, idx, spineIP, leafIP) //nolint:goerr113
+					return nil, errors.Errorf("fabric connection %s link %d spine IP %s and leaf IP %s are not in the same subnet", conn.Name, idx, spineIP, leafIP)
 				}
 			}
 		} else if conn.Spec.Mesh != nil {
@@ -1109,7 +1109,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			for idx, link := range cm.Links {
 				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
 				if (link.Leaf1.IP == "") != (link.Leaf2.IP == "") {
-					return nil, errors.Errorf("mesh connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx)
 				}
 				if link.Leaf1.IP == "" {
 					continue
@@ -1120,15 +1120,15 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Wrapf(err, "parsing mesh connection %s link %d leaf1 IP %s", conn.Name, idx, link.Leaf1.IP)
 				}
 				if leaf1Prefix.Bits() != 31 {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is not a /31", conn.Name, idx, leaf1Prefix) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is not a /31", conn.Name, idx, leaf1Prefix)
 				}
 
 				leaf1IP := leaf1Prefix.Addr()
 				if !fabricSubnet.Contains(leaf1IP) {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is not in the fabric subnet %s", conn.Name, idx, leaf1IP, fabricSubnet) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is not in the fabric subnet %s", conn.Name, idx, leaf1IP, fabricSubnet)
 				}
 				if _, exist := fabricIPs[leaf1IP]; exist {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is already in use", conn.Name, idx, leaf1IP) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is already in use", conn.Name, idx, leaf1IP)
 				}
 				fabricIPs[leaf1IP] = true
 
@@ -1137,20 +1137,20 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Wrapf(err, "parsing mesh connection %s link %d leaf2 IP %s", conn.Name, idx, link.Leaf2.IP)
 				}
 				if leaf2Prefix.Bits() != 31 {
-					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is not a /31", conn.Name, idx, leaf2Prefix) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is not a /31", conn.Name, idx, leaf2Prefix)
 				}
 
 				leaf2IP := leaf2Prefix.Addr()
 				if !fabricSubnet.Contains(leaf2IP) {
-					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is not in the fabric subnet %s", conn.Name, idx, leaf2IP, fabricSubnet) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is not in the fabric subnet %s", conn.Name, idx, leaf2IP, fabricSubnet)
 				}
 				if _, exist := fabricIPs[leaf2IP]; exist {
-					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is already in use", conn.Name, idx, leaf2IP) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is already in use", conn.Name, idx, leaf2IP)
 				}
 				fabricIPs[leaf2IP] = true
 
 				if leaf1Prefix.Masked() != leaf2Prefix.Masked() {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s and leaf2 IP %s are not in the same subnet", conn.Name, idx, leaf1IP, leaf2IP) //nolint:goerr113
+					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s and leaf2 IP %s are not in the same subnet", conn.Name, idx, leaf1IP, leaf2IP)
 				}
 			}
 		} else if conn.Spec.Gateway != nil {
@@ -1158,7 +1158,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			for idx, link := range cg.Links {
 				// unlike fabric and mesh links, gateway links can't be unnumbered yet, so both IPs are required
 				if link.Switch.IP == "" || link.Gateway.IP == "" {
-					return nil, errors.Errorf("gateway connection %s link %d is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet", conn.Name, idx) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet", conn.Name, idx)
 				}
 
 				switchPrefix, err := netip.ParsePrefix(link.Switch.IP)
@@ -1166,15 +1166,15 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Wrapf(err, "parsing gateway connection %s link %d switch IP %s", conn.Name, idx, link.Switch.IP)
 				}
 				if switchPrefix.Bits() != 31 {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is not a /31", conn.Name, idx, switchPrefix) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is not a /31", conn.Name, idx, switchPrefix)
 				}
 
 				switchIP := switchPrefix.Addr()
 				if !fabricSubnet.Contains(switchIP) {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is not in the fabric subnet %s", conn.Name, idx, switchIP, fabricSubnet) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is not in the fabric subnet %s", conn.Name, idx, switchIP, fabricSubnet)
 				}
 				if _, exist := fabricIPs[switchIP]; exist {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is already in use", conn.Name, idx, switchIP) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is already in use", conn.Name, idx, switchIP)
 				}
 				fabricIPs[switchIP] = true
 
@@ -1183,20 +1183,20 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					return nil, errors.Wrapf(err, "parsing gateway connection %s link %d gateway IP %s", conn.Name, idx, link.Gateway.IP)
 				}
 				if gwPrefix.Bits() != 31 {
-					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is not a /31", conn.Name, idx, gwPrefix) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is not a /31", conn.Name, idx, gwPrefix)
 				}
 
 				gwIP := gwPrefix.Addr()
 				if !fabricSubnet.Contains(gwIP) {
-					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is not in the fabric subnet %s", conn.Name, idx, gwIP, fabricSubnet) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is not in the fabric subnet %s", conn.Name, idx, gwIP, fabricSubnet)
 				}
 				if _, exist := fabricIPs[gwIP]; exist {
-					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is already in use", conn.Name, idx, gwIP) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is already in use", conn.Name, idx, gwIP)
 				}
 				fabricIPs[gwIP] = true
 
 				if switchPrefix.Masked() != gwPrefix.Masked() {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s and gateway IP %s are not in the same subnet", conn.Name, idx, switchIP, gwIP) //nolint:goerr113
+					return nil, errors.Errorf("gateway connection %s link %d switch IP %s and gateway IP %s are not in the same subnet", conn.Name, idx, switchIP, gwIP)
 				}
 			}
 		}

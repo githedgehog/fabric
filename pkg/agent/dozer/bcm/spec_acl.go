@@ -117,7 +117,7 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 		}
 
 		var protocol oc.E_OpenconfigPacketMatchTypes_IP_PROTOCOL
-		switch value.Protocol { //nolint:exhaustive
+		switch value.Protocol {
 		case "", dozer.SpecACLEntryProtocolIP:
 			// unset — matches any IP protocol
 		case dozer.SpecACLEntryProtocolTCP:

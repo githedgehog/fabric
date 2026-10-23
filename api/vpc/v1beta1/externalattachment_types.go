@@ -403,10 +403,10 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 		if attach.Spec.Switch.IP != "" {
 			if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
-				return nil, errors.New("switch.ip is not a valid IP CIDR") //nolint: goerr113
+				return nil, errors.New("switch.ip is not a valid IP CIDR")
 			}
 			if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
-				return nil, errors.New("neighbor.ip is not a valid IP address") //nolint: goerr113
+				return nil, errors.New("neighbor.ip is not a valid IP address")
 			}
 		}
 		if limit := attach.Spec.Neighbor.PrefixLimit; limit != nil {
@@ -461,14 +461,14 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 		_, err := netip.ParseAddr(attach.Spec.Static.RemoteIP)
 		if err != nil {
-			return nil, errors.New("static.remoteIP is not a valid IP address") //nolint: goerr113
+			return nil, errors.New("static.remoteIP is not a valid IP address")
 		}
 		if (attach.Spec.Static.IP == "" && !attach.Spec.Static.Proxy) || (attach.Spec.Static.IP != "" && attach.Spec.Static.Proxy) {
 			return nil, errors.Errorf("either static.ip or static.proxy must be set for static external attachment")
 		}
 		if attach.Spec.Static.IP != "" {
 			if _, _, err := net.ParseCIDR(attach.Spec.Static.IP); err != nil {
-				return nil, errors.New("static.ip is not a valid IP CIDR") //nolint: goerr113
+				return nil, errors.New("static.ip is not a valid IP CIDR")
 			}
 		}
 		// SONiC's FRR cannot attach BFD to a static route, only to a BGP session

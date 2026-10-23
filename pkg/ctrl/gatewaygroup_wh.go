@@ -33,7 +33,7 @@ func SetupGatewayGroupWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, loc
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*gwapi.GatewayGroup](w, lock)).
 		Complete(); err != nil {
-		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
+		return fmt.Errorf("creating webhook: %w", err)
 	}
 
 	return nil

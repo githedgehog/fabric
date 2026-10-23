@@ -32,7 +32,7 @@ func SetupVPCInfoWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lo
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*gwapi.VPCInfo](w, lock)).
 		Complete(); err != nil {
-		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
+		return fmt.Errorf("creating webhook: %w", err)
 	}
 
 	return nil

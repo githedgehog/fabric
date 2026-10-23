@@ -87,10 +87,10 @@ func (svc *service) getCachedOrDownload(ctx context.Context, repo, version strin
 	}
 
 	if len(entries) == 0 {
-		return "", fmt.Errorf("empty cache dir %s", cachePath) //nolint:goerr113
+		return "", fmt.Errorf("empty cache dir %s", cachePath) //nolint:err113
 	}
 	if len(entries) > 1 {
-		return "", fmt.Errorf("multiple entries in cache dir %s", cachePath) //nolint:goerr113
+		return "", fmt.Errorf("multiple entries in cache dir %s", cachePath) //nolint:err113
 	}
 
 	return filepath.Join(cachePath, entries[0].Name()), nil

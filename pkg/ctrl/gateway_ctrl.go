@@ -81,7 +81,7 @@ type GatewayReconciler struct {
 
 func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) error {
 	if cfg == nil {
-		return fmt.Errorf("gateway controller config is nil") //nolint:goerr113
+		return fmt.Errorf("gateway controller config is nil") //nolint:err113
 	}
 	if lock == nil {
 		return fmt.Errorf("lock is nil") //nolint:err113
