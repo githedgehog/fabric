@@ -34,7 +34,7 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 		return fmt.Errorf("writing config") //nolint:err113
 	}
 
-	config, err := config.Load(cfgFile)
+	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return fmt.Errorf("loading configuration") //nolint:err113
 	}
@@ -54,7 +54,7 @@ func (s *Server) startCoreDHCP(ctx context.Context) error {
 
 	slog.Info("Starting DHCP server", "iface", s.Config.ListenInterface)
 
-	srv, err := server.Start(config)
+	srv, err := server.Start(cfg)
 	if err != nil {
 		return fmt.Errorf("starting coredhcp") //nolint:err113
 	}

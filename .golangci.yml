@@ -1,18 +1,18 @@
 version: "2"
 
 # Migrated from golangci-lint v1.64.8 keeping the v1 coverage. Everything the upgraded or new checks report on the
-# current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0):
+# current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0 on Linux):
 #
-#   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
+#   1. staticcheck QF* quickfix checks (new in v2): 95 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
-#   3. nolintlint require-explanation: 545 directives without explanation
-#   4. modernize newexpr (525, mostly pointer.To) and embedlit (390, the promoted fields in composite literals
+#   3. nolintlint require-explanation: 501 directives without explanation
+#   4. modernize newexpr (520, mostly pointer.To) and embedlit (389, the promoted fields in composite literals
 #      allowed since Go 1.27), auto-fixable with `just lint-fix`
-#   5. Linters with issues on the current code: intrange (5), forcetypeassert (28), godoclint (84), perfsprint (190),
+#   5. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195),
 #      forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   6. goconst detection in function call arguments (471 issues) and composite literals (1522 issues, mostly the
+#   6. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
-#   7. More revive rules (from kubebuilder): unused-parameter (32, mostly to be renamed to _), import-shadowing (1)
+#   7. revive unused-parameter rule (from kubebuilder): 32 issues, mostly to be renamed to _
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
 # wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
@@ -71,6 +71,7 @@ linters:
     - gosec
     - iface
     - importas
+    - intrange
     - iotamixing
     - loggercheck
     - makezero
@@ -111,7 +112,7 @@ linters:
         - mapliteral # renamed from map in v2
     goconst:
       exclude-types:
-        # TODO evaluate detection in function call arguments (v1 and v2 default to skip it): 471 issues
+        # TODO evaluate detection in function call arguments (v1 and v2 default to skip it): 470 issues
         - Call
         # TODO evaluate detection in composite literals added in goconst v1.11.0 (v1 had v1.7.1): 1522 issues, mostly
         # the port names and speeds in the switch profiles, so it may be too noisy
@@ -137,9 +138,9 @@ linters:
         - unusedmethod
     modernize:
       disable:
-        # TODO enable: 525 issues, mostly pointer.To(x) that can be new(x)
+        # TODO enable: 520 issues, mostly pointer.To(x) that can be new(x)
         - newexpr
-        # TODO enable: 390 issues, the promoted fields in composite literals allowed since Go 1.27
+        # TODO enable: 389 issues, the promoted fields in composite literals allowed since Go 1.27
         - embedlit
         # Not planned: against the K8s API conventions that use omitempty for the optional fields (disabled by
         # controller-runtime and kubebuilder as well)
@@ -234,6 +235,7 @@ linters:
         - name: constant-logical-expr
         - name: empty-block
         - name: comment-spacings
+        - name: import-shadowing
     sloglint:
       # key-value pairs only, no slog.Attr, as it's what's used everywhere
       kv-only: true
@@ -242,7 +244,7 @@ linters:
       # ST1020, ST1021 and ST1022 (the ones about comments are still excluded by the comments preset)
       checks:
         - all
-        # TODO enable quickfix checks (new in v2): 84 issues, QF1008 x40, QF1012 x32, QF1003 x6, QF1001 x6
+        # TODO enable quickfix checks (new in v2): 95 issues, QF1012 x43, QF1008 x40, QF1003 x6, QF1001 x6
         - -QF*
 
   exclusions:
@@ -250,14 +252,14 @@ linters:
     generated: lax
     # Default exclusions in v1 (exclude-use-default: true)
     presets:
-      # TODO enable: 241 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
+      # TODO enable: 240 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
       # (also revive exported and package-comments rules that aren't enabled)
       - comments
       # Not planned: gosec G204 subprocess launched with variable x9 and G304 file inclusion via variable x20 as
       # running the system commands and reading the own config and cache files is what the agent, installer and
       # boot server do (also G103 unsafe calls, no issues)
       - common-false-positives
-      # TODO enable: 21 issues, errcheck on Close, Flush, os.Remove(All), fmt.Print*, os.(Un)Setenv and std streams
+      # TODO enable: 22 issues, errcheck on Close, Flush, os.Remove(All), fmt.Print*, os.(Un)Setenv and std streams
       - std-error-handling
     paths:
       # Not planned: third-party code
