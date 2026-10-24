@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -517,6 +518,14 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 		switch {
 		case gw.Spec.Driver == gwapi.GatewayDriverDPDK:
 			val += "=pci@" + iface.PCI
+			// The DPDK driver has nowhere else to get the MTU: the kernel driver's comes from
+			// the init container's `ip l set mtu`, which DPDK ports never see. Without it they
+			// run at 1500, and on a 9100 fabric every full-size VXLAN packet is dropped while
+			// pings and handshakes pass. A slash, because the dataplane splits --interface on
+			// commas.
+			if iface.MTU > 0 {
+				val += fmt.Sprintf("/mtu=%d", iface.MTU)
+			}
 		case iface.Kernel != "":
 			val += "=kernel@" + iface.Kernel
 		}
@@ -524,6 +533,27 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 	}
 
 	return append(args, "--driver", string(gw.Spec.Driver))
+}
+
+// The hugepages a DPDK dataplane asks for. Placeholder sizing, from a VLAB gateway with one worker
+// and two ports; the dataplane's init reports what it needs.
+var (
+	dataplaneHugepages = resource.MustParse("1280Mi")
+	dataplaneMemory    = resource.MustParse("2Gi")
+)
+
+// dataplaneResources gives a DPDK dataplane the hugepages its EAL allocates from. Without a
+// request, the pod's hugetlb cgroup permits none, and the dataplane's init refuses to start.
+func dataplaneResources(gw *gwapi.Gateway) corev1.ResourceRequirements {
+	if gw.Spec.Driver != gwapi.GatewayDriverDPDK {
+		return corev1.ResourceRequirements{}
+	}
+	res := corev1.ResourceList{ //nolint:exhaustive // only what a DPDK dataplane needs
+		corev1.ResourceHugePagesPrefix + "2Mi": dataplaneHugepages,
+		corev1.ResourceMemory:                  dataplaneMemory,
+	}
+
+	return corev1.ResourceRequirements{Limits: res, Requests: res}
 }
 
 func entityName(gwName string, t ...string) string {
@@ -711,9 +741,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						InitContainers:                initContainers,
 						Containers: []corev1.Container{
 							{
-								Name:  "dataplane",
-								Image: r.cfg.DataplaneRef,
-								Args:  args,
+								Name:      "dataplane",
+								Image:     r.cfg.DataplaneRef,
+								Args:      args,
+								Resources: dataplaneResources(gw),
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),

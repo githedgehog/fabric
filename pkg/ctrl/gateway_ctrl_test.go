@@ -277,6 +277,18 @@ func TestDataplaneIfaceArgs(t *testing.T) {
 			want:   []string{"--interface", "port0=pci@0000:21:00.0", "--interface", "port1=pci@0000:21:00.1", "--driver", "dpdk"},
 		},
 		{
+			name:   "dpdk with mtu",
+			driver: gwapi.GatewayDriverDPDK,
+			ifaces: map[string]gwapi.GatewayInterface{"port0": {PCI: "0000:21:00.0", MTU: 9100}},
+			want:   []string{"--interface", "port0=pci@0000:21:00.0/mtu=9100", "--driver", "dpdk"},
+		},
+		{
+			name:   "kernel ignores mtu",
+			driver: gwapi.GatewayDriverKernel,
+			ifaces: map[string]gwapi.GatewayInterface{"port0": {Kernel: "eth0", MTU: 9100}},
+			want:   []string{"--interface", "port0=kernel@eth0", "--driver", "kernel"},
+		},
+		{
 			name:   "kernel",
 			driver: gwapi.GatewayDriverKernel,
 			ifaces: map[string]gwapi.GatewayInterface{"port0": {Kernel: "eth0", PCI: "0000:21:00.0"}, "eth1": {}, "eth2": {PCI: "0000:21:00.2"}},
@@ -314,4 +326,16 @@ func TestBuildGatewayAgentPeeringAnnotations(t *testing.T) {
 	require.Equal(t, peering.Spec, ag.Spec.Peerings["vpc-1--vpc-2"].PeeringSpec)
 	// only has the ones set by the peering defaulting
 	require.Nil(t, ag.Spec.Peerings["vpc-1--vpc-4"].Annotations)
+}
+
+func TestDataplaneResources(t *testing.T) {
+	dpdk := dataplaneResources(&gwapi.Gateway{Spec: gwapi.GatewaySpec{Driver: gwapi.GatewayDriverDPDK}})
+	hugepages := corev1.ResourceHugePagesPrefix + "2Mi"
+	require.Contains(t, dpdk.Requests, corev1.ResourceName(hugepages))
+	// hugepages must be requested and limited alike
+	require.Equal(t, dpdk.Requests, dpdk.Limits)
+
+	kernel := dataplaneResources(&gwapi.Gateway{Spec: gwapi.GatewaySpec{Driver: gwapi.GatewayDriverKernel}})
+	require.Empty(t, kernel.Requests)
+	require.Empty(t, kernel.Limits)
 }
