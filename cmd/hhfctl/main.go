@@ -34,7 +34,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/hhfctl"
 	"go.githedgehog.com/fabric/pkg/hhfctl/inspect"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/klog/v2"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -893,7 +892,7 @@ func main() {
 
 							var value *bool
 							if cCtx.IsSet("set") {
-								value = pointer.To(cCtx.Bool("set"))
+								value = new(cCtx.Bool("set"))
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchRoCE(ctx, name, value), "failed to set roce mode"))
@@ -962,7 +961,7 @@ Examples:
 
 							var value *bool
 							if cCtx.IsSet("set") {
-								value = pointer.To(cCtx.Bool("set"))
+								value = new(cCtx.Bool("set"))
 							}
 
 							return wrapErrWithPressToContinue(errors.Wrapf(hhfctl.SwitchECMPRoCEQPN(ctx, name, value), "failed to set ecmp roce qpn"))

@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -321,11 +320,11 @@ func ParseVPCSubnet(in string) (string, *vpcapi.VPCSubnet, error) {
 			subnet.VLAN = uint16(vlan)
 		} else if key == "isolated" || key == "i" {
 			if trueVal {
-				subnet.Isolated = pointer.To(true)
+				subnet.Isolated = new(true)
 			}
 		} else if key == "restricted" || key == "r" {
 			if trueVal {
-				subnet.Restricted = pointer.To(true)
+				subnet.Restricted = new(true)
 			}
 		} else if key == "dhcp" {
 			if trueVal {

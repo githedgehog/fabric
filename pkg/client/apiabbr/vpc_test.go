@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/client/apiabbr"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 func TestParseVPCSubnet(t *testing.T) {
@@ -65,7 +64,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -74,7 +73,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -83,7 +82,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -92,7 +91,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -101,7 +100,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -110,7 +109,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -119,7 +118,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:   "10.42.0.0/24",
 				VLAN:     1042,
-				Isolated: pointer.To(true),
+				Isolated: new(true),
 			},
 		},
 		{
@@ -152,7 +151,7 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:     "10.42.0.0/24",
 				VLAN:       1042,
-				Restricted: pointer.To(true),
+				Restricted: new(true),
 			},
 		},
 		{
@@ -161,8 +160,8 @@ func TestParseVPCSubnet(t *testing.T) {
 			expectedSubnet: &vpcapi.VPCSubnet{
 				Subnet:     "10.42.0.0/24",
 				VLAN:       1042,
-				Isolated:   pointer.To(true),
-				Restricted: pointer.To(true),
+				Isolated:   new(true),
+				Restricted: new(true),
 			},
 		},
 		{

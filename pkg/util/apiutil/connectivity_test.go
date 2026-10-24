@@ -22,7 +22,6 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -307,7 +306,7 @@ func TestIsServerReachable(t *testing.T) {
 					Spec: vpcapi.VPCSpec{
 						Subnets: map[string]*vpcapi.VPCSubnet{
 							"subnet-1": {
-								Isolated: pointer.To(true),
+								Isolated: new(true),
 							},
 							"subnet-2": {},
 						},
@@ -348,10 +347,10 @@ func TestIsServerReachable(t *testing.T) {
 						DefaultIsolated: true,
 						Subnets: map[string]*vpcapi.VPCSubnet{
 							"subnet-1": {
-								Isolated: pointer.To(false),
+								Isolated: new(false),
 							},
 							"subnet-2": {
-								Isolated: pointer.To(false),
+								Isolated: new(false),
 							},
 						},
 					},
@@ -470,7 +469,7 @@ func TestIsServerReachable(t *testing.T) {
 					Spec: vpcapi.VPCSpec{
 						Subnets: map[string]*vpcapi.VPCSubnet{
 							"subnet-1": {
-								Restricted: pointer.To(true),
+								Restricted: new(true),
 							},
 						},
 					},
@@ -510,7 +509,7 @@ func TestIsServerReachable(t *testing.T) {
 						DefaultRestricted: true,
 						Subnets: map[string]*vpcapi.VPCSubnet{
 							"subnet-1": {
-								Restricted: pointer.To(false),
+								Restricted: new(false),
 							},
 						},
 					},
@@ -880,9 +879,9 @@ func TestGetReacheableFrom(t *testing.T) {
 					Spec: vpcapi.VPCSpec{
 						Subnets: map[string]*vpcapi.VPCSubnet{
 							"subnet-1": {Subnet: "10.0.1.1/24"},
-							"subnet-2": {Subnet: "10.0.1.2/24", Restricted: pointer.To(true)},
-							"subnet-3": {Subnet: "10.0.1.3/24", Isolated: pointer.To(true)},
-							"subnet-4": {Subnet: "10.0.1.4/24", Isolated: pointer.To(true)},
+							"subnet-2": {Subnet: "10.0.1.2/24", Restricted: new(true)},
+							"subnet-3": {Subnet: "10.0.1.3/24", Isolated: new(true)},
+							"subnet-4": {Subnet: "10.0.1.4/24", Isolated: new(true)},
 						},
 						Permit: [][]string{
 							{"subnet-1", "subnet-3"},

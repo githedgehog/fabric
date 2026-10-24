@@ -25,7 +25,6 @@ import (
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
@@ -183,7 +182,7 @@ func ipInIPNS(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) e
 			}
 
 			if subnetNet.Contains(ip) {
-				res.IPv4Namespace = pointer.To(ipns.Name)
+				res.IPv4Namespace = new(ipns.Name)
 
 				vpcs := &vpcapi.VPCList{}
 				err = kube.List(ctx, vpcs, kclient.MatchingLabels{

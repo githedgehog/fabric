@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specECMPRoCEEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
@@ -23,7 +22,7 @@ var specECMPRoCEEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
 		return &oc.OpenconfigLoadshareModeExt_Loadshare{
 			RoceAttrs: &oc.OpenconfigLoadshareModeExt_Loadshare_RoceAttrs{
 				Config: &oc.OpenconfigLoadshareModeExt_Loadshare_RoceAttrs_Config{
-					Hash: pointer.To("hash"),
+					Hash: new("hash"),
 					Qpn:  value.ECMPRoCEQPN,
 				},
 			},
@@ -54,5 +53,5 @@ func unmarshalOCECMPRoCEQPNConfig(ocVal *oc.OpenconfigLoadshareModeExt_Loadshare
 		return ocVal.RoceAttrs.Config.Qpn, nil
 	}
 
-	return pointer.To(false), nil
+	return new(false), nil
 }

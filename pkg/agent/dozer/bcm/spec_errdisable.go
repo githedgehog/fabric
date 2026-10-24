@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 const errDisableLinkFlapEnabled = "on"
@@ -47,7 +46,7 @@ var specErrDisableInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecE
 		return &oc.OpenconfigErrdisableExt_ErrdisablePort_Port{
 			LinkFlap: &oc.OpenconfigErrdisableExt_ErrdisablePort_Port_LinkFlap{
 				Config: &oc.OpenconfigErrdisableExt_ErrdisablePort_Port_LinkFlap_Config{
-					ErrorDisable:     pointer.To(errDisableLinkFlapEnabled),
+					ErrorDisable:     new(errDisableLinkFlapEnabled),
 					FlapThreshold:    value.FlapThreshold,
 					SamplingInterval: value.SamplingInterval,
 					RecoveryInterval: value.RecoveryInterval,

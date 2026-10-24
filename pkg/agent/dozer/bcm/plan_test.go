@@ -26,7 +26,6 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kyaml "sigs.k8s.io/yaml"
 )
 
@@ -100,52 +99,52 @@ func TestTranslatePortNames(t *testing.T) {
 			},
 			spec: &dozer.Spec{
 				LLDPInterfaces: map[string]*dozer.SpecLLDPInterface{
-					"E1/1":   {Enabled: pointer.To(true)},
-					"E1/8/3": {Enabled: pointer.To(true)},
+					"E1/1":   {Enabled: new(true)},
+					"E1/8/3": {Enabled: new(true)},
 				},
 				PortGroups: map[string]*dozer.SpecPortGroup{
-					"1": {Speed: pointer.To("10G")},
-					"2": {Speed: pointer.To("10G")},
+					"1": {Speed: new("10G")},
+					"2": {Speed: new("10G")},
 				},
 				PortBreakouts: map[string]*dozer.SpecPortBreakout{
 					"E1/8": {Mode: "4x25G"},
 				},
 				Interfaces: map[string]*dozer.SpecInterface{
-					"E1/1":   {Enabled: pointer.To(true)},
-					"E1/8/3": {Enabled: pointer.To(true)},
+					"E1/1":   {Enabled: new(true)},
+					"E1/8/3": {Enabled: new(true)},
 				},
 				ACLInterfaces: map[string]*dozer.SpecACLInterface{
-					"E1/1":   {Ingress: pointer.To("ingress")},
-					"E1/8/3": {Ingress: pointer.To("ingress")},
+					"E1/1":   {Ingress: new("ingress")},
+					"E1/8/3": {Ingress: new("ingress")},
 				},
 				LSTInterfaces: map[string]*dozer.SpecLSTInterface{
 					"E1/1":   {Groups: []string{"group1"}},
 					"E1/8/3": {Groups: []string{"group1"}},
 				},
 				PortLocators: map[string]*dozer.SpecPortLocator{
-					"E1/1":   {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
-					"E1/8/3": {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
+					"E1/1":   {Enabled: new(true), Expire: new("2026-08-05 18:45:47")},
+					"E1/8/3": {Enabled: new(true), Expire: new("2026-08-05 18:45:47")},
 				},
 			},
 			want: &dozer.Spec{
 				LLDPInterfaces: map[string]*dozer.SpecLLDPInterface{
-					"Ethernet0":  {Enabled: pointer.To(true)},
-					"Ethernet26": {Enabled: pointer.To(true)},
+					"Ethernet0":  {Enabled: new(true)},
+					"Ethernet26": {Enabled: new(true)},
 				},
 				PortGroups: map[string]*dozer.SpecPortGroup{
-					"G1": {Speed: pointer.To("10G")},
-					"G2": {Speed: pointer.To("10G")},
+					"G1": {Speed: new("10G")},
+					"G2": {Speed: new("10G")},
 				},
 				PortBreakouts: map[string]*dozer.SpecPortBreakout{
 					"1/8": {Mode: "4x25G"},
 				},
 				Interfaces: map[string]*dozer.SpecInterface{
-					"Ethernet0":  {Enabled: pointer.To(true)},
-					"Ethernet26": {Enabled: pointer.To(true)},
+					"Ethernet0":  {Enabled: new(true)},
+					"Ethernet26": {Enabled: new(true)},
 				},
 				ACLInterfaces: map[string]*dozer.SpecACLInterface{
-					"Ethernet0":  {Ingress: pointer.To("ingress")},
-					"Ethernet26": {Ingress: pointer.To("ingress")},
+					"Ethernet0":  {Ingress: new("ingress")},
+					"Ethernet26": {Ingress: new("ingress")},
 				},
 				LSTInterfaces: map[string]*dozer.SpecLSTInterface{
 					"Ethernet0":  {Groups: []string{"group1"}},
@@ -153,8 +152,8 @@ func TestTranslatePortNames(t *testing.T) {
 				},
 				ErrDisableInterfaces: map[string]*dozer.SpecErrDisable{},
 				PortLocators: map[string]*dozer.SpecPortLocator{
-					"Ethernet0":  {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
-					"Ethernet26": {Enabled: pointer.To(true), Expire: pointer.To("2026-08-05 18:45:47")},
+					"Ethernet0":  {Enabled: new(true), Expire: new("2026-08-05 18:45:47")},
+					"Ethernet26": {Enabled: new(true), Expire: new("2026-08-05 18:45:47")},
 				},
 			},
 		},

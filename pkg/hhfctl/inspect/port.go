@@ -28,7 +28,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -271,8 +270,8 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 			continue
 		}
 
-		out.ConnectionName = pointer.To(conn.Name)
-		out.Connection = pointer.To(conn.Spec)
+		out.ConnectionName = new(conn.Name)
+		out.Connection = new(conn.Spec)
 	}
 
 	skip := false
@@ -346,7 +345,7 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 					out.AttachedVPCs[vpcName] = &vpc.Spec
 				}
 
-				out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+				out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 			}
 		} else if conn.External != nil {
 			extAttaches := &vpcapi.ExternalAttachmentList{}
@@ -357,7 +356,7 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 			}
 
 			for _, extAttach := range extAttaches.Items {
-				out.ExternalAttachments[extAttach.Name] = pointer.To(extAttach.Spec)
+				out.ExternalAttachments[extAttach.Name] = new(extAttach.Spec)
 			}
 		}
 	}

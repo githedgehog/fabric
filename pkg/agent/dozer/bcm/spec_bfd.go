@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specBFDProfilesEnforcer = &DefaultMapEnforcer[string, *dozer.SpecBFDProfile]{
@@ -28,10 +27,10 @@ var specBFDProfileEnforcer = &DefaultValueEnforcer[string, *dozer.SpecBFDProfile
 		return &oc.OpenconfigBfd_Bfd_BfdProfile{
 			Profile: map[string]*oc.OpenconfigBfd_Bfd_BfdProfile_Profile{
 				name: {
-					ProfileName: pointer.To(name),
+					ProfileName: new(name),
 					Config: &oc.OpenconfigBfd_Bfd_BfdProfile_Profile_Config{
-						Enabled:                  pointer.To(true),
-						ProfileName:              pointer.To(name),
+						Enabled:                  new(true),
+						ProfileName:              new(name),
 						PassiveMode:              value.PassiveMode,
 						DetectionMultiplier:      value.DetectionMultiplier,
 						DesiredMinimumTxInterval: value.DesiredMinimumTxInterval,

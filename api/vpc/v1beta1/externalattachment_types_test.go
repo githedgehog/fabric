@@ -17,8 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func ptr[T any](v T) *T { return &v }
-
 func l3ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
 	base := &v1beta1.ExternalAttachment{
 		ObjectMeta: kmetav1.ObjectMeta{
@@ -549,8 +547,8 @@ func TestExternalAttachmentInboundACLValidation(t *testing.T) {
 				Protocol:  v1beta1.ACLProtocolICMP,
 				SrcPrefix: v1beta1.ACLAny,
 				DstPrefix: v1beta1.ACLAny,
-				ICMPType:  ptr[uint8](8),
-				ICMPCode:  ptr[uint8](0),
+				ICMPType:  new(uint8(8)),
+				ICMPCode:  new(uint8(0)),
 			}),
 		},
 		{
@@ -662,7 +660,7 @@ func TestExternalAttachmentInboundACLValidation(t *testing.T) {
 			name: "ICMP type on TCP protocol",
 			extAtt: extAttWithACL(v1beta1.ACLStatement{
 				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
-				ICMPType: ptr[uint8](8),
+				ICMPType: new(uint8(8)),
 			}),
 			err: true,
 		},
@@ -670,7 +668,7 @@ func TestExternalAttachmentInboundACLValidation(t *testing.T) {
 			name: "ICMP code on UDP protocol",
 			extAtt: extAttWithACL(v1beta1.ACLStatement{
 				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
-				ICMPCode: ptr[uint8](0),
+				ICMPCode: new(uint8(0)),
 			}),
 			err: true,
 		},

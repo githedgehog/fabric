@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specACLsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecACL]{
@@ -59,7 +58,7 @@ var specACLBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
 	CreatePath: "/acl/acl-sets/acl-set",
 	MutateDesired: func(key string, desired *dozer.SpecACL) *dozer.SpecACL {
 		if desired != nil && desired.Description == nil {
-			desired.Description = pointer.To(key) // workaround to avoid skipping creation of the ACLs with empty description
+			desired.Description = new(key) // workaround to avoid skipping creation of the ACLs with empty description
 		}
 
 		return desired
@@ -74,10 +73,10 @@ var specACLBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecACL]{
 					Type: oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 					Name: name,
 				}: {
-					Name: pointer.To(name),
+					Name: new(name),
 					Type: oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 					Config: &oc.OpenconfigAcl_Acl_AclSets_AclSet_Config{
-						Name:        pointer.To(name),
+						Name:        new(name),
 						Type:        oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4,
 						Description: value.Description,
 					},
@@ -162,9 +161,9 @@ var specACLEntryEnforcer = &DefaultValueEnforcer[uint32, *dozer.SpecACLEntry]{
 		return &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries{
 			AclEntry: map[uint32]*oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries_AclEntry{
 				seq: {
-					SequenceId: pointer.To(seq),
+					SequenceId: new(seq),
 					Config: &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries_AclEntry_Config{
-						SequenceId:  pointer.To(seq),
+						SequenceId:  new(seq),
 						Description: value.Description,
 					},
 					Actions: &oc.OpenconfigAcl_Acl_AclSets_AclSet_AclEntries_AclEntry_Actions{
@@ -309,23 +308,23 @@ func marshalACLInterface(name string, value *dozer.SpecACLInterface, includeIngr
 	}
 
 	ifaceRef := &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef_Config{
-		Interface: pointer.To(name),
+		Interface: new(name),
 	}
 	if before, after, ok := strings.Cut(name, "."); ok {
 		idx, err := strconv.ParseUint(after, 10, 32)
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid subinterface index in ACL interface name %q", name)
 		}
-		ifaceRef.Interface = pointer.To(before)
-		ifaceRef.Subinterface = pointer.To(uint32(idx))
+		ifaceRef.Interface = new(before)
+		ifaceRef.Subinterface = new(uint32(idx))
 	}
 
 	return &oc.OpenconfigAcl_Acl_Interfaces{
 		Interface: map[string]*oc.OpenconfigAcl_Acl_Interfaces_Interface{
 			name: {
-				Id: pointer.To(name),
+				Id: new(name),
 				Config: &oc.OpenconfigAcl_Acl_Interfaces_Interface_Config{
-					Id: pointer.To(name),
+					Id: new(name),
 				},
 				InterfaceRef: &oc.OpenconfigAcl_Acl_Interfaces_Interface_InterfaceRef{
 					Config: ifaceRef,
@@ -409,15 +408,15 @@ func unmarshalOCACLs(ocVal *oc.OpenconfigAcl_Acl) (map[string]*dozer.SpecACL, er
 				if entry.Transport != nil && entry.Transport.Config != nil {
 					if entry.Transport.Config.SourcePort != nil {
 						if union, ok := entry.Transport.Config.SourcePort.(oc.UnionUint16); ok {
-							sourcePort = pointer.To(uint16(union))
+							sourcePort = new(uint16(union))
 						}
 					}
 					if entry.Transport.Config.DestinationPort != nil {
 						switch v := entry.Transport.Config.DestinationPort.(type) {
 						case oc.UnionUint16:
-							destinationPort = pointer.To(uint16(v))
+							destinationPort = new(uint16(v))
 						case oc.UnionString:
-							destinationPortRange = pointer.To(string(v))
+							destinationPortRange = new(string(v))
 						}
 					}
 					tcpFlags = unmarshalTCPFlags(entry.Transport.Config.TcpFlags)

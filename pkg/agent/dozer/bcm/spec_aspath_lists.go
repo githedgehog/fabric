@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specAsPathListsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecAsPathList]{
@@ -44,9 +43,9 @@ var specAsPathListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecAsPathList
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_AsPathSets{
 			AsPathSet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_AsPathSets_AsPathSet{
 				name: {
-					AsPathSetName: pointer.To(name),
+					AsPathSetName: new(name),
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_AsPathSets_AsPathSet_Config{
-						AsPathSetName:   pointer.To(name),
+						AsPathSetName:   new(name),
 						AsPathSetMember: memberStrs,
 						Action:          oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT,
 					},

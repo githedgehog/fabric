@@ -25,7 +25,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -148,7 +147,7 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 	}
 
 	for _, vpcAttach := range vpcAttches.Items {
-		out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+		out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 
 		vpcName, _, _ := strings.Cut(vpcAttach.Spec.Subnet, "/")
 		if _, exists := out.AttachedVPCs[vpcName]; !exists {
@@ -159,7 +158,7 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 			out.AttachedVPCs[vpcName] = &vpc.Spec
 		}
 
-		out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+		out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 	}
 
 	_, _, ports, _, err := conn.Spec.Endpoints() //nolint:dogsled
@@ -217,7 +216,7 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 		}
 
 		for _, extAttach := range extAttaches.Items {
-			out.ExternalAttachments[extAttach.Name] = pointer.To(extAttach.Spec)
+			out.ExternalAttachments[extAttach.Name] = new(extAttach.Spec)
 		}
 	}
 

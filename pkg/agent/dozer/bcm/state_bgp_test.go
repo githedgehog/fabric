@@ -22,7 +22,6 @@ import (
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 // the prefix limit is reported also when the switch returns no prefix counters, and a removed one reads 0
@@ -40,21 +39,21 @@ func TestBGPNeighborPrefixLimitState(t *testing.T) {
 	client := newGNMIMock()
 	client.root = &oc.Device{
 		SonicVrf: &oc.SonicVrf_SonicVrf{VRF: &oc.SonicVrf_SonicVrf_VRF{
-			VRF_LIST: map[string]*oc.SonicVrf_SonicVrf_VRF_VRF_LIST{"VrfEext": {VrfName: pointer.To("VrfEext")}},
+			VRF_LIST: map[string]*oc.SonicVrf_SonicVrf_VRF_VRF_LIST{"VrfEext": {VrfName: new("VrfEext")}},
 		}},
 		NetworkInstances: &oc.OpenconfigNetworkInstance_NetworkInstances{NetworkInstance: map[string]*instance{
 			"VrfEext": {
-				Name: pointer.To("VrfEext"),
+				Name: new("VrfEext"),
 				Protocols: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols{
 					Protocol: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key]*protocol{
 						{Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "bgp"}: {
 							Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
-							Name:       pointer.To("bgp"),
+							Name:       new("bgp"),
 							Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
 								Neighbors: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
 									Neighbor: map[string]*neighbor{
 										"100.1.10.6": {
-											NeighborAddress: pointer.To("100.1.10.6"),
+											NeighborAddress: new("100.1.10.6"),
 											State: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_State{
 												SessionState: oc.OpenconfigBgp_Bgp_Neighbors_Neighbor_State_SessionState_IDLE,
 											},
@@ -63,7 +62,7 @@ func TestBGPNeighborPrefixLimitState(t *testing.T) {
 													oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
 														AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
 														Ipv4Unicast: &ipv4{PrefixLimit: &limit{State: &limitState{
-															MaxPrefixes: pointer.To[uint32](3), WarningThresholdPct: pointer.To[uint8](90),
+															MaxPrefixes: new(uint32(3)), WarningThresholdPct: new(uint8(90)),
 														}}},
 													},
 												},

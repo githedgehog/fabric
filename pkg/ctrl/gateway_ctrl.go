@@ -610,8 +610,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	replaceUpdateStrategy := appv1.DaemonSetUpdateStrategy{
 		Type: appv1.RollingUpdateDaemonSetStrategyType,
 		RollingUpdate: &appv1.RollingUpdateDaemonSet{
-			MaxUnavailable: ptr.To(intstr.FromInt(1)),
-			MaxSurge:       ptr.To(intstr.FromInt(0)),
+			MaxUnavailable: new(intstr.FromInt(1)),
+			MaxSurge:       new(intstr.FromInt(0)),
 		},
 	}
 
@@ -674,8 +674,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 					Command: []string{"/bin/bash", "-c", "--"},
 					Args:    []string{iArgs.String()},
 					SecurityContext: &corev1.SecurityContext{
-						Privileged: ptr.To(true),
-						RunAsUser:  ptr.To(int64(0)),
+						Privileged: new(true),
+						RunAsUser:  new(int64(0)),
 					},
 				},
 			}
@@ -705,7 +705,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
 						HostNetwork:                   true,
 						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-						TerminationGracePeriodSeconds: ptr.To(int64(10)),
+						TerminationGracePeriodSeconds: new(int64(10)),
 						Tolerations:                   r.cfg.GatewayTolerations,
 						ServiceAccountName:            saName,
 						InitContainers:                initContainers,
@@ -715,8 +715,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								Image: r.cfg.DataplaneRef,
 								Args:  args,
 								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
 								},
 								Env: []corev1.EnvVar{
 									{
@@ -803,7 +803,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
 						HostNetwork:                   true,
 						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-						TerminationGracePeriodSeconds: ptr.To(int64(10)),
+						TerminationGracePeriodSeconds: new(int64(10)),
 						Tolerations:                   r.cfg.GatewayTolerations,
 						InitContainers: []corev1.Container{
 							// TODO remove it after frr container will take care of this
@@ -818,8 +818,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 										"rm -f /var/run/frr/*.pid /var/run/frr/*.sock /var/run/frr/*.vty /var/run/frr/*.api /var/run/frr/*.started",
 								},
 								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
 								},
 								VolumeMounts: frrVolumeMounts,
 							},
@@ -833,8 +833,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 										"ip -j -d nexthop show | jq '.[]|select(.protocol=\"zebra\")|.id' | while read -r id ; do ip nexthop del id $id ; done",
 								},
 								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
 								},
 							},
 							// it's needed to avoid issues with leftover routes on the physical interface learned from BGP
@@ -847,8 +847,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 										fmt.Sprintf("ip addr del %s dev lo || true", gw.Spec.VTEPIP),
 								},
 								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
 								},
 							},
 						},
@@ -864,8 +864,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 									"--bindir", "/bin",
 								},
 								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
 								},
 								VolumeMounts: frrVolumeMounts,
 							},
@@ -879,8 +879,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 									"--no-collector.ospf",
 								},
 								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
 								},
 								VolumeMounts: frrVolumeMounts,
 							},

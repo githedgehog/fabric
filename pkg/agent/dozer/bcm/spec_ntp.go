@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specNTPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNTP]{
@@ -51,9 +50,9 @@ var specNTPServerEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNTPServer]{
 		return &oc.OpenconfigSystem_System_Ntp_Servers{
 			Server: map[string]*oc.OpenconfigSystem_System_Ntp_Servers_Server{
 				name: {
-					Address: pointer.To(name),
+					Address: new(name),
 					Config: &oc.OpenconfigSystem_System_Ntp_Servers_Server_Config{
-						Address: pointer.To(name),
+						Address: new(name),
 						Prefer:  value.Prefer,
 					},
 				},

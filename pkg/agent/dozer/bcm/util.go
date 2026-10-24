@@ -19,7 +19,6 @@ import (
 
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *string {
@@ -37,7 +36,7 @@ func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *stri
 		speed = "2.5G"
 	}
 
-	return pointer.To(speed)
+	return new(speed)
 }
 
 func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, bool) {

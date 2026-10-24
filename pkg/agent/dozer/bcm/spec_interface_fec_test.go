@@ -19,7 +19,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 func TestSpecInterfaceEthernetFECEnforcer(t *testing.T) {
@@ -35,26 +34,26 @@ func TestSpecInterfaceEthernetFECEnforcer(t *testing.T) {
 			// Unmanaged port: no explicit FEC requested. The device reports a concrete mode
 			// (rs), but with no desired FEC the enforcer must not act (no drift).
 			name:        "no desired FEC, device reports rs",
-			actual:      &dozer.SpecInterface{FEC: pointer.To("rs")},
+			actual:      &dozer.SpecInterface{FEC: new("rs")},
 			desired:     &dozer.SpecInterface{FEC: nil},
 			wantActions: 0,
 		},
 		{
 			name:        "explicit rs desired, device unset",
 			actual:      &dozer.SpecInterface{FEC: nil},
-			desired:     &dozer.SpecInterface{FEC: pointer.To("rs")},
+			desired:     &dozer.SpecInterface{FEC: new("rs")},
 			wantActions: 1,
 		},
 		{
 			name:        "explicit rs desired, device already rs",
-			actual:      &dozer.SpecInterface{FEC: pointer.To("rs")},
-			desired:     &dozer.SpecInterface{FEC: pointer.To("rs")},
+			actual:      &dozer.SpecInterface{FEC: new("rs")},
+			desired:     &dozer.SpecInterface{FEC: new("rs")},
 			wantActions: 0,
 		},
 		{
 			name:        "explicit fc desired, device reports rs",
-			actual:      &dozer.SpecInterface{FEC: pointer.To("rs")},
-			desired:     &dozer.SpecInterface{FEC: pointer.To("fc")},
+			actual:      &dozer.SpecInterface{FEC: new("rs")},
+			desired:     &dozer.SpecInterface{FEC: new("fc")},
 			wantActions: 1,
 		},
 	} {

@@ -19,7 +19,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 const (
@@ -35,10 +34,10 @@ func rebuildSpec(trunkVLANs []string, withSub bool) *dozer.Spec {
 		Subinterfaces: map[uint32]*dozer.SpecSubinterface{0: {}},
 	}
 	vrf := &dozer.SpecVRF{
-		Enabled:    pointer.To(true),
+		Enabled:    new(true),
 		Interfaces: map[string]*dozer.SpecVRFInterface{},
 		BGP: &dozer.SpecVRFBGP{
-			AS:        pointer.To(uint32(65101)),
+			AS:        new(uint32(65101)),
 			Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 		},
 	}
@@ -49,15 +48,15 @@ func rebuildSpec(trunkVLANs []string, withSub bool) *dozer.Spec {
 	}
 	if withSub {
 		iface.Subinterfaces[2024] = &dozer.SpecSubinterface{
-			VLAN: pointer.To(uint16(2024)),
-			IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)},
+			VLAN: new(uint16(2024)),
+			IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)},
 		}
 		vrf.Interfaces[rebuildSubName] = &dozer.SpecVRFInterface{}
 		vrf.BGP.Neighbors[rebuildSubName] = &dozer.SpecVRFBGPNeighbor{
-			Enabled:  pointer.To(true),
-			PeerType: pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			Enabled:  new(true),
+			PeerType: new(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
 		}
-		spec.ACLInterfaces[rebuildSubName] = &dozer.SpecACLInterface{Ingress: pointer.To("acl-vpc-01")}
+		spec.ACLInterfaces[rebuildSubName] = &dozer.SpecACLInterface{Ingress: new("acl-vpc-01")}
 	}
 
 	return spec
@@ -165,13 +164,13 @@ func TestCalculateActionsRebuildsAllSubinterfacesOfPort(t *testing.T) {
 	const secondSubPath = "/interfaces/interface[name=" + rebuildIface + "]/subinterfaces/subinterface[index=2025]"
 	withSecond := func(spec *dozer.Spec) *dozer.Spec {
 		spec.Interfaces[rebuildIface].Subinterfaces[2025] = &dozer.SpecSubinterface{
-			VLAN: pointer.To(uint16(2025)),
-			IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)},
+			VLAN: new(uint16(2025)),
+			IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)},
 		}
 		spec.VRFs[rebuildVRF].Interfaces[secondSubName] = &dozer.SpecVRFInterface{}
 		spec.VRFs[rebuildVRF].BGP.Neighbors[secondSubName] = &dozer.SpecVRFBGPNeighbor{
-			Enabled:  pointer.To(true),
-			PeerType: pointer.To(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			Enabled:  new(true),
+			PeerType: new(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
 		}
 
 		return spec

@@ -7,8 +7,8 @@ version: "2"
 #   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
 #   3. nolintlint require-explanation: 501 directives without explanation
-#   4. modernize newexpr (520, mostly pointer.To) and embedlit (389, the promoted fields in composite literals
-#      allowed since Go 1.27), auto-fixable with `just lint-fix`
+#   4. modernize embedlit (389, the promoted fields in composite literals allowed since Go 1.27), auto-fixable with
+#      `just lint-fix`
 #   5. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195),
 #      forbidigo (9, needs settings as it forbids fmt.Print* by default)
 #   6. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
@@ -141,8 +141,6 @@ linters:
         - unusedmethod
     modernize:
       disable:
-        # TODO enable: 520 issues, mostly pointer.To(x) that can be new(x)
-        - newexpr
         # TODO enable: 389 issues, the promoted fields in composite literals allowed since Go 1.27
         - embedlit
         # Not planned: against the K8s API conventions that use omitempty for the optional fields (disabled by
