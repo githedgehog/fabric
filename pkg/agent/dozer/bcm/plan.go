@@ -1380,7 +1380,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					},
 					"20": {
 						Conditions: dozer.SpecRouteMapConditions{
-							MatchCommunityList: new(string(BGPCommListAllGwPrios)),
+							MatchCommunityList: new(BGPCommListAllGwPrios),
 						},
 						Result: dozer.SpecRouteMapResultAccept,
 					},
@@ -1514,7 +1514,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 			if attach.Neighbor.ASN != 0 {
 				neigh.RemoteAS = new(attach.Neighbor.ASN)
 			} else {
-				neigh.PeerType = new(string(dozer.SpecVRFBGPNeighborPeerTypeExternal))
+				neigh.PeerType = new(dozer.SpecVRFBGPNeighborPeerTypeExternal)
 			}
 			// leave it unset for numbered attachments so we don't touch existing neighbors
 			if unnumbered {
@@ -2965,7 +2965,7 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 		spec.VRFs[vrfName].BGP.Neighbors[targetIface] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:                   new(true),
 			Description:               new(fmt.Sprintf("HostBGP unnumbered %s", targetIface)),
-			PeerType:                  new(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			PeerType:                  new(dozer.SpecVRFBGPNeighborPeerTypeExternal),
 			ExtendedNexthop:           new(true),
 			IPv4Unicast:               new(true),
 			IPv4UnicastImportPolicies: []string{rmName},
