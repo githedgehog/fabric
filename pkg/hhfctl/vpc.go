@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"slices"
 	"strings"
 
@@ -99,7 +100,7 @@ func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) e
 			return errors.Wrap(err, "cannot marshal vpc")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil
@@ -161,7 +162,7 @@ func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) e
 			return errors.Wrap(err, "cannot marshal vpc attachment")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil
@@ -224,7 +225,7 @@ func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error
 			return errors.Wrap(err, "cannot marshal vpc peering")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil
@@ -293,7 +294,7 @@ func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) e
 			return errors.Wrap(err, "cannot marshal gateway peering")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil

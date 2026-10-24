@@ -143,7 +143,7 @@ func SwitchIP(ctx context.Context, name string) error {
 		return fmt.Errorf("switch %q has no management IP address", name) //nolint:err113
 	}
 
-	fmt.Println(sw.Spec.IP)
+	fmt.Fprintln(os.Stdout, sw.Spec.IP)
 
 	return nil
 }
