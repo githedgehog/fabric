@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   test-build:
-    runs-on: lab
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     permissions:
       contents: read
@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
         with:
           fetch-depth: 0
 
@@ -119,6 +119,9 @@ jobs:
         run: |
           echo "version=v0-${commit_sha::9}" >> "$GITHUB_OUTPUT"
           echo "ref=${commit_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup ORAS
+        uses: oras-project/setup-oras@v1
 
       - name: Build all and push temp artifacts
         run: |
@@ -240,7 +243,7 @@ jobs:
             hybrid: false
 
   vlabs:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     needs:
       - vlab
     if: ${{ always() }}
@@ -255,7 +258,7 @@ jobs:
           fi
 
   publish:
-    runs-on: lab
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     if: startsWith(github.event.ref, 'refs/tags/v') && github.event_name == 'push'
     needs:
       - test-build
@@ -267,7 +270,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
         with:
           fetch-depth: 0
 
@@ -284,6 +287,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup ORAS
+        uses: oras-project/setup-oras@v1
+
       - name: Publish Images, Helm charts and Bins on release
         run: |
           just --timestamp oci_repo=ghcr.io push push-multi
@@ -298,7 +304,7 @@ jobs:
       # Bump fabric in the fabricator repository
 
       - name: Checkout fabricator repository
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
         with:
           repository: githedgehog/fabricator
           path: fab-repo
@@ -345,7 +351,7 @@ jobs:
       # Bump fabric docs in the docs repository
 
       - name: Checkout docs repository
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
         with:
           repository: githedgehog/docs
           path: docs-repo
