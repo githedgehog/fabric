@@ -132,10 +132,8 @@ func (d *Default) Enforce(ctx context.Context, kube kclient.Client, cfg *meta.Fa
 
 	for _, defaultSp := range d.store {
 		sp := &wiringapi.SwitchProfile{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      defaultSp.Name,
-				Namespace: defaultSp.Namespace,
-			},
+			Name:      defaultSp.Name,
+			Namespace: defaultSp.Namespace,
 		}
 		var err error
 		var res ctrlutil.OperationResult

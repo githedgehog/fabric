@@ -26,10 +26,8 @@ func TestHydrationValidation(t *testing.T) {
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	require.NoError(t, gwapi.AddToScheme(scheme))
 	leafSwitch := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "leaf1",
-			Namespace: "default",
-		},
+		Name:      "leaf1",
+		Namespace: "default",
 		Spec: wiringapi.SwitchSpec{
 			Role:       wiringapi.SwitchRoleServerLeaf,
 			Redundancy: wiringapi.SwitchRedundancy{},
@@ -49,10 +47,8 @@ func TestHydrationValidation(t *testing.T) {
 		return leaf
 	}
 	spineSwitch := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "spine1",
-			Namespace: "default",
-		},
+		Name:      "spine1",
+		Namespace: "default",
 		Spec: wiringapi.SwitchSpec{
 			Role:       wiringapi.SwitchRoleSpine,
 			Redundancy: wiringapi.SwitchRedundancy{},
@@ -71,10 +67,8 @@ func TestHydrationValidation(t *testing.T) {
 		return spine
 	}
 	mclagSwitch := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "leaf1",
-			Namespace: "default",
-		},
+		Name:      "leaf1",
+		Namespace: "default",
 		Spec: wiringapi.SwitchSpec{
 			Role: wiringapi.SwitchRoleServerLeaf,
 			Redundancy: wiringapi.SwitchRedundancy{
@@ -104,11 +98,11 @@ func TestHydrationValidation(t *testing.T) {
 	}
 
 	defaultFabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.DefaultFabricSpec(fabricCfg),
+		Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.DefaultFabricSpec(fabricCfg),
 	}
 	backendFabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: "default"},
+		Name: "backend", Namespace: "default",
 		Spec: wiringapi.FabricSpec{
 			LeafASNStart: 64101,
 			LeafASNEnd:   64199,
@@ -124,7 +118,7 @@ func TestHydrationValidation(t *testing.T) {
 	// otherLeaf collides with nothing on leafSwitch but the boot serial and MAC
 	otherLeaf := func(serial, mac string) *wiringapi.Switch {
 		return &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf5", Namespace: "default"},
+			Name: "leaf5", Namespace: "default",
 			Spec: wiringapi.SwitchSpec{
 				Role:       wiringapi.SwitchRoleServerLeaf,
 				ASN:        65102,
@@ -158,10 +152,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "VTEPCollision",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
+					Name:      "leaf5",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role:       wiringapi.SwitchRoleServerLeaf,
 						Redundancy: wiringapi.SwitchRedundancy{},
@@ -179,10 +171,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "IPCollision",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
+					Name:      "leaf5",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role:       wiringapi.SwitchRoleServerLeaf,
 						Redundancy: wiringapi.SwitchRedundancy{},
@@ -200,10 +190,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "ProtocolIPCollision",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
+					Name:      "leaf5",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role:       wiringapi.SwitchRoleServerLeaf,
 						Redundancy: wiringapi.SwitchRedundancy{},
@@ -221,10 +209,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "ASNCollision",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
+					Name:      "leaf5",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role:       wiringapi.SwitchRoleServerLeaf,
 						Redundancy: wiringapi.SwitchRedundancy{},
@@ -242,10 +228,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "noCollision",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
+					Name:      "leaf5",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role:       wiringapi.SwitchRoleServerLeaf,
 						Redundancy: wiringapi.SwitchRedundancy{},
@@ -306,10 +290,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "spineCorrectASN",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "spine2",
-						Namespace: "default",
-					},
+					Name:      "spine2",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role:       wiringapi.SwitchRoleSpine,
 						Redundancy: wiringapi.SwitchRedundancy{},
@@ -333,10 +315,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "VTEPCollisionWithGateway",
 			objects: []kclient.Object{
 				&gwapi.Gateway{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "gw-1",
-						Namespace: "default",
-					},
+					Name:      "gw-1",
+					Namespace: "default",
 					Spec: gwapi.GatewaySpec{
 						ProtocolIP: "172.30.8.45/32",
 						VTEPIP:     "172.30.12.0/32",
@@ -350,10 +330,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "ProtocolIPCollisionWithGateway",
 			objects: []kclient.Object{
 				&gwapi.Gateway{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "gw-1",
-						Namespace: "default",
-					},
+					Name:      "gw-1",
+					Namespace: "default",
 					Spec: gwapi.GatewaySpec{
 						ProtocolIP: "172.30.8.2/32",
 						VTEPIP:     "172.30.12.45/32",
@@ -367,10 +345,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "noCollisionWithGateway",
 			objects: []kclient.Object{
 				&gwapi.Gateway{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "gw-1",
-						Namespace: "default",
-					},
+					Name:      "gw-1",
+					Namespace: "default",
 					Spec: gwapi.GatewaySpec{
 						ProtocolIP: "172.30.8.45/32",
 						VTEPIP:     "172.30.12.45/32",
@@ -384,10 +360,8 @@ func TestHydrationValidation(t *testing.T) {
 			name: "mclagPeerAllGood",
 			objects: []kclient.Object{
 				&wiringapi.Switch{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Name:      "leaf5",
-						Namespace: "default",
-					},
+					Name:      "leaf5",
+					Namespace: "default",
 					Spec: wiringapi.SwitchSpec{
 						Role: wiringapi.SwitchRoleServerLeaf,
 						Redundancy: wiringapi.SwitchRedundancy{
@@ -543,8 +517,8 @@ func TestSwitchDefaultPortLocators(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			sw := &wiringapi.Switch{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf1", Namespace: "default"},
-				Spec:       wiringapi.SwitchSpec{PortLocators: test.in},
+				Name: "leaf1", Namespace: "default",
+				Spec: wiringapi.SwitchSpec{PortLocators: test.in},
 			}
 			sw.Default()
 

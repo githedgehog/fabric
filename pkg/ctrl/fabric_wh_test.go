@@ -90,20 +90,20 @@ func TestFabricDeleteGuard(t *testing.T) {
 	inFabric := func(fabricName string) []kclient.Object {
 		return []kclient.Object{
 			&wiringapi.Switch{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
-				Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: fabricName}},
+				Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
+				Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: fabricName}},
 			},
 			&vpcapi.VPC{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-01", Namespace: kmetav1.NamespaceDefault},
-				Spec:       vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Fabric: fabricName}},
+				Name: "vpc-01", Namespace: kmetav1.NamespaceDefault,
+				Spec: vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Fabric: fabricName}},
 			},
 			&gwapi.GatewayGroup{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "gwg-01", Namespace: kmetav1.NamespaceDefault},
-				Spec:       gwapi.GatewayGroupSpec{Topology: gwapi.GatewayGroupTopology{Fabric: fabricName}},
+				Name: "gwg-01", Namespace: kmetav1.NamespaceDefault,
+				Spec: gwapi.GatewayGroupSpec{Topology: gwapi.GatewayGroupTopology{Fabric: fabricName}},
 			},
 			&gwapi.VPCInfo{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "vpcinfo-01", Namespace: kmetav1.NamespaceDefault},
-				Spec:       gwapi.VPCInfoSpec{Topology: gwapi.VPCInfoTopology{Fabric: fabricName}},
+				Name: "vpcinfo-01", Namespace: kmetav1.NamespaceDefault,
+				Spec: gwapi.VPCInfoSpec{Topology: gwapi.VPCInfoTopology{Fabric: fabricName}},
 			},
 		}
 	}
@@ -131,7 +131,7 @@ func TestFabricDeleteGuard(t *testing.T) {
 				Build()}
 
 			_, err := w.ValidateDelete(t.Context(), &wiringapi.Fabric{
-				ObjectMeta: kmetav1.ObjectMeta{Name: tt.fabric, Namespace: kmetav1.NamespaceDefault},
+				Name: tt.fabric, Namespace: kmetav1.NamespaceDefault,
 			})
 
 			if tt.err == "" {
@@ -147,7 +147,7 @@ func TestFabricDeleteGuard(t *testing.T) {
 func TestFabricUpdateASNs(t *testing.T) {
 	fabricGen := func(leafASNStart, leafASNEnd, spineASN, gatewayASN uint32) *wiringapi.Fabric {
 		return &wiringapi.Fabric{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
+			Name: "backend", Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.FabricSpec{
 				LeafASNStart: leafASNStart,
 				LeafASNEnd:   leafASNEnd,

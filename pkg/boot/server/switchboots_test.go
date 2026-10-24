@@ -35,8 +35,8 @@ func TestFindSwitchBoot(t *testing.T) {
 
 	sb := func(name, serial, mac string) *fcintapi.SwitchBoot {
 		return &fcintapi.SwitchBoot{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       fcintapi.SwitchBootSpec{Serial: serial, MAC: mac},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: fcintapi.SwitchBootSpec{Serial: serial, MAC: mac},
 		}
 	}
 
@@ -94,7 +94,7 @@ func TestWriteBootAttempt(t *testing.T) {
 	conflicts := 1
 	kube := fake.NewClientBuilder().WithScheme(scheme).
 		WithStatusSubresource(&fcintapi.SwitchBoot{}).
-		WithObjects(&fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace}}).
+		WithObjects(&fcintapi.SwitchBoot{Name: key.Name, Namespace: key.Namespace}).
 		WithInterceptorFuncs(interceptor.Funcs{
 			// as if the controller updated the spec in the meantime
 			SubResourceUpdate: func(ctx context.Context, c kclient.Client, sub string, obj kclient.Object, opts ...kclient.SubResourceUpdateOption) error {
@@ -182,7 +182,7 @@ func TestWriteBootAttemptRecreated(t *testing.T) {
 
 	key := kclient.ObjectKey{Namespace: kmetav1.NamespaceDefault, Name: "leaf-1"}
 	newSB := func(uid ktypes.UID) *fcintapi.SwitchBoot {
-		return &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace, UID: uid}}
+		return &fcintapi.SwitchBoot{Name: key.Name, Namespace: key.Namespace, UID: uid}
 	}
 	recreated := false
 	kube := fake.NewClientBuilder().WithScheme(scheme).
@@ -231,7 +231,7 @@ func TestRecordBootAttemptQueueFull(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, fcintapi.AddToScheme(scheme))
 
-	sb := &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}}
+	sb := &fcintapi.SwitchBoot{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(sb).WithObjects(sb).Build()
 	svc := &service{kube: kube, bootAttempts: make(chan func(), 1)}
 
@@ -260,7 +260,7 @@ func processBootAttempts(svc *service) {
 
 func TestSwitchBootSpecChanged(t *testing.T) {
 	sb := func(generation int64) *fcintapi.SwitchBoot {
-		return &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Generation: generation}}
+		return &fcintapi.SwitchBoot{Generation: generation}
 	}
 
 	require.False(t, switchBootSpecChanged(sb(1), sb(1)))

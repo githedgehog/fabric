@@ -9,7 +9,6 @@ import (
 	"slices"
 
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -20,7 +19,7 @@ import (
 func switchRequests(namespace string, switches map[string]bool) []reconcile.Request {
 	res := make([]reconcile.Request, 0, len(switches))
 	for _, name := range slices.Sorted(maps.Keys(switches)) {
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{Namespace: namespace, Name: name}})
+		res = append(res, reconcile.Request{Namespace: namespace, Name: name})
 	}
 
 	return res
@@ -49,10 +48,10 @@ func enqueueSwitchesByProfile(kube kclient.Reader, lock *Lock) handler.MapFunc {
 				continue
 			}
 
-			res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+			res = append(res, reconcile.Request{
 				Namespace: sw.Namespace,
 				Name:      sw.Name,
-			}})
+			})
 		}
 
 		return res

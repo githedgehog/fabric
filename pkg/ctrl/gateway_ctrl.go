@@ -26,7 +26,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -140,10 +139,10 @@ func (r *GatewayReconciler) enqueueGateways(ctx context.Context, fabric string, 
 			continue
 		}
 
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+		res = append(res, reconcile.Request{
 			Namespace: gw.Namespace,
 			Name:      gw.Name,
-		}})
+		})
 	}
 
 	return res
@@ -203,7 +202,7 @@ func (r *GatewayReconciler) enqueueForDeployed(_ context.Context, obj kclient.Ob
 		return nil
 	}
 
-	return []reconcile.Request{{NamespacedName: ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}}}
+	return []reconcile.Request{{Namespace: kmetav1.NamespaceDefault, Name: name}}
 }
 
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
@@ -273,7 +272,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	// we intentionally manage gateway agent in the default namespace
-	gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
+	gwAg := &gwintapi.GatewayAgent{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
 		if err := setOwner(gw, gwAg, r.Scheme()); err != nil {
 			return err
@@ -299,9 +298,9 @@ var ErrRetryLater = fmt.Errorf("retry later")
 // namespace is garbage collected with it
 func (r *GatewayReconciler) cleanupGateway(ctx context.Context, gw *gwapi.Gateway) error {
 	for _, obj := range []kclient.Object{
-		&appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "dataplane")}},
-		&appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "frr")}},
-		&corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)}},
+		&appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "dataplane")},
+		&appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "frr")},
+		&corev1.ServiceAccount{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)},
 	} {
 		if err := r.Delete(ctx, obj); kclient.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting %T %s: %w", obj, obj.GetName(), err)
@@ -430,7 +429,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 	}
 
 	gwAg := &gwintapi.GatewayAgent{
-		ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name},
+		Namespace: kmetav1.NamespaceDefault, Name: gw.Name,
 		Spec: gwintapi.GatewayAgentSpec{
 			AgentVersion: "",
 			Gateway:      gw.Spec,
@@ -538,10 +537,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	saName := entityName(gw.Name)
 
 	{
-		sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{
+		sa := &corev1.ServiceAccount{
 			Namespace: r.cfg.GatewayNamespace,
 			Name:      saName,
-		}}
+		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error {
 			setGatewayLabel(sa, gw)
 
@@ -550,10 +549,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			return fmt.Errorf("creating service account: %w", err)
 		}
 
-		role := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{
+		role := &rbacv1.Role{
 			Namespace: kmetav1.NamespaceDefault,
 			Name:      saName,
-		}}
+		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
 			if err := setOwner(gw, role, r.Scheme()); err != nil {
 				return err
@@ -579,10 +578,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			return fmt.Errorf("creating role: %w", err)
 		}
 
-		roleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{
+		roleBinding := &rbacv1.RoleBinding{
 			Namespace: kmetav1.NamespaceDefault,
 			Name:      saName,
-		}}
+		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
 			if err := setOwner(gw, roleBinding, r.Scheme()); err != nil {
 				return err
@@ -617,21 +616,17 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 	dataplaneSocketVolume := corev1.Volume{
 		Name: dataplaneRunVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			HostPath: &corev1.HostPathVolumeSource{
-				Path: dataplaneRunHostPath,
-				Type: ptr.To(corev1.HostPathDirectoryOrCreate),
-			},
+		HostPath: &corev1.HostPathVolumeSource{
+			Path: dataplaneRunHostPath,
+			Type: ptr.To(corev1.HostPathDirectoryOrCreate),
 		},
 	}
 
 	frrSocketVolume := corev1.Volume{
 		Name: frrRunVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			HostPath: &corev1.HostPathVolumeSource{
-				Path: frrRunHostPath,
-				Type: ptr.To(corev1.HostPathDirectoryOrCreate),
-			},
+		HostPath: &corev1.HostPathVolumeSource{
+			Path: frrRunHostPath,
+			Type: ptr.To(corev1.HostPathDirectoryOrCreate),
 		},
 	}
 
@@ -681,10 +676,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			}
 		}
 
-		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
+		dpDS := &appv1.DaemonSet{
 			Namespace: r.cfg.GatewayNamespace,
 			Name:      entityName(gw.Name, "dataplane"),
-		}}
+		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dpDS, func() error {
 			// only on the daemonset itself, its selector is immutable
 			setGatewayLabel(dpDS, gw)
@@ -698,9 +693,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 					MatchLabels: labels,
 				},
 				Template: corev1.PodTemplateSpec{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Labels: labels,
-					},
+					Labels: labels,
 					Spec: corev1.PodSpec{
 						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
 						HostNetwork:                   true,
@@ -746,10 +739,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 							{
 								Name: "dataplane-tmp",
-								VolumeSource: corev1.VolumeSource{
-									// TODO consider memory medium
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
+								// TODO consider memory medium
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -779,10 +770,10 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	}
 
 	{
-		frrDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
+		frrDS := &appv1.DaemonSet{
 			Namespace: r.cfg.GatewayNamespace,
 			Name:      entityName(gw.Name, "frr"),
-		}}
+		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
 			// only on the daemonset itself, its selector is immutable
 			setGatewayLabel(frrDS, gw)
@@ -796,9 +787,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 					MatchLabels: labels,
 				},
 				Template: corev1.PodTemplateSpec{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Labels: labels,
-					},
+					Labels: labels,
 					Spec: corev1.PodSpec{
 						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
 						HostNetwork:                   true,
@@ -889,18 +878,14 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 							frrSocketVolume,
 							{
 								Name: frrTmpVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									// TODO consider memory medium
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
+								// TODO consider memory medium
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 							{
 								Name: frrRootRunVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									HostPath: &corev1.HostPathVolumeSource{
-										Path: "/run/hedgehog/frr-root",
-										Type: ptr.To(corev1.HostPathDirectoryOrCreate),
-									},
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/run/hedgehog/frr-root",
+									Type: ptr.To(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},

@@ -35,10 +35,8 @@ type ExternalCreateOptions struct {
 
 func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreateOptions) error {
 	ext := &vpcapi.External{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      options.Name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      options.Name,
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: vpcapi.ExternalSpec{
 			IPv4Namespace:     options.IPv4Namespace,
 			InboundCommunity:  options.InboundCommunity,
@@ -94,10 +92,8 @@ type ExternalPeeringOptions struct {
 
 func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeringOptions) error {
 	extPeering := &vpcapi.ExternalPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", options.VPC, options.External),
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      fmt.Sprintf("%s-%s", options.VPC, options.External),
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: vpcapi.ExternalPeeringSpec{
 			Permit: vpcapi.ExternalPeeringSpecPermit{
 				VPC: vpcapi.ExternalPeeringSpecVPC{

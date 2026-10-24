@@ -58,19 +58,19 @@ func TestSwitchFilterSelection(t *testing.T) {
 	objs := []kclient.Object{
 		profile,
 		&wiringapi.Fabric{
-			ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}}},
+			Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}}},
 		},
 		&wiringapi.Fabric{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{"d1": {}, "d2": {}}},
+			Name: "backend", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{"d1": {}, "d2": {}}},
 		},
 	}
 
 	// switch and agent with the same labels, as the agent controller keeps them
 	addSwitch := func(name, fabric, domain string, withAgent bool) {
 		sw := &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.SwitchSpec{
 				Profile:  meta.SwitchProfileVS,
 				Topology: wiringapi.SwitchTopology{Fabric: fabric, Domains: []string{domain}},
@@ -81,7 +81,7 @@ func TestSwitchFilterSelection(t *testing.T) {
 
 		if withAgent {
 			objs = append(objs, &agentapi.Agent{
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault, Labels: sw.Labels},
+				Name: name, Namespace: kmetav1.NamespaceDefault, Labels: sw.Labels,
 			})
 		}
 	}
@@ -92,7 +92,7 @@ func TestSwitchFilterSelection(t *testing.T) {
 	addSwitch("leaf-3", "backend", "d2", true)
 
 	conn := &wiringapi.Connection{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "spine-1--fabric--leaf-1", Namespace: kmetav1.NamespaceDefault},
+		Name: "spine-1--fabric--leaf-1", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.ConnectionSpec{
 			Fabric: &wiringapi.ConnFabric{
 				Links: []wiringapi.FabricLink{{
@@ -158,8 +158,8 @@ func TestSwitchFilterMissingAgent(t *testing.T) {
 	require.NoError(t, agentapi.AddToScheme(scheme))
 
 	sw := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+		Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
 	}
 	sw.Default()
 
@@ -180,14 +180,14 @@ func TestSwitchFilterNoFabricObject(t *testing.T) {
 	require.NoError(t, agentapi.AddToScheme(scheme))
 
 	sw := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+		Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
 	}
 	sw.Default()
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		sw,
-		&agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault, Labels: sw.Labels}},
+		&agentapi.Agent{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault, Labels: sw.Labels},
 	).Build()
 
 	neighbors, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{}, apiutil.LLDPNeighborsOpts{})

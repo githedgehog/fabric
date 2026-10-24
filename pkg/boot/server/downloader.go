@@ -123,9 +123,7 @@ func (svc *service) downloadFiles(ctx context.Context, cacheDir, cacheName, ref,
 	repo.Client = svc.orasClient
 
 	_, err = oras.Copy(ctx, repo, tag, fs, "", oras.CopyOptions{
-		CopyGraphOptions: oras.CopyGraphOptions{
-			Concurrency: 1,
-		},
+		Concurrency: 1,
 	})
 	if err != nil {
 		return fmt.Errorf("downloading files from %s:%s: %w", ref, tag, err)

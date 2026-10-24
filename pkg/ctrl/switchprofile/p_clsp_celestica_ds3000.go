@@ -6,13 +6,10 @@ package switchprofile
 import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var CLSPCelesticaDS3000 = wiringapi.SwitchProfile{
-	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "celestica-ds3000-clsp",
-	},
+	Name: "celestica-ds3000-clsp",
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Celestica DS3000",
 		OtherNames:    []string{"Celestica Seastone2"},

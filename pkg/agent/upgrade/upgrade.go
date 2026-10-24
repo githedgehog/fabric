@@ -116,9 +116,7 @@ func UpgradeBin(ctx context.Context, source, version, ca, username, password, ta
 	}
 
 	_, err = oras.Copy(ctx, repo, version, fs, version, oras.CopyOptions{
-		CopyGraphOptions: oras.CopyGraphOptions{
-			Concurrency: 2,
-		},
+		Concurrency: 2,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to download new %s bin %s from %s: %w", name, version, source, errors.Join(ErrAgentUpgradeDownloadFailed, err))

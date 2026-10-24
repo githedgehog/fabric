@@ -279,39 +279,39 @@ func (d testData) toObjects(t *testing.T, logType string, logObj bool) []kclient
 		switch kind {
 		case "srv":
 			objs = append(objs, &wiringapi.Server{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindServer},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v.(wiringapi.ServerSpec),
+				APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindServer,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: v.(wiringapi.ServerSpec),
 			})
 		case "conn":
 			objs = append(objs, &wiringapi.Connection{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindConnection},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v.(wiringapi.ConnectionSpec),
+				APIVersion: wiringapi.GroupVersion.String(), Kind: wiringapi.KindConnection,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: v.(wiringapi.ConnectionSpec),
 			})
 		case "vpc":
 			objs = append(objs, &vpcapi.VPC{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v.(vpcapi.VPCSpec),
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: v.(vpcapi.VPCSpec),
 			})
 		case "vpcattach":
 			objs = append(objs, &vpcapi.VPCAttachment{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v.(vpcapi.VPCAttachmentSpec),
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: v.(vpcapi.VPCAttachmentSpec),
 			})
 		case "vpcpeer":
 			objs = append(objs, &vpcapi.VPCPeering{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v.(vpcapi.VPCPeeringSpec),
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: v.(vpcapi.VPCPeeringSpec),
 			})
 		case "extpeer":
 			objs = append(objs, &vpcapi.ExternalPeering{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v.(vpcapi.ExternalPeeringSpec),
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: v.(vpcapi.ExternalPeeringSpec),
 			})
 		default:
 			t.Fatalf("unknown kind for %s object: %s", logType, k)

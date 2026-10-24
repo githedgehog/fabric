@@ -18,10 +18,10 @@ import (
 )
 
 func TestConnectionSwitches(t *testing.T) {
-	sw := &wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault}}
+	sw := &wiringapi.Switch{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault}
 	unbundled := func(name, leaf string) *wiringapi.Connection {
 		return &wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{Unbundled: &wiringapi.ConnUnbundled{
 				Link: wiringapi.ServerToSwitchLink{
 					Server: wiringapi.NewBasePortName("server-01/enp2s1"),
@@ -53,8 +53,8 @@ func TestVPCAndExternalDomain(t *testing.T) {
 
 	kubeWith := func(domains ...string) kclient.Reader {
 		fabric := &wiringapi.Fabric{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{}},
+			Name: "default", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{}},
 		}
 		for _, domain := range domains {
 			fabric.Spec.Domains[domain] = wiringapi.FabricDomainSpec{}
@@ -65,8 +65,8 @@ func TestVPCAndExternalDomain(t *testing.T) {
 			WithObjects(
 				ipv4NamespaceObj(),
 				defaulted(&wiringapi.VLANNamespace{
-					ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-					Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
+					Name: "default", Namespace: kmetav1.NamespaceDefault,
+					Spec: wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
 				}),
 				fabric,
 			).
@@ -129,11 +129,11 @@ func TestVPCDomains(t *testing.T) {
 		WithObjects(
 			ipv4NamespaceObj(),
 			defaulted(&wiringapi.VLANNamespace{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-				Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
+				Name: "default", Namespace: kmetav1.NamespaceDefault,
+				Spec: wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
 			}),
 			&wiringapi.Fabric{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
+				Name: "default", Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
 					"plane-a": {}, "plane-b": {},
 				}},
@@ -179,7 +179,7 @@ func TestPeeringDomains(t *testing.T) {
 	}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&wiringapi.Fabric{
-			ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
+			Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
 				"plane-1": {}, "plane-2": {},
 			}},
@@ -199,16 +199,16 @@ func TestPeeringDomains(t *testing.T) {
 		extGen("ext-1", func(ext *v1beta1.External) { ext.Spec.Topology.Domain = "plane-1" }),
 		ipv4NamespaceObj(),
 		defaulted(&wiringapi.VLANNamespace{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
+			Name: "default", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.VLANNamespaceSpec{Ranges: []meta.VLANRange{{From: 100, To: 200}}},
 		}),
 	).Build()
 
 	vpcPeering := func(vpc1, vpc2 string) func() error {
 		return func() error {
 			peering := &v1beta1.VPCPeering{
-				ObjectMeta: kmetav1.ObjectMeta{Name: vpc1 + "--" + vpc2, Namespace: kmetav1.NamespaceDefault},
-				Spec:       v1beta1.VPCPeeringSpec{Permit: []map[string]v1beta1.VPCPeer{{vpc1: {}, vpc2: {}}}},
+				Name: vpc1 + "--" + vpc2, Namespace: kmetav1.NamespaceDefault,
+				Spec: v1beta1.VPCPeeringSpec{Permit: []map[string]v1beta1.VPCPeer{{vpc1: {}, vpc2: {}}}},
 			}
 			peering.Default()
 			_, err := peering.Validate(t.Context(), kube, nil)
@@ -219,7 +219,7 @@ func TestPeeringDomains(t *testing.T) {
 	extPeering := func(vpc, ext string) func() error {
 		return func() error {
 			peering := &v1beta1.ExternalPeering{
-				ObjectMeta: kmetav1.ObjectMeta{Name: vpc + "--" + ext, Namespace: kmetav1.NamespaceDefault},
+				Name: vpc + "--" + ext, Namespace: kmetav1.NamespaceDefault,
 				Spec: v1beta1.ExternalPeeringSpec{Permit: v1beta1.ExternalPeeringSpecPermit{
 					VPC:      v1beta1.ExternalPeeringSpecVPC{Name: vpc},
 					External: v1beta1.ExternalPeeringSpecExternal{Name: ext},

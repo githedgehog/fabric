@@ -40,15 +40,15 @@ func TestGetLLDPNeighbors(t *testing.T) {
 
 	sw := func(name string) *wiringapi.Switch {
 		return &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
 		}
 	}
 
 	conn := func(name string, spec wiringapi.ConnectionSpec) *wiringapi.Connection {
 		c := &wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       spec,
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: spec,
 		}
 		// populates the switch/server list labels GetLLDPNeighbors selects on
 		c.Default()
@@ -62,7 +62,7 @@ func TestGetLLDPNeighbors(t *testing.T) {
 	updated := kmetav1.Time{Time: time.Date(2026, 8, 21, 12, 0, 0, 0, time.UTC)}
 
 	agent := &agentapi.Agent{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+		Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
 		Status: agentapi.AgentStatus{
 			State: agentapi.SwitchState{
 				Interfaces: map[string]agentapi.SwitchStateInterface{
@@ -197,7 +197,7 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 
 	srv := func(name, expectedSysName string) *wiringapi.Server {
 		return &wiringapi.Server{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ServerSpec{
 				Inspect: wiringapi.ServerInspect{ExpectedSystemName: expectedSysName},
 			},
@@ -206,10 +206,8 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 
 	conn := func(server, swPort string) *wiringapi.Connection {
 		c := &wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      server + "--unbundled--leaf-1",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      server + "--unbundled--leaf-1",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				Unbundled: &wiringapi.ConnUnbundled{
 					Link: wiringapi.ServerToSwitchLink{
@@ -235,7 +233,7 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 	}
 
 	agent := &agentapi.Agent{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+		Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
 		Status: agentapi.AgentStatus{
 			State: agentapi.SwitchState{
 				Interfaces: map[string]agentapi.SwitchStateInterface{
@@ -251,8 +249,8 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		profile,
 		&wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+			Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
 		},
 		agent,
 		srv("server-1", "hh-server-1"),
@@ -304,13 +302,13 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 
 	sw := func(name string) *wiringapi.Switch {
 		return &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
 		}
 	}
 
 	conn := &wiringapi.Connection{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "spine-1--fabric--leaf-1", Namespace: kmetav1.NamespaceDefault},
+		Name: "spine-1--fabric--leaf-1", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.ConnectionSpec{
 			Fabric: &wiringapi.ConnFabric{
 				Links: []wiringapi.FabricLink{{
@@ -323,7 +321,7 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 	conn.Default()
 
 	agent := &agentapi.Agent{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+		Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
 		Status: agentapi.AgentStatus{
 			State: agentapi.SwitchState{
 				Interfaces: map[string]agentapi.SwitchStateInterface{

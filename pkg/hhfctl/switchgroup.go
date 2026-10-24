@@ -32,11 +32,9 @@ type SwitchGroupCreateOptions struct {
 
 func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroupCreateOptions) error {
 	sg := &wiringapi.SwitchGroup{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      options.Name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
-		Spec: wiringapi.SwitchGroupSpec{},
+		Name:      options.Name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec:      wiringapi.SwitchGroupSpec{},
 	}
 
 	kube, err := kubeutil.NewClient(ctx, "", wiringapi.AddToScheme)

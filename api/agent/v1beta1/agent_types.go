@@ -679,7 +679,7 @@ func init() {
 // has the metadata without managed fields and the spec, the status isn't needed for the agent to start.
 func (a *Agent) MarshalInstallConfig() ([]byte, error) {
 	cfg := &Agent{
-		TypeMeta:   kmetav1.TypeMeta{APIVersion: GroupVersion.String(), Kind: KindAgent},
+		APIVersion: GroupVersion.String(), Kind: KindAgent,
 		ObjectMeta: a.ObjectMeta,
 		Spec:       a.Spec,
 	}

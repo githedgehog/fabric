@@ -20,10 +20,8 @@ import (
 
 func vpcGen(name string, f ...func(*v1beta1.VPC)) *v1beta1.VPC {
 	base := &v1beta1.VPC{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.VPCSpec{
 			Subnets: map[string]*v1beta1.VPCSubnet{
 				"default": {
@@ -74,13 +72,11 @@ func hostBGPSubnetWith(extraPrefixes map[string]v1beta1.VPCSubnetHostBGPPrefix) 
 // stored in the API, to check the new VPC against
 func otherVPCGen(subnets map[string]*v1beta1.VPCSubnet) *v1beta1.VPC {
 	return &v1beta1.VPC{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "other-vpc",
-			Namespace: kmetav1.NamespaceDefault,
-			Labels: map[string]string{
-				v1beta1.LabelIPv4NS: "default",
-				v1beta1.LabelVLANNS: "default",
-			},
+		Name:      "other-vpc",
+		Namespace: kmetav1.NamespaceDefault,
+		Labels: map[string]string{
+			v1beta1.LabelIPv4NS: "default",
+			v1beta1.LabelVLANNS: "default",
 		},
 		Spec: v1beta1.VPCSpec{
 			IPv4Namespace: "default",
@@ -118,19 +114,15 @@ func TestVPCValidation(t *testing.T) {
 	baseKubeObjs := []kclient.Object{
 		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
 		defaulted(&v1beta1.IPv4Namespace{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "default",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "default",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.IPv4NamespaceSpec{
 				Subnets: []string{"10.0.0.0/8"},
 			},
 		}),
 		defaulted(&wiringapi.VLANNamespace{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "default",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "default",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.VLANNamespaceSpec{
 				Ranges: []meta.VLANRange{{From: 100, To: 4094}},
 			},
@@ -670,13 +662,11 @@ func TestVPCValidation(t *testing.T) {
 			name: "subnet overlaps with other vpc identical prefix",
 			vpc:  vpcGen("vpc-01"),
 			objects: append(baseKubeObjs, &v1beta1.VPC{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "other-vpc",
-					Namespace: kmetav1.NamespaceDefault,
-					Labels: map[string]string{
-						v1beta1.LabelIPv4NS: "default",
-						v1beta1.LabelVLANNS: "default",
-					},
+				Name:      "other-vpc",
+				Namespace: kmetav1.NamespaceDefault,
+				Labels: map[string]string{
+					v1beta1.LabelIPv4NS: "default",
+					v1beta1.LabelVLANNS: "default",
 				},
 				Spec: v1beta1.VPCSpec{
 					IPv4Namespace: "default",
@@ -699,13 +689,11 @@ func TestVPCValidation(t *testing.T) {
 				vpc.Spec.Subnets["default"].Gateway = "10.0.0.1"
 			}),
 			objects: append(baseKubeObjs, &v1beta1.VPC{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "other-vpc",
-					Namespace: kmetav1.NamespaceDefault,
-					Labels: map[string]string{
-						v1beta1.LabelIPv4NS: "default",
-						v1beta1.LabelVLANNS: "default",
-					},
+				Name:      "other-vpc",
+				Namespace: kmetav1.NamespaceDefault,
+				Labels: map[string]string{
+					v1beta1.LabelIPv4NS: "default",
+					v1beta1.LabelVLANNS: "default",
 				},
 				Spec: v1beta1.VPCSpec{
 					IPv4Namespace: "default",
@@ -728,13 +716,11 @@ func TestVPCValidation(t *testing.T) {
 				vpc.Spec.Subnets["default"].Gateway = "10.0.1.65"
 			}),
 			objects: append(baseKubeObjs, &v1beta1.VPC{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "other-vpc",
-					Namespace: kmetav1.NamespaceDefault,
-					Labels: map[string]string{
-						v1beta1.LabelIPv4NS: "default",
-						v1beta1.LabelVLANNS: "default",
-					},
+				Name:      "other-vpc",
+				Namespace: kmetav1.NamespaceDefault,
+				Labels: map[string]string{
+					v1beta1.LabelIPv4NS: "default",
+					v1beta1.LabelVLANNS: "default",
 				},
 				Spec: v1beta1.VPCSpec{
 					IPv4Namespace: "default",

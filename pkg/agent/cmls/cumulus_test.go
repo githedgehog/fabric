@@ -14,10 +14,8 @@ import (
 
 func TestBuildZTPFor(t *testing.T) {
 	agent := &agentapi.Agent{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:          "leaf-1",
-			ManagedFields: []kmetav1.ManagedFieldsEntry{{Manager: "fabric-ctrl"}},
-		},
+		Name:          "leaf-1",
+		ManagedFields: []kmetav1.ManagedFieldsEntry{{Manager: "fabric-ctrl"}},
 		Spec: agentapi.AgentSpec{
 			Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
 			Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},

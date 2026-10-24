@@ -84,19 +84,19 @@ func TestHandleCumulusZTP(t *testing.T) {
 		WithIndex(&fcintapi.SwitchBoot{}, switchBootMACField, indexSwitchBootMAC).
 		WithObjects(
 			&fcintapi.SwitchBoot{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-				Spec:       fcintapi.SwitchBootSpec{Serial: "sn-0001", MAC: "0c:20:12:fe:01:00", NOSType: meta.NOSTypeCumulusVX, AgentVersion: "v1.2.3"},
+				Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
+				Spec: fcintapi.SwitchBootSpec{Serial: "sn-0001", MAC: "0c:20:12:fe:01:00", NOSType: meta.NOSTypeCumulusVX, AgentVersion: "v1.2.3"},
 			},
 			&agentapi.Agent{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+				Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
 				Spec: agentapi.AgentSpec{
 					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
 					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
 				},
 			},
 			&corev1.Secret{
-				ObjectMeta: kmetav1.ObjectMeta{Name: ctrl.AgentKubeconfigSecret("leaf-1"), Namespace: kmetav1.NamespaceDefault},
-				Data:       map[string][]byte{ctrl.AgentKubeconfigKey: []byte("kubeconfig")},
+				Name: ctrl.AgentKubeconfigSecret("leaf-1"), Namespace: kmetav1.NamespaceDefault,
+				Data: map[string][]byte{ctrl.AgentKubeconfigKey: []byte("kubeconfig")},
 			},
 		).Build()
 

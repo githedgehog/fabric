@@ -19,10 +19,8 @@ import (
 
 func l3ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
 	base := &v1beta1.ExternalAttachment{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.ExternalAttachmentSpec{
 			External:   "external-01",
 			Connection: "leaf-01--external",
@@ -47,10 +45,8 @@ func l3ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1bet
 
 func staticExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
 	base := &v1beta1.ExternalAttachment{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.ExternalAttachmentSpec{
 			External:   "external-02",
 			Connection: "leaf-01--external",
@@ -76,10 +72,8 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 func TestExternalAttachmentValidation(t *testing.T) {
 	baseObjs := []kclient.Object{
 		defaulted(&v1beta1.External{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "external-01",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "external-01",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.ExternalSpec{
 				IPv4Namespace:     "default",
 				InboundCommunity:  "50000:1001",
@@ -87,10 +81,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			},
 		}),
 		defaulted(&v1beta1.External{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "external-02",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "external-02",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.ExternalSpec{
 				IPv4Namespace: "default",
 				Static: &v1beta1.ExternalStaticSpec{
@@ -99,10 +91,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			},
 		}),
 		defaulted(&wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "leaf-01--external",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "leaf-01--external",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				External: &wiringapi.ConnExternal{
 					Link: wiringapi.ConnExternalLink{
@@ -115,7 +105,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 		}),
 	}
 	backendFabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
+		Name: "backend", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.FabricSpec{
 			LeafASNStart: 64101,
 			LeafASNEnd:   64199,
@@ -125,12 +115,12 @@ func TestExternalAttachmentValidation(t *testing.T) {
 	// Fabric/default, added to the objects of every test, is created from the test config
 	asnCfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
 	leafOnB := defaulted(&wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b"}}},
+		Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b"}}},
 	})
 	extOnB := defaulted(&v1beta1.External{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "external-03", Namespace: kmetav1.NamespaceDefault},
-		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", Topology: v1beta1.ExternalTopology{Domain: "plane-b"}},
+		Name: "external-03", Namespace: kmetav1.NamespaceDefault,
+		Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", Topology: v1beta1.ExternalTopology{Domain: "plane-b"}},
 	})
 	withNeighborASN := func(asn uint32) func(*v1beta1.ExternalAttachment) {
 		return func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.ASN = asn }
@@ -452,8 +442,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				att.Spec.External = "ext-local"
 			}),
 			objects: withObjs(baseObjs, defaulted(&v1beta1.External{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "ext-local", Namespace: kmetav1.NamespaceDefault},
-				Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
+				Name: "ext-local", Namespace: kmetav1.NamespaceDefault,
+				Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
 			})),
 			err: true,
 		},
@@ -463,8 +453,8 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				att.Spec.External = "ext-local"
 			}),
 			objects: withObjs(baseObjs, defaulted(&v1beta1.External{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "ext-local", Namespace: kmetav1.NamespaceDefault},
-				Spec:       v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
+				Name: "ext-local", Namespace: kmetav1.NamespaceDefault,
+				Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
 			})),
 			err: true,
 		},

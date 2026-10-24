@@ -87,9 +87,9 @@ func TestGatewayCleanup(t *testing.T) {
 
 	// in the gateway namespace, cleaned up by the reconciler and labeled so that their deletion reconciles the gateway
 	for _, obj := range []kclient.Object{
-		&corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: "fab", Name: entityName("gw-1")}},
-		&appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{Namespace: "fab", Name: entityName("gw-1", "dataplane")}},
-		&appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{Namespace: "fab", Name: entityName("gw-1", "frr")}},
+		&corev1.ServiceAccount{Namespace: "fab", Name: entityName("gw-1")},
+		&appv1.DaemonSet{Namespace: "fab", Name: entityName("gw-1", "dataplane")},
+		&appv1.DaemonSet{Namespace: "fab", Name: entityName("gw-1", "frr")},
 	} {
 		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(obj), obj))
 		require.Equal(t, "gw-1", obj.GetLabels()[LabelGateway], "%T %s", obj, obj.GetName())
@@ -135,7 +135,7 @@ func TestGatewayWebhookTerminating(t *testing.T) {
 	// no reader: nothing may be looked up for a gateway that's only getting its finalizer removed
 	w := &GatewayWebhook{}
 
-	gw := &gwapi.Gateway{ObjectMeta: kmetav1.ObjectMeta{Name: "gw-1", DeletionTimestamp: &kmetav1.Time{}}}
+	gw := &gwapi.Gateway{Name: "gw-1", DeletionTimestamp: &kmetav1.Time{}}
 	_, err := w.ValidateUpdate(t.Context(), gw, gw)
 	require.NoError(t, err)
 }
@@ -145,8 +145,8 @@ func TestGatewayWebhookMetadataOnly(t *testing.T) {
 	w := &GatewayWebhook{cfg: &meta.FabricConfig{EnableGateway: false}}
 
 	oldGw := &gwapi.Gateway{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "gw-1"},
-		Spec:       gwapi.GatewaySpec{Workers: 4},
+		Name: "gw-1",
+		Spec: gwapi.GatewaySpec{Workers: 4},
 	}
 	newGw := oldGw.DeepCopy()
 	newGw.Finalizers = []string{CleanupFinalizer}
@@ -169,8 +169,8 @@ func TestAgentCleanup(t *testing.T) {
 	require.NoError(t, rbacv1.AddToScheme(scheme))
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}},
-		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-2", Namespace: kmetav1.NamespaceDefault}},
+		&wiringapi.Switch{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
+		&wiringapi.Switch{Name: "leaf-2", Namespace: kmetav1.NamespaceDefault},
 	).Build()
 	r := &AgentReconciler{Client: kube, cfg: &meta.FabricConfig{}, lock: unlockedLock()}
 
@@ -205,7 +205,7 @@ func TestVPCCleanup(t *testing.T) {
 
 	vpc := func(name string) *vpcapi.VPC {
 		return &vpcapi.VPC{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{
 				"subnet-1": {
 					Subnet: "10.0.1.0/24",
@@ -256,9 +256,9 @@ func TestGwVPCSyncOwner(t *testing.T) {
 	require.NoError(t, agentapi.AddToScheme(scheme))
 
 	// defaulted as stored
-	vpc := &vpcapi.VPC{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}}
+	vpc := &vpcapi.VPC{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}
 	vpc.Default()
-	ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext := &vpcapi.External{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}
 	ext.Default()
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()
@@ -282,10 +282,10 @@ func TestGwSyncTopologyRequired(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 	require.NoError(t, agentapi.AddToScheme(scheme))
 
-	vpc := &vpcapi.VPC{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}}
+	vpc := &vpcapi.VPC{Name: "vpc-1", Namespace: kmetav1.NamespaceDefault}
 	vpc.Default()
 	vpc.Spec.Topology.Domains = nil
-	ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext := &vpcapi.External{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}
 	ext.Default()
 	ext.Spec.Topology.Fabric = ""
 
@@ -308,14 +308,14 @@ func TestSwitchGroupDeleteInUse(t *testing.T) {
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.SwitchSpec{Groups: []string{"mclag-1"}, Redundancy: wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}},
+			Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Groups: []string{"mclag-1"}, Redundancy: wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}},
 		},
 	).Build()
 	w := &SwitchGroupWebhook{KubeClient: kube}
 
 	group := func(name string) *wiringapi.SwitchGroup {
-		return &wiringapi.SwitchGroup{ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}}
+		return &wiringapi.SwitchGroup{Name: name, Namespace: kmetav1.NamespaceDefault}
 	}
 
 	_, err := w.ValidateDelete(t.Context(), group("eslag-1"))
@@ -332,8 +332,8 @@ func TestConnectionTerminating(t *testing.T) {
 	require.NoError(t, agentapi.AddToScheme(scheme))
 
 	conn := &wiringapi.Connection{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "conn-1", Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.ConnectionSpec{ESLAG: &wiringapi.ConnESLAG{}},
+		Name: "conn-1", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.ConnectionSpec{ESLAG: &wiringapi.ConnESLAG{}},
 	}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
 	r := &ConnectionReconciler{Client: kube, libr: librarian.NewManager(&meta.FabricConfig{}), lock: unlockedLock()}

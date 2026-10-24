@@ -24,10 +24,8 @@ const (
 
 func extGen(name string, f ...func(att *v1beta1.External)) *v1beta1.External {
 	base := &v1beta1.External{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.ExternalSpec{
 			IPv4Namespace: "default",
 		},
@@ -275,7 +273,7 @@ func TestExternalInboundPrefixLens(t *testing.T) {
 func TestExternalLocalASNValidation(t *testing.T) {
 	ipns := ipv4NamespaceObj()
 	backendFabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "backend", Namespace: kmetav1.NamespaceDefault},
+		Name: "backend", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.FabricSpec{
 			LeafASNStart: 64101,
 			LeafASNEnd:   64199,
@@ -283,8 +281,8 @@ func TestExternalLocalASNValidation(t *testing.T) {
 		},
 	}
 	backendExt := defaulted(&v1beta1.External{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "backend-ext", Namespace: kmetav1.NamespaceDefault},
-		Spec:       v1beta1.ExternalSpec{IPv4Namespace: "backend", Topology: v1beta1.ExternalTopology{Fabric: "backend"}, LocalASN: 64999},
+		Name: "backend-ext", Namespace: kmetav1.NamespaceDefault,
+		Spec: v1beta1.ExternalSpec{IPv4Namespace: "backend", Topology: v1beta1.ExternalTopology{Fabric: "backend"}, LocalASN: 64999},
 	})
 	attach := l3ExtAttGen("ext-att-01", func(att *v1beta1.ExternalAttachment) {
 		att.Spec.External = "external-01"
@@ -397,7 +395,7 @@ func TestExternalLocalASNValidation(t *testing.T) {
 // defaulting sets it, so only an External the refresh on fabric-ctrl initialization had to leave alone or one
 // validated without defaulting can miss it
 func TestExternalDomainRequired(t *testing.T) {
-	ext := &v1beta1.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext := &v1beta1.External{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}
 	ext.Default()
 	ext.Spec.Topology.Domain = ""
 

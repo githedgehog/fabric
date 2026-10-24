@@ -20,9 +20,7 @@ import (
 
 func TestPeeringDefaultEmpty(t *testing.T) {
 	ref := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	ref.Labels = map[string]string{
 		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
@@ -38,10 +36,8 @@ func TestPeeringDefaultEmpty(t *testing.T) {
 
 func TestPeeringWithVpcsNoNAT(t *testing.T) {
 	common := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "vpc1--vpc2",
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -85,10 +81,8 @@ func TestPeeringWithVpcsNoNAT(t *testing.T) {
 
 func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
 	common := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "vpc1--vpc2",
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -125,10 +119,8 @@ func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
 
 func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 	common := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "vpc1--vpc2",
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -173,10 +165,8 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 
 func TestPeeringWithStaticNAT(t *testing.T) {
 	common := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "vpc1--vpc2",
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -233,10 +223,8 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 
 func TestPeeringWithPortForwardNAT(t *testing.T) {
 	common := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "vpc1--vpc2",
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -294,10 +282,8 @@ func TestPeeringWithPortForwardNAT(t *testing.T) {
 
 func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
 	common := &GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      "vpc1--vpc2",
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
 	}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -437,7 +423,7 @@ func TestValidateDefaultDestination(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			peering := &GatewayPeering{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "vpc1--vpc2"},
+				Name: "vpc1--vpc2",
 				Spec: PeeringSpec{
 					GatewayGroup: DefaultGatewayGroup,
 					Peering: map[string]*PeeringEntry{

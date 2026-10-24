@@ -11,7 +11,6 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/version"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -92,7 +91,7 @@ func (r *SwitchBootReconciler) Reconcile(ctx context.Context, req kctrl.Request)
 		mac = ""
 	}
 
-	sb := &fcintapi.SwitchBoot{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: sw.Name}}
+	sb := &fcintapi.SwitchBoot{Namespace: sw.Namespace, Name: sw.Name}
 	res, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sb, func() error {
 		if err := setOwner(sw, sb, r.Scheme()); err != nil {
 			return err

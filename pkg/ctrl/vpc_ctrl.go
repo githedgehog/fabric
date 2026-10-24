@@ -25,7 +25,6 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -136,7 +135,7 @@ func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) 
 	}
 
 	for subnetName, subnet := range withDHCP {
-		dhcp := &dhcpapi.DHCPSubnet{ObjectMeta: kmetav1.ObjectMeta{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}}
+		dhcp := &dhcpapi.DHCPSubnet{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}
 		_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
 			if err := setOwner(vpc, dhcp, r.Scheme()); err != nil {
 				return err

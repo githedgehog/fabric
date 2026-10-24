@@ -49,8 +49,8 @@ func TestVPCInfoDefaultTopology(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			vpc := &v1alpha1.VPCInfo{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1", Labels: tt.labels},
-				Spec:       v1alpha1.VPCInfoSpec{Topology: tt.topology},
+				Name: "vpc-1", Labels: tt.labels,
+				Spec: v1alpha1.VPCInfoSpec{Topology: tt.topology},
 			}
 			vpc.Default()
 
@@ -65,7 +65,7 @@ func TestVPCInfoDomainsInFabric(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	fabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
+		Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
 			wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534},
 			"plane-b":                     {SpineASN: 65099, GatewayASN: 65535},
@@ -88,7 +88,7 @@ func TestVPCInfoDomainsInFabric(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			vpc := &v1alpha1.VPCInfo{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1"},
+				Name: "vpc-1",
 				Spec: v1alpha1.VPCInfoSpec{
 					Topology: v1alpha1.VPCInfoTopology{Domains: tt.domains},
 					VNI:      100,

@@ -28,8 +28,8 @@ func TestEnsureVNIs(t *testing.T) {
 
 	vpc := func(name string, subnets ...string) *vpcapi.VPC {
 		v := &vpcapi.VPC{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{}},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{}},
 		}
 		for _, subnet := range subnets {
 			v.Spec.Subnets[subnet] = &vpcapi.VPCSubnet{}
@@ -47,14 +47,14 @@ func TestEnsureVNIs(t *testing.T) {
 	}
 
 	vpc1 := vpc("vpc-1", "subnet-1")
-	ext1 := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}}
+	ext1 := &vpcapi.External{Name: "ext-1", Namespace: kmetav1.NamespaceDefault}
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		vpc1, ext1,
 		// left over from a VPC deleted earlier
 		&agentapi.Catalog{
-			ObjectMeta: kmetav1.ObjectMeta{Name: librarian.CatVNIs, Namespace: librarian.Namespace},
-			Spec:       agentapi.CatalogSpec{VPCVNIs: map[string]uint32{"gone": 1000}},
+			Name: librarian.CatVNIs, Namespace: librarian.Namespace,
+			Spec: agentapi.CatalogSpec{VPCVNIs: map[string]uint32{"gone": 1000}},
 		},
 	).Build()
 	libr := librarian.NewManager(&meta.FabricConfig{})
@@ -101,7 +101,7 @@ func TestEnsureVNIs(t *testing.T) {
 	require.Contains(t, vnis.VPCSubnetVNIs["vpc-1"], "subnet-2")
 
 	// a new external gets a VNI
-	require.NoError(t, kube.Create(t.Context(), &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: "ext-2", Namespace: kmetav1.NamespaceDefault}}))
+	require.NoError(t, kube.Create(t.Context(), &vpcapi.External{Name: "ext-2", Namespace: kmetav1.NamespaceDefault}))
 	require.True(t, update(nil, map[string]bool{"ext-2": true}))
 	require.Contains(t, catalog().Spec.VPCVNIs, librarian.ReqForExt("ext-2"))
 
@@ -200,7 +200,7 @@ func TestSwitchCatalogsNotRewritten(t *testing.T) {
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}},
+		&wiringapi.Switch{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
 	).Build()
 	libr := librarian.NewManager(&meta.FabricConfig{})
 
@@ -246,15 +246,15 @@ func TestGetOrEnsureVPCInfoID(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 
 	vpcInfo := func(name string) *gwapi.VPCInfo {
-		return &gwapi.VPCInfo{ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}}
+		return &gwapi.VPCInfo{Name: name, Namespace: kmetav1.NamespaceDefault}
 	}
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		vpcInfo("vpc-1"),
 		// left over from a VPCInfo deleted earlier
 		&agentapi.Catalog{
-			ObjectMeta: kmetav1.ObjectMeta{Name: librarian.CatVPCInfos, Namespace: librarian.Namespace},
-			Spec:       agentapi.CatalogSpec{VPCInfoIDs: map[string]uint32{"gone": 1}},
+			Name: librarian.CatVPCInfos, Namespace: librarian.Namespace,
+			Spec: agentapi.CatalogSpec{VPCInfoIDs: map[string]uint32{"gone": 1}},
 		},
 	).Build()
 	libr := librarian.NewManager(&meta.FabricConfig{})
@@ -300,8 +300,8 @@ func TestRedundancyGroupIRBVLANs(t *testing.T) {
 
 	sw := func(name string) *wiringapi.Switch {
 		return &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       wiringapi.SwitchSpec{Redundancy: wiringapi.SwitchRedundancy{Type: meta.RedundancyTypeESLAG, Group: "eslag-1"}},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Redundancy: wiringapi.SwitchRedundancy{Type: meta.RedundancyTypeESLAG, Group: "eslag-1"}},
 		}
 	}
 	leaf1, leaf2 := sw("leaf-1"), sw("leaf-2")
@@ -312,8 +312,8 @@ func TestRedundancyGroupIRBVLANs(t *testing.T) {
 	maps.Copy(reqs1, vpcs1)
 
 	vnis := &agentapi.Catalog{
-		ObjectMeta: kmetav1.ObjectMeta{Name: librarian.CatVNIs, Namespace: librarian.Namespace},
-		Spec:       agentapi.CatalogSpec{VPCVNIs: map[string]uint32{}},
+		Name: librarian.CatVNIs, Namespace: librarian.Namespace,
+		Spec: agentapi.CatalogSpec{VPCVNIs: map[string]uint32{}},
 	}
 	for name := range reqs1 {
 		vnis.Spec.VPCVNIs[name] = 100

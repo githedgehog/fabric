@@ -33,15 +33,15 @@ func TestIPv4NamespaceExternalInboundPrefixes(t *testing.T) {
 	require.NoError(t, vpcapi.AddToScheme(scheme))
 
 	fabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.DefaultFabricSpec(&meta.FabricConfig{}),
+		Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.DefaultFabricSpec(&meta.FabricConfig{}),
 	}
 	ns := &vpcapi.IPv4Namespace{
-		ObjectMeta: kmetav1.ObjectMeta{Name: vpcapi.DefaultIPv4Namespace, Namespace: kmetav1.NamespaceDefault},
-		Spec:       vpcapi.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
+		Name: vpcapi.DefaultIPv4Namespace, Namespace: kmetav1.NamespaceDefault,
+		Spec: vpcapi.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
 	}
 	ext := &vpcapi.External{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "ext-01", Namespace: kmetav1.NamespaceDefault},
+		Name: "ext-01", Namespace: kmetav1.NamespaceDefault,
 		Spec: vpcapi.ExternalSpec{
 			IPv4Namespace:   vpcapi.DefaultIPv4Namespace,
 			InboundPrefixes: map[string]vpcapi.ExternalInboundPrefix{"10.1.1.0/24": {}, "0.0.0.0/0": {}},

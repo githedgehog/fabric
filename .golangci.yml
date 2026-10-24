@@ -6,16 +6,14 @@ version: "2"
 #
 #   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
-#   3. nolintlint require-explanation: 501 directives without explanation
-#   4. modernize embedlit (389, the promoted fields in composite literals allowed since Go 1.27), auto-fixable with
-#      `just lint-fix`
-#   5. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195),
+#   3. nolintlint require-explanation: 512 directives without explanation
+#   4. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195),
 #      forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   6. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
+#   5. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
 #      (16), args-on-sep-lines (97), no-raw-keys (254)
-#   7. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
+#   6. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
-#   8. revive unused-parameter rule (from kubebuilder): 32 issues, mostly to be renamed to _
+#   7. revive unused-parameter rule (from kubebuilder): 32 issues, mostly to be renamed to _
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
 # wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
@@ -141,17 +139,15 @@ linters:
         - unusedmethod
     modernize:
       disable:
-        # TODO enable: 389 issues, the promoted fields in composite literals allowed since Go 1.27
-        - embedlit
         # Not planned: against the K8s API conventions that use omitempty for the optional fields (disabled by
         # controller-runtime and kubebuilder as well)
         - omitzero
     govet:
       enable-all: true
       disable:
-        # Not planned: optimizes struct memory layout at the cost of readable fields order, 50 issues
+        # Not planned: optimizes struct memory layout at the cost of readable fields order, 214 issues
         - fieldalignment
-        # Not planned: reports the idiomatic err shadowing, 111 of 118 issues are about err
+        # Not planned: reports the idiomatic err shadowing, 112 of 119 issues are about err
         - shadow
     importas:
       no-unaliased: true
@@ -256,7 +252,7 @@ linters:
     generated: lax
     # Default exclusions in v1 (exclude-use-default: true)
     presets:
-      # TODO enable: 240 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
+      # TODO enable: 239 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
       # (also revive exported and package-comments rules that aren't enabled)
       - comments
       # Not planned: gosec G204 subprocess launched with variable x9 and G304 file inclusion via variable x20 as

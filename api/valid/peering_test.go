@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,7 +41,7 @@ func gwExt(ext string) string {
 
 func vpcPeering(vpc1, vpc2 string, nameOverride ...string) *vpcapi.VPCPeering {
 	peering := &vpcapi.VPCPeering{
-		ObjectMeta: kmetav1.ObjectMeta{Name: peeringName(vpc1, vpc2, nameOverride...)},
+		Name: peeringName(vpc1, vpc2, nameOverride...),
 		Spec: vpcapi.VPCPeeringSpec{
 			Permit: []map[string]vpcapi.VPCPeer{
 				{vpc1: {}, vpc2: {}},
@@ -56,7 +55,7 @@ func vpcPeering(vpc1, vpc2 string, nameOverride ...string) *vpcapi.VPCPeering {
 
 func extPeering(vpc, ext string, nameOverride ...string) *vpcapi.ExternalPeering { //nolint:unparam
 	peering := &vpcapi.ExternalPeering{
-		ObjectMeta: kmetav1.ObjectMeta{Name: peeringName(vpc, ext, nameOverride...)},
+		Name: peeringName(vpc, ext, nameOverride...),
 		Spec: vpcapi.ExternalPeeringSpec{
 			Permit: vpcapi.ExternalPeeringSpecPermit{
 				VPC:      vpcapi.ExternalPeeringSpecVPC{Name: vpc},
@@ -72,7 +71,7 @@ func extPeering(vpc, ext string, nameOverride ...string) *vpcapi.ExternalPeering
 // gwPeering members are VPC names, use gwExt to pass an external
 func gwPeering(member1, member2 string, nameOverride ...string) *gwapi.GatewayPeering {
 	peering := &gwapi.GatewayPeering{
-		ObjectMeta: kmetav1.ObjectMeta{Name: peeringName(member1, member2, nameOverride...)},
+		Name: peeringName(member1, member2, nameOverride...),
 		Spec: gwapi.PeeringSpec{
 			Peering: map[string]*gwapi.PeeringEntry{
 				member1: {},

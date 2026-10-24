@@ -18,10 +18,8 @@ import (
 
 func extPeeringGen(name string, f ...func(peering *v1beta1.ExternalPeering)) *v1beta1.ExternalPeering {
 	base := &v1beta1.ExternalPeering{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:      name,
-			Namespace: kmetav1.NamespaceDefault,
-		},
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.ExternalPeeringSpec{
 			Permit: v1beta1.ExternalPeeringSpecPermit{
 				VPC: v1beta1.ExternalPeeringSpecVPC{
@@ -50,10 +48,8 @@ func TestExternalPeeringValidation(t *testing.T) {
 	baseObjs := []kclient.Object{
 		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
 		defaulted(&v1beta1.VPC{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "vpc-01",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "vpc-01",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.VPCSpec{
 				IPv4Namespace: "default",
 				Subnets: map[string]*v1beta1.VPCSubnet{
@@ -63,10 +59,8 @@ func TestExternalPeeringValidation(t *testing.T) {
 			},
 		}),
 		defaulted(&v1beta1.External{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "external-01",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "external-01",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.ExternalSpec{
 				IPv4Namespace:     "default",
 				InboundCommunity:  "50000:1001",
@@ -74,10 +68,8 @@ func TestExternalPeeringValidation(t *testing.T) {
 			},
 		}),
 		defaulted(&v1beta1.External{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      "external-other-ns",
-				Namespace: kmetav1.NamespaceDefault,
-			},
+			Name:      "external-other-ns",
+			Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.ExternalSpec{
 				IPv4Namespace:     "other",
 				InboundCommunity:  "50000:2001",

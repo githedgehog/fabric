@@ -6,13 +6,10 @@ package switchprofile
 import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var EdgecoreDCS203 = wiringapi.SwitchProfile{
-	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "edgecore-dcs203",
-	},
+	Name: "edgecore-dcs203",
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Edgecore DCS203",
 		OtherNames:    []string{"Edgecore AS7326-56X"},

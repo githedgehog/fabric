@@ -33,16 +33,16 @@ func defaulted[T interface {
 // fabricObj returns the named Fabric with the spec the controller creates the default fabric with
 func fabricObj(name string, cfg *meta.FabricConfig) *wiringapi.Fabric {
 	return &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.DefaultFabricSpec(cfg),
+		Name: name, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.DefaultFabricSpec(cfg),
 	}
 }
 
 // ipv4NamespaceObj returns the default IPv4Namespace in the default fabric, as it is stored
 func ipv4NamespaceObj() *v1beta1.IPv4Namespace {
 	return defaulted(&v1beta1.IPv4Namespace{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "default", Namespace: kmetav1.NamespaceDefault},
-		Spec:       v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
+		Name: "default", Namespace: kmetav1.NamespaceDefault,
+		Spec: v1beta1.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
 	})
 }
 
@@ -54,7 +54,7 @@ func otherFabricObjs() []kclient.Object {
 		fabricObj("other", &meta.FabricConfig{}),
 		ipv4NamespaceObj(),
 		defaulted(&v1beta1.IPv4Namespace{
-			ObjectMeta: kmetav1.ObjectMeta{Name: nsOther, Namespace: kmetav1.NamespaceDefault},
+			Name: nsOther, Namespace: kmetav1.NamespaceDefault,
 			Spec: v1beta1.IPv4NamespaceSpec{
 				Topology: v1beta1.IPv4NamespaceTopology{Fabric: "other"},
 				Subnets:  []string{"10.1.0.0/16"},
@@ -70,7 +70,7 @@ func otherFabricObjs() []kclient.Object {
 			ext.Spec.IPv4Namespace = nsOther
 		}),
 		defaulted(&wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01--external", Namespace: kmetav1.NamespaceDefault},
+			Name: "leaf-01--external", Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				External: &wiringapi.ConnExternal{
 					Link: wiringapi.ConnExternalLink{
@@ -80,7 +80,7 @@ func otherFabricObjs() []kclient.Object {
 			},
 		}),
 		defaulted(&wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01--unbundled--server-01", Namespace: kmetav1.NamespaceDefault},
+			Name: "leaf-01--unbundled--server-01", Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				Unbundled: &wiringapi.ConnUnbundled{
 					Link: wiringapi.ServerToSwitchLink{
@@ -153,7 +153,7 @@ func TestFabricMismatchValidation(t *testing.T) {
 
 func vpcAttachGen(name string, f ...func(attach *v1beta1.VPCAttachment)) *v1beta1.VPCAttachment {
 	base := &v1beta1.VPCAttachment{
-		ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+		Name: name, Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.VPCAttachmentSpec{
 			Subnet:     "vpc-01/default",
 			Connection: "leaf-01--unbundled--server-01",
@@ -170,7 +170,7 @@ func vpcAttachGen(name string, f ...func(attach *v1beta1.VPCAttachment)) *v1beta
 
 func vpcPeeringGen(name, vpc1, vpc2 string) *v1beta1.VPCPeering {
 	base := &v1beta1.VPCPeering{
-		ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+		Name: name, Namespace: kmetav1.NamespaceDefault,
 		Spec: v1beta1.VPCPeeringSpec{
 			Permit: []map[string]v1beta1.VPCPeer{{
 				vpc1: {},
@@ -204,7 +204,7 @@ func TestFabricMustExistValidation(t *testing.T) {
 		{
 			name: "ipv4 namespace",
 			obj: &v1beta1.IPv4Namespace{
-				ObjectMeta: kmetav1.ObjectMeta{Name: "ns-bad", Namespace: kmetav1.NamespaceDefault},
+				Name: "ns-bad", Namespace: kmetav1.NamespaceDefault,
 				Spec: v1beta1.IPv4NamespaceSpec{
 					Topology: v1beta1.IPv4NamespaceTopology{Fabric: "nope"},
 					Subnets:  []string{"10.2.0.0/16"},

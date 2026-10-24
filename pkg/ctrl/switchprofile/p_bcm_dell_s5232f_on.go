@@ -6,13 +6,10 @@ package switchprofile
 import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var DellS5232FON = wiringapi.SwitchProfile{
-	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "dell-s5232f-on",
-	},
+	Name: "dell-s5232f-on",
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Dell S5232F-ON",
 		SwitchSilicon: SiliconBroadcomTD3_X7_3_2T,
