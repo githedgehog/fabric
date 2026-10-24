@@ -54,7 +54,7 @@ func rebuildSpec(trunkVLANs []string, withSub bool) *dozer.Spec {
 		vrf.Interfaces[rebuildSubName] = &dozer.SpecVRFInterface{}
 		vrf.BGP.Neighbors[rebuildSubName] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:  new(true),
-			PeerType: new(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			PeerType: new(dozer.SpecVRFBGPNeighborPeerTypeExternal),
 		}
 		spec.ACLInterfaces[rebuildSubName] = &dozer.SpecACLInterface{Ingress: new("acl-vpc-01")}
 	}
@@ -170,7 +170,7 @@ func TestCalculateActionsRebuildsAllSubinterfacesOfPort(t *testing.T) {
 		spec.VRFs[rebuildVRF].Interfaces[secondSubName] = &dozer.SpecVRFInterface{}
 		spec.VRFs[rebuildVRF].BGP.Neighbors[secondSubName] = &dozer.SpecVRFBGPNeighbor{
 			Enabled:  new(true),
-			PeerType: new(string(dozer.SpecVRFBGPNeighborPeerTypeExternal)),
+			PeerType: new(dozer.SpecVRFBGPNeighborPeerTypeExternal),
 		}
 
 		return spec

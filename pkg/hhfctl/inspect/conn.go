@@ -157,8 +157,6 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 			}
 			out.AttachedVPCs[vpcName] = &vpc.Spec
 		}
-
-		out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 	}
 
 	_, _, ports, _, err := conn.Spec.Endpoints() //nolint:dogsled
