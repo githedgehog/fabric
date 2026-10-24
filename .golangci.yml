@@ -7,8 +7,8 @@ version: "2"
 #   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
 #   3. nolintlint require-explanation: 512 directives without explanation
-#   4. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195),
-#      forbidigo (9, needs settings as it forbids fmt.Print* by default)
+#   4. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195), and the
+#      forbidigo default fmt.Print* pattern (9)
 #   5. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
 #      (16), args-on-sep-lines (97), no-raw-keys (254)
 #   6. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
@@ -61,6 +61,7 @@ linters:
     - exptostd
     - copyloopvar
     - fatcontext
+    - forbidigo
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecksumtype
@@ -107,6 +108,14 @@ linters:
     - wrapcheck
 
   settings:
+    forbidigo:
+      # match by the actual package, so aliased imports are caught too
+      analyze-types: true
+      forbid:
+        # TODO add the default ^(fmt\.Print(|f|ln)|print|println)$ pattern replaced by this list: 9 issues
+        - pattern: ^ptr\.To$
+          pkg: ^k8s\.io/utils/ptr$
+          msg: use new(x)
     exhaustive:
       check:
         - switch
@@ -184,6 +193,10 @@ linters:
               desc: use stdlib slices or samber/lo package
             - pkg: "sort$"
               desc: use stdlib slices package
+            # deprecated in favor of k8s.io/utils/ptr, and new(x) replaces its helpers since Go 1.26 (ptr.To is
+            # forbidden by forbidigo while the rest of k8s.io/utils/ptr is fine)
+            - pkg: "k8s.io/utils/pointer$"
+              desc: use new(x)
             - pkg: gopkg.in/yaml
               desc: use sigs.k8s.io/yaml
     predeclared:

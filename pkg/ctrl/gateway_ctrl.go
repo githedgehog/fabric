@@ -27,7 +27,6 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -618,7 +617,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		Name: dataplaneRunVolumeName,
 		HostPath: &corev1.HostPathVolumeSource{
 			Path: dataplaneRunHostPath,
-			Type: ptr.To(corev1.HostPathDirectoryOrCreate),
+			Type: new(corev1.HostPathDirectoryOrCreate),
 		},
 	}
 
@@ -626,7 +625,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		Name: frrRunVolumeName,
 		HostPath: &corev1.HostPathVolumeSource{
 			Path: frrRunHostPath,
-			Type: ptr.To(corev1.HostPathDirectoryOrCreate),
+			Type: new(corev1.HostPathDirectoryOrCreate),
 		},
 	}
 
@@ -885,7 +884,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								Name: frrRootRunVolumeName,
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/run/hedgehog/frr-root",
-									Type: ptr.To(corev1.HostPathDirectoryOrCreate),
+									Type: new(corev1.HostPathDirectoryOrCreate),
 								},
 							},
 						},
