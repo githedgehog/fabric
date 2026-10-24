@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/pkg/errors"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -59,7 +60,7 @@ func SwitchGroupCreate(ctx context.Context, printYaml bool, options *SwitchGroup
 			return errors.Wrap(err, "cannot marshal sg")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil

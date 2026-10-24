@@ -379,7 +379,7 @@ func main() {
 								return errors.Wrapf(err, "failed to generate systemd unit")
 							}
 
-							fmt.Println(unit)
+							fmt.Fprintln(os.Stdout, unit)
 
 							return nil
 						},

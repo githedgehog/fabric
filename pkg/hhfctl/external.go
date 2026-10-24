@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
@@ -77,7 +78,7 @@ func ExternalCreate(ctx context.Context, printYaml bool, options *ExternalCreate
 			return errors.Wrap(err, "cannot marshal ext")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil
@@ -181,7 +182,7 @@ func ExternalPeering(ctx context.Context, printYaml bool, options *ExternalPeeri
 			return errors.Wrap(err, "cannot marshal ExternalPeering")
 		}
 
-		fmt.Println(string(out))
+		fmt.Fprintln(os.Stdout, string(out))
 	}
 
 	return nil

@@ -7,8 +7,7 @@ version: "2"
 #   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
 #   2. Default exclusions inherited from v1, see linters.exclusions.presets
 #   3. nolintlint require-explanation: 512 directives without explanation
-#   4. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195), and the
-#      forbidigo default fmt.Print* pattern (9)
+#   4. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195)
 #   5. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
 #      (16), args-on-sep-lines (97), no-raw-keys (254)
 #   6. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
@@ -112,7 +111,9 @@ linters:
       # match by the actual package, so aliased imports are caught too
       analyze-types: true
       forbid:
-        # TODO add the default ^(fmt\.Print(|f|ln)|print|println)$ pattern replaced by this list: 9 issues
+        # the default pattern, replaced by this list: catches the debug prints, the actual output goes to an
+        # explicit writer, e.g. fmt.Fprintln(os.Stdout, ...)
+        - pattern: ^(fmt\.Print(|f|ln)|print|println)$
         - pattern: ^ptr\.To$
           pkg: ^k8s\.io/utils/ptr$
           msg: use new(x)
