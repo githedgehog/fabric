@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specCommunityListsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecCommunityList]{
@@ -49,9 +48,9 @@ var specCommunityListEnforcer = &DefaultValueEnforcer[string, *dozer.SpecCommuni
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets{
 			CommunitySet: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet{
 				name: {
-					CommunitySetName: pointer.To(name),
+					CommunitySetName: new(name),
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_DefinedSets_BgpDefinedSets_CommunitySets_CommunitySet_Config{
-						CommunitySetName: pointer.To(name),
+						CommunitySetName: new(name),
 						CommunityMember:  members,
 						MatchSetOptions:  oc.OpenconfigRoutingPolicy_MatchSetOptionsType_ANY,
 						Action:           oc.OpenconfigRoutingPolicyExt_RoutingPolicyExtActionType_PERMIT,

@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specRouteMapsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecRouteMap]{
@@ -63,9 +62,9 @@ var specRouteMapBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRouteMap
 		return &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions{
 			PolicyDefinition: map[string]*oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition{
 				name: {
-					Name: pointer.To(name),
+					Name: new(name),
 					Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Config{
-						Name: pointer.To(name),
+						Name: new(name),
 					},
 				},
 			},
@@ -150,7 +149,7 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 				conditions.BgpConditions.MatchEvpnSet.Config = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Conditions_BgpConditions_MatchEvpnSet_Config{}
 			}
 
-			conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route = pointer.To(true)
+			conditions.BgpConditions.MatchEvpnSet.Config.DefaultType5Route = new(true)
 		}
 		if statement.Conditions.MatchEVPNVNI != nil {
 			if conditions.BgpConditions == nil {
@@ -226,9 +225,9 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 
 		statements := &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_OrderedMap{}
 		err := statements.Append(&oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement{
-			Name: pointer.To(seq),
+			Name: new(seq),
 			Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Config{
-				Name: pointer.To(seq),
+				Name: new(seq),
 			},
 			Conditions: conditions,
 			Actions: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions{
@@ -281,9 +280,9 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			if statement.Conditions != nil {
 				if statement.Conditions.Config != nil {
 					if statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_DIRECTLY_CONNECTED {
-						conditions.DirectlyConnected = pointer.To(true)
+						conditions.DirectlyConnected = new(true)
 					} else if statement.Conditions.Config.InstallProtocolEq == oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ATTACHED_HOST {
-						conditions.AttachedHost = pointer.To(true)
+						conditions.AttachedHost = new(true)
 					}
 
 					if statement.Conditions.Config.CallPolicy != nil {

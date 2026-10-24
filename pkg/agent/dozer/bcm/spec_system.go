@@ -29,7 +29,6 @@ import (
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specZTPEnforcer = &DefaultValueEnforcer[string, *dozer.Spec]{
@@ -66,7 +65,7 @@ func unmarshalOCZTPConfig(ocVal *oc.OpenconfigZtp_Ztp_Config) (*bool, error) {
 	}
 
 	if ocVal.AdminMode == nil {
-		return pointer.To(false), nil
+		return new(false), nil
 	}
 
 	return ocVal.AdminMode, nil
@@ -137,9 +136,9 @@ var specPortGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortGroup]{
 		return &oc.OpenconfigPortGroup_PortGroups{
 			PortGroup: map[string]*oc.OpenconfigPortGroup_PortGroups_PortGroup{
 				id: {
-					Id: pointer.To(id),
+					Id: new(id),
 					Config: &oc.OpenconfigPortGroup_PortGroups_PortGroup_Config{
-						Id:    pointer.To(id),
+						Id:    new(id),
 						Speed: speed,
 					},
 				},
@@ -225,10 +224,10 @@ var specPortBreakoutEnforcer = &DefaultValueEnforcer[string, *dozer.SpecPortBrea
 		return &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups{
 			Group: map[uint8]*oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group{
 				1: {
-					Index: pointer.To(uint8(1)),
+					Index: new(uint8(1)),
 					Config: &oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config{
-						Index:         pointer.To(uint8(1)),
-						NumBreakouts:  pointer.To(num),
+						Index:         new(uint8(1)),
+						NumBreakouts:  new(num),
 						BreakoutSpeed: speed,
 						BreakoutOwner: oc.OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config_BreakoutOwner_MANUAL,
 						// NumPhysicalChannels: pointer.To(0), // TODO check if it's really needed
@@ -302,17 +301,17 @@ var specUserEnforcer = &DefaultValueEnforcer[string, *dozer.SpecUser]{
 	Marshal: func(name string, value *dozer.SpecUser) (ygot.ValidatedGoStruct, error) {
 		var passwd, passwdHash *string
 		if len(value.Password) == 63 && strings.HasPrefix(value.Password, "$5$") {
-			passwdHash = pointer.To(value.Password)
+			passwdHash = new(value.Password)
 		} else {
-			passwd = pointer.To(value.Password)
+			passwd = new(value.Password)
 		}
 
 		return &oc.OpenconfigSystem_System_Aaa_Authentication_Users{
 			User: map[string]*oc.OpenconfigSystem_System_Aaa_Authentication_Users_User{
 				name: {
-					Username: pointer.To(name),
+					Username: new(name),
 					Config: &oc.OpenconfigSystem_System_Aaa_Authentication_Users_User_Config{
-						Username:       pointer.To(name),
+						Username:       new(name),
 						Password:       passwd,
 						PasswordHashed: passwdHash,
 						Role:           oc.UnionString(value.Role),

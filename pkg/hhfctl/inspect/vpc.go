@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -181,7 +180,7 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 			continue
 		}
 
-		out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+		out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 	}
 
 	vpcPeerings := &vpcapi.VPCPeeringList{}
@@ -207,7 +206,7 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 			}
 		}
 
-		out.VPCPeerings[vpcPeering.Name] = pointer.To(vpcPeering.Spec)
+		out.VPCPeerings[vpcPeering.Name] = new(vpcPeering.Spec)
 	}
 
 	extPeerings := &vpcapi.ExternalPeeringList{}
@@ -222,7 +221,7 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 			continue
 		}
 
-		out.ExternalPeerings[extPeering.Name] = pointer.To(extPeering.Spec)
+		out.ExternalPeerings[extPeering.Name] = new(extPeering.Spec)
 	}
 
 	access, err := apiutil.GetReachableFrom(ctx, kube, name)

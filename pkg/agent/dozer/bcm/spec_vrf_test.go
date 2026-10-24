@@ -19,15 +19,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 // The switch refuses a neighbor replace that swaps the restart timer for warning-only or back, so the prefix limit
 // has to be deleted first. Both directions crash-looped the agent on a VLAB.
 func TestSpecVRFBGPPrefixLimitModeSwitch(t *testing.T) {
-	restart := &dozer.SpecVRFBGPNeighbor{IPv4MaxPrefixes: pointer.To[uint32](3), IPv4MaxPrefixesRestart: pointer.To[uint16](5)}
-	restartHigher := &dozer.SpecVRFBGPNeighbor{IPv4MaxPrefixes: pointer.To[uint32](10), IPv4MaxPrefixesRestart: pointer.To[uint16](5)}
-	warnOnly := &dozer.SpecVRFBGPNeighbor{IPv4MaxPrefixes: pointer.To[uint32](3), IPv4MaxPrefixesWarnOnly: pointer.To(true)}
+	restart := &dozer.SpecVRFBGPNeighbor{IPv4MaxPrefixes: new(uint32(3)), IPv4MaxPrefixesRestart: new(uint16(5))}
+	restartHigher := &dozer.SpecVRFBGPNeighbor{IPv4MaxPrefixes: new(uint32(10)), IPv4MaxPrefixesRestart: new(uint16(5))}
+	warnOnly := &dozer.SpecVRFBGPNeighbor{IPv4MaxPrefixes: new(uint32(3)), IPv4MaxPrefixesWarnOnly: new(true)}
 	noLimit := &dozer.SpecVRFBGPNeighbor{}
 
 	deletePath := "/network-instances/network-instance[name=VrfEext]/protocols/protocol[identifier=BGP][name=bgp]/bgp" +

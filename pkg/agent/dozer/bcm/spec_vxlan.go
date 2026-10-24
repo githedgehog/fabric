@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specVXLANTunnelsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecVXLANTunnel]{
@@ -47,7 +46,7 @@ var specVXLANTunnelEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANTunn
 		return &oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL{
 			VXLAN_TUNNEL_LIST: map[string]*oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST{
 				name: {
-					Name:    pointer.To(name),
+					Name:    new(name),
 					SrcIp:   value.SourceIP,
 					SrcIntf: value.SourceInterface,
 					QosMode: qos,
@@ -72,7 +71,7 @@ var specVXLANEVPNNVOEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANEVP
 		return &oc.SonicVxlan_SonicVxlan_VXLAN_EVPN_NVO{
 			VXLAN_EVPN_NVO_LIST: map[string]*oc.SonicVxlan_SonicVxlan_VXLAN_EVPN_NVO_VXLAN_EVPN_NVO_LIST{
 				name: {
-					Name:       pointer.To(name),
+					Name:       new(name),
 					SourceVtep: value.SourceVTEP,
 				},
 			},
@@ -108,9 +107,9 @@ var specVXLANTunnelMapEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVXLANT
 					Name:    "vtepfabric", // TODO ditto
 					Mapname: name,
 				}: {
-					Name:    pointer.To("vtepfabric"), // TODO ditto
-					Mapname: pointer.To(name),
-					Vlan:    pointer.To(fmt.Sprintf("Vlan%d", *value.VLAN)),
+					Name:    new("vtepfabric"), // TODO ditto
+					Mapname: new(name),
+					Vlan:    new(fmt.Sprintf("Vlan%d", *value.VLAN)),
 					Vni:     value.VNI,
 				},
 			},
@@ -130,7 +129,7 @@ var specVRFVNIEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFVNIEntry]{
 	DeleteWeight: ActionWeightVRFVNIDelete,
 	Marshal: func(name string, value *dozer.SpecVRFVNIEntry) (ygot.ValidatedGoStruct, error) {
 		return &oc.SonicVrf_SonicVrf_VRF_VRF_LIST{
-			VrfName: pointer.To(name),
+			VrfName: new(name),
 			Vni:     value.VNI,
 		}, nil
 	},
@@ -165,7 +164,7 @@ func unmarshalActualVXLANs(ocVal *oc.SonicVxlan_SonicVxlan) (map[string]*dozer.S
 			vxlanTunnels[name] = &dozer.SpecVXLANTunnel{
 				SourceIP:        vxlanTunnel.SrcIp,
 				SourceInterface: vxlanTunnel.SrcIntf,
-				QoSUniform:      pointer.To(vxlanTunnel.QosMode == oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST_QosMode_uniform),
+				QoSUniform:      new(vxlanTunnel.QosMode == oc.SonicVxlan_SonicVxlan_VXLAN_TUNNEL_VXLAN_TUNNEL_LIST_QosMode_uniform),
 			}
 		}
 	}
@@ -190,7 +189,7 @@ func unmarshalActualVXLANs(ocVal *oc.SonicVxlan_SonicVxlan) (map[string]*dozer.S
 				if err != nil {
 					return nil, nil, nil, errors.Wrapf(err, "can't parse vlan %s", *vxlanTunnelMap.Vlan)
 				}
-				vlan = pointer.To(uint16(value))
+				vlan = new(uint16(value))
 			}
 
 			vxlanTunnelMaps[key.Mapname] = &dozer.SpecVXLANTunnelMap{
@@ -253,7 +252,7 @@ var specSuppressVLANNeighEnforcer = &DefaultValueEnforcer[string, *dozer.SpecSup
 		return &oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH{
 			SUPPRESS_VLAN_NEIGH_LIST: map[string]*oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH_SUPPRESS_VLAN_NEIGH_LIST{
 				name: {
-					Name:     pointer.To(name),
+					Name:     new(name),
 					Suppress: oc.SonicVxlan_SonicVxlan_SUPPRESS_VLAN_NEIGH_SUPPRESS_VLAN_NEIGH_LIST_Suppress_on,
 				},
 			},

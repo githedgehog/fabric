@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var specLSTGroupsEnforcer = &DefaultMapEnforcer[string, *dozer.SpecLSTGroup]{
@@ -39,9 +38,9 @@ var specLSTGroupEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTGroup]{
 		return &oc.OpenconfigLstExt_Lst_LstGroups{
 			LstGroup: map[string]*oc.OpenconfigLstExt_Lst_LstGroups_LstGroup{
 				name: {
-					Name: pointer.To(name),
+					Name: new(name),
 					Config: &oc.OpenconfigLstExt_Lst_LstGroups_LstGroup_Config{
-						Name:                pointer.To(name),
+						Name:                new(name),
 						AllEvpnEsDownstream: value.AllEVPNESDownstream,
 						AllMclagsDownstream: value.AllMCLAGDownstream,
 						Timeout:             value.Timeout,
@@ -103,9 +102,9 @@ var specLSTInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTInter
 		groups := map[string]*oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups_UpstreamGroup{}
 		for _, group := range value.Groups {
 			groups[group] = &oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups_UpstreamGroup{
-				GroupName: pointer.To(group),
+				GroupName: new(group),
 				Config: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups_UpstreamGroup_Config{
-					GroupName: pointer.To(group),
+					GroupName: new(group),
 				},
 			}
 		}
@@ -113,13 +112,13 @@ var specLSTInterfaceEnforcer = &DefaultValueEnforcer[string, *dozer.SpecLSTInter
 		return &oc.OpenconfigLstExt_Lst_Interfaces{
 			Interface: map[string]*oc.OpenconfigLstExt_Lst_Interfaces_Interface{
 				id: {
-					Id: pointer.To(id),
+					Id: new(id),
 					Config: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_Config{
-						Id: pointer.To(id),
+						Id: new(id),
 					},
 					InterfaceRef: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_InterfaceRef{
 						Config: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_InterfaceRef_Config{
-							Interface: pointer.To(id),
+							Interface: new(id),
 						},
 					},
 					UpstreamGroups: &oc.OpenconfigLstExt_Lst_Interfaces_Interface_UpstreamGroups{

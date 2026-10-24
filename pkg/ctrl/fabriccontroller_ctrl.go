@@ -11,7 +11,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/version"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +48,7 @@ func SetupFabricControllerReconcilerWith(mgr kctrl.Manager, namespace string, lo
 		Named("FabricController").
 		For(&fcintapi.FabricController{}, builder.WithPredicates(onlyOwn)).
 		// webhooks are served by every replica and need the lock, not only the leader's reconcilers
-		WithOptions(controller.Options{NeedLeaderElection: ptr.To(false)}).
+		WithOptions(controller.Options{NeedLeaderElection: new(false)}).
 		Complete(r); err != nil {
 		return fmt.Errorf("setting up fabric controller controller: %w", err)
 	}

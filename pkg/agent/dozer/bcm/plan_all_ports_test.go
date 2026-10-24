@@ -10,7 +10,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 var allPortsTestProfile = &wiringapi.SwitchProfileSpec{
@@ -50,8 +49,8 @@ func TestPlanAllPortsUpBreakoutBaseName(t *testing.T) {
 	}
 	spec := &dozer.Spec{
 		Interfaces: map[string]*dozer.SpecInterface{
-			"E1/53":   {Enabled: pointer.To(true), Description: pointer.To("Fabric E1/53 spine-1/E1/3")},
-			"E1/54/1": {Enabled: pointer.To(true), Description: pointer.To("Fabric E1/54 spine-2/E1/3")},
+			"E1/53":   {Enabled: new(true), Description: new("Fabric E1/53 spine-1/E1/3")},
+			"E1/54/1": {Enabled: new(true), Description: new("Fabric E1/54 spine-2/E1/3")},
 		},
 	}
 
@@ -72,8 +71,8 @@ func TestTranslatePortNamesCollision(t *testing.T) {
 	}
 	spec := &dozer.Spec{
 		Interfaces: map[string]*dozer.SpecInterface{
-			"E1/53":   {Enabled: pointer.To(true)},
-			"E1/53/1": {Enabled: pointer.To(true)},
+			"E1/53":   {Enabled: new(true)},
+			"E1/53/1": {Enabled: new(true)},
 		},
 	}
 

@@ -26,7 +26,6 @@ import (
 	"github.com/samber/lo"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -138,7 +137,7 @@ func Server(ctx context.Context, kube kclient.Reader, in ServerIn) (*ServerOut, 
 	}
 
 	for _, conn := range conns.Items {
-		out.Connections[conn.Name] = pointer.To(conn.Spec)
+		out.Connections[conn.Name] = new(conn.Spec)
 
 		vpcAttaches := &vpcapi.VPCAttachmentList{}
 		if err := kube.List(ctx, vpcAttaches, kclient.MatchingLabels{
@@ -148,7 +147,7 @@ func Server(ctx context.Context, kube kclient.Reader, in ServerIn) (*ServerOut, 
 		}
 
 		for _, vpcAttach := range vpcAttaches.Items {
-			out.VPCAttachments[vpcAttach.Name] = pointer.To(vpcAttach.Spec)
+			out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 
 			vpcName, _, _ := strings.Cut(vpcAttach.Spec.Subnet, "/")
 
@@ -157,7 +156,7 @@ func Server(ctx context.Context, kube kclient.Reader, in ServerIn) (*ServerOut, 
 				return nil, errors.Wrapf(err, "cannot get VPC %s", vpcName)
 			}
 
-			out.AttachedVPCs[vpcName] = pointer.To(vpc.Spec)
+			out.AttachedVPCs[vpcName] = new(vpc.Spec)
 		}
 	}
 

@@ -24,7 +24,6 @@ import (
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -62,17 +61,17 @@ func ocNeighbors(opts ...ocNeighborOpts) map[string]*ocNeighbor {
 			o.portDescr: &st.PortDescription,
 		} {
 			if val != "" {
-				*dst = pointer.To(val)
+				*dst = new(val)
 			}
 		}
 
-		neighbor := &ocNeighbor{Id: pointer.To(o.id), State: st}
+		neighbor := &ocNeighbor{Id: new(o.id), State: st}
 
 		if o.manuf != "" {
 			neighbor.Med = &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Med{
 				State: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Med_State{
 					Inventory: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Med_State_Inventory{
-						Manufacturer: pointer.To(o.manuf),
+						Manufacturer: new(o.manuf),
 					},
 				},
 			}
@@ -311,7 +310,7 @@ func TestLLDPNeighbors(t *testing.T) {
 					sysName:   "dpu-1",
 					portID:    "0a:00:00:00:1a:01",
 					portDescr: "p0",
-					ttl:       pointer.To(uint16(120)),
+					ttl:       new(uint16(120)),
 				},
 				ocNeighborOpts{
 					id:        "0A:00:00:00:1A:01",
@@ -319,7 +318,7 @@ func TestLLDPNeighbors(t *testing.T) {
 					sysName:   "dpu-1",
 					portID:    "0a:00:00:00:1a:01",
 					portDescr: "p0",
-					ttl:       pointer.To(uint16(120)),
+					ttl:       new(uint16(120)),
 				},
 			),
 			want: []agentapi.SwitchStateLLDPNeighbor{
@@ -370,15 +369,15 @@ func TestLLDPNeighbors(t *testing.T) {
 					id:         "0a:00:00:00:1a:01",
 					sysName:    "a-just-updated",
 					portID:     "Ethernet0",
-					ttl:        pointer.To(uint16(120)),
-					lastUpdate: pointer.To(int64(0)),
+					ttl:        new(uint16(120)),
+					lastUpdate: new(int64(0)),
 				},
 				ocNeighborOpts{
 					id:         "0a:00:00:00:1a:02",
 					sysName:    "b-stale",
 					portID:     "Ethernet1",
-					ttl:        pointer.To(uint16(120)),
-					lastUpdate: pointer.To(int64(4200)),
+					ttl:        new(uint16(120)),
+					lastUpdate: new(int64(4200)),
 				},
 				ocNeighborOpts{
 					id:      "0a:00:00:00:1a:03",
@@ -435,7 +434,7 @@ func TestUpdateLLDPNeighbors(t *testing.T) {
 
 	ifaceWithNeighbor := func(iface, sysName string) *oc.OpenconfigLldp_Lldp_Interfaces_Interface {
 		return &oc.OpenconfigLldp_Lldp_Interfaces_Interface{
-			Name: pointer.To(iface),
+			Name: new(iface),
 			Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{
 				Neighbor: ocNeighbors(ocNeighborOpts{
 					id:        "0c:48:c6:97:3b:12",
@@ -513,7 +512,7 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 
 	iface := func(name string, neighbors ...ocNeighborOpts) *oc.OpenconfigLldp_Lldp_Interfaces_Interface {
 		return &oc.OpenconfigLldp_Lldp_Interfaces_Interface{
-			Name:      pointer.To(name),
+			Name:      new(name),
 			Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{Neighbor: ocNeighbors(neighbors...)},
 		}
 	}
@@ -522,11 +521,11 @@ func TestUpdateLLDPNeighborsMetrics(t *testing.T) {
 	// reporting no age so that their last update is the collection time
 	wired := ocNeighborOpts{
 		id: "00:00:00:0b:bb:11", sysName: "server-5", portID: "enp2s1",
-		ttl: pointer.To(uint16(120)), lastUpdate: pointer.To(int64(0)),
+		ttl: new(uint16(120)), lastUpdate: new(int64(0)),
 	}
 	extra := ocNeighborOpts{
 		id: "00:00:00:0b:bb:19", portID: "00:00:00:0b:bb:19",
-		ttl: pointer.To(uint16(120)), lastUpdate: pointer.To(int64(0)),
+		ttl: new(uint16(120)), lastUpdate: new(int64(0)),
 	}
 
 	client := newGNMIMock()
@@ -607,19 +606,19 @@ func TestUpdateLLDPNeighborsFreshness(t *testing.T) {
 	}{
 		{
 			name:       "ttl and last update",
-			neighbor:   ocNeighborOpts{ttl: pointer.To(uint16(120)), lastUpdate: pointer.To(int64(5))},
+			neighbor:   ocNeighborOpts{ttl: new(uint16(120)), lastUpdate: new(int64(5))},
 			wantTTL:    1,
 			wantUpdate: 1,
 		},
 		{
 			// the switch doesn't always report the last update, the advertised TTL is still worth having
 			name:     "ttl only",
-			neighbor: ocNeighborOpts{ttl: pointer.To(uint16(120))},
+			neighbor: ocNeighborOpts{ttl: new(uint16(120))},
 			wantTTL:  1,
 		},
 		{
 			name:       "last update only",
-			neighbor:   ocNeighborOpts{lastUpdate: pointer.To(int64(5))},
+			neighbor:   ocNeighborOpts{lastUpdate: new(int64(5))},
 			wantUpdate: 1,
 		},
 		{
@@ -640,7 +639,7 @@ func TestUpdateLLDPNeighborsFreshness(t *testing.T) {
 					Interfaces: &oc.OpenconfigLldp_Lldp_Interfaces{
 						Interface: map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface{
 							"Ethernet0": {
-								Name:      pointer.To("Ethernet0"),
+								Name:      new("Ethernet0"),
 								Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{Neighbor: ocNeighbors(tt.neighbor)},
 							},
 						},
@@ -675,7 +674,7 @@ func TestUpdateLLDPNeighborsInfo(t *testing.T) {
 				Interface: map[string]*oc.OpenconfigLldp_Lldp_Interfaces_Interface{
 					// a fabric peer reports the LLDP-MED inventory, everything else leaves it empty
 					"Ethernet0": {
-						Name: pointer.To("Ethernet0"),
+						Name: new("Ethernet0"),
 						Neighbors: &oc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors{
 							Neighbor: ocNeighbors(ocNeighborOpts{
 								id:        "b4:db:91:9b:60:27",

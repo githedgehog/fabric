@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 // neighborGlobalName is the fixed key of the single NEIGH_GLOBAL_LIST entry as
@@ -27,9 +26,9 @@ var specNeighborGlobalEnforcer = &DefaultValueEnforcer[string, *dozer.SpecNeighb
 		return &oc.OpenconfigNeighbor_NeighborGlobals{
 			NeighborGlobal: map[string]*oc.OpenconfigNeighbor_NeighborGlobals_NeighborGlobal{
 				neighborGlobalName: {
-					Name: pointer.To(neighborGlobalName),
+					Name: new(neighborGlobalName),
 					Config: &oc.OpenconfigNeighbor_NeighborGlobals_NeighborGlobal_Config{
-						Name:                      pointer.To(neighborGlobalName),
+						Name:                      new(neighborGlobalName),
 						Ipv4DropNeighborAgingTime: value.IPv4DropNeighborAgingTime,
 					},
 				},

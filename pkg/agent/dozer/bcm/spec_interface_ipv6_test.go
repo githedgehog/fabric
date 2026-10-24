@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/util/pointer"
 )
 
 // A hostBGP attachment on a subnet with VLAN 0 enables IPv6 on subinterface 0 of the port itself,
@@ -38,7 +37,7 @@ func TestSpecInterfaceSubinterfaceIPv6Enforcer(t *testing.T) {
 	}{
 		{
 			name:    "ipv6 dropped, subinterface stays",
-			actual:  &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			actual:  &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			desired: &dozer.SpecSubinterface{},
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceSubinterfaceIPv6Delete,
@@ -48,7 +47,7 @@ func TestSpecInterfaceSubinterfaceIPv6Enforcer(t *testing.T) {
 		},
 		{
 			name:    "ipv6 dropped along with the subinterface",
-			actual:  &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			actual:  &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			desired: nil,
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceSubinterfaceIPv6Delete,
@@ -59,7 +58,7 @@ func TestSpecInterfaceSubinterfaceIPv6Enforcer(t *testing.T) {
 		{
 			name:    "ipv6 enabled",
 			actual:  &dozer.SpecSubinterface{},
-			desired: &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			desired: &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceSubinterfaceIPv6Update,
 				Type:   ActionTypeUpdate,
@@ -68,14 +67,14 @@ func TestSpecInterfaceSubinterfaceIPv6Enforcer(t *testing.T) {
 		},
 		{
 			name:        "ipv6 unchanged",
-			actual:      &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
-			desired:     &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			actual:      &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
+			desired:     &dozer.SpecSubinterface{IPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			wantActions: nil,
 		},
 		{
 			// unrelated subinterface changes must not produce spurious IPv6 actions
 			name:        "only IPs changed",
-			actual:      &dozer.SpecSubinterface{IPs: map[string]*dozer.SpecInterfaceIP{"10.0.0.1": {PrefixLen: pointer.To(uint8(24))}}},
+			actual:      &dozer.SpecSubinterface{IPs: map[string]*dozer.SpecInterfaceIP{"10.0.0.1": {PrefixLen: new(uint8(24))}}},
 			desired:     &dozer.SpecSubinterface{},
 			wantActions: nil,
 		},
@@ -119,7 +118,7 @@ func TestSpecInterfaceVLANIPv6Enforcer(t *testing.T) {
 	}{
 		{
 			name:    "ipv6 dropped, VLAN interface stays",
-			actual:  &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			actual:  &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			desired: &dozer.SpecInterface{},
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceVLANIPv6Delete,
@@ -129,7 +128,7 @@ func TestSpecInterfaceVLANIPv6Enforcer(t *testing.T) {
 		},
 		{
 			name:    "ipv6 dropped along with the VLAN interface",
-			actual:  &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			actual:  &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			desired: nil,
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceVLANIPv6Delete,
@@ -140,7 +139,7 @@ func TestSpecInterfaceVLANIPv6Enforcer(t *testing.T) {
 		{
 			name:    "ipv6 enabled",
 			actual:  &dozer.SpecInterface{},
-			desired: &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			desired: &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceVLANIPv6Update,
 				Type:   ActionTypeUpdate,
@@ -149,17 +148,17 @@ func TestSpecInterfaceVLANIPv6Enforcer(t *testing.T) {
 		},
 		{
 			name:        "ipv6 unchanged",
-			actual:      &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
-			desired:     &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)}},
+			actual:      &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
+			desired:     &dozer.SpecInterface{VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)}},
 			wantActions: nil,
 		},
 		{
 			// switching a TH5 mesh link from numbered to unnumbered: the IPv4 address goes away
 			// and IPv6 comes up on the same SVI
 			name:   "numbered to unnumbered",
-			actual: &dozer.SpecInterface{VLANIPs: map[string]*dozer.SpecInterfaceIP{"172.30.128.0": {PrefixLen: pointer.To(uint8(31))}}},
+			actual: &dozer.SpecInterface{VLANIPs: map[string]*dozer.SpecInterfaceIP{"172.30.128.0": {PrefixLen: new(uint8(31))}}},
 			desired: &dozer.SpecInterface{
-				VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: pointer.To(true)},
+				VLANIPv6: &dozer.SpecInterfaceIPv6{Enabled: new(true)},
 			},
 			wantActions: []Action{{
 				Weight: ActionWeightInterfaceVLANIPv6Update,
