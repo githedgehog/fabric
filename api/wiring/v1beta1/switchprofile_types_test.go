@@ -115,11 +115,9 @@ func TestGetAPI2NOSPortsFor(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "test",
-					Namespace: kmetav1.NamespaceDefault,
-				},
-				Spec: *tt.sp,
+				Name:      "test",
+				Namespace: kmetav1.NamespaceDefault,
+				Spec:      *tt.sp,
 			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
@@ -226,11 +224,9 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "test",
-					Namespace: kmetav1.NamespaceDefault,
-				},
-				Spec: *tt.sp,
+				Name:      "test",
+				Namespace: kmetav1.NamespaceDefault,
+				Spec:      *tt.sp,
 			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
@@ -332,11 +328,9 @@ func TestGetAllBreakoutNOSNames(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "test",
-					Namespace: kmetav1.NamespaceDefault,
-				},
-				Spec: *tt.sp,
+				Name:      "test",
+				Namespace: kmetav1.NamespaceDefault,
+				Spec:      *tt.sp,
 			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
@@ -429,11 +423,9 @@ func TestSwitchProfileDefault(t *testing.T) {
 				tt.sp.Platform = "vs"
 			}
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "test",
-					Namespace: kmetav1.NamespaceDefault,
-				},
-				Spec: *tt.sp,
+				Name:      "test",
+				Namespace: kmetav1.NamespaceDefault,
+				Spec:      *tt.sp,
 			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 
@@ -665,11 +657,9 @@ func TestGetAvailableAPIPorts(t *testing.T) {
 			}
 
 			_, err := (&wiringapi.SwitchProfile{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "test",
-					Namespace: kmetav1.NamespaceDefault,
-				},
-				Spec: *tt.sp,
+				Name:      "test",
+				Namespace: kmetav1.NamespaceDefault,
+				Spec:      *tt.sp,
 			}).Validate(t.Context(), nil, nil)
 			require.NoError(t, err)
 

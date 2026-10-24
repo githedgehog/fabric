@@ -27,11 +27,9 @@ import (
 func TestBGPPrefixLimitColumn(t *testing.T) {
 	neigh := func(state agentapi.BGPNeighborSessionState, prefixes agentapi.SwitchStateBGPNeighborPrefixes) apiutil.BGPNeighborStatus {
 		return apiutil.BGPNeighborStatus{
-			Expected: true,
-			SwitchStateBGPNeighbor: agentapi.SwitchStateBGPNeighbor{
-				SessionState: state,
-				Prefixes:     map[string]agentapi.SwitchStateBGPNeighborPrefixes{ipv4UnicastAFISafi: prefixes},
-			},
+			Expected:     true,
+			SessionState: state,
+			Prefixes:     map[string]agentapi.SwitchStateBGPNeighborPrefixes{ipv4UnicastAFISafi: prefixes},
 		}
 	}
 	out := &BGPOut{Neighbors: map[string]map[string]map[string]apiutil.BGPNeighborStatus{

@@ -21,7 +21,7 @@ func TestGatewayDeleteGuard(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 
 	gwConn := &wiringapi.Connection{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "spine-01--gateway--gw-1", Namespace: kmetav1.NamespaceDefault},
+		Name: "spine-01--gateway--gw-1", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
 			Links: []wiringapi.GatewayLink{{
 				Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "spine-01/E1/1"}},
@@ -47,7 +47,7 @@ func TestGatewayDeleteGuard(t *testing.T) {
 				Build()}
 
 			_, err := w.ValidateDelete(t.Context(), &gwapi.Gateway{
-				ObjectMeta: kmetav1.ObjectMeta{Name: tt.gw, Namespace: kmetav1.NamespaceDefault},
+				Name: tt.gw, Namespace: kmetav1.NamespaceDefault,
 			})
 
 			if tt.err == "" {

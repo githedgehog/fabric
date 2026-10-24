@@ -7,13 +7,10 @@ import (
 	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var CLSPVS = wiringapi.SwitchProfile{
-	ObjectMeta: kmetav1.ObjectMeta{
-		Name: meta.SwitchProfileVSCLSP,
-	},
+	Name: meta.SwitchProfileVSCLSP,
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Virtual Switch CLS+",
 		SwitchSilicon: SiliconVS,

@@ -189,14 +189,14 @@ func TestBuildGatewayAgentTopologyRequired(t *testing.T) {
 	_, err = BuildGatewayAgent(t.Context(), kube, cfg, withoutFabric)
 	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
 
-	peering := &gwapi.GatewayPeering{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}}
+	peering := &gwapi.GatewayPeering{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}
 	_, err = BuildGatewayAgentForPeering(t.Context(), kube, cfg, peering)
 	require.ErrorContains(t, err, "peering vpc-1--vpc-2 has no fabric")
 }
 
 func TestBuildGatewayAgentNotReadyElsewhere(t *testing.T) {
 	notReady := &gwapi.VPCInfo{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-6", Namespace: kmetav1.NamespaceDefault},
+		Name: "vpc-6", Namespace: kmetav1.NamespaceDefault,
 		Spec: gwapi.VPCInfoSpec{
 			Topology: gwapi.VPCInfoTopology{Domains: []string{"d2"}},
 			VNI:      100,
@@ -245,7 +245,7 @@ func TestGatewayEnqueue(t *testing.T) {
 		{
 			// created without a topology, so defaulted to the default fabric and domain
 			name:    "vpcinfo without topology",
-			obj:     defaulted(&gwapi.VPCInfo{ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-7", Namespace: kmetav1.NamespaceDefault}}),
+			obj:     defaulted(&gwapi.VPCInfo{Name: "vpc-7", Namespace: kmetav1.NamespaceDefault}),
 			enqueue: r.enqueueForVPCInfo,
 			gws:     []string{"gw-1", "gw-2"},
 		},

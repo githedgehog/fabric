@@ -13,7 +13,6 @@ import (
 	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	kctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -30,13 +29,13 @@ func TestLockedReconcilers(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 
-	sw := &wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"}}
+	sw := &wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sw).Build()
 
 	lock := NewLock("system:serviceaccount:fab:fabric-ctrl")
 	cfg := &meta.FabricConfig{}
 	libr := librarian.NewManager(cfg)
-	req := kctrl.Request{NamespacedName: ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: "any"}}
+	req := kctrl.Request{Namespace: kmetav1.NamespaceDefault, Name: "any"}
 
 	// none of them has a client, they'd panic if they got past the lock
 	for name, reconcile := range map[string]func() (kctrl.Result, error){
@@ -61,8 +60,8 @@ func TestLockedReconcilers(t *testing.T) {
 
 	agent := &AgentReconciler{Client: kube, cfg: cfg, libr: libr, lock: lock}
 	require.Empty(t, agent.enqueueAllSwitches(t.Context(), sw), "fan-out is dropped while locked")
-	require.Empty(t, agent.enqueueByFabric(t.Context(), &wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}}))
-	require.Empty(t, enqueueSwitchesByProfile(kube, lock)(t.Context(), &wiringapi.SwitchProfile{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "any"}}))
+	require.Empty(t, agent.enqueueByFabric(t.Context(), &wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}))
+	require.Empty(t, enqueueSwitchesByProfile(kube, lock)(t.Context(), &wiringapi.SwitchProfile{Namespace: kmetav1.NamespaceDefault, Name: "any"}))
 
 	lock.unlocked.Store(true)
 	require.Len(t, agent.enqueueAllSwitches(t.Context(), sw), 1, "fan-out is back once unlocked")

@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	admissionv1 "k8s.io/api/admission/v1"
 	authnv1 "k8s.io/api/authentication/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -64,9 +63,9 @@ func TestLockedValidator(t *testing.T) {
 
 			ctx := t.Context()
 			if !tt.noRequest {
-				ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+				ctx = admission.NewContextWithRequest(ctx, admission.Request{
 					UserInfo: authnv1.UserInfo{Username: tt.username},
-				}})
+				})
 			}
 
 			srv := &wiringapi.Server{}

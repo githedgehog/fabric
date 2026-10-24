@@ -25,7 +25,7 @@ func TestConnectionReconcile(t *testing.T) {
 
 	eslag := func(name string) *wiringapi.Connection {
 		conn := &wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				ESLAG: &wiringapi.ConnESLAG{
 					Links: []wiringapi.ServerToSwitchLink{
@@ -44,8 +44,8 @@ func TestConnectionReconcile(t *testing.T) {
 		eslag("conn-1"),
 		// left over from a connection deleted while the controller wasn't running
 		&agentapi.Catalog{
-			ObjectMeta: kmetav1.ObjectMeta{Name: librarian.CatConns, Namespace: librarian.Namespace},
-			Spec:       agentapi.CatalogSpec{ConnectionIDs: map[string]uint32{"gone": 7}},
+			Name: librarian.CatConns, Namespace: librarian.Namespace,
+			Spec: agentapi.CatalogSpec{ConnectionIDs: map[string]uint32{"gone": 7}},
 		},
 	).Build()
 
@@ -54,7 +54,7 @@ func TestConnectionReconcile(t *testing.T) {
 	reconcile := func(name string) {
 		t.Helper()
 
-		_, err := r.Reconcile(t.Context(), kctrl.Request{NamespacedName: ktypes.NamespacedName{Name: name, Namespace: kmetav1.NamespaceDefault}})
+		_, err := r.Reconcile(t.Context(), kctrl.Request{Name: name, Namespace: kmetav1.NamespaceDefault})
 		require.NoError(t, err)
 	}
 

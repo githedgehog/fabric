@@ -31,13 +31,11 @@ func newTestServer() *Server {
 
 func testSubnet(name, circuitID, rv string) *dhcpapi.DHCPSubnet {
 	return &dhcpapi.DHCPSubnet{
-		ObjectMeta: kmetav1.ObjectMeta{
-			Name:            name,
-			Namespace:       kmetav1.NamespaceDefault,
-			UID:             ktypes.UID("uid-" + name),
-			ResourceVersion: rv,
-		},
-		Spec: dhcpapi.DHCPSubnetSpec{VRF: "VrfV1", CircuitID: circuitID},
+		Name:            name,
+		Namespace:       kmetav1.NamespaceDefault,
+		UID:             ktypes.UID("uid-" + name),
+		ResourceVersion: rv,
+		Spec:            dhcpapi.DHCPSubnetSpec{VRF: "VrfV1", CircuitID: circuitID},
 	}
 }
 
@@ -50,8 +48,8 @@ func recreated(obj *dhcpapi.DHCPSubnet) *dhcpapi.DHCPSubnet {
 
 func testSwitch(name string, role wiringapi.SwitchRole, ip string) *wiringapi.Switch {
 	return &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Role: role, IP: ip},
+		Name: name, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Role: role, IP: ip},
 	}
 }
 

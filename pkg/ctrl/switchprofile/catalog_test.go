@@ -93,9 +93,7 @@ func TestDefaultSwitchProfilesEnforcement(t *testing.T) {
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(&wiringapi.SwitchProfile{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name: "some-profile",
-			},
+			Name: "some-profile",
 		}).
 		Build()
 

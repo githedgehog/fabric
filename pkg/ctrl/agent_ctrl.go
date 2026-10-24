@@ -167,10 +167,10 @@ func (r *AgentReconciler) enqueueBySwitchListLabelsAndSpines(ctx context.Context
 			// already enqueued by label
 			continue
 		}
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+		res = append(res, reconcile.Request{
 			Namespace: sw.Namespace,
 			Name:      sw.Name,
-		}})
+		})
 	}
 
 	return res
@@ -444,10 +444,10 @@ func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Objec
 			continue
 		}
 
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+		res = append(res, reconcile.Request{
 			Namespace: sw.Namespace,
 			Name:      sw.Name,
-		}})
+		})
 	}
 
 	return res
@@ -471,10 +471,10 @@ func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Ob
 	}
 
 	for _, sw := range sws.Items {
-		res = append(res, reconcile.Request{NamespacedName: ktypes.NamespacedName{
+		res = append(res, reconcile.Request{
 			Namespace: sw.Namespace,
 			Name:      sw.Name,
-		}})
+		})
 	}
 
 	return res
@@ -1133,7 +1133,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 	l := kctrllog.FromContext(ctx)
 
 	saName := AgentServiceAccount(sw.Name)
-	sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName}}
+	sa := &corev1.ServiceAccount{Namespace: sw.Namespace, Name: saName}
 	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error {
 		return setOwner(sw, sa, r.Scheme())
 	})
@@ -1141,7 +1141,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 		return nil, fmt.Errorf("creating service account: %w", err)
 	}
 
-	role := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName}}
+	role := &rbacv1.Role{Namespace: sw.Namespace, Name: saName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, role, func() error {
 		if err := setOwner(sw, role, r.Scheme()); err != nil {
 			return err
@@ -1168,7 +1168,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 		return nil, fmt.Errorf("creating role: %w", err)
 	}
 
-	roleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName}}
+	roleBinding := &rbacv1.RoleBinding{Namespace: sw.Namespace, Name: saName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
 		if err := setOwner(sw, roleBinding, r.Scheme()); err != nil {
 			return err
@@ -1193,7 +1193,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 		return nil, fmt.Errorf("creating role binding: %w", err)
 	}
 
-	tokenSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: saName + "-satoken"}}
+	tokenSecret := &corev1.Secret{Namespace: sw.Namespace, Name: saName + "-satoken"}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, tokenSecret, func() error {
 		if err := setOwner(sw, tokenSecret, r.Scheme()); err != nil {
 			return err
@@ -1226,7 +1226,7 @@ func (r *AgentReconciler) prepareAgentInfra(ctx context.Context, sw *wiringapi.S
 	}
 
 	secretName := AgentKubeconfigSecret(sw.Name)
-	kubeconfigSecret := &corev1.Secret{ObjectMeta: kmetav1.ObjectMeta{Namespace: sw.Namespace, Name: secretName}}
+	kubeconfigSecret := &corev1.Secret{Namespace: sw.Namespace, Name: secretName}
 	_, err = ctrlutil.CreateOrUpdate(ctx, r.Client, kubeconfigSecret, func() error {
 		if err := setOwner(sw, kubeconfigSecret, r.Scheme()); err != nil {
 			return err

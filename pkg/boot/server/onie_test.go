@@ -31,8 +31,8 @@ func TestHandleONIEInstallError(t *testing.T) {
 		WithIndex(&fcintapi.SwitchBoot{}, switchBootSerialField, indexSwitchBootSerial).
 		WithIndex(&fcintapi.SwitchBoot{}, switchBootMACField, indexSwitchBootMAC).
 		WithObjects(&fcintapi.SwitchBoot{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
-			Spec:       fcintapi.SwitchBootSpec{Serial: "sn-0001"},
+			Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
+			Spec: fcintapi.SwitchBootSpec{Serial: "sn-0001"},
 		}).Build()
 
 	svc := &service{kube: kube, boots: kube, bootAttempts: make(chan func(), bootAttemptQueue)}

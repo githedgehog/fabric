@@ -29,8 +29,8 @@ import (
 
 func TestDefaultedEqual(t *testing.T) {
 	sw := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
-		Spec:       wiringapi.SwitchSpec{Profile: "vs"},
+		Namespace: kmetav1.NamespaceDefault, Name: "leaf-01",
+		Spec: wiringapi.SwitchSpec{Profile: "vs"},
 	}
 	sw.Default()
 
@@ -68,8 +68,8 @@ func TestFabricControllerRefresh(t *testing.T) {
 
 	newSwitch := func(name string, defaulted bool) *wiringapi.Switch {
 		sw := &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: name},
-			Spec:       wiringapi.SwitchSpec{Profile: "vs"},
+			Namespace: kmetav1.NamespaceDefault, Name: name,
+			Spec: wiringapi.SwitchSpec{Profile: "vs"},
 		}
 		if defaulted {
 			sw.Default()
@@ -84,7 +84,7 @@ func TestFabricControllerRefresh(t *testing.T) {
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(
-			&wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}},
+			&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric},
 			newSwitch("old", false),
 			newSwitch("current", true),
 			newSwitch("rejected", false),
@@ -191,18 +191,18 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 
 	// the fabric label is an outdated default, it's removed by the refresh
 	server := func(name string) *wiringapi.Server {
-		return &wiringapi.Server{ObjectMeta: kmetav1.ObjectMeta{
+		return &wiringapi.Server{
 			Namespace: kmetav1.NamespaceDefault,
 			Name:      name,
 			Labels:    map[string]string{wiringapi.LabelName("outdated"): "true"},
-		}}
+		}
 	}
 	tooLong := strings.Repeat("s", meta.MaxNameLength+1)
 
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(
-			&wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}},
+			&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric},
 			server("server-1"),
 			server(tooLong),
 		).

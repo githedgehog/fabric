@@ -44,7 +44,7 @@ func newConnectionFallbackHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*wi
 			}
 
 			return &wiringapi.Connection{
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+				Name: name, Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.ConnectionSpec{
 					ESLAG: &wiringapi.ConnESLAG{
 						Fallback: !disableFallback,

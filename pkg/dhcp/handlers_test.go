@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	"golang.org/x/time/rate"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -316,7 +315,7 @@ func TestHandler4Log(t *testing.T) {
 	t.Run("management subnet over a relay", func(t *testing.T) {
 		s := newServer(kube)
 		s.subnets = map[string]*subnet{
-			subnetKey("", ""): newSubnet(&dhcpapi.DHCPSubnet{ObjectMeta: kmetav1.ObjectMeta{Name: dhcpapi.ManagementSubnet}}),
+			subnetKey("", ""): newSubnet(&dhcpapi.DHCPSubnet{Name: dhcpapi.ManagementSubnet}),
 		}
 		discover := req(0)
 		discover.GatewayIPAddr = net.ParseIP(testRelay)
@@ -400,14 +399,14 @@ func TestHandler4Drops(t *testing.T) {
 			name:   "management subnet for a non-onie device",
 			giaddr: "0.0.0.0",
 			subnets: map[string]*dhcpapi.DHCPSubnet{
-				subnetKey("", ""): {ObjectMeta: kmetav1.ObjectMeta{Name: dhcpapi.ManagementSubnet}},
+				subnetKey("", ""): {Name: dhcpapi.ManagementSubnet},
 			},
 		},
 		{
 			name:   "management subnet over a relay",
 			giaddr: testRelay,
 			subnets: map[string]*dhcpapi.DHCPSubnet{
-				subnetKey("", ""): {ObjectMeta: kmetav1.ObjectMeta{Name: dhcpapi.ManagementSubnet}},
+				subnetKey("", ""): {Name: dhcpapi.ManagementSubnet},
 			},
 		},
 		{
@@ -422,7 +421,7 @@ func TestHandler4Drops(t *testing.T) {
 			giaddr: testRelay,
 			subnets: map[string]*dhcpapi.DHCPSubnet{
 				subnetKey("", ""): {
-					ObjectMeta: kmetav1.ObjectMeta{Name: "broken"},
+					Name: "broken",
 					Spec: dhcpapi.DHCPSubnetSpec{
 						CIDRBlock: "10.0.0.0/24",
 						StartIP:   "not-an-ip",

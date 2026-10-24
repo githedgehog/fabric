@@ -71,8 +71,8 @@ func newExternalPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcap
 			}
 
 			return &vpcapi.ExternalPeering{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindExternalPeering,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
 				Spec: vpcapi.ExternalPeeringSpec{
 					Permit: permit,
 				},

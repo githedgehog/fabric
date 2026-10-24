@@ -5,13 +5,10 @@ package switchprofile
 
 import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var SupermicroSSEC4632SB = wiringapi.SwitchProfile{
-	ObjectMeta: kmetav1.ObjectMeta{
-		Name: "supermicro-sse-c4632sb",
-	},
+	Name: "supermicro-sse-c4632sb",
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Supermicro SSE-C4632SB",
 		SwitchSilicon: CelesticaDS3000.Spec.SwitchSilicon,

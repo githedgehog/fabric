@@ -93,10 +93,8 @@ func TestGatewayValidate(t *testing.T) {
 	// everything but the fabric, which is either oneDomain or twoDomains
 	common := []kclient.Object{
 		defaulted(&v1alpha1.GatewayGroup{
-			ObjectMeta: kmetav1.ObjectMeta{
-				Name:      v1alpha1.DefaultGatewayGroup,
-				Namespace: "default",
-			},
+			Name:      v1alpha1.DefaultGatewayGroup,
+			Namespace: "default",
 		}),
 		defaulted(withName("gw-2", &v1alpha1.Gateway{
 			Spec: v1alpha1.GatewaySpec{

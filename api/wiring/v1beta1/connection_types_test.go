@@ -780,10 +780,8 @@ func TestConnectionValidation(t *testing.T) {
 			conn:       fabricConnGen("fabric-1"),
 			withClient: true,
 			objects: withObjs(base, &wiringapi.Connection{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "existing",
-					Namespace: kmetav1.NamespaceDefault,
-				},
+				Name:      "existing",
+				Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.ConnectionSpec{
 					Unbundled: &wiringapi.ConnUnbundled{
 						Link: wiringapi.ServerToSwitchLink{
@@ -802,10 +800,8 @@ func TestConnectionValidation(t *testing.T) {
 			}),
 			withClient: true,
 			objects: withObjs(base, &wiringapi.Connection{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "existing",
-					Namespace: kmetav1.NamespaceDefault,
-				},
+				Name:      "existing",
+				Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.ConnectionSpec{
 					Unbundled: &wiringapi.ConnUnbundled{
 						Link: wiringapi.ServerToSwitchLink{
@@ -824,10 +820,8 @@ func TestConnectionValidation(t *testing.T) {
 			}),
 			withClient: true,
 			objects: withObjs(base, &wiringapi.Connection{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "existing",
-					Namespace: kmetav1.NamespaceDefault,
-				},
+				Name:      "existing",
+				Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.ConnectionSpec{
 					Unbundled: &wiringapi.ConnUnbundled{
 						Link: wiringapi.ServerToSwitchLink{
@@ -843,10 +837,8 @@ func TestConnectionValidation(t *testing.T) {
 			conn:       fabricConnGen("fabric-1"),
 			withClient: true,
 			objects: withObjs(base, &wiringapi.Connection{
-				ObjectMeta: kmetav1.ObjectMeta{
-					Name:      "existing",
-					Namespace: kmetav1.NamespaceDefault,
-				},
+				Name:      "existing",
+				Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.ConnectionSpec{
 					Unbundled: &wiringapi.ConnUnbundled{
 						Link: wiringapi.ServerToSwitchLink{

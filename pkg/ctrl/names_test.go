@@ -79,7 +79,7 @@ func TestProducedObjectNames(t *testing.T) {
 
 		name := maxName("leaf-", meta.MaxNameLength)
 		kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-			&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}},
+			&wiringapi.Switch{Name: name, Namespace: kmetav1.NamespaceDefault},
 		).Build()
 		r := &AgentReconciler{Client: kube, cfg: &meta.FabricConfig{APIServer: "172.30.0.1:6443"}, lock: unlockedLock()}
 
@@ -109,8 +109,8 @@ func TestProducedObjectNames(t *testing.T) {
 	t.Run("gateway", func(t *testing.T) {
 		name := maxName("gw-", gwapi.MaxGatewayNameLength)
 		gw := &gwapi.Gateway{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       gwapi.GatewaySpec{Groups: []gwapi.GatewayGroupMembership{{Name: "g1"}}},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: gwapi.GatewaySpec{Groups: []gwapi.GatewayGroupMembership{{Name: "g1"}}},
 		}
 		gw.Default()
 
@@ -133,7 +133,7 @@ func TestProducedObjectNames(t *testing.T) {
 
 		// VPC and External names are capped at 11 characters
 		vpc := &vpcapi.VPC{
-			ObjectMeta: kmetav1.ObjectMeta{Name: maxName("vpc-", 11), Namespace: kmetav1.NamespaceDefault},
+			Name: maxName("vpc-", 11), Namespace: kmetav1.NamespaceDefault,
 			Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{
 				maxName("subnet-", meta.MaxNameLength): {
 					Subnet: "10.0.1.0/24",
@@ -143,7 +143,7 @@ func TestProducedObjectNames(t *testing.T) {
 			}},
 		}
 		vpc.Default()
-		ext := &vpcapi.External{ObjectMeta: kmetav1.ObjectMeta{Name: maxName("ext-", 11), Namespace: kmetav1.NamespaceDefault}}
+		ext := &vpcapi.External{Name: maxName("ext-", 11), Namespace: kmetav1.NamespaceDefault}
 		ext.Default()
 
 		kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vpc, ext).Build()

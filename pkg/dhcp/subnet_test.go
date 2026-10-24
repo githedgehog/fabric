@@ -147,7 +147,7 @@ func newFakeKubeSubnets(t *testing.T, objs []*dhcpapi.DHCPSubnet, beforeUpdate f
 
 func testLeaseSubnet() *dhcpapi.DHCPSubnet {
 	return &dhcpapi.DHCPSubnet{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "a", Namespace: kmetav1.NamespaceDefault, UID: "uid-a"},
+		Name: "a", Namespace: kmetav1.NamespaceDefault, UID: "uid-a",
 		Spec: dhcpapi.DHCPSubnetSpec{
 			LeaseTimeSeconds: 3600,
 			Subnet:           "default",

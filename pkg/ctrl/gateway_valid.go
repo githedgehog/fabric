@@ -109,9 +109,7 @@ func NewGatewayValidator(ctx context.Context, fabricCfg *meta.FabricConfig, ca [
 	defer fs.Close()
 
 	_, err = oras.Copy(ctx, repo, version, fs, "", oras.CopyOptions{
-		CopyGraphOptions: oras.CopyGraphOptions{
-			Concurrency: 1,
-		},
+		Concurrency: 1,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("downloading files from %s:%s: %w", ref, version, err)

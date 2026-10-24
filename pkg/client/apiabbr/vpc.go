@@ -95,9 +95,9 @@ func newVPCHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC, *vpca
 			}
 
 			return &vpcapi.VPC{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       spec,
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPC,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: spec,
 			}, nil
 		},
 		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.VPCList, error) {
@@ -161,9 +161,9 @@ func newVPCAttachmentHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.
 			}
 
 			return &vpcapi.VPCAttachment{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       spec,
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCAttachment,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: spec,
 			}, nil
 		},
 		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.VPCAttachmentList, error) {
@@ -259,9 +259,9 @@ func newVPCPeeringHandler(ignoreNotDefined bool) (*ObjectAbbrHandler[*vpcapi.VPC
 			}
 
 			return &vpcapi.VPCPeering{
-				TypeMeta:   kmetav1.TypeMeta{APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering},
-				ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-				Spec:       spec,
+				APIVersion: vpcapi.GroupVersion.String(), Kind: vpcapi.KindVPCPeering,
+				Name: name, Namespace: kmetav1.NamespaceDefault,
+				Spec: spec,
 			}, nil
 		},
 		ObjectListFn: func(ctx context.Context, kube kclient.Client) (*vpcapi.VPCPeeringList, error) {

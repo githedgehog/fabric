@@ -29,8 +29,8 @@ func TestAgentListByConnections(t *testing.T) {
 
 	attach := func(name, conn string) *vpcapi.VPCAttachment {
 		a := &vpcapi.VPCAttachment{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-			Spec:       vpcapi.VPCAttachmentSpec{Subnet: "vpc-1/subnet-1", Connection: conn},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: vpcapi.VPCAttachmentSpec{Subnet: "vpc-1/subnet-1", Connection: conn},
 		}
 		// sets the connection label the attachments are selected by
 		a.Default()
@@ -84,7 +84,7 @@ func TestAgentSwitchLookups(t *testing.T) {
 
 	sw := func(name, group string, redundancy meta.RedundancyType, groups ...string) *wiringapi.Switch {
 		s := &wiringapi.Switch{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.SwitchSpec{
 				Groups:     groups,
 				Redundancy: wiringapi.SwitchRedundancy{Group: group, Type: redundancy},
@@ -153,7 +153,7 @@ func TestAgentKubeconfigSecret(t *testing.T) {
 	require.NoError(t, rbacv1.AddToScheme(scheme))
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault}},
+		&wiringapi.Switch{Name: "leaf-1", Namespace: kmetav1.NamespaceDefault},
 	).Build()
 	r := &AgentReconciler{Client: kube, cfg: &meta.FabricConfig{APIServer: "172.30.0.1:6443"}, lock: unlockedLock()}
 
@@ -197,8 +197,8 @@ func TestAgentKubeconfigSecret(t *testing.T) {
 func TestIRBVLANReqs(t *testing.T) {
 	vpc := func(name, relayVPC string) vpcapi.VPC {
 		return vpcapi.VPC{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name},
-			Spec:       vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{"subnet-1": {DHCP: vpcapi.VPCDHCP{RelayVPC: relayVPC}}}},
+			Name: name,
+			Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{"subnet-1": {DHCP: vpcapi.VPCDHCP{RelayVPC: relayVPC}}}},
 		}
 	}
 	attach := func(conn, subnet string) vpcapi.VPCAttachment {
@@ -209,8 +209,8 @@ func TestIRBVLANReqs(t *testing.T) {
 	}
 	ext := func(name, fabric string) vpcapi.External {
 		return vpcapi.External{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name},
-			Spec:       vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Fabric: fabric}},
+			Name: name,
+			Spec: vpcapi.ExternalSpec{Topology: vpcapi.ExternalTopology{Fabric: fabric}},
 		}
 	}
 	extAttach := func(conn, ext string) vpcapi.ExternalAttachment {
@@ -341,8 +341,8 @@ func TestIRBVLANReqsMatchReconcile(t *testing.T) {
 		},
 		leaf("leaf-1"), leaf("leaf-2"), token("leaf-1"), token("leaf-2"),
 		&agentapi.Catalog{
-			ObjectMeta: kmetav1.ObjectMeta{Name: librarian.CatConns, Namespace: librarian.Namespace},
-			Spec:       agentapi.CatalogSpec{ConnectionIDs: map[string]uint32{eslagConn: 1}},
+			Name: librarian.CatConns, Namespace: librarian.Namespace,
+			Spec: agentapi.CatalogSpec{ConnectionIDs: map[string]uint32{eslagConn: 1}},
 		},
 
 		// shared by both leaves

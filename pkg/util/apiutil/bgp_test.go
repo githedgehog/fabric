@@ -31,18 +31,18 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	)
 
 	sw := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
+		Name: self, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
 	}
 
 	// not one of the inspected switches, so it's fetched as a peer
 	spineSw := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: spine, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleSpine, ASN: spineASN, ProtocolIP: "172.30.11.2/32"},
+		Name: spine, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleSpine, ASN: spineASN, ProtocolIP: "172.30.11.2/32"},
 	}
 
 	fabricConn := &wiringapi.Connection{
-		ObjectMeta: kmetav1.ObjectMeta{Name: self + "--fabric--" + spine, Namespace: kmetav1.NamespaceDefault},
+		Name: self + "--fabric--" + spine, Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.ConnectionSpec{
 			Fabric: &wiringapi.ConnFabric{
 				Links: []wiringapi.FabricLink{
@@ -74,7 +74,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	}
 
 	newAgent := func() *agentapi.Agent {
-		ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
+		ag := &agentapi.Agent{Name: self, Namespace: kmetav1.NamespaceDefault}
 		ag.Spec.Catalog.TH5WorkaroundVLANs = map[string]uint16{"E1/1": wVLAN, "E1/2": wVLAN + 1, "E1/53": wVLAN + 2}
 
 		return ag
@@ -193,7 +193,7 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 	sp.Namespace = kmetav1.NamespaceDefault
 
 	conn := &wiringapi.Connection{
-		ObjectMeta: kmetav1.ObjectMeta{Name: self + "--external", Namespace: kmetav1.NamespaceDefault},
+		Name: self + "--external", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.ConnectionSpec{
 			External: &wiringapi.ConnExternal{Link: wiringapi.ConnExternalLink{Switch: wiringapi.NewBasePortName(self + "/E1/3")}},
 		},
@@ -201,12 +201,12 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 	conn.Default()
 
 	ext := &vpcapi.External{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "ext", Namespace: kmetav1.NamespaceDefault},
-		Spec:       vpcapi.ExternalSpec{IPv4Namespace: "default"},
+		Name: "ext", Namespace: kmetav1.NamespaceDefault,
+		Spec: vpcapi.ExternalSpec{IPv4Namespace: "default"},
 	}
 	attach := func(name string, vlan uint16, switchIP, neighIP string) *vpcapi.ExternalAttachment {
 		att := &vpcapi.ExternalAttachment{
-			ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
+			Name: name, Namespace: kmetav1.NamespaceDefault,
 			Spec: vpcapi.ExternalAttachmentSpec{
 				External:   ext.Name,
 				Connection: conn.Name,
@@ -219,7 +219,7 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 		return att
 	}
 
-	ag := &agentapi.Agent{ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault}}
+	ag := &agentapi.Agent{Name: self, Namespace: kmetav1.NamespaceDefault}
 	ag.Status.State.BGPNeighbors = map[string]map[string]agentapi.SwitchStateBGPNeighbor{
 		"VrfEext": {
 			"E1/3.101": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
@@ -228,8 +228,8 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 	}
 
 	sw := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: self, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
+		Name: self, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
 	}
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).

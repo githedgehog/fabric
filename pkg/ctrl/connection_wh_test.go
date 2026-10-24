@@ -23,25 +23,25 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 
 	vpc := &vpcapi.VPC{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "vpc-01", Namespace: kmetav1.NamespaceDefault},
-		Spec:       vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Fabric: "backend"}},
+		Name: "vpc-01", Namespace: kmetav1.NamespaceDefault,
+		Spec: vpcapi.VPCSpec{Topology: vpcapi.VPCTopology{Fabric: "backend"}},
 	}
 	gw := &gwapi.Gateway{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "gateway-1", Namespace: kmetav1.NamespaceDefault},
-		Spec:       gwapi.GatewaySpec{Topology: gwapi.GatewayTopology{Fabric: "backend"}},
+		Name: "gateway-1", Namespace: kmetav1.NamespaceDefault,
+		Spec: gwapi.GatewaySpec{Topology: gwapi.GatewayTopology{Fabric: "backend"}},
 	}
 	gwPlaneB := gw.DeepCopy()
 	gwPlaneB.Spec.Topology.Domain = "plane-b"
 	spine := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "spine-01", Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
+		Name: "spine-01", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
 	}
 
 	vpcOnB := vpc.DeepCopy()
 	vpcOnB.Spec.Topology.Domains = []string{"plane-b"}
 	leaf := &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01", Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
+		Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: "backend"}},
 	}
 	leafOnB := leaf.DeepCopy()
 	leafOnB.Spec.Topology.Domains = []string{"plane-b"}
@@ -56,7 +56,7 @@ func TestConnectionReferencesFabric(t *testing.T) {
 
 	staticExternal := func(fabricName string) *wiringapi.Connection {
 		return &wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "leaf-01--static-external", Namespace: kmetav1.NamespaceDefault},
+			Name: "leaf-01--static-external", Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				Topology: wiringapi.ConnectionTopology{Fabric: fabricName},
 				StaticExternal: &wiringapi.ConnStaticExternal{
@@ -68,7 +68,7 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	}
 	gateway := func(fabricName string) *wiringapi.Connection {
 		return &wiringapi.Connection{
-			ObjectMeta: kmetav1.ObjectMeta{Name: "spine-01--gateway--gateway-1", Namespace: kmetav1.NamespaceDefault},
+			Name: "spine-01--gateway--gateway-1", Namespace: kmetav1.NamespaceDefault,
 			Spec: wiringapi.ConnectionSpec{
 				Topology: wiringapi.ConnectionTopology{Fabric: fabricName},
 				Gateway: &wiringapi.ConnGateway{Links: []wiringapi.GatewayLink{{

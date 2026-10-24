@@ -223,7 +223,7 @@ func (i *FabricControllerInitializer) getOrCreate(ctx context.Context) (*fcintap
 		return nil, fmt.Errorf("getting fabric controller: %w", err)
 	}
 
-	fc = &fcintapi.FabricController{ObjectMeta: kmetav1.ObjectMeta{Namespace: i.key.Namespace, Name: i.key.Name}}
+	fc = &fcintapi.FabricController{Namespace: i.key.Namespace, Name: i.key.Name}
 	if err := i.Create(ctx, fc); err != nil {
 		return nil, fmt.Errorf("creating fabric controller: %w", err)
 	}
@@ -267,8 +267,8 @@ func (i *FabricControllerInitializer) ensureFabricForUpgrade(ctx context.Context
 	}
 
 	fabric := &wiringapi.Fabric{
-		ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric},
-		Spec:       wiringapi.DefaultFabricSpec(i.cfg),
+		Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+		Spec: wiringapi.DefaultFabricSpec(i.cfg),
 	}
 	if err := i.Create(ctx, fabric); err != nil {
 		return fmt.Errorf("creating default fabric: %w", err)

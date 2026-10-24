@@ -29,15 +29,15 @@ func switchBootTestKube(t *testing.T, objs ...kclient.Object) kclient.Client {
 
 func switchBootTestSwitch(name, profile string, boot wiringapi.SwitchBoot) *wiringapi.Switch {
 	return &wiringapi.Switch{
-		ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchSpec{Profile: profile, Boot: boot},
+		Name: name, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Profile: profile, Boot: boot},
 	}
 }
 
 func switchBootTestProfile(name string, nos meta.NOSType) *wiringapi.SwitchProfile {
 	return &wiringapi.SwitchProfile{
-		ObjectMeta: kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault},
-		Spec:       wiringapi.SwitchProfileSpec{NOSType: nos},
+		Name: name, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchProfileSpec{NOSType: nos},
 	}
 }
 

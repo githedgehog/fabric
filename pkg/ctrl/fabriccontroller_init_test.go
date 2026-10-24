@@ -30,7 +30,7 @@ func TestWriteStatusConflict(t *testing.T) {
 	require.NoError(t, fcintapi.AddToScheme(scheme))
 
 	key := ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName}
-	stored := &fcintapi.FabricController{ObjectMeta: kmetav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name}}
+	stored := &fcintapi.FabricController{Namespace: key.Namespace, Name: key.Name}
 
 	conflicts := 0
 	kube := fake.NewClientBuilder().
@@ -111,7 +111,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 		{
 			name: "upgrade from before fabrics",
 			objs: []kclient.Object{
-				&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"}},
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes:   true,
 			defaultFabric: true,
@@ -119,23 +119,23 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 		{
 			name: "fabrics already exist",
 			objs: []kclient.Object{
-				&wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "other"}},
-				&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"}},
+				&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: "other"},
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes: true,
 		},
 		{
 			name: "upgrade with vpc-loopback connections",
 			objs: []kclient.Object{
-				&wiringapi.Fabric{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "other"}},
-				&wiringapi.Connection{ObjectMeta: kmetav1.ObjectMeta{
+				&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: "other"},
+				&wiringapi.Connection{
 					Namespace: kmetav1.NamespaceDefault, Name: "leaf-01--vpc-loopback",
 					Labels: map[string]string{wiringapi.LabelConnectionType: "vpc-loopback"},
-				}},
-				&wiringapi.Connection{ObjectMeta: kmetav1.ObjectMeta{
+				},
+				&wiringapi.Connection{
 					Namespace: kmetav1.NamespaceDefault, Name: "spine-01--fabric--leaf-01",
 					Labels: map[string]string{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeFabric},
-				}},
+				},
 			},
 			initializes:  true,
 			deletedConns: []string{"leaf-01--vpc-loopback"},
@@ -145,10 +145,10 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 			name: "already initialized",
 			objs: []kclient.Object{
 				&fcintapi.FabricController{
-					ObjectMeta: kmetav1.ObjectMeta{Namespace: ns, Name: fcintapi.FabricControllerName},
-					Status:     fcintapi.FabricControllerStatus{InitializedVersion: ver},
+					Namespace: ns, Name: fcintapi.FabricControllerName,
+					Status: fcintapi.FabricControllerStatus{InitializedVersion: ver},
 				},
-				&wiringapi.Switch{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"}},
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes:   reinit,
 			defaultFabric: reinit,

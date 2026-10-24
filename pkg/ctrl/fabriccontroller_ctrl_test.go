@@ -38,23 +38,23 @@ func TestFabricControllerLock(t *testing.T) {
 		{
 			name: "not initialized",
 			fc: &fcintapi.FabricController{
-				ObjectMeta: kmetav1.ObjectMeta{Namespace: ns, Name: fcintapi.FabricControllerName},
+				Namespace: ns, Name: fcintapi.FabricControllerName,
 			},
 			locked: true,
 		},
 		{
 			name: "initialized",
 			fc: &fcintapi.FabricController{
-				ObjectMeta: kmetav1.ObjectMeta{Namespace: ns, Name: fcintapi.FabricControllerName},
-				Status:     fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
+				Namespace: ns, Name: fcintapi.FabricControllerName,
+				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
 			},
 			locked: false,
 		},
 		{
 			name: "initialized by another version",
 			fc: &fcintapi.FabricController{
-				ObjectMeta: kmetav1.ObjectMeta{Namespace: ns, Name: fcintapi.FabricControllerName},
-				Status:     fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
+				Namespace: ns, Name: fcintapi.FabricControllerName,
+				Status: fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
 			},
 			unlocked: true,
 			locked:   true,
@@ -62,17 +62,17 @@ func TestFabricControllerLock(t *testing.T) {
 		{
 			name: "force unlocked",
 			fc: &fcintapi.FabricController{
-				ObjectMeta: kmetav1.ObjectMeta{Namespace: ns, Name: fcintapi.FabricControllerName},
-				Spec:       fcintapi.FabricControllerSpec{ForceUnlock: true},
-				Status:     fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
+				Namespace: ns, Name: fcintapi.FabricControllerName,
+				Spec:   fcintapi.FabricControllerSpec{ForceUnlock: true},
+				Status: fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
 			},
 			locked: false,
 		},
 		{
 			name: "other namespace",
 			fc: &fcintapi.FabricController{
-				ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: fcintapi.FabricControllerName},
-				Status:     fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
+				Namespace: kmetav1.NamespaceDefault, Name: fcintapi.FabricControllerName,
+				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
 			},
 			locked: true,
 		},
