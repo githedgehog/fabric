@@ -14,6 +14,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -1010,6 +1011,83 @@ func TestValidateACLNoKube(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "valid tcp filters",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolTCP,
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true), ACK: ptr.To(false)},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid tcp filters with numeric tcp protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "6",
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true)},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "tcp filters with udp protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolUDP,
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true)},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "tcp filters without protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: ptr.To(true)},
+							},
+						},
+					},
+				},
+			},
+			err: true,
 		},
 		{
 			name: "valid numeric match protocol",
