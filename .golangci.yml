@@ -11,9 +11,11 @@ version: "2"
 #      allowed since Go 1.27), auto-fixable with `just lint-fix`
 #   5. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195),
 #      forbidigo (9, needs settings as it forbids fmt.Print* by default)
-#   6. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
+#   6. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
+#      (16), args-on-sep-lines (97), no-raw-keys (254)
+#   7. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
 #      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
-#   7. revive unused-parameter rule (from kubebuilder): 32 issues, mostly to be renamed to _
+#   8. revive unused-parameter rule (from kubebuilder): 32 issues, mostly to be renamed to _
 #
 # Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
 # wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
@@ -210,6 +212,9 @@ linters:
         # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
         - name: blank-imports
         - name: context-as-argument
+          arguments:
+            # test helpers take the *testing.T first
+            - allowTypesBefore: "*testing.T"
         - name: context-keys-type
         - name: dot-imports
         - name: error-return
