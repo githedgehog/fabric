@@ -88,8 +88,7 @@ func TestGatewayCleanup(t *testing.T) {
 	// in the gateway namespace, cleaned up by the reconciler and labeled so that their deletion reconciles the gateway
 	for _, obj := range []kclient.Object{
 		&corev1.ServiceAccount{Namespace: "fab", Name: entityName("gw-1")},
-		&appv1.DaemonSet{Namespace: "fab", Name: entityName("gw-1", "dataplane")},
-		&appv1.DaemonSet{Namespace: "fab", Name: entityName("gw-1", "frr")},
+		&appv1.DaemonSet{Namespace: "fab", Name: gwapi.DaemonSetName("gw-1")},
 	} {
 		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(obj), obj))
 		require.Equal(t, "gw-1", obj.GetLabels()[LabelGateway], "%T %s", obj, obj.GetName())
@@ -99,7 +98,7 @@ func TestGatewayCleanup(t *testing.T) {
 	}
 	// the selector is immutable, so the label is only on the daemonset itself
 	ds := &appv1.DaemonSet{}
-	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Namespace: "fab", Name: entityName("gw-1", "frr")}, ds))
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Namespace: "fab", Name: gwapi.DaemonSetName("gw-1")}, ds))
 	require.NotContains(t, ds.Spec.Selector.MatchLabels, LabelGateway)
 	require.Empty(t, r.enqueueForDeployed(t.Context(), &appv1.DaemonSet{}))
 
@@ -118,8 +117,7 @@ func TestGatewayCleanup(t *testing.T) {
 
 	requireNotFound(t, kube, &gwapi.Gateway{}, kmetav1.NamespaceDefault, "gw-1")
 	requireNotFound(t, kube, &corev1.ServiceAccount{}, "fab", entityName("gw-1"))
-	requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", entityName("gw-1", "dataplane"))
-	requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", entityName("gw-1", "frr"))
+	requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", gwapi.DaemonSetName("gw-1"))
 }
 
 func TestOnlyDeletes(t *testing.T) {
