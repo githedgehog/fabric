@@ -209,7 +209,7 @@ jobs:
           - mesh: false
             includeonie: false
             gateway: true
-            gatewaydriver: dpdk
+            gatewaydriver: kernel
             buildmode: iso
             vpcmode: l2vni
             hybrid: true
@@ -232,15 +232,6 @@ jobs:
             vpcmode: l2vni
             hybrid: false
             upgradefrom: "26.04"
-
-          # gateway l2vni
-          - mesh: false
-            gateway: true
-            gatewaydriver: dpdk
-            includeonie: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
 
           # gateway l2vni with the kernel driver
           - mesh: false
