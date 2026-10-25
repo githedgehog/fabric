@@ -145,7 +145,7 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
-    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
+    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && (matrix.gatewaydriver == 'dpdk' && 'gwd-' || 'gwk-') || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
 
     needs:
       - test-build
@@ -166,6 +166,7 @@ jobs:
       fabricmode: spine-leaf
       mesh: ${{ matrix.mesh }}
       gateway: ${{ matrix.gateway }}
+      gatewaydriver: ${{ matrix.gatewaydriver }}
       includeonie: ${{ matrix.includeonie }}
       buildmode: ${{ matrix.buildmode }}
       vpcmode: ${{ matrix.vpcmode }}
@@ -208,6 +209,7 @@ jobs:
           - mesh: false
             includeonie: false
             gateway: true
+            gatewaydriver: dpdk
             buildmode: iso
             vpcmode: l2vni
             hybrid: true
@@ -234,6 +236,16 @@ jobs:
           # gateway l2vni
           - mesh: false
             gateway: true
+            gatewaydriver: dpdk
+            includeonie: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: false
+
+          # gateway l2vni with the kernel driver
+          - mesh: false
+            gateway: true
+            gatewaydriver: kernel
             includeonie: false
             buildmode: iso
             vpcmode: l2vni
