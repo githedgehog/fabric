@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -38,17 +39,14 @@ import (
 
 const (
 	configVolumeName       = "config"
-	dataplaneRunVolumeName = "dataplane-run"
 	frrRunVolumeName       = "frr-run"
+	dataplaneTmpVolumeName = "dataplane-tmp"
 	frrTmpVolumeName       = "frr-tmp"
-	frrRootRunVolumeName   = "frr-root-run"
 
-	dataplaneRunHostPath = "/run/hedgehog/dataplane"
-	frrRunHostPath       = "/run/hedgehog/frr"
-
-	dataplaneRunMountPath = "/var/run/dataplane"
-	frrRunMountPath       = "/var/run/frr"
-	frrRootRunMountPath   = "/run/frr"
+	// /var/run is a symlink to /run in the dataplane image, nothing outside of the pod uses the sockets, so the dataplane
+	// ones stay in its container and only the FRR ones are shared with the exporter
+	dataplaneRunMountPath = "/run/dataplane"
+	frrRunMountPath       = "/run/frr"
 	cpiSocket             = "hh/dataplane.sock"
 	frrAgentSocket        = "frr-agent.sock"
 )
@@ -285,6 +283,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	if err := r.deployGateway(ctx, gw); err != nil {
+		if errors.Is(err, ErrRetryLater) {
+			l.Info("Deploying gateway later", "reason", err.Error())
+
+			return kctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+
 		return kctrl.Result{}, fmt.Errorf("deploying gateway: %w", err)
 	}
 
@@ -296,11 +300,13 @@ var ErrRetryLater = fmt.Errorf("retry later")
 // cleanupGateway deletes what's deployed for the gateway in the gateway namespace, the rest in the gateway's own
 // namespace is garbage collected with it
 func (r *GatewayReconciler) cleanupGateway(ctx context.Context, gw *gwapi.Gateway) error {
-	for _, obj := range []kclient.Object{
-		&appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "dataplane")},
-		&appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name, "frr")},
-		&corev1.ServiceAccount{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)},
-	} {
+	dsNames := append([]string{gwapi.DaemonSetName(gw.Name)}, oldGatewayDSNames(gw.Name)...)
+	objs := []kclient.Object{} //nolint:prealloc
+	for _, name := range dsNames {
+		objs = append(objs, &appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: name})
+	}
+	objs = append(objs, &corev1.ServiceAccount{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)})
+	for _, obj := range objs {
 		if err := r.Delete(ctx, obj); kclient.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting %T %s: %w", obj, obj.GetName(), err)
 		}
@@ -518,10 +524,48 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 		case iface.Kernel != "":
 			val += "=kernel@" + iface.Kernel
 		}
+		if iface.MTU > 0 {
+			val += fmt.Sprintf("/mtu=%d", iface.MTU)
+		}
 		args = append(args, "--interface", val)
 	}
 
 	return append(args, "--driver", string(gw.Spec.Driver))
+}
+
+// dataplaneHugePages returns the dataplane container resources and args for the configured hugepages, the dataplane
+// currently only uses 1G pages and only with the dpdk driver
+func dataplaneHugePages(cfg *meta.FabricConfig, gw *gwapi.Gateway) (corev1.ResourceRequirements, []string) {
+	limits := corev1.ResourceList{} //nolint:exhaustive
+	if cfg.GatewayHugePages1G > 0 {
+		limits[corev1.ResourceHugePagesPrefix+"1Gi"] = quantity(cfg.GatewayHugePages1G << 30) // N × 1Gi
+	}
+	if cfg.GatewayHugePages2M > 0 {
+		limits[corev1.ResourceHugePagesPrefix+"2Mi"] = quantity(cfg.GatewayHugePages2M << 21) // N × 2Mi
+	}
+	if len(limits) == 0 {
+		return corev1.ResourceRequirements{}, nil
+	}
+
+	requests := maps.Clone(limits)
+	// hugepages require a cpu or memory request, there is no memory limit on purpose
+	requests[corev1.ResourceMemory] = quantity(1 << 30) // 1Gi
+
+	var args []string
+	if gw.Spec.Driver == gwapi.GatewayDriverDPDK && cfg.GatewayHugePages1G > 0 {
+		args = []string{"--hugepages-gib", strconv.FormatInt(cfg.GatewayHugePages1G, 10)}
+	}
+
+	return corev1.ResourceRequirements{Limits: limits, Requests: requests}, args
+}
+
+func quantity(bytes int64) resource.Quantity {
+	return *resource.NewQuantity(bytes, resource.BinarySI)
+}
+
+// oldGatewayDSNames are the daemonsets deployed for a gateway before FRR moved into the dataplane pod
+func oldGatewayDSNames(gwName string) []string {
+	return []string{entityName(gwName, "dataplane"), entityName(gwName, "frr")}
 }
 
 func entityName(gwName string, t ...string) string {
@@ -613,20 +657,29 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		},
 	}
 
-	dataplaneSocketVolume := corev1.Volume{
-		Name: dataplaneRunVolumeName,
-		HostPath: &corev1.HostPathVolumeSource{
-			Path: dataplaneRunHostPath,
-			Type: new(corev1.HostPathDirectoryOrCreate),
-		},
-	}
+	// the old dataplane and frr daemonsets have to be gone before the new one starts, both dataplanes would take the same
+	// interfaces otherwise
+	oldLeft := false
+	for _, name := range oldGatewayDSNames(gw.Name) {
+		ds := &appv1.DaemonSet{}
+		if err := r.Get(ctx, kclient.ObjectKey{Namespace: r.cfg.GatewayNamespace, Name: name}, ds); err != nil {
+			if kapierrors.IsNotFound(err) {
+				continue
+			}
 
-	frrSocketVolume := corev1.Volume{
-		Name: frrRunVolumeName,
-		HostPath: &corev1.HostPathVolumeSource{
-			Path: frrRunHostPath,
-			Type: new(corev1.HostPathDirectoryOrCreate),
-		},
+			return fmt.Errorf("getting old gateway daemonset %s: %w", name, err)
+		}
+
+		oldLeft = true
+		if ds.DeletionTimestamp != nil {
+			continue
+		}
+		if err := r.Delete(ctx, ds, kclient.PropagationPolicy(kmetav1.DeletePropagationForeground)); kclient.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting old gateway daemonset %s: %w", name, err)
+		}
+	}
+	if oldLeft {
+		return fmt.Errorf("waiting for old gateway daemonsets to be deleted: %w", ErrRetryLater)
 	}
 
 	{
@@ -639,52 +692,32 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			"--bmp-enable",
 			"--bmp-address", "127.0.0.1:5000", // TODO: make it available via config
 			"--bmp-interval", "10000",
+			"--supervise-frr",
 		}
 		if gw.Spec.Profiling.Enabled {
-			// args = append(args, "--pyroscope-url", "http://alloy-gw.fab.svc.cluster.local:4040")
+			// TODO: should it become http://alloy-gw.fab.svc.cluster.local:4040
 			args = append(args, "--pyroscope-url", "http://localhost:4040")
 		}
 
 		args = append(args, dataplaneIfaceArgs(gw)...)
 
-		// tmp hack to make dp work
-		var initContainers []corev1.Container
-		if gw.Spec.Driver == gwapi.GatewayDriverKernel {
-			var iArgs strings.Builder
-			iArgs.WriteString("set -ex && ")
-			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-				iface := gw.Spec.Interfaces[ifaceName]
-				fmt.Fprintf(&iArgs, "(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
-				fmt.Fprintf(&iArgs, "ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
-				fmt.Fprintf(&iArgs, "([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
-				fmt.Fprintf(&iArgs, "ip l set dev %s up && ", ifaceName)
-			}
-			iArgs.WriteString("date && echo done")
+		resources, hugePagesArgs := dataplaneHugePages(r.cfg, gw)
+		args = append(args, hugePagesArgs...)
 
-			initContainers = []corev1.Container{
-				{
-					Name:    "init-ifaces",
-					Image:   r.cfg.ToolboxRef,
-					Command: []string{"/bin/bash", "-c", "--"},
-					Args:    []string{iArgs.String()},
-					SecurityContext: &corev1.SecurityContext{
-						Privileged: new(true),
-						RunAsUser:  new(int64(0)),
-					},
-				},
-			}
+		frrRunMount := corev1.VolumeMount{
+			Name:      frrRunVolumeName,
+			MountPath: frrRunMountPath,
 		}
 
 		dpDS := &appv1.DaemonSet{
 			Namespace: r.cfg.GatewayNamespace,
-			Name:      entityName(gw.Name, "dataplane"),
+			Name:      gwapi.DaemonSetName(gw.Name),
 		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dpDS, func() error {
-			// only on the daemonset itself, its selector is immutable
 			setGatewayLabel(dpDS, gw)
 
 			labels := map[string]string{
-				"app.kubernetes.io/name": dpDS.Name, // TODO
+				"app.kubernetes.io/name": dpDS.Name,
 			}
 
 			dpDS.Spec = appv1.DaemonSetSpec{
@@ -700,12 +733,27 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						TerminationGracePeriodSeconds: new(int64(10)),
 						Tolerations:                   r.cfg.GatewayTolerations,
 						ServiceAccountName:            saName,
-						InitContainers:                initContainers,
+						InitContainers: []corev1.Container{
+							// FRR used to run in the host network namespace and could leave the VTEP IP on lo
+							{
+								Name:    "flush-vtepip",
+								Image:   r.cfg.DataplaneRef,
+								Command: []string{"/bin/bash", "-c", "--"},
+								Args: []string{
+									fmt.Sprintf("set -ex; addr=$(ip -o addr show dev lo to %[1]s); if [ -n \"$addr\" ]; then ip addr del %[1]s dev lo; fi", gw.Spec.VTEPIP),
+								},
+								SecurityContext: &corev1.SecurityContext{
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
+								},
+							},
+						},
 						Containers: []corev1.Container{
 							{
-								Name:  "dataplane",
-								Image: r.cfg.DataplaneRef,
-								Args:  args,
+								Name:      "dataplane",
+								Image:     r.cfg.DataplaneRef,
+								Args:      args,
+								Resources: resources,
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: new(true),
 									RunAsUser:  new(int64(0)),
@@ -717,27 +765,45 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 									},
 								},
 								VolumeMounts: []corev1.VolumeMount{
+									frrRunMount,
 									{
-										Name:      dataplaneRunVolumeName,
-										MountPath: dataplaneRunMountPath,
-									},
-									{
-										Name:      frrRunVolumeName,
-										MountPath: frrRunMountPath,
-									},
-									{
-										Name:      "dataplane-tmp",
+										Name:      dataplaneTmpVolumeName,
 										MountPath: "/tmp",
+									},
+									{
+										Name:      frrTmpVolumeName,
+										MountPath: "/var/tmp/frr",
 									},
 								},
 							},
+							{
+								Name:    "frr-exporter",
+								Image:   r.cfg.DataplaneRef,
+								Command: []string{"/bin/frr_exporter"},
+								Args: []string{
+									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
+									"--frr.socket.dir-path", frrRunMountPath,
+									"--no-collector.ospf",
+								},
+								SecurityContext: &corev1.SecurityContext{
+									Privileged: new(true),
+									RunAsUser:  new(int64(0)),
+								},
+								VolumeMounts: []corev1.VolumeMount{frrRunMount},
+							},
 						},
 						Volumes: []corev1.Volume{
-							dataplaneSocketVolume,
-							frrSocketVolume,
-
 							{
-								Name: "dataplane-tmp",
+								Name:     frrRunVolumeName,
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+							{
+								Name: dataplaneTmpVolumeName,
+								// TODO consider memory medium
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+							{
+								Name: frrTmpVolumeName,
 								// TODO consider memory medium
 								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
@@ -750,152 +816,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			return nil
 		}); err != nil {
 			return fmt.Errorf("creating or updating gateway dataplane daemonset: %w", err)
-		}
-	}
-
-	frrVolumeMounts := []corev1.VolumeMount{
-		{
-			Name:      frrRunVolumeName,
-			MountPath: frrRunMountPath,
-		},
-		{
-			Name:      frrTmpVolumeName,
-			MountPath: "/var/tmp/frr",
-		},
-		{
-			Name:      frrRootRunVolumeName,
-			MountPath: frrRootRunMountPath,
-		},
-	}
-
-	{
-		frrDS := &appv1.DaemonSet{
-			Namespace: r.cfg.GatewayNamespace,
-			Name:      entityName(gw.Name, "frr"),
-		}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
-			// only on the daemonset itself, its selector is immutable
-			setGatewayLabel(frrDS, gw)
-
-			labels := map[string]string{
-				"app.kubernetes.io/name": frrDS.Name, // TODO
-			}
-
-			frrDS.Spec = appv1.DaemonSetSpec{
-				Selector: &kmetav1.LabelSelector{
-					MatchLabels: labels,
-				},
-				Template: corev1.PodTemplateSpec{
-					Labels: labels,
-					Spec: corev1.PodSpec{
-						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
-						HostNetwork:                   true,
-						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-						TerminationGracePeriodSeconds: new(int64(10)),
-						Tolerations:                   r.cfg.GatewayTolerations,
-						InitContainers: []corev1.Container{
-							// TODO remove it after frr container will take care of this
-							{
-								Name:    "init-frr",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										"chown -R frr:frr /run/frr/ && chmod -R 760 /run/frr && " +
-										"mkdir -p /var/run/frr/hh && chown -R frr:frr /var/run/frr/ && chmod -R 766 /var/run/frr &&" +
-										"rm -f /var/run/frr/*.pid /var/run/frr/*.sock /var/run/frr/*.vty /var/run/frr/*.api /var/run/frr/*.started",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: new(true),
-									RunAsUser:  new(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-							// it's needed to avoid issues with leftover routes in the kernel being loaded by FRR on startup
-							{
-								Name:    "flush-zebra-nexthops",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										"ip -j -d nexthop show | jq '.[]|select(.protocol=\"zebra\")|.id' | while read -r id ; do ip nexthop del id $id ; done",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: new(true),
-									RunAsUser:  new(int64(0)),
-								},
-							},
-							// it's needed to avoid issues with leftover routes on the physical interface learned from BGP
-							{
-								Name:    "flush-vtepip",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/bash", "-c", "--"},
-								Args: []string{
-									"set -ex && " +
-										fmt.Sprintf("ip addr del %s dev lo || true", gw.Spec.VTEPIP),
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: new(true),
-									RunAsUser:  new(int64(0)),
-								},
-							},
-						},
-						Containers: []corev1.Container{
-							{
-								Name:    "frr",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/tini", "--"},
-								Args: []string{
-									"/libexec/frr/docker-start",
-									"--sock-path", filepath.Join(frrRunMountPath, frrAgentSocket),
-									"--reloader", "/libexec/frr/frr-reload.py",
-									"--bindir", "/bin",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: new(true),
-									RunAsUser:  new(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-							{
-								Name:    "frr-exporter",
-								Image:   r.cfg.FRRRef,
-								Command: []string{"/bin/frr_exporter"},
-								Args: []string{
-									"--web.listen-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.FRRMetricsPort),
-									"--frr.socket.dir-path", frrRootRunMountPath,
-									"--no-collector.ospf",
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: new(true),
-									RunAsUser:  new(int64(0)),
-								},
-								VolumeMounts: frrVolumeMounts,
-							},
-						},
-						Volumes: []corev1.Volume{
-							frrSocketVolume,
-							{
-								Name: frrTmpVolumeName,
-								// TODO consider memory medium
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-							{
-								Name: frrRootRunVolumeName,
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/run/hedgehog/frr-root",
-									Type: new(corev1.HostPathDirectoryOrCreate),
-								},
-							},
-						},
-					},
-				},
-				UpdateStrategy: replaceUpdateStrategy,
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating or updating gateway frr daemonset: %w", err)
 		}
 	}
 

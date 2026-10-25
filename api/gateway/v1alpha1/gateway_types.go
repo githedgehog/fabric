@@ -264,9 +264,16 @@ func (gw *Gateway) Default() {
 
 var linuxIfaceNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,8}[a-zA-Z0-9]$`)
 
-// MaxGatewayNameLength leaves room for the gateway's daemonset names, gw--<name>--dataplane at most, which are used as
-// the app.kubernetes.io/name label value of their pods as well, and label values are capped at 63 characters
+// MaxGatewayNameLength leaves room for the gateway's daemonset names, gw--<name>--dataplane at most (from older releases),
+// which are used as the app.kubernetes.io/name label value of their pods as well, and label values are capped at 63
+// characters
 const MaxGatewayNameLength = 63 - len("gw--") - len("--dataplane")
+
+// DaemonSetName is the name of the daemonset running the gateway's dataplane (incl. FRR) in the gateway namespace, it's
+// the app.kubernetes.io/name label value of its pods as well
+func DaemonSetName(gwName string) string {
+	return "gw--" + gwName
+}
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if fabricCfg != nil && !fabricCfg.EnableGateway {

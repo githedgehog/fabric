@@ -282,11 +282,165 @@ func TestDataplaneIfaceArgs(t *testing.T) {
 			ifaces: map[string]gwapi.GatewayInterface{"port0": {Kernel: "eth0", PCI: "0000:21:00.0"}, "eth1": {}, "eth2": {PCI: "0000:21:00.2"}},
 			want:   []string{"--interface", "eth1", "--interface", "eth2", "--interface", "port0=kernel@eth0", "--driver", "kernel"},
 		},
+		{
+			name:   "mtu",
+			driver: gwapi.GatewayDriverDPDK,
+			ifaces: map[string]gwapi.GatewayInterface{"port0": {PCI: "0000:21:00.0", MTU: 9036}},
+			want:   []string{"--interface", "port0=pci@0000:21:00.0/mtu=9036", "--driver", "dpdk"},
+		},
+		{
+			name:   "mtu-bare-name",
+			driver: gwapi.GatewayDriverKernel,
+			ifaces: map[string]gwapi.GatewayInterface{"enp2s1": {MTU: 9036}},
+			want:   []string{"--interface", "enp2s1/mtu=9036", "--driver", "kernel"},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			gw := &gwapi.Gateway{Spec: gwapi.GatewaySpec{Driver: tt.driver, Interfaces: tt.ifaces}}
 			require.Equal(t, tt.want, dataplaneIfaceArgs(gw))
 		})
+	}
+}
+
+func TestDataplaneHugePages(t *testing.T) {
+	quantities := func(list corev1.ResourceList) map[string]string {
+		res := map[string]string{}
+		for name, q := range list {
+			res[string(name)] = q.String()
+		}
+
+		return res
+	}
+
+	for _, tt := range []struct {
+		name   string
+		hp1G   int64
+		hp2M   int64
+		driver gwapi.GatewayDriver
+		limits map[string]string
+		args   []string
+	}{
+		{
+			name:   "none",
+			driver: gwapi.GatewayDriverDPDK,
+		},
+		{
+			name:   "1G-dpdk",
+			hp1G:   4,
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-1Gi": "4Gi"},
+			args:   []string{"--hugepages-gib", "4"},
+		},
+		{
+			name:   "1G-kernel",
+			hp1G:   4,
+			driver: gwapi.GatewayDriverKernel,
+			limits: map[string]string{"hugepages-1Gi": "4Gi"},
+		},
+		{
+			name:   "2M-only",
+			hp2M:   512,
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-2Mi": "1Gi"},
+		},
+		{
+			name:   "both",
+			hp1G:   2,
+			hp2M:   8,
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-1Gi": "2Gi", "hugepages-2Mi": "16Mi"},
+			args:   []string{"--hugepages-gib", "2"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &meta.FabricConfig{GatewayHugePages1G: tt.hp1G, GatewayHugePages2M: tt.hp2M}
+			gw := &gwapi.Gateway{Spec: gwapi.GatewaySpec{Driver: tt.driver}}
+
+			resources, args := dataplaneHugePages(cfg, gw)
+			require.Equal(t, tt.args, args)
+			if tt.limits == nil {
+				require.Equal(t, corev1.ResourceRequirements{}, resources)
+
+				return
+			}
+
+			requests := maps.Clone(tt.limits)
+			requests["memory"] = "1Gi"
+			require.Equal(t, tt.limits, quantities(resources.Limits))
+			require.Equal(t, requests, quantities(resources.Requests))
+		})
+	}
+}
+
+func TestGatewayDeploy(t *testing.T) {
+	oldDS := func(name string) *appv1.DaemonSet {
+		return &appv1.DaemonSet{Namespace: "fab", Name: name, Finalizers: []string{testFinalizer}}
+	}
+	kube := gatewayTestKube(t, oldDS(entityName("gw-1", "dataplane")), oldDS(entityName("gw-1", "frr")))
+	r := &GatewayReconciler{
+		Client: kube,
+		cfg: &meta.FabricConfig{
+			GatewayNamespace:     "fab",
+			DataplaneRef:         "dataplane:v1",
+			DataplaneMetricsPort: 9442,
+			FRRMetricsPort:       9342,
+			GatewayHugePages1G:   4,
+		},
+		lock: unlockedLock(),
+	}
+
+	// the old daemonsets are deleted and waited for before the new one is created
+	for range 2 {
+		res, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
+		require.NoError(t, err)
+		require.NotZero(t, res.RequeueAfter)
+		requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", gwapi.DaemonSetName("gw-1"))
+	}
+	for _, name := range oldGatewayDSNames("gw-1") {
+		ds := &appv1.DaemonSet{}
+		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Namespace: "fab", Name: name}, ds))
+		require.NotNil(t, ds.DeletionTimestamp, name)
+		ds.Finalizers = nil
+		require.NoError(t, kube.Update(t.Context(), ds))
+	}
+
+	res, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
+	require.NoError(t, err)
+	require.Zero(t, res.RequeueAfter)
+
+	ds := &appv1.DaemonSet{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Namespace: "fab", Name: gwapi.DaemonSetName("gw-1")}, ds))
+	require.Equal(t, map[string]string{"app.kubernetes.io/name": "gw--gw-1"}, ds.Spec.Template.Labels)
+
+	spec := ds.Spec.Template.Spec
+	require.Len(t, spec.InitContainers, 1)
+	require.Equal(t, "flush-vtepip", spec.InitContainers[0].Name)
+	require.Equal(t, "dataplane:v1", spec.InitContainers[0].Image)
+	require.True(t, spec.HostNetwork)
+	require.Len(t, spec.Containers, 2)
+
+	dp := spec.Containers[0]
+	require.Equal(t, "dataplane", dp.Name)
+	require.Equal(t, "dataplane:v1", dp.Image)
+	require.Empty(t, dp.Command)
+	require.Contains(t, dp.Args, "--supervise-frr")
+	require.NotContains(t, dp.Args, "--hugepages-gib", "kernel driver doesn't use hugepages")
+	hp1G := dp.Resources.Limits["hugepages-1Gi"]
+	require.Equal(t, "4Gi", hp1G.String())
+	require.NotContains(t, dp.Resources.Limits, corev1.ResourceMemory)
+	require.Equal(t, []corev1.VolumeMount{
+		{Name: frrRunVolumeName, MountPath: "/run/frr"},
+		{Name: dataplaneTmpVolumeName, MountPath: "/tmp"},
+		{Name: frrTmpVolumeName, MountPath: "/var/tmp/frr"},
+	}, dp.VolumeMounts)
+
+	exporter := spec.Containers[1]
+	require.Equal(t, "frr-exporter", exporter.Name)
+	require.Equal(t, "dataplane:v1", exporter.Image)
+	require.Equal(t, []corev1.VolumeMount{{Name: frrRunVolumeName, MountPath: "/run/frr"}}, exporter.VolumeMounts)
+
+	for _, vol := range spec.Volumes {
+		require.NotNil(t, vol.EmptyDir, vol.Name)
 	}
 }
 
