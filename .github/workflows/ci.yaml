@@ -149,7 +149,7 @@ jobs:
 
     needs:
       - test-build
-    uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
+    uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@dev/frostman/gw-single-pod
     with:
       skip: >-
         ${{
@@ -161,7 +161,7 @@ jobs:
             matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
         }}
-      fabricatorref: master
+      fabricatorref: dev/frostman/gw-single-pod
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: spine-leaf
       mesh: ${{ matrix.mesh }}
