@@ -145,7 +145,7 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
-    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && (matrix.gatewaydriver == 'dpdk' && 'gwd-' || 'gwk-') || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
+    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway == 'dpdk' && 'gwd-' || matrix.gateway == 'kernel' && 'gwk-' || '' }}iso-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
 
     needs:
       - test-build
@@ -158,122 +158,43 @@ jobs:
             matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab')
             || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab')
           ) && (
-            matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
+            !matrix.upgradefrom || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
         }}
       fabricatorref: dev/frostman/dpdk-prep
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: spine-leaf
-      mesh: ${{ matrix.mesh }}
-      gateway: ${{ matrix.gateway }}
-      gatewaydriver: ${{ matrix.gatewaydriver }}
-      includeonie: ${{ matrix.includeonie }}
-      buildmode: ${{ matrix.buildmode }}
+      mesh: ${{ !!matrix.mesh }}
+      gateway: ${{ !!matrix.gateway }}
+      gatewaydriver: ${{ matrix.gateway }}
+      includeonie: false
+      buildmode: iso
       vpcmode: ${{ matrix.vpcmode }}
       releasetest: ${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') }}
-      hybrid: ${{ matrix.hybrid }}
+      hybrid: ${{ !!matrix.hybrid }}
       upgradefrom: ${{ matrix.upgradefrom }}
 
     strategy:
       fail-fast: false
-      # l2vni w/o gateway as a base (with defaults) including upgrade from supported versions
       matrix:
-        mesh:
-          - false
-        gateway:
-          - false
-        includeonie:
-          - false
-        buildmode:
-          - iso
-        vpcmode:
-          - l2vni
-        hybrid:
-          - false
-        upgradefrom:
-          - ""
-          - "26.03"
-          - "26.04"
         include:
-          # gateway l2vni with the kernel driver
-          - mesh: false
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
-            upgradefrom: ""
+          - { vpcmode: l2vni }
+          - { vpcmode: l2vni,             gateway: kernel }
+          - { vpcmode: l2vni,             gateway: dpdk }
+          - { vpcmode: l3vni,             gateway: kernel }
+          - { vpcmode: l3vni,             gateway: dpdk }
+          - { vpcmode: l2vni, mesh: true, gateway: kernel }
+          - { vpcmode: l2vni, mesh: true, gateway: dpdk }
 
-          # gateway l3vni
-          - mesh: false
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l3vni
-            hybrid: false
-            upgradefrom: ""
+          # hlab
+          - { hybrid: true, vpcmode: l2vni, gateway: kernel }
 
-          # gateway mesh l2vni
-          - mesh: true
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
-            upgradefrom: ""
-
-          # hlab gateway l2vni
-          - mesh: false
-            includeonie: false
-            gateway: true
-            gatewaydriver: kernel
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: true
-            upgradefrom: ""
-
-          # gateway l3vni from 26.03
-          - mesh: false
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l3vni
-            hybrid: false
-            upgradefrom: "26.03"
-
-          # gateway mesh l2vni from 26.03
-          - mesh: true
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
-            upgradefrom: "26.03"
-
-          # gateway l3vni from 26.04
-          - mesh: false
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l3vni
-            hybrid: false
-            upgradefrom: "26.04"
-
-          # gateway mesh l2vni from 26.04
-          - mesh: true
-            gateway: true
-            gatewaydriver: kernel
-            includeonie: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
-            upgradefrom: "26.04"
+          # upgrades keep the driver and older releases only have kernel gateways in vlab
+          - { upgradefrom: "26.04", vpcmode: l2vni }
+          - { upgradefrom: "26.03", vpcmode: l3vni,             gateway: kernel }
+          - { upgradefrom: "26.03", vpcmode: l2vni, mesh: true, gateway: kernel }
+          - { upgradefrom: "26.04", vpcmode: l3vni,             gateway: kernel }
+          - { upgradefrom: "26.04", vpcmode: l2vni, mesh: true, gateway: kernel }
 
   vlabs:
     runs-on: ubuntu-latest
