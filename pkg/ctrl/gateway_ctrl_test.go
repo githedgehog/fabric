@@ -273,7 +273,7 @@ func TestDataplaneIfaceArgs(t *testing.T) {
 		{
 			name:   "dpdk",
 			driver: gwapi.GatewayDriverDPDK,
-			ifaces: map[string]gwapi.GatewayInterface{"port1": {PCI: "0000:21:00.1"}, "port0": {PCI: "0000:21:00.0"}},
+			ifaces: map[string]gwapi.GatewayInterface{"port1": {PCI: "0000:21:00.1"}, "port0": {PCI: "0000:21:00.0", Kernel: "eth0"}},
 			want:   []string{"--interface", "port0=pci@0000:21:00.0", "--interface", "port1=pci@0000:21:00.1", "--driver", "dpdk"},
 		},
 		{

@@ -405,7 +405,6 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", Kernel: "eth0", IPs: []string{"172.30.128.3/31"}}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
 			name: "test-dpdk-duplicate-pci",

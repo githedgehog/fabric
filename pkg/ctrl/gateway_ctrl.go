@@ -520,6 +520,7 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 		val := ifaceName
 		switch {
 		case gw.Spec.Driver == gwapi.GatewayDriverDPDK:
+			// kernel name is ignored with the dpdk driver
 			val += "=pci@" + iface.PCI
 		case iface.Kernel != "":
 			val += "=kernel@" + iface.Kernel

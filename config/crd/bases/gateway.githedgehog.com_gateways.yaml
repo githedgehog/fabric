@@ -110,7 +110,7 @@ spec:
                       type: array
                     kernel:
                       description: Kernel is the kernel name of the interface to use
-                        (kernel driver only), e.g. enp2s1
+                        (kernel driver only, ignored for dpdk driver), e.g. enp2s1
                       type: string
                     mtu:
                       description: MTU for the interface
