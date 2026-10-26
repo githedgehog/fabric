@@ -106,7 +106,7 @@ jobs:
           fi
 
       - name: Login to ghcr.io
-        uses: docker/login-action@v4.6.0
+        uses: docker/login-action@v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -278,7 +278,7 @@ jobs:
           cache: true
 
       - name: Login to ghcr.io
-        uses: docker/login-action@v4.6.0
+        uses: docker/login-action@v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
