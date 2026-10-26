@@ -176,7 +176,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      # l2vni and l3vni as a base (with defaults) including upgrade from supported versions
+      # l2vni w/o gateway as a base (with defaults) including upgrade from supported versions
       matrix:
         mesh:
           - false
@@ -188,7 +188,6 @@ jobs:
           - iso
         vpcmode:
           - l2vni
-          - l3vni
         hybrid:
           - false
         upgradefrom:
@@ -196,10 +195,31 @@ jobs:
           - "26.03"
           - "26.04"
         include:
-          # mesh l2vni
-          - mesh: true
+          # gateway l2vni with the kernel driver
+          - mesh: false
+            gateway: true
+            gatewaydriver: kernel
             includeonie: false
-            gateway: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: false
+            upgradefrom: ""
+
+          # gateway l3vni
+          - mesh: false
+            gateway: true
+            gatewaydriver: kernel
+            includeonie: false
+            buildmode: iso
+            vpcmode: l3vni
+            hybrid: false
+            upgradefrom: ""
+
+          # gateway mesh l2vni
+          - mesh: true
+            gateway: true
+            gatewaydriver: kernel
+            includeonie: false
             buildmode: iso
             vpcmode: l2vni
             hybrid: false
@@ -215,32 +235,45 @@ jobs:
             hybrid: true
             upgradefrom: ""
 
-          # mesh l2vni from 26.03
-          - mesh: true
+          # gateway l3vni from 26.03
+          - mesh: false
+            gateway: true
+            gatewaydriver: kernel
             includeonie: false
-            gateway: false
             buildmode: iso
-            vpcmode: l2vni
+            vpcmode: l3vni
             hybrid: false
             upgradefrom: "26.03"
 
-          # mesh l2vni from 26.04
+          # gateway mesh l2vni from 26.03
           - mesh: true
-            includeonie: false
-            gateway: false
-            buildmode: iso
-            vpcmode: l2vni
-            hybrid: false
-            upgradefrom: "26.04"
-
-          # gateway l2vni with the kernel driver
-          - mesh: false
             gateway: true
             gatewaydriver: kernel
             includeonie: false
             buildmode: iso
             vpcmode: l2vni
             hybrid: false
+            upgradefrom: "26.03"
+
+          # gateway l3vni from 26.04
+          - mesh: false
+            gateway: true
+            gatewaydriver: kernel
+            includeonie: false
+            buildmode: iso
+            vpcmode: l3vni
+            hybrid: false
+            upgradefrom: "26.04"
+
+          # gateway mesh l2vni from 26.04
+          - mesh: true
+            gateway: true
+            gatewaydriver: kernel
+            includeonie: false
+            buildmode: iso
+            vpcmode: l2vni
+            hybrid: false
+            upgradefrom: "26.04"
 
   vlabs:
     runs-on: ubuntu-latest
