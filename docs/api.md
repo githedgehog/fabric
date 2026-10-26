@@ -1187,7 +1187,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `pci` _string_ | PCI address of the interface (required for dpdk driver, optional for kernel driver), e.g. 0000:00:01.0 |  |  |
-| `kernel` _string_ | Kernel is the kernel name of the interface to use (kernel driver only), e.g. enp2s1 |  |  |
+| `kernel` _string_ | Kernel is the kernel name of the interface to use (kernel driver only, ignored for dpdk driver), e.g. enp2s1 |  |  |
 | `ips` _string array_ | IPs is the list of IP address to assign to the interface |  |  |
 | `mtu` _integer_ | MTU for the interface |  |  |
 
