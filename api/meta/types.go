@@ -402,8 +402,12 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
 	}
 
-	if cfg.GatewayHugePages1G < 0 || cfg.GatewayHugePages2M < 0 {
-		return nil, errors.Errorf("config: gatewayHugePages1G and gatewayHugePages2M must not be negative")
+	// up to 1 TiB each, anything above is likely a typo or a size in bytes
+	if cfg.GatewayHugePages1G < 0 || cfg.GatewayHugePages1G > 1<<10 {
+		return nil, fmt.Errorf("config: gatewayHugePages1G must be between 0 and %d", 1<<10) //nolint:err113
+	}
+	if cfg.GatewayHugePages2M < 0 || cfg.GatewayHugePages2M > 1<<19 {
+		return nil, fmt.Errorf("config: gatewayHugePages2M must be between 0 and %d", 1<<19) //nolint:err113
 	}
 
 	for idx, commStr := range cfg.GatewayCommunities {
