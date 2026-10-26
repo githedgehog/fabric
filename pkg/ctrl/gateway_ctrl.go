@@ -647,34 +647,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 		args = append(args, dataplaneIfaceArgs(gw)...)
 
-		// tmp hack to make dp work
-		var initContainers []corev1.Container
-		if gw.Spec.Driver == gwapi.GatewayDriverKernel {
-			var iArgs strings.Builder
-			iArgs.WriteString("set -ex && ")
-			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
-				iface := gw.Spec.Interfaces[ifaceName]
-				fmt.Fprintf(&iArgs, "(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
-				fmt.Fprintf(&iArgs, "ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
-				fmt.Fprintf(&iArgs, "([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
-				fmt.Fprintf(&iArgs, "ip l set dev %s up && ", ifaceName)
-			}
-			iArgs.WriteString("date && echo done")
-
-			initContainers = []corev1.Container{
-				{
-					Name:    "init-ifaces",
-					Image:   r.cfg.ToolboxRef,
-					Command: []string{"/bin/bash", "-c", "--"},
-					Args:    []string{iArgs.String()},
-					SecurityContext: &corev1.SecurityContext{
-						Privileged: new(true),
-						RunAsUser:  new(int64(0)),
-					},
-				},
-			}
-		}
-
 		dpDS := &appv1.DaemonSet{
 			Namespace: r.cfg.GatewayNamespace,
 			Name:      entityName(gw.Name, "dataplane"),
@@ -700,7 +672,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						TerminationGracePeriodSeconds: new(int64(10)),
 						Tolerations:                   r.cfg.GatewayTolerations,
 						ServiceAccountName:            saName,
-						InitContainers:                initContainers,
 						Containers: []corev1.Container{
 							{
 								Name:  "dataplane",
