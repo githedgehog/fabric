@@ -182,17 +182,6 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 		if permit.Prefix == "" {
 			return nil, errors.Errorf("external.prefixes.prefix is required")
 		}
-		/* if permit.Ge > permit.Le {
-			return nil, errors.Errorf("external.prefixes.ge must be <= external.prefixes.le")
-		}
-		if permit.Ge > 32 {
-			return nil, errors.Errorf("external.prefixes.ge must be <= 32")
-		}
-		if permit.Le > 32 {
-			return nil, errors.Errorf("external.prefixes.le must be <= 32")
-		}*/
-
-		// TODO add more validation for prefix/ge/le
 	}
 
 	if kube != nil {
