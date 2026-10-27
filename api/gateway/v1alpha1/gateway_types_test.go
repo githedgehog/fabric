@@ -434,6 +434,23 @@ func TestGatewayValidate(t *testing.T) {
 			objs: base,
 		},
 		{
+			name: "test-kernel-same-name",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverKernel
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{Kernel: "port0", IPs: []string{"172.30.128.3/31"}}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-dpdk-invalid-kernel",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Driver = v1alpha1.GatewayDriverDPDK
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", Kernel: "not-a-valid-name", IPs: []string{"172.30.128.3/31"}}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
 			name: "test-kernel-no-pci-no-kernel",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
 				gw.Spec.Driver = v1alpha1.GatewayDriverKernel

@@ -130,9 +130,9 @@ spec:
                             type: string
                           type: array
                         kernel:
-                          description: Kernel is the kernel name of the interface
-                            to use (kernel driver only, ignored for dpdk driver),
-                            e.g. enp2s1
+                          description: |-
+                            Kernel is the kernel name of the interface to use (kernel driver only, ignored for dpdk driver or if it's the same
+                            as the interface name), e.g. enp2s1
                           type: string
                         mtu:
                           description: MTU for the interface
