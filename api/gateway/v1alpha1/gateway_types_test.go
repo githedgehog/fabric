@@ -286,6 +286,36 @@ func TestGatewayValidate(t *testing.T) {
 			err:  v1alpha1.ErrInvalidGW,
 		},
 		{
+			name: "test-interface-mtu-min",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 68}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-interface-mtu-max",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 65535}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-interface-mtu-too-small",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 67}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-interface-mtu-too-big",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 65536}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
 			name: "test-no-neighbors",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Neighbors = []v1alpha1.GatewayBGPNeighbor{} }),
 			objs: base,

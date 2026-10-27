@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/netip"
 	"regexp"
@@ -399,6 +400,11 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 			if !ifaceIP.Addr().Is4() {
 				return fmt.Errorf("interface %s IP %s must be an IPv4 address: %w", name, ifaceIP, ErrInvalidGW)
 			}
+		}
+
+		// same range as the dataplane accepts, 0 means unset
+		if iface.MTU != 0 && (iface.MTU < 68 || iface.MTU > math.MaxUint16) {
+			return fmt.Errorf("interface %s MTU %d must be between 68 and %d: %w", name, iface.MTU, math.MaxUint16, ErrInvalidGW)
 		}
 
 		// kernel name is allowed but ignored with the dpdk driver
