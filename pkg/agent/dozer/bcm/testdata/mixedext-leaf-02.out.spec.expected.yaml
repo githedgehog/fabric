@@ -706,6 +706,7 @@ vrfs:
     anycastMAC: "00:00:00:11:11:11"
     bgp:
       as: 65102
+      asDot: true
       ipv4Unicast:
         enable: true
         importPolicy: ext-import--ext-sp-01
@@ -737,6 +738,7 @@ vrfs:
     anycastMAC: "00:00:00:11:11:11"
     bgp:
       as: 65102
+      asDot: true
       ipv4Unicast:
         enable: true
         importPolicy: import-vrf--vpc-01
@@ -785,6 +787,7 @@ vrfs:
     anycastMAC: "00:00:00:11:11:11"
     bgp:
       as: 65102
+      asDot: true
       ipv4Unicast:
         enable: true
         importPolicy: import-vrf--vpc-02
@@ -833,6 +836,7 @@ vrfs:
       Vlan1003: {}
     bgp:
       as: 65102
+      asDot: true
       ipv4Unicast:
         enable: true
         importPolicy: import-vrf--vpc-03
@@ -861,6 +865,7 @@ vrfs:
     anycastMAC: "00:00:00:11:11:11"
     bgp:
       as: 65102
+      asDot: true
       ipv4Unicast:
         enable: true
         maxPaths: 16

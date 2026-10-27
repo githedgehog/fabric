@@ -1275,6 +1275,7 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					AS:                 new(agent.Spec.Switch.ASN),
 					RouterID:           new(protocolIP.String()),
 					NetworkImportCheck: new(true),
+					ASDot:              new(true),
 					IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 						Enabled:      true,
 						MaxPaths:     new(getMaxPaths(agent)),
@@ -2096,6 +2097,7 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		AS:                 new(agent.Spec.Switch.ASN),
 		RouterID:           new(ip.String()),
 		NetworkImportCheck: new(true), // default
+		ASDot:              new(true),
 		Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
 		IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 			Enabled:  true,
@@ -2616,6 +2618,7 @@ func planVNIVPC(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, vpc vpc
 		AS:                 new(agent.Spec.Switch.ASN),
 		RouterID:           new(protocolIP.String()),
 		NetworkImportCheck: new(true),
+		ASDot:              new(true),
 		IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 			Enabled:      true,
 			MaxPaths:     new(getMaxPaths(agent)),

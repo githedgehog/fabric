@@ -2132,6 +2132,7 @@
                   maximum-paths: 16
         config:
           as: 65102
+          as-notation: ASDOT
           network-import-check: true
           router-id: 172.30.8.1
   weight: 80
@@ -2152,6 +2153,7 @@
                   maximum-paths: 16
         config:
           as: 65102
+          as-notation: ASDOT
           network-import-check: true
           router-id: 172.30.8.1
   weight: 80
@@ -2172,6 +2174,7 @@
                   maximum-paths: 16
         config:
           as: 65102
+          as-notation: ASDOT
           network-import-check: true
           router-id: 172.30.8.1
   weight: 80
