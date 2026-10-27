@@ -15,6 +15,8 @@
 package bcm
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
@@ -101,4 +103,37 @@ func UnmarshalPortBreakout(mode string) string {
 	mode = strings.TrimSuffix(mode, "B")
 
 	return mode
+}
+
+// UnmarshalAS accepts an AS number as a uint32 or as a string, plain or in asdot(+) notation (RFC 5396),
+// as SONiC returns it as a string once the BGP instance uses a dotted notation
+func UnmarshalAS(val any) (*uint32, error) {
+	switch val := val.(type) {
+	case nil:
+		return nil, nil //nolint:nilnil
+	case oc.UnionUint32:
+		return new(uint32(val)), nil
+	case oc.UnionString:
+		high, low, dotted := strings.Cut(string(val), ".")
+		if !dotted {
+			as, err := strconv.ParseUint(high, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("parsing AS %q: %w", val, err)
+			}
+
+			return new(uint32(as)), nil
+		}
+		highAS, err := strconv.ParseUint(high, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("parsing AS %q: %w", val, err)
+		}
+		lowAS, err := strconv.ParseUint(low, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("parsing AS %q: %w", val, err)
+		}
+
+		return new(uint32(highAS)<<16 | uint32(lowAS)), nil
+	default:
+		return nil, fmt.Errorf("unexpected AS %v of type %T", val, val) //nolint:err113
+	}
 }

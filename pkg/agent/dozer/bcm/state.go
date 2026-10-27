@@ -1069,18 +1069,16 @@ func (p *BroadcomProcessor) updateBGPNeighborMetrics(ctx context.Context, reg *s
 				}
 			}
 
-			if ocSt.LocalAs != nil {
-				// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
-				if val, ok := ocSt.LocalAs.(oc.UnionUint32); ok {
-					st.LocalAS = uint32(val)
-				}
+			if as, err := UnmarshalAS(ocSt.LocalAs); err != nil {
+				slog.Warn("Failed to parse BGP neighbor local AS", "neighbor", neighborAddress, "vrf", vrfName, "err", err)
+			} else if as != nil {
+				st.LocalAS = *as
 			}
 
-			if ocSt.PeerAs != nil {
-				// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
-				if val, ok := ocSt.PeerAs.(oc.UnionUint32); ok {
-					st.PeerAS = uint32(val)
-				}
+			if as, err := UnmarshalAS(ocSt.PeerAs); err != nil {
+				slog.Warn("Failed to parse BGP neighbor peer AS", "neighbor", neighborAddress, "vrf", vrfName, "err", err)
+			} else if as != nil {
+				st.PeerAS = *as
 			}
 
 			if ocSt.PeerGroup != nil {

@@ -970,6 +970,7 @@
                   maximum-paths: 16
         config:
           as: 65100
+          as-notation: ASDOT
           network-import-check: true
           router-id: 172.30.8.0
   weight: 80

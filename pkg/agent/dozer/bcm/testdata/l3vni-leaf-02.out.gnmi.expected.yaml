@@ -385,6 +385,7 @@ network-instances:
                         advertise-afi-safi: IPV4_UNICAST
             config:
               as: 65102
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.3
           neighbors:
@@ -505,6 +506,7 @@ network-instances:
                         advertise-afi-safi: IPV4_UNICAST
             config:
               as: 65102
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.3
           neighbors:
@@ -634,6 +636,7 @@ network-instances:
                         advertise-afi-safi: IPV4_UNICAST
             config:
               as: 65102
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.3
         identifier: BGP
@@ -700,6 +703,7 @@ network-instances:
                     route-advertise-list: []
             config:
               as: 65102
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.3
           neighbors:

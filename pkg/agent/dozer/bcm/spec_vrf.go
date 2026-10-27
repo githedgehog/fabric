@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/openconfig/gnmic/pkg/api"
@@ -269,7 +268,7 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 
 var specVRFBGPBaseEnforcerGetter = func(_ string, value *dozer.SpecVRFBGP) any {
 	return []any{
-		value.AS, value.RouterID, value.NetworkImportCheck,
+		value.AS, value.RouterID, value.NetworkImportCheck, value.ASDot,
 		// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if current approach is ok
 		value.IPv4Unicast.Enabled,
 		value.IPv4Unicast.MaxPaths,
@@ -323,6 +322,11 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 			as = oc.UnionUint32(*value.AS)
 		}
 
+		var asNotation oc.E_OpenconfigBgp_AsNotationType
+		if value.ASDot != nil && *value.ASDot {
+			asNotation = oc.OpenconfigBgp_AsNotationType_ASDOT
+		}
+
 		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
 			Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
 				Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
@@ -330,6 +334,7 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 						As:                 as,
 						RouterId:           value.RouterID,
 						NetworkImportCheck: value.NetworkImportCheck,
+						AsNotation:         asNotation,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
 						AfiSafi: afiSafi,
@@ -810,16 +815,16 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 				if bgpConfig.Global != nil && bgpConfig.Global.Config != nil {
 					bgpOk = true
 
-					// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
-					if bgpConfig.Global.Config.As != nil {
-						if val, ok := bgpConfig.Global.Config.As.(oc.UnionUint32); ok {
-							bgp.AS = new(uint32(val))
-						} else {
-							return nil, errors.Errorf("failed to unmarshal AS %v (only uint32 is supported)", bgpConfig.Global.Config.As)
-						}
+					as, err := UnmarshalAS(bgpConfig.Global.Config.As)
+					if err != nil {
+						return nil, fmt.Errorf("unmarshaling AS: %w", err)
 					}
+					bgp.AS = as
 					bgp.RouterID = bgpConfig.Global.Config.RouterId
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
+					if bgpConfig.Global.Config.AsNotation == oc.OpenconfigBgp_AsNotationType_ASDOT {
+						bgp.ASDot = new(true)
+					}
 
 					if bgpConfig.Global.AfiSafis != nil && bgpConfig.Global.AfiSafis.AfiSafi != nil {
 						ipv4Unicast := bgpConfig.Global.AfiSafis.AfiSafi[oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST]
@@ -929,30 +934,13 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							peerType = new(dozer.SpecVRFBGPNeighborPeerTypeExternal)
 						}
 
-						// TODO parse https://datatracker.ietf.org/doc/html/rfc5396
-						var remoteAS *uint32
-						if neighbor.Config.PeerAs != nil {
-							if val, ok := neighbor.Config.PeerAs.(oc.UnionUint32); ok {
-								remoteAS = new(uint32(val))
-							} else {
-								return nil, errors.Errorf("failed to unmarshal Peer AS %v (only uint32 is supported)", neighbor.Config.PeerAs)
-							}
+						remoteAS, err := UnmarshalAS(neighbor.Config.PeerAs)
+						if err != nil {
+							return nil, fmt.Errorf("unmarshaling peer AS: %w", err)
 						}
-
-						// SONiC reads some numeric unions back as strings (set-med does on 4.5.2), so accept both
-						var localAS *uint32
-						switch val := neighbor.Config.LocalAs.(type) {
-						case nil:
-						case oc.UnionUint32:
-							localAS = new(uint32(val))
-						case oc.UnionString:
-							parsed, err := strconv.ParseUint(string(val), 10, 32)
-							if err != nil {
-								return nil, fmt.Errorf("failed to unmarshal Local AS %q: %w", val, err)
-							}
-							localAS = new(uint32(parsed))
-						default:
-							return nil, fmt.Errorf("failed to unmarshal Local AS %v (expected a uint32 or a decimal string)", val) //nolint:err113
+						localAS, err := UnmarshalAS(neighbor.Config.LocalAs)
+						if err != nil {
+							return nil, fmt.Errorf("unmarshaling local AS: %w", err)
 						}
 
 						var bfdProfile *string

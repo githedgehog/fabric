@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 )
 
@@ -65,4 +66,51 @@ func TestSpecVRFBGPPrefixLimitModeSwitch(t *testing.T) {
 	}
 
 	require.Less(t, ActionWeightVRFBGPNeighborDelete, ActionWeightVRFBGPNeighborUpdate)
+}
+
+// SONiC returns AS numbers as strings once the BGP instance uses a dotted notation
+func TestUnmarshalOCVRFsDottedAS(t *testing.T) {
+	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{
+		NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
+			VRFDefault: {
+				Name:   new(VRFDefault),
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Config{Name: new(VRFDefault)},
+				Protocols: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols{
+					Protocol: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+						{Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "bgp"}: {
+							Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
+								Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
+									Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
+										As:         oc.UnionString("64086.59904"),
+										AsNotation: oc.OpenconfigBgp_AsNotationType_ASDOT,
+									},
+								},
+								Neighbors: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
+									Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
+										"1.2.3.4": {
+											NeighborAddress: new("1.2.3.4"),
+											Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
+												NeighborAddress: new("1.2.3.4"),
+												PeerAs:          oc.UnionString("65100"),
+												LocalAs:         oc.UnionString("1.0"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	vrfs, err := unmarshalOCVRFs(ocVal)
+	require.NoError(t, err)
+	bgp := vrfs[VRFDefault].BGP
+	require.NotNil(t, bgp)
+	require.Equal(t, new(uint32(4200000000)), bgp.AS)
+	require.Equal(t, new(true), bgp.ASDot)
+	require.Equal(t, new(uint32(65100)), bgp.Neighbors["1.2.3.4"].RemoteAS)
+	require.Equal(t, new(uint32(65536)), bgp.Neighbors["1.2.3.4"].LocalAS)
 }

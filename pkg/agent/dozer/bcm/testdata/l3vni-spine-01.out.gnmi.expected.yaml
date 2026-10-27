@@ -269,6 +269,7 @@ network-instances:
                     route-advertise-list: []
             config:
               as: 65100
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.0
           neighbors:

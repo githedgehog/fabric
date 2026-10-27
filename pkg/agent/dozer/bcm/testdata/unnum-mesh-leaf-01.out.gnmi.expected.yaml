@@ -460,6 +460,7 @@ network-instances:
                         - filter-attached-hosts
             config:
               as: 65101
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.0
         identifier: BGP
@@ -547,6 +548,7 @@ network-instances:
                         - filter-attached-hosts
             config:
               as: 65101
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.0
         identifier: BGP
@@ -632,6 +634,7 @@ network-instances:
                     route-advertise-list: []
             config:
               as: 65101
+              as-notation: ASDOT
               network-import-check: true
               router-id: 172.30.8.0
           neighbors:
