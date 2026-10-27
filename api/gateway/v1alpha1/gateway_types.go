@@ -82,7 +82,8 @@ var GatewayDrivers = []GatewayDriver{
 type GatewayInterface struct {
 	// PCI address of the interface (required for dpdk driver, optional for kernel driver), e.g. 0000:00:01.0
 	PCI string `json:"pci,omitempty"`
-	// Kernel is the kernel name of the interface to use (kernel driver only, ignored for dpdk driver), e.g. enp2s1
+	// Kernel is the kernel name of the interface to use (kernel driver only, ignored for dpdk driver or if it's the same
+	// as the interface name), e.g. enp2s1
 	Kernel string `json:"kernel,omitempty"`
 	// IPs is the list of IP address to assign to the interface
 	IPs []string `json:"ips,omitempty"`
@@ -415,14 +416,8 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 			}
 			pcis[pci] = name
 		}
-		if iface.Kernel != "" {
-			if !linuxIfaceNameRegex.MatchString(iface.Kernel) {
-				return fmt.Errorf("kernel name %s must be a valid linux interface name (2-10 characters): %w", iface.Kernel, ErrInvalidGW)
-			}
-
-			if name == iface.Kernel {
-				return fmt.Errorf("interface name %s cannot be the same as kernel interface name: %w", name, ErrInvalidGW)
-			}
+		if iface.Kernel != "" && !linuxIfaceNameRegex.MatchString(iface.Kernel) {
+			return fmt.Errorf("kernel name %s must be a valid linux interface name (2-10 characters): %w", iface.Kernel, ErrInvalidGW)
 		}
 	}
 

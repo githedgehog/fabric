@@ -279,8 +279,8 @@ func TestDataplaneIfaceArgs(t *testing.T) {
 		{
 			name:   "kernel",
 			driver: gwapi.GatewayDriverKernel,
-			ifaces: map[string]gwapi.GatewayInterface{"port0": {Kernel: "eth0", PCI: "0000:21:00.0"}, "eth1": {}, "eth2": {PCI: "0000:21:00.2"}},
-			want:   []string{"--interface", "eth1", "--interface", "eth2", "--interface", "port0=kernel@eth0", "--driver", "kernel"},
+			ifaces: map[string]gwapi.GatewayInterface{"port0": {Kernel: "eth0", PCI: "0000:21:00.0"}, "eth1": {}, "eth2": {PCI: "0000:21:00.2"}, "eth3": {Kernel: "eth3"}},
+			want:   []string{"--interface", "eth1", "--interface", "eth2", "--interface", "eth3", "--interface", "port0=kernel@eth0", "--driver", "kernel"},
 		},
 		{
 			name:   "mtu",
