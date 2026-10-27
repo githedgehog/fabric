@@ -85,6 +85,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to get roce")
 	}
 	swState.RoCE = roce
+	reg.RoCEEnabled.Set(boolToFloat64(&roce))
 
 	if err := p.updateInterfaceMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update interface metrics")
@@ -370,6 +371,15 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 		return errors.Wrapf(err, "failed to get qos interfaces")
 	}
 
+	// PFC is reported only while enabled, so drop what the switch doesn't report anymore
+	reg.InterfaceCounters.PFCEnabled.Reset()
+	reg.InterfaceCounters.PFCPauseFramesRx.Reset()
+	reg.InterfaceCounters.PFCPauseFramesTx.Reset()
+	reg.InterfaceCounters.QueuePFCStormDetected.Reset()
+	reg.InterfaceCounters.QueuePFCStormRestored.Reset()
+	reg.InterfaceCounters.QueuePFCRxDroppedPkts.Reset()
+	reg.InterfaceCounters.QueuePFCTxDroppedPkts.Reset()
+
 	for ifaceNameRaw, iface := range ifaces.Interface {
 		if !isPhysical(ifaceNameRaw) && !isCPU(ifaceNameRaw) {
 			continue
@@ -414,6 +424,7 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 		}
 
 		queues := map[string]agentapi.SwitchStateInterfaceCountersQueue{}
+		ucQueues := map[string]string{}
 		for _, queue := range iface.Output.Queues.Queue {
 			if queue.State == nil || queue.State.Name == nil || queue.State.TrafficType == nil {
 				continue
@@ -426,6 +437,9 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 				continue
 			}
 			qName := *queue.State.TrafficType + parts[1]
+			if *queue.State.TrafficType == "UC" {
+				ucQueues[parts[1]] = qName
+			}
 			if _, exists := queues[qName]; exists {
 				slog.Warn("Queue with the same name already exists, skipping", "queueName", qName, "interface", ifaceNameRaw)
 
@@ -526,6 +540,44 @@ func (p *BroadcomProcessor) updateInterfaceQueuesMetrics(ctx context.Context, re
 
 			if nonZero {
 				queues[qName] = qCounters
+			}
+		}
+
+		pfcEnabled := false
+		if iface.Pfc != nil && iface.Pfc.PfcPriorities != nil {
+			for prio, pfcPrio := range iface.Pfc.PfcPriorities.PfcPriority {
+				if pfcPrio.State == nil {
+					continue
+				}
+
+				prioName := strconv.Itoa(int(prio))
+				reg.InterfaceCounters.PFCEnabled.WithLabelValues(ifaceName, prioName, transceiverName).Set(boolToFloat64(pfcPrio.State.Enable))
+				if pfcPrio.State.Enable == nil || !*pfcPrio.State.Enable {
+					continue
+				}
+
+				pfcEnabled = true
+				if st := pfcPrio.State.Statistics; st != nil {
+					reg.InterfaceCounters.PFCPauseFramesRx.WithLabelValues(ifaceName, prioName, transceiverName).Set(float64(unptrUint64(st.PauseFramesRx)))
+					reg.InterfaceCounters.PFCPauseFramesTx.WithLabelValues(ifaceName, prioName, transceiverName).Set(float64(unptrUint64(st.PauseFramesTx)))
+				}
+			}
+		}
+
+		// PFC watchdog queues are numbered like the output queues, e.g. 3 is UC3. Mapping them to the PFC priorities
+		// would take another request, so all unicast ones are reported if any priority has PFC on.
+		if pfcEnabled && iface.Pfc.PfcQueue != nil {
+			for id, pfcQueue := range iface.Pfc.PfcQueue.PfcQueue {
+				qName, ok := ucQueues[strconv.Itoa(int(id))]
+				if !ok || pfcQueue.State == nil || pfcQueue.State.Statistics == nil {
+					continue
+				}
+
+				st := pfcQueue.State.Statistics
+				reg.InterfaceCounters.QueuePFCStormDetected.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(unptrUint64(st.StormDetected)))
+				reg.InterfaceCounters.QueuePFCStormRestored.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(unptrUint64(st.StormRestored)))
+				reg.InterfaceCounters.QueuePFCRxDroppedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(unptrUint64(st.RxDrop)))
+				reg.InterfaceCounters.QueuePFCTxDroppedPkts.WithLabelValues(ifaceName, qName, transceiverName).Set(float64(unptrUint64(st.TxDrop)))
 			}
 		}
 
