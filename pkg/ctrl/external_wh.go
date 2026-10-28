@@ -20,6 +20,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -74,11 +75,11 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
 	if fabricChanged(oldExt.Spec.Topology.Fabric, newExt.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newExt.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newExt.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 	// so that an External update never has to re-check its attachments
 	if domainChanged(oldExt.Spec.Topology.Domain, newExt.Spec.Topology.Domain) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newExt.Spec.Topology.Domain, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newExt.Spec.Topology.Domain, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {

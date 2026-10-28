@@ -13,6 +13,7 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -121,10 +122,10 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 			return nil, field.Forbidden(domainsPath.Key(name), "domain can not be removed or renamed")
 		}
 		if oldDomain.SpineASN != 0 && oldDomain.SpineASN != domain.SpineASN {
-			return nil, field.Invalid(domainsPath.Key(name).Child("spineASN"), domain.SpineASN, "field is immutable")
+			return nil, field.Invalid(domainsPath.Key(name).Child("spineASN"), domain.SpineASN, kapivalidation.FieldImmutableErrorMsg)
 		}
 		if oldDomain.GatewayASN != 0 && oldDomain.GatewayASN != domain.GatewayASN {
-			return nil, field.Invalid(domainsPath.Key(name).Child("gatewayASN"), domain.GatewayASN, "field is immutable")
+			return nil, field.Invalid(domainsPath.Key(name).Child("gatewayASN"), domain.GatewayASN, kapivalidation.FieldImmutableErrorMsg)
 		}
 	}
 	// nothing needs to grow a fabric yet, so its domains are fixed like its leaf ASN range. A
