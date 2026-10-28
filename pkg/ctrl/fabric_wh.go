@@ -13,6 +13,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -65,24 +66,25 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 	// switches are validated against these ASNs and configured with them, so changing them would silently invalidate
 	// what is already admitted
 	if oldFabric.Spec.LeafASNStart != fabric.Spec.LeafASNStart || oldFabric.Spec.LeafASNEnd != fabric.Spec.LeafASNEnd {
-		return nil, fmt.Errorf("fabric leaf ASN range can not be changed") //nolint:err113
+		return nil, field.Forbidden(field.NewPath("spec"), "fabric leaf ASN range can not be changed")
 	}
+	domainsPath := field.NewPath("spec", "domains")
 	for name, oldDomain := range oldFabric.Spec.Domains {
 		domain, exists := fabric.Spec.Domains[name]
 		if !exists {
-			return nil, fmt.Errorf("domain %s can not be removed or renamed", name) //nolint:err113
+			return nil, field.Forbidden(domainsPath.Key(name), "domain can not be removed or renamed")
 		}
 		if oldDomain.SpineASN != domain.SpineASN {
-			return nil, fmt.Errorf("spineASN of domain %s can not be changed", name) //nolint:err113
+			return nil, field.Invalid(domainsPath.Key(name).Child("spineASN"), domain.SpineASN, "field is immutable")
 		}
 		if oldDomain.GatewayASN != domain.GatewayASN {
-			return nil, fmt.Errorf("gatewayASN of domain %s can not be changed", name) //nolint:err113
+			return nil, field.Invalid(domainsPath.Key(name).Child("gatewayASN"), domain.GatewayASN, "field is immutable")
 		}
 	}
 	// nothing needs to grow a fabric yet, so its domains are fixed like its leaf ASN range
 	for name := range fabric.Spec.Domains {
 		if _, exists := oldFabric.Spec.Domains[name]; !exists {
-			return nil, fmt.Errorf("domain %s can not be added to an existing fabric", name) //nolint:err113
+			return nil, field.Forbidden(domainsPath.Key(name), "domain can not be added to an existing fabric")
 		}
 	}
 

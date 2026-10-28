@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -995,6 +996,7 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 
 			if tt.err {
 				require.Error(t, err)
+				testutil.RequireFieldError(t, err, &wiringapi.SwitchProfile{})
 
 				return
 			}

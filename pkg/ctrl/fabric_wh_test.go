@@ -115,10 +115,10 @@ func TestFabricUpdateASNs(t *testing.T) {
 		{name: "unchanged", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64201)},
 		{name: "changing leafASNStart", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64102, 64200, 64100, 64201), err: "leaf ASN range can not be changed"},
 		{name: "changing leafASNEnd", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64199, 64100, 64201), err: "leaf ASN range can not be changed"},
-		{name: "changing spineASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64099, 64201), err: "spineASN of domain default can not be changed"},
-		{name: "changing gatewayASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64202), err: "gatewayASN of domain default can not be changed"},
-		{name: "renaming the domain", old: fabricGen(64101, 64200, 64100, 64201), new: renamed, err: "domain default can not be removed or renamed"},
-		{name: "adding a domain", old: fabricGen(64101, 64200, 64100, 64201), new: added, err: "domain plane-b can not be added to an existing fabric"},
+		{name: "changing spineASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64099, 64201), err: `spec.domains[default].spineASN: Invalid value: 64099: field is immutable`},
+		{name: "changing gatewayASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64202), err: `spec.domains[default].gatewayASN: Invalid value: 64202: field is immutable`},
+		{name: "renaming the domain", old: fabricGen(64101, 64200, 64100, 64201), new: renamed, err: "spec.domains[default]: Forbidden: domain can not be removed or renamed"},
+		{name: "adding a domain", old: fabricGen(64101, 64200, 64100, 64201), new: added, err: "spec.domains[plane-b]: Forbidden: domain can not be added to an existing fabric"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &FabricWebhook{}
