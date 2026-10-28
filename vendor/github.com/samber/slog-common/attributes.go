@@ -101,9 +101,9 @@ func mergeAttrValues(values ...slog.Value) slog.Value {
 func AttrToValue(attr slog.Attr) (string, any) {
 	k := attr.Key
 	v := attr.Value
-	kind := v.Kind()
+	v = v.Resolve()
 
-	switch kind {
+	switch v.Kind() {
 	case slog.KindAny:
 		return k, v.Any()
 	case slog.KindLogValuer:
@@ -130,6 +130,8 @@ func AttrToValue(attr slog.Attr) (string, any) {
 }
 
 func AnyValueToString(v slog.Value) string {
+	v = v.Resolve()
+
 	if tm, ok := v.Any().(encoding.TextMarshaler); ok {
 		data, err := tm.MarshalText()
 		if err != nil {
@@ -155,6 +157,8 @@ func AttrsToString(attrs ...slog.Attr) map[string]string {
 }
 
 func ValueToString(v slog.Value) string {
+	v = v.Resolve()
+
 	switch v.Kind() {
 	case slog.KindAny, slog.KindLogValuer, slog.KindGroup:
 		return AnyValueToString(v)
@@ -175,7 +179,7 @@ func ReplaceError(attrs []slog.Attr, errorKeys ...string) []slog.Attr {
 
 		for i := range errorKeys {
 			if a.Key == errorKeys[i] {
-				if err, ok := a.Value.Any().(error); ok {
+				if err, ok := a.Value.Resolve().Any().(error); ok {
 					return slog.Any(a.Key, FormatError(err))
 				}
 			}

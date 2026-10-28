@@ -360,10 +360,10 @@ github.com/samber/lo/internal/constraints
 github.com/samber/lo/internal/xrand
 github.com/samber/lo/internal/xtime
 github.com/samber/lo/mutable
-# github.com/samber/slog-common v0.21.0
+# github.com/samber/slog-common v0.22.0
 ## explicit; go 1.21
 github.com/samber/slog-common
-# github.com/samber/slog-multi v1.8.0
+# github.com/samber/slog-multi v1.9.0
 ## explicit; go 1.22
 github.com/samber/slog-multi
 # github.com/samber/slog-webhook/v2 v2.8.4
