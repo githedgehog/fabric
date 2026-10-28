@@ -128,7 +128,7 @@ func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
-		return field.Invalid(spec.Child("topology", "fabric"), vpc.Spec.Topology.Fabric, err.Error())
+		return err //nolint:wrapcheck
 	}
 	if len(vpc.Spec.Topology.Domains) == 0 {
 		return field.Required(domainsPath, "vpcinfo must be in at least one domain")
