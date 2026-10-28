@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -70,7 +71,7 @@ func (w *GatewayPeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.
 
 func (w *GatewayPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *gwapi.GatewayPeering, newPeer *gwapi.GatewayPeering) (admission.Warnings, error) {
 	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newPeer.Spec.Topology.Fabric, "field is immutable")
 	}
 
 	// TODO validate diff between oldObj and newObj if needed
