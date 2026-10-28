@@ -11,6 +11,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestVirtualSwitchPorts(t *testing.T) {
+	dir := t.TempDir()
+	for _, nic := range []string{"eth0", "eth1", "eth12", "swp1"} {
+		require.NoError(t, os.MkdirAll(filepath.Join(dir, nic, "device"), 0o755))
+	}
+	for _, virt := range []string{"Ethernet0", "lo", "docker0", "eth1.100", "Vrf1"} {
+		require.NoError(t, os.MkdirAll(filepath.Join(dir, virt), 0o755))
+	}
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "bonding_masters"), nil, 0o600))
+
+	ports, err := virtualSwitchPorts(dir)
+	require.NoError(t, err)
+	require.Equal(t, []string{"eth1", "eth12", "swp1"}, ports)
+}
+
 func TestLoadConfigFromFileDroppedFields(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, ConfigFile), []byte(`

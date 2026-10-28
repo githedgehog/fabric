@@ -186,6 +186,12 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				return fmt.Errorf("preparing SONiC: %w", err)
 			}
 		}
+
+		if slices.Contains(fmeta.VirtualSwitchProfiles, agent.Spec.Switch.Profile) {
+			if err := disableVirtualGRO(ctx); err != nil {
+				return fmt.Errorf("disabling GRO on virtual switch: %w", err)
+			}
+		}
 	}
 
 	// setup gNMI client for Broadcom SONiC
@@ -1166,4 +1172,58 @@ func prepareSONiC(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func disableVirtualGRO(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	ports, err := virtualSwitchPorts("/sys/class/net")
+	if err != nil {
+		return err
+	}
+	if len(ports) == 0 {
+		return fmt.Errorf("no switch ports found") //nolint:err113
+	}
+
+	slog.Info("Disabling GRO on virtual switch ports", "ports", ports)
+
+	for _, port := range ports {
+		cmd := exec.CommandContext(ctx, "sudo", "ethtool", "-K", port, "gro", "off")
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "ethtool("+port+"): ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "ethtool("+port+"): ")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("disabling GRO on %s: %w", port, err)
+		}
+	}
+
+	return nil
+}
+
+func virtualSwitchPorts(sysClassNet string) ([]string, error) {
+	entries, err := os.ReadDir(sysClassNet)
+	if err != nil {
+		return nil, fmt.Errorf("listing netdevs: %w", err)
+	}
+
+	ports := []string{}
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "eth0" {
+			continue
+		}
+
+		if _, err := os.Stat(filepath.Join(sysClassNet, name, "device")); err != nil {
+			// not a netdev, e.g. bonding_masters
+			if os.IsNotExist(err) || errors.Is(err, syscall.ENOTDIR) {
+				continue
+			}
+
+			return nil, fmt.Errorf("checking netdev %s: %w", name, err)
+		}
+
+		ports = append(ports, name)
+	}
+
+	return ports, nil
 }
