@@ -15,7 +15,7 @@ func TestSwitchASNImmutable(t *testing.T) {
 	newSw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{ASN: 65099}}
 
 	_, err := (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSw, newSw)
-	require.ErrorContains(t, err, "asn is immutable")
+	require.ErrorContains(t, err, "spec.asn: Invalid value: 65099: field is immutable")
 }
 
 func TestSwitchDomainsImmutable(t *testing.T) {
@@ -25,6 +25,6 @@ func TestSwitchDomainsImmutable(t *testing.T) {
 		newSw.Spec.Topology.Domains = []string{"plane-b"}
 
 		_, err := (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSw, newSw)
-		require.ErrorContains(t, err, "topology.domains is immutable", role)
+		require.ErrorContains(t, err, "spec.topology.domains: Invalid value", role)
 	}
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,14 +43,14 @@ func TestFabricValidation(t *testing.T) {
 	}{
 		{name: "valid", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64201))},
 		{name: "valid, named domain", fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{"plane-a": {SpineASN: 64100, GatewayASN: 64201}})},
-		{name: "no leaf ASN range", fabric: fabricGen("backend", 0, 0, domain(64100, 64201)), err: "leafASNStart and leafASNEnd are required"},
+		{name: "no leaf ASN range", fabric: fabricGen("backend", 0, 0, domain(64100, 64201)), err: "spec.leafASNStart: Required value"},
 		{name: "inverted leaf ASN range", fabric: fabricGen("backend", 64200, 64101, domain(64100, 64201)), err: "greater than leafASNEnd"},
 		{name: "no domains", fabric: fabricGen("backend", 64101, 64200, nil), err: "at least one domain is required"},
-		{name: "no spine ASN", fabric: fabricGen("backend", 64101, 64200, domain(0, 64201)), err: "domain default spineASN is required"},
-		{name: "no gateway ASN", fabric: fabricGen("backend", 64101, 64200, domain(64100, 0)), err: "domain default gatewayASN is required"},
-		{name: "spine and gateway share an ASN", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64100)), err: "64100 is already used as domain default"},
-		{name: "spine ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64150, 64201)), err: "domain default spineASN 64150 is within the leaf ASN range"},
-		{name: "gateway ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64150)), err: "domain default gatewayASN 64150 is within the leaf ASN range"},
+		{name: "no spine ASN", fabric: fabricGen("backend", 64101, 64200, domain(0, 64201)), err: "spec.domains[default].spineASN: Required value"},
+		{name: "no gateway ASN", fabric: fabricGen("backend", 64101, 64200, domain(64100, 0)), err: "spec.domains[default].gatewayASN: Required value"},
+		{name: "spine and gateway share an ASN", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64100)), err: "64100: already used as spec.domains[default]."},
+		{name: "spine ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64150, 64201)), err: "spec.domains[default].spineASN: Invalid value: 64150: within the leaf ASN range"},
+		{name: "gateway ASN in the leaf range", fabric: fabricGen("backend", 64101, 64200, domain(64100, 64150)), err: "spec.domains[default].gatewayASN: Invalid value: 64150: within the leaf ASN range"},
 		{
 			name: "two domains",
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{
@@ -58,15 +59,19 @@ func TestFabricValidation(t *testing.T) {
 			}),
 		},
 		{
-			name: "two domains sharing a spine ASN", err: "64100 is already used as domain plane-",
+			name: "two domains sharing a spine ASN", err: "64100: already used as spec.domains[plane-",
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{
 				"plane-a": {SpineASN: 64100, GatewayASN: 64201},
 				"plane-b": {SpineASN: 64100, GatewayASN: 64202},
 			}),
 		},
 		{
-			name: "invalid domain name", err: "invalid domain name Plane_A",
+			name: "invalid domain name", err: `spec.domains: Invalid value: "Plane_A"`,
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{"Plane_A": {SpineASN: 64100, GatewayASN: 64201}}),
+		},
+		{
+			name: "long domain name", err: "spec.domains[" + strings.Repeat("d", 63) + "]: Too long",
+			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{strings.Repeat("d", 63): {SpineASN: 64100, GatewayASN: 64201}}),
 		},
 		{
 			name: "long name", err: "metadata.name: Too long",
@@ -87,19 +92,19 @@ func TestFabricValidation(t *testing.T) {
 			name:   "spine ASN in other fabric leaf range",
 			fabric: fabricGen("backend", 64101, 64200, domain(65200, 64201)),
 			others: []kclient.Object{other},
-			err:    "domain default spineASN 65200 is within fabric default leaf ASN range",
+			err:    "spec.domains[default].spineASN: Invalid value: 65200: within fabric default leaf ASN range",
 		},
 		{
 			name:   "gateway ASN used by other fabric",
 			fabric: fabricGen("backend", 64101, 64200, domain(64100, 65534)),
 			others: []kclient.Object{other},
-			err:    "gatewayASN 65534 is already used by fabric default as domain default gatewayASN",
+			err:    "gatewayASN: Invalid value: 65534: already used by fabric default as spec.domains[default].gatewayASN",
 		},
 		{
 			name:   "leaf range contains other fabric gateway ASN",
 			fabric: fabricGen("backend", 65534, 65600, domain(64100, 64201)),
 			others: []kclient.Object{other},
-			err:    "contains fabric default domain default gatewayASN 65534",
+			err:    "contains fabric default spec.domains[default].gatewayASN 65534",
 		},
 		{
 			name:   "updating itself is not an overlap",
@@ -116,14 +121,15 @@ func TestFabricValidation(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+			testutil.RequireFieldError(t, err, tt.fabric)
 		})
 	}
 }
 
 func TestFabricReferenceRequired(t *testing.T) {
 	// with or without a client to look it up
-	require.ErrorIs(t, wiringapi.CheckFabricExists(t.Context(), nil, "default", ""), wiringapi.ErrFabricNotSet)
-	require.ErrorIs(t, wiringapi.CheckFabricExists(t.Context(), fake.NewClientBuilder().Build(), "default", ""), wiringapi.ErrFabricNotSet)
+	require.EqualError(t, wiringapi.CheckFabricExists(t.Context(), nil, "default", ""), "spec.topology.fabric: Required value")
+	require.EqualError(t, wiringapi.CheckFabricExists(t.Context(), fake.NewClientBuilder().Build(), "default", ""), "spec.topology.fabric: Required value")
 
 	_, err := wiringapi.GetFabricSpec(t.Context(), fake.NewClientBuilder().Build(), "default", "")
 	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
