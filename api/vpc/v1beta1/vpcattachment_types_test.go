@@ -82,13 +82,13 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			name:    "vpc not found",
 			attach:  onUnbundled,
 			objects: []kclient.Object{unbundled, sw("leaf-01")},
-			err:     `spec.subnet: Not found: "vpc-01/default"`,
+			err:     `spec.subnet: Invalid value: "vpc-01/default": vpc vpc-01 not found`,
 		},
 		{
 			name:    "subnet not found",
 			attach:  attach("vpc-01--other", "vpc-01/other", unbundled.Name),
 			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain), unbundled, sw("leaf-01")},
-			err:     `spec.subnet: Not found: "vpc-01/other"`,
+			err:     `spec.subnet: Invalid value: "vpc-01/other": subnet other not found in vpc vpc-01`,
 		},
 		{
 			name:    "connection not found",

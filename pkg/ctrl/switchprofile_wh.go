@@ -23,6 +23,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -68,7 +69,7 @@ func (w *SwitchProfileWebhook) Default(_ context.Context, sp *wiringapi.SwitchPr
 
 func (w *SwitchProfileWebhook) validate(ctx context.Context, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
 	if sp.Name == "" {
-		return nil, fmt.Errorf("switch profile name must be set") //nolint:err113
+		return nil, field.Required(field.NewPath("metadata", "name"), "")
 	}
 
 	warns, err := sp.Validate(ctx, w.KubeClient, w.Cfg)
@@ -78,7 +79,7 @@ func (w *SwitchProfileWebhook) validate(ctx context.Context, sp *wiringapi.Switc
 
 	if dsp := w.Profiles.Get(sp.Name); dsp != nil {
 		if !equality.Semantic.DeepEqual(dsp.Spec, sp.Spec) {
-			return nil, fmt.Errorf("default switch profiles are immutable") //nolint:err113
+			return nil, field.Forbidden(field.NewPath("spec"), "default switch profiles are immutable")
 		}
 	}
 
@@ -87,7 +88,7 @@ func (w *SwitchProfileWebhook) validate(ctx context.Context, sp *wiringapi.Switc
 
 func (w *SwitchProfileWebhook) ValidateCreate(ctx context.Context, sp *wiringapi.SwitchProfile) (admission.Warnings, error) {
 	if dsp := w.Profiles.Get(sp.Name); dsp == nil && !w.Cfg.AllowExtraSwitchProfiles {
-		return nil, fmt.Errorf("only default switch profiles are allowed") //nolint:err113
+		return nil, field.Forbidden(field.NewPath("metadata", "name"), "only default switch profiles are allowed")
 	}
 
 	return w.validate(ctx, sp)
