@@ -22,7 +22,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
@@ -30,6 +29,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -450,75 +450,77 @@ func (vpc *VPC) Default() {
 
 func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(vpc); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+	topology := spec.Child("topology")
+
 	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+		return nil, field.Invalid(topology.Child("fabric"), vpc.Spec.Topology.Fabric, err.Error())
 	}
 
 	domains := slices.Sorted(slices.Values(vpc.Spec.Topology.Domains))
 	if len(domains) == 0 {
-		return nil, fmt.Errorf("at least one domain is required") //nolint:err113
+		return nil, field.Required(topology.Child("domains"), "at least one domain is required")
 	}
 	if slices.Contains(domains, "") {
-		return nil, fmt.Errorf("domain name cannot be empty") //nolint:err113
+		return nil, field.Invalid(topology.Child("domains"), vpc.Spec.Topology.Domains, "domain name cannot be empty")
 	}
 	if len(slices.Compact(slices.Clone(domains))) != len(domains) {
-		return nil, fmt.Errorf("domains must be unique") //nolint:err113
+		return nil, field.Invalid(topology.Child("domains"), vpc.Spec.Topology.Domains, "domains must be unique")
 	}
 
 	if len(vpc.Name) > 11 {
-		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
+		return nil, field.TooLong(field.NewPath("metadata", "name"), vpc.Name, 11)
 	}
 	if strings.HasPrefix(vpc.Name, VPCInfoExtPrefix) {
-		return nil, errors.Errorf("vpc name cannot start with '%s': %s", VPCInfoExtPrefix, vpc.Name)
+		return nil, field.Invalid(field.NewPath("metadata", "name"), vpc.Name, fmt.Sprintf("cannot start with %q", VPCInfoExtPrefix))
 	}
 	if vpc.Spec.IPv4Namespace == "" {
-		return nil, errors.Errorf("ipv4Namespace is required")
+		return nil, field.Required(spec.Child("ipv4Namespace"), "")
 	}
 	if vpc.Spec.VLANNamespace == "" {
-		return nil, errors.Errorf("vlanNamespace is required")
+		return nil, field.Required(spec.Child("vlanNamespace"), "")
 	}
 	if len(vpc.Spec.Subnets) == 0 {
-		return nil, errors.Errorf("at least one subnet is required")
+		return nil, field.Required(spec.Child("subnets"), "at least one subnet is required")
 	}
 	if len(vpc.Spec.Subnets) > 20 {
-		return nil, errors.Errorf("too many subnets, max is 20")
-	}
-	if !slices.Contains(VPCModes, vpc.Spec.Mode) {
-		return nil, errors.Errorf("invalid mode %s, must be one of %v", vpc.Spec.Mode, VPCModes)
+		return nil, field.TooMany(spec.Child("subnets"), len(vpc.Spec.Subnets), 20)
 	}
 	// TODO remove L3Flat mode or make experimental flag for it
-	if vpc.Spec.Mode == VPCModeL3Flat {
-		return nil, errors.Errorf("L3Flat mode is not supported yet")
+	if supported := []VPCMode{VPCModeL2VNI, VPCModeL3VNI}; !slices.Contains(supported, vpc.Spec.Mode) {
+		return nil, field.NotSupported(spec.Child("mode"), vpc.Spec.Mode, supported)
 	}
 
 	subnets := []netip.Prefix{}
 	vlans := map[uint16]bool{}
 	hostBGPSubnets := 0
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
+		subnetPath := spec.Child("subnets").Key(subnetName)
+
 		// the name is used in labels and in the name of the subnet's DHCPSubnet, as <vpc>--<subnet>
-		if err := meta.ValidateName("subnet name", subnetName); err != nil {
+		if err := meta.ValidateName(spec.Child("subnets").Key(subnetName), subnetName); err != nil {
 			return nil, err //nolint:wrapcheck
 		}
 		if subnetCfg.Subnet == "" {
-			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
+			return nil, field.Required(subnetPath.Child("subnet"), "")
 		}
 
 		ipNet, err := netip.ParsePrefix(subnetCfg.Subnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "subnet %s: failed to parse subnet %s", subnetName, subnetCfg.Subnet)
+			return nil, field.Invalid(subnetPath.Child("subnet"), subnetCfg.Subnet, err.Error())
 		}
 
 		if prefixLen := ipNet.Bits(); prefixLen > 30 {
-			return nil, errors.Errorf("subnet %s: prefix length %d is too large, must be <= 30", subnetName, prefixLen)
+			return nil, field.Invalid(subnetPath.Child("subnet"), subnetCfg.Subnet, "prefix length must be <= 30")
 		}
 
 		if fabricCfg != nil {
 			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
 				if reserved.Overlaps(ipNet) {
-					return nil, errors.Errorf("subnet %s: subnet %s is reserved", subnetName, subnetCfg.Subnet)
+					return nil, field.Invalid(subnetPath.Child("subnet"), subnetCfg.Subnet, "overlaps with reserved subnet "+reserved.String())
 				}
 			}
 		}
@@ -527,37 +529,38 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		if subnetCfg.HostBGP {
 			hostBGPSubnets++
 			if subnetCfg.DHCP.Enable {
-				return nil, errors.Errorf("subnet %s: dhcp should not be enabled for hostBGP subnets", subnetName)
+				return nil, field.Forbidden(subnetPath.Child("dhcp", "enable"), "dhcp should not be enabled for hostBGP subnets")
 			}
 			minLen, maxLen := subnetCfg.HostBGPPrefixLens()
 			if err := validateHostBGPPrefixLens(ipNet, minLen, maxLen); err != nil {
-				return nil, errors.Wrapf(err, "subnet %s", subnetName)
+				return nil, field.Invalid(subnetPath, field.OmitValueType{}, err.Error())
 			}
 
+			extraPrefixesPath := subnetPath.Child("hostBGPExtraPrefixes")
 			if len(subnetCfg.HostBGPExtraPrefixes) > MaxHostBGPExtraPrefixes {
-				return nil, errors.Errorf("subnet %s: too many hostBGP extra prefixes (%d), maximum is %d", subnetName, len(subnetCfg.HostBGPExtraPrefixes), MaxHostBGPExtraPrefixes)
+				return nil, field.TooMany(extraPrefixesPath, len(subnetCfg.HostBGPExtraPrefixes), MaxHostBGPExtraPrefixes)
 			}
 			for prefixStr, prefixCfg := range subnetCfg.HostBGPExtraPrefixes {
 				p, err := netip.ParsePrefix(prefixStr)
 				if err != nil {
-					return nil, errors.Wrapf(err, "subnet %s: invalid hostBGP extra prefix %s", subnetName, prefixStr)
+					return nil, field.Invalid(extraPrefixesPath, prefixStr, err.Error())
 				}
 				if !p.Addr().Is4() {
-					return nil, errors.Errorf("subnet %s: invalid hostBGP extra prefix %s: prefix is not a valid IPv4 prefix", subnetName, prefixStr)
+					return nil, field.Invalid(extraPrefixesPath, prefixStr, "prefix is not a valid IPv4 prefix")
 				}
 				if p.Addr() != p.Masked().Addr() {
-					return nil, errors.Errorf("subnet %s: invalid hostBGP extra prefix %s: prefix is not in canonical form", subnetName, prefixStr)
+					return nil, field.Invalid(extraPrefixesPath, prefixStr, "prefix is not in canonical form")
 				}
 
 				extraMinLen, extraMaxLen := subnetCfg.HostBGPExtraPrefixLens(prefixCfg)
 				if err := validateHostBGPPrefixLens(p, extraMinLen, extraMaxLen); err != nil {
-					return nil, errors.Wrapf(err, "subnet %s: hostBGP extra prefix %s", subnetName, prefixStr)
+					return nil, field.Invalid(extraPrefixesPath.Key(prefixStr), field.OmitValueType{}, err.Error())
 				}
 
 				if fabricCfg != nil {
 					for _, reserved := range fabricCfg.ParsedReservedSubnets() {
 						if reserved.Overlaps(p) {
-							return nil, errors.Errorf("subnet %s: hostBGP extra prefix %s is reserved", subnetName, prefixStr)
+							return nil, field.Invalid(extraPrefixesPath, prefixStr, "overlaps with reserved subnet "+reserved.String())
 						}
 					}
 				}
@@ -566,127 +569,130 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			}
 		} else {
 			if len(subnetCfg.HostBGPExtraPrefixes) > 0 {
-				return nil, errors.Errorf("subnet %s: cannot specify hostBGP extra prefixes on non-hostBGP subnet", subnetName)
+				return nil, field.Forbidden(subnetPath.Child("hostBGPExtraPrefixes"), "cannot specify hostBGP extra prefixes on non-hostBGP subnet")
 			}
 			if subnetCfg.HostBGPMinPrefixLen != 0 || subnetCfg.HostBGPMaxPrefixLen != 0 {
-				return nil, errors.Errorf("subnet %s: cannot specify hostBGP prefix lengths on non-hostBGP subnet", subnetName)
+				return nil, field.Forbidden(subnetPath, "cannot specify hostBGP prefix lengths on non-hostBGP subnet")
 			}
 			if subnetCfg.Gateway == "" {
-				return nil, errors.Errorf("subnet %s: gateway is required", subnetName)
+				return nil, field.Required(subnetPath.Child("gateway"), "")
 			}
 
 			gateway, err = netip.ParseAddr(subnetCfg.Gateway)
 			if err != nil {
-				return nil, errors.Errorf("subnet %s: gateway %s is not a valid IP address", subnetName, subnetCfg.Gateway)
+				return nil, field.Invalid(subnetPath.Child("gateway"), subnetCfg.Gateway, "not a valid IP address")
 			}
 			if !ipNet.Contains(gateway) {
-				return nil, errors.Errorf("subnet %s: gateway %s is not in the subnet", subnetName, subnetCfg.Gateway)
+				return nil, field.Invalid(subnetPath.Child("gateway"), subnetCfg.Gateway, "not in the subnet")
 			}
 
 			if subnetCfg.VLAN == 0 {
-				return nil, errors.Errorf("subnet %s: vlan is required", subnetName)
+				return nil, field.Required(subnetPath.Child("vlan"), "")
 			}
 			vlans[subnetCfg.VLAN] = true
 		}
 
 		subnets = append(subnets, ipNet)
 
+		dhcpPath := subnetPath.Child("dhcp")
 		if subnetCfg.DHCP.Relay != "" && subnetCfg.DHCP.Enable {
-			return nil, errors.Errorf("subnet %s: dhcp relay and dhcp server cannot be enabled at the same time", subnetName)
+			return nil, field.Forbidden(dhcpPath.Child("relay"), "dhcp relay and dhcp server cannot be enabled at the same time")
 		}
 
 		if subnetCfg.DHCP.Relay != "" {
 			_, err := netip.ParsePrefix(subnetCfg.DHCP.Relay)
 			if err != nil {
-				return nil, errors.Wrapf(err, "subnet %s: failed to parse dhcp relay %s", subnetName, subnetCfg.DHCP.Relay)
+				return nil, field.Invalid(dhcpPath.Child("relay"), subnetCfg.DHCP.Relay, err.Error())
 			}
 		} else if subnetCfg.DHCP.RelayVPC != "" {
-			return nil, errors.Errorf("subnet %s: dhcp relay VPC specified but dhcp relay is not enabled", subnetName)
+			return nil, field.Forbidden(dhcpPath.Child("relayVPC"), "dhcp relay VPC specified but dhcp relay is not enabled")
 		}
 
+		optionsPath := dhcpPath.Child("options")
 		if subnetCfg.DHCP.Options != nil && !subnetCfg.DHCP.Enable {
 			if subnetCfg.DHCP.Options.PXEURL != "" {
-				return nil, errors.Errorf("subnet %s: pxeURL is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("pxeURL"), "dhcp is disabled")
 			}
 
 			if len(subnetCfg.DHCP.Options.DNSServers) > 0 {
-				return nil, errors.Errorf("subnet %s: DNSServer is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("dnsServers"), "dhcp is disabled")
 			}
 
 			if len(subnetCfg.DHCP.Options.TimeServers) > 0 {
-				return nil, errors.Errorf("subnet %s: TimeServer is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("timeServers"), "dhcp is disabled")
 			}
 
 			if subnetCfg.DHCP.Options.InterfaceMTU > 0 {
-				return nil, errors.Errorf("subnet %s: InterfaceMTU is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("interfaceMTU"), "dhcp is disabled")
 			}
 
 			if subnetCfg.DHCP.Options.LeaseTimeSeconds > 0 {
-				return nil, errors.Errorf("subnet %s: LeaseTimeSeconds is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("leaseTimeSeconds"), "dhcp is disabled")
 			}
 
 			if subnetCfg.DHCP.Options.DisableDefaultRoute {
-				return nil, errors.Errorf("subnet %s: DisableDefaultRoute is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("disableDefaultRoute"), "dhcp is disabled")
 			}
 
 			if len(subnetCfg.DHCP.Options.AdvertisedRoutes) > 0 {
-				return nil, errors.Errorf("subnet %s: AdvertisedRoutes is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(optionsPath.Child("advertisedRoutes"), "dhcp is disabled")
 			}
 		}
 
+		rangePath := dhcpPath.Child("range")
 		if subnetCfg.DHCP.Enable {
 			if subnetCfg.DHCP.Range == nil {
-				return nil, errors.Errorf("subnet %s: dhcp range is required", subnetName)
+				return nil, field.Required(rangePath, "")
 			}
 			if subnetCfg.DHCP.Range.Start == "" {
-				return nil, errors.Errorf("subnet %s: dhcp range start is required", subnetName)
+				return nil, field.Required(rangePath.Child("start"), "")
 			}
 
 			start, err := netip.ParseAddr(subnetCfg.DHCP.Range.Start)
 			if err != nil {
-				return nil, errors.Errorf("subnet %s: invalid dhcp range start %s", subnetName, subnetCfg.DHCP.Range.Start)
+				return nil, field.Invalid(rangePath.Child("start"), subnetCfg.DHCP.Range.Start, "not a valid IP address")
 			}
 			if start == ipNet.Masked().Addr() {
-				return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.Start)
+				return nil, field.Invalid(rangePath.Child("start"), subnetCfg.DHCP.Range.Start, "equal to subnet")
 			}
 			if start == gateway {
-				return nil, errors.Errorf("subnet %s: dhcp range start %s is equal to gateway", subnetName, subnetCfg.DHCP.Range.Start)
+				return nil, field.Invalid(rangePath.Child("start"), subnetCfg.DHCP.Range.Start, "equal to gateway")
 			}
 			if !ipNet.Contains(start) {
-				return nil, errors.Errorf("subnet %s: dhcp range start %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.Start)
+				return nil, field.Invalid(rangePath.Child("start"), subnetCfg.DHCP.Range.Start, "not in the subnet")
 			}
 
 			if subnetCfg.DHCP.Range.End == "" {
-				return nil, errors.Errorf("subnet %s: dhcp range end is required", subnetName)
+				return nil, field.Required(rangePath.Child("end"), "")
 			}
 
 			end, err := netip.ParseAddr(subnetCfg.DHCP.Range.End)
 			if err != nil {
-				return nil, errors.Errorf("subnet %s: invalid dhcp range end %s", subnetName, subnetCfg.DHCP.Range.End)
+				return nil, field.Invalid(rangePath.Child("end"), subnetCfg.DHCP.Range.End, "not a valid IP address")
 			}
 			if end == ipNet.Masked().Addr() {
-				return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to subnet", subnetName, subnetCfg.DHCP.Range.End)
+				return nil, field.Invalid(rangePath.Child("end"), subnetCfg.DHCP.Range.End, "equal to subnet")
 			}
 			if end == gateway {
-				return nil, errors.Errorf("subnet %s: dhcp range end %s is equal to gateway", subnetName, subnetCfg.DHCP.Range.End)
+				return nil, field.Invalid(rangePath.Child("end"), subnetCfg.DHCP.Range.End, "equal to gateway")
 			}
 			if !ipNet.Contains(end) {
-				return nil, errors.Errorf("subnet %s: dhcp range end %s is not in the subnet", subnetName, subnetCfg.DHCP.Range.End)
+				return nil, field.Invalid(rangePath.Child("end"), subnetCfg.DHCP.Range.End, "not in the subnet")
 			}
 
 			if !start.Less(end) {
-				return nil, errors.Errorf("subnet %s: dhcp range start %s does not come before dhcp range end %s", subnetName, subnetCfg.DHCP.Range.Start, subnetCfg.DHCP.Range.End)
+				return nil, field.Invalid(rangePath.Child("end"), subnetCfg.DHCP.Range.End, "must come after range start "+subnetCfg.DHCP.Range.Start)
 			}
 
 			if subnetCfg.DHCP.Options != nil {
 				if subnetCfg.DHCP.Options.InterfaceMTU < 96 {
-					return nil, errors.Errorf("subnet %s: MTU cannot be set smaller than 96", subnetName)
+					return nil, field.Invalid(optionsPath.Child("interfaceMTU"), subnetCfg.DHCP.Options.InterfaceMTU, "cannot be smaller than 96")
 				}
 				if subnetCfg.DHCP.Options.InterfaceMTU > 9036 {
-					return nil, errors.Errorf("subnet %s: MTU cannot be set greater than 9036", subnetName)
+					return nil, field.Invalid(optionsPath.Child("interfaceMTU"), subnetCfg.DHCP.Options.InterfaceMTU, "cannot be greater than 9036")
 				}
 				if subnetCfg.DHCP.Options.LeaseTimeSeconds < 1 {
-					return nil, errors.Errorf("subnet %s: LeaseTimeSeconds cannot be set smaller than 1", subnetName)
+					return nil, field.Invalid(optionsPath.Child("leaseTimeSeconds"), subnetCfg.DHCP.Options.LeaseTimeSeconds, "cannot be smaller than 1")
 				}
 				// TODO: max lease time?
 			}
@@ -694,64 +700,66 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			// same checks as the DHCP server does on the DHCPSubnet, so an accepted VPC is always served
 			dhcpSpec := vpc.DHCPSubnetSpec(subnetName, subnetCfg)
 			if err := dhcpSpec.Validate(); err != nil {
-				return nil, fmt.Errorf("subnet %s: dhcp: %w", subnetName, err)
+				return nil, field.Invalid(dhcpPath, field.OmitValueType{}, err.Error())
 			}
 		}
 
 		if !subnetCfg.DHCP.Enable {
 			if subnetCfg.DHCP.Range != nil && (subnetCfg.DHCP.Range.Start != "" || subnetCfg.DHCP.Range.End != "") {
-				return nil, errors.Errorf("subnet %s: dhcp range start or end is set but dhcp is disabled", subnetName)
+				return nil, field.Forbidden(rangePath, "dhcp is disabled")
 			}
 
 			if len(subnetCfg.DHCP.Static) > 0 {
-				return nil, errors.Errorf("subnet %s: static IPs are not supported when DHCP is disabled", subnetName)
+				return nil, field.Forbidden(dhcpPath.Child("static"), "dhcp is disabled")
 			}
 		}
 	}
 
 	if len(vlans) != len(vpc.Spec.Subnets)-hostBGPSubnets {
-		return nil, errors.Errorf("duplicate subnet VLANs")
+		return nil, field.Invalid(spec.Child("subnets"), field.OmitValueType{}, "duplicate subnet VLANs")
 	}
 
 	if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
-		return nil, errors.Wrapf(err, "failed to verify no overlap subnets")
+		return nil, field.Invalid(spec.Child("subnets"), field.OmitValueType{}, err.Error())
 	}
 
 	for permitIdx, permit := range vpc.Spec.Permit {
+		permitPath := spec.Child("permit").Index(permitIdx)
 		if len(permit) < 2 {
-			return nil, errors.Errorf("each permit policy must have at least 2 subnets in it")
+			return nil, field.Invalid(permitPath, permit, "must have at least 2 subnets")
 		}
 
 		subnets := map[string]bool{}
 		for _, subnetName := range permit {
 			if _, ok := vpc.Spec.Subnets[subnetName]; !ok {
-				return nil, errors.Errorf("permit policy #%d: subnet %s not found", permitIdx, subnetName)
+				return nil, field.NotFound(permitPath, subnetName)
 			}
 
 			subnets[subnetName] = true
 		}
 
 		if len(subnets) != len(permit) {
-			return nil, errors.Errorf("permit policy #%d: duplicate subnets", permitIdx)
+			return nil, field.Invalid(permitPath, permit, "duplicate subnets")
 		}
 	}
 
 	for idx, staticRoute := range vpc.Spec.StaticRoutes {
+		routePath := spec.Child("staticRoutes").Index(idx)
 		if staticRoute.Prefix == "" {
-			return nil, errors.Errorf("static route #%d: prefix is required", idx)
+			return nil, field.Required(routePath.Child("prefix"), "")
 		}
 
 		staticNet, err := netip.ParsePrefix(staticRoute.Prefix)
 		if err != nil {
-			return nil, errors.Wrapf(err, "static route #%d: failed to parse prefix %s", idx, staticRoute.Prefix)
+			return nil, field.Invalid(routePath.Child("prefix"), staticRoute.Prefix, err.Error())
 		}
 
 		if staticNet.Addr() != staticNet.Masked().Addr() {
-			return nil, errors.Errorf("static route #%d: prefix %s is invalid: inconsistent IP address and mask", idx, staticRoute.Prefix)
+			return nil, field.Invalid(routePath.Child("prefix"), staticRoute.Prefix, "inconsistent IP address and mask")
 		}
 
 		if len(staticRoute.NextHops) == 0 {
-			return nil, errors.Errorf("static route #%d: at least one next hop is required", idx)
+			return nil, field.Required(routePath.Child("nextHops"), "at least one next hop is required")
 		}
 	}
 
@@ -762,15 +770,15 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: vpc.Spec.IPv4Namespace, Namespace: vpc.Namespace}, ipNs)
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("IPv4Namespace %s not found", vpc.Spec.IPv4Namespace)
+				return nil, field.NotFound(spec.Child("ipv4Namespace"), vpc.Spec.IPv4Namespace)
 			}
 
-			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", vpc.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get IPv4Namespace %s: %w", vpc.Spec.IPv4Namespace, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		vpcFabric := vpc.Spec.Topology.Fabric
 		if nsFabric := ipNs.Spec.Topology.Fabric; nsFabric != vpcFabric {
-			return nil, fmt.Errorf("vpc is in fabric %s but its IPv4Namespace %s is in fabric %s", vpcFabric, ipNs.Name, nsFabric) //nolint:err113
+			return nil, field.Invalid(spec.Child("ipv4Namespace"), vpc.Spec.IPv4Namespace, fmt.Sprintf("vpc is in fabric %s but the IPv4Namespace is in fabric %s", vpcFabric, nsFabric))
 		}
 
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric)
@@ -779,7 +787,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 		for _, domain := range domains {
 			if _, exists := fabric.Domains[domain]; !exists {
-				return nil, fmt.Errorf("domain %s not found in fabric %s, topology.domains must name its domains", domain, vpcFabric) //nolint:err113
+				return nil, field.Invalid(topology.Child("domains"), domain, fmt.Sprintf("domain %s not found in fabric %s", domain, vpcFabric))
 			}
 		}
 
@@ -787,50 +795,53 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		err = kube.Get(ctx, ktypes.NamespacedName{Name: vpc.Spec.VLANNamespace, Namespace: vpc.Namespace}, vlanNs)
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("VLANNamespace %s not found", vpc.Spec.VLANNamespace)
+				return nil, field.NotFound(spec.Child("vlanNamespace"), vpc.Spec.VLANNamespace)
 			}
 
-			return nil, errors.Wrapf(err, "failed to get VLANNamespace %s", vpc.Spec.VLANNamespace) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get VLANNamespace %s: %w", vpc.Spec.VLANNamespace, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		for subnetName, subnetCfg := range vpc.Spec.Subnets {
+			subnetPath := spec.Child("subnets").Key(subnetName)
+
 			vpcSubnet, err := netip.ParsePrefix(subnetCfg.Subnet)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse vpc subnet %s", subnetCfg.Subnet)
+				return nil, fmt.Errorf("failed to parse vpc subnet %s: %w", subnetCfg.Subnet, err)
 			}
 
 			ok, err := isInIPv4Namespace(vpcSubnet, ipNs)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to check if vpc subnet %s (%s) belongs to IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
+				return nil, fmt.Errorf("failed to check if vpc subnet %s (%s) belongs to IPv4Namespace %s: %w", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace, err)
 			}
 			if !ok {
-				return nil, errors.Errorf("vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", subnetName, subnetCfg.Subnet, vpc.Spec.IPv4Namespace)
+				return nil, field.Invalid(subnetPath.Child("subnet"), subnetCfg.Subnet, "doesn't belong to IPv4Namespace "+vpc.Spec.IPv4Namespace)
 			}
 
 			for hbgpPrefixStr := range subnetCfg.HostBGPExtraPrefixes {
 				hbgpPrefix, err := netip.ParsePrefix(hbgpPrefixStr)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to parse hostBGP extra prefix %s in vpc subnet %s (%s)", hbgpPrefixStr, subnetName, subnetCfg.Subnet)
+					return nil, fmt.Errorf("failed to parse hostBGP extra prefix %s in vpc subnet %s (%s): %w", hbgpPrefixStr, subnetName, subnetCfg.Subnet, err)
 				}
 				ok, err := isInIPv4Namespace(hbgpPrefix, ipNs)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to check if hostBGP extra prefix %s in vpc subnet %s (%s) belongs to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
+					return nil, fmt.Errorf("failed to check if hostBGP extra prefix %s in vpc subnet %s (%s) belongs to IPv4Namespace %s: %w", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name, err)
 				}
 				if !ok {
-					return nil, errors.Errorf("hostBGP extra prefix %s in vpc subnet %s (%s) doesn't belong to IPv4Namespace %s", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name)
+					return nil, field.Invalid(subnetPath.Child("hostBGPExtraPrefixes"), hbgpPrefixStr, "doesn't belong to IPv4Namespace "+ipNs.Name)
 				}
 			}
 
 			if !subnetCfg.HostBGP && !vlanNs.Spec.Contains(subnetCfg.VLAN) {
-				return nil, errors.Errorf("vpc subnet %s (%s) vlan %d doesn't belong to the VLANNamespace %s", subnetName, subnetCfg.Subnet, subnetCfg.VLAN, vpc.Spec.VLANNamespace)
+				return nil, field.Invalid(subnetPath.Child("vlan"), subnetCfg.VLAN, "doesn't belong to VLANNamespace "+vpc.Spec.VLANNamespace)
 			}
 
 			if subnetCfg.DHCP.RelayVPC != "" {
+				relayVPCPath := subnetPath.Child("dhcp", "relayVPC")
 				relayVPC := &VPC{}
 				err := kube.Get(ctx, ktypes.NamespacedName{Name: subnetCfg.DHCP.RelayVPC, Namespace: vpc.Namespace}, relayVPC)
 				if err != nil {
 					if kapierrors.IsNotFound(err) {
-						return nil, fmt.Errorf("subnet %s: dhcp relay VPC %s not found", subnetName, subnetCfg.DHCP.RelayVPC) //nolint:err113
+						return nil, field.NotFound(relayVPCPath, subnetCfg.DHCP.RelayVPC)
 					}
 
 					return nil, fmt.Errorf("subnet %s: failed to get dhcp relay VPC %s: %w", subnetName, subnetCfg.DHCP.RelayVPC, err) // TODO replace with some internal error to not expose to the user
@@ -839,17 +850,17 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				// the relay VPC is built on the switches the subnet is attached to, so it has to be one the VPC could
 				// peer with
 				if relayFabric := relayVPC.Spec.Topology.Fabric; relayFabric != vpcFabric {
-					return nil, fmt.Errorf("subnet %s: vpc is in fabric %s but dhcp relay vpc %s is in fabric %s", subnetName, vpcFabric, relayVPC.Name, relayFabric) //nolint:err113
+					return nil, field.Invalid(relayVPCPath, relayVPC.Name, fmt.Sprintf("vpc is in fabric %s but the relay vpc is in fabric %s", vpcFabric, relayFabric))
 				}
 				vpcDomains, relayDomains := vpc.Spec.Topology.Domains, relayVPC.Spec.Topology.Domains
 				if !slices.ContainsFunc(vpcDomains, func(domain string) bool { return slices.Contains(relayDomains, domain) }) {
-					return nil, fmt.Errorf("subnet %s: vpc is in domains %v and dhcp relay vpc %s in domains %v, they must share one", subnetName, vpcDomains, relayVPC.Name, relayDomains) //nolint:err113
+					return nil, field.Invalid(relayVPCPath, relayVPC.Name, fmt.Sprintf("vpc is in domains %v and the relay vpc in domains %v, they must share one", vpcDomains, relayDomains))
 				}
 				if relayNs := relayVPC.Spec.IPv4Namespace; relayNs != vpc.Spec.IPv4Namespace {
-					return nil, fmt.Errorf("subnet %s: vpc is in IPv4 namespace %s but dhcp relay vpc %s is in %s", subnetName, vpc.Spec.IPv4Namespace, relayVPC.Name, relayNs) //nolint:err113
+					return nil, field.Invalid(relayVPCPath, relayVPC.Name, fmt.Sprintf("vpc is in IPv4 namespace %s but the relay vpc is in %s", vpc.Spec.IPv4Namespace, relayNs))
 				}
 				if relayNs := relayVPC.Spec.VLANNamespace; relayNs != vpc.Spec.VLANNamespace {
-					return nil, fmt.Errorf("subnet %s: vpc is in VLAN namespace %s but dhcp relay vpc %s is in %s", subnetName, vpc.Spec.VLANNamespace, relayVPC.Name, relayNs) //nolint:err113
+					return nil, field.Invalid(relayVPCPath, relayVPC.Name, fmt.Sprintf("vpc is in VLAN namespace %s but the relay vpc is in %s", vpc.Spec.VLANNamespace, relayNs))
 				}
 			}
 		}
@@ -859,7 +870,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			LabelIPv4NS: vpc.Spec.IPv4Namespace,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to list VPCs: %w", err) // TODO replace with some internal error to not expose to the user
 		}
 
 		for _, other := range vpcs.Items {
@@ -873,20 +884,20 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			for _, otherSubnet := range other.Spec.Subnets {
 				otherNet, err := netip.ParsePrefix(otherSubnet.Subnet)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to parse subnet %s", otherSubnet.Subnet)
+					return nil, fmt.Errorf("failed to parse subnet %s: %w", otherSubnet.Subnet, err)
 				}
 
 				for _, subnet := range subnets {
 					if subnet.Overlaps(otherNet) {
-						return nil, errors.Errorf("subnet %s overlaps with subnet %s of VPC %s", subnet.String(), otherSubnet.Subnet, other.Name)
+						return nil, field.Invalid(spec.Child("subnets"), subnet.String(), fmt.Sprintf("overlaps with subnet %s of VPC %s", otherSubnet.Subnet, other.Name))
 					}
 					for otherHBGPPrefixStr := range otherSubnet.HostBGPExtraPrefixes {
 						op, err := netip.ParsePrefix(otherHBGPPrefixStr)
 						if err != nil {
-							return nil, errors.Wrapf(err, "failed to parse hostBGP extra prefix %s", otherHBGPPrefixStr)
+							return nil, fmt.Errorf("failed to parse hostBGP extra prefix %s: %w", otherHBGPPrefixStr, err)
 						}
 						if subnet.Overlaps(op) {
-							return nil, errors.Errorf("subnet %s overlaps with hostBGP extra prefix %s of VPC %s", subnet.String(), otherHBGPPrefixStr, other.Name)
+							return nil, field.Invalid(spec.Child("subnets"), subnet.String(), fmt.Sprintf("overlaps with hostBGP extra prefix %s of VPC %s", otherHBGPPrefixStr, other.Name))
 						}
 					}
 				}
@@ -898,7 +909,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			LabelVLANNS: vpc.Spec.VLANNamespace,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to list VPCs: %w", err) // TODO replace with some internal error to not expose to the user
 		}
 
 		for _, other := range vpcs.Items {
@@ -910,14 +921,14 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			}
 
 			for _, otherSubnet := range other.Spec.Subnets {
-				for _, subnet := range vpc.Spec.Subnets {
+				for subnetName, subnet := range vpc.Spec.Subnets {
 					if subnet.VLAN == otherSubnet.VLAN {
 						// HostBGP subnets have VLAN 0 and we can have multiple of those
 						if subnet.VLAN == 0 && (subnet.HostBGP || otherSubnet.HostBGP) {
 							continue
 						}
 
-						return nil, errors.Errorf("vlan %d is already used by other VPC", subnet.VLAN)
+						return nil, field.Invalid(spec.Child("subnets").Key(subnetName).Child("vlan"), subnet.VLAN, "already used by VPC "+other.Name)
 					}
 				}
 			}
@@ -931,7 +942,7 @@ func isInIPv4Namespace(vpcSubnet netip.Prefix, ipNs *IPv4Namespace) (bool, error
 	for _, ipNsSubnetCfg := range ipNs.Spec.Subnets {
 		ipNsSubnet, err := netip.ParsePrefix(ipNsSubnetCfg)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to parse IPv4Namespace %s subnet %s", ipNs.Name, ipNsSubnetCfg)
+			return false, fmt.Errorf("failed to parse IPv4Namespace %s subnet %s: %w", ipNs.Name, ipNsSubnetCfg, err)
 		}
 
 		if iputil.IsSubset(vpcSubnet, ipNsSubnet) {
@@ -946,13 +957,13 @@ func isInIPv4Namespace(vpcSubnet netip.Prefix, ipNs *IPv4Namespace) (bool, error
 // consistent and that it falls within the prefix the host is expected to advertise from
 func validateHostBGPPrefixLens(prefix netip.Prefix, minLen, maxLen uint8) error {
 	if minLen > maxLen {
-		return errors.Errorf("hostBGP min prefix length %d is greater than max prefix length %d", minLen, maxLen)
+		return fmt.Errorf("hostBGP min prefix length %d is greater than max prefix length %d", minLen, maxLen) //nolint:err113
 	}
 	if maxLen > DefaultHostBGPPrefixLen {
-		return errors.Errorf("hostBGP max prefix length %d is greater than %d", maxLen, DefaultHostBGPPrefixLen)
+		return fmt.Errorf("hostBGP max prefix length %d is greater than %d", maxLen, DefaultHostBGPPrefixLen) //nolint:err113
 	}
 	if int(minLen) < prefix.Bits() {
-		return errors.Errorf("hostBGP min prefix length %d is shorter than the prefix length of %s", minLen, prefix)
+		return fmt.Errorf("hostBGP min prefix length %d is shorter than the prefix length of %s", minLen, prefix) //nolint:err113
 	}
 
 	return nil

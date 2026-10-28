@@ -12,6 +12,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -135,6 +136,7 @@ func TestVPCValidation(t *testing.T) {
 		objects   []kclient.Object
 		fabricCfg *meta.FabricConfig
 		err       bool
+		errMsg    string
 	}{
 		{
 			name: "valid vpc",
@@ -182,9 +184,10 @@ func TestVPCValidation(t *testing.T) {
 			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength))),
 		},
 		{
-			name: "subnet name too long",
-			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength+1))),
-			err:  true,
+			name:   "subnet name too long",
+			vpc:    vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength+1))),
+			err:    true,
+			errMsg: "spec.subnets[" + strings.Repeat("s", meta.MaxNameLength+1) + "]: Too long",
 		},
 		{
 			name: "subnet name not lowercase",
@@ -759,7 +762,10 @@ func TestVPCValidation(t *testing.T) {
 
 			_, err := test.vpc.Validate(t.Context(), kube, fabricCfg)
 			if test.err {
-				require.Error(t, err, "expected error but got none")
+				testutil.RequireFieldError(t, err, test.vpc)
+				if test.errMsg != "" {
+					require.ErrorContains(t, err, test.errMsg)
+				}
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}
