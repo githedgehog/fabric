@@ -14,6 +14,7 @@ import (
 	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -469,7 +470,7 @@ func TestDataplaneHugePages(t *testing.T) {
 
 			hp1G, hp2M, err := gw.HugePages(cfg.GatewayHugePages1G, cfg.GatewayHugePages2M)
 			if tt.err {
-				require.ErrorIs(t, err, gwapi.ErrInvalidGW)
+				testutil.RequireFieldError(t, err, gw)
 
 				return
 			}
@@ -559,7 +560,7 @@ func TestGatewayReconcileInvalidHugePages(t *testing.T) {
 	require.NoError(t, kube.Update(t.Context(), gw))
 
 	_, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
-	require.ErrorIs(t, err, gwapi.ErrInvalidGW)
+	testutil.RequireFieldError(t, err, gw)
 	requireNotFound(t, kube, &gwintapi.GatewayAgent{}, kmetav1.NamespaceDefault, "gw-1")
 	requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", gwapi.DaemonSetName("gw-1"))
 }

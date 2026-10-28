@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -53,11 +54,11 @@ func (w *GatewayGroupWebhook) ValidateCreate(ctx context.Context, gwGr *gwapi.Ga
 
 func (w *GatewayGroupWebhook) ValidateUpdate(ctx context.Context, oldGwGr *gwapi.GatewayGroup, newGwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
 	if oldGwGr.Spec.Topology.Fabric != newGwGr.Spec.Topology.Fabric {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newGwGr.Spec.Topology.Fabric, "field is immutable")
 	}
 	// so that a GatewayGroup update never has to re-check its gateways and peerings
 	if oldGwGr.Spec.Topology.Domain != newGwGr.Spec.Topology.Domain {
-		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newGwGr.Spec.Topology.Domain, "field is immutable")
 	}
 
 	// TODO validate diff between oldObj and newObj if needed
