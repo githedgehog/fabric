@@ -117,6 +117,10 @@ func TestVPCAndExternalDomain(t *testing.T) {
 				}
 				require.ErrorContains(t, err, tt.err)
 			}
+			if tt.err != "" {
+				testutil.RequireFieldError(t, vpcErr, vpc)
+				testutil.RequireFieldError(t, extErr, ext)
+			}
 		})
 	}
 }
