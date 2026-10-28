@@ -21,6 +21,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -75,7 +76,7 @@ func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, conn *wiringapi.
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringapi.Connection, newConn *wiringapi.Connection) (admission.Warnings, error) {
 	if fabricChanged(oldConn.Spec.Topology.Fabric, newConn.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newConn.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newConn.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	// TODO some connections or their parts should be immutable
@@ -86,7 +87,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringa
 
 	if newConn.Spec.StaticExternal != nil && oldConn.Spec.StaticExternal != nil {
 		if newConn.Spec.StaticExternal.WithinVPC != oldConn.Spec.StaticExternal.WithinVPC {
-			return nil, field.Invalid(field.NewPath("spec", "staticExternal", "withinVPC"), newConn.Spec.StaticExternal.WithinVPC, "field is immutable")
+			return nil, field.Invalid(field.NewPath("spec", "staticExternal", "withinVPC"), newConn.Spec.StaticExternal.WithinVPC, kapivalidation.FieldImmutableErrorMsg)
 		}
 	}
 

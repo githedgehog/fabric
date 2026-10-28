@@ -807,7 +807,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 	switches, servers, ports, _, err := conn.Spec.Endpoints()
 	if err != nil {
-		return nil, err
+		return nil, field.Invalid(spec, field.OmitValueType{}, err.Error())
 	}
 
 	if conn.Spec.StaticExternal != nil {
@@ -857,10 +857,8 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 		if fabricCfg != nil {
 			for idx, subnet := range subnets {
-				for _, reserved := range fabricCfg.ParsedReservedSubnets() {
-					if subnet.Overlaps(reserved) {
-						return nil, field.Invalid(sePath.Child("subnets").Index(idx), se.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
-					}
+				if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(subnet); overlaps {
+					return nil, field.Invalid(sePath.Child("subnets").Index(idx), se.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
 				}
 			}
 		}

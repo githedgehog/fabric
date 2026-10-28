@@ -168,10 +168,8 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 
 	if fabricCfg != nil {
 		for idx, subnet := range subnets {
-			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
-				if subnet.Overlaps(reserved) {
-					return nil, field.Invalid(spec.Child("subnets").Index(idx), ns.Spec.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
-				}
+			if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(subnet); overlaps {
+				return nil, field.Invalid(spec.Child("subnets").Index(idx), ns.Spec.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
 			}
 		}
 	}

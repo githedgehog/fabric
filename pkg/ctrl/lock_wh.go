@@ -53,7 +53,7 @@ func (v *lockedValidator[T]) ValidateCreate(ctx context.Context, obj T) (admissi
 
 	warns, err := v.inner.ValidateCreate(ctx, obj)
 
-	return warns, invalidError(ctx, err)
+	return warns, apiStatusError(ctx, err)
 }
 
 func (v *lockedValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj T) (admission.Warnings, error) {
@@ -63,7 +63,7 @@ func (v *lockedValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj 
 
 	warns, err := v.inner.ValidateUpdate(ctx, oldObj, newObj)
 
-	return warns, invalidError(ctx, err)
+	return warns, apiStatusError(ctx, err)
 }
 
 func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admission.Warnings, error) {
@@ -74,22 +74,21 @@ func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admissi
 	return v.inner.ValidateDelete(ctx, obj) //nolint:wrapcheck
 }
 
-// invalidError turns a create or update validation error into a 422 Invalid, pointing at spec unless it's already a
-// field error. controller-runtime returns a 403 for plain errors, on which kubectl edit (and so k9s) gives up instead
-// of reopening the editor with the error.
-func invalidError(ctx context.Context, err error) error {
+// apiStatusError turns a create or update validation error into an API status: a field error into a 422 Invalid, so
+// that kubectl edit (and so k9s) reopens the editor with it instead of giving up as it does on the 403
+// controller-runtime returns for plain errors, and anything else that isn't already a status into an internal error.
+func apiStatusError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
 	}
 
-	req, reqErr := admission.RequestFromContext(ctx)
-	if reqErr != nil {
-		return err
-	}
-	gk := schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}
-
 	if fieldErr, ok := errors.AsType[*field.Error](err); ok {
-		return kapierrors.NewInvalid(gk, req.Name, field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
+		req, reqErr := admission.RequestFromContext(ctx)
+		if reqErr != nil {
+			return err
+		}
+
+		return kapierrors.NewInvalid(schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}, req.Name, field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
 	}
 
 	var apiStatus kapierrors.APIStatus
@@ -97,5 +96,5 @@ func invalidError(ctx context.Context, err error) error {
 		return err
 	}
 
-	return kapierrors.NewInvalid(gk, req.Name, field.ErrorList{field.Invalid(field.NewPath("spec"), field.OmitValueType{}, err.Error())}) //nolint:wrapcheck // API status error returned to the client as is
+	return kapierrors.NewInternalError(err) //nolint:wrapcheck // API status error returned to the client as is
 }

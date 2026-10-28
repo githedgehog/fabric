@@ -24,6 +24,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -78,7 +79,7 @@ func (w *IPv4NamespaceWebhook) ValidateCreate(ctx context.Context, ns *vpcapi.IP
 
 func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi.IPv4Namespace, newNs *vpcapi.IPv4Namespace) (admission.Warnings, error) {
 	if fabricChanged(oldNs.Spec.Topology.Fabric, newNs.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newNs.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newNs.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	if warn, err := newNs.Validate(ctx, w.Client, w.Cfg); err != nil {

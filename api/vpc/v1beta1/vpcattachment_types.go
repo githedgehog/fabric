@@ -216,7 +216,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		vpc := &VPC{}
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
 		if kapierrors.IsNotFound(err) {
-			return nil, field.NotFound(subnetPath, attach.Spec.Subnet)
+			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("vpc %s not found", vpcName))
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to get vpc %s: %w", vpcName, err) // TODO replace with some internal error to not expose to the user
@@ -227,7 +227,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("vpc %s has no domains", vpcName))
 		}
 		if vpc.Spec.Subnets == nil || vpc.Spec.Subnets[subnet] == nil {
-			return nil, field.NotFound(subnetPath, attach.Spec.Subnet)
+			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("subnet %s not found in vpc %s", subnet, vpcName))
 		}
 		subnetSpec := vpc.Spec.Subnets[subnet]
 

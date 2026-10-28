@@ -113,19 +113,20 @@ func (v *failingValidator) ValidateDelete(_ context.Context, _ *wiringapi.Server
 	return nil, v.err
 }
 
-func TestLockedValidatorInvalid(t *testing.T) {
+func TestLockedValidatorStatusErrors(t *testing.T) {
 	for _, tt := range []struct {
-		name    string
-		err     error
-		field   string
-		message string
-		status  bool
+		name     string
+		err      error
+		field    string
+		message  string
+		status   bool
+		internal bool
 	}{
 		{
-			name:    "plain error",
-			err:     errors.New("server is broken"), //nolint:err113
-			field:   "spec",
-			message: `Server.wiring.githedgehog.com "server-1" is invalid: spec: Invalid value: server is broken`,
+			name:     "plain error",
+			err:      errors.New("listing failed"), //nolint:err113
+			internal: true,
+			message:  "Internal error occurred: listing failed",
 		},
 		{
 			name:    "wrapped field error",
@@ -159,6 +160,13 @@ func TestLockedValidatorInvalid(t *testing.T) {
 			for _, err := range []error{createErr, updateErr} {
 				if tt.status {
 					require.Equal(t, tt.err, err)
+
+					continue
+				}
+
+				if tt.internal {
+					require.True(t, kapierrors.IsInternalError(err), "expected internal error, got %v", err)
+					require.EqualError(t, err, tt.message)
 
 					continue
 				}

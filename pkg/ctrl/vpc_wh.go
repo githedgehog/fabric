@@ -21,6 +21,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -75,11 +76,11 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admis
 
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
 	if fabricChanged(oldVPC.Spec.Topology.Fabric, newVPC.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newVPC.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newVPC.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 	// so that a VPC update never has to re-check its attachments
 	if domainsChanged(oldVPC.Spec.Topology.Domains, newVPC.Spec.Topology.Domains) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "domains"), newVPC.Spec.Topology.Domains, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domains"), newVPC.Spec.Topology.Domains, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)

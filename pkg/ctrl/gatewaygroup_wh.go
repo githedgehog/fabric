@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,11 +53,11 @@ func (w *GatewayGroupWebhook) ValidateCreate(ctx context.Context, gwGr *gwapi.Ga
 
 func (w *GatewayGroupWebhook) ValidateUpdate(ctx context.Context, oldGwGr *gwapi.GatewayGroup, newGwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
 	if fabricChanged(oldGwGr.Spec.Topology.Fabric, newGwGr.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newGwGr.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newGwGr.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 	// so that a GatewayGroup update never has to re-check its gateways and peerings
 	if domainChanged(oldGwGr.Spec.Topology.Domain, newGwGr.Spec.Topology.Domain) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newGwGr.Spec.Topology.Domain, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newGwGr.Spec.Topology.Domain, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	// TODO validate diff between oldObj and newObj if needed

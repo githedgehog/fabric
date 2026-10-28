@@ -371,7 +371,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		return err //nolint:wrapcheck
 	}
 
-	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
+	vpcs := slices.Sorted(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {
 		return field.Invalid(spec.Child("peering"), field.OmitValueType{}, fmt.Sprintf("peering must have exactly 2 VPCs, got %d", len(vpcs)))
 	}

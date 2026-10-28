@@ -546,9 +546,12 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 	}
 
+	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
+		return err
+	}
 	fabric, err := GetFabricSpec(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
 	if err != nil {
-		return field.Invalid(spec.Child("topology", "fabric"), sw.Spec.Topology.Fabric, err.Error())
+		return err
 	}
 	if sw.Spec.Role.IsLeaf() && (sw.Spec.ASN < fabric.LeafASNStart || sw.Spec.ASN > fabric.LeafASNEnd) {
 		return field.Invalid(spec.Child("asn"), sw.Spec.ASN, fmt.Sprintf("not within the fabric leaf ASN range %d-%d", fabric.LeafASNStart, fabric.LeafASNEnd))

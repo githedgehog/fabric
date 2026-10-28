@@ -21,6 +21,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -75,15 +76,15 @@ func (w *SwitchWebhook) ValidateCreate(ctx context.Context, sw *wiringapi.Switch
 
 func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Switch, newSw *wiringapi.Switch) (admission.Warnings, error) {
 	if fabricChanged(oldSw.Spec.Topology.Fabric, newSw.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newSw.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newSw.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 	// SONiC refuses to change the local AS of a running BGP instance, so the agent would fail on
 	// every attempt, and peers would keep the old ASN as nothing regenerates their config
 	if oldSw.Spec.ASN != newSw.Spec.ASN {
-		return nil, field.Invalid(field.NewPath("spec", "asn"), newSw.Spec.ASN, "field is immutable, delete and recreate the switch to change it")
+		return nil, field.Invalid(field.NewPath("spec", "asn"), newSw.Spec.ASN, kapivalidation.FieldImmutableErrorMsg+", delete and recreate the switch to change it")
 	}
 	if domainsChanged(oldSw.Spec.Topology.Domains, newSw.Spec.Topology.Domains) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "domains"), newSw.Spec.Topology.Domains, "field is immutable, delete and recreate the switch to change it")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domains"), newSw.Spec.Topology.Domains, kapivalidation.FieldImmutableErrorMsg+", delete and recreate the switch to change it")
 	}
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)

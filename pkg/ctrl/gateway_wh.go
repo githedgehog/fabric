@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,11 +85,11 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 	}
 
 	if fabricChanged(oldGw.Spec.Topology.Fabric, newGw.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newGw.Spec.Topology.Fabric, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newGw.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 	// so that a Gateway update never has to re-check its connections
 	if domainChanged(oldGw.Spec.Topology.Domain, newGw.Spec.Topology.Domain) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newGw.Spec.Topology.Domain, "field is immutable")
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newGw.Spec.Topology.Domain, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	// TODO validate diff between oldObj and newObj if needed

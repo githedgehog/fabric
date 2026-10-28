@@ -490,8 +490,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		return nil, field.TooMany(spec.Child("subnets"), len(vpc.Spec.Subnets), 20)
 	}
 	// TODO remove L3Flat mode or make experimental flag for it
-	if supported := []VPCMode{VPCModeL2VNI, VPCModeL3VNI}; !slices.Contains(supported, vpc.Spec.Mode) {
-		return nil, field.NotSupported(spec.Child("mode"), vpc.Spec.Mode, supported)
+	if vpc.Spec.Mode != VPCModeL2VNI && vpc.Spec.Mode != VPCModeL3VNI {
+		return nil, field.Invalid(spec.Child("mode"), vpc.Spec.Mode, fmt.Sprintf("must be empty for L2VNI or %q", VPCModeL3VNI))
 	}
 
 	subnets := []netip.Prefix{}
@@ -518,10 +518,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 
 		if fabricCfg != nil {
-			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
-				if reserved.Overlaps(ipNet) {
-					return nil, field.Invalid(subnetPath.Child("subnet"), subnetCfg.Subnet, "overlaps with reserved subnet "+reserved.String())
-				}
+			if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(ipNet); overlaps {
+				return nil, field.Invalid(subnetPath.Child("subnet"), subnetCfg.Subnet, "overlaps with reserved subnet "+reserved.String())
 			}
 		}
 
@@ -558,10 +556,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				}
 
 				if fabricCfg != nil {
-					for _, reserved := range fabricCfg.ParsedReservedSubnets() {
-						if reserved.Overlaps(p) {
-							return nil, field.Invalid(extraPrefixesPath, prefixStr, "overlaps with reserved subnet "+reserved.String())
-						}
+					if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(p); overlaps {
+						return nil, field.Invalid(extraPrefixesPath, prefixStr, "overlaps with reserved subnet "+reserved.String())
 					}
 				}
 
