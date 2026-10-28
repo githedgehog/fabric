@@ -171,7 +171,7 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 	vpcPath, extPath := spec.Child("permit", "vpc"), spec.Child("permit", "external")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(spec.Child("topology", "fabric"), peering.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 
 	if peering.Spec.Permit.VPC.Name == "" {

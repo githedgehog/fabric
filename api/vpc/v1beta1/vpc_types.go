@@ -457,7 +457,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	topology := spec.Child("topology")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(topology.Child("fabric"), vpc.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 
 	domains := slices.Sorted(slices.Values(vpc.Spec.Topology.Domains))

@@ -177,7 +177,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 	subnetPath, connPath := spec.Child("subnet"), spec.Child("connection")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(spec.Child("topology", "fabric"), attach.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 
 	if attach.Spec.Subnet == "" {

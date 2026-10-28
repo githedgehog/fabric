@@ -194,7 +194,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	inboundPrefixesPath := spec.Child("inboundPrefixes")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(spec.Child("topology", "fabric"), external.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 	if external.Spec.Topology.Domain == "" {
 		return nil, field.Required(spec.Child("topology", "domain"), "")

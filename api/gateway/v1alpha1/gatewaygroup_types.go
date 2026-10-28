@@ -110,7 +110,7 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric); err != nil {
-		return field.Invalid(spec.Child("topology", "fabric"), gg.Spec.Topology.Fabric, err.Error())
+		return err //nolint:wrapcheck
 	}
 	if gg.Spec.Topology.Domain == "" {
 		return field.Required(spec.Child("topology", "domain"), "")

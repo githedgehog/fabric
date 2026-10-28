@@ -222,7 +222,7 @@ func TestFabricMustExistValidation(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.obj.Validate(t.Context(), kube, &meta.FabricConfig{})
-			require.ErrorContains(t, err, "fabric nope not found")
+			require.EqualError(t, err, `spec.topology.fabric: Not found: "nope"`)
 			testutil.RequireFieldError(t, err, tt.obj)
 		})
 	}

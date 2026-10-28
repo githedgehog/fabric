@@ -138,7 +138,7 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	spec := field.NewPath("spec")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(spec.Child("topology", "fabric"), ns.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 
 	if len(ns.Name) > 11 {

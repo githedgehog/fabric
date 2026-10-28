@@ -13,6 +13,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -424,7 +425,7 @@ func TestHydrationValidation(t *testing.T) {
 
 			err := test.dut.HydrationValidation(ctx, kube, fabricCfg)
 			if test.expectError {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, test.dut)
 			} else {
 				require.NoError(t, err)
 			}
@@ -606,7 +607,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		{name: "shared leaf", sw: swGen(domains("plane-b", "default"))},
 		{name: "spine", sw: swGen(spine(65099), domains("plane-b"))},
 		{
-			name: "spine with the ASN of another domain", err: "spine leaf-01 ASN 65100 is not the spine ASN 65099 of domain plane-b",
+			name: "spine with the ASN of another domain", err: "spec.asn: Invalid value: 65100: not the spine ASN 65099 of domain plane-b",
 			sw: swGen(spine(65100), domains("plane-b")),
 		},
 		{
@@ -662,7 +663,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			err: "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains []",
 		},
 		{
-			name: "invalid boot MAC", err: `invalid boot MAC: parsing MAC "not-a-mac"`,
+			name: "invalid boot MAC", err: `spec.boot.mac: Invalid value: "not-a-mac": parsing MAC "not-a-mac"`,
 			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "not-a-mac" }),
 		},
 		{
@@ -692,6 +693,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+			testutil.RequireFieldError(t, err, tt.sw)
 		})
 	}
 }

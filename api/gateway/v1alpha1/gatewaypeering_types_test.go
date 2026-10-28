@@ -1332,7 +1332,7 @@ func TestTopologyDomainRequired(t *testing.T) {
 
 	fabricNotSet := withName("vpc-1", &VPCInfo{})
 	err = fabricNotSet.Validate(t.Context(), nil, nil)
-	require.EqualError(t, err, `spec.topology.fabric: Invalid value: "": `+wiringapi.ErrFabricNotSet.Error())
+	require.EqualError(t, err, "spec.topology.fabric: Required value")
 	testutil.RequireFieldError(t, err, fabricNotSet)
 }
 

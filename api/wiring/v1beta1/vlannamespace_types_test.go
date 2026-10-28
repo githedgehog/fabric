@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -73,7 +74,7 @@ func TestValidate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.vlanNS.Validate(t.Context(), nil, cfg)
 			if tt.err {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, tt.vlanNS)
 
 				return
 			}

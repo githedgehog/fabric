@@ -175,7 +175,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 	spec := field.NewPath("spec")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(spec.Child("topology", "fabric"), peering.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 
 	if fabricCfg != nil && fabricCfg.VPCPeeringDisabled {

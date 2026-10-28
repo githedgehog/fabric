@@ -395,7 +395,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	neighborPath, staticPath := spec.Child("neighbor"), spec.Child("static")
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
-		return nil, field.Invalid(spec.Child("topology", "fabric"), attach.Spec.Topology.Fabric, err.Error())
+		return nil, err //nolint:wrapcheck
 	}
 
 	if attach.Spec.External == "" {

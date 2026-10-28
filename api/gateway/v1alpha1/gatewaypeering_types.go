@@ -368,7 +368,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, p.Namespace, p.Spec.Topology.Fabric); err != nil {
-		return field.Invalid(spec.Child("topology", "fabric"), p.Spec.Topology.Fabric, err.Error())
+		return err //nolint:wrapcheck
 	}
 
 	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))

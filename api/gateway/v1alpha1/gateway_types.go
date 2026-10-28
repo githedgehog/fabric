@@ -291,7 +291,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {
-		return field.Invalid(spec.Child("topology", "fabric"), gw.Spec.Topology.Fabric, err.Error())
+		return err //nolint:wrapcheck
 	}
 	if gw.Spec.Topology.Domain == "" {
 		return field.Required(domainPath, "")
